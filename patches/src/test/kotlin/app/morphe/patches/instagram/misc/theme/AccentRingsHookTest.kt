@@ -14,7 +14,6 @@ import app.morphe.patches.instagram.NeutralNativePath
 import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.stories.ring.COLORS_PARAMETER
 import app.morphe.patches.instagram.stories.ring.ComposeRing
-import app.morphe.patches.instagram.stories.ring.DEFAULT_RING
 import app.morphe.patches.instagram.stories.ring.GRADIENT_PARAMETERS
 import app.morphe.patches.instagram.stories.ring.GRADIENT_SPINNER
 import app.morphe.patches.instagram.stories.ring.RING_COLORS
@@ -135,7 +134,7 @@ class AccentRingsHookTest {
     }
 
     private fun takesBoth(bundle: File, label: String) {
-        val classes = (FixtureDex.classesLoading(bundle, DEFAULT_RING) + FixtureDex.classes(bundle, setOf(GRADIENT_SPINNER)).values +
+        val classes = (StoryRingFixtures.composeRingClasses(bundle) + FixtureDex.classes(bundle, setOf(GRADIENT_SPINNER)).values +
             ExtensionDex.classDef(ACCENT_RINGS)).distinctBy { it.type }
 
         val after = PatchContexts.of(classes)

@@ -9,12 +9,15 @@ import app.morphe.Fixtures
 import app.morphe.PatchContexts
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
-import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.instagram.NeutralNativePath
 import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.stories.ring.StoryRingFixtures.COMPOSE_RING
+import app.morphe.patches.instagram.stories.ring.StoryRingFixtures.COMPOSE_RING_TAKER
 import app.morphe.patches.instagram.stories.ring.StoryRingFixtures.HIGH_RESULT
+import app.morphe.patches.instagram.stories.ring.StoryRingFixtures.RING_HOLDER
 import app.morphe.patches.instagram.stories.ring.StoryRingFixtures.composeRing
+import app.morphe.patches.instagram.stories.ring.StoryRingFixtures.composeRingTaker
+import app.morphe.patches.instagram.stories.ring.StoryRingFixtures.ringMaker
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -71,6 +74,42 @@ class StoryRingComposeHookTest {
         assertEquals(HIGH_RESULT, ring.register)
         context.colorComposeRing(ring, RING_DEFAULT_COLORS)
         assertHooked("range", context.method(ring), RING_DEFAULT_COLORS, ring.at, HIGH_RESULT)
+    }
+
+    /**
+     * 455's shape: the method loading the ring's name makes the ring's own class, and a static
+     * taking only that class turns its colors into an array. That static is found and hooked.
+     */
+    @Test
+    fun aStaticTakingTheDefaultRingIsFoundAndHooked() {
+        val context = PatchContexts.of(listOf(ringMaker(), composeRingTaker()))
+
+        val ring = context.findComposeRing()
+        assertEquals(COMPOSE_RING_TAKER, ring.type)
+        assertEquals("A00", ring.name)
+        assertEquals(listOf(RING_HOLDER), ring.parameters)
+        assertEquals(3, ring.at)
+        assertEquals(6, ring.register)
+        val original = NeutralNativePath(context.method(ring))
+        context.colorComposeRing(ring, RING_DEFAULT_COLORS)
+
+        val method = context.method(ring)
+        assertHooked("taker", method, RING_DEFAULT_COLORS, ring.at, ring.register)
+        original.assertPreserved("taker", method, setOf(ring.at, ring.at + 1))
+        assertEquals("the screen reads the answer", Opcode.ARRAY_LENGTH, method.implementation!!.instructions.toList()[ring.at + 2].opcode)
+    }
+
+    /** A static taking another class, or a class the name's method makes from one list, isn't the ring's. */
+    @Test
+    fun aStaticTakingAnotherClassIsNotTheRing() {
+        refuses("found 0", listOf(ringMaker(), composeRingTaker(takes = "Lfixture/Other;")))
+        refuses("found 0", listOf(ringMaker(lists = 1), composeRingTaker()))
+    }
+
+    /** 454's shape and 455's in one build leave two places, and the patch can't tell which is the ring's. */
+    @Test
+    fun bothShapesAtOnceFailThePatch() {
+        refuses("found 2", listOf(composeRing(), ringMaker(), composeRingTaker()))
     }
 
     /** 454's other method loading the ring's name makes no array from a list, and is left alone. */
@@ -133,7 +172,7 @@ class StoryRingComposeHookTest {
     }
 
     private fun hooks(bundle: File, label: String) {
-        val context = PatchContexts.of(FixtureDex.classesLoading(bundle, DEFAULT_RING))
+        val context = PatchContexts.of(StoryRingFixtures.composeRingClasses(bundle))
         val ring = context.findComposeRing()
         val original = NeutralNativePath(context.method(ring))
         context.colorComposeRing(ring, RING_DEFAULT_COLORS)

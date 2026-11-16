@@ -4,10 +4,13 @@
  */
 package app.morphe.patches.instagram.stories.ring
 
+import app.morphe.patches.instagram.FixtureDex
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
@@ -19,6 +22,7 @@ import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstructio
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction12x
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction21c
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction21t
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction22c
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction22x
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction35c
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction3rc
@@ -27,6 +31,7 @@ import com.android.tools.smali.dexlib2.immutable.reference.ImmutableFieldReferen
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableMethodReference
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableStringReference
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableTypeReference
+import java.io.File
 
 /**
  * The ring view, default ring and Compose ring fixtures. They live outside the test classes so the
@@ -206,5 +211,97 @@ internal object StoryRingFixtures {
             type, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, "Ljava/lang/Object;",
             null, null, null, null, methods,
         )
+    }
+
+    /** The default ring's own class on 455, which [ringMaker] makes and [composeRingTaker] takes. */
+    const val RING_HOLDER = "Lfixture/RingHolder;"
+    const val COMPOSE_RING_TAKER = "Lfixture/ComposeRingTaker;"
+
+    /**
+     * A class shaped like 455's lambda putting the default ring together: its `invoke()` loads
+     * [DEFAULT_RING] and makes [RING_HOLDER] from the name, two lists and four doubles, or from
+     * [lists] lists.
+     *
+     *     a0 const-string v0, "default_brand_update"
+     *     a2 new-instance v1, RingHolder
+     *     a4 invoke-direct/range {v1 ..}, RingHolder.<init>(String, List, List, D, D, D, D)V
+     *     a7 return-object v1
+     */
+    fun ringMaker(lists: Int = 2): ClassDef {
+        val parameters = listOf("Ljava/lang/String;") + List(lists) { LIST } + List(4) { "D" }
+        val made = ImmutableMethodReference(RING_HOLDER, "<init>", parameters, "V")
+        val code = listOf<Instruction>(
+            ImmutableInstruction21c(Opcode.CONST_STRING, 0, ImmutableStringReference(DEFAULT_RING)),
+            ImmutableInstruction21c(Opcode.NEW_INSTANCE, 1, ImmutableTypeReference(RING_HOLDER)),
+            ImmutableInstruction3rc(Opcode.INVOKE_DIRECT_RANGE, 1, 1 + lists + 1 + 8, made),
+            ImmutableInstruction11x(Opcode.RETURN_OBJECT, 1),
+        )
+        val method = ImmutableMethod(
+            "Lfixture/RingMaker;", "invoke", emptyList(), "Ljava/lang/Object;",
+            AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, null, null,
+            ImmutableMethodImplementation(16, code, null, null),
+        )
+        return ImmutableClassDef(
+            "Lfixture/RingMaker;", AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, "Ljava/lang/Object;",
+            null, null, null, null, listOf(method),
+        )
+    }
+
+    /**
+     * A class shaped like 455's `LX/0129;`: a static `A00` taking only [takes] that reads the ring's
+     * colors from it as a list, turns them into an array with a static taking a list, and reads the
+     * array. Its one parameter is v8.
+     *
+     *     a0 iget-object v0, v8, colors
+     *     a2 invoke-static {v0}, A01(List)[I
+     *     a5 move-result-object v6
+     *     a6 array-length v5, v6
+     *     a7 return-object v6
+     */
+    fun composeRingTaker(takes: String = RING_HOLDER): ClassDef {
+        val toArray = ImmutableMethodReference("Lfixture/Colors;", "A01", listOf(LIST), "[I")
+        val code = listOf<Instruction>(
+            ImmutableInstruction22c(Opcode.IGET_OBJECT, 0, 8, ImmutableFieldReference(takes, "colors", LIST)),
+            ImmutableInstruction35c(Opcode.INVOKE_STATIC, 1, 0, 0, 0, 0, 0, toArray),
+            ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 6),
+            ImmutableInstruction12x(Opcode.ARRAY_LENGTH, 5, 6),
+            ImmutableInstruction11x(Opcode.RETURN_OBJECT, 6),
+        )
+        val method = ImmutableMethod(
+            COMPOSE_RING_TAKER, "A00", listOf(ImmutableMethodParameter(takes, null, null)), "Ljava/lang/Object;",
+            AccessFlags.PUBLIC.value or AccessFlags.STATIC.value, null, null,
+            ImmutableMethodImplementation(9, code, null, null),
+        )
+        return ImmutableClassDef(
+            COMPOSE_RING_TAKER, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, "Ljava/lang/Object;",
+            null, null, null, null, listOf(method),
+        )
+    }
+
+    /**
+     * The classes of [bundle] the Compose ring is looked for in: those loading [DEFAULT_RING] and
+     * those with a method taking only a class one of them makes from two lists and four doubles,
+     * which is where 455 turns the ring's colors into an array.
+     */
+    fun composeRingClasses(bundle: File): List<ClassDef> {
+        val named = FixtureDex.classesLoading(bundle, DEFAULT_RING)
+        val rings = named.asSequence().flatMap { it.methods.asSequence() }
+            .flatMap { it.implementation?.instructions?.toList().orEmpty() }
+            .mapNotNull { (it as? ReferenceInstruction)?.reference as? MethodReference }
+            .filter { call ->
+                val types = call.parameterTypes.map(CharSequence::toString)
+                call.name == "<init>" && types.count { it == LIST } == 2 && types.count { it == "D" } == 4
+            }
+            .mapTo(HashSet()) { it.definingClass }
+        if (rings.isEmpty()) return named
+        val takers = mutableListOf<ClassDef>()
+        FixtureDex.forEach(bundle) { dex ->
+            if (dex.typeSection.none { it in rings }) return@forEach
+            for (classDef in dex.classes) {
+                val takes = classDef.methods.any { method -> method.parameterTypes.map(CharSequence::toString).singleOrNull() in rings }
+                if (takes) takers += ImmutableClassDef.of(classDef)
+            }
+        }
+        return (named + takers).distinctBy { it.type }
     }
 }

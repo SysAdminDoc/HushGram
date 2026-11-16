@@ -9,6 +9,7 @@ import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesLoadingString
+import app.morphe.patches.instagram.misc.extension.classesReadingObjects
 import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
@@ -190,19 +191,27 @@ internal class ComposeRing(
 
 /**
  * Finds where Compose screens put Instagram's default ring together (#528). The ring view's builder
- * never sees that ring: the method loading [DEFAULT_RING] reads the ring's colors as a list from the
- * default ring spec and turns them into an array with a static taking a list and answering an int
- * array, then makes Compose colors from that array. On 454 that is `LX/0IDN;->A00()`, and no other
- * method loading the ring's name turns a list into an array. Exactly one call like it, in exactly
+ * never sees that ring: Compose reads the ring's colors as a list from the default ring and turns
+ * them into an array with a static taking a list and answering an int array, then makes Compose
+ * colors from that array. On 454 the method doing that loads [DEFAULT_RING] itself
+ * (`LX/0IDN;->A00()`). On every 455 build it reads the name from the default ring's own class
+ * instead: a static taking only that class, the one a method loading [DEFAULT_RING] makes from two
+ * lists and four doubles (its colors, its stops and its two points). Both kinds are searched, and
+ * no other method of either kind turns a list into an array. Exactly one call like it, in exactly
  * one such method, is what the patch can be sure of. The hook goes right after the array lands, so
  * nothing may jump there.
  */
 internal fun BytecodePatchContext.findComposeRing(patch: String = PATCH): ComposeRing {
-    val found = classesLoadingString(DEFAULT_RING).flatMap { classDef ->
-        classDef.methods.filter { loadsString(it, DEFAULT_RING) }.flatMap { method ->
-            method.colorArraysFromLists().map { at -> Triple(classDef.type, method, at) }
+    val named = classesLoadingString(DEFAULT_RING).flatMap { classDef ->
+        classDef.methods.filter { loadsString(it, DEFAULT_RING) }.map { classDef.type to it }
+    }
+    val takers = named.flatMapTo(LinkedHashSet()) { (_, method) -> method.defaultRingsMade() }.flatMap { ring ->
+        classesReadingObjects(ring, LIST).flatMap { classDef ->
+            classDef.methods.filter { it.parameterTypes.map(CharSequence::toString) == listOf(ring) }.map { classDef.type to it }
         }
     }
+    val found = (named + takers).distinctBy { (type, method) -> "$type->${method.name}(${method.parameterTypes.joinToString("")})" }
+        .flatMap { (type, method) -> method.colorArraysFromLists().map { at -> Triple(type, method, at) } }
     val (type, method, call) = found.singleOrNull()
         ?: refuse(
             "expected one place a method loading \"$DEFAULT_RING\" turns a list of colors into an array, found ${found.size}" +
@@ -230,6 +239,15 @@ private fun Method.colorArraysFromLists(): List<Int> {
 }
 
 private const val LIST = "Ljava/util/List;"
+
+/** The classes this method makes with two lists and four doubles, the way the default ring is made from its colors, stops and points. */
+private fun Method.defaultRingsMade(): List<String> =
+    implementation?.instructions?.mapNotNull { (it as? ReferenceInstruction)?.reference as? MethodReference }
+        ?.filter { call ->
+            val types = call.parameterTypes.map(CharSequence::toString)
+            call.name == "<init>" && types.count { it == LIST } == 2 && types.count { it == "D" } == 4
+        }
+        ?.map { it.definingClass }.orEmpty()
 
 /**
  * Passes the default ring's colors through [hook] right after Compose screens turn them into an
