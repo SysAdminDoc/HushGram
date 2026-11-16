@@ -4075,6 +4075,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_reel_2x_popup", FALSE);
 
     /**
+     * Keeps Instagram's "Locked at 2x speed" message off the screen when a reel's speed is locked, and
+     * the one it shows when the lock ends ({@link app.hushgram.extension.instagram.reels.FastPlayLabel#lockToast}).
+     * The lock still works. Its own switch beside {@link #HIDE_REEL_2X_POPUP}. Off to start (#702, #552).
+     */
+    public static final BooleanSetting HIDE_REEL_LOCK_MESSAGE =
+            new BooleanSetting("hushgram_hide_reel_lock_message", FALSE);
+
+    /**
      * A video or reel over two minutes left partway picks up there the next time a player starts
      * it ({@link app.hushgram.extension.instagram.media.ResumePlayback}). Starts off: it keeps the
      * IDs of the videos you left partway, for 30 days, in the app's own storage.

@@ -2320,3 +2320,7 @@ Time on each post	每条帖子的时间
 Control the reel above comments	控制评论上方的 Reel
 # context: Summary of Control the reel above comments (#665)
 With a reel's comments open, tap the reel above them to pause or play it, or hold it to play at 2x. The comments stay open.	Reel 的评论打开时，点一下上方的 Reel 即可暂停或播放，长按则以 2 倍速播放。评论会保持打开.
+# context: Reels settings: switch that keeps Instagram's "Locked at 2x speed" toast, and the one it shows when the lock ends, off a reel; the lock itself still works (#702, #552)
+Hide the speed lock message	隐藏速度锁定消息
+# context: Summary of Hide the speed lock message (#702)
+Keeps the message Instagram shows when you lock a reel's speed, and when the lock ends, off the screen. The lock still works.	锁定 Reel 的播放速度和解除锁定时，不显示 Instagram 的提示消息。锁定仍然有效.

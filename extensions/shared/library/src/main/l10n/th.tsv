@@ -2314,3 +2314,7 @@ Time on each post	เวลาในแต่ละโพสต์
 Control the reel above comments	ควบคุมรีลส์เหนือความคิดเห็น
 # context: Summary of Control the reel above comments (#665)
 With a reel's comments open, tap the reel above them to pause or play it, or hold it to play at 2x. The comments stay open.	ขณะเปิดความคิดเห็นของรีลส์ แตะรีลส์ด้านบนเพื่อหยุดชั่วคราวหรือเล่น หรือกดค้างไว้เพื่อเล่นที่ 2x ความคิดเห็นจะยังเปิดอยู่
+# context: Reels settings: switch that keeps Instagram's "Locked at 2x speed" toast, and the one it shows when the lock ends, off a reel; the lock itself still works (#702, #552)
+Hide the speed lock message	ซ่อนข้อความล็อกความเร็ว
+# context: Summary of Hide the speed lock message (#702)
+Keeps the message Instagram shows when you lock a reel's speed, and when the lock ends, off the screen. The lock still works.	ไม่แสดงข้อความที่ Instagram แสดงเมื่อคุณล็อกความเร็วของรีลส์และเมื่อการล็อกสิ้นสุดลง การล็อกยังคงทำงานได้ตามปกติ

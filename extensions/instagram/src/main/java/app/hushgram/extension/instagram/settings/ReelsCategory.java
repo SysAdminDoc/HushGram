@@ -295,6 +295,9 @@ final class ReelsCategory {
         if (build.contains(PatchFamily.HIDE_REEL_2X_POPUP)) {
             reels.add(toggle(context, Settings.HIDE_REEL_2X_POPUP, L10n.t("Hide the 2x popup"),
                     L10n.t("Takes the 2x label off a reel while you hold it to play faster. The speed-up still works.")));
+            reels.add(toggle(context, Settings.HIDE_REEL_LOCK_MESSAGE, L10n.t("Hide the speed lock message"),
+                    L10n.t("Keeps the message Instagram shows when you lock a reel's speed, and when the lock ends, "
+                            + "off the screen. The lock still works.")));
         }
         if (build.contains(PatchFamily.REEL_BLUR_BARS)) {
             reels.add(toggle(context, Settings.BLUR_REEL_BARS, L10n.t("Blur the bars around a reel"),

@@ -2317,3 +2317,7 @@ Time on each post	Zeit pro Beitrag
 Control the reel above comments	Reel über den Kommentaren steuern
 # context: Summary of Control the reel above comments (#665)
 With a reel's comments open, tap the reel above them to pause or play it, or hold it to play at 2x. The comments stay open.	Sind die Kommentare eines Reels offen, tippe auf das Reel darüber, um es anzuhalten oder abzuspielen, oder halte es gedrückt, um es mit 2x abzuspielen. Die Kommentare bleiben offen.
+# context: Reels settings: switch that keeps Instagram's "Locked at 2x speed" toast, and the one it shows when the lock ends, off a reel; the lock itself still works (#702, #552)
+Hide the speed lock message	Hinweis zur Geschwindigkeitssperre ausblenden
+# context: Summary of Hide the speed lock message (#702)
+Keeps the message Instagram shows when you lock a reel's speed, and when the lock ends, off the screen. The lock still works.	Hält die Meldung, die Instagram zeigt, wenn du die Geschwindigkeit eines Reels sperrst und wenn die Sperre endet, vom Bildschirm fern. Die Sperre funktioniert weiter.

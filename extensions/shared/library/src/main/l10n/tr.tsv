@@ -2317,3 +2317,7 @@ Time on each post	Gönderi başına süre
 Control the reel above comments	Yorumların üstündeki reel'i kontrol et
 # context: Summary of Control the reel above comments (#665)
 With a reel's comments open, tap the reel above them to pause or play it, or hold it to play at 2x. The comments stay open.	Bir reel'in yorumları açıkken üstteki reel'e dokunarak duraklat veya oynat, 2x hızda oynatmak için de basılı tut. Yorumlar açık kalır.
+# context: Reels settings: switch that keeps Instagram's "Locked at 2x speed" toast, and the one it shows when the lock ends, off a reel; the lock itself still works (#702, #552)
+Hide the speed lock message	Hız kilidi mesajını gizle
+# context: Summary of Hide the speed lock message (#702)
+Keeps the message Instagram shows when you lock a reel's speed, and when the lock ends, off the screen. The lock still works.	Bir reel'in hızını kilitlediğinde ve kilit bittiğinde Instagram'ın gösterdiği mesajı ekrandan uzak tutar. Kilit çalışmaya devam eder.

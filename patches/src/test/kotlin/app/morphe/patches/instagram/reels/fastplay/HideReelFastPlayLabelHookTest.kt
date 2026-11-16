@@ -17,11 +17,13 @@ import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
+import com.android.tools.smali.dexlib2.iface.reference.StringReference
 import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
@@ -113,6 +115,223 @@ class HideReelFastPlayLabelHookTest {
     fun eachOtherBuildFiltersTheLabelToo() {
         for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
     }
+
+    /** The lock message hook is in the FastPlayLabel the bundle ships, public and static (#702). */
+    @Test
+    fun theLockMessageHookIsInTheExtension() {
+        val owner = LOCK_TOAST.substringBefore("->")
+        val declared = ExtensionDex.classDef(owner).methods
+            .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
+            .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
+        assertTrue("$LOCK_TOAST is not in the extension: $declared", LOCK_TOAST.substringAfter("->") in declared)
+    }
+
+    /**
+     * A long press navigator shaped like 454's 0AIS: one static call builds and shows the lock toast, another
+     * the one when the lock ends (that one through a range call). Each show goes to the hook on the toast's own
+     * register, with nothing else changed, and a toast shown anywhere else is left alone.
+     */
+    @Test
+    fun eachLockToastIsHandedToTheHook() {
+        val context = PatchContexts.of(lockClasses())
+        val stock = listOf("lockUp", "exitLockUp", "other").associateWith { context.navigatorMethod(it).code() }
+
+        val found = context.findLockToasts()
+        assertEquals("the toasts found", listOf("lockUp", "exitLockUp"), found.map { it.method.name })
+        assertEquals("the toast's registers", listOf(1, 2), found.map { it.register })
+        context.hideLockToasts(found)
+
+        for ((name, register) in listOf("lockUp" to 1, "exitLockUp" to 2)) assertHandedOver(name, stock.getValue(name), context.navigatorMethod(name).code(), register)
+        assertEquals("a toast shown elsewhere is untouched", stock.getValue("other").map { it.referenceText() }, context.navigatorMethod("other").code().map { it.referenceText() })
+    }
+
+    /**
+     * A build where Redex folds both lock toasts into one lambda, like 0288.invoke on 386014714: one instance
+     * call loads each marker on its own branch and the branches meet at one show. That show is found once
+     * and handed to the hook once.
+     */
+    @Test
+    fun aFoldedLambdaHandsItsOneSharedShowOver() {
+        val context = PatchContexts.of(foldedClasses())
+        val stock = context.foldedInvoke().code()
+
+        val found = context.findLockToasts()
+        assertEquals("one show for both toasts", listOf("invoke"), found.map { it.method.name })
+        assertEquals("the toast's register", 3, found.single().register)
+        context.hideLockToasts(found)
+
+        assertHandedOver("invoke", stock, context.foldedInvoke().code(), 3)
+    }
+
+    /** A build whose lock toasts the patch can't read fails at patch time, saying what it found, before anything is written. */
+    @Test
+    fun aBuildWhoseLockToastsThePatchCantReadFailsBeforeAnythingChanges() {
+        val cases = listOf(
+            lockClasses(exitLoads = false) to "expected one speed lock toast loading \"$EXIT_LOCK_TOAST_SHOW\", found 0",
+            lockClasses(showsTwice = true) to "to show its toast once, found 2",
+            lockClasses(shows = false) to "to show its toast once, found 0",
+            foldedClasses(showFirst = true) to "shows its toast before it loads its marker",
+        )
+        for ((classes, expected) in cases) {
+            val context = PatchContexts.of(classes)
+            val failure = assertThrows(expected, PatchException::class.java) { context.hideLockToasts(context.findLockToasts()) }
+            assertTrue("$expected: ${failure.message}", failure.message!!.contains(expected))
+            val written = classes.map { it.type }.flatMap { type -> context.mutableClassDefBy(type).methods }
+                .filter { method -> method.code().any { it.referenceText() == LOCK_TOAST } }
+            assertTrue("$expected: something was written to $written", written.isEmpty())
+        }
+    }
+
+    /** In each declared build both lock toasts are found, each in its own method, and handed to the hook. */
+    @Test
+    fun eachDeclaredBuildHandsItsLockToastsOver() {
+        val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
+        val checked = mutableSetOf<String>()
+        for (version in versions) {
+            for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
+                lockBuilds(bundle, bundle.name)
+                checked += version
+            }
+        }
+        assertEquals("a declared build has no fixture", versions, checked)
+    }
+
+    @Test
+    fun eachOtherBuildHandsItsLockToastsOverToo() {
+        for (base in Fixtures.otherBuilds()) lockBuilds(base, base.parentFile.name)
+    }
+
+    private fun lockBuilds(bundle: File, label: String) {
+        val loading = FixtureDex.classesLoading(bundle, LOCK_TOAST_SHOW) + FixtureDex.classesLoading(bundle, EXIT_LOCK_TOAST_SHOW)
+        val classes = FixtureDex.withStringPools(bundle, loading.distinctBy { it.type })
+        val context = PatchContexts.of(classes)
+
+        // Two static calls on most builds, one folded lambda holding both markers on others (386014714).
+        val markers = setOf(LOCK_TOAST_SHOW, EXIT_LOCK_TOAST_SHOW)
+        val loaders = classes.flatMap { it.methods }
+            .filter { method -> method.code().any { (it.reference() as? StringReference)?.string in markers } }
+            .map { "${it.definingClass}->${it.name}" }
+        assertTrue("$label: one or two methods load the markers, found $loaders", loaders.size in 1..2)
+
+        val found = context.findLockToasts()
+        assertEquals("$label: one show in each method loading a marker", loaders.sorted(), found.map { "${it.method.definingClass}->${it.method.name}" }.sorted())
+        val stock = found.map { it.method.code() }
+        context.hideLockToasts(found)
+
+        for ((at, show) in found.withIndex()) {
+            val patched = context.mutableClassDefBy(show.method.definingClass).methods.single {
+                it.name == show.method.name && it.parameterTypes.map(Any::toString) == show.method.parameterTypes.map(Any::toString)
+            }.code()
+            assertHandedOver("$label ${show.method.name}", stock[at], patched, show.register)
+        }
+        assertEquals(
+            "$label: methods hooked",
+            loaders.size,
+            classes.map { it.type }.flatMap { context.mutableClassDefBy(it).methods }
+                .count { m -> m.code().any { it.referenceText() == LOCK_TOAST } },
+        )
+    }
+
+    /**
+     * The one `Toast.show()` in [stock] became a one-register range call to the hook on [register], the toast
+     * the stock call showed; every other instruction is as it was.
+     */
+    private fun assertHandedOver(what: String, stock: List<Instruction>, patched: List<Instruction>, register: Int) {
+        val shows = stock.indices.filter { stock[it].referenceText() == "Landroid/widget/Toast;->show()V" }
+        assertEquals("$what: stock shows", 1, shows.size)
+        val at = shows.single()
+        val stockRegister = when (val call = stock[at]) {
+            is FiveRegisterInstruction -> call.registerC
+            is RegisterRangeInstruction -> call.startRegister
+            else -> error("$what: the stock show reads no register")
+        }
+        assertEquals("$what: the toast's register", stockRegister, register)
+        assertEquals("$what: instructions", stock.size, patched.size)
+        assertEquals("$what: the hook's call", Opcode.INVOKE_STATIC_RANGE, patched[at].opcode)
+        assertEquals("$what: the hook", LOCK_TOAST, patched[at].referenceText())
+        val range = patched[at] as RegisterRangeInstruction
+        assertEquals("$what: registers handed to the hook", 1, range.registerCount)
+        assertEquals("$what: the toast handed over", register, range.startRegister)
+        assertEquals("$what: toasts still shown", 0, patched.count { it.referenceText() == "Landroid/widget/Toast;->show()V" })
+        for (index in stock.indices) {
+            if (index == at) continue
+            assertEquals("$what: instruction $index", stock[index].opcode, patched[index].opcode)
+            assertEquals("$what: instruction $index's reference", stock[index].referenceText(), patched[index].referenceText())
+        }
+    }
+
+    /**
+     * A long press navigator shaped like 454's 0AIS: static, one parameter calls that load their marker, get a
+     * toast, set its gravity, show it and answer Unit. The lock one shows on v1, the exit one on v2 through a
+     * range call, and an unrelated call shows its own toast.
+     */
+    private fun lockClasses(exitLoads: Boolean = true, showsTwice: Boolean = false, shows: Boolean = true): List<ClassDef> {
+        val static = AccessFlags.PUBLIC.value or AccessFlags.STATIC.value
+        fun body(marker: String, toast: Int, range: Boolean, again: Boolean = false, show: Boolean = true): String {
+            val call = if (range) "invoke-virtual/range {v$toast .. v$toast}, Landroid/widget/Toast;->show()V"
+            else "invoke-virtual {v$toast}, Landroid/widget/Toast;->show()V"
+            return """
+                const-string v0, "$marker"
+                invoke-static {v0}, Lfixture/Trace;->begin(Ljava/lang/String;)V
+                invoke-static {p0}, Lfixture/Toasts;->make(Ljava/lang/Object;)Landroid/widget/Toast;
+                move-result-object v$toast
+                const/16 v3, 0x31
+                const/4 v0, 0x0
+                invoke-virtual {v$toast, v3, v0, v0}, Landroid/widget/Toast;->setGravity(III)V
+                ${if (show) call else ""}
+                ${if (again) call else ""}
+                sget-object v0, Lkotlin/Unit;->INSTANCE:Lkotlin/Unit;
+                return-object v0
+            """
+        }
+        return listOf(
+            classDef(navigator, listOf(
+                method(navigator, "lockUp", listOf(navigatorOwner), "Ljava/lang/Object;", 4, static, body(LOCK_TOAST_SHOW, 1, range = false, show = shows)),
+                method(navigator, "exitLockUp", listOf(navigatorOwner), "Ljava/lang/Object;", 4, static,
+                    body(if (exitLoads) EXIT_LOCK_TOAST_SHOW else "other", 2, range = true, again = showsTwice)),
+                method(navigator, "other", listOf(navigatorOwner), "Ljava/lang/Object;", 4, static, body("other", 1, range = false)),
+            )),
+        )
+    }
+
+    /**
+     * A folded lock lambda shaped like 386014714's 0288.invoke: a field picks the exit or the lock branch,
+     * each loads its marker, and both then build one toast on v3 and show it. With [showFirst] the show
+     * comes before either marker.
+     */
+    private fun foldedClasses(showFirst: Boolean = false): List<ClassDef> {
+        val show = """
+            invoke-static {p0}, Lfixture/Toasts;->make(Ljava/lang/Object;)Landroid/widget/Toast;
+            move-result-object v3
+            invoke-virtual {v3}, Landroid/widget/Toast;->show()V
+        """
+        val body = """
+            ${if (showFirst) show else ""}
+            iget v0, p0, $folded->which:I
+            if-eqz v0, :lock
+            const-string v1, "$EXIT_LOCK_TOAST_SHOW"
+            invoke-static {v1}, Lfixture/Trace;->begin(Ljava/lang/String;)V
+            goto :make
+            :lock
+            const-string v1, "$LOCK_TOAST_SHOW"
+            invoke-static {v1}, Lfixture/Trace;->begin(Ljava/lang/String;)V
+            :make
+            ${if (showFirst) "" else show}
+            sget-object v0, Lkotlin/Unit;->INSTANCE:Lkotlin/Unit;
+            return-object v0
+        """
+        val flags = AccessFlags.PUBLIC.value or AccessFlags.FINAL.value or AccessFlags.BRIDGE.value or AccessFlags.SYNTHETIC.value
+        return listOf(classDef(folded, listOf(method(folded, "invoke", emptyList(), "Ljava/lang/Object;", 4, flags, body))))
+    }
+
+    private val folded = "Lfixture/FoldedLockLambda;"
+
+    private fun BytecodePatchContext.foldedInvoke(): Method = mutableClassDefBy(folded).methods.single { it.name == "invoke" }
+
+    private val navigator = "Lfixture/LongPressNavigator;"
+    private val navigatorOwner = "Lfixture/Owner;"
+
+    private fun BytecodePatchContext.navigatorMethod(name: String): Method = mutableClassDefBy(navigator).methods.single { it.name == name }
 
     private fun builds(bundle: File, label: String) {
         val loading = FixtureDex.classesLoading(bundle, FAST_PLAY_RENDER) + FixtureDex.classesLoading(bundle, FAST_PLAY_LABEL_RENDER)
@@ -255,4 +474,6 @@ class HideReelFastPlayLabelHookTest {
     private fun Method.code(): List<Instruction> = implementation?.instructions?.toList().orEmpty()
 
     private fun Instruction.referenceText(): String? = (this as? ReferenceInstruction)?.reference?.toString()
+
+    private fun Instruction.reference() = (this as? ReferenceInstruction)?.reference
 }

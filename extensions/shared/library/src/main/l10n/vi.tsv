@@ -2232,3 +2232,7 @@ Time on each post	Thời gian mỗi bài viết
 Control the reel above comments	Điều khiển reel phía trên bình luận
 # context: Summary of Control the reel above comments (#665)
 With a reel's comments open, tap the reel above them to pause or play it, or hold it to play at 2x. The comments stay open.	Khi bình luận của reel đang mở, chạm vào reel phía trên để tạm dừng hoặc phát, hoặc giữ để phát ở tốc độ 2x. Bình luận vẫn mở.
+# context: Reels settings: switch that keeps Instagram's "Locked at 2x speed" toast, and the one it shows when the lock ends, off a reel; the lock itself still works (#702, #552)
+Hide the speed lock message	Ẩn thông báo khóa tốc độ
+# context: Summary of Hide the speed lock message (#702)
+Keeps the message Instagram shows when you lock a reel's speed, and when the lock ends, off the screen. The lock still works.	Không hiện thông báo Instagram đưa ra khi bạn khóa tốc độ của reel và khi hết khóa. Tính năng khóa vẫn hoạt động.

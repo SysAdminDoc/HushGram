@@ -35,6 +35,7 @@ Every HushGram release, newest first.
 * `Shorter Active now`, new under Messages, drops Active now a minute after someone leaves, like the website, instead of six and a half minutes. Restart Instagram after turning it on. Starts off. Asked for in #683.
 * `Sent follow requests`, new under Profiles, keeps a list of the accounts you've asked to follow that haven't let you in. Tap one to open the profile, where Instagram's Requested button cancels it. Starts off. Asked for in #690.
 * With `Glass tab bar` on, a reel's seek bar keeps a little room above the tab bar instead of sitting right on it. The caption and buttons move up with it. Asked for in #187.
+* `Hide the speed lock message`, right under `Hide the 2x popup` in Reels, keeps Instagram's Locked at 2x speed message off a reel when you lock its speed, and the one it shows when the lock ends. The lock still works. Starts off. Asked for in #702 and #552.
 
 ### Bug Fixes
 

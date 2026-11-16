@@ -2316,3 +2316,7 @@ Time on each post	게시물당 시간
 Control the reel above comments	댓글 위 릴스 제어
 # context: Summary of Control the reel above comments (#665)
 With a reel's comments open, tap the reel above them to pause or play it, or hold it to play at 2x. The comments stay open.	릴스 댓글이 열려 있을 때 위쪽 릴스를 탭하면 일시 정지하거나 재생하고, 길게 누르면 2배속으로 재생합니다. 댓글은 열린 채로 유지됩니다.
+# context: Reels settings: switch that keeps Instagram's "Locked at 2x speed" toast, and the one it shows when the lock ends, off a reel; the lock itself still works (#702, #552)
+Hide the speed lock message	속도 고정 메시지 숨기기
+# context: Summary of Hide the speed lock message (#702)
+Keeps the message Instagram shows when you lock a reel's speed, and when the lock ends, off the screen. The lock still works.	릴스 속도를 고정할 때와 고정이 끝날 때 Instagram이 보여 주는 메시지를 화면에 띄우지 않습니다. 고정은 그대로 작동합니다.

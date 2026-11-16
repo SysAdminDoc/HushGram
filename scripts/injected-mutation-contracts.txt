@@ -3117,6 +3117,13 @@ once-call Lapp/hushgram/extension/instagram/reels/ReelSkip;->skipped(Ljava/lang/
 # Left out, the label shows with the switch on; twice or elsewhere, it isn't the filter the patch wrote.
 # Some builds may ask a string pool for the draw's string, so pool asks count (pooled).
 once-call Lapp/hushgram/extension/instagram/reels/FastPlayLabel;->label(Ljava/lang/Object;)Ljava/lang/Object; in instance (LX/*;)LX/*; pooled holding android_purge_26_q3_ClipsFastPlayComponent_render
+# It also hands each speed lock toast to FastPlayLabel.lockToast in place of its show: "Locked at 2x speed" in
+# the long press navigator's lock call (0AIS.A07 on 454's 386014758) and the one when the lock ends (0AIS.A06)
+# (#702, #552). Left out, the toast shows with the switch on; beside the show, it shows anyway; on another
+# register the hook gets something else. Pool asks count (pooled). Written for the declared build: some
+# others (386014705, 386014714, 386014759, 386014760) fold both toasts into one lambda's invoke() with one show.
+sole-call Lapp/hushgram/extension/instagram/reels/FastPlayLabel;->lockToast(Landroid/widget/Toast;)V replacing Landroid/widget/Toast;->show()V in static (LX/*;)Ljava/lang/Object; pooled holding android_purge_26_q3_ClipsLongPressToFeatureNavigator_showLockUpToast
+sole-call Lapp/hushgram/extension/instagram/reels/FastPlayLabel;->lockToast(Landroid/widget/Toast;)V replacing Landroid/widget/Toast;->show()V in static (LX/*;)Ljava/lang/Object; pooled holding android_purge_26_q3_ClipsLongPressToFeatureNavigator_showExitLockUpToast
 # Hide Instagram Plus prompts hands each answer of Instagram's Plus offer check to PlusUpsell.offer
 # right before its three returns (002K.A02 on 454's 386014758, the check every Plus card, menu row and
 # viewer list diamond asks first) (#559). Left out, a return answers yes with the switch on; anywhere

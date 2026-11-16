@@ -2851,7 +2851,7 @@
     },
     {
       "name": "Hide the 2x popup on Reels",
-      "description": "Takes the 2x label off a reel while you hold it to play faster. The speed-up still works. Starts off. Turn it on in HushGram settings > Reels.",
+      "description": "Takes the 2x label off a reel while you hold it to play faster. A second switch hides the message Instagram shows when you lock a reel's speed. The speed-up and the lock still work. Starts off. Turn them on in HushGram settings > Reels.",
       "category": "Reels",
       "use": true,
       "dependencies": [
