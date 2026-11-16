@@ -20,16 +20,19 @@ import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
+import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 
 private const val PATCH = "Phone layout on big screens"
 internal const val PHONE_WIDTH = "$EXTENSION_PACKAGE/misc/PhoneLayout;->width(I)I"
 internal const val NOT_FOLDABLE = "$EXTENSION_PACKAGE/misc/PhoneLayout;->foldable(I)Z"
+internal const val ROTATES = "$EXTENSION_PACKAGE/misc/PhoneLayout;->rotates(I)Z"
 
 /** The names of Instagram's window width classes, the enum its big screen layout is decided by. */
 internal const val COMPACT = "COMPACT"
@@ -45,6 +48,8 @@ internal const val HINGE_FEATURE = "android.hardware.sensor.hinge_angle"
 
 private const val ENUM = "Ljava/lang/Enum;"
 private const val CONTEXT = "Landroid/content/Context;"
+private const val ACTIVITY = "Landroid/app/Activity;"
+private const val SET_ORIENTATION = "setRequestedOrientation"
 private const val PACKAGE_MANAGER = "Landroid/content/pm/PackageManager;"
 
 /**
@@ -74,7 +79,10 @@ val phoneLayoutPatch = bytecodePatch(
         requireStatusMethod("phoneLayout")
         val width = findWidthClass()
         val hinge = findHingeCheck(width)
-        keepPhoneLayout(width, findWidthCheck(width, hinge), hinge)
+        val widthCheck = findWidthCheck(width, hinge)
+        val turning = findOrientationSites(findScreenCheck(hinge))
+        keepPhoneLayout(width, widthCheck, hinge)
+        letBigScreensTurn(turning)
         enableStatus("phoneLayout")
     }
 }
@@ -210,6 +218,127 @@ internal fun BytecodePatchContext.keepPhoneLayout(width: WidthClass, widthCheck:
             move-result $register
         """,
     )
+}
+
+/** The big screen helper's static `(Activity)Z` check, answering whether a screen's width and height are both past compact. */
+internal class ScreenCheck(val type: String, val name: String)
+
+/** A screen check's answer moved out at [at] into [register], in a method picking an orientation. */
+internal class OrientationSite(
+    val type: String,
+    val name: String,
+    val parameters: List<String>,
+    val returnType: String,
+    val at: Int,
+    val register: Int,
+)
+
+/**
+ * Finds the one static method in the big screen helper taking an Activity and answering a boolean that
+ * calls the helper's own `(FII)Z` sorting of a size: the check whether the activity's largest window is
+ * big. The helper's other Activity check asks only about split screen. Fails when there isn't exactly one.
+ */
+internal fun BytecodePatchContext.findScreenCheck(hinge: HingeCheck): ScreenCheck {
+    val checks = mutableClassDefBy(hinge.type).methods.filter {
+        AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == "Z" &&
+            it.parameterTypes.map(CharSequence::toString) == listOf(ACTIVITY) && it.sortsASize(hinge.type)
+    }
+    val check = checks.singleOrNull()
+        ?: refuse("expected one Activity check sorting a screen's size in ${hinge.type}, found ${checks.size}")
+    return ScreenCheck(check.definingClass, check.name)
+}
+
+private fun Method.sortsASize(helper: String): Boolean = instructions().any {
+    val called = (it as? ReferenceInstruction)?.reference as? MethodReference
+    called != null && called.definingClass == helper && called.returnType == "Z" &&
+        called.parameterTypes.map(CharSequence::toString) == listOf("F", "I", "I")
+}
+
+/**
+ * Finds every call to the screen check whose answer picks an orientation: in a method that calls
+ * setRequestedOrientation itself, calls a static `(Activity, int)` method that does (Instagram's
+ * orientation helper), or makes a Runnable whose run() calls that helper (the main activity's chooser
+ * posts one). The check's other callers sort layouts, and those keep the phone answer. A call whose
+ * answer is dropped picks nothing and is left out. Fails when nothing picks an orientation, or
+ * something jumps onto the instruction after a call's move-result.
+ */
+internal fun BytecodePatchContext.findOrientationSites(check: ScreenCheck): List<OrientationSite> {
+    val helpers = classesCalling(ACTIVITY, SET_ORIENTATION).flatMap { classDef ->
+        classDef.methods.filter {
+            AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == "V" &&
+                it.parameterTypes.map(CharSequence::toString) == listOf(ACTIVITY, "I") && it.calls { call -> call.turns() }
+        }.map { "${it.definingClass}->${it.name}" }
+    }.toSet()
+    val runnables = classesCallingAll(helpers).filter { classDef ->
+        classDef.methods.any { it.name == "run" && it.returnType == "V" && it.parameterTypes.isEmpty() && it.callsAny(helpers) }
+    }.mapTo(HashSet()) { it.type }
+    val sites = mutableListOf<OrientationSite>()
+    for (classDef in classesCalling(check.type, check.name, listOf(ACTIVITY), "Z")) {
+        for (method in classDef.methods) {
+            val code = method.instructions()
+            val calls = code.indices.filter { at -> code[at].calls(check) }
+            if (calls.isEmpty() || !method.picksAnOrientation(helpers, runnables)) continue
+            val where = "${method.definingClass}->${method.name}"
+            for (call in calls) {
+                val result = code.getOrNull(call + 1)
+                if (result?.opcode != Opcode.MOVE_RESULT) continue
+                if (call + 2 in method.jumpTargets()) refuse("something in $where jumps onto the instruction after its screen check")
+                sites += OrientationSite(method.definingClass, method.name, method.parameterTypes.map(CharSequence::toString),
+                    method.returnType, call + 1, (result as OneRegisterInstruction).registerA)
+            }
+        }
+    }
+    if (sites.isEmpty()) refuse("expected the screen check ${check.type}->${check.name} to pick an orientation somewhere, found nowhere")
+    return sites
+}
+
+private fun BytecodePatchContext.classesCallingAll(methods: Set<String>): List<ClassDef> = methods.flatMap { method ->
+    classesCalling(method.substringBefore("->"), method.substringAfter("->"))
+}.distinctBy { it.type }
+
+private fun Method.picksAnOrientation(helpers: Set<String>, runnables: Set<String>): Boolean = instructions().any { instruction ->
+    when (val reference = (instruction as? ReferenceInstruction)?.reference) {
+        is MethodReference -> reference.turns() || "${reference.definingClass}->${reference.name}" in helpers
+        is TypeReference -> instruction.opcode == Opcode.NEW_INSTANCE && reference.type in runnables
+        else -> false
+    }
+}
+
+private fun MethodReference.turns(): Boolean = name == SET_ORIENTATION && parameterTypes.map(CharSequence::toString) == listOf("I")
+
+private fun Method.calls(wanted: (MethodReference) -> Boolean): Boolean = instructions().any {
+    val called = (it as? ReferenceInstruction)?.reference as? MethodReference
+    called != null && wanted(called)
+}
+
+private fun Method.callsAny(methods: Set<String>): Boolean = calls { "${it.definingClass}->${it.name}" in methods }
+
+private fun Instruction.calls(check: ScreenCheck): Boolean {
+    if (opcode != Opcode.INVOKE_STATIC && opcode != Opcode.INVOKE_STATIC_RANGE) return false
+    val called = (this as ReferenceInstruction).reference as? MethodReference ?: return false
+    return called.definingClass == check.type && called.name == check.name &&
+        called.parameterTypes.map(CharSequence::toString) == listOf(ACTIVITY) && called.returnType == "Z"
+}
+
+/**
+ * Hands each orientation site's answer to [ROTATES] right after it's moved out, so a screen whose own
+ * size is big still turns with the device while every window sorts as compact. Range calls, so the
+ * registers may be any; a method's later sites go in first, so the earlier sites' indices hold.
+ */
+internal fun BytecodePatchContext.letBigScreensTurn(sites: List<OrientationSite>) {
+    for (site in sites.sortedByDescending { it.at }) {
+        val method = mutableClassDefBy(site.type).methods.single {
+            it.name == site.name && it.returnType == site.returnType && it.parameterTypes.map(CharSequence::toString) == site.parameters
+        }
+        val register = "v${site.register}"
+        method.addInstructions(
+            site.at + 1,
+            """
+                invoke-static/range { $register .. $register }, $ROTATES
+                move-result $register
+            """,
+        )
+    }
 }
 
 private fun Method.instructions(): List<Instruction> = implementation?.instructions?.toList() ?: emptyList()

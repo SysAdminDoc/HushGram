@@ -5,6 +5,8 @@
 package app.hushgram.extension.instagram.misc;
 
 import android.content.Context;
+import android.content.res.Resources;
+import android.util.DisplayMetrics;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
@@ -26,15 +28,26 @@ import java.util.function.BooleanSupplier;
  * of the sorting, the width class factory and the big screen helper's own "isn't this compact" check,
  * and {@link #width} is first thing in both: the main activity and the rail ask the second (#515).
  *
- * <p>Both hooks fail open: with the switch off, HushGram paused, the settings not read yet or
+ * <p>Instagram also picks each screen's orientation from that sorting: a phone stays in portrait and a
+ * big screen turns with the device. With every window sorted as compact a tablet stayed in portrait
+ * (#700, #714), so where the sorting picks an orientation its answer goes to {@link #rotates}, which
+ * gives back what the screen's own size sorts as.
+ *
+ * <p>Every hook fails open: with the switch off, HushGram paused, the settings not read yet or
  * anything thrown, Instagram's own answer stands.
  */
 public final class PhoneLayout {
     /** The widest window, in dp, Instagram still sorts as compact. */
     static final int PHONE_WIDTH = 599;
 
+    /** The lowest window, in dp, Instagram sorts as tall enough for a big screen. */
+    static final int BIG_HEIGHT = 480;
+
     /** The step a failed switch read is reported under. */
     static final String SWITCH = "switch read";
+
+    /** The step a failed read of the screen's size is reported under. */
+    static final String SCREEN = "screen read";
 
     /** The feature Instagram checks for to decide the phone is a foldable. */
     static final String HINGE_FEATURE = "android.hardware.sensor.hinge_angle";
@@ -95,6 +108,47 @@ public final class PhoneLayout {
             HookStatus.threw(FamilyNames.PHONE_LAYOUT, SWITCH, t);
             return read;
         }
+    }
+
+    /**
+     * Asked with whether Instagram sorts the screen as big (non-zero for yes), where that answer picks the
+     * orientation: no keeps the screen in portrait, yes lets it turn with the device. While the switch is on
+     * Instagram's answer is always no, so the screen's own size answers instead, sorted the way Instagram
+     * sorts it without the switch: a tablet turns, a phone stays in portrait. Instagram's own answer while
+     * the switch is off, HushGram is paused or the settings aren't ready. Never throws.
+     */
+    public static boolean rotates(int instagram) {
+        return rotates(instagram, PhoneLayout::switchedOn, PhoneLayout::screenIsBig);
+    }
+
+    static boolean rotates(int instagram, BooleanSupplier on, BooleanSupplier big) {
+        boolean read = instagram != 0;
+        try {
+            HookStatus.invoked(FamilyNames.PHONE_LAYOUT);
+            if (read || !on.getAsBoolean()) return read;
+            return big.getAsBoolean();
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.PHONE_LAYOUT, SCREEN, t);
+            return read;
+        }
+    }
+
+    /**
+     * Instagram's own test of a big screen, for a screen {@code widthPx} by {@code heightPx} pixels at
+     * {@code density}: its width past compact and its height at least {@link #BIG_HEIGHT}, each in dp
+     * rounded up.
+     */
+    static boolean big(float density, int widthPx, int heightPx) {
+        if (!(density > 0)) return false;
+        int width = (int) Math.ceil(widthPx / density);
+        int height = (int) Math.ceil(heightPx / density);
+        return width > PHONE_WIDTH && height >= BIG_HEIGHT;
+    }
+
+    /** The whole display as it's turned now, the way Instagram measures the largest window it could get. */
+    private static boolean screenIsBig() {
+        DisplayMetrics display = Resources.getSystem().getDisplayMetrics();
+        return big(display.density, display.widthPixels, display.heightPixels);
     }
 
     /**

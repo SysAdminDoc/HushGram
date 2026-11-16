@@ -20,6 +20,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
+import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
@@ -38,6 +39,7 @@ import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstructio
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableFieldReference
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableMethodReference
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableStringReference
+import com.android.tools.smali.dexlib2.immutable.reference.ImmutableTypeReference
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
@@ -57,7 +59,9 @@ class PhoneLayoutHookTest {
         assertEquals("I", width.returnType)
         val foldable = phone.methods.single { it.name == "foldable" && it.parameterTypes.map(CharSequence::toString) == listOf("I") }
         assertEquals("Z", foldable.returnType)
-        for (method in listOf(width, foldable)) {
+        val rotates = phone.methods.single { it.name == "rotates" && it.parameterTypes.map(CharSequence::toString) == listOf("I") }
+        assertEquals("Z", rotates.returnType)
+        for (method in listOf(width, foldable, rotates)) {
             assertTrue(method.name, AccessFlags.PUBLIC.isSet(method.accessFlags) && AccessFlags.STATIC.isSet(method.accessFlags))
         }
     }
@@ -180,7 +184,9 @@ class PhoneLayoutHookTest {
      */
     private fun builds(bundle: File, label: String): Boolean {
         val enums = FixtureDex.classesLoading(bundle, MEDIUM).filter { it.superclass == "Ljava/lang/Enum;" }
-        val context = PatchContexts.of((enums + FixtureDex.classesLoading(bundle, HINGE_FEATURE)).distinctBy { it.type })
+        val hinges = FixtureDex.classesLoading(bundle, HINGE_FEATURE)
+        turns(bundle, label, enums, hinges)
+        val context = PatchContexts.of((enums + hinges).distinctBy { it.type })
         val width = context.findWidthClass()
         val hinge = context.findHingeCheck(width)
         val widthCheck = context.findWidthCheck(width, hinge)
@@ -204,6 +210,147 @@ class PhoneLayoutHookTest {
         assertEquals("$label: the hinge check's rest stays", hingeBefore,
             check.filterIndexed { at, _ -> at != hinge.at + 1 && at != hinge.at + 2 }.map(::text))
         return widthCheck != null
+    }
+
+    /**
+     * Where the screen check picks an orientation, its answer goes to the extension: in the chooser that
+     * posts a Runnable calling the orientation helper, and in a screen calling the helper itself (#700,
+     * #714). A layout's call and a call whose answer is dropped stay as they were.
+     */
+    @Test
+    fun theScreenCheckHandsItsAnswerOnWhereItPicksAnOrientation() {
+        val context = PatchContexts.of(turning())
+        val check = context.findScreenCheck(context.findHingeCheck(context.findWidthClass()))
+        assertEquals("the screen check", HELPER to "screen", check.type to check.name)
+        val sites = context.findOrientationSites(check)
+        assertEquals("the sites", setOf(CHOOSER to 1, MODAL to 1),
+            sites.mapTo(HashSet()) { it.type to it.at })
+        assertEquals("the answers' registers", mapOf(CHOOSER to 0, MODAL to 1), sites.associate { it.type to it.register })
+        val untouched = listOf(LAYOUT to "sort", MODAL to "onResume", TURN to "run", ORIENTATION to "set")
+            .associateWith { (type, name) -> context.method(type, name).code().map(::text) }
+        val chooserBefore = context.method(CHOOSER, "choose").code().map(::text)
+        val modalBefore = context.method(MODAL, "onCreate").code().map(::text)
+
+        context.letBigScreensTurn(sites)
+
+        val chooser = context.method(CHOOSER, "choose").code()
+        assertEquals("chooser: the hook after the move-result", ROTATES, chooser[2].referenceText())
+        val call = chooser[2] as RegisterRangeInstruction
+        assertEquals("chooser: the hook takes the answer", 0 to 1, call.startRegister to call.registerCount)
+        assertEquals("chooser: the answer", Opcode.MOVE_RESULT, chooser[3].opcode)
+        assertEquals("chooser: back in the same register", 0, (chooser[3] as OneRegisterInstruction).registerA)
+        assertEquals("chooser: the test stays right after the hook", Opcode.IF_EQZ, chooser[4].opcode)
+        assertEquals("chooser: a phone still skips the Runnable", 6, landsOn(chooser, 4))
+        assertEquals("chooser: the rest stays", chooserBefore, chooser.filterIndexed { at, _ -> at != 2 && at != 3 }.map(::text))
+        val modal = context.method(MODAL, "onCreate").code()
+        assertEquals("modal: the hook after the move-result", ROTATES, modal[2].referenceText())
+        assertEquals("modal: the hook takes v1", 1, (modal[2] as RegisterRangeInstruction).startRegister)
+        assertEquals("modal: back in v1", 1, (modal[3] as OneRegisterInstruction).registerA)
+        assertEquals("modal: the rest stays", modalBefore, modal.filterIndexed { at, _ -> at != 2 && at != 3 }.map(::text))
+        for ((where, before) in untouched) {
+            assertEquals("$where stays", before, context.method(where.first, where.second).code().map(::text))
+        }
+    }
+
+    @Test
+    fun aScreenCheckOfAnotherShapeFailsThePatch() {
+        refusesTurning("sorting a screen's size in $HELPER, found 0", turning(screens = 0))
+        refusesTurning("sorting a screen's size in $HELPER, found 2", turning(screens = 2))
+        refusesTurning("found nowhere", turning(sites = false))
+        refusesTurning("jumps onto the instruction after its screen check", turning(jump = true))
+    }
+
+    /** The width hooks change none of the code the orientation finder reads, so both find what they did alone. */
+    @Test
+    fun theOrientationSitesHoldAfterTheLayoutHooks() {
+        val context = PatchContexts.of(turning())
+        val width = context.findWidthClass()
+        val hinge = context.findHingeCheck(width)
+        val sites = context.findOrientationSites(context.findScreenCheck(hinge))
+        context.keepPhoneLayout(width, context.findWidthCheck(width, hinge), hinge)
+        context.letBigScreensTurn(sites)
+        assertEquals(ROTATES, context.method(CHOOSER, "choose").code()[2].referenceText())
+        assertEquals(PHONE_WIDTH, context.method(WIDTH, "A00").code()[0].referenceText())
+    }
+
+    /**
+     * On a real build: the main activity's chooser and every other screen picking an orientation from the
+     * screen check hand its answer on, and the check's layout callers keep theirs.
+     */
+    private fun turns(bundle: File, label: String, enums: List<ClassDef>, hinges: List<ClassDef>) {
+        val sorting = PatchContexts.of((enums + hinges).distinctBy { it.type })
+        val check = sorting.findScreenCheck(sorting.findHingeCheck(sorting.findWidthClass()))
+        val callers = mutableListOf<ClassDef>()
+        FixtureDex.forEach(bundle) { dex ->
+            if (dex.methodSection.none { it.name == SET_ORIENTATION || (it.definingClass == check.type && it.name == check.name) ||
+                    (it.returnType == "V" && it.parameterTypes.map(CharSequence::toString) == listOf(ACTIVITY, "I")) }) return@forEach
+            for (classDef in dex.classes) {
+                val wanted = classDef.methods.any { method ->
+                    method.code().any { instruction ->
+                        val called = (instruction as? ReferenceInstruction)?.reference as? MethodReference ?: return@any false
+                        called.name == SET_ORIENTATION || (called.definingClass == check.type && called.name == check.name) ||
+                            (method.name == "run" && called.returnType == "V" &&
+                                called.parameterTypes.map(CharSequence::toString) == listOf(ACTIVITY, "I"))
+                    }
+                }
+                if (wanted) callers += ImmutableClassDef.of(classDef)
+            }
+        }
+        val context = PatchContexts.of((enums + hinges + callers).distinctBy { it.type })
+        val sites = context.findOrientationSites(context.findScreenCheck(context.findHingeCheck(context.findWidthClass())))
+        assertTrue("$label: the main activity's chooser picks an orientation",
+            sites.any { it.parameters == listOf(ACTIVITY, "I", "I", "Z") && it.returnType == "V" })
+        assertTrue("$label: a screen picking its own orientation, found ${sites.size} sites", sites.size >= 2)
+        val methods = sites.map { Triple(it.type, it.name, it.parameters) }.toSet()
+        val before = methods.associateWith { (type, name, parameters) -> context.method(type, name, parameters).code().map(::text) }
+        val layouts = callers.flatMap { classDef ->
+            classDef.methods.filter { method -> method.code().any { it.calls(check) } }
+                .map { Triple(classDef.type, it.name, it.parameterTypes.map(CharSequence::toString)) }
+        }.filter { it !in methods }
+        assertTrue("$label: a layout asks the screen check too", layouts.isNotEmpty())
+
+        context.letBigScreensTurn(sites)
+
+        for ((where, stock) in before) {
+            val mine = sites.filter { Triple(it.type, it.name, it.parameters) == where }.sortedBy { it.at }
+            val code = context.method(where.first, where.second, where.third).code()
+            for ((n, site) in mine.withIndex()) {
+                val at = site.at + 1 + 2 * n
+                assertEquals("$label ${where.second}: the hook after the move-result", ROTATES, code[at].referenceText())
+                assertEquals("$label ${where.second}: the hook takes the answer", site.register, (code[at] as RegisterRangeInstruction).startRegister)
+                assertEquals("$label ${where.second}: back in the same register", site.register, (code[at + 1] as OneRegisterInstruction).registerA)
+            }
+            assertEquals("$label ${where.second}: the rest stays", stock, dropHookResults(code).map(::text))
+        }
+        for ((type, name, parameters) in layouts) {
+            assertTrue("$label: $type->$name keeps the phone answer",
+                context.method(type, name, parameters).code().none { it.referenceText() == ROTATES })
+        }
+    }
+
+    /** [code] without each hook call and the move-result right after it. */
+    private fun dropHookResults(code: List<Instruction>): List<Instruction> {
+        val hooks = code.indices.filter { code[it].referenceText() == ROTATES }.toSet()
+        return code.filterIndexed { at, _ -> at !in hooks && (at - 1) !in hooks }
+    }
+
+    private fun Instruction.calls(check: ScreenCheck): Boolean {
+        val called = (this as? ReferenceInstruction)?.reference as? MethodReference ?: return false
+        return called.definingClass == check.type && called.name == check.name
+    }
+
+    /** The patch refuses the orientation hook for the reason given, and nothing has changed. */
+    private fun refusesTurning(reason: String, classes: List<ClassDef>) {
+        val context = PatchContexts.of(classes)
+        val before = classes.associate { it.type to it.methods.map { method -> method.code().map(::text) } }
+        val refusal = assertThrows(PatchException::class.java) {
+            context.letBigScreensTurn(context.findOrientationSites(context.findScreenCheck(context.findHingeCheck(context.findWidthClass()))))
+        }
+        assertTrue("refused for another reason: ${refusal.message}", refusal.message.orEmpty().contains(reason))
+        for (classDef in classes) {
+            val after = context.mutableClassDefBy(classDef.type).methods.map { method -> method.code().map(::text) }
+            assertEquals("${classDef.type} changed", before.getValue(classDef.type), after)
+        }
     }
 
     /** The patch refuses for the reason given, and nothing has changed. */
@@ -231,6 +378,9 @@ class PhoneLayoutHookTest {
     private fun BytecodePatchContext.method(type: String, name: String): Method =
         mutableClassDefBy(type).methods.single { it.name == name }
 
+    private fun BytecodePatchContext.method(type: String, name: String, parameters: List<String>): Method =
+        mutableClassDefBy(type).methods.single { it.name == name && it.parameterTypes.map(CharSequence::toString) == parameters }
+
     private fun Instruction.referenceText(): String? = (this as? ReferenceInstruction)?.reference?.toString()
 
     private fun text(instruction: Instruction): String = when (val reference = (instruction as? ReferenceInstruction)?.reference) {
@@ -246,6 +396,13 @@ class PhoneLayoutHookTest {
         const val WIDTH = "Lfixture/WidthSizeClass;"
         const val HELPER = "Lfixture/LargeScreenUtil;"
         const val CAMERA = "Lfixture/CameraHinge;"
+        const val ORIENTATION = "Lfixture/FixedOrientationCompat;"
+        const val TURN = "Lfixture/TurnRunnable;"
+        const val CHOOSER = "Lfixture/OrientationChooser;"
+        const val MODAL = "Lfixture/ModalActivity;"
+        const val LAYOUT = "Lfixture/RailLayout;"
+        const val ACTIVITY = "Landroid/app/Activity;"
+        const val SET_ORIENTATION = "setRequestedOrientation"
         const val CONTEXT = "Landroid/content/Context;"
         const val PACKAGE_MANAGER = "Landroid/content/pm/PackageManager;"
 
@@ -316,6 +473,7 @@ class PhoneLayoutHookTest {
             widthChecks: Int = 1,
             checkJump: Boolean = false,
             throughFactory: Boolean = true,
+            screens: Int = 1,
         ): ClassDef {
             val takes = List(if (throughFactory) 1 else 2) { ImmutableMethodParameter("I", null, null) }
             val sorts = ImmutableMethod(HELPER, "sorts", takes, "Z", static, null, null,
@@ -327,8 +485,111 @@ class PhoneLayoutHookTest {
                 ), null, null))
             val hinges = List(checks) { n -> hingeCheck(HELPER, if (n == 0) "hinge" else "hinge$n", kept, jump) }
             val inlined = List(widthChecks) { n -> widthCheck(if (n == 0) "notCompact" else "notCompact$n", checkJump) }
-            return ImmutableClassDef(HELPER, AccessFlags.PUBLIC.value, "Ljava/lang/Object;", null, null, null, null, listOf(sorts) + hinges + inlined)
+            val screenChecks = List(screens) { n -> screenCheck(if (n == 0) "screen" else "screen$n") }
+            return ImmutableClassDef(HELPER, AccessFlags.PUBLIC.value, "Ljava/lang/Object;", null, null, null, null,
+                listOf(sorts) + hinges + inlined + sizes() + screenChecks + splitScreen())
         }
+
+        /** The helper's sorting of a size in pixels at a density. Its answer doesn't matter here. */
+        fun sizes(): Method = ImmutableMethod(HELPER, "sizes", listOf("F", "I", "I").map { ImmutableMethodParameter(it, null, null) },
+            "Z", static, null, null, ImmutableMethodImplementation(4, listOf(
+                ImmutableInstruction11n(Opcode.CONST_4, 0, 0),
+                ImmutableInstruction11x(Opcode.RETURN, 0),
+            ), null, null))
+
+        /** The screen check: the activity's largest window handed to [sizes]. Four registers, so the activity is v3. */
+        fun screenCheck(name: String): Method = ImmutableMethod(HELPER, name, listOf(ImmutableMethodParameter(ACTIVITY, null, null)),
+            "Z", static, null, null, ImmutableMethodImplementation(4, listOf(
+                ImmutableInstruction11n(Opcode.CONST_4, 0, 0),
+                ImmutableInstruction11n(Opcode.CONST_4, 1, 0),
+                ImmutableInstruction11n(Opcode.CONST_4, 2, 0),
+                ImmutableInstruction35c(Opcode.INVOKE_STATIC, 3, 0, 1, 2, 0, 0, ImmutableMethodReference(HELPER, "sizes", listOf("F", "I", "I"), "Z")),
+                ImmutableInstruction11x(Opcode.MOVE_RESULT, 0),
+                ImmutableInstruction11x(Opcode.RETURN, 0),
+            ), null, null))
+
+        /** The helper's other Activity check, asking only about split screen. */
+        fun splitScreen(): Method = ImmutableMethod(HELPER, "splitScreen", listOf(ImmutableMethodParameter(ACTIVITY, null, null)),
+            "Z", static, null, null, ImmutableMethodImplementation(2, listOf(
+                ImmutableInstruction11n(Opcode.CONST_4, 0, 0),
+                ImmutableInstruction11x(Opcode.RETURN, 0),
+            ), null, null))
+
+        private val screen = ImmutableMethodReference(HELPER, "screen", listOf(ACTIVITY), "Z")
+        private val turn = ImmutableMethodReference(ORIENTATION, "set", listOf(ACTIVITY, "I"), "V")
+
+        /**
+         * The width class and the helper with [screens] screen checks, the orientation helper, the Runnable
+         * calling it and a layout asking the screen check. With [sites], the chooser posting the Runnable and
+         * a modal screen calling the helper itself, whose onResume drops the check's answer; with [jump], a
+         * goto in the chooser lands right after its check's move-result.
+         */
+        fun turning(screens: Int = 1, sites: Boolean = true, jump: Boolean = false): List<ClassDef> =
+            listOf(widthClass(), helper(screens = screens), orientationCompat(), turnRunnable(), layout()) +
+                if (sites) listOf(chooser(jump), modal()) else emptyList()
+
+        /** Instagram's orientation helper: a static `(Activity, int)` handing the int to setRequestedOrientation. */
+        fun orientationCompat(): ClassDef = ImmutableClassDef(ORIENTATION, AccessFlags.PUBLIC.value, "Ljava/lang/Object;", null, null, null, null,
+            listOf(ImmutableMethod(ORIENTATION, "set", listOf(ACTIVITY, "I").map { ImmutableMethodParameter(it, null, null) }, "V", static,
+                null, null, ImmutableMethodImplementation(2, listOf(
+                    ImmutableInstruction35c(Opcode.INVOKE_VIRTUAL, 2, 0, 1, 0, 0, 0,
+                        ImmutableMethodReference(ACTIVITY, SET_ORIENTATION, listOf("I"), "V")),
+                    ImmutableInstruction10x(Opcode.RETURN_VOID),
+                ), null, null))))
+
+        /** The Runnable the chooser posts, calling the orientation helper. */
+        fun turnRunnable(): ClassDef = ImmutableClassDef(TURN, AccessFlags.PUBLIC.value, "Ljava/lang/Object;", listOf("Ljava/lang/Runnable;"),
+            null, null, null, listOf(ImmutableMethod(TURN, "run", emptyList(), "V", AccessFlags.PUBLIC.value, null, null,
+                ImmutableMethodImplementation(3, listOf(
+                    ImmutableInstruction11n(Opcode.CONST_4, 0, 0),
+                    ImmutableInstruction11n(Opcode.CONST_4, 1, 1),
+                    ImmutableInstruction35c(Opcode.INVOKE_STATIC, 2, 0, 1, 0, 0, 0, turn),
+                    ImmutableInstruction10x(Opcode.RETURN_VOID),
+                ), null, null))))
+
+        /** Addresses 0, 3, 4, 6, 8, and 9 for the goto. Six registers, so the activity is v2 and the answer v0. */
+        fun chooser(jump: Boolean): ClassDef {
+            val code = mutableListOf<ImmutableInstruction>(
+                ImmutableInstruction35c(Opcode.INVOKE_STATIC, 1, 2, 0, 0, 0, 0, screen),
+                ImmutableInstruction11x(Opcode.MOVE_RESULT, 0),
+                ImmutableInstruction21t(Opcode.IF_EQZ, 0, 4),
+                ImmutableInstruction21c(Opcode.NEW_INSTANCE, 1, ImmutableTypeReference(TURN)),
+                ImmutableInstruction10x(Opcode.RETURN_VOID),
+            )
+            if (jump) code += ImmutableInstruction10t(Opcode.GOTO, -5)
+            return ImmutableClassDef(CHOOSER, AccessFlags.PUBLIC.value, "Ljava/lang/Object;", null, null, null, null,
+                listOf(ImmutableMethod(CHOOSER, "choose", listOf(ACTIVITY, "I", "I", "Z").map { ImmutableMethodParameter(it, null, null) },
+                    "V", static, null, null, ImmutableMethodImplementation(6, code, null, null))))
+        }
+
+        /** A screen picking its own orientation in onCreate, with the answer in v1, and an onResume dropping the answer. */
+        fun modal(): ClassDef {
+            val onCreate = ImmutableMethod(MODAL, "onCreate", listOf(ImmutableMethodParameter("Landroid/os/Bundle;", null, null)), "V",
+                AccessFlags.PUBLIC.value, null, null, ImmutableMethodImplementation(4, listOf(
+                    ImmutableInstruction35c(Opcode.INVOKE_STATIC, 1, 2, 0, 0, 0, 0, screen),
+                    ImmutableInstruction11x(Opcode.MOVE_RESULT, 1),
+                    ImmutableInstruction11n(Opcode.CONST_4, 0, 1),
+                    ImmutableInstruction35c(Opcode.INVOKE_STATIC, 2, 2, 0, 0, 0, 0, turn),
+                    ImmutableInstruction10x(Opcode.RETURN_VOID),
+                ), null, null))
+            val onResume = ImmutableMethod(MODAL, "onResume", emptyList(), "V", AccessFlags.PUBLIC.value, null, null,
+                ImmutableMethodImplementation(3, listOf(
+                    ImmutableInstruction35c(Opcode.INVOKE_STATIC, 1, 2, 0, 0, 0, 0, screen),
+                    ImmutableInstruction11n(Opcode.CONST_4, 0, 1),
+                    ImmutableInstruction35c(Opcode.INVOKE_STATIC, 2, 2, 0, 0, 0, 0, turn),
+                    ImmutableInstruction10x(Opcode.RETURN_VOID),
+                ), null, null))
+            return ImmutableClassDef(MODAL, AccessFlags.PUBLIC.value, ACTIVITY, null, null, null, null, listOf(onCreate, onResume))
+        }
+
+        /** A layout asking the screen check, which keeps the phone answer. */
+        fun layout(): ClassDef = ImmutableClassDef(LAYOUT, AccessFlags.PUBLIC.value, "Ljava/lang/Object;", null, null, null, null,
+            listOf(ImmutableMethod(LAYOUT, "sort", listOf(ImmutableMethodParameter(ACTIVITY, null, null)), "Z", static, null, null,
+                ImmutableMethodImplementation(1, listOf(
+                    ImmutableInstruction35c(Opcode.INVOKE_STATIC, 1, 0, 0, 0, 0, 0, screen),
+                    ImmutableInstruction11x(Opcode.MOVE_RESULT, 0),
+                    ImmutableInstruction11x(Opcode.RETURN, 0),
+                ), null, null))))
 
         /** The factory's comparisons with a boolean answer, as Redex built them into the helper. Two registers, so the width is v1. */
         fun widthCheck(name: String, jump: Boolean): Method =

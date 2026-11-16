@@ -140,4 +140,60 @@ public class PhoneLayoutTest {
         assertTrue(missing, missing.contains("'" + PhoneLayout.SWITCH + "'"));
         assertTrue(missing, missing.contains(IllegalStateException.class.getName()));
     }
+
+    private static final BooleanSupplier ON = () -> true;
+    private static final BooleanSupplier OFF = () -> false;
+    private static final BooleanSupplier BIG = () -> true;
+    private static final BooleanSupplier SMALL = () -> false;
+
+    /** A tablet turns again with the phone layout on, a phone stays in portrait (#700, #714). */
+    @Test
+    public void theScreensOwnSizePicksWhetherItTurns() {
+        assertTrue(PhoneLayout.rotates(0, ON, BIG));
+        assertFalse(PhoneLayout.rotates(0, ON, SMALL));
+        assertTrue(PhoneLayout.rotates(1, ON, SMALL));
+        assertTrue(PhoneLayout.rotates(1, OFF, SMALL));
+        assertFalse(PhoneLayout.rotates(0, OFF, BIG));
+
+        assertFalse(PhoneLayout.rotates(0, ON, THROWS));
+        assertTrue(PhoneLayout.rotates(1, ON, THROWS));
+        String missing = HookStatus.missing(FamilyNames.PHONE_LAYOUT).toString();
+        assertTrue(missing, missing.contains("'" + PhoneLayout.SCREEN + "'"));
+    }
+
+    /** Instagram's own sorting: past 599 dp wide and at least 480 dp high, each rounded up. */
+    @Test
+    public void aBigScreenIsWideAndTall() {
+        assertTrue(PhoneLayout.big(2f, 2560, 1600));
+        assertTrue(PhoneLayout.big(2f, 1600, 2560));
+        assertTrue(PhoneLayout.big(2.625f, 1767, 2208));
+        assertFalse(PhoneLayout.big(2.625f, 1080, 2400));
+        assertFalse(PhoneLayout.big(2.625f, 2400, 1080));
+        assertTrue(PhoneLayout.big(1f, 600, 480));
+        assertFalse(PhoneLayout.big(1f, 599, 480));
+        assertFalse(PhoneLayout.big(1f, 600, 479));
+        assertTrue(PhoneLayout.big(2f, 1199, 959));
+        assertFalse(PhoneLayout.big(0f, 2560, 1600));
+        assertFalse(PhoneLayout.big(Float.NaN, 2560, 1600));
+    }
+
+    /** Robolectric's default screen is a phone, so it stays in portrait with the switch on. */
+    @Test
+    public void aPhoneStaysInPortrait() {
+        assertFalse(PhoneLayout.rotates(0));
+        assertTrue(PhoneLayout.rotates(1));
+        Settings.PHONE_LAYOUT.resetToDefault();
+        assertFalse(PhoneLayout.rotates(0));
+    }
+
+    /** A tablet sized screen turns with the switch on. */
+    @Test
+    @Config(qualifiers = "w1280dp-h800dp")
+    public void aTabletTurnsWithTheSwitchOn() {
+        assertTrue(PhoneLayout.rotates(0));
+        Settings.PHONE_LAYOUT.resetToDefault();
+        assertFalse(PhoneLayout.rotates(0));
+        assertTrue(HookStatus.missing(FamilyNames.PHONE_LAYOUT).toString(),
+                HookStatus.missing(FamilyNames.PHONE_LAYOUT).isEmpty());
+    }
 }
