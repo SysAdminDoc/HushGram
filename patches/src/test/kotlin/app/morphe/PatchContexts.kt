@@ -19,7 +19,7 @@ import java.io.File
  *
  * The patcher fills its class pool from an APK's dex files, and what takes a pool directly is
  * internal to it: the context's constructor, the pool's class and its setter. They are reached by
- * their JVM names, pinned to morphe-patcher 2.3.0. A bump that renames one fails here, naming it,
+ * their JVM names, pinned to morphe-patcher 2.4.0. A bump that renames one fails here, naming it,
  * rather than leaving a test that never ran the patch. Nothing is written to disk: the context only
  * names its work folders until something compiles the dex, which no test here asks for.
  *
@@ -32,10 +32,12 @@ internal object PatchContexts {
         val work = File(System.getProperty("java.io.tmpdir"), "hushgram-patch-context")
         val config = PatcherConfig(apkFile = File(work, "none.apk"), temporaryFilesPath = work)
         val metadataType = Class.forName("app.morphe.patcher.PackageMetadata")
+        // Patcher 2.4.0 hands PackageMetadata the bundle's OBB files after the signature block; a
+        // context with no APK has none.
         val metadata = metadataType.getConstructor(
             String::class.java, String::class.java, String::class.java,
-            Class.forName("com.reandroid.archive.block.ApkSignatureBlock"),
-        ).newInstance("com.instagram.android", "0", "0", null)
+            Class.forName("com.reandroid.archive.block.ApkSignatureBlock"), Map::class.java,
+        ).newInstance("com.instagram.android", "0", "0", null, emptyMap<String, File>())
         val context = BytecodePatchContext::class.java.getConstructor(PatcherConfig::class.java, metadataType)
             .newInstance(config, metadata)
         val poolType = Class.forName("app.morphe.patcher.util.PatchClasses")
