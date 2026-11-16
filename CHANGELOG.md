@@ -61,6 +61,7 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
+* In Turkish, German, Spanish and Portuguese, the seek bar rows called it a search bar. They now use the same word as `Keep a seek bar` in each language. Reported in #10.
 * In Simplified Chinese, `Clear saved copies now` says it freed the space instead of saying it published it.
 * The Like button is back on reels where HushGram's extra icons made the button column too tall, which left only the like count showing. When a column runs past the top bar, HushGram's own icons in it are laid out a little smaller from the next reel on, so every button fits on screen. Turning an icon on or off sets them back to full size. Reported in #676.
 * The `Keep the comment bar's space` row now says it leaves a black band, and that reels from Explore get it too. Search settings for "black bar" and it comes up. Turn it off to let the reel fill that space again. Reported in #680.

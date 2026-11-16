@@ -552,7 +552,7 @@ Choose a file for the settings export.	Ayarları dışa aktarmak için bir dosya
 Exporting HushGram settings...	HushGram ayarları dışa aktarılıyor...
 Settings export canceled.	Ayar dışa aktarma işlemi iptal edildi.
 Round handle on the seek bar	Reel ilerleme tutamacını göster
-Adds a white round handle to the seek bar that you can drag. Ads keep their own bar.	Arama çubuğuna sürükleyebileceğin beyaz, yuvarlak bir tutamaç ekler. Reklamlar kendi çubuklarını korur.
+Adds a white round handle to the seek bar that you can drag. Ads keep their own bar.	İlerleme çubuğuna sürükleyebileceğin beyaz, yuvarlak bir tutamaç ekler. Reklamlar kendi çubuklarını korur.
 Bigger seek bar on reels	Reel'lerde daha büyük ilerleme çubuğu
 Makes the seek bar thicker, with a round white handle and the time above it, over a soft dark fade so it shows on any video. Drag it to seek. It also keeps the bar on short reels.	İlerleme çubuğunu daha kalın yapar. Yuvarlak beyaz tutamaç ve üstünde süre gösterir, her videoda görünsün diye yumuşak koyu bir geçişin üzerinde durur. Sürükleyerek ilerle. Kısa Reel'lerde de çubuğu tutar.
 Seek bar like DM videos	Mesajlardaki videolar gibi ilerleme çubuğu
@@ -1293,16 +1293,16 @@ Rounds the corners of a post's photo, video and carousel pages in Home and Follo
 Corner size	Köşe boyutu
 Rounded corners on Reels	Reels'te yuvarlak köşeler
 Rounded corners on stories	Hikayelerde yuvarlak köşeler
-Seek bar on stories	Hikayelerde arama çubuğu
+Seek bar on stories	Hikayelerde ilerleme çubuğu
 Shows a bar near the bottom of a video story. Drag it to jump to any point in the video. Photos don't get one.	Video hikayenin altına yakın bir çubuk gösterir. Videoda istediğin noktaya atlamak için sürükle. Fotoğraflarda görünmez.
-Seek bar on feed videos	Akış videolarında arama çubuğu
+Seek bar on feed videos	Akış videolarında ilerleme çubuğu
 Shows a bar along the bottom of the video playing in a feed. Drag it and let go to jump to that point in the video.	Bir akışta oynayan videonun altında bir çubuk gösterir. Videonun o noktasına atlamak için sürükleyip bırak.
 Thicker story progress bar	Daha kalın hikaye ilerleme çubuğu
 Draws the bar along the top of a story as thick as the choice below. Its segments and timing stay as they were.	Bir hikayenin üstündeki çubuğu aşağıdaki seçim kadar kalın çizer. Bölümleri ve zamanlaması olduğu gibi kalır.
 Thickness	Kalınlık
 Twice as thick	İki kat kalın
 Three times as thick	Üç kat kalın
-Rounds the corners of a reel's video in the Reels tab and wherever a reel opens full screen. The seek bar, captions and buttons stay whole.	Reels sekmesinde ve bir reel'in tam ekran açıldığı her yerde reel videosunun köşelerini yuvarlar. Arama çubuğu, altyazılar ve düğmeler bütün kalır.
+Rounds the corners of a reel's video in the Reels tab and wherever a reel opens full screen. The seek bar, captions and buttons stay whole.	Reels sekmesinde ve bir reel'in tam ekran açıldığı her yerde reel videosunun köşelerini yuvarlar. İlerleme çubuğu, altyazılar ve düğmeler bütün kalır.
 Rounds the corners of a story's photo or video, from the tray, a profile or a highlight. The progress bar, names and stickers stay whole.	Bir hikayenin fotoğrafının veya videosunun köşelerini yuvarlar; hikaye şeridinden, bir profilden veya öne çıkanlardan açılsa da. İlerleme çubuğu, adlar ve çıkartmalar bütün kalır.
 Peek at the next carousel page	Sonraki kaydırmalı sayfaya göz at
 A carousel post's page sits a little in from the edges, with the start of the next page showing at the right.	Kaydırmalı bir gönderinin sayfası kenarlardan biraz içeride durur ve sağda sonraki sayfanın başı görünür.
@@ -1757,9 +1757,9 @@ Adds a menu button at the top of Home with your viewing history, Ghost mode and 
 History button on Home's header	Ana sayfa üstünde geçmiş düğmesi
 Adds a clock at the top of Home that opens your viewing history in one tap. Restart Instagram to see the change.	Ana sayfanın üstüne görüntüleme geçmişini tek dokunuşla açan bir saat ekler. Değişikliği görmek için Instagram'ı yeniden başlat.
 HushGram menu	HushGram menüsü
-Seek bar button on feed videos	Akış videolarında arama çubuğu düğmesi
-Adds a small button at the bottom left of a feed video that shows or hides its seek bar. It works with Seek bar on feed videos on or off.	Akış videosunun sol altına arama çubuğunu gösteren veya gizleyen küçük bir düğme ekler. Akış videolarında arama çubuğu açık da olsa kapalı da olsa çalışır.
-Seek bar	Arama çubuğu
+Seek bar button on feed videos	Akış videolarında ilerleme çubuğu düğmesi
+Adds a small button at the bottom left of a feed video that shows or hides its seek bar. It works with Seek bar on feed videos on or off.	Akış videosunun sol altına ilerleme çubuğunu gösteren veya gizleyen küçük bir düğme ekler. Akış videolarında ilerleme çubuğu açık da olsa kapalı da olsa çalışır.
+Seek bar	İlerleme çubuğu
 Tint intensity	Renk tonu yoğunluğu
 Refraction intensity	Kırılma yoğunluğu
 Preview of the tab bar	Sekme çubuğu önizlemesi
@@ -1904,7 +1904,7 @@ Accounts mentioned in this story	Bu hikâyede bahsedilen hesaplar
 # context: Feed settings: picks how the carousel page-dots pill looks (#471)
 Pill look	Hap görünümü
 # context: Feed and Stories settings: picks how the seek bar over a video looks (#471)
-Seek bar look	Arama çubuğu görünümü
+Seek bar look	İlerleme çubuğu görünümü
 # context: Feed settings: a double tap on the left or right third of a feed video jumps 10 seconds (#562)
 Double tap to skip on feed videos	Akış videolarında atlamak için iki kez dokun
 Double tap the left side of the video playing in a feed to go back, or the right side to go ahead, as far as Skip length says. A double tap in the middle works as before.	Akışta oynayan videonun sol tarafına iki kez dokunarak Atlama süresi kadar geri, sağ tarafına iki kez dokunarak o kadar ileri git. Ortaya iki kez dokunmak eskisi gibi çalışır.
@@ -1920,8 +1920,8 @@ A light pill with dark dots, as it's always been.	Her zamanki gibi koyu noktalı
 A see-through dark pill with white dots, so more of the photo shows.	Fotoğrafın daha fazlası görünsün diye beyaz noktalı, saydam koyu bir hap.
 A frosted glass pill that blurs the photo under it. Before Android 12 it's see-through instead.	Altındaki fotoğrafı bulanıklaştıran buzlu camdan bir hap. Android 12 öncesinde bunun yerine saydam olur.
 Turn on Page dots on a pill to use this choice.	Bu seçimi kullanmak için Hap üzerinde sayfa noktaları seçeneğini açın.
-Turn on Seek bar on feed videos or its button to use this choice.	Bu seçimi kullanmak için Akış videolarında arama çubuğu seçeneğini veya düğmesini açın.
-Turn on Seek bar on stories to use this choice.	Bu seçimi kullanmak için Hikayelerde arama çubuğu seçeneğini açın.
+Turn on Seek bar on feed videos or its button to use this choice.	Bu seçimi kullanmak için Akış videolarında ilerleme çubuğu seçeneğini veya düğmesini açın.
+Turn on Seek bar on stories to use this choice.	Bu seçimi kullanmak için Hikayelerde ilerleme çubuğu seçeneğini açın.
 A white bar and handle, as they've always been.	Her zamanki gibi beyaz bir çubuk ve tutamaç.
 A fainter bar and handle, so more of the video shows through.	Videonun daha fazlası görünsün diye daha soluk bir çubuk ve tutamaç.
 A white bar on a strip of frosted glass that blurs the video under it. Before Android 12 the strip is see-through instead.	Altındaki videoyu bulanıklaştıran buzlu cam bir şerit üzerinde beyaz bir çubuk. Android 12 öncesinde şerit bunun yerine saydam olur.
@@ -2055,8 +2055,8 @@ That isn't a color. Try #4A6B82.	Bu bir renk değil. #4A6B82 dene.
 Count on the heart	Kalpte sayı
 The heart at the top of Home shows how many notifications are waiting, like the number on Messages, in place of the red dot. Restart Instagram to see the change.	Ana sayfanın üstündeki kalp, kırmızı nokta yerine Mesajlar'daki sayı gibi bekleyen bildirim sayısını gösterir. Değişikliği görmek için Instagram'ı yeniden başlat.
 # context: a switch under Seek bar on feed videos
-Seek bar on the bottom edge	Alt kenarda arama çubuğu
-Puts the seek bar right on the bottom edge of the video, so it's harder to touch by accident while you scroll.	Arama çubuğunu videonun tam alt kenarına koyar, böylece kaydırırken yanlışlıkla dokunmak zorlaşır.
+Seek bar on the bottom edge	Alt kenarda ilerleme çubuğu
+Puts the seek bar right on the bottom edge of the video, so it's harder to touch by accident while you scroll.	İlerleme çubuğunu videonun tam alt kenarına koyar, böylece kaydırırken yanlışlıkla dokunmak zorlaşır.
 # context: "Made with Edits" is the label Instagram shows under a post's author for a video made in Meta's Edits app; it stays in English here
 Hide Made with Edits	"Made with Edits" etiketini gizle
 Takes the "Made with Edits" label out of the line under a post's author. The song, the place and the other labels keep taking turns there.	Bir gönderinin sahibinin altındaki satırdan "Made with Edits" etiketini kaldırır. Şarkı, konum ve diğer etiketler orada sırayla görünmeye devam eder.
@@ -2104,7 +2104,7 @@ Everyone can ring your phone, as usual.	Herkes seni her zamanki gibi arayabilir.
 Decline calls that don't ring	Çalmayan aramaları reddet
 Calls kept quiet by Who can call you are also declined, the same as tapping Decline, instead of being left unanswered.	Seni kimler arayabilir seçeneğinin sessiz tuttuğu aramalar da yanıtsız bırakılmak yerine Reddet'e dokunulmuş gibi reddedilir.
 # context: Seek bar shape and preview (#567, #586, #592)
-Seek bar shape	Arama çubuğu şekli
+Seek bar shape	İlerleme çubuğu şekli
 Thin line	İnce çizgi
 Rounded	Yuvarlatılmış
 Expressive	Etkileyici
@@ -2114,8 +2114,8 @@ A thin line with no handle that grows while you drag it. On feed videos it sits 
 A thicker rounded bar with no handle.	Tutamaçsız, daha kalın yuvarlatılmış bir çubuk.
 A rounded bar split by a tall handle.	Uzun bir tutamaçla bölünmüş yuvarlatılmış bir çubuk.
 A wavy line for the part played, with a tall handle.	Oynatılan kısım için dalgalı bir çizgi ve uzun bir tutamaç.
-Preview while you drag a seek bar	Arama çubuğunu sürüklerken önizleme
-Shows the time above your finger while you drag a seek bar on a feed video, story or reel, and a small picture of that moment when Instagram has one for the video.	Bir akış videosunda, hikayede veya Reels videosunda arama çubuğunu sürüklerken parmağınızın üstünde süreyi ve Instagram'da o video için varsa o anın küçük bir resmini gösterir.
+Preview while you drag a seek bar	İlerleme çubuğunu sürüklerken önizleme
+Shows the time above your finger while you drag a seek bar on a feed video, story or reel, and a small picture of that moment when Instagram has one for the video.	Bir akış videosunda, hikayede veya Reels videosunda ilerleme çubuğunu sürüklerken parmağınızın üstünde süreyi ve Instagram'da o video için varsa o anın küçük bir resmini gösterir.
 Swipe right on Home opens	Ana sayfada sağa kaydırınca açılan
 The camera, as Instagram has it. Pick a tab and the same swipe opens that tab instead.	Instagram'daki gibi kamera. Bir sekme seçersen aynı kaydırma o sekmeyi açar.
 A swipe right on Home opens %1$s. The + button still opens the camera.	Ana sayfada sağa kaydırma %1$s sekmesini açar. + düğmesi kamerayı açmaya devam eder.
@@ -2330,7 +2330,7 @@ Hide the Create button on saved reels	Kaydedilen reels'te Oluştur düğmesini g
 # context: Summary of Hide the Create button on saved reels; Saved is Instagram's own Saved page (#620)
 Takes the plus button off the top of reels you open from Saved or a collection and closes up the gap. The Reels tab and other reels keep theirs.	Kaydedilenler'den veya bir koleksiyondan açtığın reels'in üstündeki artı düğmesini kaldırır ve boşluğu kapatır. Reels sekmesi ve diğer reels'ler kendininkini korur.
 # context: Stories settings: picks where the story seek bar sits, above or below Instagram's Send message box at the bottom of a story (#636)
-Seek bar position	Arama çubuğu konumu
+Seek bar position	İlerleme çubuğu konumu
 # context: Choice of Seek bar position; Send message is Instagram's reply field at the bottom of someone else's story. Use Instagram's own label for it (#636)
 Above the Send message box	Mesaj gönder kutusunun üstünde
 Below the Send message box	Mesaj gönder kutusunun altında
@@ -2363,11 +2363,11 @@ Tells Instagram your phone has no AV1 decoder, so reels and stories come as VP9 
 # context: Summary of Show the skip arrows under Double tap to skip on feed videos in Feed settings (#562)
 Two arrows flash on the side you double tapped, with the seconds skipped under them.	Çift dokunduğun tarafta iki ok kısa bir süre görünür, altında atlanan saniyeler yazar.
 # context: Feed settings: choice under Seek bar shape that gives the seek bar on feed videos a shape of its own (#567)
-Feed seek bar shape	Akıştaki arama çubuğu şekli
+Feed seek bar shape	Akıştaki ilerleme çubuğu şekli
 # context: Choice in Feed seek bar shape: feed videos follow the shape picked in Seek bar shape (#567)
-Same as Seek bar shape	Arama çubuğu şekli ile aynı
+Same as Seek bar shape	İlerleme çubuğu şekli ile aynı
 # context: Summary of Same as Seek bar shape in Feed seek bar shape (#567)
-Feed videos use the shape picked in Seek bar shape.	Akış videoları, Arama çubuğu şekli içinde seçilen şekli kullanır.
+Feed videos use the shape picked in Seek bar shape.	Akış videoları, İlerleme çubuğu şekli içinde seçilen şekli kullanır.
 # context: Summary of Standard in Feed seek bar shape (#567)
 The bar and round handle you know, on feed videos only.	Bildiğiniz çubuk ve yuvarlak tutamaç, yalnızca akış videolarında.
 # context: Summary of Thin line in Feed seek bar shape (#567)
@@ -2379,13 +2379,13 @@ A rounded bar split by a tall handle, on feed videos only.	Uzun bir tutamaçla b
 # context: Summary of Wave in Feed seek bar shape (#567)
 A wavy line for the part played, with a tall handle, on feed videos only.	Oynatılan kısım için dalgalı bir çizgi ve uzun bir tutamaç, yalnızca akış videolarında.
 # context: Feed settings: a switch under Seek bar on feed videos that shows the time over the bar (#711)
-Time on the seek bar	Arama çubuğunda süre
+Time on the seek bar	İlerleme çubuğunda süre
 # context: Summary of Time on the seek bar; 0:12 / 0:45 is an example time, keep the digits as they are (#711)
-Shows the time played and the video's length over the seek bar on feed videos, like 0:12 / 0:45. Tap the time to see the time left instead.	Akış videolarında oynatılan süreyi ve videonun uzunluğunu arama çubuğunun üstünde gösterir, örneğin 0:12 / 0:45. Kalan süreyi görmek için süreye dokun.
+Shows the time played and the video's length over the seek bar on feed videos, like 0:12 / 0:45. Tap the time to see the time left instead.	Akış videolarında oynatılan süreyi ve videonun uzunluğunu ilerleme çubuğunun üstünde gösterir, örneğin 0:12 / 0:45. Kalan süreyi görmek için süreye dokun.
 # context: Feed settings: a switch under Time on the seek bar that counts the time down instead (#711)
 Show the time left	Kalan süreyi göster
 # context: Summary of Show the time left; -0:33 / 0:45 is an example time, keep the digits and the minus sign as they are (#711)
-The time on the seek bar counts down what's left of the video, like -0:33 / 0:45. A tap on the time switches back.	Arama çubuğundaki süre, videonun kalanını geri sayar, örneğin -0:33 / 0:45. Süreye dokununca geri döner.
+The time on the seek bar counts down what's left of the video, like -0:33 / 0:45. A tap on the time switches back.	İlerleme çubuğundaki süre, videonun kalanını geri sayar, örneğin -0:33 / 0:45. Süreye dokununca geri döner.
 # context: Feed settings: a switch under Tap a feed video to pause it that keeps any tap on a feed video from opening Reels (#706)
 Taps on feed videos stay in the feed	Akış videolarına dokunmak akışta kalır
 # context: Summary of Taps on feed videos stay in the feed; Tap a feed video to pause it is the switch above it, use its translation (#706)

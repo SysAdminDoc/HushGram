@@ -491,9 +491,9 @@ public final class L10nTranslations {
         table.put("Adds a search box above a post's comments. Type a word or a name and the comments scroll to the next one that has it. Replies you haven't opened aren't searched.",
                 "F\u00fcgt \u00fcber den Kommentaren eines Beitrags ein Suchfeld hinzu. Gib ein Wort oder einen Namen ein, und die Kommentare scrollen zum n\u00e4chsten, der es enth\u00e4lt. Antworten, die du nicht ge\u00f6ffnet hast, werden nicht durchsucht.");
         table.put("Adds a small button at the bottom left of a feed video that shows or hides its seek bar. It works with Seek bar on feed videos on or off.",
-                "F\u00fcgt unten links an einem Feed-Video eine kleine Taste hinzu, die seine Suchleiste ein- oder ausblendet. Sie funktioniert mit Suchleiste in Feed-Videos an oder aus.");
+                "F\u00fcgt unten links an einem Feed-Video eine kleine Taste hinzu, die seine Zeitleiste ein- oder ausblendet. Sie funktioniert mit Zeitleiste in Feed-Videos an oder aus.");
         table.put("Adds a white round handle to the seek bar that you can drag. Ads keep their own bar.",
-                "F\u00fcgt der Suchleiste einen wei\u00dfen runden Griff hinzu, den du ziehen kannst. Werbung beh\u00e4lt ihre eigene Leiste.");
+                "F\u00fcgt der Zeitleiste einen wei\u00dfen runden Griff hinzu, den du ziehen kannst. Werbung beh\u00e4lt ihre eigene Leiste.");
         table.put("Adds an eye button to the top of a live while you watch anonymously. Tap it to show up on that live's viewer list. Other lives stay hidden.",
                 "F\u00fcgt oben in einem Live eine Augen-Schaltfl\u00e4che hinzu, w\u00e4hrend du anonym zusiehst. Tippe darauf, um in der Zuschauerliste dieses Lives zu erscheinen. Andere Lives bleiben verborgen.");
         table.put("Adds an eye button to the top of each story while you view anonymously. Tap it to show up on that story's viewer list. The other stories stay hidden.",
@@ -630,7 +630,7 @@ public final class L10nTranslations {
         table.put("Best",
                 "Beste");
         table.put("Bigger seek bar on reels",
-                "Gr\u00f6\u00dfere Suchleiste bei Reels");
+                "Gr\u00f6\u00dfere Zeitleiste bei Reels");
         table.put("Bio",
                 "Steckbrief");
         table.put("Bio copied",
@@ -1223,13 +1223,13 @@ public final class L10nTranslations {
         table.put("Feed",
                 "Feed");
         table.put("Feed seek bar shape",
-                "Form der Suchleiste im Feed");
+                "Form der Zeitleiste im Feed");
         table.put("Feed videos and reels stop at their last frame instead of playing again. Reels still loop while auto scroll is on, so it can move on.",
                 "Videos im Feed und Reels bleiben am letzten Bild stehen, statt noch einmal abzuspielen. Reels laufen weiter in Schleife, solange das automatische Scrollen an ist, damit es weitergehen kann.");
         table.put("Feed videos and stories wait for your tap. Reels play as you swipe to them.",
                 "Videos im Feed und Stories warten, bis du tippst. Reels spielen, sobald du zu ihnen wischst.");
         table.put("Feed videos use the shape picked in Seek bar shape.",
-                "Feed-Videos verwenden die unter Form der Suchleiste gew\u00e4hlte Form.");
+                "Feed-Videos verwenden die unter Form der Zeitleiste gew\u00e4hlte Form.");
         table.put("Feed videos, reels and stories all wait for your tap.",
                 "Videos im Feed, Reels und Stories warten alle, bis du tippst.");
         table.put("Fewer than %1$s likes",
@@ -1382,7 +1382,7 @@ public final class L10nTranslations {
         table.put("Gives a chat's top bar and message bar frosted glass and puts the back, call and video buttons on round glass circles. It shows the next time you open a chat. Needs Android 12 or newer for the blur.",
                 "Gibt der oberen Leiste und der Nachrichtenleiste eines Chats Milchglas und setzt die Buttons f\u00fcr Zur\u00fcck, Anruf und Video auf runde Glaskreise. Sichtbar beim n\u00e4chsten \u00d6ffnen eines Chats. Der Weichzeichner braucht Android 12 oder neuer.");
         table.put("Gives reels the seek bar of a video in a chat, a thin gray line that turns white as it plays, with a big round white handle. The time shows above it. Drag it to seek. When Bigger seek bar on reels is on too, this look wins. It also keeps the bar on short reels.",
-                "Gibt Reels die Suchleiste eines Videos im Chat, eine d\u00fcnne graue Linie, die beim Abspielen wei\u00df wird, mit einem gro\u00dfen runden wei\u00dfen Griff. Die Zeit steht dar\u00fcber. Zum Spulen ziehen. Ist Gr\u00f6\u00dfere Suchleiste bei Reels auch an, gilt dieser Stil. Die Leiste bleibt auch bei kurzen Reels.");
+                "Gibt Reels die Zeitleiste eines Videos im Chat, eine d\u00fcnne graue Linie, die beim Abspielen wei\u00df wird, mit einem gro\u00dfen runden wei\u00dfen Griff. Die Zeit steht dar\u00fcber. Zum Spulen ziehen. Ist Gr\u00f6\u00dfere Zeitleiste bei Reels auch an, gilt dieser Stil. Die Leiste bleibt auch bei kurzen Reels.");
         table.put("Gives the Send message box on other people's stories frosted glass, so it's easy to read over any story. Needs Android 12 or newer for the blur.",
                 "Gibt dem Feld Nachricht senden in den Stories anderer Personen Milchglas, damit es \u00fcber jeder Story gut lesbar ist. Der Weichzeichner braucht Android 12 oder neuer.");
         table.put("Glass in chats",
@@ -2257,7 +2257,7 @@ public final class L10nTranslations {
         table.put("Looping this video",
                 "Dieses Video wird wiederholt");
         table.put("Makes the seek bar thicker, with a round white handle and the time above it, over a soft dark fade so it shows on any video. Drag it to seek. It also keeps the bar on short reels.",
-                "Macht die Suchleiste dicker, mit rundem wei\u00dfem Griff und der Zeit dar\u00fcber, auf einem weichen dunklen Verlauf, damit sie auf jedem Video sichtbar ist. Zum Spulen ziehen. Die Leiste bleibt auch bei kurzen Reels.");
+                "Macht die Zeitleiste dicker, mit rundem wei\u00dfem Griff und der Zeit dar\u00fcber, auf einem weichen dunklen Verlauf, damit sie auf jedem Video sichtbar ist. Zum Spulen ziehen. Die Leiste bleibt auch bei kurzen Reels.");
         table.put("Mark a chat seen when you reply",
                 "Chat als gesehen markieren, wenn du antwortest");
         table.put("Mark as read",
@@ -2781,7 +2781,7 @@ public final class L10nTranslations {
         table.put("Preview of the tab bar",
                 "Vorschau der Tab-Leiste");
         table.put("Preview while you drag a seek bar",
-                "Vorschau beim Ziehen einer Suchleiste");
+                "Vorschau beim Ziehen einer Zeitleiste");
         table.put("Previous match",
                 "Vorheriger Treffer");
         table.put("Previous page",
@@ -2878,7 +2878,7 @@ public final class L10nTranslations {
         table.put("Puts the arrow next to Reels on every profile, so you can sort them by Latest or Most viewed where Instagram took the choice away.",
                 "Zeigt auf jedem Profil den Pfeil neben Reels, damit du sie nach Neueste oder Meistgesehen sortieren kannst, auch wo Instagram die Auswahl entfernt hat.");
         table.put("Puts the seek bar right on the bottom edge of the video, so it's harder to touch by accident while you scroll.",
-                "Setzt die Suchleiste direkt an den unteren Rand des Videos, damit du sie beim Scrollen nicht so leicht aus Versehen ber\u00fchrst.");
+                "Setzt die Zeitleiste direkt an den unteren Rand des Videos, damit du sie beim Scrollen nicht so leicht aus Versehen ber\u00fchrst.");
         table.put("Puts the title in the middle of the bar at the top of other screens, like notifications, as far as the buttons beside it allow. The buttons stay where they are.",
                 "Setzt den Titel in die Mitte der Leiste oben auf anderen Seiten, etwa den Benachrichtigungen, so weit die Schaltfl\u00e4chen daneben es zulassen. Die Schaltfl\u00e4chen bleiben, wo sie sind.");
         table.put("Puts the username in the middle of the bar at the top of a profile, yours and other people's. The buttons stay where they are.",
@@ -2914,7 +2914,7 @@ public final class L10nTranslations {
         table.put("Reels open in clear mode from the first one, with no tap. Leave it yourself and the next reels show their buttons again. Instagram blocks screenshots in clear mode unless Allow screenshots is on.",
                 "Reels \u00f6ffnen sich ab dem ersten im klaren Modus, ohne Tippen. Verl\u00e4sst du ihn selbst, zeigen die n\u00e4chsten Reels ihre Buttons wieder. Instagram blockiert im klaren Modus Screenshots, au\u00dfer Screenshots erlauben ist an.");
         table.put("Reels that are a photo with a song get the same seek bar and time as a video reel, following the song. Drag it to seek.",
-                "Reels, die aus einem Foto mit einem Song bestehen, bekommen dieselbe Suchleiste und Zeit wie ein Video-Reel, passend zum Song. Zum Spulen ziehen.");
+                "Reels, die aus einem Foto mit einem Song bestehen, bekommen dieselbe Zeitleiste und Zeit wie ein Video-Reel, passend zum Song. Zum Spulen ziehen.");
         table.put("Reels that are nearly the screen's shape fill it, cut a little at the sides, instead of showing black bars above and below. Square and wide videos still fit.",
                 "Reels, die fast die Form des Bildschirms haben, f\u00fcllen ihn aus und werden an den Seiten etwas abgeschnitten, statt oben und unten schwarze Balken zu zeigen. Quadratische und breite Videos passen weiterhin hinein.");
         table.put("Reels wait for your tap. Feed videos and stories play as Instagram plays them.",
@@ -3060,7 +3060,7 @@ public final class L10nTranslations {
         table.put("Rounds the corners of a post's photo, video and carousel pages in Home and Following. Posts you scroll to after a change show it. Stories, profiles and Explore stay as they were.",
                 "Rundet die Ecken von Foto, Video und Karussell-Seiten eines Beitrags auf der Startseite und in \u201eGefolgt\u201c ab. Beitr\u00e4ge, zu denen du nach einer \u00c4nderung scrollst, zeigen sie. Stories, Profile und Entdecken bleiben wie sie waren.");
         table.put("Rounds the corners of a reel's video in the Reels tab and wherever a reel opens full screen. The seek bar, captions and buttons stay whole.",
-                "Rundet die Ecken des Videos eines Reels im Reels-Tab und \u00fcberall, wo ein Reel im Vollbild \u00f6ffnet. Suchleiste, Untertitel und Schaltfl\u00e4chen bleiben vollst\u00e4ndig.");
+                "Rundet die Ecken des Videos eines Reels im Reels-Tab und \u00fcberall, wo ein Reel im Vollbild \u00f6ffnet. Zeitleiste, Untertitel und Schaltfl\u00e4chen bleiben vollst\u00e4ndig.");
         table.put("Rounds the corners of a story's photo or video, from the tray, a profile or a highlight. The progress bar, names and stickers stay whole.",
                 "Rundet die Ecken des Fotos oder Videos einer Story ab, ob aus der Leiste, einem Profil oder einem Highlight. Fortschrittsbalken, Namen und Sticker bleiben vollst\u00e4ndig.");
         table.put("Rounds the pill and its highlight and puts Search in a glass circle of its own. Scrolling a list down shrinks the bar to the tab you're on and Search, unless Hide the tab bar as you scroll is on. Restart Instagram after changing it.",
@@ -3072,7 +3072,7 @@ public final class L10nTranslations {
         table.put("SMS",
                 "SMS");
         table.put("Same as Seek bar shape",
-                "Wie Form der Suchleiste");
+                "Wie Form der Zeitleiste");
         table.put("Sanitize sharing links",
                 "Geteilte Links bereinigen");
         table.put("Save",
@@ -3207,25 +3207,25 @@ public final class L10nTranslations {
         table.put("See-through top bar",
                 "Durchsichtige obere Leiste");
         table.put("Seek bar",
-                "Suchleiste");
+                "Zeitleiste");
         table.put("Seek bar button on feed videos",
-                "Suchleisten-Taste in Feed-Videos");
+                "Zeitleisten-Taste in Feed-Videos");
         table.put("Seek bar like DM videos",
-                "Suchleiste wie bei Videos in Nachrichten");
+                "Zeitleiste wie bei Videos in Nachrichten");
         table.put("Seek bar look",
-                "Aussehen der Suchleiste");
+                "Aussehen der Zeitleiste");
         table.put("Seek bar on feed videos",
-                "Suchleiste in Feed-Videos");
+                "Zeitleiste in Feed-Videos");
         table.put("Seek bar on photos with music",
-                "Suchleiste bei Fotos mit Musik");
+                "Zeitleiste bei Fotos mit Musik");
         table.put("Seek bar on stories",
-                "Suchleiste in Stories");
+                "Zeitleiste in Stories");
         table.put("Seek bar on the bottom edge",
-                "Suchleiste am unteren Rand");
+                "Zeitleiste am unteren Rand");
         table.put("Seek bar position",
-                "Position der Suchleiste");
+                "Position der Zeitleiste");
         table.put("Seek bar shape",
-                "Form der Suchleiste");
+                "Form der Zeitleiste");
         table.put("Seen from %1$s to %2$s",
                 "Gesehen vom %1$s bis %2$s");
         table.put("Seen goes out in this chat",
@@ -3384,9 +3384,9 @@ public final class L10nTranslations {
         table.put("Shows the days, hours and minutes since it went up on a line under the time, like 1d 2h 5m ago.",
                 "Zeigt die Tage, Stunden und Minuten seit der Ver\u00f6ffentlichung in einer Zeile unter der Uhrzeit, z. B. vor 1 T, 2 Std. und 5 Min.");
         table.put("Shows the time above your finger while you drag a seek bar on a feed video, story or reel, and a small picture of that moment when Instagram has one for the video.",
-                "Zeigt beim Ziehen einer Suchleiste in einem Feed-Video, einer Story oder einem Reel die Zeit \u00fcber deinem Finger und ein kleines Bild dieser Stelle, wenn Instagram eines f\u00fcr das Video hat.");
+                "Zeigt beim Ziehen einer Zeitleiste in einem Feed-Video, einer Story oder einem Reel die Zeit \u00fcber deinem Finger und ein kleines Bild dieser Stelle, wenn Instagram eines f\u00fcr das Video hat.");
         table.put("Shows the time played and the video's length over the seek bar on feed videos, like 0:12 / 0:45. Tap the time to see the time left instead.",
-                "Zeigt bei Feed-Videos die abgespielte Zeit und die L\u00e4nge des Videos \u00fcber der Suchleiste, etwa 0:12 / 0:45. Tippe auf die Zeit, um stattdessen die Restzeit zu sehen.");
+                "Zeigt bei Feed-Videos die abgespielte Zeit und die L\u00e4nge des Videos \u00fcber der Zeitleiste, etwa 0:12 / 0:45. Tippe auf die Zeit, um stattdessen die Restzeit zu sehen.");
         table.put("Shows when a post and its comments went up, like Oct 2, 3:45 PM, instead of how long ago. Posts you load after a change show it.",
                 "Zeigt, wann ein Beitrag und seine Kommentare ver\u00f6ffentlicht wurden, z. B. 2. Okt., 15:45, statt wie lange es her ist. Beitr\u00e4ge, die du nach einer \u00c4nderung l\u00e4dst, zeigen es.");
         table.put("Shows your feed blurred under Home's top bar, like frosted glass.",
@@ -3902,7 +3902,7 @@ public final class L10nTranslations {
         table.put("The PINs don't match.",
                 "Die PINs stimmen nicht \u00fcberein.");
         table.put("The Reels video fills the screen behind the pill. Its caption, buttons and seek bar sit just above the pill.",
-                "Das Reels-Video f\u00fcllt den Bildschirm hinter der Pille. Beschreibung, Schaltfl\u00e4chen und Suchleiste liegen direkt dar\u00fcber.");
+                "Das Reels-Video f\u00fcllt den Bildschirm hinter der Pille. Beschreibung, Schaltfl\u00e4chen und Zeitleiste liegen direkt dar\u00fcber.");
         table.put("The Reply to box under a reel you open from a chat, with its reactions and plus button. The chat's own message box stays.",
                 "Das Antwortfeld unter einem Reel, das du aus einem Chat \u00f6ffnest, mit seinen Reaktionen und dem Plus-Button. Das Nachrichtenfeld des Chats selbst bleibt.");
         table.put("The bar and round handle you know, on feed videos only.",
@@ -3987,7 +3987,7 @@ public final class L10nTranslations {
         table.put("The tab bar keeps Instagram's order.",
                 "Die Tab-Leiste beh\u00e4lt Instagrams Reihenfolge.");
         table.put("The time on the seek bar counts down what's left of the video, like -0:33 / 0:45. A tap on the time switches back.",
-                "Die Zeit \u00fcber der Suchleiste z\u00e4hlt herunter, wie viel vom Video noch \u00fcbrig ist, etwa -0:33 / 0:45. Ein Tippen auf die Zeit schaltet zur\u00fcck.");
+                "Die Zeit \u00fcber der Zeitleiste z\u00e4hlt herunter, wie viel vom Video noch \u00fcbrig ist, etwa -0:33 / 0:45. Ein Tippen auf die Zeit schaltet zur\u00fcck.");
         table.put("The top of Home goes back to your header text, or to Instagram's logo.",
                 "Oben auf der Startseite steht wieder dein Text oder das Instagram-Logo.");
         table.put("The top of Home says %1$s.",
@@ -4064,7 +4064,7 @@ public final class L10nTranslations {
         table.put("Time on each post",
                 "Zeit pro Beitrag");
         table.put("Time on the seek bar",
-                "Zeit \u00fcber der Suchleiste");
+                "Zeit \u00fcber der Zeitleiste");
         table.put("Time posted",
                 "Uhrzeit des Postens");
         table.put("Tint intensity",
@@ -4118,9 +4118,9 @@ public final class L10nTranslations {
         table.put("Turn on See who a story mentions to use this choice.",
                 "Aktiviere \u201eSehen, wen eine Story erw\u00e4hnt\u201c, um diese Auswahl zu nutzen.");
         table.put("Turn on Seek bar on feed videos or its button to use this choice.",
-                "Aktiviere \u201eSuchleiste in Feed-Videos\u201c oder ihre Schaltfl\u00e4che, um diese Auswahl zu nutzen.");
+                "Aktiviere \u201eZeitleiste in Feed-Videos\u201c oder ihre Schaltfl\u00e4che, um diese Auswahl zu nutzen.");
         table.put("Turn on Seek bar on stories to use this choice.",
-                "Aktiviere \u201eSuchleiste in Stories\u201c, um diese Auswahl zu nutzen.");
+                "Aktiviere \u201eZeitleiste in Stories\u201c, um diese Auswahl zu nutzen.");
         table.put("Turn on Show a story's exact time to use this choice.",
                 "Aktiviere \u201eGenaue Zeit einer Story anzeigen\u201c, um diese Auswahl zu nutzen.");
         table.put("Turn on Show if a profile follows you to use this choice.",
@@ -4251,7 +4251,7 @@ public final class L10nTranslations {
         table.put("Videos and photos use %1$s. Unknown codes are left out.",
                 "Videos und Fotos verwenden %1$s. Unbekannte Codes werden weggelassen.");
         table.put("Videos and reels over two minutes pick up where you left off. Seek to start elsewhere. Live videos and ads start as usual.",
-                "Videos und Reels \u00fcber zwei Minuten laufen an deiner letzten Stelle weiter. Die Suchleiste \u00e4ndert den Start. Live-Videos und Werbung starten wie gewohnt.");
+                "Videos und Reels \u00fcber zwei Minuten laufen an deiner letzten Stelle weiter. Die Zeitleiste \u00e4ndert den Start. Live-Videos und Werbung starten wie gewohnt.");
         table.put("Videos are named %1$s. Photos are named %2$s followed by the date and time.",
                 "Videos hei\u00dfen %1$s. Fotos hei\u00dfen %2$s, gefolgt von Datum und Uhrzeit.");
         table.put("Videos go to %1$s and photos to %2$s.",
@@ -4914,9 +4914,9 @@ public final class L10nTranslations {
         table.put("Adds a search box above a post's comments. Type a word or a name and the comments scroll to the next one that has it. Replies you haven't opened aren't searched.",
                 "A\u00f1ade un cuadro de b\u00fasqueda encima de los comentarios de una publicaci\u00f3n. Escribe una palabra o un nombre y los comentarios se desplazan hasta el siguiente que lo tenga. Las respuestas que no has abierto no se buscan.");
         table.put("Adds a small button at the bottom left of a feed video that shows or hides its seek bar. It works with Seek bar on feed videos on or off.",
-                "A\u00f1ade un bot\u00f3n peque\u00f1o abajo a la izquierda de un video del feed que muestra u oculta su barra de b\u00fasqueda. Funciona con la barra de b\u00fasqueda en videos del feed activada o desactivada.");
+                "A\u00f1ade un bot\u00f3n peque\u00f1o abajo a la izquierda de un video del feed que muestra u oculta su barra de reproducci\u00f3n. Funciona con la barra de reproducci\u00f3n en videos del feed activada o desactivada.");
         table.put("Adds a white round handle to the seek bar that you can drag. Ads keep their own bar.",
-                "A\u00f1ade a la barra de b\u00fasqueda un control redondo blanco que puedes arrastrar. Los anuncios conservan su propia barra.");
+                "A\u00f1ade a la barra de reproducci\u00f3n un control redondo blanco que puedes arrastrar. Los anuncios conservan su propia barra.");
         table.put("Adds an eye button to the top of a live while you watch anonymously. Tap it to show up on that live's viewer list. Other lives stay hidden.",
                 "A\u00f1ade un bot\u00f3n con un ojo en la parte superior de un directo mientras lo ves de forma an\u00f3nima. T\u00f3calo para aparecer en la lista de espectadores de ese directo. Los dem\u00e1s directos siguen ocultos.");
         table.put("Adds an eye button to the top of each story while you view anonymously. Tap it to show up on that story's viewer list. The other stories stay hidden.",
@@ -5646,13 +5646,13 @@ public final class L10nTranslations {
         table.put("Feed",
                 "Feed");
         table.put("Feed seek bar shape",
-                "Forma de la barra de b\u00fasqueda en el feed");
+                "Forma de la barra de reproducci\u00f3n en el feed");
         table.put("Feed videos and reels stop at their last frame instead of playing again. Reels still loop while auto scroll is on, so it can move on.",
                 "Los videos del feed y los reels se detienen en su \u00faltimo fotograma en vez de volver a reproducirse. Los reels se siguen repitiendo mientras el desplazamiento autom\u00e1tico est\u00e1 activado, para que pueda pasar al siguiente.");
         table.put("Feed videos and stories wait for your tap. Reels play as you swipe to them.",
                 "Los videos del feed y las historias esperan a que toques. Los reels se reproducen al deslizar hasta ellos.");
         table.put("Feed videos use the shape picked in Seek bar shape.",
-                "Los videos del feed usan la forma elegida en Forma de la barra de b\u00fasqueda.");
+                "Los videos del feed usan la forma elegida en Forma de la barra de reproducci\u00f3n.");
         table.put("Feed videos, reels and stories all wait for your tap.",
                 "Los videos del feed, los reels y las historias esperan a que toques.");
         table.put("Fewer than %1$s likes",
@@ -7204,7 +7204,7 @@ public final class L10nTranslations {
         table.put("Preview of the tab bar",
                 "Vista previa de la barra de pesta\u00f1as");
         table.put("Preview while you drag a seek bar",
-                "Vista previa al arrastrar una barra de b\u00fasqueda");
+                "Vista previa al arrastrar una barra de reproducci\u00f3n");
         table.put("Previous match",
                 "Coincidencia anterior");
         table.put("Previous page",
@@ -7301,7 +7301,7 @@ public final class L10nTranslations {
         table.put("Puts the arrow next to Reels on every profile, so you can sort them by Latest or Most viewed where Instagram took the choice away.",
                 "Pone la flecha junto a Reels en cada perfil para que puedas ordenarlos por M\u00e1s recientes o M\u00e1s vistos donde Instagram quit\u00f3 la opci\u00f3n.");
         table.put("Puts the seek bar right on the bottom edge of the video, so it's harder to touch by accident while you scroll.",
-                "Coloca la barra de b\u00fasqueda justo en el borde inferior del video, para que sea m\u00e1s dif\u00edcil tocarla sin querer al desplazarte.");
+                "Coloca la barra de reproducci\u00f3n justo en el borde inferior del video, para que sea m\u00e1s dif\u00edcil tocarla sin querer al desplazarte.");
         table.put("Puts the title in the middle of the bar at the top of other screens, like notifications, as far as the buttons beside it allow. The buttons stay where they are.",
                 "Pone el t\u00edtulo en el centro de la barra de arriba de otras pantallas, como las notificaciones, hasta donde lo permiten los botones de al lado. Los botones se quedan donde est\u00e1n.");
         table.put("Puts the username in the middle of the bar at the top of a profile, yours and other people's. The buttons stay where they are.",
@@ -7495,7 +7495,7 @@ public final class L10nTranslations {
         table.put("SMS",
                 "SMS");
         table.put("Same as Seek bar shape",
-                "Igual que Forma de la barra de b\u00fasqueda");
+                "Igual que Forma de la barra de reproducci\u00f3n");
         table.put("Sanitize sharing links",
                 "Limpiar enlaces compartidos");
         table.put("Save",
@@ -7630,25 +7630,25 @@ public final class L10nTranslations {
         table.put("See-through top bar",
                 "Barra superior transl\u00facida");
         table.put("Seek bar",
-                "Barra de b\u00fasqueda");
+                "Barra de reproducci\u00f3n");
         table.put("Seek bar button on feed videos",
-                "Bot\u00f3n de la barra de b\u00fasqueda en videos del feed");
+                "Bot\u00f3n de la barra de reproducci\u00f3n en videos del feed");
         table.put("Seek bar like DM videos",
                 "Barra de progreso como en los videos de mensajes");
         table.put("Seek bar look",
-                "Aspecto de la barra de b\u00fasqueda");
+                "Aspecto de la barra de reproducci\u00f3n");
         table.put("Seek bar on feed videos",
-                "Barra de b\u00fasqueda en videos del feed");
+                "Barra de reproducci\u00f3n en videos del feed");
         table.put("Seek bar on photos with music",
                 "Barra de progreso en fotos con m\u00fasica");
         table.put("Seek bar on stories",
-                "Barra de b\u00fasqueda en historias");
+                "Barra de reproducci\u00f3n en historias");
         table.put("Seek bar on the bottom edge",
-                "Barra de b\u00fasqueda en el borde inferior");
+                "Barra de reproducci\u00f3n en el borde inferior");
         table.put("Seek bar position",
-                "Posici\u00f3n de la barra de b\u00fasqueda");
+                "Posici\u00f3n de la barra de reproducci\u00f3n");
         table.put("Seek bar shape",
-                "Forma de la barra de b\u00fasqueda");
+                "Forma de la barra de reproducci\u00f3n");
         table.put("Seen from %1$s to %2$s",
                 "Visto del %1$s al %2$s");
         table.put("Seen goes out in this chat",
@@ -7807,9 +7807,9 @@ public final class L10nTranslations {
         table.put("Shows the days, hours and minutes since it went up on a line under the time, like 1d 2h 5m ago.",
                 "Muestra los d\u00edas, horas y minutos desde que se public\u00f3 en una l\u00ednea bajo la hora, como hace 1d 2h 5min.");
         table.put("Shows the time above your finger while you drag a seek bar on a feed video, story or reel, and a small picture of that moment when Instagram has one for the video.",
-                "Muestra el tiempo sobre tu dedo mientras arrastras una barra de b\u00fasqueda en un video del feed, una historia o un Reel, y una imagen peque\u00f1a de ese momento cuando Instagram tiene una para el video.");
+                "Muestra el tiempo sobre tu dedo mientras arrastras una barra de reproducci\u00f3n en un video del feed, una historia o un Reel, y una imagen peque\u00f1a de ese momento cuando Instagram tiene una para el video.");
         table.put("Shows the time played and the video's length over the seek bar on feed videos, like 0:12 / 0:45. Tap the time to see the time left instead.",
-                "Muestra el tiempo reproducido y la duraci\u00f3n del video sobre la barra de b\u00fasqueda en los videos del feed, como 0:12 / 0:45. Toca el tiempo para ver lo que queda.");
+                "Muestra el tiempo reproducido y la duraci\u00f3n del video sobre la barra de reproducci\u00f3n en los videos del feed, como 0:12 / 0:45. Toca el tiempo para ver lo que queda.");
         table.put("Shows when a post and its comments went up, like Oct 2, 3:45 PM, instead of how long ago. Posts you load after a change show it.",
                 "Muestra cu\u00e1ndo se public\u00f3 una publicaci\u00f3n y sus comentarios, como 2 oct, 15:45, en lugar de hace cu\u00e1nto. Las publicaciones que cargues tras un cambio lo muestran.");
         table.put("Shows your feed blurred under Home's top bar, like frosted glass.",
@@ -8410,7 +8410,7 @@ public final class L10nTranslations {
         table.put("The tab bar keeps Instagram's order.",
                 "La barra de pesta\u00f1as mantiene el orden de Instagram.");
         table.put("The time on the seek bar counts down what's left of the video, like -0:33 / 0:45. A tap on the time switches back.",
-                "El tiempo sobre la barra de b\u00fasqueda cuenta hacia atr\u00e1s lo que queda del video, como -0:33 / 0:45. Un toque en el tiempo lo cambia de nuevo.");
+                "El tiempo sobre la barra de reproducci\u00f3n cuenta hacia atr\u00e1s lo que queda del video, como -0:33 / 0:45. Un toque en el tiempo lo cambia de nuevo.");
         table.put("The top of Home goes back to your header text, or to Instagram's logo.",
                 "Arriba de Inicio vuelve tu texto, o el logo de Instagram.");
         table.put("The top of Home says %1$s.",
@@ -8487,7 +8487,7 @@ public final class L10nTranslations {
         table.put("Time on each post",
                 "Tiempo en cada publicaci\u00f3n");
         table.put("Time on the seek bar",
-                "Tiempo sobre la barra de b\u00fasqueda");
+                "Tiempo sobre la barra de reproducci\u00f3n");
         table.put("Time posted",
                 "Hora de publicaci\u00f3n");
         table.put("Tint intensity",
@@ -8541,9 +8541,9 @@ public final class L10nTranslations {
         table.put("Turn on See who a story mentions to use this choice.",
                 "Activa \u00abVer a qui\u00e9n menciona una historia\u00bb para usar esta opci\u00f3n.");
         table.put("Turn on Seek bar on feed videos or its button to use this choice.",
-                "Activa \u00abBarra de b\u00fasqueda en videos del feed\u00bb o su bot\u00f3n para usar esta opci\u00f3n.");
+                "Activa \u00abBarra de reproducci\u00f3n en videos del feed\u00bb o su bot\u00f3n para usar esta opci\u00f3n.");
         table.put("Turn on Seek bar on stories to use this choice.",
-                "Activa \u00abBarra de b\u00fasqueda en historias\u00bb para usar esta opci\u00f3n.");
+                "Activa \u00abBarra de reproducci\u00f3n en historias\u00bb para usar esta opci\u00f3n.");
         table.put("Turn on Show a story's exact time to use this choice.",
                 "Activa \u00abMostrar la hora exacta de una historia\u00bb para usar esta opci\u00f3n.");
         table.put("Turn on Show if a profile follows you to use this choice.",
@@ -22606,7 +22606,7 @@ public final class L10nTranslations {
         table.put("Adds a search box above a post's comments. Type a word or a name and the comments scroll to the next one that has it. Replies you haven't opened aren't searched.",
                 "Adiciona uma caixa de pesquisa acima dos coment\u00e1rios de um post. Digite uma palavra ou um nome e os coment\u00e1rios rolam at\u00e9 o pr\u00f3ximo que tiver isso. Respostas que voc\u00ea n\u00e3o abriu n\u00e3o entram na pesquisa.");
         table.put("Adds a small button at the bottom left of a feed video that shows or hides its seek bar. It works with Seek bar on feed videos on or off.",
-                "Adiciona um bot\u00e3o pequeno no canto inferior esquerdo de um v\u00eddeo do feed que mostra ou oculta a barra de busca. Funciona com a barra de busca nos v\u00eddeos do feed ligada ou desligada.");
+                "Adiciona um bot\u00e3o pequeno no canto inferior esquerdo de um v\u00eddeo do feed que mostra ou oculta a barra de progresso. Funciona com a barra de progresso nos v\u00eddeos do feed ligada ou desligada.");
         table.put("Adds a white round handle to the seek bar that you can drag. Ads keep their own bar.",
                 "Adiciona \u00e0 barra de progresso uma al\u00e7a redonda branca que voc\u00ea pode arrastar. Os an\u00fancios mant\u00eam a barra deles.");
         table.put("Adds an eye button to the top of a live while you watch anonymously. Tap it to show up on that live's viewer list. Other lives stay hidden.",
@@ -23338,13 +23338,13 @@ public final class L10nTranslations {
         table.put("Feed",
                 "Feed");
         table.put("Feed seek bar shape",
-                "Forma da barra de busca no feed");
+                "Forma da barra de progresso no feed");
         table.put("Feed videos and reels stop at their last frame instead of playing again. Reels still loop while auto scroll is on, so it can move on.",
                 "Os v\u00eddeos do feed e os reels param no \u00faltimo quadro em vez de tocar de novo. Os reels continuam repetindo enquanto a rolagem autom\u00e1tica est\u00e1 ativada, para que ela possa avan\u00e7ar.");
         table.put("Feed videos and stories wait for your tap. Reels play as you swipe to them.",
                 "V\u00eddeos do feed e stories esperam o seu toque. Os reels tocam quando voc\u00ea desliza at\u00e9 eles.");
         table.put("Feed videos use the shape picked in Seek bar shape.",
-                "Os v\u00eddeos do feed usam a forma escolhida em Forma da barra de busca.");
+                "Os v\u00eddeos do feed usam a forma escolhida em Forma da barra de progresso.");
         table.put("Feed videos, reels and stories all wait for your tap.",
                 "V\u00eddeos do feed, reels e stories esperam o seu toque.");
         table.put("Fewer than %1$s likes",
@@ -24896,7 +24896,7 @@ public final class L10nTranslations {
         table.put("Preview of the tab bar",
                 "Pr\u00e9via da barra de abas");
         table.put("Preview while you drag a seek bar",
-                "Pr\u00e9via ao arrastar uma barra de busca");
+                "Pr\u00e9via ao arrastar uma barra de progresso");
         table.put("Previous match",
                 "Resultado anterior");
         table.put("Previous page",
@@ -24993,7 +24993,7 @@ public final class L10nTranslations {
         table.put("Puts the arrow next to Reels on every profile, so you can sort them by Latest or Most viewed where Instagram took the choice away.",
                 "Coloca a seta ao lado de Reels em todos os perfis, para voc\u00ea ordenar por Mais recentes ou Mais vistos onde o Instagram tirou essa op\u00e7\u00e3o.");
         table.put("Puts the seek bar right on the bottom edge of the video, so it's harder to touch by accident while you scroll.",
-                "Coloca a barra de busca bem na borda de baixo do v\u00eddeo, para ficar mais dif\u00edcil de tocar sem querer enquanto voc\u00ea rola.");
+                "Coloca a barra de progresso bem na borda de baixo do v\u00eddeo, para ficar mais dif\u00edcil de tocar sem querer enquanto voc\u00ea rola.");
         table.put("Puts the title in the middle of the bar at the top of other screens, like notifications, as far as the buttons beside it allow. The buttons stay where they are.",
                 "Coloca o t\u00edtulo no meio da barra no topo de outras telas, como as notifica\u00e7\u00f5es, at\u00e9 onde os bot\u00f5es ao lado deixam. Os bot\u00f5es ficam onde est\u00e3o.");
         table.put("Puts the username in the middle of the bar at the top of a profile, yours and other people's. The buttons stay where they are.",
@@ -25187,7 +25187,7 @@ public final class L10nTranslations {
         table.put("SMS",
                 "SMS");
         table.put("Same as Seek bar shape",
-                "Igual a Forma da barra de busca");
+                "Igual a Forma da barra de progresso");
         table.put("Sanitize sharing links",
                 "Limpar links compartilhados");
         table.put("Save",
@@ -25322,25 +25322,25 @@ public final class L10nTranslations {
         table.put("See-through top bar",
                 "Barra de cima transl\u00facida");
         table.put("Seek bar",
-                "Barra de busca");
+                "Barra de progresso");
         table.put("Seek bar button on feed videos",
-                "Bot\u00e3o da barra de busca nos v\u00eddeos do feed");
+                "Bot\u00e3o da barra de progresso nos v\u00eddeos do feed");
         table.put("Seek bar like DM videos",
                 "Barra de progresso como nos v\u00eddeos de mensagens");
         table.put("Seek bar look",
-                "Visual da barra de busca");
+                "Visual da barra de progresso");
         table.put("Seek bar on feed videos",
-                "Barra de busca nos v\u00eddeos do feed");
+                "Barra de progresso nos v\u00eddeos do feed");
         table.put("Seek bar on photos with music",
                 "Barra de progresso em fotos com m\u00fasica");
         table.put("Seek bar on stories",
-                "Barra de busca nos stories");
+                "Barra de progresso nos stories");
         table.put("Seek bar on the bottom edge",
-                "Barra de busca na borda de baixo");
+                "Barra de progresso na borda de baixo");
         table.put("Seek bar position",
-                "Posi\u00e7\u00e3o da barra de busca");
+                "Posi\u00e7\u00e3o da barra de progresso");
         table.put("Seek bar shape",
-                "Forma da barra de busca");
+                "Forma da barra de progresso");
         table.put("Seen from %1$s to %2$s",
                 "Visto de %1$s a %2$s");
         table.put("Seen goes out in this chat",
@@ -25499,9 +25499,9 @@ public final class L10nTranslations {
         table.put("Shows the days, hours and minutes since it went up on a line under the time, like 1d 2h 5m ago.",
                 "Mostra os dias, horas e minutos desde a publica\u00e7\u00e3o em uma linha abaixo do hor\u00e1rio, como h\u00e1 1 dia 2 h 5 min.");
         table.put("Shows the time above your finger while you drag a seek bar on a feed video, story or reel, and a small picture of that moment when Instagram has one for the video.",
-                "Mostra o tempo acima do seu dedo enquanto voc\u00ea arrasta uma barra de busca em um v\u00eddeo do feed, story ou Reel, e uma imagem pequena daquele momento quando o Instagram tem uma para o v\u00eddeo.");
+                "Mostra o tempo acima do seu dedo enquanto voc\u00ea arrasta uma barra de progresso em um v\u00eddeo do feed, story ou Reel, e uma imagem pequena daquele momento quando o Instagram tem uma para o v\u00eddeo.");
         table.put("Shows the time played and the video's length over the seek bar on feed videos, like 0:12 / 0:45. Tap the time to see the time left instead.",
-                "Mostra o tempo assistido e a dura\u00e7\u00e3o do v\u00eddeo sobre a barra de busca nos v\u00eddeos do feed, como 0:12 / 0:45. Toque no tempo para ver quanto falta.");
+                "Mostra o tempo assistido e a dura\u00e7\u00e3o do v\u00eddeo sobre a barra de progresso nos v\u00eddeos do feed, como 0:12 / 0:45. Toque no tempo para ver quanto falta.");
         table.put("Shows when a post and its comments went up, like Oct 2, 3:45 PM, instead of how long ago. Posts you load after a change show it.",
                 "Mostra quando um post e os coment\u00e1rios dele foram publicados, como 2 de out., 15:45, em vez de h\u00e1 quanto tempo. Posts carregados depois de uma mudan\u00e7a mostram isso.");
         table.put("Shows your feed blurred under Home's top bar, like frosted glass.",
@@ -26102,7 +26102,7 @@ public final class L10nTranslations {
         table.put("The tab bar keeps Instagram's order.",
                 "A barra de abas mant\u00e9m a ordem do Instagram.");
         table.put("The time on the seek bar counts down what's left of the video, like -0:33 / 0:45. A tap on the time switches back.",
-                "O tempo na barra de busca conta para tr\u00e1s o que falta do v\u00eddeo, como -0:33 / 0:45. Um toque no tempo volta ao normal.");
+                "O tempo na barra de progresso conta para tr\u00e1s o que falta do v\u00eddeo, como -0:33 / 0:45. Um toque no tempo volta ao normal.");
         table.put("The top of Home goes back to your header text, or to Instagram's logo.",
                 "O topo do In\u00edcio volta a mostrar seu texto, ou o logo do Instagram.");
         table.put("The top of Home says %1$s.",
@@ -26179,7 +26179,7 @@ public final class L10nTranslations {
         table.put("Time on each post",
                 "Tempo em cada publica\u00e7\u00e3o");
         table.put("Time on the seek bar",
-                "Tempo na barra de busca");
+                "Tempo na barra de progresso");
         table.put("Time posted",
                 "Hor\u00e1rio da postagem");
         table.put("Tint intensity",
@@ -26233,9 +26233,9 @@ public final class L10nTranslations {
         table.put("Turn on See who a story mentions to use this choice.",
                 "Ative Ver quem um story menciona para usar esta op\u00e7\u00e3o.");
         table.put("Turn on Seek bar on feed videos or its button to use this choice.",
-                "Ative Barra de busca nos v\u00eddeos do feed ou o bot\u00e3o dela para usar esta op\u00e7\u00e3o.");
+                "Ative Barra de progresso nos v\u00eddeos do feed ou o bot\u00e3o dela para usar esta op\u00e7\u00e3o.");
         table.put("Turn on Seek bar on stories to use this choice.",
-                "Ative Barra de busca nos stories para usar esta op\u00e7\u00e3o.");
+                "Ative Barra de progresso nos stories para usar esta op\u00e7\u00e3o.");
         table.put("Turn on Show a story's exact time to use this choice.",
                 "Ative Mostrar o hor\u00e1rio exato de um story para usar esta op\u00e7\u00e3o.");
         table.put("Turn on Show if a profile follows you to use this choice.",
@@ -31452,9 +31452,9 @@ public final class L10nTranslations {
         table.put("Adds a search box above a post's comments. Type a word or a name and the comments scroll to the next one that has it. Replies you haven't opened aren't searched.",
                 "Bir g\u00f6nderinin yorumlar\u0131n\u0131n \u00fcst\u00fcne bir arama kutusu ekler. Bir kelime ya da ad yazd\u0131\u011f\u0131nda yorumlar, onu i\u00e7eren bir sonraki yoruma kayar. A\u00e7mad\u0131\u011f\u0131n yan\u0131tlar aranmaz.");
         table.put("Adds a small button at the bottom left of a feed video that shows or hides its seek bar. It works with Seek bar on feed videos on or off.",
-                "Ak\u0131\u015f videosunun sol alt\u0131na arama \u00e7ubu\u011funu g\u00f6steren veya gizleyen k\u00fc\u00e7\u00fck bir d\u00fc\u011fme ekler. Ak\u0131\u015f videolar\u0131nda arama \u00e7ubu\u011fu a\u00e7\u0131k da olsa kapal\u0131 da olsa \u00e7al\u0131\u015f\u0131r.");
+                "Ak\u0131\u015f videosunun sol alt\u0131na ilerleme \u00e7ubu\u011funu g\u00f6steren veya gizleyen k\u00fc\u00e7\u00fck bir d\u00fc\u011fme ekler. Ak\u0131\u015f videolar\u0131nda ilerleme \u00e7ubu\u011fu a\u00e7\u0131k da olsa kapal\u0131 da olsa \u00e7al\u0131\u015f\u0131r.");
         table.put("Adds a white round handle to the seek bar that you can drag. Ads keep their own bar.",
-                "Arama \u00e7ubu\u011funa s\u00fcr\u00fckleyebilece\u011fin beyaz, yuvarlak bir tutama\u00e7 ekler. Reklamlar kendi \u00e7ubuklar\u0131n\u0131 korur.");
+                "\u0130lerleme \u00e7ubu\u011funa s\u00fcr\u00fckleyebilece\u011fin beyaz, yuvarlak bir tutama\u00e7 ekler. Reklamlar kendi \u00e7ubuklar\u0131n\u0131 korur.");
         table.put("Adds an eye button to the top of a live while you watch anonymously. Tap it to show up on that live's viewer list. Other lives stay hidden.",
                 "Anonim izlerken canl\u0131 yay\u0131n\u0131n \u00fcst\u00fcne bir g\u00f6z d\u00fc\u011fmesi ekler. O canl\u0131 yay\u0131n\u0131n izleyici listesinde g\u00f6r\u00fcnmek i\u00e7in d\u00fc\u011fmeye dokun. Di\u011fer canl\u0131 yay\u0131nlar gizli kal\u0131r.");
         table.put("Adds an eye button to the top of each story while you view anonymously. Tap it to show up on that story's viewer list. The other stories stay hidden.",
@@ -32184,13 +32184,13 @@ public final class L10nTranslations {
         table.put("Feed",
                 "Ak\u0131\u015f");
         table.put("Feed seek bar shape",
-                "Ak\u0131\u015ftaki arama \u00e7ubu\u011fu \u015fekli");
+                "Ak\u0131\u015ftaki ilerleme \u00e7ubu\u011fu \u015fekli");
         table.put("Feed videos and reels stop at their last frame instead of playing again. Reels still loop while auto scroll is on, so it can move on.",
                 "Ak\u0131\u015ftaki videolar ve reels videolar\u0131 yeniden oynat\u0131lmak yerine son karelerinde durur. Otomatik kayd\u0131rma a\u00e7\u0131kken reels videolar\u0131 bir sonrakine ge\u00e7ebilmesi i\u00e7in tekrarlanmaya devam eder.");
         table.put("Feed videos and stories wait for your tap. Reels play as you swipe to them.",
                 "Ak\u0131\u015ftaki videolar ve hikayeler dokunman\u0131 bekler. Reels, kayd\u0131rd\u0131\u011f\u0131nda oynar.");
         table.put("Feed videos use the shape picked in Seek bar shape.",
-                "Ak\u0131\u015f videolar\u0131, Arama \u00e7ubu\u011fu \u015fekli i\u00e7inde se\u00e7ilen \u015fekli kullan\u0131r.");
+                "Ak\u0131\u015f videolar\u0131, \u0130lerleme \u00e7ubu\u011fu \u015fekli i\u00e7inde se\u00e7ilen \u015fekli kullan\u0131r.");
         table.put("Feed videos, reels and stories all wait for your tap.",
                 "Ak\u0131\u015ftaki videolar, reels ve hikayeler dokunman\u0131 bekler.");
         table.put("Fewer than %1$s likes",
@@ -33742,7 +33742,7 @@ public final class L10nTranslations {
         table.put("Preview of the tab bar",
                 "Sekme \u00e7ubu\u011fu \u00f6nizlemesi");
         table.put("Preview while you drag a seek bar",
-                "Arama \u00e7ubu\u011funu s\u00fcr\u00fcklerken \u00f6nizleme");
+                "\u0130lerleme \u00e7ubu\u011funu s\u00fcr\u00fcklerken \u00f6nizleme");
         table.put("Previous match",
                 "\u00d6nceki e\u015fle\u015fme");
         table.put("Previous page",
@@ -33839,7 +33839,7 @@ public final class L10nTranslations {
         table.put("Puts the arrow next to Reels on every profile, so you can sort them by Latest or Most viewed where Instagram took the choice away.",
                 "Her profilde Reels'in yan\u0131na oku koyar, b\u00f6ylece Instagram'\u0131n se\u00e7ene\u011fi kald\u0131rd\u0131\u011f\u0131 yerlerde de En yeni veya En \u00e7ok izlenen s\u0131ras\u0131yla s\u0131ralayabilirsin.");
         table.put("Puts the seek bar right on the bottom edge of the video, so it's harder to touch by accident while you scroll.",
-                "Arama \u00e7ubu\u011funu videonun tam alt kenar\u0131na koyar, b\u00f6ylece kayd\u0131r\u0131rken yanl\u0131\u015fl\u0131kla dokunmak zorla\u015f\u0131r.");
+                "\u0130lerleme \u00e7ubu\u011funu videonun tam alt kenar\u0131na koyar, b\u00f6ylece kayd\u0131r\u0131rken yanl\u0131\u015fl\u0131kla dokunmak zorla\u015f\u0131r.");
         table.put("Puts the title in the middle of the bar at the top of other screens, like notifications, as far as the buttons beside it allow. The buttons stay where they are.",
                 "Bildirimler gibi di\u011fer ekranlar\u0131n \u00fcst\u00fcndeki \u00e7ubukta ba\u015fl\u0131\u011f\u0131, yan\u0131ndaki d\u00fc\u011fmelerin izin verdi\u011fi kadar ortaya koyar. D\u00fc\u011fmeler yerinde kal\u0131r.");
         table.put("Puts the username in the middle of the bar at the top of a profile, yours and other people's. The buttons stay where they are.",
@@ -34021,7 +34021,7 @@ public final class L10nTranslations {
         table.put("Rounds the corners of a post's photo, video and carousel pages in Home and Following. Posts you scroll to after a change show it. Stories, profiles and Explore stay as they were.",
                 "Ana Sayfa ve Takip Edilenler'de bir g\u00f6nderinin foto\u011fraf, video ve kayd\u0131rmal\u0131 alb\u00fcm sayfalar\u0131n\u0131n k\u00f6\u015felerini yuvarlar. Bir de\u011fi\u015fiklikten sonra kayd\u0131rd\u0131\u011f\u0131n g\u00f6nderilerde g\u00f6r\u00fcn\u00fcr. Hikayeler, profiller ve Ke\u015ffet oldu\u011fu gibi kal\u0131r.");
         table.put("Rounds the corners of a reel's video in the Reels tab and wherever a reel opens full screen. The seek bar, captions and buttons stay whole.",
-                "Reels sekmesinde ve bir reel'in tam ekran a\u00e7\u0131ld\u0131\u011f\u0131 her yerde reel videosunun k\u00f6\u015felerini yuvarlar. Arama \u00e7ubu\u011fu, altyaz\u0131lar ve d\u00fc\u011fmeler b\u00fct\u00fcn kal\u0131r.");
+                "Reels sekmesinde ve bir reel'in tam ekran a\u00e7\u0131ld\u0131\u011f\u0131 her yerde reel videosunun k\u00f6\u015felerini yuvarlar. \u0130lerleme \u00e7ubu\u011fu, altyaz\u0131lar ve d\u00fc\u011fmeler b\u00fct\u00fcn kal\u0131r.");
         table.put("Rounds the corners of a story's photo or video, from the tray, a profile or a highlight. The progress bar, names and stickers stay whole.",
                 "Bir hikayenin foto\u011fraf\u0131n\u0131n veya videosunun k\u00f6\u015felerini yuvarlar; hikaye \u015feridinden, bir profilden veya \u00f6ne \u00e7\u0131kanlardan a\u00e7\u0131lsa da. \u0130lerleme \u00e7ubu\u011fu, adlar ve \u00e7\u0131kartmalar b\u00fct\u00fcn kal\u0131r.");
         table.put("Rounds the pill and its highlight and puts Search in a glass circle of its own. Scrolling a list down shrinks the bar to the tab you're on and Search, unless Hide the tab bar as you scroll is on. Restart Instagram after changing it.",
@@ -34033,7 +34033,7 @@ public final class L10nTranslations {
         table.put("SMS",
                 "SMS");
         table.put("Same as Seek bar shape",
-                "Arama \u00e7ubu\u011fu \u015fekli ile ayn\u0131");
+                "\u0130lerleme \u00e7ubu\u011fu \u015fekli ile ayn\u0131");
         table.put("Sanitize sharing links",
                 "Payla\u015f\u0131m ba\u011flant\u0131lar\u0131n\u0131 temizle");
         table.put("Save",
@@ -34168,25 +34168,25 @@ public final class L10nTranslations {
         table.put("See-through top bar",
                 "Saydam \u00fcst \u00e7ubuk");
         table.put("Seek bar",
-                "Arama \u00e7ubu\u011fu");
+                "\u0130lerleme \u00e7ubu\u011fu");
         table.put("Seek bar button on feed videos",
-                "Ak\u0131\u015f videolar\u0131nda arama \u00e7ubu\u011fu d\u00fc\u011fmesi");
+                "Ak\u0131\u015f videolar\u0131nda ilerleme \u00e7ubu\u011fu d\u00fc\u011fmesi");
         table.put("Seek bar like DM videos",
                 "Mesajlardaki videolar gibi ilerleme \u00e7ubu\u011fu");
         table.put("Seek bar look",
-                "Arama \u00e7ubu\u011fu g\u00f6r\u00fcn\u00fcm\u00fc");
+                "\u0130lerleme \u00e7ubu\u011fu g\u00f6r\u00fcn\u00fcm\u00fc");
         table.put("Seek bar on feed videos",
-                "Ak\u0131\u015f videolar\u0131nda arama \u00e7ubu\u011fu");
+                "Ak\u0131\u015f videolar\u0131nda ilerleme \u00e7ubu\u011fu");
         table.put("Seek bar on photos with music",
                 "M\u00fczikli foto\u011fraflarda ilerleme \u00e7ubu\u011fu");
         table.put("Seek bar on stories",
-                "Hikayelerde arama \u00e7ubu\u011fu");
+                "Hikayelerde ilerleme \u00e7ubu\u011fu");
         table.put("Seek bar on the bottom edge",
-                "Alt kenarda arama \u00e7ubu\u011fu");
+                "Alt kenarda ilerleme \u00e7ubu\u011fu");
         table.put("Seek bar position",
-                "Arama \u00e7ubu\u011fu konumu");
+                "\u0130lerleme \u00e7ubu\u011fu konumu");
         table.put("Seek bar shape",
-                "Arama \u00e7ubu\u011fu \u015fekli");
+                "\u0130lerleme \u00e7ubu\u011fu \u015fekli");
         table.put("Seen from %1$s to %2$s",
                 "%1$s ile %2$s aras\u0131nda g\u00f6r\u00fcld\u00fc");
         table.put("Seen goes out in this chat",
@@ -34345,9 +34345,9 @@ public final class L10nTranslations {
         table.put("Shows the days, hours and minutes since it went up on a line under the time, like 1d 2h 5m ago.",
                 "Payla\u015f\u0131ld\u0131\u011f\u0131ndan beri ge\u00e7en g\u00fcnleri, saatleri ve dakikalar\u0131 zaman\u0131n alt\u0131ndaki bir sat\u0131rda g\u00f6sterir, 1g 2 sa 5d \u00f6nce gibi.");
         table.put("Shows the time above your finger while you drag a seek bar on a feed video, story or reel, and a small picture of that moment when Instagram has one for the video.",
-                "Bir ak\u0131\u015f videosunda, hikayede veya Reels videosunda arama \u00e7ubu\u011funu s\u00fcr\u00fcklerken parma\u011f\u0131n\u0131z\u0131n \u00fcst\u00fcnde s\u00fcreyi ve Instagram'da o video i\u00e7in varsa o an\u0131n k\u00fc\u00e7\u00fck bir resmini g\u00f6sterir.");
+                "Bir ak\u0131\u015f videosunda, hikayede veya Reels videosunda ilerleme \u00e7ubu\u011funu s\u00fcr\u00fcklerken parma\u011f\u0131n\u0131z\u0131n \u00fcst\u00fcnde s\u00fcreyi ve Instagram'da o video i\u00e7in varsa o an\u0131n k\u00fc\u00e7\u00fck bir resmini g\u00f6sterir.");
         table.put("Shows the time played and the video's length over the seek bar on feed videos, like 0:12 / 0:45. Tap the time to see the time left instead.",
-                "Ak\u0131\u015f videolar\u0131nda oynat\u0131lan s\u00fcreyi ve videonun uzunlu\u011funu arama \u00e7ubu\u011funun \u00fcst\u00fcnde g\u00f6sterir, \u00f6rne\u011fin 0:12 / 0:45. Kalan s\u00fcreyi g\u00f6rmek i\u00e7in s\u00fcreye dokun.");
+                "Ak\u0131\u015f videolar\u0131nda oynat\u0131lan s\u00fcreyi ve videonun uzunlu\u011funu ilerleme \u00e7ubu\u011funun \u00fcst\u00fcnde g\u00f6sterir, \u00f6rne\u011fin 0:12 / 0:45. Kalan s\u00fcreyi g\u00f6rmek i\u00e7in s\u00fcreye dokun.");
         table.put("Shows when a post and its comments went up, like Oct 2, 3:45 PM, instead of how long ago. Posts you load after a change show it.",
                 "Bir g\u00f6nderinin ve yorumlar\u0131n\u0131n ne zaman payla\u015f\u0131ld\u0131\u011f\u0131n\u0131, ne kadar \u00f6nce oldu\u011fu yerine 2 Eki, 15:45 gibi g\u00f6sterir. De\u011fi\u015fiklikten sonra y\u00fcklenen g\u00f6nderilerde g\u00f6r\u00fcn\u00fcr.");
         table.put("Shows your feed blurred under Home's top bar, like frosted glass.",
@@ -34948,7 +34948,7 @@ public final class L10nTranslations {
         table.put("The tab bar keeps Instagram's order.",
                 "Sekme \u00e7ubu\u011fu Instagram'\u0131n s\u0131ras\u0131n\u0131 korur.");
         table.put("The time on the seek bar counts down what's left of the video, like -0:33 / 0:45. A tap on the time switches back.",
-                "Arama \u00e7ubu\u011fundaki s\u00fcre, videonun kalan\u0131n\u0131 geri sayar, \u00f6rne\u011fin -0:33 / 0:45. S\u00fcreye dokununca geri d\u00f6ner.");
+                "\u0130lerleme \u00e7ubu\u011fundaki s\u00fcre, videonun kalan\u0131n\u0131 geri sayar, \u00f6rne\u011fin -0:33 / 0:45. S\u00fcreye dokununca geri d\u00f6ner.");
         table.put("The top of Home goes back to your header text, or to Instagram's logo.",
                 "Ana Sayfa'n\u0131n \u00fcst\u00fc yaz\u0131na ya da Instagram logosuna d\u00f6ner.");
         table.put("The top of Home says %1$s.",
@@ -35025,7 +35025,7 @@ public final class L10nTranslations {
         table.put("Time on each post",
                 "G\u00f6nderi ba\u015f\u0131na s\u00fcre");
         table.put("Time on the seek bar",
-                "Arama \u00e7ubu\u011funda s\u00fcre");
+                "\u0130lerleme \u00e7ubu\u011funda s\u00fcre");
         table.put("Time posted",
                 "Payla\u015f\u0131lma saati");
         table.put("Tint intensity",
@@ -35079,9 +35079,9 @@ public final class L10nTranslations {
         table.put("Turn on See who a story mentions to use this choice.",
                 "Bu se\u00e7imi kullanmak i\u00e7in Bir hik\u00e2yede kimlerden bahsedildi\u011fini g\u00f6r se\u00e7ene\u011fini a\u00e7\u0131n.");
         table.put("Turn on Seek bar on feed videos or its button to use this choice.",
-                "Bu se\u00e7imi kullanmak i\u00e7in Ak\u0131\u015f videolar\u0131nda arama \u00e7ubu\u011fu se\u00e7ene\u011fini veya d\u00fc\u011fmesini a\u00e7\u0131n.");
+                "Bu se\u00e7imi kullanmak i\u00e7in Ak\u0131\u015f videolar\u0131nda ilerleme \u00e7ubu\u011fu se\u00e7ene\u011fini veya d\u00fc\u011fmesini a\u00e7\u0131n.");
         table.put("Turn on Seek bar on stories to use this choice.",
-                "Bu se\u00e7imi kullanmak i\u00e7in Hikayelerde arama \u00e7ubu\u011fu se\u00e7ene\u011fini a\u00e7\u0131n.");
+                "Bu se\u00e7imi kullanmak i\u00e7in Hikayelerde ilerleme \u00e7ubu\u011fu se\u00e7ene\u011fini a\u00e7\u0131n.");
         table.put("Turn on Show a story's exact time to use this choice.",
                 "Bu se\u00e7imi kullanmak i\u00e7in Hikayenin tam zaman\u0131n\u0131 g\u00f6ster se\u00e7ene\u011fini a\u00e7\u0131n.");
         table.put("Turn on Show if a profile follows you to use this choice.",
