@@ -373,7 +373,10 @@ class OnlyReceivedReelsTest {
         for (hook in listOf(REPLY_TO, REPLY_INFO)) {
             assertEquals("$name: methods asking $hook", 1, all.count { m -> m.visualCode().any { it.text() == hook } })
         }
-        assertEquals("$name: the hint update asks", replies.hint.name, all.single { m -> m.visualCode().any { it.text() == REPLY_TO } }.name)
+        assertEquals("$name: the hint update asks", replies.hintAsks.name, all.single { m -> m.visualCode().any { it.text() == REPLY_TO } }.name)
+        val hintCalls = replies.hint.visualCode().map { it.text() }
+        val asks = "${replies.hintAsks.definingClass}->${replies.hintAsks.name}(I)${replies.hintAsks.returnType}"
+        assertTrue("$name: the hint update is what asks, or hands its page to what does", replies.hintAsks.name == replies.hint.name || asks in hintCalls)
 
         // The page select tells the extension which reel came on screen, right after its hint update (#489).
         context.pointOutMessagesAfterReels(found, replies, page)

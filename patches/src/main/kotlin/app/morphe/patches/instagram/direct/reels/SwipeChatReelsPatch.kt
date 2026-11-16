@@ -1064,7 +1064,8 @@ internal fun BytecodePatchContext.watchChatViewers(found: ChatViewers = findChat
 
 /**
  * The reply bar under a reel opened from a chat, ClipsViewerDirectReplyBarController (LX/0T5D on 453's
- * 385914557): its hint update for a page ([REPLY_HINT]) and its reply info for the reel on screen
+ * 385914557): its hint update for a page ([REPLY_HINT]), the method that reads the page's info for it
+ * ([hintAsks], the hint update itself up to 454), and its reply info for the reel on screen
  * ([REPLY_CURRENT_INFO]), each with the register holding Instagram's info where its two ways in meet and
  * the locals the hook borrows there, its reel on screen ([REPLY_CURRENT_ITEM]), the info class with its
  * constructor and message field, the controller's adapter field with the adapter's count and item at a
@@ -1073,6 +1074,7 @@ internal fun BytecodePatchContext.watchChatViewers(found: ChatViewers = findChat
  */
 internal class ReplyBar(
     val hint: MutableMethod,
+    val hintAsks: MutableMethod,
     val hintInfo: Int,
     val hintFree: List<Int>,
     val current: MutableMethod,
@@ -1117,6 +1119,36 @@ private fun replyJoin(method: Method, info: String): Int? {
 private fun replyRegister(method: Method, at: Int) =
     (method.implementation!!.instructions.elementAt(at) as OneRegisterInstruction).registerA
 
+/**
+ * The one instance method of [hint]'s class taking a page that [hint] hands its own this and page to,
+ * and that has one place its ways to [info] meet, with the calls handing them over. From 455 the hint
+ * update leaves reading the page's info to handleReshareChaining (`LX/0TRG;->A1J(I)Z` on 386113969,
+ * which casts it at 21 and tests it at 22). Null when there isn't exactly one.
+ */
+private fun BytecodePatchContext.hintAsks(hint: Method, info: String): Pair<Method, List<Int>>? {
+    val code = hint.implementation?.instructions?.toList() ?: return null
+    val self = hint.localRegisterCount()
+    val page = hint.parameterRegisterNumber(0)
+    val handed = code.indices.mapNotNull { at ->
+        val call = code[at]
+        val reference = (call as? ReferenceInstruction)?.reference as? MethodReference
+        if (call.opcode != Opcode.INVOKE_VIRTUAL || reference == null || reference.definingClass != hint.definingClass ||
+            reference.parameterTypes.map(CharSequence::toString) != listOf("I")
+        ) return@mapNotNull null
+        val registers = call as FiveRegisterInstruction
+        if (registers.registerCount != 2 || registers.registerC != self || registers.registerD != page) null else reference to at
+    }
+    val asked = handed.groupBy { (reference, _) -> "$reference" }.mapNotNull { (_, calls) ->
+        val reference = calls.first().first
+        val method = classDefBy(hint.definingClass).methods.singleOrNull { method ->
+            method.name == reference.name && method.returnType == reference.returnType && !AccessFlags.STATIC.isSet(method.accessFlags) &&
+                method.parameterTypes.map(CharSequence::toString) == listOf("I")
+        }
+        if (method == null || replyJoin(method, info) == null) null else method to calls.map { it.second }
+    }
+    return asked.singleOrNull()
+}
+
 /** The virtual calls in [code]. */
 private fun virtualCalls(code: List<Instruction>) = code.mapNotNull { instruction ->
     if (instruction.opcode != Opcode.INVOKE_VIRTUAL) null else (instruction as ReferenceInstruction).reference as MethodReference
@@ -1131,7 +1163,8 @@ private fun virtualCalls(code: List<Instruction>) = code.mapNotNull { instructio
  * count, on one field of the controller, and the controller keeps one [VIEWER_SOURCE]. The info class
  * has one constructor, storing its first String, the message, in one field, and the collector builds
  * one with two free locals after it where nothing jumps. Both reply methods test the info they cast where
- * their two ways in meet, with free locals there. Fails when any of it isn't so.
+ * their two ways in meet, with free locals there, the hint update through [hintAsks] where it doesn't
+ * itself. Fails when any of it isn't so.
  */
 internal fun BytecodePatchContext.findReplyBar(collector: ReelCollector = findReelCollector()): ReplyBar {
     val names = listOf(REPLY_HINT, REPLY_CURRENT_INFO, REPLY_CURRENT_ITEM)
@@ -1203,9 +1236,12 @@ internal fun BytecodePatchContext.findReplyBar(collector: ReelCollector = findRe
     val infoRegister = (collectCode[built] as FiveRegisterInstruction).registerC
     val (wrapper, chat) = collect.freeLocalsAt(PATCH, built + 1, 2, except = listOf(infoRegister))
 
-    val hintJoin = replyJoin(hint, info) ?: refuse("$controller->${hint.name} has no one place its ways to a $info meet")
-    val hintInfo = replyRegister(hint, hintJoin)
-    val hintFree = hint.freeLocalsAt(PATCH, hintJoin, 3, except = listOf(hintInfo))
+    val (asks, handing) = if (replyJoin(hint, info) != null) hint to emptyList() else {
+        hintAsks(hint, info) ?: refuse("$controller->${hint.name} has no one place its ways to a $info meet")
+    }
+    val hintJoin = replyJoin(asks, info)!!
+    val hintInfo = replyRegister(asks, hintJoin)
+    val hintFree = asks.freeLocalsAt(PATCH, hintJoin, 3, except = listOf(hintInfo))
     val currentJoin = replyJoin(current, info) ?: refuse("$controller->${current.name} has no one place its ways to a $info meet")
     val currentInfo = replyRegister(current, currentJoin)
     val currentFree = current.freeLocalsAt(PATCH, currentJoin, 2, except = listOf(currentInfo))
@@ -1213,14 +1249,18 @@ internal fun BytecodePatchContext.findReplyBar(collector: ReelCollector = findRe
     // the hint's controller and page, and the reply info's controller. Nothing before may write over them.
     collect.requireParameterIntact(PATCH, 0, listOf(built + 1))
     collect.requireThisIntact(PATCH, listOf(built + 1))
-    hint.requireThisIntact(PATCH, listOf(hintJoin))
-    hint.requireParameterIntact(PATCH, 0, listOf(hintJoin))
+    asks.requireThisIntact(PATCH, listOf(hintJoin))
+    asks.requireParameterIntact(PATCH, 0, listOf(hintJoin))
+    if (handing.isNotEmpty()) {
+        hint.requireThisIntact(PATCH, handing)
+        hint.requireParameterIntact(PATCH, 0, handing)
+    }
     current.requireParameterIntact(PATCH, 0, listOf(currentJoin))
 
     val mutable = mutableClassDefBy(controller).methods
     fun mutableOf(method: Method) = mutable.single { it.name == method.name && takes(it) == takes(method) }
     return ReplyBar(
-        mutableOf(hint), hintInfo, hintFree, mutableOf(current), currentInfo, currentFree, replyCall(currentItem),
+        mutableOf(hint), mutableOf(asks), hintInfo, hintFree, mutableOf(current), currentInfo, currentFree, replyCall(currentItem),
         info, initCall, message, adapter, count, item, "$controller->${source.name}:$VIEWER_SOURCE", infoRegister, wrapper, chat,
     )
 }
@@ -1251,7 +1291,7 @@ internal fun BytecodePatchContext.giveSwipedReelsTheirReplies(collector: ReelCol
         """,
     )
 
-    val hint = found.hint
+    val hint = found.hintAsks
     val hintJoin = replyJoin(hint, found.info) ?: refuse("${hint.definingClass}->${hint.name} no longer tests a ${found.info}")
     val (page, adapter, source) = found.hintFree
     hint.addInstructionsAtControlFlowLabel(

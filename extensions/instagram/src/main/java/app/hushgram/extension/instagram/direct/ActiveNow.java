@@ -15,12 +15,12 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * Helper for the "Shorter Active now" patch.
  *
  * <p>Instagram shows someone as Active now under their name in your messages and in a chat's
- * header until six and a half minutes after its presence service last saw them, a limit the app
- * sets once, when its presence formatter's class first loads, and every check of Active now in
- * the app reads. The
- * website lets go after about a minute. The patch hands that limit to {@link #window} as it's set,
- * and the app keeps whatever comes back for the rest of the process, which is why the switch needs
- * a restart.
+ * header until six and a half minutes after its presence service last saw them. Most builds load
+ * that limit in each check of Active now, and the patch hands each check's copy to {@link #window}
+ * as it's loaded, so the switch takes effect on the next check. A few keep it in a field their
+ * presence formatter sets once, when its class first loads; there the patch hands it over as it's
+ * set, and the app keeps whatever comes back for the rest of the process, which is why the switch
+ * can need a restart.
  *
  * <p>With the switch on the limit is one minute. Past it Instagram's own wording takes over, like
  * Active 2m ago. Someone the server itself still reports as active keeps Active now, since that

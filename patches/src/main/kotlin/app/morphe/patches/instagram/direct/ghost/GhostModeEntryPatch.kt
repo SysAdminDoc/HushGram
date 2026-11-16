@@ -229,7 +229,8 @@ internal fun BytecodePatchContext.findGhostEntries(): List<GhostEntry> {
  * [IGDS_ACTION_BAR] taking an ImageView and an action model and setting the button's tap
  * listener. The model's tap is a Kotlin lambda: a Function0 class whose invoke() starts a new
  * message the way the older bar's listener does, in one case of its switch, or on one side of a
- * test of its number against zero where Redex merged it with a single other lambda. The one method
+ * test of its number against zero where Redex merged it with a single other lambda, or from 455 in
+ * one case of a static method of its class that its invoke hands the number to. The one method
  * that makes such a lambda with such a number and answers a model of the binder's type is the New
  * message model's maker.
  */
@@ -249,10 +250,18 @@ internal fun BytecodePatchContext.findGhostAction(): GhostAction {
     if (!action.startsWith("L")) refuse("the newer top bar's action model isn't an object")
 
     fun Method.callsStart() = callsOf(start.definingClass, start.name)
-    val lambdas = classesCalling(start.definingClass, start.name).filter { owner ->
-        FUNCTION0 in owner.interfaces && owner.methods.any { it.name == "invoke" && it.parameterTypes.isEmpty() && it.callsStart().isNotEmpty() }
+    val candidates = classesCalling(start.definingClass, start.name).filter { FUNCTION0 in it.interfaces }
+    val lambdas = candidates.filter { owner ->
+        owner.methods.any { it.name == "invoke" && it.parameterTypes.isEmpty() && it.callsStart().isNotEmpty() }
     }
-    if (lambdas.isEmpty()) refuse("expected one lambda class that starts a new message, found 0")
+    // 455's Redex moves a lambda's cases out of its invoke. 386113923's 09j6 hands the numbers its
+    // own switch doesn't take to A0E(LX/010U;I), whose case 28 starts a new message, and the bar's
+    // maker is 05MC.A06. The other builds of 455 still start it from the invoke.
+    val outlined = candidates.filter { it !in lambdas }.mapNotNull { owner -> outlinedStart(owner, start)?.let { owner to it } }
+    if (lambdas.isEmpty() && outlined.isEmpty()) refuse("expected one lambda class that starts a new message, found 0")
+    fun made(lambda: ClassDef, starts: (Int) -> Boolean) = classesCreating(lambda.type).flatMap { owner ->
+        owner.methods.filter { method -> method.returnType == action && listening(method, lambda.type, starts) != null }
+    }
 
     // 452 has two lambda classes that start a new message (0Au0 and 0675), and only the bar's is
     // made by a method answering its action model, so the makers are gathered over every lambda
@@ -269,10 +278,8 @@ internal fun BytecodePatchContext.findGhostAction(): GhostAction {
         } else {
             invoke.callsStart().singleOrNull()?.let { zeroTestReaching(invoke, it) } ?: return@flatMap emptyList<Method>()
         }
-        classesCreating(lambda.type).flatMap { owner ->
-            owner.methods.filter { method -> method.returnType == action && listening(method, lambda.type, starts) != null }
-        }
-    }
+        made(lambda, starts)
+    } + outlined.flatMap { (lambda, starts) -> made(lambda, starts) }
     val maker = makers.singleOrNull() ?: refuse("expected one method making the New message action of the newer top bar, found ${makers.size}")
     val returns = maker.code().indices.filter { maker.code()[it].opcode == Opcode.RETURN_OBJECT }
     if (returns.isEmpty()) refuse("the New message action's maker never returns")
@@ -411,6 +418,64 @@ private fun zeroTestReaching(invoke: Method, call: Int): ((Int) -> Boolean)? {
     return if (onJump == zeroJumps) ({ made: Int -> made == 0 }) else ({ made: Int -> made != 0 })
 }
 
+/**
+ * Which numbers start a new message in [lambda] when its invoke doesn't call [start] itself but
+ * hands its number to the one static method of its class taking the lambda and a number that does:
+ * the numbers that method's switch takes to the call, among those the invoke hands it. Null when the
+ * class has no such method, or its invoke doesn't hand that method the number it switches on.
+ */
+private fun outlinedStart(lambda: ClassDef, start: Method): ((Int) -> Boolean)? {
+    val invoke = lambda.methods.singleOrNull { it.name == "invoke" && it.parameterTypes.isEmpty() } ?: return null
+    val helpers = lambda.methods.filter { method ->
+        val types = method.parameterTypes.map(CharSequence::toString)
+        method.isStatic() && types.size == 2 && types[0].startsWith("L") && types[1] == "I" &&
+            method.callsOf(start.definingClass, start.name).isNotEmpty()
+    }
+    val helper = helpers.singleOrNull() ?: return null
+    val handed = handedNumbers(invoke, helper) ?: return null
+    // The helper switches on its number as it came in.
+    val code = helper.code()
+    val switchAt = code.indexOfFirst { it.opcode == Opcode.PACKED_SWITCH || it.opcode == Opcode.SPARSE_SWITCH }
+    val number = helper.implementation!!.registerCount - 1
+    if (switchAt < 0 || (code[switchAt] as OneRegisterInstruction).registerA != number) return null
+    if ((0 until switchAt).any { code[it].opcode.setsRegister() && (code[it] as? OneRegisterInstruction)?.registerA == number }) return null
+    val keys = helper.callsOf(start.definingClass, start.name).flatMap { caseReaching(helper, it) }.toSet()
+    return { made: Int -> made in keys && handed(made) }
+}
+
+/**
+ * Which numbers [invoke], switching on its own int field, hands straight to [helper] with the lambda:
+ * those whose arm lands on the one call to it, and those with no arm when the switch falls through
+ * onto it. Null unless that call takes the switched number and only the switch leads to it.
+ */
+private fun handedNumbers(invoke: Method, helper: Method): ((Int) -> Boolean)? {
+    val code = invoke.code()
+    val helperTypes = helper.parameterTypes.map(CharSequence::toString)
+    val hands = code.indices.filter { at ->
+        val call = code[at].call()
+        code[at].opcode == Opcode.INVOKE_STATIC && call != null && call.definingClass == helper.definingClass &&
+            call.name == helper.name && call.parameterTypes.map(CharSequence::toString) == helperTypes
+    }
+    val hand = hands.singleOrNull() ?: return null
+    val switchAt = code.indices.singleOrNull { code[it].opcode == Opcode.PACKED_SWITCH || code[it].opcode == Opcode.SPARSE_SWITCH } ?: return null
+    val number = (code[switchAt] as OneRegisterInstruction).registerA
+    val read = (switchAt - 1 downTo 0).firstOrNull { at ->
+        code[at].opcode.setsRegister() && (code[at] as? OneRegisterInstruction)?.registerA == number
+    } ?: return null
+    val field = code[read].reference() as? FieldReference
+    if (code[read].opcode != Opcode.IGET || field == null || field.definingClass != invoke.definingClass || field.type != "I") return null
+    val call = code[hand] as FiveRegisterInstruction
+    if (call.registerCount != 2 || call.registerD != number) return null
+    val flow = try { ControlFlow.of(invoke) } catch (failure: IllegalArgumentException) { return null }
+    if (code.indices.any { from -> from != switchAt && hand in flow.normal[from] + flow.exceptional[from] }) return null
+    val address = IntArray(code.size + 1)
+    code.forEachIndexed { index, instruction -> address[index + 1] = address[index] + instruction.codeUnits }
+    val payload = code.getOrNull(address.indexOf(address[switchAt] + (code[switchAt] as OffsetInstruction).codeOffset)) as? SwitchPayload
+        ?: return null
+    val arms = payload.switchElements.associate { arm -> arm.key to (address.indexOf(address[switchAt] + arm.offset) == hand) }
+    val fallsOnto = switchAt + 1 == hand
+    return { made: Int -> arms[made] ?: fallsOnto }
+}
 
 /**
  * The index of the `invoke-direct` in [method] that makes a [listener] (a tap listener or a lambda)
