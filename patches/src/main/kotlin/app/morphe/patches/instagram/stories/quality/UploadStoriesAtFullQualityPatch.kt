@@ -36,6 +36,8 @@ import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
+import com.android.tools.smali.dexlib2.iface.reference.TypeReference
+import com.android.tools.smali.dexlib2.immutable.reference.ImmutableMethodReference
 
 private const val PATCH = "Upload stories at full quality"
 internal const val STORY_UPLOAD_QUALITY = "$EXTENSION_PACKAGE/stories/StoryUploadQuality;"
@@ -358,10 +360,29 @@ internal fun BytecodePatchContext.findWidthStep(): WidthStep {
     method.widthCap(where)
     val upload = call.parameterTypes[2].toString()
     val uploadClass = classDefByOrNull(upload) ?: refuse("$upload isn't in this build")
-    val getters = uploadClass.methods
-        .filter { !AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == SHARE_TYPE && it.parameterTypes.isEmpty() }
+    val getters = shareTypeGetters(uploadClass)
     val getter = getters.singleOrNull() ?: refuse("$upload has ${getters.size} share type getters, expected one")
     return WidthStep(call, getter, AccessFlags.INTERFACE.isSet(uploadClass.accessFlags))
+}
+
+/**
+ * The upload's instance share type getters: its own, or, when it is an interface declaring none,
+ * those the interfaces it extends declare, one per name and called on the upload's own type. 456
+ * hands the width step an interface (0Oqq on 386214574) that gets its getter from two of those.
+ */
+private fun BytecodePatchContext.shareTypeGetters(upload: ClassDef): List<MethodReference> {
+    fun ClassDef.declared() = methods.filter { !AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == SHARE_TYPE && it.parameterTypes.isEmpty() }
+    val own = upload.declared()
+    if (own.isNotEmpty() || !AccessFlags.INTERFACE.isSet(upload.accessFlags)) return own
+    val names = LinkedHashSet<String>()
+    val seen = HashSet<String>()
+    val queue = ArrayDeque(upload.interfaces)
+    while (queue.isNotEmpty()) {
+        val parent = classDefByOrNull(queue.removeFirst().takeIf { seen.add(it) } ?: continue) ?: continue
+        parent.declared().mapTo(names) { it.name }
+        queue.addAll(parent.interfaces)
+    }
+    return names.map { ImmutableMethodReference(upload.type, it, emptyList(), SHARE_TYPE) }
 }
 
 private fun MethodReference.isWidthStepShape(): Boolean {
@@ -436,8 +457,13 @@ internal fun BytecodePatchContext.raiseWidth(step: WidthStep) {
  * Where a photo's JPEG is set up: the one static factory called from the method that names both
  * [IMAGE_WEBP] and [IMAGE_JPEG], building its own class from a bitmap, an object and two ints (the
  * quality first), in a class that compresses the bitmap itself or through a helper.
+ *
+ * 456's factory names the picture types itself and takes one int (0Lp0.A01 on 386214574), so with no
+ * call of the shape the setup is the photo class those methods build: its one instance `()Z` method that hands
+ * Bitmap.compress the quality read straight from an int field of its own class ([qualityField]).
+ * The hook then goes first in that method, on the field.
  */
-internal fun BytecodePatchContext.findPhotoSetup(): MethodReference {
+internal fun BytecodePatchContext.findPhotoSetup(): PhotoSetup {
     val naming = classesLoadingString(IMAGE_WEBP).flatMap { classDef ->
         classDef.methods.filter { loadsString(it, IMAGE_WEBP) && loadsString(it, IMAGE_JPEG) }
     }
@@ -449,8 +475,56 @@ internal fun BytecodePatchContext.findPhotoSetup(): MethodReference {
     val found = shaped.filter { candidate ->
         classDefByOrNull(candidate.definingClass)?.methods?.any { it.compressesBitmap() } == true
     }
-    return found.singleOrNull()
+    if (shaped.isEmpty()) {
+        val built = naming.flatMap { method ->
+            method.implementation?.instructions?.toList().orEmpty()
+                .filter { it.opcode == Opcode.NEW_INSTANCE }
+                .mapNotNull { ((it as ReferenceInstruction).reference as? TypeReference)?.type }
+        }.distinct()
+        val compressing = built.mapNotNull { classDefByOrNull(it) }.flatMap { classDef ->
+            classDef.methods.mapNotNull { method -> method.qualityField(classDef.type)?.let { PhotoSetup(method, it) } }
+        }
+        return compressing.singleOrNull()
+            ?: refuse("expected one photo class built beside $IMAGE_WEBP and $IMAGE_JPEG compressing at its own quality, found ${compressing.size}")
+    }
+    return found.singleOrNull()?.let { PhotoSetup(it, null) }
         ?: refuse("expected one photo setup called beside $IMAGE_WEBP and $IMAGE_JPEG, found ${found.size} (${naming.size} methods name both, ${shaped.size} calls of the shape)")
+}
+
+/**
+ * Where the photo's quality is swapped: the static setup handed it as its third parameter (up to
+ * 455, [field] null), or the photo's own compressing method, which reads it from [field] (456).
+ */
+internal class PhotoSetup(val method: MethodReference, val field: FieldReference?)
+
+/**
+ * The int field of [owner] this instance `()Z` method hands Bitmap.compress as its quality, or null.
+ * Each compress call must take the quality from a read of that one field, with nothing written to
+ * the register or jumping in between.
+ */
+private fun Method.qualityField(owner: String): FieldReference? {
+    if (AccessFlags.STATIC.isSet(accessFlags) || returnType != "Z" || parameterTypes.isNotEmpty()) return null
+    val code = implementation?.instructions?.toList() ?: return null
+    val targets = jumpTargets()
+    val calls = code.indices.filter { at ->
+        val call = (code[at] as? ReferenceInstruction)?.reference as? MethodReference
+        code[at].opcode == Opcode.INVOKE_VIRTUAL && call?.definingClass == BITMAP && call.name == "compress" &&
+            call.parameterTypes.map(CharSequence::toString) == listOf(COMPRESS_FORMAT, "I", "Ljava/io/OutputStream;")
+    }
+    if (calls.isEmpty()) return null
+    val fields = calls.map { at ->
+        val quality = (code[at] as FiveRegisterInstruction).registerE
+        val read = (at - 1 downTo 0).firstOrNull { before ->
+            val written = (code[before] as? OneRegisterInstruction)?.registerA
+            code[before].opcode.setsRegister() && written != null &&
+                (written == quality || code[before].opcode.setsWideRegister() && written + 1 == quality)
+        } ?: return null
+        if ((read + 1..at).any { it in targets } || code[read].opcode != Opcode.IGET) return null
+        val field = (code[read] as ReferenceInstruction).reference as FieldReference
+        if (field.definingClass != owner || field.type != "I") return null
+        "${field.definingClass}->${field.name}:${field.type}" to field
+    }
+    return fields.distinctBy { it.first }.singleOrNull()?.second
 }
 
 /** Calls Bitmap.compress, or hands a compress format to the helper some builds moved that call into. */
@@ -468,10 +542,31 @@ private fun MethodReference.isPhotoSetupShape(): Boolean {
     return types.size == 4 && types[0] == BITMAP && types[1].startsWith("L") && types[2] == "I" && types[3] == "I" && returnType == definingClass
 }
 
-/** First thing in the photo setup, swaps the quality Instagram chose with [PHOTO_QUALITY_HOOK]'s answer. */
-internal fun BytecodePatchContext.raisePhotoQuality(setup: MethodReference) {
+/**
+ * First thing in the photo setup, swaps the quality Instagram chose with [PHOTO_QUALITY_HOOK]'s
+ * answer: the setup's quality parameter, or on 456 the photo's quality field, so every compress the
+ * method goes on to make reads the answer.
+ */
+internal fun BytecodePatchContext.raisePhotoQuality(found: PhotoSetup) {
+    val setup = found.method
     val method = mutableClassDefBy(setup.definingClass).methods.single { it.sameAs(setup) }
     if (0 in method.jumpTargets()) refuse("something jumps back to the first instruction of ${setup.definingClass}->${setup.name}")
+    val field = found.field
+    if (field != null) {
+        method.requireLocals(PATCH, 2)
+        val read = "${field.definingClass}->${field.name}:${field.type}"
+        method.addInstructions(
+            0,
+            """
+                move-object/from16 v0, p0
+                iget v1, v0, $read
+                invoke-static { v1 }, $PHOTO_QUALITY_HOOK
+                move-result v1
+                iput v1, v0, $read
+            """,
+        )
+        return
+    }
     method.requireLocals(PATCH, 1)
     method.addInstructions(
         0,

@@ -239,7 +239,8 @@ class UploadStoriesAtFullQualityHookTest {
         val context = PatchContexts.of(photoClasses())
         val setup = context.findPhotoSetup()
         context.raisePhotoQuality(setup)
-        assertEquals("the setup", encoder to "A02", setup.definingClass to setup.name)
+        assertEquals("the setup", encoder to "A02", setup.method.definingClass to setup.method.name)
+        assertEquals("no field on the setup's shape", null, setup.field)
         assertPhotoHooked("stand-in", context.mutableClassDefBy(encoder).methods.single { it.name == "A02" })
     }
 
@@ -248,7 +249,31 @@ class UploadStoriesAtFullQualityHookTest {
     fun aSetupCompressingThroughAHelperIsStillFound() {
         val context = PatchContexts.of(photoClasses(throughHelper = true))
         val setup = context.findPhotoSetup()
-        assertEquals("the setup", encoder to "A02", setup.definingClass to setup.name)
+        assertEquals("the setup", encoder to "A02", setup.method.definingClass to setup.method.name)
+    }
+
+    /**
+     * 456 inlines the setup: the factory naming the picture types builds the photo itself, and the
+     * photo's compressing method reads the quality from its own field, where the hook goes first.
+     */
+    @Test
+    fun anInlinedSetupHooksThePhotosQualityField() {
+        val context = PatchContexts.of(inlinedPhotoClasses())
+        val setup = context.findPhotoSetup()
+        assertEquals("the compressing method", encoder to "A04", setup.method.definingClass to setup.method.name)
+        assertEquals("the quality field", "$encoder->A01:I", setup.field.toString())
+        context.raisePhotoQuality(setup)
+        assertPhotoFieldHooked("stand-in", context.mutableClassDefBy(encoder).methods.single { it.name == "A04" }, "$encoder->A01:I")
+    }
+
+    /** An inlined photo whose compress takes a quality that isn't its own field's fails, before anything is written. */
+    @Test
+    fun anInlinedPhotoThePatchCantReadFails() {
+        for (classes in listOf(inlinedPhotoClasses(qualityFromField = false), inlinedPhotoClasses(jumpBetween = true))) {
+            val context = PatchContexts.of(classes)
+            val failure = assertThrows(PatchException::class.java) { context.findPhotoSetup() }
+            assertTrue(failure.message, failure.message!!.contains("expected one photo class built beside"))
+        }
     }
 
     /** A photo setup with nothing compressing a bitmap beside it isn't the one, and the patch says so. */
@@ -310,6 +335,16 @@ class UploadStoriesAtFullQualityHookTest {
                     if (relevant) wanted += ImmutableClassDef.of(classDef)
                 }
             }
+            // 456 hands the width step an interface with no getter of its own; the ones it extends have it.
+            val uploads = wanted.flatMap { it.methods }.mapNotNull { method ->
+                val types = method.parameterTypes.map(CharSequence::toString)
+                types.getOrNull(2)?.takeIf { types.size == 8 && types[0] == "Landroid/content/Context;" && types[3] == "I" }
+            }.toSet() - wanted.map { it.type }.toSet()
+            wanted += FixtureDex.classes(bundle, uploads).values
+            // 456 builds the photo in the method naming the picture types; whatever those classes build comes too.
+            val built = wanted.flatMap { it.methods }.flatMap { it.code() }.filter { it.opcode == Opcode.NEW_INSTANCE }
+                .mapNotNull { it.referenceText() }.toSet() - wanted.map { it.type }.toSet()
+            wanted += FixtureDex.classes(bundle, built).values
             val classes = FixtureDex.withStringPools(bundle, wanted.distinctBy { it.type })
             val context = PatchContexts.of(classes)
 
@@ -335,7 +370,14 @@ class UploadStoriesAtFullQualityHookTest {
             val widthStep = context.mutableClassDefBy(step.method.definingClass).methods.single { it.name == step.method.name && it.parameterTypes.size == 8 }
             assertWidthHooked(bundle.name, widthStep, step)
             assertCapHooked(bundle.name, widthStep)
-            assertPhotoHooked(bundle.name, context.mutableClassDefBy(setup.definingClass).methods.single { it.name == setup.name && it.parameterTypes.size == 4 })
+            val photo = context.mutableClassDefBy(setup.method.definingClass).methods.single {
+                it.name == setup.method.name && it.returnType == setup.method.returnType &&
+                    it.parameterTypes.map(CharSequence::toString) == setup.method.parameterTypes.map(CharSequence::toString)
+            }
+            when (val field = setup.field) {
+                null -> assertPhotoHooked(bundle.name, photo)
+                else -> assertPhotoFieldHooked(bundle.name, photo, field.toString())
+            }
         }
         assertTrue(failures.joinToString("\n"), failures.isEmpty())
     }
@@ -515,6 +557,19 @@ class UploadStoriesAtFullQualityHookTest {
         assertEquals("$what: the quality's register", quality, (code[0] as TwoRegisterInstruction).registerB)
         assertEquals("$what: the hook", PHOTO_QUALITY_HOOK, code[1].referenceText())
         assertEquals("$what: written back", quality, (code[3] as TwoRegisterInstruction).registerA)
+    }
+
+    /** `this`, the quality field read, the call, and the answer written back to the field, first thing. */
+    private fun assertPhotoFieldHooked(what: String, method: Method, field: String) {
+        val code = method.code()
+        val self = method.implementation!!.registerCount - 1
+        assertEquals("$what: hooks", 1, code.count { it.referenceText() == PHOTO_QUALITY_HOOK })
+        assertEquals("$what: this", listOf(Opcode.MOVE_OBJECT_FROM16, 0, self), listOf(code[0].opcode, (code[0] as TwoRegisterInstruction).registerA, (code[0] as TwoRegisterInstruction).registerB))
+        assertEquals("$what: the field read", listOf(Opcode.IGET, field, 1, 0), listOf(code[1].opcode, code[1].referenceText(), (code[1] as TwoRegisterInstruction).registerA, (code[1] as TwoRegisterInstruction).registerB))
+        assertEquals("$what: the hook", PHOTO_QUALITY_HOOK, code[2].referenceText())
+        assertEquals("$what: the hook's argument", 1, (code[2] as Instruction35c).registerC)
+        assertEquals("$what: the answer taken", listOf(Opcode.MOVE_RESULT, 1), listOf(code[3].opcode, (code[3] as OneRegisterInstruction).registerA))
+        assertEquals("$what: written back", listOf(Opcode.IPUT, field, 1, 0), listOf(code[4].opcode, code[4].referenceText(), (code[4] as TwoRegisterInstruction).registerA, (code[4] as TwoRegisterInstruction).registerB))
     }
 
     /**
@@ -806,6 +861,49 @@ class UploadStoriesAtFullQualityHookTest {
             """,
         )
         return listOf(classDef(encoder, listOf(setup, compressing)), classDef(renderer, listOf(render)))
+    }
+
+    /**
+     * Shaped like 456's `0Lp0`: the static factory names the picture types and builds the photo, which
+     * keeps the quality in a field its `()Z` method hands Bitmap.compress. Without [qualityFromField]
+     * the compress takes a constant; with [jumpBetween] a branch reaches the compress past the read.
+     */
+    private fun inlinedPhotoClasses(qualityFromField: Boolean = true, jumpBetween: Boolean = false): List<ClassDef> {
+        val static = AccessFlags.PUBLIC.value or AccessFlags.STATIC.value
+        val instance = AccessFlags.PUBLIC.value or AccessFlags.FINAL.value
+        val bitmap = "Landroid/graphics/Bitmap;"
+        val format = "Landroid/graphics/Bitmap\$CompressFormat;"
+        val factory = method(
+            encoder, "A01", listOf(bitmap, store, "I"), encoder, 3, static,
+            """
+                const-string v0, "image/webp"
+                const-string v0, "image/jpeg"
+                new-instance v1, $encoder
+                invoke-direct {v1}, Ljava/lang/Object;-><init>()V
+                iput p2, v1, $encoder->A01:I
+                iput-object p0, v1, $encoder->A02:$bitmap
+                return-object v1
+            """,
+        )
+        val read = when {
+            !qualityFromField -> "const/16 v0, 0x5f"
+            jumpBetween -> "const/16 v0, 0x5f\n if-eqz p0, :compress\n iget v0, p0, $encoder->A01:I\n :compress"
+            else -> "iget v0, p0, $encoder->A01:I"
+        }
+        val compressing = method(
+            encoder, "A04", emptyList(), "Z", 4, instance,
+            """
+                sget-object v1, $format->JPEG:$format
+                iget-object v2, p0, $encoder->A02:$bitmap
+                const/4 v3, 0x0
+                $read
+                invoke-virtual {v2, v1, v0, v3}, $bitmap->compress(${format}ILjava/io/OutputStream;)Z
+                move-result v0
+                return v0
+            """,
+        )
+        val fields = listOf(ImmutableField(encoder, "A01", "I", instance, null, null, null), ImmutableField(encoder, "A02", bitmap, instance, null, null, null))
+        return listOf(classDef(encoder, listOf(factory, compressing), fields))
     }
 
     /**

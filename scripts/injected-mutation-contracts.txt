@@ -3525,12 +3525,13 @@ once-call Lapp/hushgram/extension/instagram/stories/StoryUploadQuality;->resolut
 # 2160p (#37) goes past the 1440 that step knows, so StoryUploadQuality.renderWidth takes the width its
 # cap (0MiN.A00 on 454) answered, with the clip's width, right after the cap. Left out, 2160p uploads at 1440.
 once-call Lapp/hushgram/extension/instagram/stories/StoryUploadQuality;->renderWidth(II)I in static (Landroid/content/Context;Lcom/instagram/common/session/UserSession;LX/*;IZZZZ)LX/*; calling static LX/*;->*(Landroid/content/Context;IZZZ)I holding const:0x438 const:0x5a0
-# Its Photo quality choice (#37) hands StoryUploadQuality.photoQuality the JPEG quality first in the static
-# factory (0BWX.A02 on 454) of the class that compresses with it. Left out, Photo quality does nothing.
-# That class calls Bitmap.compress on arm64 and Redex's outlined copy (0BQC.A1b) on armeabi-v7a, so the
-# rule names the string its save holds on every ABI.
-start-call Lapp/hushgram/extension/instagram/stories/StoryUploadQuality;->photoQuality(I)I in static (Landroid/graphics/Bitmap;LX/*;II)LX/*; class-holding SavePhotoUtil_save_jpeg_error
-once-call Lapp/hushgram/extension/instagram/stories/StoryUploadQuality;->photoQuality(I)I in static (Landroid/graphics/Bitmap;LX/*;II)LX/*; class-holding SavePhotoUtil_save_jpeg_error
+# Its Photo quality choice (#37) hands StoryUploadQuality.photoQuality the JPEG quality first in the photo's
+# save (0Lp0.A04 on 386214574), the one ()Z method of the class whose every Bitmap.compress reads its
+# quality field, and writes the answer back to that field. 456's factory (0Lp0.A01) names the picture
+# types itself and takes one int, so no call has the shape 455 hooked (0CX9.A02). Left out, Photo quality does nothing.
+# The save loads its error string itself on every ABI.
+start-call Lapp/hushgram/extension/instagram/stories/StoryUploadQuality;->photoQuality(I)I in instance ()Z holding SavePhotoUtil_save_jpeg_error
+once-call Lapp/hushgram/extension/instagram/stories/StoryUploadQuality;->photoQuality(I)I in instance ()Z holding SavePhotoUtil_save_jpeg_error
 # Its Photo size choice (#37) hands StoryUploadQuality.photoTier each of the 3072, 4096 and 8192 flags
 # first in Instagram's photo size step (0D3B.A01 on 454), the instance method loading the aspect ratio
 # error, so three calls. Fewer calls leave a size Photo size can't turn on.
