@@ -10,15 +10,14 @@ import app.morphe.PatchContexts
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.instagram.download.reel.DOWNLOAD
-import app.morphe.patches.instagram.download.reel.ELIGIBLE_MARKER
+import app.morphe.patches.instagram.download.reel.EDITING_TOOLS_QUERY
+import app.morphe.patches.instagram.download.reel.ELIGIBILITY_PATH
 import app.morphe.patches.instagram.download.reel.OPTION
-import app.morphe.patches.instagram.download.reel.ROW_MARKER
+import app.morphe.patches.instagram.download.reel.anchoredClasses
 import app.morphe.patches.instagram.download.story.HELPER_NAME
 import app.morphe.patches.instagram.download.video.FEED_HELPER_NAME
 import app.morphe.patches.instagram.download.video.isShortMenuList
 import app.morphe.patches.instagram.feed.suggested.HideRowAsserts
-import app.morphe.patches.instagram.misc.extension.PURGE_MARKER
-import app.morphe.patches.instagram.misc.extension.markers
 import app.morphe.patches.instagram.misc.extension.originalName
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
@@ -77,18 +76,18 @@ class MenuItemsHookTest {
     /** The classes the three menus are found in, sliced from [bundle], with the extension's helper. */
     private fun classes(bundle: File): MutableList<ClassDef> {
         val classes = mutableListOf<ClassDef>(ExtensionDex.classDef(MENU_ITEMS))
+        // The reel menu's helper, which holds the adder of one row, and the download flow's class.
+        classes += anchoredClasses(bundle, EDITING_TOOLS_QUERY, ELIGIBILITY_PATH)
+        val anchored = classes.mapTo(HashSet()) { it.type }
         FixtureDex.forEach(bundle) { dex ->
-            val marked = dex.stringSection.any { string ->
-                string.startsWith("android_purge_") && PURGE_MARKER.find(string)?.groupValues?.get(1).let { it == ELIGIBLE_MARKER || it == ROW_MARKER }
-            }
             val loads = dex.fieldSection.any { it.toString() == DOWNLOAD }
             val named = dex.stringSection.any { it == FEED_HELPER_NAME || it == HELPER_NAME }
-            if (!marked && !loads && !named && dex.classes.none { it.type == OPTION }) return@forEach
+            if (!loads && !named && dex.classes.none { it.type == OPTION }) return@forEach
             for (classDef in dex.classes) {
+                if (classDef.type in anchored) continue
                 val name = classDef.originalName()
                 val wanted = classDef.type == OPTION || name == FEED_HELPER_NAME || name == HELPER_NAME || classDef.methods.any { method ->
-                    method.markers().any { it == ELIGIBLE_MARKER || it == ROW_MARKER } || method.isShortMenuList() ||
-                        method.code().any { it.referenceText() == DOWNLOAD }
+                    method.isShortMenuList() || method.code().any { it.referenceText() == DOWNLOAD }
                 }
                 if (wanted) classes += ImmutableClassDef.of(classDef)
             }
@@ -130,9 +129,9 @@ class MenuItemsHookTest {
         val reel = written.filter { method -> method.code().any { it.referenceText() == REEL_ROW } }
         assertEquals("$label: the reel row adder", 1, reel.size)
         val adder = reel.single()
-        assertTrue("$label: the adder holds the row marker", ROW_MARKER in adder.markers())
         val code = adder.code()
         val types = adder.parameterTypes.map(Any::toString)
+        assertTrue("$label: the adder takes a Context and the option first, an icon and a label last: $types", isRowAdder(adder))
         val first = adder.implementation!!.registerCount - 1 - types.sumOf { if (it == "J" || it == "D") 2 else 1 }
         val option = first + 1 + types.take(types.indexOf(OPTION)).sumOf { if (it == "J" || it == "D") 2 else 1 }
         assertEquals("$label: reads the option", Opcode.MOVE_OBJECT_FROM16, code[0].opcode)
@@ -208,16 +207,23 @@ class MenuItemsHookTest {
     fun aReelRowAdderWithoutItsOptionIsRefused() {
         val bundle = firstBundle() ?: return
         val classes = classes(bundle)
-        val owner = classes.single { classDef -> classDef.methods.any { ROW_MARKER in it.markers() } }
+        val owner = classes.single { classDef -> classDef.methods.any(::isRowAdder) }
         val methods = owner.methods.map { method ->
-            if (ROW_MARKER !in method.markers()) return@map method
+            if (!isRowAdder(method)) return@map method
             val parameters = method.parameters.map { parameter ->
                 ImmutableMethodParameter(if (parameter.type == OPTION) "Ljava/lang/Object;" else parameter.type, null, null)
             }
             ImmutableMethod(method.definingClass, method.name, parameters, method.returnType, method.accessFlags, null, null, method.implementation)
         }
         val moved = ImmutableClassDef(owner.type, owner.accessFlags, owner.superclass, owner.interfaces, null, null, owner.fields, methods)
-        refuses("the adder of one reel menu row") { PatchContexts.of(classes - owner + moved).findReelMenuItems() }
+        refuses("the adder of one row") { PatchContexts.of(classes - owner + moved).findReelMenuItems() }
+    }
+
+    /** The reel menu's adder of one row, by its shape: a Context, the option, two more, an icon and a label. */
+    private fun isRowAdder(method: Method): Boolean {
+        val takes = method.parameterTypes.map(Any::toString)
+        return takes.size == 6 && takes[0] == "Landroid/content/Context;" && takes[1] == OPTION &&
+            takes[4] == "Ljava/lang/Integer;" && takes[5] == "Ljava/lang/String;"
     }
 
     /** With none of the three menus in the app, the patch stops rather than going in doing nothing. */

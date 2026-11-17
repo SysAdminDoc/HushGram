@@ -23,10 +23,10 @@ import app.morphe.patches.instagram.download.mediaBridges
 import app.morphe.patches.instagram.download.pandoGetter
 import app.morphe.patches.instagram.download.playerQueriesPatch
 import app.morphe.patches.instagram.download.reel.DOWNLOAD
-import app.morphe.patches.instagram.download.reel.ELIGIBLE_MARKER
 import app.morphe.patches.instagram.download.reel.OPTION
 import app.morphe.patches.instagram.download.reel.ROW_ICON
 import app.morphe.patches.instagram.download.reel.code
+import app.morphe.patches.instagram.download.reel.downloadCheck
 import app.morphe.patches.instagram.download.reel.newOption
 import app.morphe.patches.instagram.download.reel.optionIcon
 import app.morphe.patches.instagram.download.reel.typesLoadingDownload
@@ -34,11 +34,9 @@ import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesCallingInto
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
-import app.morphe.patches.instagram.misc.extension.markers
 import app.morphe.patches.instagram.misc.extension.originalName
 import app.morphe.patches.instagram.misc.extension.requireLocals
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
-import app.morphe.patches.instagram.misc.extension.typesMarked
 import app.morphe.patches.instagram.media.quality.target
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
@@ -252,18 +250,15 @@ internal class FeedMenu(
 /** Finds [FeedMenu] without changing anything. */
 internal fun BytecodePatchContext.findFeedMenu(): FeedMenu {
     val helpers = mutableListOf<ClassDef>()
-    val eligibles = mutableListOf<Method>()
     val loaders = mutableListOf<Method>()
     val shortLists = mutableListOf<Method>()
     val pageReads = mutableListOf<PageRead>()
-    val marked = typesMarked(ELIGIBLE_MARKER)
     val loading = typesLoadingDownload()
     val paging = classesCallingInto(MEDIA_EXT).mapTo(HashSet()) { it.type }
     classDefForEach { classDef ->
         if (classDef.originalName() == FEED_HELPER_NAME) helpers += classDef
         val type = classDef.type
         classDef.methods.forEach { method ->
-            if (type in marked && ELIGIBLE_MARKER in method.markers()) eligibles += method
             if (type in loading && method.code().any { it.opcode == Opcode.SGET_OBJECT && it.referenceText() == DOWNLOAD }) loaders += method
             if (method.isShortMenuList()) shortLists += method
             if (type in paging) pageReads += method.pageReads()
@@ -272,12 +267,7 @@ internal fun BytecodePatchContext.findFeedMenu(): FeedMenu {
     val helper = helpers.singleOrNull() ?: throw PatchException(
         "$PATCH: expected one class named $FEED_HELPER_NAME, found " + if (helpers.isEmpty()) "none" else helpers.joinToString { it.type },
     )
-    val eligible = eligibles.singleOrNull() ?: throw PatchException(
-        "$PATCH: expected one method holding the $ELIGIBLE_MARKER marker, found ${eligibles.size}",
-    )
-    if (eligible.returnType != "Z") {
-        throw PatchException("$PATCH: ${eligible.definingClass}->${eligible.name}, the download check, doesn't answer a boolean")
-    }
+    val eligible = downloadCheck(PATCH)
     // The builder adds Download with a static method of its state, which the menu keeps a field of.
     // R8 merges the builder into a different method in each build, and whether that method also
     // touches the menu itself varies (450's 385611395 build never does), so the state is what counts.
@@ -503,7 +493,7 @@ internal fun BytecodePatchContext.offerDownloadOnEveryVideo(): PageIndex {
     val pageReads = menuFound.pageReads
     val shortLists = menuFound.shortLists
     val batchAt = builder.batchRow(others, outlined)
-    val own = builder.ownPost(eligible, others)
+    val own = builder.ownPost(eligible, others, outlined)
     // Each hook in the builder reads the menu's helper into a register free where it goes. The
     // hooks only add reads of registers already live there, so the builder as it is now settles it.
     val hooked = mutable(builder)
@@ -842,9 +832,11 @@ private fun Instruction.readsLabel(outlined: (MethodReference) -> Method?): Bool
 /**
  * Where anyone else's rows start in [this], the feed menu's builder, and how Instagram adds its
  * own Download row. The row is loaded once, and the first call after it that takes a Download
- * option, a label and the row list, declared by the state it also takes, adds it; a jump right
- * after ends the row. The instruction after that jump starts anyone else's rows, and every jump
- * there comes before the download check, so only anyone else's posts reach it. The list there is
+ * option, a label and the row list, declared by the state it also takes, adds it. Up to 455 a jump
+ * right after ends the row, and the instruction after that jump starts anyone else's rows. From 456
+ * the row runs straight on, and anyone else's rows start where the last jump before the download
+ * check that goes past the row lands. Every jump there comes before the download check, so only
+ * anyone else's posts reach it. The list there is
  * the one the first call after it that takes the state and a list is handed, and it doesn't change
  * on the way. The row's label may be read through a method R8 outlined getString into, which
  * [outlined] looks up.
@@ -865,12 +857,21 @@ internal fun Method.othersRow(eligible: Method, outlined: (MethodReference) -> M
     val adder = code[add].methodReference()!!
     val stateType = adder.definingClass
     val parameters = adder.parameterTypes.map(Any::toString)
-    if (code.getOrNull(add + 1)?.opcode !in GOTOS) throw PatchException("$PATCH: in $where the Download row doesn't end in a jump")
-    val at = add + 2
-
     val address = IntArray(code.size + 1)
     code.forEachIndexed { index, instruction -> address[index + 1] = address[index] + instruction.codeUnits }
     fun target(index: Int) = address.indexOf(address[index] + (code[index] as OffsetInstruction).codeOffset)
+    val at = if (code.getOrNull(add + 1)?.opcode in GOTOS) {
+        add + 2
+    } else {
+        // From 456 the row runs straight on into the rest of your own post's rows, and anyone
+        // else's start where the owner check skips to, past the row: the last jump before the
+        // download check that goes there. In a merged lambda the other cases' jumps come first.
+        val owner = (check - 1 downTo 0).firstOrNull { code[it].jumps() && target(it) > add } ?: throw PatchException(
+            "$PATCH: in $where the Download row doesn't end in a jump, and nothing before the download check jumps past it",
+        )
+        target(owner)
+    }
+
     val into = code.indices.filter { code[it].jumps() }.filter { target(it) == at }
     if (into.isEmpty() || into.any { it > check }) {
         throw PatchException("$PATCH: in $where the rows after Download aren't a branch taken before the download check")
@@ -930,11 +931,12 @@ internal class OwnPost(val result: Int, val answer: Int, val gate: Int, val flag
 /**
  * Finds [OwnPost] in [this], the feed menu's builder. Only your own posts reach the check (see
  * [othersRow]). A no jumps away at once. On a yes, the first branch is on a boolean of the
- * builder's state read without a branch in between, and it jumps ahead to the Download row on a 0.
- * The hooks there are handed the menu's helper, which answers the post: from 455 the check is
- * handed a wrapper the builder makes for it, and the builder's state holds no post.
+ * builder's state read without a branch in between, and it jumps ahead to the Download row on a 0
+ * (from 456 that boolean goes through a check first, see [rowPastTheSheetCheck]). The hooks there
+ * are handed the menu's helper, which answers the post: from 455 the check is handed a wrapper the
+ * builder makes for it, and the builder's state holds no post.
  */
-internal fun Method.ownPost(eligible: Method, found: OthersRow): OwnPost {
+internal fun Method.ownPost(eligible: Method, found: OthersRow, outlined: (MethodReference) -> Method? = { null }): OwnPost {
     val code = code()
     val where = "$definingClass->$name"
     val check = code.indices.singleOrNull { code[it].calls(eligible) }
@@ -950,15 +952,52 @@ internal fun Method.ownPost(eligible: Method, found: OthersRow): OwnPost {
         ?: throw PatchException("$PATCH: past the download check's yes, $where reads no flag of the builder's state before it branches")
     val flag = (code[gate] as TwoRegisterInstruction).registerA
     val branch = (gate + 1 until code.size).firstOrNull { code[it] is OffsetInstruction || code[it].writes(flag) }
-    val row = branch?.let { code.target(it) } ?: -1
-    if (branch == null || code[branch].opcode != Opcode.IF_EQZ || (code[branch] as OneRegisterInstruction).registerA != flag ||
-        row <= branch || row >= found.at || code[row].opcode != Opcode.SGET_OBJECT || code[row].referenceText() != DOWNLOAD
-    ) {
-        throw PatchException("$PATCH: in $where the builder state's flag past the download check doesn't jump ahead to the Download row on a 0")
+    val row = when {
+        branch == null -> -1
+        code[branch].opcode == Opcode.IF_EQZ && (code[branch] as OneRegisterInstruction).registerA == flag ->
+            code.target(branch).takeIf { it > branch } ?: -1
+        else -> rowPastTheSheetCheck(code, gate, flag, outlined)
+    }
+    if (row < 0 || row >= found.at || code[row].opcode != Opcode.SGET_OBJECT || code[row].referenceText() != DOWNLOAD) {
+        throw PatchException("$PATCH: in $where the builder state's flag past the download check doesn't lead to the Download row on a 0")
     }
     if (answer > 15 || flag > 15) throw PatchException("$PATCH: in $where v$answer and v$flag are out of an invoke's reach")
     return OwnPost(result, answer, gate, flag)
 }
+
+/**
+ * From 456 the flag isn't branched on. Right after [gate] reads it into [flag], it's the last thing
+ * handed to a check answering whether the share sheet takes Download, whose yes jumps past the row
+ * and whose no runs on into it. That check, which [outlined] looks up, answers no on a 0 flag before
+ * asking anything else, so a 0 still keeps the row. Answers where the row starts, or -1.
+ */
+private fun rowPastTheSheetCheck(code: List<Instruction>, gate: Int, flag: Int, outlined: (MethodReference) -> Method?): Int {
+    val asked = code.getOrNull(gate + 1)?.methodReference() ?: return -1
+    if (asked.returnType != "Z" || asked.parameterTypes.lastOrNull()?.toString() != "Z" || code[gate + 1].argumentRegisters().lastOrNull() != flag) return -1
+    val answer = (code.getOrNull(gate + 2)?.takeIf { it.opcode == Opcode.MOVE_RESULT } as? OneRegisterInstruction)?.registerA ?: return -1
+    val skip = code.getOrNull(gate + 3)
+    if (skip?.opcode != Opcode.IF_NEZ || (skip as OneRegisterInstruction).registerA != answer || code.target(gate + 3) <= gate + 4) return -1
+    return if (outlined(asked)?.answersNoOnANo() == true) gate + 4 else -1
+}
+
+/**
+ * Whether [this], which nothing overrides, answers 0 at once when its last parameter, a boolean, is
+ * 0: its first branch is on that parameter and lands on a return of a 0 set before it.
+ */
+private fun Method.answersNoOnANo(): Boolean {
+    if (!AccessFlags.STATIC.isSet(accessFlags) && !AccessFlags.PRIVATE.isSet(accessFlags) && !AccessFlags.FINAL.isSet(accessFlags)) return false
+    val registers = implementation?.registerCount ?: return false
+    val code = code()
+    val first = code.indexOfFirst { it is OffsetInstruction }
+    if (first < 0 || code[first].opcode != Opcode.IF_EQZ || (code[first] as OneRegisterInstruction).registerA != registers - 1) return false
+    val landed = code[code.target(first)]
+    if (landed.opcode != Opcode.RETURN) return false
+    val answer = (landed as OneRegisterInstruction).registerA
+    val set = (first - 1 downTo 0).firstOrNull { code[it].writes(answer) } ?: return false
+    return code[set].opcode in ZERO_LOADS && (code[set] as NarrowLiteralInstruction).narrowLiteral == 0
+}
+
+private val ZERO_LOADS = setOf(Opcode.CONST_4, Opcode.CONST_16, Opcode.CONST)
 
 /** Whether [this] reads a boolean field of [stateType]. */
 private fun Instruction.readsFlagOf(stateType: String): Boolean =

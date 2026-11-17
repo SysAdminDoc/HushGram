@@ -12,8 +12,8 @@ import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.instagram.download.reel.OPTION
-import app.morphe.patches.instagram.download.reel.ROW_MARKER
 import app.morphe.patches.instagram.download.reel.code
+import app.morphe.patches.instagram.download.reel.reelRowAdder
 import app.morphe.patches.instagram.download.story.HELPER_NAME
 import app.morphe.patches.instagram.download.video.findFeedMenu
 import app.morphe.patches.instagram.download.video.mutable
@@ -21,12 +21,10 @@ import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.jumpTargets
-import app.morphe.patches.instagram.misc.extension.markers
 import app.morphe.patches.instagram.misc.extension.originalName
 import app.morphe.patches.instagram.misc.extension.patchLog
 import app.morphe.patches.instagram.misc.extension.requireLocals
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
-import app.morphe.patches.instagram.misc.extension.typesMarked
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.util.addInstructionsAtControlFlowLabel
@@ -98,17 +96,12 @@ internal fun BytecodePatchContext.findFeedMenuItems(): MenuPart {
 }
 
 /**
- * The one method that adds a row to the menu of a reel or a feed video, found by its marker, with
- * a check at its start that leaves the row out when the extension says so. Throws naming the patch
- * when there isn't exactly one, or it doesn't take one option.
+ * The one method that adds a row to the menu of a reel or a feed video, found as Download any reel
+ * finds it, with a check at its start that leaves the row out when the extension says so. Throws
+ * naming the patch when there isn't exactly one, or it doesn't take one option.
  */
 internal fun BytecodePatchContext.findReelMenuItems(): MenuPart {
-    val adders = typesMarked(ROW_MARKER).sorted().mapNotNull { classDefByOrNull(it) }
-        .flatMap { classDef -> classDef.methods.filter { ROW_MARKER in it.markers() } }
-    val adder = adders.singleOrNull() ?: refuse(
-        "expected one method holding the $ROW_MARKER marker, found " +
-            if (adders.isEmpty()) "none" else adders.joinToString { it.where() },
-    )
+    val adder = reelRowAdder(PATCH)
     val parameters = adder.parameterTypes.map(Any::toString)
     val options = parameters.indices.filter { parameters[it] == OPTION }
     val option = options.singleOrNull()

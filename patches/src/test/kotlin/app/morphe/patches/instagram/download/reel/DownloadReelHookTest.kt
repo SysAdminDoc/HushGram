@@ -29,8 +29,6 @@ import app.morphe.patches.instagram.download.TRACK_DATA
 import app.morphe.patches.instagram.download.USER
 import app.morphe.patches.instagram.download.VIDEO_VERSION
 import app.morphe.patches.instagram.download.soundBridges
-import app.morphe.patches.instagram.misc.extension.PURGE_MARKER
-import app.morphe.patches.instagram.misc.extension.markers
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -191,9 +189,9 @@ class DownloadReelHookTest {
 
     @Test
     fun aMissingReducedMenuFailsBeforeAnythingChanges() {
-        val context = PatchContexts.of(classes(reducedMarker = "ClipsOrganicMediaItemViewMoreOptionsController_somethingElse"))
+        val context = PatchContexts.of(classes(reducedSheet = "ReducedOptionsBottomSheet"))
         val failure = assertThrows(PatchException::class.java) { context.offerDownloadOnEveryReel() }
-        assertTrue(failure.message!!, failure.message!!.contains(REDUCED_MARKER))
+        assertTrue(failure.message!!, failure.message!!.contains(REDUCED_SHEET))
         assertUntouched(context)
     }
 
@@ -409,9 +407,9 @@ class DownloadReelHookTest {
 
     @Test
     fun aMissingHandlerFailsThePatch() {
-        val context = PatchContexts.of(classes(handlerMarker = "ClipsOrganicMoreOptionsHelper_somethingElse"))
+        val context = PatchContexts.of(classes(handlerQuery = "ClipsEditingToolsMutation"))
         val failure = assertThrows(PatchException::class.java) { context.offerDownloadOnEveryReel() }
-        assertTrue(failure.message!!, failure.message!!.contains(HANDLER_MARKER))
+        assertTrue(failure.message!!, failure.message!!.contains(EDITING_TOOLS_QUERY))
     }
 
     /**
@@ -445,36 +443,43 @@ class DownloadReelHookTest {
             MUSIC_INFO, PANDO_MUSIC_INFO, TRACK_DATA, PANDO_TRACK_DATA, MUSIC_CONSUMPTION, PANDO_MUSIC_CONSUMPTION,
             ORIGINAL_SOUND, PANDO_ORIGINAL_SOUND,
         )
-        val markers = setOf(HANDLER_MARKER, ELIGIBLE_MARKER, REDUCED_MARKER, ROW_MARKER)
         // The types a post keeps its music in: interfaces whose getter answers the music.
         fun holdsMusic(classDef: ClassDef) = AccessFlags.INTERFACE.isSet(classDef.accessFlags) &&
             classDef.methods.any { it.parameterTypes.isEmpty() && it.returnType == MUSIC_INFO }
-        val classes = mutableListOf<ClassDef>(ExtensionDex.classDef(INSTAGRAM_MEDIA))
+        val found = LinkedHashMap<String, ClassDef>()
+        found[INSTAGRAM_MEDIA] = ExtensionDex.classDef(INSTAGRAM_MEDIA)
+        for (classDef in anchoredClasses(bundle, EDITING_TOOLS_QUERY, ELIGIBILITY_PATH, REDUCED_SHEET)) found.putIfAbsent(classDef.type, classDef)
         FixtureDex.forEach(bundle) { dex ->
-            val marked = dex.stringSection.any { it.startsWith("android_purge_") && PURGE_MARKER.find(it)?.groupValues?.get(1) in markers }
             val loads = dex.fieldSection.any { it.toString() == DOWNLOAD }
-            if (!marked && !loads && dex.classes.none { it.type in types || holdsMusic(it) }) return@forEach
+            if (!loads && dex.classes.none { it.type in types || holdsMusic(it) }) return@forEach
             for (classDef in dex.classes) {
+                if (classDef.type in found) continue
                 val wanted = classDef.type in types || holdsMusic(classDef) || classDef.methods.any { method ->
-                    method.markers().any { it in markers } || method.code().any { it.referenceText() == DOWNLOAD }
+                    method.code().any { it.referenceText() == DOWNLOAD }
                 }
-                if (wanted) classes += ImmutableClassDef.of(classDef)
+                if (wanted) found[classDef.type] = ImmutableClassDef.of(classDef)
             }
         }
+        val classes = FixtureDex.withStringPools(bundle, found.values)
         val context = PatchContexts.of(classes)
 
         context.offerDownloadOnEveryReel()
 
         val all = classes.flatMap { it.methods }
-        val handler = all.single { HANDLER_MARKER in it.markers() }
+        val handler = loaderIn(classes, EDITING_TOOLS_QUERY)
         val menu = context.method(handler.definingClass, handler.name).code()
         assertEquals("$label: the handler's calls", listOf(OURS, SAVE),
             menu.filter { it.opcode == Opcode.INVOKE_STATIC }.take(2).map { it.referenceText() })
-        val adder = all.single { ROW_MARKER in it.markers() }
+        // The adder of one row: the handler's class's method taking a Context and the option first, an icon and a label last.
+        val adder = all.single { method ->
+            val takes = method.parameterTypes.map(Any::toString)
+            method.definingClass == handler.definingClass && takes.size == 6 && takes[0] == "Landroid/content/Context;" &&
+                takes[1] == OPTION && takes[4] == "Ljava/lang/Integer;" && takes[5] == "Ljava/lang/String;"
+        }
         val rows = context.method(adder.definingClass, adder.name, adder.parameterTypes.map(Any::toString)).code()
         assertEquals("$label: the row adder's first call", ROWS,
             rows.first { it.opcode == Opcode.INVOKE_STATIC_RANGE }.referenceText())
-        val eligible = all.single { ELIGIBLE_MARKER in it.markers() }
+        val eligible = downloadCheckIn(classes)
         val check = "${eligible.definingClass}->${eligible.name}(${eligible.parameterTypes.joinToString("")})${eligible.returnType}"
         val builders = all.filter { method ->
             val code = method.code()
@@ -529,7 +534,13 @@ class DownloadReelHookTest {
         }
         assertTrue("$label: no builder read the flag", flags > 0)
         assertTrue("$label: no builder hands Download to the adder of one row", toRows > 0)
-        val reduced = all.single { REDUCED_MARKER in it.markers() }
+        // The reduced menu's list: the method of its sheet's class answering a list that the sheet asks.
+        val sheet = loaderIn(classes, REDUCED_SHEET)
+        val listed = callsInto(sheet, sheet.definingClass)
+        val reduced = all.single { method ->
+            method.definingClass == sheet.definingClass && method.returnType == "Ljava/util/ArrayList;" &&
+                "${method.name}(${method.parameterTypes.joinToString("")})${method.returnType}" in listed
+        }
         val list = context.method(reduced.definingClass, reduced.name, reduced.parameterTypes.map(Any::toString)).code()
         val returns = list.indices.filter { list[it].opcode == Opcode.RETURN_OBJECT }
         assertTrue("$label: the reduced menu doesn't return", returns.isNotEmpty())
@@ -617,8 +628,8 @@ class DownloadReelHookTest {
         flagSkipsWhen: String = "if-nez",
         leaveOutField: String? = null,
         secondMedia: Boolean = false,
-        handlerMarker: String = HANDLER_MARKER,
-        reducedMarker: String = REDUCED_MARKER,
+        handlerQuery: String = EDITING_TOOLS_QUERY,
+        reducedSheet: String = REDUCED_SHEET,
         leaveOutCandidates: Boolean = false,
         rowParameters: List<String> = rowTypes,
         handOff: String = toShorthand,
@@ -633,7 +644,7 @@ class DownloadReelHookTest {
             helper,
             listOf(
                 method(helper, "A0T", listOf(OPTION), "V", 5, static = false, body = """
-                    const-string v0, "android_purge_26_q3_$handlerMarker"
+                    const-string v0, "$handlerQuery"
                     return-void
                 """),
                 method(helper, "A06", listOf("Lfixture/Tree;", helper, "Ljava/util/List;", "I"), "V", 8, static = true, body = """
@@ -665,7 +676,7 @@ class DownloadReelHookTest {
                 method(helper, "A0S", emptyList(), "V", 1, static = false, body = "return-void"),
                 // The adder of one row: 5 locals, then this and six parameters.
                 method(helper, "A0Q", rowParameters, "V", 6 + rowParameters.size, static = false, body = """
-                    const-string v0, "android_purge_26_q3_$ROW_MARKER"
+                    const-string v0, "row"
                     return-void
                 """),
             ),
@@ -707,9 +718,16 @@ class DownloadReelHookTest {
                     return-void
                 """),
                 method(controller, "A0C", listOf(OPTION), "V", 2, static = false, body = "return-void"),
+                // The reduced menu's sheet, which names itself and then lists its options.
+                method(controller, "A04", emptyList(), "V", 3, static = false, body = """
+                    const-string v0, "$reducedSheet"
+                    const/4 v1, 0x0
+                    invoke-virtual { p0, v1, v1 }, $controller->A03(Lfixture/ClipsItem;$MEDIA)Ljava/util/ArrayList;
+                    return-void
+                """),
                 // The reduced menu's list, which never had Download. Its return is also a jump's target.
                 method(controller, "A03", listOf("Lfixture/ClipsItem;", MEDIA), "Ljava/util/ArrayList;", 6, static = false, body = """
-                    const-string v0, "android_purge_26_q3_$reducedMarker"
+                    const-string v0, "options"
                     new-instance v1, Ljava/util/ArrayList;
                     invoke-direct { v1 }, Ljava/util/ArrayList;-><init>()V
                     sget-object v0, $OPTION->PLAYBACK_CONTROLS:$OPTION
@@ -725,11 +743,25 @@ class DownloadReelHookTest {
             listOf(field(controller, "helper", helper)),
         )
         val feed = classDef(feedSheet, listOf(feedSheetMethod()))
-        val eligible = classDef(util, listOf(method(util, "A08", listOf(session, MEDIA), "Z", 4, static = false, body = """
-            const-string v0, "android_purge_26_q3_$ELIGIBLE_MARKER"
-            const/4 v0, 0x0
-            return v0
-        """)))
+        val eligible = classDef(util, listOf(
+            method(util, "A08", listOf(session, MEDIA), "Z", 4, static = false, body = """
+                const/4 v0, 0x0
+                return v0
+            """),
+            // Another check of the class's, which the download flow never asks.
+            method(util, "A07", listOf(session, MEDIA), "Z", 4, static = false, body = """
+                const/4 v0, 0x1
+                return v0
+            """),
+            // The download flow: it asks the check, then the server.
+            method(util, "A00", emptyList(), "V", 3, static = false, body = """
+                const/4 v0, 0x0
+                invoke-virtual { p0, v0, v0 }, $check
+                move-result v1
+                const-string v0, "$ELIGIBILITY_PATH"
+                return-void
+            """),
+        ))
         val mediaGetters = listOf(
             "AAh" to ("video_versions" to "Ljava/util/List;"),
             "A8P" to ("video_dash_manifest" to "Ljava/lang/String;"),
@@ -839,4 +871,39 @@ class DownloadReelHookTest {
 
     private fun classDef(type: String, methods: List<Method>, fields: List<ImmutableField> = emptyList()): ClassDef =
         ImmutableClassDef(type, AccessFlags.PUBLIC.value, "Ljava/lang/Object;", null, null, null, fields, methods)
+}
+
+/** The classes of [bundle] with a method loading one of [anchors], itself or through a pool, and the pools. */
+internal fun anchoredClasses(bundle: File, vararg anchors: String): List<ClassDef> =
+    anchors.flatMap { FixtureDex.classesLoading(bundle, it) }.distinctBy { it.type }
+
+/** The one method among [classes] loading [value], itself or through a pool, the pools' own getters left out. */
+internal fun loaderIn(classes: Collection<ClassDef>, value: String): Method {
+    val byType = classes.associateBy { it.type }
+    val loaders = classes.flatMap { it.methods }.filter { method ->
+        !(method.parameterTypes.map(Any::toString) == listOf("I") && method.returnType == "Ljava/lang/String;") &&
+            FixtureDex.loads(method, value, byType)
+    }
+    assertEquals("the methods loading \"$value\": ${loaders.map { "${it.definingClass}->${it.name}" }}", 1, loaders.size)
+    return loaders.single()
+}
+
+/** The calls in [method] to methods of [owner], as name, parameters and answer. */
+internal fun callsInto(method: Method, owner: String): List<String> =
+    method.implementation?.instructions?.toList().orEmpty().mapNotNull { (it as? ReferenceInstruction)?.reference as? MethodReference }
+        .filter { it.definingClass == owner }.map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
+
+/**
+ * Instagram's download check among [classes]: the method of the download flow's class, the flow
+ * loading [ELIGIBILITY_PATH], that the flow asks, answering a boolean from the session.
+ */
+internal fun downloadCheckIn(classes: Collection<ClassDef>): Method {
+    val flow = loaderIn(classes, ELIGIBILITY_PATH)
+    val asked = callsInto(flow, flow.definingClass)
+    val checks = classes.single { it.type == flow.definingClass }.methods.filter { method ->
+        method.returnType == "Z" && "Lcom/instagram/common/session/UserSession;" in method.parameterTypes.map(Any::toString) &&
+            "${method.name}(${method.parameterTypes.joinToString("")})Z" in asked
+    }
+    assertEquals("the checks ${flow.definingClass}->${flow.name} asks: ${checks.map { it.name }}", 1, checks.size)
+    return checks.single()
 }

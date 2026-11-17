@@ -24,14 +24,14 @@ import app.morphe.patches.instagram.download.musicBridges
 import app.morphe.patches.instagram.download.playerQueriesPatch
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesAccessing
+import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.jumpTargets
-import app.morphe.patches.instagram.misc.extension.markers
+import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.patchLog
 import app.morphe.patches.instagram.misc.extension.requireLocals
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
-import app.morphe.patches.instagram.misc.extension.typesMarked
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
@@ -78,21 +78,102 @@ internal const val ADD_TO = "$REEL_DOWNLOAD->addTo(Ljava/util/List;Ljava/lang/Ob
 /** Gives a row of ours its icon by name: Details gets Instagram's info glyph, the rest Download's arrow. */
 internal const val ROW_ICON = "$REEL_DOWNLOAD->rowIcon(Ljava/lang/String;I)I"
 
-/** The reel menu's handler of a tapped option, in the class that runs the menu. */
-internal const val HANDLER_MARKER = "ClipsOrganicMoreOptionsHelper_handleOptionSelected"
+/**
+ * The query the reel menu's handler of a tapped option names when Edit's tools are asked for. No
+ * other method loads it, so it finds the handler, in the class that runs the menu.
+ */
+internal const val EDITING_TOOLS_QUERY = "ClipsEditingToolsQuery"
+private const val CONTEXT = "Landroid/content/Context;"
+private const val USER_SESSION = "Lcom/instagram/common/session/UserSession;"
 
 /**
- * The reel menu's adder of one row: it takes the option, the sheet and the row's state, and an
- * icon and a label that replace the option's own when they aren't null.
+ * The path Instagram's download flow asks whether a reel's owner lets other people download it.
+ * The flow is a method of the class holding the download check, and asks that check first.
  */
-internal const val ROW_MARKER = "ClipsOrganicMoreOptionsHelper_addBottomSheetRowItem"
-private const val CONTEXT = "Landroid/content/Context;"
+internal const val ELIGIBILITY_PATH = "clips/item/check_third_party_downloads_eligibility/"
 
-/** Instagram's check of whether a reel's owner lets other people download it. */
-internal const val ELIGIBLE_MARKER = "ClipsDownloadUtil_isMediaEligibleForThirdPartyDownloads"
+/** The name the reduced reel menu's sheet is logged under, loaded right before it lists its options. */
+internal const val REDUCED_SHEET = "ReducedOptionsOverflowBottomSheet"
 
-/** The options of the reduced reel menu, a short list that never had a Download row. */
-internal const val REDUCED_MARKER = "ClipsOrganicMediaItemViewMoreOptionsController_getReducedMenuOptions"
+/** The one method loading [value], itself or through Redex's pool, leaving the pool's getters out. */
+private fun BytecodePatchContext.onlyLoaderOf(value: String, patch: String, what: String): Method {
+    val loaders = classesLoadingString(value).flatMap { it.methods }.filter { method ->
+        !(method.parameterTypes.map(Any::toString) == listOf("I") && method.returnType == "Ljava/lang/String;") &&
+            loadsString(method, value)
+    }
+    return loaders.singleOrNull() ?: throw PatchException(
+        "$patch: expected one $what loading \"$value\", found " +
+            if (loaders.isEmpty()) "none" else loaders.joinToString { "${it.definingClass}->${it.name}" },
+    )
+}
+
+/** The calls in [method] to methods of [owner]. */
+private fun calls(method: Method, owner: String): List<MethodReference> =
+    method.implementation?.instructions?.mapNotNull { (it as? ReferenceInstruction)?.reference as? MethodReference }
+        ?.filter { it.definingClass == owner } ?: emptyList()
+
+private fun MethodReference.isOf(method: Method) =
+    name == method.name && returnType == method.returnType &&
+        parameterTypes.map(Any::toString) == method.parameterTypes.map(Any::toString)
+
+/** The reel menu's handler of a tapped option: the one method naming [EDITING_TOOLS_QUERY]. */
+internal fun BytecodePatchContext.reelMenuHandler(patch: String): Method =
+    onlyLoaderOf(EDITING_TOOLS_QUERY, patch, "handler of the reel menu")
+
+/**
+ * The reel menu's adder of one row, in the class of [reelMenuHandler]: its one instance method
+ * taking a Context, the option, the sheet and the row's state, and an icon and a label that replace
+ * the option's own when they aren't null.
+ */
+internal fun BytecodePatchContext.reelRowAdder(patch: String): Method {
+    val helper = classDefBy(reelMenuHandler(patch).definingClass)
+    val adders = helper.methods.filter { method ->
+        val takes = method.parameterTypes.map(Any::toString)
+        !AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "V" && takes.size == 6 &&
+            takes[0] == CONTEXT && takes[1] == OPTION && takes[2].startsWith("L") && takes[3].startsWith("L") &&
+            takes[4] == "Ljava/lang/Integer;" && takes[5] == "Ljava/lang/String;"
+    }
+    return adders.singleOrNull() ?: throw PatchException(
+        "$patch: expected one method of ${helper.type}, the reel menu's helper, to be the adder of one row, found " +
+            if (adders.isEmpty()) "none" else adders.joinToString { it.name },
+    )
+}
+
+/**
+ * Instagram's check of whether a reel's owner lets other people download it: the method of the
+ * download flow's own class, the flow being the one method asking [ELIGIBILITY_PATH], that the flow
+ * calls with a post and the session and that answers a boolean.
+ */
+internal fun BytecodePatchContext.downloadCheck(patch: String): Method {
+    val flow = onlyLoaderOf(ELIGIBILITY_PATH, patch, "download flow")
+    val asked = calls(flow, flow.definingClass)
+    val checks = classDefBy(flow.definingClass).methods.filter { method ->
+        val takes = method.parameterTypes.map(Any::toString)
+        method.returnType == "Z" && takes.size == 2 && USER_SESSION in takes && takes.all { it.startsWith("L") } &&
+            asked.any { it.isOf(method) }
+    }
+    return checks.singleOrNull() ?: throw PatchException(
+        "$patch: expected ${flow.definingClass}->${flow.name}, the download flow, to ask one check of its class taking " +
+            "a post and the session, found " + if (checks.isEmpty()) "none" else checks.joinToString { it.name },
+    )
+}
+
+/**
+ * The options of the reduced reel menu, a short list that never had a Download row: the one method
+ * of its own class answering a list from a post that the method naming [REDUCED_SHEET] calls.
+ */
+internal fun BytecodePatchContext.reducedMenuList(patch: String): Method {
+    val sheet = onlyLoaderOf(REDUCED_SHEET, patch, "reduced reel menu")
+    val asked = calls(sheet, sheet.definingClass)
+    val lists = classDefBy(sheet.definingClass).methods.filter { method ->
+        method.returnType == "Ljava/util/ArrayList;" && MEDIA in method.parameterTypes.map(Any::toString) &&
+            asked.any { it.isOf(method) }
+    }
+    return lists.singleOrNull() ?: throw PatchException(
+        "$patch: expected ${sheet.definingClass}->${sheet.name}, the reduced reel menu, to list its options through one " +
+            "method of its class taking a post, found " + if (lists.isEmpty()) "none" else lists.joinToString { it.name },
+    )
+}
 
 /**
  * Download in every reel's more menu, saving through HushGram's own pipeline.
@@ -160,49 +241,27 @@ val downloadReelPatch = bytecodePatch(
 internal class Gate(val at: Int, val register: Int, val hook: String, val media: Int? = null)
 
 internal fun BytecodePatchContext.offerDownloadOnEveryReel() {
-    val handlers = mutableListOf<Method>()
-    val eligibles = mutableListOf<Method>()
     val loaders = mutableListOf<Method>()
-    val reducedLists = mutableListOf<Method>()
-    val rowAdders = mutableListOf<Method>()
-    val marked = typesMarked(HANDLER_MARKER, ELIGIBLE_MARKER, REDUCED_MARKER, ROW_MARKER)
     val loading = typesLoadingDownload()
     classDefForEach { classDef ->
-        val holdsMarker = classDef.type in marked
-        val readsDownload = classDef.type in loading
-        if (!holdsMarker && !readsDownload) return@classDefForEach
+        if (classDef.type !in loading) return@classDefForEach
         classDef.methods.forEach { method ->
-            val markers = if (holdsMarker) method.markers() else emptyList()
-            if (HANDLER_MARKER in markers) handlers += method
-            if (ELIGIBLE_MARKER in markers) eligibles += method
-            if (REDUCED_MARKER in markers) reducedLists += method
-            if (ROW_MARKER in markers) rowAdders += method
-            if (readsDownload && method.code().any { it.opcode == Opcode.SGET_OBJECT && it.referenceText() == DOWNLOAD }) loaders += method
+            if (method.code().any { it.opcode == Opcode.SGET_OBJECT && it.referenceText() == DOWNLOAD }) loaders += method
         }
     }
-    val handler = one(handlers, HANDLER_MARKER)
-    val eligible = one(eligibles, ELIGIBLE_MARKER)
+    val handler = reelMenuHandler(PATCH)
+    val eligible = downloadCheck(PATCH)
     if (AccessFlags.STATIC.isSet(handler.accessFlags) || handler.parameterTypes.map(Any::toString) != listOf(OPTION) ||
         handler.returnType != "V"
     ) {
         throw PatchException("$PATCH: ${handler.definingClass}->${handler.name}, the menu's handler, doesn't take one option")
     }
-    if (eligible.returnType != "Z") {
-        throw PatchException("$PATCH: ${eligible.definingClass}->${eligible.name}, the download check, doesn't answer a boolean")
-    }
     val helper = handler.definingClass
-    val adder = one(rowAdders, ROW_MARKER)
-    val adderTypes = adder.parameterTypes.map(Any::toString)
-    if (adder.definingClass != helper || AccessFlags.STATIC.isSet(adder.accessFlags) || adder.returnType != "V" ||
-        adderTypes.size != 6 || adderTypes[0] != CONTEXT || adderTypes[1] != OPTION || !adderTypes[2].startsWith("L") ||
-        !adderTypes[3].startsWith("L") || adderTypes[4] != "Ljava/lang/Integer;" || adderTypes[5] != "Ljava/lang/String;"
-    ) {
-        throw PatchException("$PATCH: ${adder.definingClass}->${adder.name}, the adder of one row, takes ${adderTypes.joinToString("")}")
-    }
+    val adder = reelRowAdder(PATCH)
     val builders = loaders.filter { it.calls(eligible) && (it.definingClass == helper || it.uses(helper)) }
     if (builders.isEmpty()) throw PatchException("$PATCH: no builder of the reel menu adds Download after the download check")
     val gates = builders.associateWith { it.downloadGates(eligible, handsToRows(it, adder)) }
-    val reduced = one(reducedLists, REDUCED_MARKER)
+    val reduced = reducedMenuList(PATCH)
     val reducedReturns = reduced.optionListReturns()
     val media = instanceField(helper, MEDIA)
     val activity = instanceField(helper, FRAGMENT_ACTIVITY)
@@ -365,11 +424,6 @@ private fun replaced(stub: Method, registers: Int): MutableMethod = ImmutableMet
     stub.definingClass, stub.name, stub.parameters, stub.returnType, stub.accessFlags, stub.annotations,
     stub.hiddenApiRestrictions, ImmutableMethodImplementation(registers, emptyList(), null, null),
 ).toMutable()
-
-private fun one(methods: List<Method>, marker: String): Method = methods.singleOrNull() ?: throw PatchException(
-    "$PATCH: expected one method holding the $marker marker, found " +
-        if (methods.isEmpty()) "none" else methods.joinToString { "${it.definingClass}->${it.name}" },
-)
 
 /** The one instance field of [type] in [owner], the reel menu's class, as a field reference. */
 private fun BytecodePatchContext.instanceField(owner: String, type: String): String {

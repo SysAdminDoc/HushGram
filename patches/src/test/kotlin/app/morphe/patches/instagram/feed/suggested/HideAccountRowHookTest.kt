@@ -9,13 +9,12 @@ import app.morphe.Fixtures
 import app.morphe.PatchContexts
 import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.instagram.download.reel.DOWNLOAD
-import app.morphe.patches.instagram.download.reel.ELIGIBLE_MARKER
+import app.morphe.patches.instagram.download.reel.ELIGIBILITY_PATH
 import app.morphe.patches.instagram.download.reel.OPTION
+import app.morphe.patches.instagram.download.reel.anchoredClasses
 import app.morphe.patches.instagram.download.video.FEED_HELPER_NAME
 import app.morphe.patches.instagram.download.video.WHY_OPTION
 import app.morphe.patches.instagram.download.video.isShortMenuList
-import app.morphe.patches.instagram.misc.extension.PURGE_MARKER
-import app.morphe.patches.instagram.misc.extension.markers
 import app.morphe.patches.instagram.misc.extension.originalName
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
@@ -86,15 +85,18 @@ class HideAccountRowHookTest {
 
     private fun getsTheRow(bundle: File, label: String) {
         val classes = mutableListOf<ClassDef>(ExtensionDex.classDef(HIDE_ROW))
+        // The download flow's class, which holds the download check, and the pools it reads.
+        classes += anchoredClasses(bundle, ELIGIBILITY_PATH)
+        val anchored = classes.mapTo(HashSet()) { it.type }
         FixtureDex.forEach(bundle) { dex ->
-            val marked = dex.stringSection.any { it.startsWith("android_purge_") && PURGE_MARKER.find(it)?.groupValues?.get(1) == ELIGIBLE_MARKER }
             val loads = dex.fieldSection.any { it.toString() == DOWNLOAD }
             val named = dex.stringSection.any { it == FEED_HELPER_NAME }
             val options = dex.fieldSection.any { it.toString() == WHY_OPTION }
-            if (!marked && !loads && !named && !options && dex.classes.none { it.type == OPTION }) return@forEach
+            if (!loads && !named && !options && dex.classes.none { it.type == OPTION }) return@forEach
             for (classDef in dex.classes) {
+                if (classDef.type in anchored) continue
                 val wanted = classDef.type == OPTION || classDef.originalName() == FEED_HELPER_NAME || classDef.methods.any { method ->
-                    ELIGIBLE_MARKER in method.markers() || method.code().any { it.referenceText() == DOWNLOAD } || method.isShortMenuList()
+                    method.code().any { it.referenceText() == DOWNLOAD } || method.isShortMenuList()
                 }
                 if (wanted) classes += ImmutableClassDef.of(classDef)
             }
