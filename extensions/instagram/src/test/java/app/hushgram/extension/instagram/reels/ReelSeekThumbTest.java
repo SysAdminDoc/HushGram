@@ -644,18 +644,19 @@ public class ReelSeekThumbTest {
      * Off or paused, Instagram's layer is back at the bar's level with its bounds.
      */
     @Test public void instagramsOwnTrackEasesBetweenItsSteps() {
-        ClipDrawable played = new ClipDrawable(new ColorDrawable(Color.WHITE), Gravity.START, ClipDrawable.HORIZONTAL);
-        LayerDrawable track = new LayerDrawable(new Drawable[] {new ColorDrawable(Color.GRAY), played});
+        ClipDrawable stock = new ClipDrawable(new ColorDrawable(Color.WHITE), Gravity.START, ClipDrawable.HORIZONTAL);
+        LayerDrawable track = new LayerDrawable(new Drawable[] {new ColorDrawable(Color.GRAY), stock});
         track.setId(0, android.R.id.background);
         track.setId(1, android.R.id.progress);
         bar.setProgressDrawable(track);
-        Rect bounds = new Rect(played.getBounds());
+        Rect bounds = new Rect(stock.getBounds());
         assertFalse("the bar has given the layer its place", bounds.isEmpty());
         refresh();
 
         Drawable line = track.findDrawableByLayerId(android.R.id.progress);
         assertTrue(line instanceof ReelTimeLabel.EasedLine);
-        assertSame("Instagram's layer draws it", played, ((ReelTimeLabel.EasedLine) line).getDrawable());
+        Drawable played = ((ReelTimeLabel.EasedLine) line).getDrawable();
+        assertTrue("Instagram's layer draws it, copied so the track's layers are its own", played instanceof ClipDrawable);
         assertEquals("in its place", bounds, line.getBounds());
         assertEquals(bounds, played.getBounds());
         assertEquals("from where the bar is", 2500, line.getLevel());
@@ -700,6 +701,44 @@ public class ReelSeekThumbTest {
         PauseForTests.pause(HushgramPause.Reason.SWITCH);
         refresh();
         assertSame("paused, Instagram's own layer", played, track.findDrawableByLayerId(android.R.id.progress));
+    }
+
+    /**
+     * #10: "sometimes the seek bar does not move at all". Android builds each new reel's bar from layers
+     * its resource cache shares with the first bar. The eased line went into those, so the next bar got
+     * the same line, which then followed that bar while the one playing stood still. Each bar's line
+     * follows its own bar, and a copy gets Instagram's own layer.
+     */
+    @Test public void eachReelBarKeepsALineOfItsOwn() {
+        ClipDrawable stock = new ClipDrawable(new ColorDrawable(Color.WHITE), Gravity.START, ClipDrawable.HORIZONTAL);
+        LayerDrawable track = new LayerDrawable(new Drawable[] {new ColorDrawable(Color.GRAY), stock});
+        track.setId(0, android.R.id.background);
+        track.setId(1, android.R.id.progress);
+        Drawable.ConstantState cached = track.getConstantState();
+        assertNotNull(cached);
+        bar.setProgressDrawable(track);
+        refresh();
+        Drawable line = track.findDrawableByLayerId(android.R.id.progress);
+        assertTrue(line instanceof ReelTimeLabel.EasedLine);
+
+        // The next reel's bar, its track made the way the resource cache makes one.
+        SeekBar next = new SeekBar(activity.get());
+        next.setMax(100);
+        next.setProgress(0);
+        LayerDrawable copy = (LayerDrawable) cached.newDrawable(bar.getResources());
+        next.setProgressDrawable(copy);
+        Drawable nextLine = copy.findDrawableByLayerId(android.R.id.progress);
+        assertNotSame("the next bar doesn't get this bar's line", line, nextLine);
+        assertFalse("it gets Instagram's own layer", nextLine instanceof ReelTimeLabel.EasedLine);
+        assertSame("the line still belongs to its own track", track, line.getCallback());
+
+        // The first reel plays on, and its line follows it rather than the next bar at 0.
+        Canvas canvas = new Canvas(Bitmap.createBitmap(400, 28, Bitmap.Config.ARGB_8888));
+        ShadowSystemClock.advanceBy(100, TimeUnit.MILLISECONDS);
+        bar.setProgress(50);
+        ShadowSystemClock.advanceBy(300, TimeUnit.MILLISECONDS);
+        line.draw(canvas);
+        assertEquals("on with its own reel", 5000, ((ReelTimeLabel.EasedLine) line).getDrawable().getLevel());
     }
 
     private void refresh() {

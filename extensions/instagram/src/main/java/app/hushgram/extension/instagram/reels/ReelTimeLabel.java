@@ -656,6 +656,11 @@ final class ReelTimeLabel {
      * off again otherwise. A track of ours, or one with no separate played part, is left alone. Costs a
      * look at the track's layers with each update; the wrapper goes on once, and on again only if
      * Instagram swaps the track.
+     * <p>
+     * #10: the first reel bar's track shares its layers with Android's resource cache, which builds every
+     * later bar's track from them. A line put in there unmutated went to each new bar as the same object,
+     * which then followed the newest bar while the playing one stood still. Mutating first gives this
+     * bar layers of its own, with copies of Instagram's.
      */
     private static void ease(SeekBar bar, boolean wanted) {
         Drawable track = bar.getProgressDrawable();
@@ -665,6 +670,9 @@ final class ReelTimeLabel {
         if (line == null || line instanceof Pill) return;
         if (wanted == (line instanceof EasedLine)) return;
         if (wanted) {
+            layers.mutate();
+            line = layers.findDrawableByLayerId(android.R.id.progress);
+            if (line == null) return;
             // In this order: the layer hands its bounds to what comes next, and a wrapper resets what it's given.
             int level = line.getLevel();
             EasedLine eased = new EasedLine();

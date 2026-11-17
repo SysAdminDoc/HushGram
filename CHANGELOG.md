@@ -110,6 +110,7 @@ Every HushGram release, newest first.
 * A wavy seek bar and its tall handle aren't cut flat along the top anymore once the controls dim on a reel. Reported in #450 and #586.
 * With the tab bar hiding on Reels, a reel shorter than the screen sits where it would with the pill in place, instead of half the pill's height lower with more black above it. Reported in #450.
 * `Show the whole reel` keeps a reel's top and bottom on a screen wider than the reel, like a tablet or an open foldable. Reported in #681.
+* With `Keep a seek bar` on, a reel's seek bar moves along with the reel again. Sometimes the bar stayed at the start while the time above it counted up. Reported in #10.
 * A photo reel with music gets its seek bar back after you hold it. It used to stay gone for the rest of that post. Reported in #10.
 * `Download feed photos` saves a photo at the size it was posted, not the 1080 pixel copy. Instagram only lists a photo's original for a big enough screen, so `Save photos at full size`, new right under it, reports one. It starts on and takes effect once Instagram restarts. Reported in #500.
 * With `Swipe through a chat's reels` on, every reel you swipe to from a chat keeps its reply bar and reactions, answering its own message, and a second reel opened from the same chat does too. Reported in #658.
