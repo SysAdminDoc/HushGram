@@ -238,6 +238,19 @@ class MarkReadHookTest {
         it[3] = ImmutableInstruction12x(Opcode.MOVE_OBJECT, 0, 1)
     }
 
+    /** 456 builds the menu's constants through a static factory on the enum (`LX/0A91;->A00` on 386214574). */
+    @Test fun markAsReadBuiltByTheEnumsFactoryIsFound() {
+        val context = PatchContexts.of(M.classes().map { if (it.type == M.MENU) M.factoryMenu() else it })
+        assertEquals(M.READ.toString(), context.findMarkRead(context.findThreadSeen()).markAsRead.toString())
+    }
+    @Test fun aFactoryBuildingWithAnotherNameIsRefused() =
+        refuses(M.classes().map { if (it.type == M.MENU) M.factoryMenu(named = 2) else it },
+            "MARK_AS_READ's factory doesn't build its constant with the name it's given")
+    @Test fun aFactoryAnswerStoredFromAnotherRegisterIsRefused() =
+        refuses(M.edit(M.classes().map { if (it.type == M.MENU) M.factoryMenu() else it }, M.MENU, "<clinit>") {
+            it[9] = field(Opcode.SPUT_OBJECT, 1, M.READ)
+        }, "MARK_AS_READ stores another object than it builds")
+
     @Test fun aBuilderWithoutMarkAsUnreadIsRefused() = changed(M.ROWS, "rows", "$BUILDER_REFUSAL, found 0") { it[5] = field(Opcode.SGET_OBJECT, 0, M.READ) }
     @Test fun aBuilderAddingToAnotherListIsRefused() = changed(M.ROWS, "rows", "$BUILDER_REFUSAL, found 0") {
         it[6] = call(Opcode.INVOKE_INTERFACE, listOf(1, 0), M.LIST, "add", listOf(OBJECT), "Z")
@@ -1032,6 +1045,35 @@ internal object MarkReadFixture {
                 field(Opcode.SPUT_OBJECT, 0, read),
                 ImmutableInstruction10x(Opcode.RETURN_VOID),
             ), static = true)))
+    }
+
+    /**
+     * The menu as 456 builds it (`LX/0A91;->A00` on 386214574): each constant comes from a static
+     * factory on the enum, handed its name and ordinal, that builds it with the name in [named].
+     */
+    fun factoryMenu(named: Int = 1): ClassDef {
+        val read = ImmutableFieldReference(MENU, READ.name, MENU)
+        val unread = ImmutableFieldReference(MENU, UNREAD.name, MENU)
+        val constant = AccessFlags.PUBLIC.value or AccessFlags.STATIC.value or AccessFlags.FINAL.value or AccessFlags.ENUM.value
+        val factory = ImmutableMethodReference(MENU, "make", listOf(STRING, "I"), MENU)
+        return ImmutableClassDef(MENU, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value or AccessFlags.ENUM.value, ENUM, null, null, null,
+            listOf(read, unread).map { ImmutableField(MENU, it.name, MENU, constant, null, null, null) },
+            listOf(
+                method(MENU, "<clinit>", emptyList(), "V", 3, listOf(
+                    text(1, MARK_AS_UNREAD), ImmutableInstruction11n(Opcode.CONST_4, 0, 0),
+                    call(Opcode.INVOKE_STATIC, listOf(1, 0), factory), ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 2),
+                    field(Opcode.SPUT_OBJECT, 2, unread),
+                    text(1, MARK_AS_READ), ImmutableInstruction11n(Opcode.CONST_4, 0, 1),
+                    call(Opcode.INVOKE_STATIC, listOf(1, 0), factory), ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 2),
+                    field(Opcode.SPUT_OBJECT, 2, read),
+                    ImmutableInstruction10x(Opcode.RETURN_VOID),
+                ), static = true),
+                method(MENU, factory.name, listOf(STRING, "I"), MENU, 3, listOf(
+                    typed(Opcode.NEW_INSTANCE, 0, MENU),
+                    call(Opcode.INVOKE_DIRECT, listOf(0, named, 2, 1), MENU, "<init>", listOf(STRING, "I", STRING), "V"),
+                    ImmutableInstruction11x(Opcode.RETURN_OBJECT, 0),
+                ), static = true),
+            ))
     }
 
     /**

@@ -162,6 +162,7 @@ private fun Method.static() = AccessFlags.STATIC.isSet(accessFlags)
 private fun Method.public() = AccessFlags.PUBLIC.isSet(accessFlags)
 private val OBJECT_MOVES = setOf(Opcode.MOVE_OBJECT, Opcode.MOVE_OBJECT_FROM16, Opcode.MOVE_OBJECT_16)
 private val DIRECT_CALLS = setOf(Opcode.INVOKE_DIRECT, Opcode.INVOKE_DIRECT_RANGE)
+private val STATIC_CALLS = setOf(Opcode.INVOKE_STATIC, Opcode.INVOKE_STATIC_RANGE)
 
 private fun Instruction.writes(register: Int): Boolean {
     val destination = (this as? OneRegisterInstruction)?.registerA ?: return false
@@ -338,8 +339,12 @@ private fun enumConstant(enum: ClassDef, name: String): FieldReference {
     val named = code.indices.filter { code[it].visualString() == name }.one("$name in its enum's initializer")
     val text = (code[named] as OneRegisterInstruction).registerA
     val built = (named + 1 until code.size).firstOrNull {
-        code[it].opcode in DIRECT_CALLS && code[it].call()?.let { call -> call.definingClass == enum.type && call.name == "<init>" } == true
+        code[it].call()?.let { call ->
+            call.definingClass == enum.type && (code[it].opcode in DIRECT_CALLS && call.name == "<init>" ||
+                code[it].opcode in STATIC_CALLS && call.returnType == enum.type)
+        } == true
     } ?: refuse("$name is never built")
+    if (code[built].opcode in STATIC_CALLS) return factoryConstant(enum, name, init, code, named, text, built)
     val arguments = code[built].namedRegisters()
     val before = code[built].call()!!.parameterTypes.map(Any::toString).let { constructor ->
         constructor.take(constructor.indexOf(STRING_TYPE).takeIf { it >= 0 } ?: refuse("$name's constructor takes no name"))
@@ -368,6 +373,55 @@ private fun enumConstant(enum: ClassDef, name: String): FieldReference {
         requireOrigin(THREAD_SEEN_PATCH, init, copied, constant, allocated, "$name's constant")
         requireOrigin(THREAD_SEEN_PATCH, init, built, receiver, copied, "$name's constant")
     }
+    return field
+}
+
+/**
+ * [enumConstant] where the initializer hands [name] to a static factory on [enum] that builds the
+ * constant (`LX/0A91;->A00(Ljava/lang/String;I)` on 386214574), as 456 builds the chat menu's: the
+ * factory allocates one constant, builds it with its own String parameter as the name and answers
+ * it, and the initializer stores that answer before building the next one.
+ */
+private fun factoryConstant(enum: ClassDef, name: String, init: Method, code: List<Instruction>, named: Int, text: Int, built: Int): FieldReference {
+    val call = code[built].call()!!
+    val types = call.parameterTypes.map(Any::toString)
+    val nameParameter = types.indexOf(STRING_TYPE).takeIf { it >= 0 && it == types.lastIndexOf(STRING_TYPE) }
+        ?: refuse("$name's factory doesn't take one name")
+    val nameAt = nameParameter + types.take(nameParameter).count { it == "J" || it == "D" }
+    if (code[built].namedRegisters().getOrNull(nameAt) != text) refuse("$name isn't the name its constant is built with")
+    requireOrigin(THREAD_SEEN_PATCH, init, built, text, named, "$name's name")
+    val answer = code.getOrNull(built + 1)?.takeIf { it.opcode == Opcode.MOVE_RESULT_OBJECT } ?: refuse("$name's factory answer is dropped")
+    val constant = (answer as OneRegisterInstruction).registerA
+    val stored = (built + 2 until code.size).firstOrNull { code[it].opcode == Opcode.SPUT_OBJECT } ?: refuse("$name is never stored")
+    val field = code[stored].field()!!
+    if (field.definingClass != enum.type || field.type != enum.type) refuse("$name is stored outside its enum")
+    if ((code[stored] as OneRegisterInstruction).registerA != constant) refuse("$name stores another object than it builds")
+    requireOrigin(THREAD_SEEN_PATCH, init, stored, constant, built + 1, "$name's constant")
+
+    val factory = enum.methods.filter {
+        it.static() && it.name == call.name && it.parameters() == types && it.returnType == call.returnType
+    }.one("factory building $name")
+    val body = factory.visualCode()
+    val allocated = body.indices.filter { body[it].opcode == Opcode.NEW_INSTANCE && body[it].type() == enum.type }
+        .one("allocation in $name's factory")
+    val made = (body[allocated] as OneRegisterInstruction).registerA
+    val constructed = body.indices.filter {
+        body[it].opcode in DIRECT_CALLS && body[it].call()?.let { target -> target.definingClass == enum.type && target.name == "<init>" } == true
+    }.one("constructor call in $name's factory")
+    val constructor = body[constructed].call()!!.parameterTypes.map(Any::toString)
+    val before = constructor.take(constructor.indexOf(STRING_TYPE).takeIf { it >= 0 } ?: refuse("$name's constructor takes no name"))
+    val arguments = body[constructed].namedRegisters()
+    if (arguments.getOrNull(1 + before.size + before.count { it == "J" || it == "D" }) != factory.parameterRegisterNumber(nameParameter)) {
+        refuse("$name's factory doesn't build its constant with the name it's given")
+    }
+    factory.requireParameterIntact(THREAD_SEEN_PATCH, nameParameter, listOf(constructed))
+    if (arguments.first() != made) refuse("$name's factory builds another object than it allocates")
+    requireOrigin(THREAD_SEEN_PATCH, factory, constructed, made, allocated, "$name's constant")
+    val returns = body.indices.filter { body[it].opcode == Opcode.RETURN_OBJECT }
+    if (returns.isEmpty() || returns.any { (body[it] as OneRegisterInstruction).registerA != made }) {
+        refuse("$name's factory answers another object than it builds")
+    }
+    returns.forEach { requireOrigin(THREAD_SEEN_PATCH, factory, it, made, allocated, "$name's constant") }
     return field
 }
 
