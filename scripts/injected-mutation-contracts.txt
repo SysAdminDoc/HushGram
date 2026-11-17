@@ -116,8 +116,8 @@ once-call Lapp/hushgram/extension/instagram/direct/InboxSearchBar;->sections([Lj
 # instance (List, String) method in a class reading follow requests by name, which the patch reaches
 # through the one call the inbox's loader makes of that shape. Left out, Accounts to follow stays
 # with the switch on; twice or elsewhere, it isn't the hook the patch wrote.
-start-call Lapp/hushgram/extension/instagram/direct/InboxSuggestions;->units(Ljava/util/List;)Ljava/util/List; in instance (Ljava/util/List;Ljava/lang/String;)V class-holding pending_follow_requests
-once-call Lapp/hushgram/extension/instagram/direct/InboxSuggestions;->units(Ljava/util/List;)Ljava/util/List; in instance (Ljava/util/List;Ljava/lang/String;)V class-holding pending_follow_requests
+start-call Lapp/hushgram/extension/instagram/direct/InboxSuggestions;->units(Ljava/util/List;)Ljava/util/List; in instance (Ljava/util/List;Ljava/lang/String;)V pooled class-holding pending_follow_requests
+once-call Lapp/hushgram/extension/instagram/direct/InboxSuggestions;->units(Ljava/util/List;)Ljava/util/List; in instance (Ljava/util/List;Ljava/lang/String;)V pooled class-holding pending_follow_requests
 # Hide Instants (#59) asks Instants.hide() first in Instagram's one Instants check (01vZ.A0T on 452),
 # the static (UserSession, boolean) method answering a boolean from two rollout flags. It holds no
 # string, so the rules pick it by the flag the patch looks for. Left out, Instants stay with the

@@ -116,7 +116,7 @@ class HideInboxSuggestionsHookTest {
     }
 
     private fun builds(bundle: File, label: String) {
-        val classes = listOf(PREFETCHED, FOLLOW_REQUESTS).flatMap { FixtureDex.classesHolding(bundle, it) }.distinctBy { it.type }
+        val classes = listOf(PREFETCHED, FOLLOW_REQUESTS).flatMap { FixtureDex.classesLoading(bundle, it) }.distinctBy { it.type }
         val context = PatchContexts.of(classes)
         val site = context.findInboxUnitsSet()
         val stock = context.mutableClassDefBy(site.type).methods.single {

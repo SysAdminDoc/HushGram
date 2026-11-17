@@ -9,9 +9,10 @@ import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
-import app.morphe.patches.instagram.misc.extension.classesHolding
+import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
+import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
@@ -21,7 +22,6 @@ import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
-import com.android.tools.smali.dexlib2.iface.reference.StringReference
 
 private const val PATCH = "Hide suggested accounts in DMs"
 internal const val INBOX_UNITS = "$EXTENSION_PACKAGE/direct/InboxSuggestions;->units(Ljava/util/List;)Ljava/util/List;"
@@ -72,14 +72,16 @@ internal class UnitsSite(val type: String, val name: String, val parameters: Lis
  * method: it mustn't hold [FOLLOW_REQUESTS] or call a method of its class that does, since the
  * hook empties every unit it's given. Only its own class's methods are looked at, so a helper
  * elsewhere reading follow requests for it would get through; on every 450 build follow requests
- * come from the loader's call to that class's own reader (A0D, A0E on 449).
+ * come from the loader's call to that class's own reader (A0D, A0E on 449). A method loads either
+ * string itself or asks a Redex pool for it, as the reader does on 456's armeabi-v7a build
+ * (`LX/01w6;->A0C` on 386214562).
  */
 internal fun BytecodePatchContext.findInboxUnitsSet(): UnitsSite {
     val found = mutableListOf<Pair<String, Method>>()
-    val holders = classesHolding(PREFETCHED).mapTo(HashSet()) { it.type }
+    val holders = classesLoadingString(PREFETCHED).mapTo(HashSet()) { it.type }
     classDefForEach { classDef ->
         if (classDef.type !in holders) return@classDefForEach
-        classDef.methods.forEach { method -> if (PREFETCHED in method.strings()) found += classDef.type to method }
+        classDef.methods.forEach { method -> if (loadsString(method, PREFETCHED)) found += classDef.type to method }
     }
     val (type, loader) = found.singleOrNull() ?: refuse("expected one method holding $PREFETCHED, found ${found.size}")
     val where = "$type->${loader.name}"
@@ -93,7 +95,7 @@ internal fun BytecodePatchContext.findInboxUnitsSet(): UnitsSite {
     val owner = set.substringBefore("->")
     val name = set.substringAfter("->").substringBefore("(")
     val ownerClass = classDefByOrNull(owner) ?: refuse("$owner isn't in this build")
-    val requests = ownerClass.methods.filter { FOLLOW_REQUESTS in it.strings() }
+    val requests = ownerClass.methods.filter { loadsString(it, FOLLOW_REQUESTS) }
     if (requests.isEmpty()) refuse("$owner doesn't read $FOLLOW_REQUESTS")
     val method = ownerClass.methods.singleOrNull {
         it.name == name && it.parameterTypes.map(CharSequence::toString) == UNITS_SET && it.returnType == "V"
@@ -138,10 +140,6 @@ internal fun BytecodePatchContext.hookInboxUnits(site: UnitsSite) {
         """,
     )
 }
-
-private fun Method.strings(): Set<String> = implementation?.instructions?.mapNotNull { it.string() }?.toSet() ?: emptySet()
-
-private fun Instruction.string(): String? = ((this as? ReferenceInstruction)?.reference as? StringReference)?.string
 
 private fun Instruction.methodReference(): MethodReference? = (this as? ReferenceInstruction)?.reference as? MethodReference
 
