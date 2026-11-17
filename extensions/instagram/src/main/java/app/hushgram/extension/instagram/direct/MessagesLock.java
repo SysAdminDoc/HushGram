@@ -180,6 +180,8 @@ public final class MessagesLock {
     /** When Instagram last left the screen while open and Lock again said to wait; 0 when it isn't away. */
     private static volatile long leftAt;
     private static volatile boolean watching;
+    /** When the frame a held ask waits for is due ({@link HiddenChatsTap#holdAsk}), in uptime. */
+    private static long askHeldUntil;
     private static int started;
     private static long askedAt;
     /** The screen the open ask belongs to. Its dialog goes with it without a word when it's destroyed. */
@@ -840,6 +842,18 @@ public final class MessagesLock {
             // the notification shade or over the home screen a home gesture is heading to (#153).
             // The cover is up either way, and the focus coming back checks again.
             if (!askedThisTime && decor.hasWindowFocus()) {
+                // A tap on Messages that a second one may still follow holds the ask until it can't,
+                // so the double tap for hidden chats reaches Instagram before the prompt does (#661).
+                // The cover is up meanwhile, and a frame drawn once the wait is over asks.
+                long now = SystemClock.uptimeMillis();
+                long hold = HiddenChatsTap.holdAsk(now);
+                if (hold > 0) {
+                    if (now >= askHeldUntil) {
+                        askHeldUntil = now + hold;
+                        decor.postDelayed(decor::invalidate, hold);
+                    }
+                    return;
+                }
                 askedThisTime = true;
                 HookStatus.counted(FamilyNames.MESSAGES_LOCK, COVERED);
                 ask(activity, null);
@@ -1580,6 +1594,7 @@ public final class MessagesLock {
         askedAccount = null;
         leftAt = 0;
         watching = false;
+        askHeldUntil = 0;
         started = 0;
         askedAt = 0;
         askedBy = new WeakReference<>(null);

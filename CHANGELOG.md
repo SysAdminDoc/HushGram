@@ -118,6 +118,7 @@ Every HushGram release, newest first.
 * Opening `Pause and diagnostics` on its own page no longer freezes Instagram. It hung whenever HushGram wasn't paused or locked.
 * With `Pure black` and `Classic colors` or `Backgrounds in the accent color` both on in dark mode, the rows in a post's Likes list match the sheet behind them. They stayed black. Reported in #639.
 * With `Lock your messages` on, `Double-tap Messages for hidden chats` works on the first try after Instagram starts. The lock dropped the second check, so the inbox opened with your hidden chats still hidden. Reported in #661.
+* On fast phones, `Double-tap Messages for hidden chats` with `Lock your messages` on no longer loses its second tap to the fingerprint prompt. The locked inbox now waits out the double-tap time before it asks, so a single tap gets the prompt a moment later. Reported in #661.
 * With `Hide the search bar` and `Hide group buttons` both on, the share sheet no longer leaves an empty band between its handle and the people grid. Reported in #685.
 * With `Keep Home's top bar` on, the stories tray stays in the feed and scrolls away with your posts instead of sticking under the bar. Reported in #677.
 * `Seek bar shape` keeps its own size on a `Thicker story progress bar`, the story bar glides while a video plays instead of stepping, and Instagram's own reel bar takes the shape too. Reported in #689.

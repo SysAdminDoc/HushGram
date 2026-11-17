@@ -180,6 +180,34 @@ public class HiddenChatsTapTest {
         assertFalse(HiddenChats.revealed());
     }
 
+    /**
+     * A lock's own ask waits out what's left of the double-tap time after a tap on Messages, and
+     * keeps waiting while the second tap's finger is down, so that tap never lands on the phone's
+     * prompt (#661). Nothing to pair, or the switch off, and it asks at once.
+     */
+    @Test public void aLocksAskWaitsWhileASecondTapCanStillPair() {
+        int timeout = ViewConfiguration.getDoubleTapTimeout();
+        assertEquals("nothing tapped yet", 0, HiddenChatsTap.holdAsk(1000));
+
+        tap(50, 50, 1000, 1060);
+        assertEquals(timeout - 40, HiddenChatsTap.holdAsk(1100));
+        assertEquals(0, HiddenChatsTap.holdAsk(1060 + timeout));
+
+        at(MotionEvent.ACTION_DOWN, 52, 51, 1200);
+        assertEquals("the second tap is down", HiddenChatsTap.HOLD_WHILE_DOWN_MS, HiddenChatsTap.holdAsk(5000));
+        at(MotionEvent.ACTION_UP, 52, 51, 1260);
+        assertEquals("paired and through", 0, HiddenChatsTap.holdAsk(1270));
+
+        onButton = false;
+        tap(50, 50, 2000, 2060);
+        assertEquals("a tap anywhere else holds nothing", 0, HiddenChatsTap.holdAsk(2100));
+
+        onButton = true;
+        tap(50, 50, 3000, 3060);
+        Settings.DOUBLE_TAP_HIDDEN_CHATS.save(false);
+        assertEquals("switched off", 0, HiddenChatsTap.holdAsk(3100));
+    }
+
     @Test public void hiddenChatsShowInTheInboxOnlyAfterTheLockAndTwoMoreTapsHideThem() {
         List<Runnable[]> asks = new ArrayList<>();
         MessagesLockForTests.askWith(asks);

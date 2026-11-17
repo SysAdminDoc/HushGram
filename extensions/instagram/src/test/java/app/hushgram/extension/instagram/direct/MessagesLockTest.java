@@ -30,7 +30,9 @@ import android.graphics.Color;
 import android.graphics.Rect;
 import android.graphics.drawable.ColorDrawable;
 import android.view.Gravity;
+import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.FrameLayout;
@@ -56,6 +58,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
@@ -1468,6 +1471,76 @@ public class MessagesLockTest {
             assertFalse(HiddenChats.revealed());
         } finally {
             HiddenChats.resetForTests();
+        }
+    }
+
+    /**
+     * A tap on Messages that opens the locked inbox holds its cover's ask for the double-tap time, so
+     * on a fast phone the second tap still reaches Instagram instead of the phone's prompt. A single
+     * tap is asked once that time is over (#661).
+     */
+    @Test
+    public void theInboxCoverWaitsOutTheDoubleTapTimeBeforeItAsks() {
+        try {
+            Settings.DOUBLE_TAP_HIDDEN_CHATS.save(true);
+            HiddenChatsTap.buttons = (activity, x, y) -> true;
+            Activity inbox = inbox().get();
+            long tapped = SystemClock.uptimeMillis();
+            HiddenChatsTap.decide(inbox, MotionEvent.ACTION_DOWN, 40, 40, tapped);
+            HiddenChatsTap.decide(inbox, MotionEvent.ACTION_UP, 40, 40, tapped);
+
+            MessagesLock.check(inbox);
+            assertEquals("held while a second tap may still come", 0, asks.size());
+            assertTrue(MessagesLock.locked());
+
+            ShadowLooper.idleMainLooper(ViewConfiguration.getDoubleTapTimeout() + 1, TimeUnit.MILLISECONDS);
+            MessagesLock.check(inbox);
+            assertEquals("asked once that time is over", 1, asks.size());
+            MessagesLock.check(inbox);
+            assertEquals(1, asks.size());
+        } finally {
+            HiddenChatsTap.resetForTests();
+            Settings.DOUBLE_TAP_HIDDEN_CHATS.resetToDefault();
+        }
+    }
+
+    /**
+     * The second tap lands while the cover's ask is held: Instagram keeps it, and the one ask that
+     * follows shows the hidden chats once it says it's you (#661).
+     */
+    @Test
+    public void aDoubleTapDuringTheHeldAskShowsTheHiddenChatsAfterOneAsk() {
+        try {
+            Settings.DOUBLE_TAP_HIDDEN_CHATS.save(true);
+            HiddenChatsTap.buttons = (activity, x, y) -> true;
+            HiddenChats.add(ALICE, "Alice");
+            Activity inbox = inbox().get();
+            long tapped = SystemClock.uptimeMillis();
+            HiddenChatsTap.decide(inbox, MotionEvent.ACTION_DOWN, 40, 40, tapped);
+            HiddenChatsTap.decide(inbox, MotionEvent.ACTION_UP, 40, 40, tapped + 60);
+            MessagesLock.check(inbox);
+            assertEquals(0, asks.size());
+
+            assertTrue("the second tap is kept from Instagram",
+                    HiddenChatsTap.decide(inbox, MotionEvent.ACTION_DOWN, 42, 41, tapped + 150));
+            MessagesLock.check(inbox);
+            assertEquals("still held while its finger is down", 0, asks.size());
+            assertTrue(HiddenChatsTap.decide(inbox, MotionEvent.ACTION_UP, 42, 41, tapped + 210));
+
+            ShadowLooper.idleMainLooper(HiddenChatsTap.HOLD_WHILE_DOWN_MS + 1, TimeUnit.MILLISECONDS);
+            MessagesLock.check(inbox);
+            assertEquals("the cover and the double tap share one ask", 1, asks.size());
+            assertFalse(HiddenChats.revealed());
+
+            asks.get(0)[0].run();
+            ShadowLooper.idleMainLooper();
+            assertFalse(MessagesLock.locked());
+            assertTrue(HiddenChats.revealed());
+            assertEquals("Showing your hidden chats", ShadowToast.getTextOfLatestToast());
+        } finally {
+            HiddenChatsTap.resetForTests();
+            HiddenChats.resetForTests();
+            Settings.DOUBLE_TAP_HIDDEN_CHATS.resetToDefault();
         }
     }
 

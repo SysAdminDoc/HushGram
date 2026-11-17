@@ -136,6 +136,24 @@ public final class HiddenChatsTap {
         }
     }
 
+    /**
+     * How many milliseconds a lock's own ask should still wait at [now] (uptime, as touches are
+     * timed), 0 when it needn't (#661). After a tap on Messages, that's what's left of the time a
+     * second tap would pair in, and while a second tap is down, until its finger comes up. On a fast
+     * phone the locked inbox opens and asks within that time, and the second tap then lands on the
+     * phone's prompt instead of Instagram: the check passes, and the hidden chats stay hidden.
+     */
+    static long holdAsk(long now) {
+        if (!switchedOn()) return 0;
+        if (swallowing) return HOLD_WHILE_DOWN_MS;
+        if (tapUp == Long.MIN_VALUE) return 0;
+        long left = tapUp + ViewConfiguration.getDoubleTapTimeout() - now;
+        return left > 0 ? left : 0;
+    }
+
+    /** How long a hold lasts while a second tap's finger is down: one frame, then it's asked again. */
+    static final long HOLD_WHILE_DOWN_MS = 16;
+
     private static boolean pairsWithLastTap(Activity activity, float x, float y, long time) {
         if (tapUp == Long.MIN_VALUE || tapActivity.get() != activity) return false;
         long gap = time - tapUp;
