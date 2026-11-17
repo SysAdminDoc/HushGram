@@ -47,12 +47,9 @@ class DoubleTapLikeHookTest {
     private val video = "Lfixture/VideoGestureDelegate;"
     private val liker = "Lfixture/DoubleTapLiker;"
     private val tags = "Lfixture/ProductTags;"
-    private val handler = "Lfixture/GestureActionHandler;"
+    private val handler = "Lfixture/ClipsItemGestureDetector;"
     private val actions = "Lfixture/ClipsActions;"
-    private val setup = "Lfixture/ClipsViewerNavigatorProvider;"
     private val action = "Lfixture/LikeAction;"
-    private val handleMarker = "android_purge_26_q3_$HANDLE_DOUBLE_TAP"
-    private val setterMarker = "android_purge_26_q3_$SET_LIKE_ACTION"
     private val likeShape = "(Landroid/view/View;Lcom/instagram/feed/media/Media;Ljava/lang/Object;I)V"
     private val fbCommentRow = "Lfixture/FbCommentRowGestures;"
     private val commentRow = "Lfixture/CommentRowGestures;"
@@ -89,18 +86,14 @@ class DoubleTapLikeHookTest {
                 context.mutableClassDefBy(delegate).methods.single().code().none { it.referenceText() == HOLD_BACK_POST },
             )
         }
-        val reel = context.mutableClassDefBy(handler).methods.single { it.name == "handleDoubleTap" }.code()
-        assertAskedAfterRead("the Reels double tap", reel, "$handler->likeAction:$action")
+        val reel = context.mutableClassDefBy(handler).methods.single { it.name == "onDoubleTap" }.code()
+        assertAskedAfterRead("the Reels double tap", reel, "$actions->likeAction:$action")
         for (row in listOf(fbCommentRow, commentRow)) {
             assertCommentGuardFirst(row, context.mutableClassDefBy(row).methods.single { it.name == "onDoubleTap" }.code())
         }
         assertTrue(
             "a listener that isn't a comment row was touched",
             context.mutableClassDefBy(otherRow).methods.single().code().none { it.referenceText() == HOLD_BACK_COMMENT },
-        )
-        assertTrue(
-            "the setter was touched",
-            context.mutableClassDefBy(handler).methods.single { it.name == "setLikeAction" }.code().none { it.referenceText() == LIKE_ACTION },
         )
         assertGuardFirst("the message double tap", context.mutableClassDefBy(messageTap).methods.single().code(), HOLD_BACK_MESSAGE)
         assertTrue(
@@ -109,23 +102,15 @@ class DoubleTapLikeHookTest {
         )
     }
 
-    /**
-     * 452 inlines the Reels handler into the gesture listener and its setter into the clips viewer's
-     * action setup, so the like action is the field the double tap reads off its actions holder, and
-     * the setup has to store that same field. The ask still follows the read; the setup stays as it was.
-     */
+    /** A Reels double tap asking a pool of shared strings for double_tap is found the same way. */
     @Test
-    fun aSetterInlinedElsewhereIsTiedToTheFieldTheDoubleTapReads() {
-        val context = PatchContexts.of(classes(setterElsewhere = true))
+    fun aReelDoubleTapAskingAPoolIsFound() {
+        val context = PatchContexts.of(classes(pooledReel = true) + pool(answer = REEL_DOUBLE_TAP))
 
         context.turnOffDoubleTapLikes()
 
-        val reel = context.mutableClassDefBy(handler).methods.single { it.name == "handleDoubleTap" }.code()
+        val reel = context.mutableClassDefBy(handler).methods.single { it.name == "onDoubleTap" }.code()
         assertAskedAfterRead("the Reels double tap", reel, "$actions->likeAction:$action")
-        assertTrue(
-            "the setup was touched",
-            context.mutableClassDefBy(setup).methods.single { it.name == "setupActions" }.code().none { it.referenceText() == LIKE_ACTION },
-        )
     }
 
     /** 450's x86 build (385611439) asks a pool of shared strings for like_comment in its comment row (#95). */
@@ -220,11 +205,12 @@ class DoubleTapLikeHookTest {
             classes(carouselCalls = false, videoCalls = false, lambdaCalls = true) to "is called by 1 posts' delegates",
             classes(mapCallsAnotherLike = true) to "a second like shaped as",
             classes(likeLocals = 0) to "has no local register",
-            classes(handlers = 0) to "marked $HANDLE_DOUBLE_TAP, found 0",
-            classes(setterElsewhere = true, setterStoresWhatIsRead = false) to "never stores the like action $handler->handleDoubleTap reads, $actions->likeAction:$action",
-            classes(setterWrites = 2) to "writes 2 fields",
+            classes(handlers = 0) to "loading \"$REEL_DOUBLE_TAP\", found 0",
+            classes(handlers = 2) to "loading \"$REEL_DOUBLE_TAP\", found 2",
+            classes(pooledReel = true) to "loading \"$REEL_DOUBLE_TAP\", found 0",
             classes(reads = 2) to "2 times",
-            classes(checkedLater = true) to "doesn't check its like action for null straight after",
+            classes(checkedLater = true) to "tests for null and calls with four values, found 0",
+            classes(actionValues = 3) to "tests for null and calls with four values, found 0",
             classes(commentRows = false) to "no comment row's double tap",
             classes(messages = 0) to "\"$MESSAGE_DOUBLE_TAP\", found 0",
             classes(messages = 2) to "\"$MESSAGE_DOUBLE_TAP\", found 2",
@@ -293,14 +279,14 @@ class DoubleTapLikeHookTest {
 
                 val commentRows = FixtureDex.classesHolding(bundle, FB_COMMENT_DOUBLE_TAP) +
                     FixtureDex.classesHolding(bundle, UNLIKE_COMMENT)
-                // The setter's class is staged too, so the patch takes the path the whole app takes:
-                // without it the fallback for a build filing no setter hid 452's layout (2026-10-19).
-                val holders = (posts + likeClasses + FixtureDex.classesHolding(bundle, handleMarker) +
-                    FixtureDex.classesHolding(bundle, setterMarker) + commentRows + messageHolders)
+                val holders = (posts + likeClasses + FixtureDex.classesLoading(bundle, REEL_DOUBLE_TAP) + commentRows + messageHolders)
                     .distinctBy { it.type }
-                assertTrue("${bundle.name}: no class holds $setterMarker", holders.any { holder -> holder.methods.any { method -> method.code().any { it.string() == setterMarker } } })
                 val context = PatchContexts.of(FixtureDex.withStringPools(bundle, holders))
-                val reelType = holders.single { holder -> holder.methods.any { method -> method.code().any { it.string() == handleMarker } } }.type
+                // The Reels viewer's gesture listener, told apart from the patch's own anchor by its
+                // touch handler's "end_scene_dismissal", which Download any video finds it by.
+                val reelType = holders.single { holder ->
+                    holder.superclass == GESTURE_LISTENER && holder.methods.any { method -> method.code().any { it.string() == REEL_TOUCH } }
+                }.type
 
                 context.turnOffDoubleTapLikes()
 
@@ -311,7 +297,7 @@ class DoubleTapLikeHookTest {
                 val reels = context.mutableClassDefBy(reelType).methods.filter { method -> method.code().any { it.referenceText() == LIKE_ACTION } }
                 assertEquals("${bundle.name}: one Reels double tap asks", 1, reels.size)
                 val reel = reels.single()
-                assertTrue("${bundle.name}: the Reels double tap", handleMarker in reel.code().mapNotNull { it.string() })
+                assertEquals("${bundle.name}: the Reels double tap", "onDoubleTap", reel.name)
                 val asked = reel.code().indexOfFirst { it.referenceText() == LIKE_ACTION }
                 val read = reel.code()[asked - 1]
                 assertEquals("${bundle.name}: what comes before the ask", Opcode.IGET_OBJECT, read.opcode)
@@ -379,8 +365,8 @@ class DoubleTapLikeHookTest {
      * activity, hands the double tap to the shared like and then shows the photo's product tags; the
      * carousel's and the video's delegates hand it to the same like. Each delegate is handed the
      * post and the like's other arguments beside a state of its own. A map's delegate likes nothing,
-     * and a lambda takes Objects. The Reels gesture handler's double tap reads the like action and
-     * skips the like without one, and its setter stores that action.
+     * and a lambda takes Objects. The Reels viewer's double tap loads double_tap, reads the like
+     * action off its actions holder and skips the like without one.
      */
     private fun classes(
         feeds: Int = 1,
@@ -393,11 +379,10 @@ class DoubleTapLikeHookTest {
         mapCallsAnotherLike: Boolean = false,
         likeLocals: Int = 1,
         handlers: Int = 1,
-        setterElsewhere: Boolean = false,
-        setterStoresWhatIsRead: Boolean = true,
-        setterWrites: Int = 1,
+        pooledReel: Boolean = false,
         reads: Int = 1,
         checkedLater: Boolean = false,
+        actionValues: Int = 4,
         commentRows: Boolean = true,
         pooledLike: Boolean = false,
         messages: Int = 1,
@@ -456,52 +441,32 @@ class DoubleTapLikeHookTest {
             liker,
             listOf("like", "likeAgain").map { name -> method(liker, name, likeParameters, "V", likeRegisters, "return-void", likeFlags) },
         )
-        // 452 inlines the handler into the gesture listener and the setter into the clips viewer's
-        // action setup: the double tap reads the action off the actions holder, tests it for null
-        // and calls it with four values, and the setup stores that field.
-        val likeField = if (setterElsewhere) "$actions->likeAction:$action" else "$handler->likeAction:$action"
-        val holderRead = if (setterElsewhere) "iget-object v1, p0, $handler->actions:$actions" else ""
-        val readAction = if (setterElsewhere) "iget-object v1, v1, $likeField" else "iget-object v1, p0, $likeField"
-        val readAndCheck = if (checkedLater) {
-            """
-                $holderRead
-                $readAction
-                const/4 v0, 0x0
-                if-eqz v1, :done
-            """
+        // The Reels viewer's gesture listener, which 452 inlines the gesture handler's double tap
+        // into: its double tap loads double_tap, reads the like action off the actions holder, tests
+        // it for null and calls it with four values. With [pooledReel] it asks [pool] for double_tap.
+        val likeField = "$actions->likeAction:$action"
+        val loadReel = if (pooledReel) {
+            "const/16 v0, 0x$POOLED\ninvoke-static { v0 }, $POOL->A00(I)Ljava/lang/String;\nmove-result-object v0"
         } else {
-            """
-                $holderRead
-                $readAction
-                if-eqz v1, :done
-            """
+            "const-string v0, \"$REEL_DOUBLE_TAP\""
         }
-        val secondRead = if (reads > 1) "iget-object v0, p0, $likeField" else ""
-        val call = if (setterElsewhere) {
-            "invoke-interface { v1, v0, v0, v0, v0 }, $action->invoke(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;"
-        } else {
-            "invoke-interface { v1 }, $action->invoke()V"
-        }
-        val handle = (0 until handlers).map { copy ->
-            method(handler, if (copy == 0) "handleDoubleTap" else "handleDoubleTapAgain", emptyList(), "V", 3, """
-                const-string v0, "$handleMarker"
+        val secondRead = if (reads > 1) "iget-object v0, v1, $likeField" else ""
+        val values = List(actionValues) { "Ljava/lang/Object;" }.joinToString("")
+        val handlerClasses = (0 until handlers).map { copy ->
+            val type = if (copy == 0) handler else "Lfixture/ClipsItemGestureDetectorAgain;"
+            listenerDef(type, method(type, "onDoubleTap", listOf("Landroid/view/MotionEvent;"), "Z", 4, """
+                $loadReel
+                iget-object v1, p0, $type->actions:$actions
                 $secondRead
-                $readAndCheck
-                $call
+                iget-object v1, v1, $likeField
+                ${if (checkedLater) "const/4 v0, 0x0" else ""}
+                if-eqz v1, :done
+                invoke-interface { v1${", v0".repeat(actionValues)} }, $action->invoke($values)Ljava/lang/Object;
                 :done
-                return-void
-            """)
+                const/4 v0, 0x1
+                return v0
+            """))
         }
-        val stored = if (setterStoresWhatIsRead) likeField else "$actions->otherAction:$action"
-        val setterBody = """
-            const-string v0, "$setterMarker"
-            iput-object p1, p0, $stored
-            ${if (setterWrites > 1) "iput-object p1, p0, $handler->otherLikeAction:$action" else ""}
-            return-void
-        """
-        val setterOwner = if (setterElsewhere) setup else handler
-        val setter = method(setterOwner, if (setterElsewhere) "setupActions" else "setLikeAction", listOf(action), "V", 3, setterBody)
-        val handlerClass = classDef(handler, handle + (if (setterElsewhere) emptyList() else listOf(setter)))
         // A comment row that files fb_comment_double_tap, one that files like_comment or
         // unlike_comment, and a listener that files only like_comment, which isn't a comment row.
         val rowOf = { type: String, strings: List<String> ->
@@ -555,7 +520,7 @@ class DoubleTapLikeHookTest {
                 return v1
             """)),
         )
-        return rows + rowOf(otherRow, listOf(LIKE_COMMENT)) + listOfNotNull(
+        return rows + rowOf(otherRow, listOf(LIKE_COMMENT)) + handlerClasses + listOfNotNull(
             messageClass,
             tipClass,
             feedClass,
@@ -564,8 +529,6 @@ class DoubleTapLikeHookTest {
             mapClass,
             lambdaClass,
             if (likeMissing) null else likerClass,
-            handlerClass,
-            if (setterElsewhere) classDef(setterOwner, listOf(setter)) else null,
         )
     }
 
@@ -637,5 +600,7 @@ class DoubleTapLikeHookTest {
     private companion object {
         const val POOL = "Lfixture/Strings;"
         const val POOLED = 7
+        const val GESTURE_LISTENER = "Landroid/view/GestureDetector\$SimpleOnGestureListener;"
+        const val REEL_TOUCH = "end_scene_dismissal"
     }
 }

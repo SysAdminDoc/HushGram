@@ -18,10 +18,8 @@ import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
-import app.morphe.patches.instagram.misc.extension.markers
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.extension.stringLoadedAt
-import app.morphe.patches.instagram.misc.extension.typesMarked
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
@@ -73,9 +71,13 @@ internal const val MESSAGE_TIP_COUNT = "should_show_like_direct_message_count"
 internal const val MESSAGE_DOUBLE_TAP = "double_tap"
 private const val MESSAGE_ID = "Lcom/instagram/model/direct/messageid/MessageIdentifier;"
 
-/** The Reels gesture handler's double tap, and its setter for the action a double tap likes through. */
-internal const val HANDLE_DOUBLE_TAP = "GestureActionHandler_handleDoubleTapMedia"
-internal const val SET_LIKE_ACTION = "GestureActionHandler_setOnLikeMediaAction"
+/**
+ * What the Reels viewer's double tap loads, the one gesture listener's onDoubleTap to load it: the
+ * gesture it reports to the skip and forward actions it tries before the like. 456 dropped the
+ * GestureActionHandler_handleDoubleTapMedia marker 451 to 455 found the double tap by, and the
+ * GestureActionHandler_setOnLikeMediaAction one on the like action's setter.
+ */
+internal const val REEL_DOUBLE_TAP = "double_tap"
 
 /**
  * Keeps a double tap on a post or a reel from liking it. See DoubleTapLike in the extension for
@@ -155,27 +157,18 @@ internal fun BytecodePatchContext.findDoubleTaps(): DoubleTaps {
     }
 
     // One walk over the app reads what each class declares, and the code of only the methods it
-    // keeps: those in the classes the patcher's indexes name for the Reels handler, its setter and
-    // the chat's double tap, the gesture listeners' double taps, and the methods handed what the like
-    // takes. Reading every method's code here was a measured share of patching (#173).
-    val marked = typesMarked(HANDLE_DOUBLE_TAP, SET_LIKE_ACTION)
+    // keeps: those in the classes the patcher's indexes name for the chat's double tap, the gesture
+    // listeners' double taps (the Reels viewer's and the comment rows'), and the methods handed what
+    // the like takes. Reading every method's code here was a measured share of patching (#173).
     val chats = classesLoadingString(MESSAGE_TIP_COUNT).mapTo(HashSet()) { it.type }
         .apply { retainAll(classesLoadingString(MESSAGE_DOUBLE_TAP).mapTo(HashSet()) { it.type }) }
-    val reels = mutableListOf<Method>()
-    val setters = mutableListOf<Method>()
     val listeners = mutableListOf<Method>()
     val messages = mutableListOf<Method>()
     val carriers = mutableListOf<Method>()
     classDefForEach { classDef ->
-        val isMarked = classDef.type in marked
         val isChat = classDef.type in chats
         val isListener = classDef.superclass == GESTURE_LISTENER
         classDef.methods.forEach { method ->
-            if (isMarked) {
-                val markers = method.markers()
-                if (HANDLE_DOUBLE_TAP in markers) reels += method
-                if (SET_LIKE_ACTION in markers) setters += method
-            }
             if (isListener && method.isDoubleTapListener()) listeners += method
             if (isChat && isMessageDoubleTap(method)) messages += method
             if (carries(method)) carriers += method
@@ -193,37 +186,19 @@ internal fun BytecodePatchContext.findDoubleTaps(): DoubleTaps {
     // The guard borrows v0 at index 0.
     if (like.localRegisterCount() < 1) refuse("the feed's double-tap like ${like.text()} has no local register")
 
-    val reel = reels.singleOrNull() ?: refuse("expected one method marked $HANDLE_DOUBLE_TAP, found ${reels.size}")
-    // 451 filed a setter for the like action next to the handler, so the action was the one field of
-    // the handler's class the setter stores. 452 inlines the handler into the gesture listener's
-    // onDoubleTap and the setter into the clips viewer's action setup, so there the action is the one
-    // field the double tap reads off its actions holder, tests for null and calls with four values,
-    // and the setup has to store that same field. A build filing no setter at all is read the same way.
-    val setter = if (setters.isEmpty()) null else setters.singleOrNull()
-        ?: refuse("expected one method marked $SET_LIKE_ACTION, found ${setters.size}")
-    val action = when {
-        setter == null -> reelLikeAction(reel)
-        setter.definingClass == reel.definingClass -> {
-            val written = setter.code().filter { it.opcode == Opcode.IPUT_OBJECT }.mapNotNull { it.fieldReference() }
-                .filter { it.definingClass == reel.definingClass }.distinctBy { it.toString() }
-            written.singleOrNull() ?: refuse("$SET_LIKE_ACTION writes ${written.size} fields of ${reel.definingClass}, expected one")
-        }
-        else -> reelLikeAction(reel).also { field ->
-            if (setter.code().none { it.opcode == Opcode.IPUT_OBJECT && it.fieldReference()?.toString() == field.toString() }) {
-                refuse("$SET_LIKE_ACTION in ${setter.definingClass} never stores the like action ${reel.definingClass}->${reel.name} reads, $field")
-            }
-        }
-    }
+    // The Reels viewer's double tap is the one gesture listener's onDoubleTap loading
+    // [REEL_DOUBLE_TAP], itself or from a pool of shared strings. 452 inlined the gesture handler's
+    // double tap into it, so the like action is the one field it reads off its actions holder, tests
+    // for null and calls with four values.
+    val reels = listeners.filter { loadsReelDoubleTap(it) }
+    val reel = reels.singleOrNull()
+        ?: refuse("expected one gesture listener's double tap loading \"$REEL_DOUBLE_TAP\", found ${reels.size}")
+    val action = reelLikeAction(reel)
 
-    // The handler reads its like action once and skips the like when it's null.
+    // The double tap reads its like action once, the read [reelLikeAction] found tested for null.
     val code = reel.code()
     val reads = code.indices.filter { code[it].opcode == Opcode.IGET_OBJECT && code[it].fieldReference()?.toString() == action.toString() }
     val read = reads.singleOrNull() ?: refuse("${reel.definingClass}->${reel.name} reads its like action ${reads.size} times, expected once")
-    val register = (code[read] as TwoRegisterInstruction).registerA
-    val check = code.getOrNull(read + 1)
-    if (check?.opcode != Opcode.IF_EQZ || (check as OneRegisterInstruction).registerA != register) {
-        refuse("${reel.definingClass}->${reel.name} doesn't check its like action for null straight after reading it")
-    }
     // Each comment row's double tap likes the comment, and the guard borrows v0 at index 0.
     val comments = listeners.filter { isCommentDoubleTap(it) }
     if (comments.isEmpty()) {
@@ -251,10 +226,16 @@ internal fun BytecodePatchContext.isMessageDoubleTap(method: Method, code: List<
     return MESSAGE_TIP_COUNT in strings && MESSAGE_DOUBLE_TAP in strings
 }
 
+/** Whether [method] loads [REEL_DOUBLE_TAP], itself or from a pool of shared strings. */
+private fun BytecodePatchContext.loadsReelDoubleTap(method: Method): Boolean {
+    val code = method.code()
+    return code.indices.any { stringLoadedAt(code, it) == REEL_DOUBLE_TAP }
+}
+
 /**
- * The Reels double tap's like action where no setter is filed: the field [reel] reads, tests for null
- * and then calls through its interface with four values (the other actions it runs take one, two or
- * five), the way 451's handler hands the like on.
+ * The Reels double tap's like action: the field [reel] reads, tests for null and then calls through
+ * its interface with four values (the other actions it runs take one, two or five), the way 451's
+ * handler hands the like on.
  */
 private fun reelLikeAction(reel: Method): FieldReference {
     val code = reel.code()

@@ -1997,9 +1997,10 @@ start-call Lapp/hushgram/extension/instagram/reels/DoubleTapLike;->holdBackPost(
 once-call Lapp/hushgram/extension/instagram/reels/DoubleTapLike;->holdBackPost()Z in instance (Landroid/view/View;Lcom/instagram/feed/media/Media;*)V holding like_media
 # In the Reels viewer's double tap it hands over the like action the handler just read, and the
 # handler likes through the answer. It comes after the skip and forward gestures, so it isn't
-# first. The handler is the one method with the purge marker the patch finds it by. On 452 the
-# handler is inlined into the Reels gesture listener's onDoubleTap (07IG).
-once-call Lapp/hushgram/extension/instagram/reels/DoubleTapLike;->likeAction(Ljava/lang/Object;)Ljava/lang/Object; in instance (Landroid/view/MotionEvent;)Z holding android_purge_26_q3_GestureActionHandler_handleDoubleTapMedia
+# first. On 452 the handler is inlined into the Reels gesture listener's onDoubleTap (07IG), and
+# 456 dropped the purge marker it was found by: it's the one onDoubleTap loading double_tap
+# (0DCL on 386214574).
+once-call Lapp/hushgram/extension/instagram/reels/DoubleTapLike;->likeAction(Ljava/lang/Object;)Ljava/lang/Object; in instance (Landroid/view/MotionEvent;)Z holding double_tap
 # Its On comments switch asks first thing in each comment row's double tap, which likes or unlikes
 # the comment, and returns false there the way the row does for a comment it can't like. 450 has
 # three such rows: two file fb_comment_double_tap (0SxY and 0Sxd on 450, told apart by the name of a
