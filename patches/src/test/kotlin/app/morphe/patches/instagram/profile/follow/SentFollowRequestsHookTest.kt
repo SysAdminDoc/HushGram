@@ -23,6 +23,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import com.android.tools.smali.dexlib2.immutable.ImmutableExceptionHandler
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
@@ -118,7 +119,8 @@ class SentFollowRequestsHookTest {
      * (session, account) methods take and answer, the status enum with its string pools, the account
      * model with the classes it extends and their fields' types, the session, and the full account
      * model and picture types the bridges read. Answers the status read as the contract picks it: the
-     * helper's one (session, account) method loading the "id" hash and both status field hashes.
+     * helper's one (session, account) method loading the "id" hash and the follow status field hash,
+     * or on 456 calling the helper's static method that loads them.
      */
     private fun slice(bundle: File): Slice {
         val have = LinkedHashMap<String, ClassDef>()
@@ -130,10 +132,12 @@ class SentFollowRequestsHookTest {
         val helperType = have.getValue(FOLLOW_BUTTON_BASE).methods.single { it.name == "getHelper" && it.parameterTypes.isEmpty() }.returnType
         load(setOf(helperType))
         val helper = have.getValue(helperType)
+        fun Method.loadsAll() = CONTRACT_LITERALS.all { literal -> implementation?.instructions?.any { it.loads(literal) } == true }
+        val loaders = helper.methods.filter { AccessFlags.STATIC.isSet(it.accessFlags) && it.loadsAll() }.map { it.toString() }.toSet()
         val status = helper.methods.single { method ->
             val types = method.parameterTypes.map(Any::toString)
             !AccessFlags.STATIC.isSet(method.accessFlags) && types.size == 2 && types[0] == USER_SESSION &&
-                CONTRACT_LITERALS.all { literal -> method.implementation?.instructions?.any { it.loads(literal) } == true }
+                (method.loadsAll() || method.instructions().any { it.referencedOrNull() in loaders })
         }
         val user = status.parameterTypes[1].toString()
         val statuses = helper.methods.filter { it.parameterTypes.map(Any::toString) == listOf(USER_SESSION, user) }.map { it.returnType }
@@ -191,7 +195,10 @@ class SentFollowRequestsHookTest {
 
         // A profile header's follow button asks the resolver the status read returns the answer of
         // itself, and that answer goes over right after it comes back (#690).
-        val resolver = stockCode[stockCode.indexOfLast { it.opcode == Opcode.RETURN_OBJECT } - 2].referenced()
+        // On 456 the resolver answers a pair and the status read returns the follow status read off it.
+        val last = stockCode.indexOfLast { it.opcode == Opcode.RETURN_OBJECT }
+        val field = stockCode[last - 1].takeIf { it.opcode == Opcode.IGET_OBJECT }?.referenced()
+        val resolver = stockCode[last - if (field == null) 2 else 3].referenced()
         val header = found.header.method
         val headerStock = sliced.classes.getValue(header.definingClass).methods.single { it.toString() == header.toString() }
         assertTrue("$label: ${header.name} is static", AccessFlags.STATIC.isSet(headerStock.accessFlags))
@@ -199,8 +206,16 @@ class SentFollowRequestsHookTest {
         assertEquals("$label: once in ${header.name}", 1, headerCode.count { it.calls(SENT_SEEN) })
         val at = headerCode.indexOfFirst { it.calls(SENT_SEEN) }
         val answer = headerCode[at - 1]
-        assertEquals("$label: right after the answer is kept", Opcode.MOVE_RESULT_OBJECT, answer.opcode)
-        assertEquals("$label: the resolver's answer", resolver, headerCode[at - 2].referenced())
+        if (field == null) {
+            assertEquals("$label: right after the answer is kept", Opcode.MOVE_RESULT_OBJECT, answer.opcode)
+            assertEquals("$label: the resolver's answer", resolver, headerCode[at - 2].referenced())
+        } else {
+            assertEquals("$label: right after the status is read off the answer", field, answer.referencedOrNull())
+            val kept = headerCode[at - 2]
+            assertEquals("$label: the answer is kept", Opcode.MOVE_RESULT_OBJECT, kept.opcode)
+            assertEquals("$label: off the kept answer", (kept as OneRegisterInstruction).registerA, (answer as TwoRegisterInstruction).registerB)
+            assertEquals("$label: the resolver's answer", resolver, headerCode[at - 3].referenced())
+        }
         val types = headerStock.parameterTypes.map(Any::toString)
         fun width(type: String) = if (type == "J" || type == "D") 2 else 1
         val first = headerStock.implementation!!.registerCount - types.sumOf(::width)
@@ -267,6 +282,6 @@ class SentFollowRequestsHookTest {
         const val USER_SESSION = "Lcom/instagram/common/session/UserSession;"
 
         /** What scripts/injected-mutation-contracts.txt picks the status read by: "id" and the two status fields' hashes. */
-        val CONTRACT_LITERALS = listOf(0xd1b, 0x46ae0f6e, 0xd973299e.toInt())
+        val CONTRACT_LITERALS = listOf(0xd1b, 0x46ae0f6e)
     }
 }

@@ -28,6 +28,8 @@ import com.android.tools.smali.dexlib2.iface.Field
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 
 private const val SENT_PATCH = "Sent follow requests"
@@ -183,7 +185,9 @@ internal fun BytecodePatchContext.findSentRequests(): SentRequestTargets {
  * Where a profile header's follow button gets its status: the helper's one static (status, session,
  * helper, account) method that asks the resolver the status read returns the answer of, 04gP.A01 on
  * 454. It hands that answer to the button without the status read, so the hook goes right after the
- * answer comes back, where the session and the account are still in their parameter registers.
+ * answer comes back, where the session and the account are still in their parameter registers. On
+ * 456 the resolver is the helper's static (status, session, account) method answering a pair of
+ * statuses (04Hj.A00 and 0GL0 on 386214574), and the answer is the follow status read off it.
  */
 private fun BytecodePatchContext.findHeaderStatus(
     helperType: String,
@@ -192,16 +196,10 @@ private fun BytecodePatchContext.findHeaderStatus(
     read: List<Instruction>,
     returns: List<Int>,
 ): HeaderStatus {
-    val resolvers = returns.mapNotNull { at ->
-        val moved = read.getOrNull(at - 1) as? OneRegisterInstruction
-        val call = (read.getOrNull(at - 2) as? ReferenceInstruction)?.reference as? MethodReference
-        call?.takeIf {
-            moved != null && read[at - 1].opcode == Opcode.MOVE_RESULT_OBJECT &&
-                moved.registerA == (read[at] as OneRegisterInstruction).registerA && it.returnType == statusType
-        }?.toString()
-    }.distinct()
-    val resolver = resolvers.singleOrNull()
-        ?: refuseSent("expected the status read to return what one resolver answers, found ${resolvers.size}")
+    val answers = returns.mapNotNull { at -> statusAnswerAt(read, at, statusType) }.distinct()
+    val answer = answers.singleOrNull()
+        ?: refuseSent("expected the status read to return what one resolver answers, found ${answers.size}")
+    val resolver = answer.call
     fun Instruction.asks() = ((this as? ReferenceInstruction)?.reference as? MethodReference)?.toString() == resolver
     val shape = listOf(statusType, SENT_SESSION, helperType, user)
     val headers = mutableClassDefBy(helperType).methods.filter { method ->
@@ -218,7 +216,17 @@ private fun BytecodePatchContext.findHeaderStatus(
     val calls = code.indices.filter { code[it].asks() }
     val call = calls.singleOrNull() ?: refuseSent("$where asks $resolver ${calls.size} times, not once")
     if (code.getOrNull(call + 1)?.opcode != Opcode.MOVE_RESULT_OBJECT) refuseSent("$where doesn't keep what $resolver answers")
-    val at = call + 2
+    val status = if (answer.field == null) call + 1 else {
+        val kept = (code[call + 1] as OneRegisterInstruction).registerA
+        val pick = code.getOrNull(call + 2)
+        if (pick?.opcode != Opcode.IGET_OBJECT || (pick as ReferenceInstruction).reference.toString() != answer.field ||
+            (pick as TwoRegisterInstruction).registerB != kept
+        ) {
+            refuseSent("$where doesn't read ${answer.field} off what $resolver answers")
+        }
+        call + 2
+    }
+    val at = status + 1
     if (at >= code.size) refuseSent("$where ends with what $resolver answers")
     if (at in header.jumpTargets()) refuseSent("a jump or exception handler enters $where right after $resolver answers")
     val covered = implementation.tryBlocks.flatMapTo(HashSet()) { block -> block.start.location.index until block.end.location.index }
@@ -227,11 +235,38 @@ private fun BytecodePatchContext.findHeaderStatus(
     val sessionAt = types.indexOf(SENT_SESSION)
     val modelAt = types.indexOf(user)
     val registers = listOf(header.parameterRegisterNumber(sessionAt), header.parameterRegisterNumber(modelAt),
-        (code[call + 1] as OneRegisterInstruction).registerA)
+        (code[status] as OneRegisterInstruction).registerA)
     if (registers.any { it > 15 }) refuseSent("$where keeps the session, the account or the answer past v15")
     header.requireParameterIntact(SENT_PATCH, sessionAt, listOf(at))
     header.requireParameterIntact(SENT_PATCH, modelAt, listOf(at))
     return HeaderStatus(header, at, registers[0], registers[1], registers[2])
+}
+
+/** What a return of the status read hands back: what [call] answers, or its [field] holding the status. */
+private data class StatusAnswer(val call: String, val field: String?)
+
+/**
+ * What the status read's return at [at] hands back: the status a call answers right before it, or,
+ * on 456, the status a call's answer holds in a field read right before it.
+ */
+private fun statusAnswerAt(read: List<Instruction>, at: Int, statusType: String): StatusAnswer? {
+    val returned = (read[at] as OneRegisterInstruction).registerA
+    val last = read.getOrNull(at - 1) ?: return null
+    if (last.opcode == Opcode.MOVE_RESULT_OBJECT) {
+        val call = (read.getOrNull(at - 2) as? ReferenceInstruction)?.reference as? MethodReference ?: return null
+        if ((last as OneRegisterInstruction).registerA != returned || call.returnType != statusType) return null
+        return StatusAnswer(call.toString(), null)
+    }
+    if (last.opcode != Opcode.IGET_OBJECT) return null
+    val field = (last as ReferenceInstruction).reference as? FieldReference ?: return null
+    val moved = read.getOrNull(at - 2) ?: return null
+    val call = (read.getOrNull(at - 3) as? ReferenceInstruction)?.reference as? MethodReference ?: return null
+    if ((last as TwoRegisterInstruction).registerA != returned || field.type != statusType || moved.opcode != Opcode.MOVE_RESULT_OBJECT ||
+        (moved as OneRegisterInstruction).registerA != last.registerB || call.returnType != field.definingClass
+    ) {
+        return null
+    }
+    return StatusAnswer(call.toString(), field.toString())
 }
 
 /**

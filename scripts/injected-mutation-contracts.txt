@@ -3181,16 +3181,19 @@ once-call Lapp/hushgram/extension/instagram/profile/ReelSort;->sortable(I)Z in i
 # Sent follow requests (#690) hands SentRequests.seen the session, the account and the follow status
 # right before each return of the follow button helper's status read (04gP.A03 on 454, the one
 # instance (session, account) method of the helper FollowButtonBase.getHelper() answers that answers
-# the follow status enum), which every follow button asks each time it shows an account. It loads the
-# account's "id" hash and the two status field hashes it reads. Left out, no request is ever listed;
-# twice or elsewhere, a status is counted twice or a status that isn't the button's is read.
+# the follow status enum), which every follow button asks each time it shows an account. On 456 it
+# gets the status from the helper's static (status, session, account) resolver (04Hj.A00 on
+# 386214574), which loads the account's "id" hash and the follow status field hash, so the helper
+# class holds them. Left out, no request is ever listed; twice or elsewhere, a status is counted
+# twice or a status that isn't the button's is read.
 # SentFollowRequestsHookTest checks where it lands on each declared build.
-once-call Lapp/hushgram/extension/instagram/profile/SentRequests;->seen(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V in instance (Lcom/instagram/common/session/UserSession;LX/*;)LX/*; sites returns holding const:0xd1b const:0x46ae0f6e const:0xd973299e
+once-call Lapp/hushgram/extension/instagram/profile/SentRequests;->seen(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V in instance (Lcom/instagram/common/session/UserSession;LX/*;)LX/*; calling static LX/*;->*(LX/*;Lcom/instagram/common/session/UserSession;LX/*;)LX/*; sites returns class-holding const:0xd1b const:0x46ae0f6e
 # A profile header's follow button skips the status read: the helper's static (status, session,
-# helper, account) method (04gP.A01 on 454) asks the status read's resolver itself, and the same
-# call goes right after that answer comes back. It loads the same three hashes. Left out, a request
-# sent from a profile's header is never listed; twice or elsewhere, it isn't the hook the patch wrote.
-once-call Lapp/hushgram/extension/instagram/profile/SentRequests;->seen(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V in static (LX/*;Lcom/instagram/common/session/UserSession;LX/*;LX/*;ZZ)V calling instance LX/*;->*(LX/*;LX/*;Ljava/lang/String;)LX/*; holding const:0xd1b const:0x46ae0f6e const:0xd973299e
+# helper, account) method (04gP.A01 on 454, 04Hj.A02 on 386214574) asks the status read's resolver
+# itself, and the same call goes right after the status comes back. Its class holds the same two
+# hashes. Left out, a request sent from a profile's header is never listed; twice or elsewhere, it
+# isn't the hook the patch wrote.
+once-call Lapp/hushgram/extension/instagram/profile/SentRequests;->seen(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V in static (LX/*;Lcom/instagram/common/session/UserSession;LX/*;LX/*;ZZ)V calling static LX/*;->*(LX/*;Lcom/instagram/common/session/UserSession;LX/*;)LX/*; class-holding const:0xd1b const:0x46ae0f6e
 # Download voice messages (#20) hands VoiceMessage.offer the answer to whether a message's kind can be
 # saved, and the message, right after the menu model's builder asks it (09xN.invoke on 450, the
 # lambda building the long-press menu's model, the one method of this shape loading these strings
