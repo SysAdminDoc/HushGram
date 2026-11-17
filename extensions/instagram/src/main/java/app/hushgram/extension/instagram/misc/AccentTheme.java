@@ -8,8 +8,11 @@ import android.content.Context;
 import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.content.res.TypedArray;
+import android.graphics.Canvas;
+import android.graphics.Paint;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffColorFilter;
+import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
 import android.util.TypedValue;
 
@@ -21,6 +24,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.WeakHashMap;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
@@ -133,6 +137,24 @@ public final class AccentTheme {
 
     /** What's counted each time a theme a Litho tree reads its colors from takes the icon style (#724). */
     static final String LITHO_ICONS = "Litho themes given accent icons";
+
+    /** What's counted each time a repost button's animation takes the picked icon color (#724). */
+    static final String REPOST_ICONS = "Repost buttons given the accent color";
+
+    /**
+     * The raw animations the repost button under a post plays, whichever way it's turning. Instagram's
+     * black, or white in dark mode, is in the file, so no theme color or tint reaches them (#724).
+     */
+    static final String[] REPOST_ANIMATIONS = {"repost_light", "repost_dark", "unrepost_light", "unrepost_dark"};
+
+    /** The color the animation loading on this thread takes, from {@link #repostAnimation(Context, int)}. */
+    private static final ThreadLocal<Integer> REPOST_PENDING = new ThreadLocal<>();
+
+    /** The paint each repost animation given the accent color is drawn through, by the drawable. */
+    private static final Map<Drawable, Paint> REPOST_PAINTS = new WeakHashMap<>();
+
+    /** The layer {@link #repostDraw} opened on this thread, which {@link #repostDrawn} closes. */
+    private static final ThreadLocal<RepostLayer> REPOST_LAYER = new ThreadLocal<>();
 
     /** The glyph attribute the feed's post buttons read through Litho, the first of the patch's GLYPH_ATTRIBUTES. */
     static final String GLYPH_ATTRIBUTE = "glyphColorPrimary";
@@ -793,6 +815,115 @@ public final class AccentTheme {
             return values.getColor(0, 0);
         } finally {
             values.recycle();
+        }
+    }
+
+    /**
+     * Called as Instagram's Keyframes loader starts on the raw animation [resource]: notes the color
+     * the animation takes when it's one of the repost button's, for {@link #repostAnimation(Drawable)}.
+     * That's the picked icon color, and only where [context]'s theme already holds it for its icons,
+     * so the button matches comment, share and save next to it, and Reels and other screens over
+     * media keep Instagram's white.
+     */
+    public static void repostAnimation(Context context, int resource) {
+        REPOST_PENDING.remove();
+        try {
+            if (context == null || resource == 0) return;
+            AccentHue hue = AccentColor.picked();
+            if (hue == null || !Settings.ACCENT_ICONS.get()) return;
+            Resources resources = context.getResources();
+            String app = Utils.resourcePackage(context);
+            if (!repostRaw(resources, resource, app)) return;
+            Resources.Theme theme = context.getTheme();
+            int icon = id(resources, ICON_ATTRIBUTE, "attr", app);
+            if (theme == null || icon == 0) return;
+            int background = id(resources, BACKGROUND_ATTRIBUTE, "attr", app);
+            if (background != 0 && overMedia(theme, background)) return;
+            int style = id(resources, iconStyle(hue, dark(context, theme, icon)), "style", app);
+            if (style == 0) return;
+            int color = styleColor(theme, style, icon);
+            if (color == 0 || themeColor(theme, icon) != color) return;
+            REPOST_PENDING.set(color);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.ACCENT_COLOR, "Repost animation", failure);
+        }
+    }
+
+    /** Whether [resource] is one of the {@link #REPOST_ANIMATIONS}. */
+    private static boolean repostRaw(Resources resources, int resource, String app) {
+        for (String name : REPOST_ANIMATIONS) {
+            if (id(resources, name, "raw", app) == resource) return true;
+        }
+        return false;
+    }
+
+    /**
+     * Called with the [animation] Instagram's Keyframes loader hands back, null when the file didn't
+     * load: gives it the color {@link #repostAnimation(Context, int)} noted for it, if any.
+     */
+    public static void repostAnimation(Drawable animation) {
+        try {
+            Integer color = REPOST_PENDING.get();
+            REPOST_PENDING.remove();
+            if (color == null || animation == null) return;
+            Paint paint = new Paint();
+            paint.setColorFilter(new PorterDuffColorFilter(color, PorterDuff.Mode.SRC_IN));
+            synchronized (REPOST_PAINTS) {
+                REPOST_PAINTS.put(animation, paint);
+            }
+            HookStatus.counted(FamilyNames.ACCENT_COLOR, REPOST_ICONS);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.ACCENT_COLOR, "Repost animation", failure);
+        }
+    }
+
+    /**
+     * Called as a Keyframes [animation] starts drawing on [canvas]: one given a color draws into a
+     * layer that lays that color over everything it draws, keeping its shape and its motion. The
+     * layer reaches a quarter of the icon past its bounds, for an animation that steps outside them.
+     */
+    public static void repostDraw(Drawable animation, Canvas canvas) {
+        try {
+            if (animation == null || canvas == null) return;
+            Paint paint;
+            synchronized (REPOST_PAINTS) {
+                if (REPOST_PAINTS.isEmpty()) return;
+                paint = REPOST_PAINTS.get(animation);
+            }
+            if (paint == null) return;
+            Rect bounds = animation.getBounds();
+            if (bounds.isEmpty()) return;
+            float x = bounds.width() / 4f;
+            float y = bounds.height() / 4f;
+            int count = canvas.saveLayer(bounds.left - x, bounds.top - y, bounds.right + x, bounds.bottom + y, paint);
+            REPOST_LAYER.set(new RepostLayer(animation, canvas, count));
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.ACCENT_COLOR, "Repost animation", failure);
+        }
+    }
+
+    /** Called as a Keyframes [animation] is done drawing on [canvas]: closes the layer {@link #repostDraw} opened. */
+    public static void repostDrawn(Drawable animation, Canvas canvas) {
+        try {
+            RepostLayer layer = REPOST_LAYER.get();
+            if (layer == null || layer.animation != animation || layer.canvas != canvas) return;
+            REPOST_LAYER.remove();
+            canvas.restoreToCount(layer.count);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.ACCENT_COLOR, "Repost animation", failure);
+        }
+    }
+
+    /** A layer {@link #repostDraw} opened: the animation drawing, its canvas and the save count to go back to. */
+    private static final class RepostLayer {
+        final Drawable animation;
+        final Canvas canvas;
+        final int count;
+
+        RepostLayer(Drawable animation, Canvas canvas, int count) {
+            this.animation = animation;
+            this.canvas = canvas;
+            this.count = count;
         }
     }
 

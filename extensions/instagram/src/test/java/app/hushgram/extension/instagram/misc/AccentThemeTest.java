@@ -14,6 +14,7 @@ import android.content.ContextWrapper;
 import android.content.res.Resources;
 import android.graphics.Canvas;
 import android.graphics.ColorFilter;
+import android.graphics.Paint;
 import android.graphics.PixelFormat;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffColorFilter;
@@ -636,6 +637,115 @@ public class AccentThemeTest {
         String report = HookStatus.report().toString();
         assertTrue(report, report.contains(AccentTheme.LITHO_ICONS + " 2"));
         assertTrue(report, report.contains(AccentTheme.ICONS_MISSING + " 1"));
+    }
+
+    /**
+     * The repost button's animation, black or white in its file, takes the icon color through an
+     * SRC_IN layer once the Litho theme it loads on carries the icon style (#724), and the layer is
+     * closed when it's done drawing. Off, paused, over media, on a theme without the style, for any
+     * other animation or after a load that failed, it draws as Instagram's.
+     */
+    @Test
+    public void theRepostAnimationTakesTheIconColorWhereTheThemeHasIt() {
+        int repost = 0x7f120105;
+        int unrepost = 0x7f120113;
+        int other = 0x7f120200;
+        Settings.ACCENT_COLOR.save(true);
+        Settings.ACCENT_HUE.save(AccentHue.TEAL);
+        Ids ids = (name, type) -> {
+            if (type.equals("style") && name.startsWith("HushGramAccentIcons_TEAL_")) return android.R.style.Theme_Material;
+            if (type.equals("attr") && (name.equals(AccentTheme.ICON_ATTRIBUTE) || name.equals(AccentTheme.GLYPH_ATTRIBUTE))) {
+                return android.R.attr.colorForeground;
+            }
+            if (type.equals("attr") && name.equals(AccentTheme.BACKGROUND_ATTRIBUTE)) return android.R.attr.colorBackground;
+            if (type.equals("raw") && name.equals("repost_light")) return repost;
+            return type.equals("raw") && name.equals("unrepost_dark") ? unrepost : 0;
+        };
+        int accent = foreground(new ContextThemeWrapper(RuntimeEnvironment.getApplication(), android.R.style.Theme_Material));
+        Context light = new ContextThemeWrapper(themed(THEMED + ".repost", ids), android.R.style.Theme_Material_Light);
+
+        assertNull("icons off", layer(light, repost));
+        Settings.ACCENT_ICONS.save(true);
+        assertNull("the theme hasn't the icon style", layer(light, repost));
+        AccentTheme.lithoIcons(light);
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertNull("paused", layer(light, repost));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        assertNull("another animation", layer(light, other));
+        assertNull("no context", layer(null, repost));
+
+        PorterDuffColorFilter tint = new PorterDuffColorFilter(accent, PorterDuff.Mode.SRC_IN);
+        assertEquals("repost", tint, layer(light, repost));
+        assertEquals("unrepost", tint, layer(light, unrepost));
+        Context dark = new ContextThemeWrapper(themed(THEMED + ".repost", ids), android.R.style.Theme_Material);
+        assertEquals("a dark theme already in the dark style's color", tint, layer(dark, unrepost));
+        Context viewer = new ContextThemeWrapper(themed(THEMED + ".repost.viewer", (name, type) ->
+                type.equals("attr") && name.equals(AccentTheme.BACKGROUND_ATTRIBUTE) ? android.R.attr.textColorPrimary : ids.of(name, type)),
+                android.R.style.Theme_Material);
+        assertNull("over media", layer(viewer, repost));
+
+        AccentTheme.repostAnimation(light, repost);
+        AccentTheme.repostAnimation((Drawable) null);
+        Animation late = new Animation();
+        AccentTheme.repostAnimation(late);
+        Layers canvas = new Layers();
+        AccentTheme.repostDraw(late, canvas);
+        assertNull("a load that failed leaves nothing for the next one", canvas.paint);
+
+        String report = HookStatus.report().toString();
+        assertTrue(report, report.contains(AccentTheme.REPOST_ICONS + " 3"));
+    }
+
+    /**
+     * Loads [raw] on [context] the way the patched Keyframes loader does, draws the animation it hands
+     * back, and returns the color filter of the layer it was drawn in, null when it wasn't. A layer is
+     * checked to reach a quarter past the icon and to be closed again.
+     */
+    private static ColorFilter layer(Context context, int raw) {
+        AccentTheme.repostAnimation(context, raw);
+        Animation animation = new Animation();
+        animation.setBounds(0, 0, 24, 24);
+        AccentTheme.repostAnimation(animation);
+        Layers canvas = new Layers();
+        AccentTheme.repostDraw(animation, canvas);
+        AccentTheme.repostDrawn(animation, canvas);
+        if (canvas.paint == null) {
+            assertEquals("nothing to close", -1, canvas.restoredTo);
+            return null;
+        }
+        assertEquals(List.of(-6f, -6f, 30f, 30f), canvas.bounds);
+        assertEquals("closed", canvas.saved, canvas.restoredTo);
+        return canvas.paint.getColorFilter();
+    }
+
+    /** A Keyframes animation as the loader hands it back, drawing nothing here. */
+    private static final class Animation extends Drawable {
+        @Override public void draw(Canvas canvas) { }
+        @Override public void setAlpha(int alpha) { }
+        @Override public void setColorFilter(ColorFilter colorFilter) { }
+        @Override public int getOpacity() { return PixelFormat.TRANSLUCENT; }
+    }
+
+    /** A canvas that keeps the layer opened on it and the save count it's put back to. */
+    private static final class Layers extends Canvas {
+        Paint paint;
+        List<Float> bounds;
+        final int saved = 7;
+        int restoredTo = -1;
+
+        @Override
+        public int saveLayer(float left, float top, float right, float bottom, Paint layerPaint) {
+            paint = layerPaint;
+            bounds = List.of(left, top, right, bottom);
+            return saved;
+        }
+
+        @Override
+        public void restoreToCount(int count) {
+            restoredTo = count;
+        }
     }
 
     /** The plain color [context]'s theme holds for {@code android:colorForeground}. */

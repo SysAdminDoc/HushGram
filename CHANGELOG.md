@@ -104,7 +104,7 @@ Every HushGram release, newest first.
 * `Copy link` in the share sheet uses your `Sharing domain` again. The copied link had its tracking bits removed but still pointed at instagram.com. Reported in #667.
 * In light mode the strips above and below a story, from a profile too, are black instead of white, so the clock and navigation buttons show again. `Ambient light in stories` glows on black there too. Reported in #666.
 * With `Accent color` and `Icons in the accent color` on, the tab bar icons keep the picked color on Reels and after you leave it. They turned white on Reels and stayed white back on Home. Reported in #663.
-* With `Accent color` and `Icons in the accent color` on, the like, comment, share and save buttons under posts in Home take your color too. They stayed black, or white in dark mode. Reported in #724.
+* With `Accent color` and `Icons in the accent color` on, the comment, repost, share and save buttons under posts in Home take your color too. They stayed black, or white in dark mode. Reported in #724.
 * Tapping a comment someone shared with you in a chat opens the reel it was on, not another reel that loaded first. It's part of `Open reel links on that reel`. Reported in #662.
 * When Instagram itself lets you swipe through the reels a chat shared, with `Swipe through a chat's reels` off, a reply or reaction now goes to the reel you're watching, not the one you tapped. Reported in #662.
 * With `Swipe through a chat's reels` on, tapping a comment shared in a chat opens the reel the comment is on. It used to start on the first unread reel the chat shared. Reported in #662.

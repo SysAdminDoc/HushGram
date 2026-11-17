@@ -2392,6 +2392,17 @@ single-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->headerIcons(Lan
 # at the end of the resolver's constructor, once. Left out, the buttons under posts stay black with
 # Icons in the accent color on (#724). AccentThemeTest checks every build.
 single-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->lithoIcons(Landroid/content/Context;)V in <init>
+# The repost button under a post plays Keyframes animations (raw/repost_light and the rest) with
+# Instagram's black or white in the file, and the Keyframes drawable (04s0 on 386214574) ignores
+# color filters. So Accent color hands the raw id its loader (the static (Context, I) 04q1.A02) is
+# about to load to AccentTheme.repostAnimation, then the drawable right after the loader builds it,
+# and calls AccentTheme at the start of the drawable's draw and before its one return, each once.
+# Left out, the repost button stays black or white with Icons in the accent color on (#724).
+# RepostAnimationTest checks every build.
+single-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->repostAnimation(Landroid/content/Context;I)V in A02
+single-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->repostAnimation(Landroid/graphics/drawable/Drawable;)V in A02
+single-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->repostDraw(Landroid/graphics/drawable/Drawable;Landroid/graphics/Canvas;)V in draw
+single-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->repostDrawn(Landroid/graphics/drawable/Drawable;Landroid/graphics/Canvas;)V in draw
 # Opening Reels tells each tab button a white made for the black bar, and leaving it the theme's text
 # color, through the one method (int, Integer)V that hands them to the tab icon view's setActiveColor
 # and setNormalColor (02a0.A0A on 386014758). Accent color hands both to AccentTheme.tabIcons first
