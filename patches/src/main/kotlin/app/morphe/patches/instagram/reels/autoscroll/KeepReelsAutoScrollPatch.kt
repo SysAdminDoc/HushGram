@@ -12,16 +12,15 @@ import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesCalling
 import app.morphe.patches.instagram.misc.extension.classesHolding
+import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.classesTouching
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.filterEveryBooleanReturn
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.loadsString
-import app.morphe.patches.instagram.misc.extension.markers
 import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
-import app.morphe.patches.instagram.misc.extension.typesMarked
 import app.morphe.patches.instagram.misc.settings.EXTENSION_ROOT
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
@@ -51,14 +50,19 @@ internal const val AUTO_SCROLL_CHOSEN = "$REEL_AUTO_SCROLL->chosen(I)V"
 internal const val AUTO_SCROLL_STORED = "$REEL_AUTO_SCROLL->stored(I)V"
 
 /**
- * The markers, after Instagram's release prefix, of the Reels auto scroll plugin's check of whether
- * auto scroll is on and of its handler for the switches that turn it on or off.
+ * The MobileConfig flag the Reels auto scroll plugin's check of whether auto scroll is on reads
+ * (0D6m.A01 on 456's 386214574), loaded as a wide constant. The plugin's handler for its switches,
+ * a static copy of the check and the Reels viewer's item builder load it too, and none of them is
+ * an instance method taking the session and answering a boolean.
  */
-internal const val IS_AUTOSCROLL_ACTIVE = "ClipsOptInAutoscrollPluginImpl_isDurationAutoscrollActive"
-internal const val AUTOSCROLL_MODE_CLICK = "ClipsOptInAutoscrollPluginImpl_handleAutoscrollModeClick"
+internal const val AUTOSCROLL_ACTIVE_FLAG = 0x8108f0000a331bL
 
-/** The marker, after Instagram's release prefix, of the getter of the class keeping auto scroll in memory. */
-internal const val AUTOSCROLL_MEMORY = "ClipsSessionAutoscrollManager_getInstance"
+/** What the plugin's handler for the switches that turn auto scroll on or off logs (0D6m.A00 on 456's 386214574). */
+internal const val AUTOSCROLL_TAP = "instagram_clips_viewer_autoplay_tap"
+
+/** The kept name of the lifecycle listener the class keeping auto scroll in memory holds in a field of its own. */
+internal const val AUTOSCROLL_MEMORY_CALLBACKS =
+    "Linstagram/features/clips/viewer/controller/autoscroll/ClipsSessionAutoscrollManager\$lifecycleCallbacks\$1;"
 
 /** The saved auto scroll preference's key, and Kotlin's name for its getter. Its class's initializer loads both. */
 internal const val AUTOSCROLL_PREFERENCE = "preference_clips_auto_scroll_enabled"
@@ -99,7 +103,7 @@ private const val USER_SESSION = "Lcom/instagram/common/session/UserSession;"
  * extension answers the scroller's constructor that it moves on just before. See
  * [findScrollerLead]. Reported in #473.
  *
- * Every method is found by Instagram's own markers, strings and kept class names, and everything is
+ * Every method is found by Instagram's own flags, strings and kept class names, and everything is
  * found and checked before anything changes, so a build that differs stops the patch naming what
  * it couldn't find, and nothing is half done.
  */
@@ -164,9 +168,10 @@ internal class Kept(val after: Int, val register: Int)
 internal class MemoryRead(val method: MethodSite, val index: Int, val register: Int)
 
 /**
- * Finds the plugin's two methods by their markers, both in one class: the check, an instance
- * method taking the [USER_SESSION] and answering a boolean, and the handler, an instance method
- * taking the choice last as a boolean. The saved preference's class is the one whose initializer
+ * Finds the plugin's two methods, both in one class: the check, the one instance method taking the
+ * [USER_SESSION] and answering a boolean that loads [AUTOSCROLL_ACTIVE_FLAG], and the handler, the
+ * one method loading [AUTOSCROLL_TAP], an instance method taking the choice last as a boolean. The
+ * saved preference's class is the one whose initializer
  * loads [AUTOSCROLL_PREFERENCE] and [AUTOSCROLL_GETTER_NAME]; its one static getter answering a
  * boolean has to be read by the check, and its one static setter, taking what the getter takes and
  * a boolean, has to be called by the handler, saving the choice it was handed (see
@@ -179,8 +184,8 @@ internal class MemoryRead(val method: MethodSite, val index: Int, val register: 
  *
  * The completed duration callback hands over the actual expiration timestamp after each native
  * save. [findTimerChoices] proves its captured preferences and the wide value through the setter.
- * The memory is the one boolean field the check reads. Its class has a static method marked
- * [AUTOSCROLL_MEMORY] answering it, and keeps no other instance boolean. The handler writes it once,
+ * The memory is the one boolean field the check reads. Its class has a static method answering it,
+ * holds an [AUTOSCROLL_MEMORY_CALLBACKS] and keeps no other instance boolean. The handler writes it once,
  * with the choice it was handed (see [requireKeepsChoice]). Every other read of it anywhere in the
  * app is found here, so none is left reading Instagram's own value.
  *
@@ -190,33 +195,23 @@ internal class MemoryRead(val method: MethodSite, val index: Int, val register: 
  * hasn't seen.
  */
 internal fun BytecodePatchContext.findReelAutoScroll(): ReelAutoScrollSites {
-    val marked = mutableMapOf<String, MutableList<Method>>()
-    val preferenceClasses = mutableListOf<ClassDef>()
-    val holders = typesMarked(IS_AUTOSCROLL_ACTIVE, AUTOSCROLL_MODE_CLICK) + classesHolding(AUTOSCROLL_PREFERENCE).map { it.type }
-    classDefForEach { classDef ->
-        if (classDef.type !in holders) return@classDefForEach
-        classDef.methods.forEach { method ->
-            method.markers().filter { it == IS_AUTOSCROLL_ACTIVE || it == AUTOSCROLL_MODE_CLICK }.distinct()
-                .forEach { marked.getOrPut(it) { mutableListOf() } += method }
-        }
-        if (classDef.methods.any { it.name == "<clinit>" && it.holdsString(AUTOSCROLL_PREFERENCE) }) preferenceClasses += classDef
+    val checks = methodsLoadingWide(AUTOSCROLL_ACTIVE_FLAG).filter {
+        !it.isStatic() && it.returnType == "Z" && it.parameters() == listOf(USER_SESSION)
     }
-    fun single(marker: String): Method {
-        val found = marked[marker].orEmpty()
-        return found.singleOrNull() ?: refuse("expected one method marked $marker, found ${found.size}")
-    }
-
-    val isActive = single(IS_AUTOSCROLL_ACTIVE)
-    if (isActive.isStatic() || isActive.returnType != "Z" || isActive.parameters() != listOf(USER_SESSION)) {
-        refuse("${isActive.text()}, marked $IS_AUTOSCROLL_ACTIVE, isn't an instance ($USER_SESSION) method answering a boolean")
-    }
-    val click = single(AUTOSCROLL_MODE_CLICK)
-    if (click.definingClass != isActive.definingClass) refuse("$AUTOSCROLL_MODE_CLICK isn't in ${isActive.definingClass}")
+    val isActive = checks.singleOrNull() ?: refuse(
+        "expected one instance ($USER_SESSION) method answering a boolean to load flag 0x${AUTOSCROLL_ACTIVE_FLAG.toString(16)}, found ${checks.size}",
+    )
+    val clicks = classesLoadingString(AUTOSCROLL_TAP).flatMap { type -> type.methods.filter { loadsString(it, AUTOSCROLL_TAP) } }
+    val click = clicks.singleOrNull() ?: refuse("expected one method loading \"$AUTOSCROLL_TAP\", found ${clicks.size}")
+    if (click.definingClass != isActive.definingClass) refuse("${click.text()}, which loads \"$AUTOSCROLL_TAP\", isn't in ${isActive.definingClass}")
     if (click.isStatic() || click.returnType != "V" || click.parameters().lastOrNull() != "Z") {
-        refuse("${click.text()}, marked $AUTOSCROLL_MODE_CLICK, isn't an instance method taking the choice last and returning nothing")
+        refuse("${click.text()}, which loads \"$AUTOSCROLL_TAP\", isn't an instance method taking the choice last and returning nothing")
     }
     if (0 in click.jumpTargets()) refuse("something in ${click.text()} jumps back to its first instruction")
 
+    val preferenceClasses = classesHolding(AUTOSCROLL_PREFERENCE).filter { classDef ->
+        classDef.methods.any { it.name == "<clinit>" && it.holdsString(AUTOSCROLL_PREFERENCE) }
+    }
     val preference = preferenceClasses.singleOrNull()
         ?: refuse("expected one class whose initializer loads \"$AUTOSCROLL_PREFERENCE\", found ${preferenceClasses.size}")
     if (preference.methods.none { it.name == "<clinit>" && it.holdsString(AUTOSCROLL_GETTER_NAME) }) {
@@ -258,8 +253,11 @@ internal fun BytecodePatchContext.findReelAutoScroll(): ReelAutoScrollSites {
         }
     }
     val memoryClass = memoryClasses.singleOrNull() ?: refuse("${memory.definingClass}, whose boolean ${isActive.text()} reads, isn't in the app")
-    if (memoryClass.methods.none { it.isStatic() && it.returnType == memoryClass.type && AUTOSCROLL_MEMORY in it.markers() }) {
-        refuse("${memoryClass.type}, whose boolean ${isActive.text()} reads, has no static method marked $AUTOSCROLL_MEMORY answering it")
+    if (memoryClass.methods.none { it.isStatic() && it.returnType == memoryClass.type }) {
+        refuse("${memoryClass.type}, whose boolean ${isActive.text()} reads, has no static method answering it")
+    }
+    if (memoryClass.fields.none { it.type == AUTOSCROLL_MEMORY_CALLBACKS && !AccessFlags.STATIC.isSet(it.accessFlags) }) {
+        refuse("${memoryClass.type}, whose boolean ${isActive.text()} reads, keeps no $AUTOSCROLL_MEMORY_CALLBACKS")
     }
     val flags = memoryClass.fields.filter { it.type == "Z" && !AccessFlags.STATIC.isSet(it.accessFlags) }.map { it.name }
     if (flags != listOf(memory.name)) refuse("expected ${memoryClass.type} to keep one instance boolean, ${memory.name}, found $flags")

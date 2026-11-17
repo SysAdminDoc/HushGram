@@ -6,14 +6,13 @@ package app.morphe.patches.instagram.reels.autoscroll
 
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
-import app.morphe.patches.instagram.misc.extension.PURGE_MARKER
 import app.morphe.patches.instagram.misc.extension.classesCreating
 import app.morphe.patches.instagram.misc.extension.classesLoading
+import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.classesTouching
 import app.morphe.patches.instagram.misc.extension.jumpTargets
+import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
-import app.morphe.patches.instagram.misc.extension.markers
-import app.morphe.patches.instagram.misc.extension.typesMarked
 import app.morphe.util.ControlFlow
 import app.morphe.util.RegisterLiveness
 import app.morphe.util.readsAfter
@@ -27,24 +26,17 @@ import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.WideLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
-import com.android.tools.smali.dexlib2.iface.reference.StringReference
 import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 
 internal const val AUTO_SCROLL_INSTALL = "$REEL_AUTO_SCROLL->install(I)Z"
 internal const val AUTO_SCROLL_LEAD = "$REEL_AUTO_SCROLL->lead(I)Z"
 internal const val AUTO_SCROLL_LEAD_TIME = "$REEL_AUTO_SCROLL->leadTime(I)I"
 
-/** The marker, after Instagram's release prefix, of the check of whether this account is offered auto scroll in Reels at all. */
-internal const val OPT_IN_AUTOSCROLL = "ClipsViewerExperimentUtil_isOptInAutoscrollEnabled"
-
 /**
- * The markers, after Instagram's release prefix, of the Reels auto scroller's own three steps: what
- * it runs when a reel reaches its end, its check of whether to move on from that reel, and its move
- * to the next one. The last is matched whole, since "UpNextNavigator_scrollToNextReel" is another class's.
+ * The MobileConfig flag deciding whether this account is offered auto scroll in Reels at all, read
+ * as a wide constant by the one check of it (076m.A09 on 456's 386214574). No other method loads it.
  */
-internal const val SCROLLER_ON_LOOP = "ClipsAutoScroller_onVideoLoop"
-internal const val SCROLLER_SHOULD_SCROLL = "ClipsAutoScroller_shouldScrollToNextReel"
-internal const val SCROLLER_SCROLL = "ClipsAutoScroller_scrollToNextReel"
+internal const val OPT_IN_AUTOSCROLL_FLAG = 0x8108f000003316L
 
 /**
  * The MobileConfig flag the scroller's check of whether to move on reads as it decides (0AMZ.A07 on
@@ -52,22 +44,25 @@ internal const val SCROLLER_SCROLL = "ClipsAutoScroller_scrollToNextReel"
  */
 internal const val SCROLLER_SHOULD_SCROLL_FLAG = 0x810d8c00a24cb9L
 
-/** Every method loading [SCROLLER_SHOULD_SCROLL_FLAG] as a wide constant, the scroller's check of whether to move on. */
-internal fun BytecodePatchContext.methodsLoadingScrollFlag(): List<Method> =
-    classesLoading(SCROLLER_SHOULD_SCROLL_FLAG).flatMap { it.methods }.filter { method ->
-        method.implementation?.instructions?.any {
-            it.opcode == Opcode.CONST_WIDE && (it as WideLiteralInstruction).wideLiteral == SCROLLER_SHOULD_SCROLL_FLAG
-        } == true
-    }
+/** What the scroller's move to the next reel logs (0AMZ.A04 on 456's 386214574). No other method loads it. */
+internal const val SCROLLER_SCROLL_EVENT = "instagram_clips_viewer_autoplay_scroll"
 
 /**
- * The marker, after Instagram's release prefix, of the scroller's look at each progress report of
- * the playing reel, where it may move on a little before the reel ends.
+ * The MobileConfig flag for how long before a reel's end the scroller may move on, read as a wide
+ * constant by the scroller's constructor alone (0AMZ.<init> on 456's 386214574).
  */
-internal const val SCROLLER_ON_PROGRESS = "ClipsAutoScroller_onProgressUpdate"
+internal const val SCROLLER_LEAD_FLAG = 0x8208f0000c13ebL
 
-/** The marker, in the scroller's constructor, of its read of how long before a reel's end it may move on. */
-internal const val SCROLLER_LEAD_TIME = "ClipsViewerExperimentUtil_getAutoscrollScrollBufferMs"
+/** Every method loading [flag] as a wide constant. */
+internal fun BytecodePatchContext.methodsLoadingWide(flag: Long): List<Method> =
+    classesLoading(flag).flatMap { it.methods }.filter { method -> method.installCode().any { it.loadsWide(flag) } }
+
+/** Every method loading [SCROLLER_SHOULD_SCROLL_FLAG] as a wide constant, the scroller's check of whether to move on. */
+internal fun BytecodePatchContext.methodsLoadingScrollFlag(): List<Method> = methodsLoadingWide(SCROLLER_SHOULD_SCROLL_FLAG)
+
+private fun Instruction.loadsWide(flag: Long) = opcode == Opcode.CONST_WIDE && (this as WideLiteralInstruction).wideLiteral == flag
+
+private fun hex(flag: Long) = "0x${flag.toString(16)}"
 
 /** The section the Reels viewer names in its trace while it builds its auto scroller. */
 internal const val SCROLLER_TRACE = "ClipsViewerFragment.onCreate:clipsAutoScroller"
@@ -93,72 +88,67 @@ private fun refuseInstall(detail: String): Nothing = throw PatchException("Keep 
 /**
  * Where the Reels viewer decides whether to build Instagram's auto scroller. Asked for in #175.
  *
- * On 450 one check, marked [OPT_IN_AUTOSCROLL], a static (session, boolean) answering a boolean,
- * decides two things: whether a reel's menu gets the Auto scroll row, and whether the viewer builds
- * the scroller and has it listen for reels ending. An account that isn't offered the row has no
- * scroller either, so answering the plugin's check alone would move nothing. The hook goes where
- * the viewer reads that check, and nowhere else: the check itself and its readers in the menus stay
- * Instagram's own, so no row appears that Instagram didn't offer.
+ * On 450 one check, the one method loading [OPT_IN_AUTOSCROLL_FLAG], a static (session, boolean)
+ * answering a boolean, decides two things: whether a reel's menu gets the Auto scroll row, and
+ * whether the viewer builds the scroller and has it listen for reels ending. An account that isn't
+ * offered the row has no scroller either, so answering the plugin's check alone would move nothing.
+ * The hook goes where the viewer reads that check, and nowhere else: the check itself and its
+ * readers in the menus stay Instagram's own, so no row appears that Instagram didn't offer.
  *
- * The scroller is the class of the one method marked [SCROLLER_SHOULD_SCROLL], a static taking the
- * scroller and answering a boolean. The same class holds the one method marked [SCROLLER_SCROLL], a
- * static (scroller, boolean) returning nothing, and the one marked [SCROLLER_ON_LOOP], an instance
- * method returning nothing that calls both. The check of whether to move on has to ask [isActive],
- * the plugin's check the extension already answers, itself or through a static (scroller) boolean
- * method of the scroller, so a scroller the hook had built moves only while the extension says so.
- * None of the three is changed: which reel may be moved on from, and the move, stay Instagram's.
- * When it moves on is found too, see [findScrollerLead].
+ * The scroller is the class of the one method loading [SCROLLER_SHOULD_SCROLL_FLAG], a static taking
+ * the scroller and answering a boolean. The same class holds the one method loading
+ * [SCROLLER_SCROLL_EVENT], a static (scroller, boolean) returning nothing, and two instance methods
+ * returning nothing that call both: what it runs when a reel reaches its end, and its look at each
+ * progress report. The check of whether to move on has to ask [isActive], the plugin's check the
+ * extension already answers, itself or through a static (scroller) boolean method of the scroller,
+ * so a scroller the hook had built moves only while the extension says so. None of them is changed:
+ * which reel may be moved on from, and the move, stay Instagram's. When it moves on is found too,
+ * see [findScrollerLead].
  *
- * The builder is the one method anywhere that makes a new scroller. It's static, loads
+ * The builder is the one method anywhere that makes a new scroller: the Reels viewer's on 456's
+ * 386214574, a factory in the scroller's own class on the armeabi-v7a 386214562. It's static, loads
  * [SCROLLER_TRACE], makes the scroller once and reads the check once. The read's result goes
  * straight into an if-eqz that skips past the place the scroller is made, and nothing jumps to the
  * result or to the branch, so code put between them always runs between them. No exception handler
  * covering either one reads the register the answer is in.
  */
 internal fun BytecodePatchContext.findScrollerInstall(isActive: Method): ScrollerInstall {
-    val wanted = listOf(OPT_IN_AUTOSCROLL, SCROLLER_ON_LOOP, SCROLLER_SHOULD_SCROLL, SCROLLER_SCROLL, SCROLLER_ON_PROGRESS, SCROLLER_LEAD_TIME)
-    val marked = wanted.associateWith { mutableListOf<Method>() }
-    val holders = typesMarked(*wanted.toTypedArray())
-    classDefForEach { type ->
-        if (type.type !in holders) return@classDefForEach
-        type.methods.forEach { method -> method.markers().distinct().forEach { marked[it]?.add(method) } }
-    }
-    fun single(marker: String): Method {
-        val found = marked.getValue(marker)
-        return found.singleOrNull() ?: refuseInstall("expected one method marked $marker, found ${found.size}")
+    fun single(flag: Long): Method {
+        val found = methodsLoadingWide(flag)
+        return found.singleOrNull() ?: refuseInstall("expected one method loading flag ${hex(flag)}, found ${found.size}")
     }
 
-    val offered = single(OPT_IN_AUTOSCROLL)
+    val offered = single(OPT_IN_AUTOSCROLL_FLAG)
     if (!offered.installStatic() || offered.returnType != "Z" || offered.installParameters() != listOf(SESSION, "Z")) {
-        refuseInstall("${offered.installText()}, marked $OPT_IN_AUTOSCROLL, isn't a static ($SESSION, boolean) method answering a boolean")
+        refuseInstall("${offered.installText()}, which loads flag ${hex(OPT_IN_AUTOSCROLL_FLAG)}, isn't a static ($SESSION, boolean) method answering a boolean")
     }
-    val should = single(SCROLLER_SHOULD_SCROLL)
+    val should = single(SCROLLER_SHOULD_SCROLL_FLAG)
     val scroller = should.definingClass
     if (!should.installStatic() || should.returnType != "Z" || should.installParameters() != listOf(scroller)) {
-        refuseInstall("${should.installText()}, marked $SCROLLER_SHOULD_SCROLL, isn't a static method taking its own class and answering a boolean")
+        refuseInstall("${should.installText()}, which loads flag ${hex(SCROLLER_SHOULD_SCROLL_FLAG)}, isn't a static method taking its own class and answering a boolean")
     }
-    val move = single(SCROLLER_SCROLL)
+    val moves = classesLoadingString(SCROLLER_SCROLL_EVENT).flatMap { type -> type.methods.filter { loadsString(it, SCROLLER_SCROLL_EVENT) } }
+    val move = moves.singleOrNull() ?: refuseInstall("expected one method loading \"$SCROLLER_SCROLL_EVENT\", found ${moves.size}")
     if (move.definingClass != scroller || !move.installStatic() || move.returnType != "V" || move.installParameters() != listOf(scroller, "Z")) {
-        refuseInstall("${move.installText()}, marked $SCROLLER_SCROLL, isn't a static ($scroller, boolean) method returning nothing")
+        refuseInstall("${move.installText()}, which loads \"$SCROLLER_SCROLL_EVENT\", isn't a static ($scroller, boolean) method returning nothing")
     }
-    val loop = single(SCROLLER_ON_LOOP)
-    if (loop.definingClass != scroller || loop.installStatic() || loop.returnType != "V") {
-        refuseInstall("${loop.installText()}, marked $SCROLLER_ON_LOOP, isn't an instance method of $scroller returning nothing")
+    val steps = classDefBy(scroller).methods.filter { step ->
+        !step.installStatic() && step.returnType == "V" && step.installCode().any { it.installCalls(should) } && step.installCode().any { it.installCalls(move) }
     }
-    if (loop.installCode().none { it.installCalls(should) } || loop.installCode().none { it.installCalls(move) }) {
-        refuseInstall("${loop.installText()} doesn't call both ${should.installText()} and ${move.installText()}")
+    if (steps.size != 2) {
+        refuseInstall("expected two instance methods of $scroller returning nothing to call both ${should.installText()} and ${move.installText()}, found ${steps.size}")
     }
     val asks = should.installCode().any { it.installCalls(isActive) } || classDefBy(scroller).methods.any { helper ->
         helper.installStatic() && helper.returnType == "Z" && helper.installParameters() == listOf(scroller) &&
             should.installCode().any { it.installCalls(helper) } && helper.installCode().any { it.installCalls(isActive) }
     }
     if (!asks) refuseInstall("${should.installText()} doesn't ask ${isActive.installText()} whether auto scroll is on")
-    val lead = findScrollerLead(scroller, loop, single(SCROLLER_ON_PROGRESS), single(SCROLLER_LEAD_TIME), should, move)
+    val lead = findScrollerLead(scroller, steps, single(SCROLLER_LEAD_FLAG))
 
     val builders = classesCreating(scroller).flatMap { type -> type.methods.filter { method -> method.installCode().any { it.creates(scroller) } } }
     val builder = builders.singleOrNull() ?: refuseInstall("expected one method building $scroller, found ${builders.size}")
     val code = builder.installCode()
-    if (!builder.installStatic() || code.none { it.installString() == SCROLLER_TRACE }) {
+    if (!builder.installStatic() || !loadsString(builder, SCROLLER_TRACE)) {
         refuseInstall("${builder.installText()}, which builds $scroller, isn't the Reels viewer's static method tracing \"$SCROLLER_TRACE\"")
     }
     val made = code.indices.filter { code[it].creates(scroller) }
@@ -204,45 +194,41 @@ internal fun BytecodePatchContext.findScrollerInstall(isActive: Method): Scrolle
 /**
  * Where the scroller keeps when it moves on from a reel. Reported in #473.
  *
- * On 453 the scroller moves on either from [progress], marked [SCROLLER_ON_PROGRESS], once the
- * playing reel is within a set time of its end, or from [loop] once the reel has started over. A
- * server setting decides whether the first may happen, and with it off the reel plays its start
- * again while the next one slides in. The scroller's [constructor] reads that setting into a boolean
- * of its own and then, after loading [SCROLLER_LEAD_TIME], the time into an int of its own, which it
- * has already held between 10 and 400 ms. [progress] reads both and [loop] reads the boolean, to
- * skip a second move, and both call [should] and [move]. The hooks go right before the two writes,
- * at their labels, so a branch to a write passes through its hook too.
+ * On 453 the scroller moves on either from its look at each progress report, once the playing reel
+ * is within a set time of its end, or from what it runs once the reel has started over. Both are in
+ * [steps]. A server setting decides whether the first may happen, and with it off the reel plays its
+ * start again while the next one slides in. The scroller's [constructor] reads that setting into a
+ * boolean of its own and then, after loading [SCROLLER_LEAD_FLAG], the time into an int of its own,
+ * which it has already held between 10 and 400 ms. The progress step reads both and the other step
+ * reads the boolean, to skip a second move. The hooks go right before the two writes, at their
+ * labels, so a branch to a write passes through its hook too.
  *
- * The boolean is the instruction just before the marker loads, an iput-boolean on the constructor's
- * own `this`; the time is the one iput of an int on `this` after it. Nothing else anywhere writes
- * either field, and nothing after either write, exception handlers included, reads the register
- * written, so the answer put there goes to that field alone.
+ * The boolean is the last iput-boolean on the constructor's own `this` before the flag loads (on 456
+ * the read of the setting sits between the two); the time is the one iput of an int on `this` after
+ * it. Nothing else anywhere writes either field, and nothing after either write, exception handlers
+ * included, reads the register written, so the answer put there goes to that field alone.
  */
-private fun BytecodePatchContext.findScrollerLead(
-    scroller: String, loop: Method, progress: Method, constructor: Method, should: Method, move: Method,
-): ScrollerLead {
-    if (progress.definingClass != scroller || progress.installStatic() || progress.returnType != "V") {
-        refuseInstall("${progress.installText()}, marked $SCROLLER_ON_PROGRESS, isn't an instance method of $scroller returning nothing")
-    }
-    if (progress.installCode().none { it.installCalls(should) } || progress.installCode().none { it.installCalls(move) }) {
-        refuseInstall("${progress.installText()} doesn't call both ${should.installText()} and ${move.installText()}")
-    }
+private fun BytecodePatchContext.findScrollerLead(scroller: String, steps: List<Method>, constructor: Method): ScrollerLead {
     if (constructor.definingClass != scroller || constructor.name != "<init>") {
-        refuseInstall("${constructor.installText()}, marked $SCROLLER_LEAD_TIME, isn't a constructor of $scroller")
+        refuseInstall("${constructor.installText()}, which loads flag ${hex(SCROLLER_LEAD_FLAG)}, isn't a constructor of $scroller")
     }
     val code = constructor.installCode()
-    val marks = code.indices.filter { code[it].installString()?.let(PURGE_MARKER::matchEntire)?.groupValues?.get(1) == SCROLLER_LEAD_TIME }
-    val mark = marks.singleOrNull() ?: refuseInstall("${constructor.installText()} loads $SCROLLER_LEAD_TIME ${marks.size} times, expected once")
+    val marks = code.indices.filter { code[it].loadsWide(SCROLLER_LEAD_FLAG) }
+    val mark = marks.singleOrNull() ?: refuseInstall("${constructor.installText()} loads flag ${hex(SCROLLER_LEAD_FLAG)} ${marks.size} times, expected once")
     val self = constructor.localRegisterCount()
-    val switchAt = mark - 1
-    val switch = code.getOrNull(switchAt)?.installKept(Opcode.IPUT_BOOLEAN, scroller, self)
-        ?: refuseInstall("${constructor.installText()} doesn't keep a boolean of its own right before it loads $SCROLLER_LEAD_TIME")
+    val switchAt = (mark - 1 downTo 0).firstOrNull { code[it].installKept(Opcode.IPUT_BOOLEAN, scroller, self) != null }
+        ?: refuseInstall("${constructor.installText()} doesn't keep a boolean of its own before it loads flag ${hex(SCROLLER_LEAD_FLAG)}")
+    val switch = code[switchAt].installKept(Opcode.IPUT_BOOLEAN, scroller, self)!!
     val times = (mark + 1 until code.size).filter { code[it].installKept(Opcode.IPUT, scroller, self)?.type == "I" }
     val timeAt = times.singleOrNull()
-        ?: refuseInstall("${constructor.installText()} keeps ${times.size} ints of its own after it loads $SCROLLER_LEAD_TIME, expected one")
+        ?: refuseInstall("${constructor.installText()} keeps ${times.size} ints of its own after it loads flag ${hex(SCROLLER_LEAD_FLAG)}, expected one")
     val time = code[timeAt].installKept(Opcode.IPUT, scroller, self)!!
 
-    if (progress.installCode().none { it.installReads(Opcode.IGET_BOOLEAN, switch) } || progress.installCode().none { it.installReads(Opcode.IGET, time) }) {
+    val progresses = steps.filter { step -> step.installCode().any { it.installReads(Opcode.IGET, time) } }
+    val progress = progresses.singleOrNull()
+        ?: refuseInstall("expected one of ${steps.joinToString { it.installText() }} to read ${time.installText()}, found ${progresses.size}")
+    val loop = steps.single { it !== progress }
+    if (progress.installCode().none { it.installReads(Opcode.IGET_BOOLEAN, switch) }) {
         refuseInstall("${progress.installText()} doesn't read both ${switch.installText()} and ${time.installText()}")
     }
     if (loop.installCode().none { it.installReads(Opcode.IGET_BOOLEAN, switch) }) {
@@ -275,8 +261,6 @@ private fun Method.installParameters(): List<String> = parameterTypes.map(CharSe
 private fun Method.installText() = "$definingClass->$name(${installParameters().joinToString("")})$returnType"
 
 private fun Method.installCode(): List<Instruction> = implementation?.instructions?.toList().orEmpty()
-
-private fun Instruction.installString() = ((this as? ReferenceInstruction)?.reference as? StringReference)?.string
 
 private fun FieldReference.installText() = "$definingClass->$name:$type"
 

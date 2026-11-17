@@ -2797,10 +2797,10 @@ once-call Lapp/hushgram/extension/instagram/reels/ReelSeekBar;->photoTouchOnly(I
 once-call Lapp/hushgram/extension/instagram/reels/ReelSeekTouch;->listen(Landroid/view/View;Landroid/view/View$OnTouchListener;)V in static (L*;IZZ)V holding android_purge_26_q2_ClipsProgressController_prepareExpandedTouchView
 
 # Keep Reels auto scroll on hands the choice made with one of Instagram's auto scroll switches to
-# ReelAutoScroll.chosen first thing in the Reels auto scroll plugin's handler for them (0CrH.A00 on
-# 449, the one method holding its marker below). The Reels tab's long-press action calls chosen
-# too, right after it saves its choice, so the handler's second rule is shared-call: once there and
-# in no other method holding the marker. That action (0XvB.F5o on 449) loads no string of its own,
+# ReelAutoScroll.chosen first thing in the Reels auto scroll plugin's handler for them (0D6m.A00 on
+# 456's 386214574, the one method loading the tap event below). The Reels tab's long-press action
+# calls chosen too, right after it saves its choice, so the handler's second rule is shared-call:
+# once there and in no other method loading that event. That action (0XvB.F5o on 449) loads no string of its own,
 # so it rests on KeepReelsAutoScrollHookTest. Every answer of the saved auto scroll preference's
 # getter passes through ReelAutoScroll.saved, which remembers nothing: the getter loads no string,
 # so it's the one static method answering a boolean in the class whose initializer loads the
@@ -2818,34 +2818,35 @@ once-call Lapp/hushgram/extension/instagram/reels/ReelSeekTouch;->listen(Landroi
 # armeabi-v7a build takes its thread list key from a string table, so no string of it does.
 # Both pick one method on the three 452 builds. Two methods read the
 # memory itself (the manager's one boolean) and pass what they read through answer once, right
-# after the read: the Reels viewer's state (07Bj.A0V on 449, the one method holding its marker
-# below) and the picture in picture fragment's onCreate (0Xrc.onCreate). The test finds every read
+# after the read: the Reels viewer's state (08LX.A0R on 456's 386214574, the one method loading
+# both flags below; the plugin's check loads the first one too, and answers at its returns) and the
+# picture in picture fragment's onCreate (0bTz.onCreate), which loads the fragment's name. The test finds every read
 # of that boolean on the 449 fixture and checks each is answered. Left out, auto scroll goes back
 # to Instagram's rules; twice or elsewhere, it isn't the hook the patch wrote.
-start-call Lapp/hushgram/extension/instagram/reels/ReelAutoScroll;->chosen(I)V in instance (Landroidx/fragment/app/FragmentActivity;Lcom/instagram/common/session/UserSession;L*;Lkotlin/jvm/functions/Function0;IJZ)V holding android_purge_26_q3_ClipsOptInAutoscrollPluginImpl_handleAutoscrollModeClick
-shared-call Lapp/hushgram/extension/instagram/reels/ReelAutoScroll;->chosen(I)V in instance (Landroidx/fragment/app/FragmentActivity;Lcom/instagram/common/session/UserSession;L*;Lkotlin/jvm/functions/Function0;IJZ)V holding android_purge_26_q3_ClipsOptInAutoscrollPluginImpl_handleAutoscrollModeClick
+start-call Lapp/hushgram/extension/instagram/reels/ReelAutoScroll;->chosen(I)V in instance (Landroidx/fragment/app/FragmentActivity;Lcom/instagram/common/session/UserSession;L*;Lkotlin/jvm/functions/Function0;IJZ)V pooled holding instagram_clips_viewer_autoplay_tap
+shared-call Lapp/hushgram/extension/instagram/reels/ReelAutoScroll;->chosen(I)V in instance (Landroidx/fragment/app/FragmentActivity;Lcom/instagram/common/session/UserSession;L*;Lkotlin/jvm/functions/Function0;IJZ)V pooled holding instagram_clips_viewer_autoplay_tap
 shared-call Lapp/hushgram/extension/instagram/reels/ReelAutoScroll;->saved(I)Z in static (L*;)Z class-holding preference_clips_auto_scroll_enabled
-shared-call Lapp/hushgram/extension/instagram/reels/ReelAutoScroll;->answer(I)Z in instance (*)L*; holding android_purge_26_q3_VideoPlaybackUseCase_getUiState
-shared-call Lapp/hushgram/extension/instagram/reels/ReelAutoScroll;->answer(I)Z in instance (Landroid/os/Bundle;)V holding android_purge_26_q2_ClipsPiPFragment_onCreate
-once-call Lapp/hushgram/extension/instagram/reels/ReelAutoScroll;->stored(I)V in instance (Landroidx/fragment/app/FragmentActivity;Lcom/instagram/common/session/UserSession;L*;Lkotlin/jvm/functions/Function0;IJZ)V sites 2 holding android_purge_26_q3_ClipsOptInAutoscrollPluginImpl_handleAutoscrollModeClick
+shared-call Lapp/hushgram/extension/instagram/reels/ReelAutoScroll;->answer(I)Z in instance (*)L*; holding const:0x8108f0000a331b const:0x810237000b07d9
+shared-call Lapp/hushgram/extension/instagram/reels/ReelAutoScroll;->answer(I)Z in instance (Landroid/os/Bundle;)V pooled holding clips_pip_fragment
+once-call Lapp/hushgram/extension/instagram/reels/ReelAutoScroll;->stored(I)V in instance (Landroidx/fragment/app/FragmentActivity;Lcom/instagram/common/session/UserSession;L*;Lkotlin/jvm/functions/Function0;IJZ)V sites 2 pooled holding instagram_clips_viewer_autoplay_tap
 once-call Lapp/hushgram/extension/instagram/reels/ReelAutoScroll;->timerSet(J)V in instance ()Ljava/lang/Object; calling static Ljava/lang/System;->currentTimeMillis()J sites 3 holding Landroidx/compose/foundation/lazy/LazyListState;->A02()LX/*; const:0x36ee80 const:0x5265c00
-# The auto scroller's constructor (048m.<init> on 453.0.0.57.79's 385914557, the one method holding
-# the scroll buffer marker below, loaded straight on all eight 453 builds) keeps the server switch
+# The auto scroller's constructor (0AMZ.<init> on 456's 386214574, the one method loading the scroll
+# buffer flag below) keeps the server switch
 # that lets its progress ticks move on before a reel loops, then the lead time clamped to 10..400 ms.
 # Each write is handed through its hook first, ReelAutoScroll.lead for the switch and leadTime for
 # the time, at the write's control flow label so the clamp's branches to the time's write land on
 # it (#473). Left out, the reel starts over before the next one slides in; twice or elsewhere, it
 # isn't the hook the patch wrote.
-once-call Lapp/hushgram/extension/instagram/reels/ReelAutoScroll;->lead(I)Z in instance (*)V holding android_purge_26_q2_ClipsViewerExperimentUtil_getAutoscrollScrollBufferMs
-once-call Lapp/hushgram/extension/instagram/reels/ReelAutoScroll;->leadTime(I)I in instance (*)V holding android_purge_26_q2_ClipsViewerExperimentUtil_getAutoscrollScrollBufferMs
+once-call Lapp/hushgram/extension/instagram/reels/ReelAutoScroll;->lead(I)Z in instance (*)V holding const:0x8208f0000c13eb
+once-call Lapp/hushgram/extension/instagram/reels/ReelAutoScroll;->leadTime(I)I in instance (*)V holding const:0x8208f0000c13eb
 # Move on when a reel ends (#175) is for accounts Instagram offers no auto scroll to. There the Reels
 # viewer builds no scroller, so its one read of whether auto scroll is offered passes through
 # ReelAutoScroll.install right after it, in front of the branch that skips building the scroller. The
-# builder is the one static method taking a Context first that loads the trace section below, on all
-# seven 450 builds. The check it reads and the menus that read it too call install nowhere. Left out,
+# builder is the one static method that loads the trace section below: the Reels viewer's setup on
+# 456's arm64 and x86 builds, the scroller's own static factory on the armeabi-v7a one. The check it reads and the menus that read it too call install nowhere. Left out,
 # the switch does nothing where Instagram offers no auto scroll. Twice or elsewhere, it isn't the hook
 # the patch wrote.
-once-call Lapp/hushgram/extension/instagram/reels/ReelAutoScroll;->install(I)Z in static (Landroid/content/Context;*)V holding ClipsViewerFragment.onCreate:clipsAutoScroller
+once-call Lapp/hushgram/extension/instagram/reels/ReelAutoScroll;->install(I)Z in static (*)* pooled holding ClipsViewerFragment.onCreate:clipsAutoScroller
 #
 # Stop Reels scrolling hands the Reels pager to ReelScrolling.pager right after the Reels viewer's
 # pager setup stores it (04QD.HRh on 452, the one method holding the setup marker below; 453

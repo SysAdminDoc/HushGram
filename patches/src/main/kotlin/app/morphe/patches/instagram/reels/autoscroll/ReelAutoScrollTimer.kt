@@ -9,9 +9,7 @@ import app.morphe.patcher.patch.PatchException
 import app.morphe.patches.instagram.misc.extension.classesCalling
 import app.morphe.patches.instagram.misc.extension.classesHolding
 import app.morphe.patches.instagram.misc.extension.jumpTargets
-import app.morphe.patches.instagram.misc.extension.markers
 import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
-import app.morphe.patches.instagram.misc.extension.typesMarked
 import app.morphe.patches.instagram.misc.settings.EXTENSION_ROOT
 import app.morphe.util.ControlFlow
 import com.android.tools.smali.dexlib2.AccessFlags
@@ -34,7 +32,6 @@ import java.util.BitSet
 
 internal const val AUTOSCROLL_EXPIRATION = "preference_clips_auto_scroll_expiration_timestamp"
 internal const val AUTOSCROLL_EXPIRATION_GETTER = "getClipsAutoscrollExpirationTimestampMs(Lcom/instagram/preferences/user/UserPreferences;)J"
-internal const val AUTOSCROLL_DURATION_TAP = "ClipsOptInAutoscrollPluginImpl_logDurationTap"
 internal const val AUTO_SCROLL_TIMER_SET = "$REEL_AUTO_SCROLL->timerSet(J)V"
 
 internal class TimerChoices(val method: MethodSite, val keeps: List<Kept>)
@@ -47,21 +44,9 @@ private fun refuseTimer(detail: String): Nothing = throw PatchException("Keep Re
  * through its boxing helper before any hook is written. The setter and zero-reset paths stay stock.
  */
 internal fun BytecodePatchContext.findTimerChoices(check: Method, click: Method, prefs: String): TimerChoices {
-    val timers = mutableListOf<ClassDef>()
-    val callbacks = mutableListOf<Pair<ClassDef, Method>>()
-    val holders = typesMarked(AUTOSCROLL_DURATION_TAP) + classesHolding(AUTOSCROLL_EXPIRATION).map { it.type }
-    classDefForEach { type ->
-        if (type.type !in holders || type.type.startsWith(EXTENSION_ROOT)) return@classDefForEach
-        if (type.methods.any { it.name == "<clinit>" && it.timerCode().any { code -> code.timerString() == AUTOSCROLL_EXPIRATION } }) timers += type
-        type.methods.filter { AUTOSCROLL_DURATION_TAP in it.markers() }.forEach { callbacks += type to it }
-    }
-    // 451 moved the marker out of the callbacks into a static log helper both call (on 385713073
-    // LX/0FiQ->A00), so the callbacks are the methods calling a marked static method too.
-    callbacks.filter { (_, method) -> AccessFlags.STATIC.isSet(method.accessFlags) }.forEach { (_, helper) ->
-        classesCalling(helper.definingClass, helper.name).forEach { caller ->
-            caller.methods.filter { method -> method.timerCode().any { it.timerMethod()?.toString() == helper.toString() } }
-                .forEach { callbacks += caller to it }
-        }
+    val timers = classesHolding(AUTOSCROLL_EXPIRATION).filter { type ->
+        !type.type.startsWith(EXTENSION_ROOT) &&
+            type.methods.any { it.name == "<clinit>" && it.timerCode().any { code -> code.timerString() == AUTOSCROLL_EXPIRATION } }
     }
     val timer = timers.singleOrNull() ?: refuseTimer("expected one expiration preference class, found ${timers.size}")
     if (timer.methods.none { it.name == "<clinit>" && it.timerCode().any { code -> code.timerString() == AUTOSCROLL_EXPIRATION_GETTER } }) {
@@ -71,9 +56,13 @@ internal fun BytecodePatchContext.findTimerChoices(check: Method, click: Method,
         ?: refuseTimer("${timer.type} has no single static expiration setter taking ($prefs" + "J)V")
     val saved = proveExpirationSetter(setter, check)
     if (saved != null) proveBoxedTimestamp(saved)
-    // The cancellation callback holds the same log marker on 449, but never saves an expiration.
-    val savingCallbacks = callbacks.distinctBy { (_, method) -> method.toString() }
-        .filter { (_, method) -> method.timerCode().any { it.timerMethod()?.toString() == setter.toString() } }
+    // The duration choices are the Function0 classes the menu's click makes whose invoke saves an
+    // expiration; the cancellation choice, made there too, never saves one.
+    val made = click.timerCode().filter { it.opcode == Opcode.NEW_INSTANCE }.map { (it as ReferenceInstruction).reference.toString() }.toSet()
+    val savingCallbacks = classesCalling(setter.definingClass, setter.name)
+        .filter { it.type in made && "Lkotlin/jvm/functions/Function0;" in it.interfaces }
+        .flatMap { type -> type.methods.filter { method -> method.timerCode().any { it.timerMethod()?.toString() == setter.toString() } }.map { type to it } }
+        .distinctBy { (_, method) -> method.toString() }
     val (type, callback) = savingCallbacks.singleOrNull() ?: refuseTimer("expected one saving duration callback, found ${savingCallbacks.size}")
     if (callback.name != "invoke" || callback.timerParameters().isNotEmpty() || callback.returnType != "Ljava/lang/Object;" ||
         !callback.concreteTimer() || AccessFlags.STATIC.isSet(callback.accessFlags) || "Lkotlin/jvm/functions/Function0;" !in type.interfaces
@@ -127,11 +116,11 @@ internal fun BytecodePatchContext.findTimerChoices(check: Method, click: Method,
         }
         val value = args[1]
         val max = code.getOrNull(at - 1)
-        val readAt = if (max?.opcode == Opcode.CONST_WIDE && (max as WideLiteralInstruction).wideLiteral == Long.MAX_VALUE &&
+        val valueAt = if (max?.opcode == Opcode.CONST_WIDE && (max as WideLiteralInstruction).wideLiteral == Long.MAX_VALUE &&
             (max as OneRegisterInstruction).registerA == value
         ) {
             kinds += Long.MAX_VALUE
-            at - 3
+            at - 1
         } else {
             val add = code.getOrNull(at - 1) as? TwoRegisterInstruction
             val duration = code.getOrNull(at - 2)
@@ -145,15 +134,22 @@ internal fun BytecodePatchContext.findTimerChoices(check: Method, click: Method,
                 clock.timerArguments().isNotEmpty() || setOf(args[0], value, value + 1, add.registerB, add.registerB + 1).size != 5
             ) refuseTimer("${type.type}'s duration callback doesn't save a proved future time at $at")
             kinds += amount!!
-            at - 6
+            at - 4
         }
+        // The timestamp is worked out in one straight run into the save, with nothing jumping past it.
+        if ((valueAt + 1..at).any { it in targets || flow.normal[it - 1] != listOf(it) }) {
+            refuseTimer("${type.type}'s duration callback doesn't save a proved future time at $at")
+        }
+        // 455 reads and casts the preferences right before each save; 456 does it once, first thing, for all three.
+        val castAt = callback.writesReaching(args[0], at, flow).singleOrNull() ?: -1
+        val readAt = castAt - 1
         val read = code.getOrNull(readAt)
-        val cast = code.getOrNull(readAt + 1)
+        val cast = code.getOrNull(castAt)
         if (read?.opcode != Opcode.IGET_OBJECT || read.timerField()?.toString() != captured.toString() ||
             (read as TwoRegisterInstruction).registerA != args[0] || !callback.receiverAt(read.registerB, readAt) ||
             cast?.opcode != Opcode.CHECK_CAST || (cast as OneRegisterInstruction).registerA != args[0] ||
             (cast as ReferenceInstruction).reference.toString() != prefs || args[0] in value..value + 1 ||
-            (readAt + 1..at).any { it in targets || flow.normal[it - 1] != listOf(it) }
+            castAt in targets || flow.normal[readAt] != listOf(castAt) || flow.exceptional[readAt].isNotEmpty()
         ) refuseTimer("${type.type}'s duration callback doesn't save its captured preferences' timestamp at $at")
         Kept(at + 1, value)
     }
@@ -298,6 +294,32 @@ private fun Method.receiverAt(register: Int, at: Int): Boolean {
         visit(flow.exceptional[index])
     }
     return true
+}
+
+/**
+ * Every instruction that last wrote [register] on some path into instruction [at], walking back from it;
+ * -1 among them when a path reaches the method's start without a write.
+ */
+private fun Method.writesReaching(register: Int, at: Int, flow: ControlFlow): Set<Int> {
+    val code = timerCode()
+    val before = code.indices.associateWith { mutableListOf<Int>() }
+    code.indices.forEach { from -> (flow.normal[from] + flow.exceptional[from]).forEach { to -> before[to]?.add(from) } }
+    val writes = mutableSetOf<Int>()
+    val seen = BitSet()
+    val pending = ArrayDeque(listOf(at))
+    if (at == 0) writes += -1
+    while (pending.isNotEmpty()) {
+        before.getValue(pending.removeFirst()).forEach { from ->
+            if (seen[from]) return@forEach
+            seen.set(from)
+            when {
+                code[from].writesTimerRegister(register) -> writes += from
+                from == 0 -> writes += -1
+                else -> pending += from
+            }
+        }
+    }
+    return writes
 }
 
 private fun Instruction.writesTimerRegister(register: Int): Boolean {
