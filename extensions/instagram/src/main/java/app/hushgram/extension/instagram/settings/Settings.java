@@ -3738,6 +3738,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_photo_reel_seek_bar", FALSE);
 
     /**
+     * Instagram's seek bar stays hidden on every ordinary reel until you hold it (#680): no reel counts as long
+     * enough for the bar that always shows, and each gets the kind a hold brings up
+     * ({@link app.hushgram.extension.instagram.reels.ReelSeekBar#hidden}). A switch above that keeps the bar wins.
+     * Decided as each reel shows, so no restart. Off to start.
+     */
+    public static final BooleanSetting HIDE_REEL_SEEK_BAR =
+            new BooleanSetting("hushgram_hide_reel_seek_bar", FALSE);
+
+    /**
      * The shape of the seek bars on feed videos, stories and reels (#586, #592), one choice for all
      * of them, and of Instagram's own story progress segments and the seek bar of a video opened
      * from a chat (#630), and of the bar Instagram itself puts under a long reel (#689). Those need

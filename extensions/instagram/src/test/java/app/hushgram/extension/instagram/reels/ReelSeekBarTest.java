@@ -112,6 +112,36 @@ public class ReelSeekBarTest {
     }
 
     /**
+     * Hide the seek bar on reels (#680): no reel is long enough for the bar that always shows, even counted in
+     * milliseconds, and every reel gets the kind a hold brings up. A switch that keeps the bar wins, and paused
+     * Instagram's answers stand.
+     */
+    @Test
+    public void hidingItLeavesEveryReelTheBarAHoldBringsUp() {
+        Settings.REEL_SEEK_BAR.save(false);
+        Settings.HIDE_REEL_SEEK_BAR.save(true);
+        try {
+            assertEquals(ReelSeekBar.NO_REEL_SECONDS, ReelSeekBar.minSeconds(30L));
+            assertTrue("still an int in milliseconds", ReelSeekBar.NO_REEL_SECONDS * 1000L <= Integer.MAX_VALUE);
+            assertTrue("longer than an hour-long reel", ReelSeekBar.NO_REEL_SECONDS > 3600L);
+            assertTrue("a short reel the server gave no bar gets the hidden kind", ReelSeekBar.lazy(0));
+            assertTrue(ReelSeekBar.lazy(1));
+
+            Settings.REEL_SEEK_BAR.save(true);
+            assertEquals("Keep a seek bar wins", 1L, ReelSeekBar.minSeconds(30L));
+            assertFalse(ReelSeekBar.lazy(1));
+            Settings.REEL_SEEK_BAR.save(false);
+
+            BaseSettings.PAUSED.save(true);
+            PauseForTests.pause(HushgramPause.Reason.SWITCH);
+            assertEquals("paused, Instagram's length stands", 30L, ReelSeekBar.minSeconds(30L));
+            assertFalse("paused, Instagram's no stands", ReelSeekBar.lazy(0));
+        } finally {
+            Settings.HIDE_REEL_SEEK_BAR.resetToDefault();
+        }
+    }
+
+    /**
      * Always show seek bar in clear mode (#480) keeps the bar on short reels too, since clear mode
      * would otherwise leave them without one, but brings no time label with it.
      */

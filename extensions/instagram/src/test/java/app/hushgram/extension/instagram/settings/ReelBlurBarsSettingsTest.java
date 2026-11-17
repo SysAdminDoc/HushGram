@@ -91,7 +91,8 @@ public class ReelBlurBarsSettingsTest {
         assertTrue(Arrays.toString(keys), bigger >= 0);
         assertEquals("Seek bar like DM videos right after Bigger seek bar on reels", Settings.DM_REEL_SEEK_BAR.key, keys[bigger + 1]);
         assertEquals("Seek bar on photos with music next", Settings.PHOTO_REEL_SEEK_BAR.key, keys[bigger + 2]);
-        assertEquals("right after the seek bar's rows", Settings.BLUR_REEL_BARS.key, keys[bigger + 3]);
+        assertEquals("Hide the seek bar on reels last among them (#680)", Settings.HIDE_REEL_SEEK_BAR.key, keys[bigger + 3]);
+        assertEquals("right after the seek bar's rows", Settings.BLUR_REEL_BARS.key, keys[bigger + 4]);
         assertFalse(row.isChecked());
         assertFalse(Settings.BLUR_REEL_BARS.get());
         assertFalse("the viewer reads the switch as pages settle, so no restart prompt", Settings.BLUR_REEL_BARS.rebootApp);
