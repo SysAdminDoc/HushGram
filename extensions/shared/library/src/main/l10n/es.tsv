@@ -2504,3 +2504,6 @@ No one has viewed half of this period's stories yet.	Nadie ha visto todavía la 
 # context: Feed: switch under Hide the home feed that keeps Instagram from learning which posts in Home you looked at and for how long (#664)
 Don't send feed view history	No enviar el historial de vistas del feed
 Stops telling Instagram which posts in Home you looked at and for how long. Instagram uses that to pick what Home shows. Posts you've seen may come back.	Instagram deja de saber qué publicaciones de Inicio miraste y durante cuánto tiempo. Instagram lo usa para elegir lo que muestra Inicio. Las publicaciones que ya viste pueden volver.
+# context: Tab bar: switch under Hide the Messages tab that takes the unread count off the Messages button on the bottom tab bar (#734)
+Hide the Messages badge	Ocultar el indicador de Mensajes
+Takes the unread count off the Messages button on the tab bar. Chats still show as unread in your inbox, and notifications still come. Restart Instagram to see the change.	Quita el número de no leídos del botón Mensajes de la barra de pestañas. Los chats siguen como no leídos en tu bandeja de entrada y las notificaciones siguen llegando. Reinicia Instagram para ver el cambio.

@@ -6,6 +6,7 @@ Every HushGram release, newest first.
 
 ### Features
 
+* `Hide the Messages badge`, new under Tab bar, takes the unread count off the Messages button in the bottom bar. Chats still show as unread in your inbox and notifications still come. It starts off and takes a restart. Asked for in #734.
 * `Don't send feed view history`, new under Feed, stops Instagram from learning which posts in Home you looked at and for how long, the way `Don't send reel watch history` does for Reels. Posts you've already seen may come back. It starts off, and Ghost mode turns it with its other switches. Asked for in #664.
 * `Ask for VP9 instead of AV1`, new under Downloads, tells Instagram your phone has no AV1 decoder, so reels and stories come as VP9 or H.264. It helps when AV1 saves won't play in your gallery. Asked for in #546.
 * `Keep story viewers`, new under Stories, keeps a list on your phone of who viewed each of your stories, from the viewer list Instagram already shows you. Its page shows who viewed over the last week, month or 90 days and who views most often. With Recent unfollowers on, it also shows which followers have no view recorded. Asked for in #710.

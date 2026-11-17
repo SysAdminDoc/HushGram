@@ -2507,3 +2507,6 @@ No one has viewed half of this period's stories yet.	还没有人看过这段时
 # context: Feed: switch under Hide the home feed that keeps Instagram from learning which posts in Home you looked at and for how long (#664)
 Don't send feed view history	不发送动态首页浏览记录
 Stops telling Instagram which posts in Home you looked at and for how long. Instagram uses that to pick what Home shows. Posts you've seen may come back.	不再向 Instagram 上报你在首页看过哪些帖子以及看了多久。Instagram 会用这些数据挑选首页显示的内容，因此已看过的帖子可能再次出现.
+# context: Tab bar: switch under Hide the Messages tab that takes the unread count off the Messages button on the bottom tab bar (#734)
+Hide the Messages badge	隐藏消息角标
+Takes the unread count off the Messages button on the tab bar. Chats still show as unread in your inbox, and notifications still come. Restart Instagram to see the change.	移除标签栏消息按钮上的未读数。收件箱中的聊天仍显示为未读，通知也照常送达。请重新启动 Instagram 以应用变更.

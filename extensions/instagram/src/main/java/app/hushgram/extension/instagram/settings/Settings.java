@@ -3483,6 +3483,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_messages_tab", FALSE);
 
     /**
+     * The unread count stays off the Messages button of the tab bar (#734). Instagram's tab badge
+     * controller is handed 0 in place of the count and takes the badge away as it does with nothing
+     * unread. Chats still show as unread in the inbox, and notifications still come. Instagram reads
+     * the count again as it starts and as messages come in, so a change takes a restart. Off to start.
+     */
+    public static final BooleanSetting HIDE_MESSAGES_BADGE =
+            new BooleanSetting("hushgram_hide_messages_badge", FALSE, true);
+
+    /**
      * Activity (Instagram's notifications screen, the one the heart on Home's header opens) is put on
      * the tab bar, before Profile, when Instagram's tab list leaves it out (#156). Tab order can move
      * it like any tab. The list is built as Instagram starts, so a change takes a restart. Off to start.

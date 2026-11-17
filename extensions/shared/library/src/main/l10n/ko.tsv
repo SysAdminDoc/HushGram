@@ -2503,3 +2503,6 @@ No one has viewed half of this period's stories yet.	아직 이 기간 스토리
 # context: Feed: switch under Hide the home feed that keeps Instagram from learning which posts in Home you looked at and for how long (#664)
 Don't send feed view history	피드 조회 기록 전송하지 않기
 Stops telling Instagram which posts in Home you looked at and for how long. Instagram uses that to pick what Home shows. Posts you've seen may come back.	홈에서 어떤 게시물을 얼마나 오래 봤는지 Instagram에 알리지 않습니다. Instagram은 이 정보로 홈에 보여 줄 내용을 고릅니다. 이미 본 게시물이 다시 나올 수 있습니다.
+# context: Tab bar: switch under Hide the Messages tab that takes the unread count off the Messages button on the bottom tab bar (#734)
+Hide the Messages badge	메시지 배지 숨기기
+Takes the unread count off the Messages button on the tab bar. Chats still show as unread in your inbox, and notifications still come. Restart Instagram to see the change.	하단바의 메시지 버튼에서 읽지 않은 메시지 수를 없앱니다. 받은 메시지함의 채팅은 계속 읽지 않음으로 표시되고 알림도 그대로 옵니다. 변경 사항을 보려면 Instagram을 다시 시작하세요.

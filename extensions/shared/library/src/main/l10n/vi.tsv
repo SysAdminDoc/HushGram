@@ -2419,3 +2419,6 @@ No one has viewed half of this period's stories yet.	Chưa ai xem một nửa s�
 # context: Feed: switch under Hide the home feed that keeps Instagram from learning which posts in Home you looked at and for how long (#664)
 Don't send feed view history	Không gửi lịch sử xem bảng feed
 Stops telling Instagram which posts in Home you looked at and for how long. Instagram uses that to pick what Home shows. Posts you've seen may come back.	Ngừng báo cho Instagram biết bạn đã xem những bài viết nào trên Trang chủ và xem trong bao lâu. Instagram dùng thông tin đó để chọn nội dung hiển thị trên Trang chủ. Các bài viết đã xem có thể xuất hiện lại.
+# context: Tab bar: switch under Hide the Messages tab that takes the unread count off the Messages button on the bottom tab bar (#734)
+Hide the Messages badge	Ẩn huy hiệu Tin nhắn
+Takes the unread count off the Messages button on the tab bar. Chats still show as unread in your inbox, and notifications still come. Restart Instagram to see the change.	Gỡ số tin chưa đọc khỏi nút Tin nhắn trên thanh tab. Cuộc trò chuyện vẫn hiện là chưa đọc trong hộp thư, và thông báo vẫn đến. Hãy khởi động lại Instagram để thấy thay đổi.

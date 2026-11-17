@@ -2501,3 +2501,6 @@ No one has viewed half of this period's stories yet.	ยังไม่มีใ
 # context: Feed: switch under Hide the home feed that keeps Instagram from learning which posts in Home you looked at and for how long (#664)
 Don't send feed view history	ไม่ส่งประวัติการดูฟีด
 Stops telling Instagram which posts in Home you looked at and for how long. Instagram uses that to pick what Home shows. Posts you've seen may come back.	หยุดส่งข้อมูลให้ Instagram ว่าคุณดูโพสต์ใดในหน้าหลักและดูนานเท่าใด Instagram ใช้ข้อมูลนี้เพื่อเลือกสิ่งที่จะแสดงในหน้าหลัก โพสต์ที่คุณเห็นแล้วอาจวนกลับมาแสดงอีก
+# context: Tab bar: switch under Hide the Messages tab that takes the unread count off the Messages button on the bottom tab bar (#734)
+Hide the Messages badge	ซ่อนป้ายตัวเลขบนปุ่มข้อความ
+Takes the unread count off the Messages button on the tab bar. Chats still show as unread in your inbox, and notifications still come. Restart Instagram to see the change.	นำตัวเลขข้อความที่ยังไม่ได้อ่านออกจากปุ่มข้อความบนแถบแท็บ แชทในกล่องข้อความยังแสดงว่ายังไม่ได้อ่าน และการแจ้งเตือนยังเข้ามาตามปกติ โปรดรีสตาร์ท Instagram เพื่อดูการเปลี่ยนแปลง

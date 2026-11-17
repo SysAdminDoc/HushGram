@@ -68,6 +68,9 @@ final class TabBarCategory {
                 glass.addPreference(toggle(context, Settings.HIDE_MESSAGES_TAB, L10n.t("Hide the Messages tab"),
                         L10n.t("Takes the Messages button off the tab bar. A Messages button on Home's header still "
                                 + "opens your chats, and so do notifications.")));
+                glass.addPreference(toggle(context, Settings.HIDE_MESSAGES_BADGE, L10n.t("Hide the Messages badge"),
+                        L10n.t("Takes the unread count off the Messages button on the tab bar. Chats still show as unread "
+                                + "in your inbox, and notifications still come. Restart Instagram to see the change.")));
                 glass.addPreference(toggle(context, Settings.SHOW_ACTIVITY_TAB, L10n.t("Show the Activity tab"),
                         L10n.t("Puts Activity, the screen the heart opens, on the tab bar before Profile. Tab order can "
                                 + "move it, and Hide notifications on Home's header takes the heart away. "

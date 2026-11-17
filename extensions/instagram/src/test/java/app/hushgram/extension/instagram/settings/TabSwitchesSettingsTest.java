@@ -143,6 +143,28 @@ public class TabSwitchesSettingsTest {
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.HIDE_MESSAGES_TAB.key));
     }
 
+    /** #734: Hide the Messages badge sits under Tab bar right after Hide the Messages tab, starts off and asks for a restart. */
+    @Test public void hideTheMessagesBadgeIsATabBarRowAfterHideTheMessagesTab() throws Exception {
+        open(PatchFamily.REELS_TAB);
+        SwitchPreference toggle = (SwitchPreference) row(Settings.HIDE_MESSAGES_BADGE.key);
+        assertNotNull(toggle);
+        assertEquals("Hide the Messages badge", String.valueOf(toggle.getTitle()));
+        PreferenceGroup section = sectionOf(page.getPreferenceScreen(), toggle);
+        assertEquals("Tab bar", String.valueOf(section.getTitle()));
+        int at = -1;
+        for (int i = 0; i < section.getPreferenceCount(); i++) {
+            if (section.getPreference(i) == toggle) at = i;
+        }
+        assertTrue(at > 0);
+        assertEquals(Settings.HIDE_MESSAGES_TAB.key, section.getPreference(at - 1).getKey());
+        assertFalse(toggle.isChecked());
+        assertEquals(Boolean.FALSE, Settings.HIDE_MESSAGES_BADGE.defaultValue);
+        assertTrue(Settings.HIDE_MESSAGES_BADGE.rebootApp);
+        assertTrue(String.valueOf(toggle.getSummary()).contains("unread count off the Messages button"));
+        assertTrue(PatchFamily.REELS_TAB.switches.stream().anyMatch(setting -> setting.key.equals(Settings.HIDE_MESSAGES_BADGE.key)));
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.HIDE_MESSAGES_BADGE.key));
+    }
+
     @Test public void withoutThePatchThereIsNoTabIconSize() throws Exception {
         open();
         assertNull(row(Settings.TAB_ICON_SIZE.key));

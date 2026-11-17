@@ -2743,6 +2743,14 @@ once-call Lapp/hushgram/extension/instagram/settings/GhostHeaderButton;->drew(La
 # onMeasure is its one (II)V. Left out, the logo moves off the start once the chevron shows; twice or
 # elsewhere, it isn't the hook the patch wrote. HomeHeaderHookTest checks all seven 450 builds.
 once-call Lapp/hushgram/extension/instagram/reels/HomeLogo;->chevronRoom(I)I in instance (II)V holding Landroid/view/View;->getPaddingEnd()I Landroid/view/View;->setPaddingRelative(IIII)V
+# Its Hide the Messages badge switch (#734) hands MessagesBadge.count the unread count the Messages
+# tab's badge controller is about to keep in its int field (01uD.A03 on 456), right before the test
+# that puts the count on the tab button or takes the badge away. The controller is the one instance
+# method taking one object that calls an (int, Long)V method, the tab button's count update, which
+# is the only maker of DefaultMainTab$handleUpdatingBadge$1. Left out, the count stays on the
+# Messages button; twice or elsewhere, it isn't the hook the patch wrote. MessagesBadgeHookTest
+# checks all four 456 builds.
+once-call Lapp/hushgram/extension/instagram/reels/MessagesBadge;->count(I)I in instance (LX/*;)V holding LX/*;->*(ILjava/lang/Long;)V
 # Profile posts as a list hands a profile's posts tab to PostsList.resumed first thing in the tab's
 # onResume (ProfileMediaTabFragment keeps its name and onResume in 450, and onResume is the one ()V
 # method of the class calling an onResume). The class is the only one holding both strings. Left
