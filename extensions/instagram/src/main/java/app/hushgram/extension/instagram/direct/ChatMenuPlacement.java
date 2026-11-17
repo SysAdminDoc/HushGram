@@ -6,10 +6,16 @@ package app.hushgram.extension.instagram.direct;
 
 import android.content.Context;
 import android.graphics.Rect;
+import android.os.SystemClock;
+import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.PopupWindow;
 
 import androidx.annotation.Nullable;
+
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.shared.Logger;
@@ -19,20 +25,37 @@ import app.hushgram.extension.shared.settings.HushgramPause;
 
 /**
  * Where a long press menu opens in your messages (#728). Instagram drops a chat's menu below the
- * chat it was pressed on whenever it fits above the phone's own navigation bar, so a chat low in the
- * list gets a menu over Instagram's tab bar, and a bigger font or a menu with more rows runs it off
- * the bottom with its last rows cut. Instagram's call is taken here instead: a menu that fits between
- * the chat and the tab bar opens there as before, one that doesn't opens above the chat, and one that
- * fits on neither side takes the roomier side at that height and scrolls. Main thread.
+ * view it anchors it to. On 456 that view is the whole Compose list rather than the chat, so the menu
+ * never fits below it and Android pushes it down to the bottom of the screen, over Instagram's tab bar
+ * and, with a bigger font, off the bottom with its last rows cut. Instagram's call is taken here
+ * instead: the menu opens at the pressed chat, below it when it fits above the tab bar, else above it,
+ * else slid in between the status bar and the tab bar, and it only scrolls when it's taller than all of
+ * that. With the list as the anchor, the chat is found from the finger: the long press fires while the
+ * finger is still down, and Compose keeps the last touch it saw on its view. Main thread.
  */
 public final class ChatMenuPlacement {
     /** The id name of Instagram's tab bar, the menu's lower limit while it's on screen. */
     static final String TAB_BAR = "tab_bar";
 
+    /** The view Compose draws a screen in, which keeps the last touch it handled. */
+    static final String COMPOSE_VIEW = "AndroidComposeView";
+
+    /** What the compose view's last touch is reported as when it can't be read. */
+    static final String LAST_TOUCH = "last touch";
+
+    /** A touch older than this isn't the long press that opened the menu. */
+    static final long PRESS_MAX_AGE_MS = 3000;
+
     /** What the report counts each time a menu is moved. */
     static final String COUNT_MOVED = "chat menu kept clear of the tab bar";
 
     static final String WHERE = "chat menu placement";
+
+    /** The compose view class last looked at, and its last-touch field (null when it has none). */
+    @Nullable
+    private static Class<?> touchOwner;
+    @Nullable
+    private static Field touchField;
 
     private ChatMenuPlacement() {
     }
@@ -68,38 +91,126 @@ public final class ChatMenuPlacement {
         int anchorBottom = anchorTop + anchor.getHeight();
         Rect frame = new Rect();
         anchor.getWindowVisibleDisplayFrame(frame);
+        int room = frame.height();
+        int finger = isList(anchorTop, anchorBottom, room) ? finger(anchor, SystemClock.uptimeMillis()) : -1;
+        int[] press = press(anchorTop, anchorBottom, finger, room);
         int bottom = frame.bottom;
+        int barTop = -1;
         View bar = tabBar(anchor);
         if (bar != null) {
             bar.getLocationOnScreen(at);
-            // Only a bar below the chat limits the menu, never one the list runs under.
-            if (at[1] >= anchorBottom) bottom = Math.min(bottom, at[1]);
+            barTop = at[1];
+            // Only a bar below the pressed chat limits the menu, never one the list runs under.
+            if (barTop >= press[1]) bottom = Math.min(bottom, barTop);
         }
-        int[] place = place(height, anchorTop, anchorBottom, frame.top, bottom, popup.getOverlapAnchor(), y);
+        int base = popup.getOverlapAnchor() ? anchorTop : anchorBottom;
+        int[] place = place(height, press[0], press[1], frame.top, bottom, base + y);
         int limit = bottom;
-        Logger.printDebug(() -> "Chat menu: height " + height + ", chat " + anchorTop + "-" + anchorBottom
-                + ", room " + frame.top + "-" + limit + (bar == null ? " (no tab bar)" : "")
-                + (place == null ? ", left below" : ", offset " + place[0] + (place[1] > 0 ? ", height " + place[1] : "")));
-        return place;
+        int tabBar = barTop;
+        Logger.printDebug(() -> "Chat menu: height " + height + ", anchor " + anchorTop + "-" + anchorBottom
+                + ", pressed " + press[0] + "-" + press[1] + (finger < 0 ? "" : " (finger)")
+                + ", room " + frame.top + "-" + limit + (tabBar < 0 ? " (no tab bar)" : " (tab bar " + tabBar + ")")
+                + (place == null ? ", left where Instagram put it" : ", top " + place[0] + (place[1] > 0 ? ", height " + place[1] : "")));
+        return place == null ? null : new int[]{place[0] - base, place[1]};
+    }
+
+    /** Whether an anchor this tall is the whole list rather than one chat. */
+    static boolean isList(int anchorTop, int anchorBottom, int room) {
+        return anchorBottom - anchorTop > room / 2;
     }
 
     /**
-     * Where a menu [height] tall goes for a chat spanning [anchorTop]-[anchorBottom] on screen, with
-     * room from [top] to [bottom]. [overlap] is the menu's overlap-anchor flag and [y] Instagram's own
-     * offset. Answers null when Instagram's placement already fits, else the offset to pass in its
-     * place and the height to set first, 0 to keep the height.
+     * The pressed part of the screen, top and bottom: the chat when Instagram anchors the menu to
+     * it, the finger's spot when it anchors it to the whole list, and the list's top when the finger
+     * can't be found ([finger] -1), so the menu still opens at the top rather than the bottom.
+     */
+    static int[] press(int anchorTop, int anchorBottom, int finger, int room) {
+        if (!isList(anchorTop, anchorBottom, room)) return new int[]{anchorTop, anchorBottom};
+        if (finger >= anchorTop && finger <= anchorBottom) return new int[]{finger, finger};
+        return new int[]{anchorTop, anchorTop};
+    }
+
+    /**
+     * The top on screen and height (0 keeps it) for a menu [height] tall, pressed at
+     * [pressTop]-[pressBottom], with room from [top] to [bottom]. [stockTop] is where Instagram's
+     * own call puts the menu's top. Answers null when Instagram's spot already fits.
      */
     @Nullable
-    static int[] place(int height, int anchorTop, int anchorBottom, int top, int bottom, boolean overlap, int y) {
-        // The offset counts from the chat's bottom, or its top while the menu overlaps it.
-        int base = overlap ? anchorTop : anchorBottom;
-        int below = bottom - (base + y);
-        if (height <= below) return null;
-        int above = anchorTop - top;
-        if (height <= above) return new int[]{anchorTop - height - base, 0};
-        if (below >= above) return below > 0 ? new int[]{y, below} : null;
-        if (above <= 0) return null;
-        return new int[]{top - base, above};
+    static int[] place(int height, int pressTop, int pressBottom, int top, int bottom, int stockTop) {
+        if (bottom <= top) return null;
+        if (stockTop >= top && stockTop + height <= bottom) return null;
+        if (height > bottom - top) return new int[]{top, bottom - top};
+        if (pressBottom >= top && pressBottom + height <= bottom) return new int[]{pressBottom, 0};
+        if (pressTop <= bottom && pressTop - height >= top) return new int[]{pressTop - height, 0};
+        // It fits on screen but on neither side of the chat: slide it in over the chat's roomier edge.
+        return bottom - pressBottom >= pressTop - top ? new int[]{bottom - height, 0} : new int[]{top, 0};
+    }
+
+    /** Where the finger is on screen during the long press, from the compose view's last touch, or -1. */
+    private static int finger(View anchor, long now) {
+        View compose = composeView(anchor, 2);
+        if (compose == null) return -1;
+        Field field = touchField(compose.getClass());
+        if (field == null) return -1;
+        try {
+            return fingerY((MotionEvent) field.get(compose), now);
+        } catch (IllegalAccessException failure) {
+            return -1;
+        }
+    }
+
+    /** The screen height of a touch that is still the long press (down, moving or just lifted), or -1. */
+    static int fingerY(@Nullable MotionEvent touch, long now) {
+        if (touch == null || now - touch.getEventTime() > PRESS_MAX_AGE_MS) return -1;
+        switch (touch.getActionMasked()) {
+            case MotionEvent.ACTION_DOWN:
+            case MotionEvent.ACTION_MOVE:
+            case MotionEvent.ACTION_UP:
+            case MotionEvent.ACTION_POINTER_DOWN:
+            case MotionEvent.ACTION_POINTER_UP:
+                return Math.round(touch.getRawY());
+            default:
+                return -1;
+        }
+    }
+
+    /** The compose view at or under [view], at most [depth] levels down. */
+    @Nullable
+    static View composeView(View view, int depth) {
+        if (COMPOSE_VIEW.equals(view.getClass().getSimpleName())) return view;
+        if (depth <= 0 || !(view instanceof ViewGroup)) return null;
+        ViewGroup group = (ViewGroup) view;
+        for (int i = 0; i < group.getChildCount(); i++) {
+            View found = composeView(group.getChildAt(i), depth - 1);
+            if (found != null) return found;
+        }
+        return null;
+    }
+
+    /** The compose view's one MotionEvent field, the last touch it handled; null when it has none or several. */
+    @Nullable
+    static Field touchField(Class<?> type) {
+        if (type == touchOwner) return touchField;
+        Field found = null;
+        int count = 0;
+        for (Field field : type.getDeclaredFields()) {
+            if (field.getType() != MotionEvent.class || Modifier.isStatic(field.getModifiers())) continue;
+            found = field;
+            count++;
+        }
+        if (count == 1) {
+            found.setAccessible(true);
+        } else {
+            found = null;
+            if (count == 0) {
+                HookStatus.missingMember(FamilyNames.PREVIEW_CHATS, "field", type.getName(), LAST_TOUCH);
+            } else {
+                HookStatus.ambiguous(FamilyNames.PREVIEW_CHATS, "field", type.getName(), LAST_TOUCH, count);
+            }
+        }
+        touchOwner = type;
+        touchField = found;
+        return found;
     }
 
     /** Instagram's tab bar in the menu's window, while it's showing. */
