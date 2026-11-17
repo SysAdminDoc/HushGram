@@ -1502,8 +1502,12 @@ once-call Lapp/hushgram/extension/instagram/stories/StoriesTray;->midcard(Ljava/
 # so that literal picks it. HideMusicCardHookTest still checks on every declared fixture that the flag has
 # one read, in a check of the session asked by code that casts to the class holding
 # MusicMidcardRepository. Left out, the card keeps coming; twice or elsewhere, it isn't the answer
-# the patch wrote.
+# the patch wrote. 456 also copies the check into the stories viewer's two list filters
+# (ReelViewerFragment.A1g(List)Z and 0MbB.A04(List)V on 386214574), each reading the same literal,
+# and the patch answers those reads too.
 once-call Lapp/hushgram/extension/instagram/stories/StoriesTray;->musicCard(I)Z in static (Lcom/instagram/common/session/UserSession;)Z holding const:0x810c3e000145aa
+once-call Lapp/hushgram/extension/instagram/stories/StoriesTray;->musicCard(I)Z in instance (Ljava/util/List;)Z holding const:0x810c3e000145aa
+once-call Lapp/hushgram/extension/instagram/stories/StoriesTray;->musicCard(I)Z in instance (Ljava/util/List;)V holding const:0x810c3e000145aa
 #
 # Hide Suggested for you between stories reads a story item's netego type and asks
 # StoriesTray.netego(String)Z first thing in the viewer's static check of an ad or a netego (05hZ.A07

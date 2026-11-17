@@ -106,32 +106,41 @@ class HideMusicCardHookTest {
     }
 
     /**
-     * In each declared build the flag's one read is a check of the session, asked by code that
+     * In each declared build one read of the flag is a check of the session, asked by code that
      * casts to the music midcard repository, and it's answered. On 451's 385713073 that's
-     * LX/06yB.A00, asked by the code that adds the card to the viewer's list.
+     * LX/06yB.A00, asked by the code that adds the card to the viewer's list. 456 also copies the
+     * check into the viewer's two list filters (ReelViewerFragment.A1g and 0MbB.A04 on 386214574),
+     * each handed only the list, and those reads are answered too.
      */
     @Test
     fun eachDeclaredBuildHidesTheCard() {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
         // The declared build and the other builds of the version, each compiled on its own.
         val bundles = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } } + Fixtures.otherBuilds()
-        assertEquals("every 452 build: ${bundles.map { it.name }}", Fixtures.BUILDS, bundles.size)
+        assertEquals("every 456 build: ${bundles.map { it.name }}", Fixtures.BUILDS, bundles.size)
         for (bundle in bundles) {
-            val loaders = mutableMapOf<String, String>()
+            val loaders = mutableMapOf<String, List<Method>>()
             val holders = mutableListOf<ClassDef>()
             FixtureDex.forEach(bundle) { dex ->
                 for (classDef in dex.classes) {
                     val loads = classDef.methods.filter { it.loadsTheFlag() }
-                    if (loads.isNotEmpty()) loaders[classDef.type] = loads.joinToString { it.name }
+                    if (loads.isNotEmpty()) loaders[classDef.type] = loads.map(ImmutableMethod::of)
                     if (loads.isNotEmpty() || classDef.methods.any { it.holds(MUSIC_CARD_REPOSITORY) }) holders += ImmutableClassDef.of(classDef)
                 }
             }
-            assertEquals("${bundle.name}: classes loading $flagHex: $loaders", 1, loaders.size)
-            val gateType = loaders.keys.single()
-            val gateName = loaders.values.single()
+            val names = loaders.mapValues { (_, loads) -> loads.joinToString { it.name } }
+            val loads = loaders.flatMap { (type, methods) -> methods.map { type to it } }
+            val checks = loads.filter { (_, method) -> method.parameterTypes.map(CharSequence::toString) == listOf(session) }
+            assertEquals("${bundle.name}: checks of the session loading $flagHex: $names", 1, checks.size)
+            val (gateType, gate) = checks.single()
+            val gateName = gate.name
+            for ((type, method) in loads - checks.toSet()) {
+                assertEquals("${bundle.name}: what $type->${method.name} is handed", listOf("Ljava/util/List;"),
+                    method.parameterTypes.map(CharSequence::toString))
+            }
             FixtureDex.forEach(bundle) { dex ->
                 for (classDef in dex.classes) {
-                    if (classDef.type != gateType && classDef.methods.any { m -> m.code().any { it.calls(gateType, gateName) } }) {
+                    if (classDef.type !in loaders && classDef.methods.any { m -> m.code().any { it.calls(gateType, gateName) } }) {
                         holders += ImmutableClassDef.of(classDef)
                     }
                 }
@@ -142,9 +151,13 @@ class HideMusicCardHookTest {
             context.hideMusicCard()
 
             assertEquals("${bundle.name}: the check", "$gateType->$gateName", "${read.type}->${read.name}")
-            val patched = context.mutableClassDefBy(read.type).methods
-            assertAnswered(bundle.name, patched.single { it.name == read.name && it.parameterTypes.map(CharSequence::toString) == listOf(session) })
-            assertEquals("${bundle.name}: methods hooked", 1, patched.count { m -> m.code().any { it.referenceText() == MUSIC_CARD } })
+            for ((type, method) in loads) {
+                val patched = context.mutableClassDefBy(type).methods
+                assertAnswered("${bundle.name}: $type->${method.name}", patched.single {
+                    it.name == method.name && it.parameterTypes.map(CharSequence::toString) == method.parameterTypes.map(CharSequence::toString)
+                })
+                assertEquals("${bundle.name}: methods hooked in $type", 1, patched.count { m -> m.code().any { it.referenceText() == MUSIC_CARD } })
+            }
         }
     }
 
