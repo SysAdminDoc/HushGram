@@ -10,6 +10,7 @@ import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patches.instagram.download.USER
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.instagram.misc.extension.classesLoading
 import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.patchLog
 import app.morphe.util.getFreeRegisterProvider
@@ -34,7 +35,17 @@ internal const val GIF_REPLY_STATUS = "commentGifReply"
 internal const val GIF_REPLY_SELECTING = "$COMMENT_GIF_REPLY->selecting($OBJECT$OBJECT$STRING$STRING)V"
 /** Compose's source label on the quick reply bar, whose GIF button carries Instagram's own GIF label and icon. */
 internal const val REPLY_BAR ="com.instagram.quicksnap.viewer.compose.QuickSnapReplyBar ("
+/**
+ * The key the quick reply bar's Compose trace starts with. 456 logs the key without [REPLY_BAR]
+ * (`LX/0rcv;->A00` on 386214574), and the key stays put as long as the bar's source does.
+ */
+internal const val REPLY_BAR_TRACE_KEY = 0x90a9935e.toInt()
 private const val ACTIVITY = "Landroid/app/Activity;"
+
+/** Whether [method] starts the quick reply bar's Compose trace with [REPLY_BAR_TRACE_KEY], as 456's bar does. */
+internal fun startsReplyBarTrace(method: Method): Boolean = method.implementation?.instructions?.any {
+    it.opcode == Opcode.CONST && (it as NarrowLiteralInstruction).narrowLiteral == REPLY_BAR_TRACE_KEY
+} == true
 
 /**
  * Reply with a comment's GIF (#402), beside Save comment photo. The hook in the comment screen's
@@ -234,9 +245,11 @@ private val literals = setOf(Opcode.CONST, Opcode.CONST_16, Opcode.CONST_HIGH16,
 /**
  * Instagram's own GIF label and icon, from the quick reply bar's GIF button: a string read of the
  * label's constant, then at once the icon's constant, handed to the icon builder as its resource.
+ * The bar is the class starting its Compose trace, by its label or by its key alone as 456 does.
  */
 private fun BytecodePatchContext.replyBarGif(classes: Map<String, ClassDef>): Pair<Int, Int> {
-    val bar = classDefByStrings(REPLY_BAR, StringComparisonType.STARTS_WITH).map { it.type }.distinct()
+    val keyed = classesLoading(REPLY_BAR_TRACE_KEY.toLong()).filter { type -> type.methods.any(::startsReplyBarTrace) }
+    val bar = (classDefByStrings(REPLY_BAR, StringComparisonType.STARTS_WITH) + keyed).map { it.type }.distinct()
         .mapNotNull { classes[it] }.one("quick reply bar")
     return bar.methods.flatMap { method -> method.code().let { code -> code.indices.mapNotNull { gifButton(method, code, it) } } }
         .distinct().one("quick reply bar's GIF button")

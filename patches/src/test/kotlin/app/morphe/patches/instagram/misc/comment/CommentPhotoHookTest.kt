@@ -668,7 +668,7 @@ class CommentPhotoHookTest {
         gifFixture(bundle).forEach { (type, classDef) -> pool.putIfAbsent(type, classDef) }
         // The GIF reply: the quick reply bar its label and icon come from, the comment screen's Reply
         // target and GIF send, and what a comment's GIF is converted through before it's sent.
-        scan { type -> type.methods.any { method -> method.strings().any { it.startsWith(REPLY_BAR) } } }
+        scan { type -> type.methods.any { method -> startsReplyBarTrace(method) || method.strings().any { it.startsWith(REPLY_BAR) } } }
         val screen = pool.getValue(select.definingClass)
         load((screen.methods.flatMap { it.parameters() } + screen.fields.map { it.type }).filter { it.startsWith("L") })
         load(pool.getValue(GIPHY).methods.map { it.returnType }.filter { it.startsWith("L") })
@@ -680,6 +680,6 @@ class CommentPhotoHookTest {
 
     private companion object {
         /** Instagram's GIF icon and its GIF label on the quick reply bar, read from the declared build's resources. */
-        val GIF_BUTTONS = mapOf("456.0.0.53.78" to (0x7f082660 to 0x7f1370eb))
+        val GIF_BUTTONS = mapOf("456.0.0.53.78" to (0x7f082660 to 0x7f1371a9))
     }
 }
