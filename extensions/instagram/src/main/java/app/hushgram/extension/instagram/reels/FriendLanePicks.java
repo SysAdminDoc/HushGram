@@ -71,8 +71,11 @@ public final class FriendLanePicks {
     /** How many names the list remembers in one run. */
     static final int MOST_SEEN = 500;
 
-    /** The friends the tab has named this run. */
+    /** The friends the tab has named, this run and the ones before it. */
     private static final Set<String> SEEN = Collections.synchronizedSet(new LinkedHashSet<>());
+
+    /** Whether {@link #SEEN} holds the names kept from earlier runs yet. Guarded by SEEN. */
+    private static boolean loaded;
 
     /** Reads what decides an item; the patch-filled stubs below outside tests. */
     interface Reader {
@@ -149,6 +152,7 @@ public final class FriendLanePicks {
             int going = 0;
             int firstReel = -1;
             int at = 0;
+            boolean learned = false;
             for (Object item : items) {
                 if (at >= size) return items;
                 Object media = item == null ? null : reader.media(item);
@@ -165,7 +169,7 @@ public final class FriendLanePicks {
                             String name = clean(friend);
                             if (name == null) continue;
                             anyone = true;
-                            remember(name);
+                            learned |= remember(name);
                             picked |= picks.contains(name);
                         }
                     }
@@ -178,6 +182,7 @@ public final class FriendLanePicks {
                 }
                 at++;
             }
+            if (learned) keepSeen();
             // A list that changed size while it was read isn't one this can rebuild.
             if (at != size || picks.isEmpty() || going == 0) return items;
             if (named == 0) {
@@ -219,6 +224,10 @@ public final class FriendLanePicks {
      * loads, so the viewer always keeps a reel to stand on. Answers [items] itself for any other
      * viewer, before that, when nothing's been picked, when no reel in the list names anyone, when
      * nothing goes, when the switch is off or paused, or when anything goes wrong. Never throws.
+     *
+     * <p>Whatever it answers, the friends a Friends tab list names go on the list the hold opens. A
+     * tab Instagram brings back from its own store never passes through {@link #page}, and that left
+     * the hold with nobody to offer (#503).
      */
     public static List<?> added(List<?> items, String module, int held) {
         return added(items, module, held, PATCHED);
@@ -227,17 +236,25 @@ public final class FriendLanePicks {
     static List<?> added(List<?> items, String module, int held, Reader reader) {
         if (items == null) return null;
         try {
-            if (held <= 1 || !FRIENDS_LANE.equals(module) || !on()) return items;
+            if (!FRIENDS_LANE.equals(module) || !on()) return items;
+            if (held <= 1) {
+                learn(items, reader);
+                return items;
+            }
             int size = items.size();
             FeedFilterCounters.sawList(ADDED_ROUTE, size);
             if (size == 0) return items;
             Set<String> picks = picks();
-            if (picks.isEmpty()) return items;
+            if (picks.isEmpty()) {
+                learn(items, reader);
+                return items;
+            }
 
             boolean[] goes = new boolean[size];
             int named = 0;
             int going = 0;
             int at = 0;
+            boolean learned = false;
             for (Object item : items) {
                 if (at >= size) return items;
                 Object media = item == null ? null : reader.media(item);
@@ -250,7 +267,7 @@ public final class FriendLanePicks {
                             String name = clean(friend);
                             if (name == null) continue;
                             anyone = true;
-                            remember(name);
+                            learned |= remember(name);
                             picked |= picks.contains(name);
                         }
                     }
@@ -262,6 +279,7 @@ public final class FriendLanePicks {
                 }
                 at++;
             }
+            if (learned) keepSeen();
             // A list that changed size while it was read isn't one this can rebuild.
             if (at != size || going == 0) return items;
             if (named == 0) {
@@ -368,6 +386,7 @@ public final class FriendLanePicks {
         Set<String> picks = new TreeSet<>(picks());
         Set<String> others = new TreeSet<>();
         synchronized (SEEN) {
+            load();
             others.addAll(SEEN);
         }
         others.removeAll(picks);
@@ -396,15 +415,54 @@ public final class FriendLanePicks {
         return String.join("\n", names);
     }
 
-    /** Forgets the friends named so far, for tests. */
+    /** Forgets the friends named in this run, as a restart does, for tests. The kept ones stay kept. */
     static void forgetSeen() {
-        SEEN.clear();
+        synchronized (SEEN) {
+            SEEN.clear();
+            loaded = false;
+        }
     }
 
-    private static void remember(String name) {
-        synchronized (SEEN) {
-            if (SEEN.size() < MOST_SEEN) SEEN.add(name);
+    /** Puts the friends a Friends tab list names on the list the hold opens, and nothing else. */
+    private static void learn(List<?> items, Reader reader) {
+        boolean learned = false;
+        for (Object item : items) {
+            Object media = item == null ? null : reader.media(item);
+            Collection<String> friends = media == null ? null : reader.friends(media);
+            if (friends == null) continue;
+            for (String friend : friends) {
+                String name = clean(friend);
+                if (name != null) learned |= remember(name);
+            }
         }
+        if (learned) keepSeen();
+    }
+
+    /** Adds [name] to the friends named, and says whether it's new there. */
+    private static boolean remember(String name) {
+        synchronized (SEEN) {
+            load();
+            return SEEN.size() < MOST_SEEN && SEEN.add(name);
+        }
+    }
+
+    /** Fills {@link #SEEN} with the names kept from earlier runs, once. Holding SEEN's lock. */
+    private static void load() {
+        if (loaded) return;
+        loaded = true;
+        for (String name : parse(Settings.FRIENDS_TAB_SEEN.get())) {
+            if (SEEN.size() >= MOST_SEEN) break;
+            SEEN.add(name);
+        }
+    }
+
+    /** Keeps the friends named for the next run. */
+    private static void keepSeen() {
+        String text;
+        synchronized (SEEN) {
+            text = join(SEEN);
+        }
+        Settings.FRIENDS_TAB_SEEN.save(text);
     }
 
     private static String clean(String name) {

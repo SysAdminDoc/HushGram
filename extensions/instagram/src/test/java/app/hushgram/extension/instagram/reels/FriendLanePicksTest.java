@@ -82,6 +82,7 @@ public class FriendLanePicksTest {
         PauseForTests.resume();
         Settings.PICK_FRIENDS_TAB.save(true);
         Settings.FRIENDS_TAB_PICKS.save("ana\nbo");
+        Settings.FRIENDS_TAB_SEEN.resetToDefault();
         HookStatus.clear();
         FeedFilterCounters.clear();
         FriendLanePicks.forgetSeen();
@@ -99,6 +100,7 @@ public class FriendLanePicksTest {
         HookStatus.clear();
         FeedFilterCounters.clear();
         FriendLanePicks.forgetSeen();
+        Settings.FRIENDS_TAB_SEEN.resetToDefault();
     }
 
     private static List<?> page(List<?> items, String module) {
@@ -264,6 +266,47 @@ public class FriendLanePicksTest {
         Settings.FRIENDS_TAB_PICKS.save("");
         page(Collections.singletonList(new Clip("dee")), LANE);
         assertEquals("picking nothing still fills the list", Arrays.asList("bo", "cy", "dee", "zed"), FriendLanePicks.roster());
+    }
+
+    /** #503: a tab Instagram brings back from its own store only passes through the add. */
+    @Test
+    public void theAddFillsTheListEvenWithNothingPickedOrNothingHeld() {
+        Settings.FRIENDS_TAB_PICKS.save("");
+        List<Clip> items = Arrays.asList(new Clip("zed"), new Clip("Yan"), new Clip((String[]) null));
+        assertSame(items, added(items, LANE, 5));
+        assertEquals(Arrays.asList("yan", "zed"), FriendLanePicks.roster());
+
+        Settings.FRIENDS_TAB_PICKS.save("ana");
+        List<Clip> first = Collections.singletonList(new Clip("cy"));
+        assertSame(first, added(first, LANE, 0));
+        assertEquals(Arrays.asList("ana", "cy", "yan", "zed"), FriendLanePicks.roster());
+
+        added(Collections.singletonList(new Clip("dee")), "clips_viewer_clips_tab", 5);
+        Settings.PICK_FRIENDS_TAB.save(false);
+        added(Collections.singletonList(new Clip("eve")), LANE, 5);
+        Settings.PICK_FRIENDS_TAB.save(true);
+        assertEquals("another viewer or the switch off adds nobody",
+                Arrays.asList("ana", "cy", "yan", "zed"), FriendLanePicks.roster());
+    }
+
+    /** #503: the list the hold opens still has everyone after the app restarts. */
+    @Test
+    public void theFriendsNamedOutlastARestart() {
+        Settings.FRIENDS_TAB_PICKS.save("");
+        page(Arrays.asList(new Clip("cy"), new Clip("dee")), LANE);
+        FriendLanePicks.forgetSeen();
+        assertEquals(Arrays.asList("cy", "dee"), FriendLanePicks.roster());
+
+        View tab = tab();
+        tab.setSelected(true);
+        assertTrue(tab.performLongClick());
+        ShadowLooper.idleMainLooper();
+        AlertDialog dialog = ShadowAlertDialog.getLatestAlertDialog();
+        assertTrue("the kept friends open the list", dialog != null && dialog.isShowing());
+
+        added(Collections.singletonList(new Clip("eve")), LANE, 1);
+        FriendLanePicks.forgetSeen();
+        assertEquals(Arrays.asList("cy", "dee", "eve"), FriendLanePicks.roster());
     }
 
     @Test

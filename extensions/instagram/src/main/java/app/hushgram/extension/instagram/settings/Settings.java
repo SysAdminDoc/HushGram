@@ -3272,6 +3272,13 @@ public class Settings extends BaseSettings {
             new StringSetting("hushgram_friends_tab_picks", "", parent(PICK_FRIENDS_TAB));
 
     /**
+     * The friends the Friends tab has named, one per line, kept so the list the hold opens has them
+     * right after a restart, before a page of reels has loaded (#503). Never shown or backed up.
+     */
+    public static final StringSetting FRIENDS_TAB_SEEN =
+            new StringSetting("hushgram_friends_tab_seen", "", parent(PICK_FRIENDS_TAB));
+
+    /**
      * The Save (bookmark) button in the right-hand column of a reel, and the save count under it
      * when Instagram draws one. Feed posts keep theirs. Off to start.
      */
