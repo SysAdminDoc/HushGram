@@ -16,6 +16,8 @@ import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
+import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
@@ -24,8 +26,8 @@ import java.io.File
 
 /**
  * Hide Meta AI's Blend switch, on each declared build and on every other build of the same
- * Instagram version: one static method decides the Blend invite button and names itself to
- * Instagram's logging, and the check goes in ahead of its first instruction.
+ * Instagram version: one static method decides the Blend invite button and asks the reel's share
+ * eligibility for the Blend surface, and the check goes in ahead of its first instruction.
  */
 class BlendButtonHookTest {
     @Test
@@ -64,17 +66,34 @@ class BlendButtonHookTest {
     @Test
     fun aBuildWithoutTheAnswerClassFailsThePatch() {
         val bundle = Fixtures.otherBuilds().first()
-        val holders = FixtureDex.classesHolding(bundle, BLEND_VISIBILITY).distinctBy { it.type }
-        val context = PatchContexts.of(FixtureDex.withStringPools(bundle, holders))
+        val context = PatchContexts.of(shaped(bundle))
         val refusal = assertThrows(PatchException::class.java) { context.findBlendVisibilityCheck() }
         assertTrue(refusal.message.orEmpty(), refusal.message.orEmpty().contains("is missing"))
     }
 
-    private fun builds(bundle: File, label: String) {
-        val holders = FixtureDex.classesHolding(bundle, BLEND_VISIBILITY).distinctBy { it.type }
-        val seed = FixtureDex.withStringPools(bundle, holders)
+    @Test
+    fun twoChecksFailThePatch() {
+        val bundle = Fixtures.otherBuilds().first()
+        val holders = shaped(bundle)
+        val check = holders.single { holder -> holder.methods.any { it.isBlendVisibilityCheck() } }
+        val copy = ImmutableClassDef(
+            "Lfixture/SecondBlendCheck;", check.accessFlags, check.superclass, check.interfaces, check.sourceFile,
+            check.annotations, check.fields,
+            check.methods.map { ImmutableMethod("Lfixture/SecondBlendCheck;", it.name, it.parameters, it.returnType, it.accessFlags, it.annotations, it.hiddenApiRestrictions, it.implementation) },
+        )
         val answers = holders.flatMap { holder -> holder.methods.map { it.returnType } }.toSet()
-        val patch = PatchContexts.of(seed + FixtureDex.classes(bundle, answers).values.filter { found -> seed.none { it.type == found.type } })
+        val context = PatchContexts.of(holders + copy + FixtureDex.classes(bundle, answers).values.filter { found -> holders.none { it.type == found.type } })
+        val refusal = assertThrows(PatchException::class.java) { context.findBlendVisibilityCheck() }
+        assertTrue(refusal.message.orEmpty(), refusal.message.orEmpty().contains("2 methods decide the Blend invite button"))
+    }
+
+    private fun builds(bundle: File, label: String) {
+        val holders = shaped(bundle)
+        assertTrue("$label: an instance method of the same parameters is in the slice, and isn't the check", holders.any { holder ->
+            holder.methods.any { !AccessFlags.STATIC.isSet(it.accessFlags) && it.parameterTypes.size == 6 && it.parameterTypes[1].toString() == SESSION }
+        })
+        val answers = holders.flatMap { holder -> holder.methods.map { it.returnType } }.toSet()
+        val patch = PatchContexts.of(holders + FixtureDex.classes(bundle, answers).values.filter { found -> holders.none { it.type == found.type } })
         val found = patch.findBlendVisibilityCheck()
         assertEquals("$label: static (reel, session, owner, three flags)", 6, found.parameters.size)
         val before = code(holders, found)
@@ -98,6 +117,16 @@ class BlendButtonHookTest {
         assertEquals("$label: the rest is as it was", before.map { it.opcode }, after.drop(7).map { it.opcode })
     }
 
+    /** The classes with a method taking (object, session, string, three flags), static or not. */
+    private fun shaped(bundle: File): List<ClassDef> {
+        val types = FixtureDex.methodsWhere(bundle, { dex -> dex.typeSection.any { it == SESSION } }) { method ->
+            method.parameterTypes.map(CharSequence::toString).let { parameters ->
+                parameters.size == 6 && parameters[1] == SESSION && parameters[2] == "Ljava/lang/String;" && parameters.drop(3).all { it == "Z" }
+            }
+        }.map { it.definingClass }.toSet()
+        return FixtureDex.classes(bundle, types).values.toList()
+    }
+
     private fun code(holders: List<ClassDef>, found: BlendVisibilityCheck): List<Instruction> =
         holders.single { it.type == found.type }.methods.single {
             it.name == found.name && it.parameterTypes.map(CharSequence::toString) == found.parameters
@@ -106,4 +135,8 @@ class BlendButtonHookTest {
     private fun Method.code(): List<Instruction> = implementation?.instructions?.toList().orEmpty()
 
     private fun Instruction.referenceText(): String? = (this as? ReferenceInstruction)?.reference?.toString()
+
+    private companion object {
+        const val SESSION = "Lcom/instagram/common/session/UserSession;"
+    }
 }

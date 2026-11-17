@@ -1255,10 +1255,12 @@ once-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->museBanner()Z in sta
 # patch wrote.
 start-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->dropsPromotion(Ljava/lang/Object;)Z in instance (Lcom/instagram/common/session/UserSession;L*;)L*; holding fixed_banner_ig social_context_condensed_megaphone_ig inline_editing_standard_megaphone_ig
 once-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->dropsPromotion(Ljava/lang/Object;)Z in instance (Lcom/instagram/common/session/UserSession;L*;)L*; holding fixed_banner_ig social_context_condensed_megaphone_ig inline_editing_standard_megaphone_ig
-# Hide Blend on reels asks MetaAi.blendButton() first in the one static method that logs
-# android_purge_26_q2_BlendButtonVisibilityUtils_computeBlendInviteButtonVisibility (0362.A00 on 450).
-# No rule here, like the Muse card's: BlendButtonHookTest proves the hook on every Instagram 450
-# fixture, the declared bundles and the other 450 folders.
+# Hide Blend on reels asks MetaAi.blendButton() first in the one static method taking (reel, session,
+# owner id, three flags) that asks the reel's share eligibility for surface 0x45 (LX/0BvH;->A00 on
+# 386214574). 456 dropped the purge marker it logged its name with; an instance method of the same
+# parameters sits on every build, and it loads no 0x45.
+start-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->blendButton()Z in static (LX/*;Lcom/instagram/common/session/UserSession;Ljava/lang/String;ZZZ)LX/*; holding const:0x45
+once-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->blendButton()Z in static (LX/*;Lcom/instagram/common/session/UserSession;Ljava/lang/String;ZZZ)LX/*; holding const:0x45
 # Hide the Muse button on your profile asks MetaAi.museButton() just inside the Muse item's branch
 # of the static method ProfileActionBar fills its top bar with (09O4.A03 on 385611438), and a yes
 # goes back to the head of its walk of the items. Its only strings are ", " and an empty one,
