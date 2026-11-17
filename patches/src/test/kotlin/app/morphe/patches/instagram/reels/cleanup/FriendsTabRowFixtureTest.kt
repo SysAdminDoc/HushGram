@@ -124,9 +124,8 @@ class FriendsTabRowFixtureTest {
         else -> instruction.opcode
     }
 
-    private fun rowClasses(bundle: File): List<ClassDef> =
-        (FixtureDex.classesLoading(bundle, FRIEND_LANE_BUTTON) + FixtureDex.classesLoading(bundle, TOP_BAR_STATE))
-            .associateBy { it.type }.values.toList()
+    /** The classes loading [TOP_BAR_STATE], and the pools they ask for it. */
+    private fun rowClasses(bundle: File): List<ClassDef> = FixtureDex.classesLoading(bundle, TOP_BAR_STATE)
 
     private fun Method.code(): List<Instruction> = implementation?.instructions?.toList().orEmpty()
 

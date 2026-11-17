@@ -12,7 +12,6 @@ import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.util.ControlFlow
-import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
@@ -25,15 +24,19 @@ import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 
 private const val PATCH = "Clean up Reels"
 
-/** What Instagram logs as the name of the method that decides a viewer's way to its friends' reels. */
-internal const val FRIEND_LANE_BUTTON = "android_purge_26_q3_ClipsOverlayActionBarUseCase_shouldShowFriendLaneButton"
-
-/** What Instagram logs in the method that builds a viewer's top bar state, which asks [FRIEND_LANE_BUTTON]. */
-internal const val TOP_BAR_STATE = "android_purge_26_q2_ClipsViewerOverlayActionBarDelegateProvider_provide"
+/**
+ * A name the method that builds a viewer's top bar state loads. 456 dropped that method's purge
+ * marker and the friends button's. A few dozen methods load this name, so the builder is the one of
+ * them deciding the tabs the way [friendsRowIn] reads it.
+ */
+internal const val TOP_BAR_STATE = "clipsViewerSession"
 
 internal const val FRIENDS_ROW_HOOK = "$EXTENSION_PACKAGE/reels/ReelsTopBar;->friendsTabAnyway(Ljava/lang/Object;)Z"
 
 private const val VIEWER_CONFIG = "Lcom/instagram/clips/intf/ClipsViewerConfig;"
+
+/** What the friends button's decider takes: the viewer's config, the session and the module's name. */
+private val BUTTON_TAKES = listOf(VIEWER_CONFIG, "Lcom/instagram/common/session/UserSession;", "Ljava/lang/String;")
 private val GOTOS = setOf(Opcode.GOTO, Opcode.GOTO_16, Opcode.GOTO_32)
 
 /**
@@ -52,30 +55,36 @@ internal class FriendsRowSite(
 
 /**
  * Finds the one place the tabs are decided, failing before anything changes when it isn't there.
- * The builder of the top bar's state asks [FRIEND_LANE_BUTTON]. The first branch on that answer goes
- * to `flag = 1`, and the check right after it goes to `flag = 0` when it fails too. Whichever is set
- * ends up in the same read of the viewer's source. The tab builder itself adds Reels and Friends
- * whenever it runs, so this flag is the whole of what decides them on the client.
+ * The builder of the top bar's state loads [TOP_BAR_STATE] and asks the friends button's decider, a
+ * static boolean taking the viewer's config, the session and the module's name. The first branch on
+ * that answer goes to `flag = 1`, and the check right after it goes to `flag = 0` when it fails too.
+ * Whichever is set ends up in the same read of the viewer's source. The tab builder itself adds
+ * Reels and Friends whenever it runs, so this flag is the whole of what decides them on the client.
  */
 internal fun BytecodePatchContext.findFriendsRow(): FriendsRowSite {
-    val button = classesLoadingString(FRIEND_LANE_BUTTON).flatMap { classDef ->
-        classDef.methods.filter { method ->
-            AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "Z" &&
-                method.parameterTypes.firstOrNull()?.toString() == VIEWER_CONFIG && loadsString(method, FRIEND_LANE_BUTTON)
-        }
-    }.singleOrNull() ?: throw PatchException("$PATCH: expected one method deciding the friends button ($FRIEND_LANE_BUTTON)")
+    // A pool's own getter holds every string it pools, so it's left out.
     val sites = classesLoadingString(TOP_BAR_STATE).flatMap { classDef ->
-        classDef.methods.filter { loadsString(it, TOP_BAR_STATE) }.mapNotNull { friendsRowIn(it, button) }
+        classDef.methods.filter { method ->
+            !(method.parameterTypes.map(Any::toString) == listOf("I") && method.returnType == "Ljava/lang/String;") &&
+                loadsString(method, TOP_BAR_STATE)
+        }.flatMap { method ->
+            val code = method.implementation?.instructions?.toList().orEmpty()
+            code.indices.filter { code[it].asksTheButton() }.mapNotNull { call -> friendsRowIn(method, code, call) }
+        }
     }
     return sites.singleOrNull() ?: throw PatchException(
         "$PATCH: expected one place deciding the tabs at the top of Reels from the friends button, found ${sites.size}",
     )
 }
 
-private fun friendsRowIn(method: Method, button: Method): FriendsRowSite? {
-    val code = method.implementation?.instructions?.toList() ?: return null
-    val call = code.indexOfFirst { it.calls(button) }
-    if (call < 0) return null
+/** Whether [this] calls a static boolean taking what the friends button's decider takes. */
+private fun Instruction.asksTheButton(): Boolean {
+    if (opcode != Opcode.INVOKE_STATIC && opcode != Opcode.INVOKE_STATIC_RANGE) return false
+    val called = (this as ReferenceInstruction).reference as? MethodReference ?: return false
+    return called.returnType == "Z" && called.parameterTypes.map(Any::toString) == BUTTON_TAKES
+}
+
+private fun friendsRowIn(method: Method, code: List<Instruction>, call: Int): FriendsRowSite? {
     val result = code.getOrNull(call + 1)?.takeIf { it.opcode == Opcode.MOVE_RESULT } ?: return null
     val answer = (result as OneRegisterInstruction).registerA
     val branch = (call + 2 until code.size).firstOrNull {
@@ -96,12 +105,6 @@ private fun friendsRowIn(method: Method, button: Method): FriendsRowSite? {
     read as TwoRegisterInstruction
     if (read.registerA == read.registerB) return null
     return FriendsRowSite(method, noAt, yes.second, read.registerA, read.registerB, field.toString())
-}
-
-private fun Instruction.calls(target: Method): Boolean {
-    val called = (this as? ReferenceInstruction)?.reference as? MethodReference ?: return false
-    return called.definingClass == target.definingClass && called.name == target.name && called.returnType == target.returnType &&
-        called.parameterTypes.map(Any::toString) == target.parameterTypes.map(Any::toString)
 }
 
 /** A small constant load as its value and register, or null. */
