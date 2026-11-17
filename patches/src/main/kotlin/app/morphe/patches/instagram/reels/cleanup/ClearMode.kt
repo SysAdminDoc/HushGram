@@ -138,7 +138,7 @@ internal fun BytecodePatchContext.keepClearMode() {
  * What [findClearMode] finds, or null with a warning when the build differs, so Clean up Reels goes
  * in without Keep clear mode on rather than not at all. 455's armeabi-v7a build 386113922, an
  * undeclared one, inlines the handler's turn-on into its three callers, which leaves no method for
- * the enter stub to call.
+ * the enter stub to call. 456 does the same on every build and drops all nine markers besides.
  */
 internal fun BytecodePatchContext.findClearModeWhereItFits(): ClearModeHooks? = try {
     findClearMode()
