@@ -20,12 +20,16 @@ import app.morphe.patches.instagram.direct.seen.visualCode
 import app.morphe.patches.instagram.direct.seen.visualReference
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesAccessing
+import app.morphe.patches.instagram.misc.extension.classesCalling
 import app.morphe.patches.instagram.misc.extension.classesCreating
+import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.liveAcrossInjection
+import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.parameterRegister
 import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
 import app.morphe.patches.instagram.misc.extension.uniqueMethod
+import app.morphe.util.ControlFlow
 import app.morphe.util.addInstructionsAtControlFlowLabel
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -54,8 +58,11 @@ internal const val HIDDEN_REDRAW = "$HIDDEN_CHATS->redraw(Ljava/lang/Object;Ljav
 /** The filter for one folder tab's chats, which Instagram counts the tab's unread chats from. */
 internal const val HIDDEN_FOLDER = "$HIDDEN_CHATS->folder(Ljava/util/List;)Ljava/util/List;"
 
-/** The filter for the chats Instagram's unread badge snapshot reads. */
+/** The filter for the chats Instagram's unread badge snapshot reads, before it wraps them (455 and before). */
 internal const val HIDDEN_FILTER = "$HIDDEN_CHATS->filter(Ljava/util/ArrayList;)Ljava/util/ArrayList;"
+
+/** The filter for the chats Instagram's unread badge snapshot reads already wrapped, through the store's helper (456). */
+internal const val HIDDEN_BADGE = "$HIDDEN_CHATS->badge(Ljava/util/List;)Ljava/util/List;"
 private const val HIDDEN_THREAD_ID = "threadId"
 
 /**
@@ -90,7 +97,7 @@ internal object ThreadSummariesFingerprint : Fingerprint(
 )
 
 /**
- * Instagram's unread badge snapshot (00b3.A03 on 450): the one instance call that reads the store's
+ * Instagram's unread badge snapshot up to 455 (00b3.A03 on 450): the one instance call that reads the store's
  * sorted summaries (the reader that takes a filter, a sort, a comparator, a list and a flag), wraps
  * them in an unmodifiable list, and goes on to collect the unread chats' keys in a linked set.
  * Nothing else that reads the store does all three. The store is checked against its readers
@@ -114,21 +121,89 @@ internal object InboxBadgeFingerprint : Fingerprint(
     },
 )
 
-/** The index of the call that reads the store's sorted summaries and wraps the answer, for a method shaped like the unread badge snapshot. */
-internal fun Method.badgeReadAt(): Int? {
+/**
+ * The index of the call that hands a method shaped like the unread badge snapshot the store's sorted
+ * summaries: the reader's own call when the snapshot wraps the answer itself, or the call of one of
+ * [wrappers] (the store's helpers that read and wrap them, see [wrappedSummaryRead]).
+ */
+internal fun Method.badgeReadAt(wrappers: Set<String> = emptySet()): Int? {
     val code = implementation?.instructions?.toList() ?: return null
     if (code.none { (it.visualReference() as? TypeReference)?.type == LINKED_HASH_SET }) return null
     if (code.none { (it.visualReference() as? MethodReference)?.returnType == THREAD_KEY }) return null
     val at = code.indices.filter { index ->
         val call = code[index].visualReference() as? MethodReference
-        index + 2 < code.size && call != null &&
-            (code[index].opcode == Opcode.INVOKE_VIRTUAL || code[index].opcode == Opcode.INVOKE_VIRTUAL_RANGE) &&
-            call.returnType == ARRAY_LIST && call.parameterTypes.size == 5 &&
-            call.parameterTypes[2] == COMPARATOR && call.parameterTypes[3] == "Ljava/util/List;" && call.parameterTypes[4] == "Z" &&
-            code[index + 1].opcode == Opcode.MOVE_RESULT_OBJECT &&
-            code[index + 2].opcode == Opcode.INVOKE_STATIC && code[index + 2].visualReference().toString() == UNMODIFIABLE_LIST
+        index + 2 < code.size && call != null && code[index + 1].opcode == Opcode.MOVE_RESULT_OBJECT && (
+            code[index].readsSortedSummaries() &&
+                code[index + 2].opcode == Opcode.INVOKE_STATIC && code[index + 2].visualReference().toString() == UNMODIFIABLE_LIST ||
+                (code[index].opcode == Opcode.INVOKE_VIRTUAL || code[index].opcode == Opcode.INVOKE_VIRTUAL_RANGE) && call.signature() in wrappers
+            )
     }
     return at.singleOrNull()
+}
+
+/** Whether this calls a reader shaped like the store's sorted summaries reader: a filter, a sort, a comparator, a list and a flag, answering a new list. */
+private fun Instruction.readsSortedSummaries(): Boolean {
+    val call = visualReference() as? MethodReference ?: return false
+    val parameters = call.parameterTypes.map { it.toString() }
+    return (opcode == Opcode.INVOKE_VIRTUAL || opcode == Opcode.INVOKE_VIRTUAL_RANGE) && call.returnType == ARRAY_LIST &&
+        parameters.size == 5 && parameters[2] == COMPARATOR && parameters[3] == LIST && parameters[4] == "Z"
+}
+
+/**
+ * The reader a helper of the store calls when the helper's whole answer is that reader's sorted
+ * summaries wrapped in an unmodifiable list, or null for any other method. 456's unread badge
+ * snapshot reads them through such a helper (006V.A0I on 386214574) instead of calling the reader
+ * and wrapping the answer itself, as 455's did.
+ */
+internal fun Method.wrappedSummaryRead(): MethodReference? {
+    if (AccessFlags.STATIC.isSet(accessFlags) || returnType != LIST) return null
+    val code = implementation?.instructions?.toList() ?: return null
+    if (code.count { it.opcode == Opcode.RETURN_OBJECT } != 1) return null
+    val read = code.indices.singleOrNull { code[it].readsSortedSummaries() } ?: return null
+    if (read + 4 >= code.size || code[read + 1].opcode != Opcode.MOVE_RESULT_OBJECT || code[read + 3].opcode != Opcode.MOVE_RESULT_OBJECT) return null
+    val wrap = code[read + 2]
+    if (wrap.opcode != Opcode.INVOKE_STATIC || wrap.visualReference().toString() != UNMODIFIABLE_LIST) return null
+    if ((wrap as FiveRegisterInstruction).registerC != (code[read + 1] as OneRegisterInstruction).registerA) return null
+    val answer = code[read + 4]
+    if (answer.opcode != Opcode.RETURN_OBJECT || (answer as OneRegisterInstruction).registerA != (code[read + 3] as OneRegisterInstruction).registerA) return null
+    return code[read].visualReference() as MethodReference
+}
+
+/** The unread badge snapshot, the call that hands it the store's sorted summaries, the store's reader behind that call, and the filter for its answer. */
+private class UnreadBadge(val view: MutableMethod, val read: Int, val storeRead: MethodReference, val filter: String)
+
+/**
+ * The unread badge snapshot: up to 455 the one method [InboxBadgeFingerprint] matches, which calls
+ * the store's reader and wraps the answer itself, so the filter goes between the two and is handed
+ * the reader's own list. 456 has a helper of the store read and wrap them ([wrappedSummaryRead]), so
+ * the snapshot is the one method shaped the same way around that helper's call, and the filter goes
+ * right after the call, handed the wrapped list and answering a wrapped one.
+ */
+private fun BytecodePatchContext.findUnreadBadge(store: String, readers: List<Method>): UnreadBadge {
+    val inline = InboxBadgeFingerprint.matchAllOrNull().orEmpty().map { it.method }
+    val wrappers = readers.flatMap { reader ->
+        classesCalling(store, reader.name, reader.parameterTypes.map { it.toString() }, reader.returnType)
+    }.distinctBy { it.type }.flatMap { it.methods }.filter { method ->
+        val read = method.wrappedSummaryRead()
+        read != null && read.definingClass == store && readers.any { it.signature() == read.signature() }
+    }
+    val wrapperSignatures = wrappers.mapTo(HashSet()) { it.signature() }
+    val wrapped = wrappers.flatMap { wrapper ->
+        classesCalling(wrapper.definingClass, wrapper.name, wrapper.parameterTypes.map { it.toString() }, wrapper.returnType)
+    }.distinctBy { it.type }.flatMap { it.methods }.filter { method ->
+        !AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType.startsWith("L") && method.badgeReadAt(wrapperSignatures) != null
+    }
+    val views = (inline + wrapped).distinctBy { it.signature() }
+    val found = views.singleOrNull() ?: refuse(
+        "expected exactly one inbox unread badge in this Instagram build, found " +
+            if (views.isEmpty()) "none" else views.joinToString { "${it.definingClass}->${it.name}" },
+    )
+    val view = mutableClassDefBy(found.definingClass).methods.single { it.signature() == found.signature() }
+    val read = view.badgeReadAt(wrapperSignatures) ?: refuse("the inbox unread badge lost its shape")
+    val call = view.visualCode()[read].visualReference() as MethodReference
+    val wrapper = wrappers.firstOrNull { it.signature() == call.signature() }
+        ?: return UnreadBadge(view, read, call, HIDDEN_FILTER)
+    return UnreadBadge(view, read, wrapper.wrappedSummaryRead()!!, HIDDEN_BADGE)
 }
 
 /** A static call that lists chats and where it returns: the method, the return, and the register its one return hands back. */
@@ -156,6 +231,8 @@ internal class InboxRows(val writes: List<RowsWrite>, val list: FieldReference, 
 internal class HiddenChatTargets(
     val rows: List<RowsWrite>,
     val badge: ListSite,
+    /** The filter for the badge's list: [HIDDEN_FILTER] for the reader's own list, [HIDDEN_BADGE] for one the store's helper wrapped. */
+    val badgeFilter: String,
     val folders: ListSite,
     val bridge: MutableMethod,
     val bridgeBody: String,
@@ -194,10 +271,11 @@ internal fun BytecodePatchContext.findHiddenChatTargets(): HiddenChatTargets {
     requirePublic(summaryType, getter)
     requirePublic(THREAD_KEY, idField)
 
-    val view = uniqueMethod(LOCK_PATCH, "inbox unread badge", InboxBadgeFingerprint)
+    val badge = findUnreadBadge(store, readers)
+    val view = badge.view
     val code = view.visualCode()
-    val read = view.badgeReadAt() ?: refuse("the inbox unread badge lost its shape")
-    val call = code[read].visualReference() as MethodReference
+    val read = badge.read
+    val call = badge.storeRead
     if (call.definingClass != store || readers.none { it.name == call.name && it.parameterTypes == call.parameterTypes }) {
         refuse("the inbox unread badge reads summaries from ${call.definingClass}->${call.name}, not from the thread store's own reader")
     }
@@ -231,7 +309,7 @@ internal fun BytecodePatchContext.findHiddenChatTargets(): HiddenChatTargets {
     }.one("extension's inbox redraw bridge")
     requireFilter()
     return HiddenChatTargets(
-        rows.writes, ListSite(view, after, register), folders, bridge, bridgeBody, redraw, redrawBody(rows),
+        rows.writes, ListSite(view, after, register), badge.filter, folders, bridge, bridgeBody, redraw, redrawBody(rows),
         if (rows.reason == null) 2 else 4, extension,
     )
 }
@@ -361,8 +439,9 @@ private fun BytecodePatchContext.rowsWrite(native: Method, at: Int, starter: Met
     if (value > 15 || holder > 15) refuse("the write of the inbox's list of chats in $where uses v$value and v$holder, past v15")
     if (value in writer.liveAcrossInjection(at + 1)) refuse("$where reads the inbox's list of chats again after it writes it")
     val takesReason = starter.parameters().size == 3
-    val callback = if (takesReason) startCallback(code, at + 1, holder) else null
-    val reasonAt = callback?.let { it.second + 1 } ?: (at + 1)
+    val resumed = unchangedListGuard(writer, code, at + 1, holder, starter.definingClass) ?: (at + 1)
+    val callback = if (takesReason) startCallback(code, resumed, holder) else null
+    val reasonAt = callback?.let { it.second + 1 } ?: resumed
     val loaded = code.getOrNull(reasonAt)?.takeIf {
         takesReason && it.opcode == Opcode.CONST_STRING && (it as OneRegisterInstruction).registerA != holder
     }
@@ -394,6 +473,31 @@ private fun startCallback(code: List<Instruction>, from: Int, holder: Int): Pair
     if (called.definingClass != type || called.name != "<init>" || init.registerC != register) return null
     if (register == holder || (from until madeAt).any { (code[it] as OneRegisterInstruction).registerA == holder }) return null
     return register to madeAt + 1
+}
+
+/**
+ * 456's subscriber skips the redraw when the list it was handed is the one it already had and a
+ * static check of the holder says so (09Rd.accept on 386214574): right after the write, an
+ * `if-eqz` and a call of a static `Z` method of the holder's class taking only the holder, whose
+ * answer an `if-eqz` tests, both jumping past a `return-void` to where the starter's arguments are
+ * built: right after the return on 386214574, a block laid out further down on 386214575. The
+ * index of that jump target, or null when [from] holds no such guard. The guard's registers must
+ * leave [holder] alone.
+ */
+private fun unchangedListGuard(method: Method, code: List<Instruction>, from: Int, holder: Int, holderClass: String): Int? {
+    val test = code.getOrNull(from)?.takeIf { it.opcode == Opcode.IF_EQZ } ?: return null
+    val check = code.getOrNull(from + 1)?.takeIf { it.opcode == Opcode.INVOKE_STATIC } as? FiveRegisterInstruction ?: return null
+    val called = check.visualReference() as? MethodReference ?: return null
+    if (called.definingClass != holderClass || called.returnType != "Z" || called.parameterTypes.map { it.toString() } != listOf(holderClass)) return null
+    if (check.registerCount != 1 || check.registerC != holder) return null
+    val answer = code.getOrNull(from + 2)?.takeIf { it.opcode == Opcode.MOVE_RESULT } as? OneRegisterInstruction ?: return null
+    val tested = code.getOrNull(from + 3)?.takeIf { it.opcode == Opcode.IF_EQZ } as? OneRegisterInstruction ?: return null
+    if (answer.registerA == holder || tested.registerA != answer.registerA || (test as OneRegisterInstruction).registerA == holder) return null
+    if (code.getOrNull(from + 4)?.opcode != Opcode.RETURN_VOID) return null
+    val flow = ControlFlow.of(method)
+    val resumed = flow.normal[from].singleOrNull { it != from + 1 } ?: return null
+    if (flow.normal[from].toSet() != setOf(from + 1, resumed) || flow.normal[from + 3].toSet() != setOf(from + 4, resumed)) return null
+    return resumed
 }
 
 /** The inbox's row factory: a runnable logging [INBOX_ROWS]. */
@@ -466,7 +570,7 @@ internal fun hideChatsFromInbox(targets: HiddenChatTargets) {
             """,
         )
     }
-    for ((site, filter) in listOf(targets.badge to HIDDEN_FILTER, targets.folders to HIDDEN_FOLDER)) {
+    for ((site, filter) in listOf(targets.badge to targets.badgeFilter, targets.folders to HIDDEN_FOLDER)) {
         val register = "v${site.register}"
         site.method.addInstructions(
             site.at,
@@ -481,7 +585,7 @@ internal fun hideChatsFromInbox(targets: HiddenChatTargets) {
 /** Throws unless the extension has the public static filters and the redraw bridge. */
 private fun BytecodePatchContext.requireFilter() {
     val extension = classDefByOrNull(HIDDEN_CHATS) ?: refuse("the extension has no $HIDDEN_CHATS")
-    for ((signature, returns) in listOf(HIDDEN_FILTER to ARRAY_LIST, HIDDEN_INBOX to LIST, HIDDEN_FOLDER to LIST, HIDDEN_REDRAW to "V")) {
+    for ((signature, returns) in listOf(HIDDEN_FILTER to ARRAY_LIST, HIDDEN_BADGE to LIST, HIDDEN_INBOX to LIST, HIDDEN_FOLDER to LIST, HIDDEN_REDRAW to "V")) {
         val name = signature.substringAfter("->").substringBefore("(")
         val parameters = signature.substringAfter("(").substringBefore(")")
         if (extension.methods.none {
@@ -512,15 +616,25 @@ internal const val SEE_ALL_SCREEN = "Linstagram/features/direct/inbox/fragment/D
  * The inbox search's row builder: the one instance call that takes the typed text, a second text,
  * the list of results and the list of sections, and names the chats' context lines in the same
  * method. 455 moves the second text to the end (`LX/0OrO;->A03(String, List, List, String)V` on
- * 386113969); the results are still the first list.
+ * 386113969); the results are still the first list. Redex pools the context lines' name on some
+ * 456 builds (386214562 and 386214575 ask `LX/0000;->A00(I)` for it), so the builder is found by
+ * the string's loaders, pooled or not.
  */
-internal object SearchRowsFingerprint : Fingerprint(
-    returnType = "V",
-    filters = listOf(string("ibc_chats_context_lines")),
-    custom = { method, _ ->
-        !AccessFlags.STATIC.isSet(method.accessFlags) && method.parameters() in SEARCH_ROWS_SHAPES
-    },
-)
+private fun BytecodePatchContext.searchRowBuilder(): MutableMethod {
+    val found = classesLoadingString(SEARCH_CONTEXT_LINES).flatMap { owner ->
+        owner.methods.filter { method ->
+            !AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "V" && method.parameters() in SEARCH_ROWS_SHAPES &&
+                loadsString(method, SEARCH_CONTEXT_LINES)
+        }
+    }
+    val builder = found.singleOrNull() ?: refuse(
+        "expected exactly one inbox search row builder in this Instagram build, found " +
+            if (found.isEmpty()) "none" else found.joinToString { "${it.definingClass}->${it.name}" },
+    )
+    return mutableClassDefBy(builder.definingClass).methods.single { it.signature() == builder.signature() }
+}
+
+private const val SEARCH_CONTEXT_LINES = "ibc_chats_context_lines"
 
 private val SEARCH_ROWS_SHAPES = listOf(listOf(STRING, STRING, LIST, LIST), listOf(STRING, LIST, LIST, STRING))
 
@@ -642,7 +756,7 @@ internal class SearchTargets(
  * and the message matches leave their builder through the filter.
  */
 internal fun BytecodePatchContext.findSearchTargets(): SearchTargets {
-    val rows = uniqueMethod(LOCK_PATCH, "inbox search row builder", SearchRowsFingerprint)
+    val rows = searchRowBuilder()
     if (0 in rows.jumpTargets()) refuse("something jumps back to the inbox search row builder's first instruction")
     val seeAll = uniqueMethod(LOCK_PATCH, "See all search reader", SeeAllRowsFingerprint)
     val cast = seeAll.seeAllListAt() ?: refuse("the See all search reader lost its shape")

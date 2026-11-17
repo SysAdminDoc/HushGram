@@ -199,6 +199,40 @@ public class HiddenChatsTest {
         assertTrue(missing, missing.contains("'folder count filter'"));
     }
 
+    /** 456's badge reads a list the store's helper wrapped: a hidden chat leaves a copy wrapped the same way, counted as the badge's. */
+    @Test
+    public void aWrappedBadgeListLosesItsHiddenChatAndStaysWrapped() {
+        HiddenChats.add(ALICE, "Alice");
+        List<Object> read = Collections.unmodifiableList(list(ALICE, BOB, "7"));
+
+        List<Object> shown = HiddenChats.badge(read);
+
+        assertEquals(Arrays.asList(BOB, "7"), ids(shown));
+        assertEquals("Instagram's own list is untouched", Arrays.asList(ALICE, BOB, "7"), ids(read));
+        boolean refused = false;
+        try {
+            shown.add(BOB);
+        } catch (UnsupportedOperationException expected) {
+            refused = true;
+        }
+        assertTrue("the copy is wrapped as Instagram's was", refused);
+        assertTrue(HookStatus.missing(FamilyNames.MESSAGES_LOCK).toString(), HookStatus.missing(FamilyNames.MESSAGES_LOCK).isEmpty());
+        assertTrue(HookStatus.report().toString(), HookStatus.report().toString().contains("hidden chats left out of the unread badge 1"));
+    }
+
+    @Test
+    public void aWrappedBadgeListWithNoHiddenChatComesBackAsItIs() {
+        List<Object> read = Collections.unmodifiableList(list(ALICE, BOB));
+        assertSame(read, HiddenChats.badge(read));
+        assertNull(HiddenChats.badge(null));
+
+        HiddenChats.add(ALICE, "Alice");
+        List<Object> other = Collections.unmodifiableList(list(BOB, "7"));
+        assertSame("a list with no hidden chat in it", other, HiddenChats.badge(other));
+        List<Object> empty = Collections.emptyList();
+        assertSame(empty, HiddenChats.badge(empty));
+    }
+
     @Test
     public void anEmptyListChangesNothing() {
         ArrayList<Object> inbox = list(ALICE, BOB);

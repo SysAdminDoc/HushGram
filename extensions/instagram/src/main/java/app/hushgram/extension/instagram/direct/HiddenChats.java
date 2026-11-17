@@ -217,6 +217,24 @@ public final class HiddenChats {
         }
     }
 
+    /**
+     * Asked with the thread summaries Instagram's unread badge snapshot has just read, when it reads
+     * them through the thread store's helper that wraps them so nothing can change them (456). A
+     * list with no hidden chat in it comes back as it is. Otherwise a copy without the hidden ones
+     * does, wrapped the same way.
+     */
+    public static List<Object> badge(List<Object> summaries) {
+        try {
+            HookStatus.invoked(FamilyNames.MESSAGES_LOCK);
+            if (summaries == null || summaries.isEmpty()) return summaries;
+            List<Object> shown = without(summaries, ids(), LEFT_OUT_BADGE);
+            return shown == summaries ? summaries : Collections.unmodifiableList(shown);
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.MESSAGES_LOCK, BADGE_FILTER, t);
+            return summaries;
+        }
+    }
+
     /** A new list of the summaries whose chats aren't hidden, in their order. */
     private static ArrayList<Object> shown(List<Object> summaries, Set<String> hidden) {
         ArrayList<Object> shown = new ArrayList<>(summaries.size());

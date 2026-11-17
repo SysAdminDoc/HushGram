@@ -28,6 +28,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
@@ -54,7 +55,7 @@ class HiddenChatHookTest {
         val declared = ExtensionDex.classDef(HIDDEN_CHATS).methods
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
-        for (filter in listOf(HIDDEN_INBOX, HIDDEN_FOLDER, HIDDEN_FILTER)) {
+        for (filter in listOf(HIDDEN_INBOX, HIDDEN_FOLDER, HIDDEN_FILTER, HIDDEN_BADGE)) {
             assertTrue("$filter is not in the extension: $declared", filter.substringAfter("->") in declared)
         }
         assertTrue("no thread summary bridge: $declared", "threadId(Ljava/lang/Object;)Ljava/lang/String;" in declared)
@@ -312,8 +313,12 @@ class HiddenChatHookTest {
     fun aBuildWithoutTheChatKeyFailsThePatch() = refuses("$THREAD_KEY is missing") { it.type != THREAD_KEY }
 
     @Test
-    fun aBuildWithoutTheUnreadBadgeSnapshotFailsThePatch() = refuses("expected exactly one inbox unread badge") { classDef ->
-        classDef.methods.none { it.badgeReadAt() != null }
+    fun aBuildWithoutTheUnreadBadgeSnapshotFailsThePatch() = fixtures { bundle ->
+        val classes = summaryClasses(bundle).values
+        val wrappers = classes.flatMap { it.methods }.filter { it.wrappedSummaryRead() != null }.mapTo(HashSet()) { it.signature() }
+        val context = PatchContexts.of(classes.filter { classDef -> classDef.methods.none { it.badgeReadAt(wrappers) != null } })
+        val refusal = assertThrows(PatchException::class.java) { context.findHiddenChatTargets() }
+        assertTrue("refused for another reason: ${refusal.message}", refusal.message.orEmpty().contains("expected exactly one inbox unread badge"))
     }
 
     @Test
@@ -562,7 +567,7 @@ class HiddenChatHookTest {
             context.mutableClassDefBy(reader.definingClass).methods.single { it.signature() == reader.signature() }
         }
         assertEquals("$name: the store's readers are untouched", readersBefore, readersAfter.map { it.visualCode().map(::text) })
-        val filters = setOf(HIDDEN_INBOX, HIDDEN_FOLDER, HIDDEN_FILTER)
+        val filters = setOf(HIDDEN_INBOX, HIDDEN_FOLDER, HIDDEN_FILTER, HIDDEN_BADGE)
         assertTrue("$name: no store reader calls a filter", readersAfter.none { reader ->
             reader.visualCode().any { instruction -> instruction.visualReference()?.toString()?.let { it in filters } == true }
         })
@@ -612,10 +617,20 @@ class HiddenChatHookTest {
 
         val code = badge.visualCode()
         val at = found.badge.at
-        checkFiltered(name, "unread badge's summaries", code, badgeBefore, found.badge, HIDDEN_FILTER)
-        assertEquals("$name: the store's read comes right before", Opcode.MOVE_RESULT_OBJECT, code[at - 1].opcode)
-        assertEquals("$name: the list is wrapped next",
-            "Ljava/util/Collections;->unmodifiableList(Ljava/util/List;)Ljava/util/List;", code[at + 2].visualReference().toString())
+        checkFiltered(name, "unread badge's summaries", code, badgeBefore, found.badge, found.badgeFilter)
+        assertEquals("$name: the read comes right before", Opcode.MOVE_RESULT_OBJECT, code[at - 1].opcode)
+        val badgeRead = code[at - 2].visualReference() as MethodReference
+        if (found.badgeFilter == HIDDEN_FILTER) {
+            assertTrue("$name: ${badgeRead.signature()} is a store reader", badgeRead.signature() in readerIds)
+            assertEquals("$name: the list is wrapped next",
+                "Ljava/util/Collections;->unmodifiableList(Ljava/util/List;)Ljava/util/List;", code[at + 2].visualReference().toString())
+        } else {
+            // 456 reads them through a helper of the store that calls the reader and wraps its answer.
+            assertEquals("$name: the wrapped list's filter", HIDDEN_BADGE, found.badgeFilter)
+            val helper = classes.values.flatMap { it.methods }.single { it.signature() == badgeRead.signature() }
+            val wrapped = helper.wrappedSummaryRead()
+            assertTrue("$name: ${badgeRead.signature()} wraps a store reader's answer", wrapped != null && wrapped.signature() in readerIds)
+        }
 
         checkFiltered(name, "folder's chats", counter.visualCode(), counterBefore, found.folders, HIDDEN_FOLDER)
 
@@ -658,12 +673,30 @@ class HiddenChatHookTest {
      */
     private fun startAt(code: List<Instruction>, at: Int): Int = reasonAt(code, at).let { if (code.getOrNull(it)?.opcode == Opcode.CONST_STRING) it + 1 else it }
 
-    /** Where 454's reason would be loaded after the write at [at], past the callback built for the starter. */
+    /**
+     * Where 454's reason would be loaded after the write at [at], past the callback built for the
+     * starter and, on 456, past the check that returns early when the list didn't change.
+     */
     private fun reasonAt(code: List<Instruction>, at: Int): Int {
         var next = at + 1
+        val guard = listOf(Opcode.IF_EQZ, Opcode.INVOKE_STATIC, Opcode.MOVE_RESULT, Opcode.IF_EQZ, Opcode.RETURN_VOID)
+        if (guard.indices.all { code.getOrNull(next + it)?.opcode == guard[it] } &&
+            (code[next + 1].visualReference() as MethodReference).returnType == "Z"
+        ) {
+            // Both tests jump to where the starter's arguments are built, laid out anywhere.
+            val resumed = branchTarget(code, next)
+            assertEquals("the guard's second test goes the same way", resumed, branchTarget(code, next + 3))
+            next = resumed
+        }
         if (code.getOrNull(next)?.opcode in setOf(Opcode.CONST_4, Opcode.CONST_16) && code.getOrNull(next + 1)?.opcode == Opcode.NEW_INSTANCE) next++
         if (code.getOrNull(next)?.opcode == Opcode.NEW_INSTANCE && code.getOrNull(next + 1)?.opcode == Opcode.INVOKE_DIRECT) next += 2
         return next
+    }
+
+    /** The index the branch at [at] jumps to. */
+    private fun branchTarget(code: List<Instruction>, at: Int): Int {
+        val offsets = code.runningFold(0) { sum, instruction -> sum + instruction.codeUnits }
+        return offsets.indexOf(offsets[at] + (code[at] as OffsetInstruction).codeOffset)
     }
 
     private fun text(instruction: Instruction): String = when (val reference = instruction.visualReference()) {
@@ -693,7 +726,7 @@ class HiddenChatHookTest {
          */
         private fun searchClasses(bundle: File): Map<String, ClassDef> = searchCached.get(bundle) {
             val classes = mutableMapOf<String, ClassDef>()
-            FixtureDex.classesHolding(bundle, "ibc_chats_context_lines").forEach { classes[it.type] = it }
+            FixtureDex.classesLoading(bundle, "ibc_chats_context_lines").forEach { classes[it.type] = it }
             val readers = FixtureDex.methodsWhere(bundle, { dex -> dex.typeSection.any { it == SEE_ALL_SCREEN } }) { it.seeAllListAt() != null }
             val builders = FixtureDex.methodsWhere(bundle, { dex -> dex.typeSection.any { it == MESSAGE_HIT_THREAD } }) { it.buildsMessageHits() }
             val named = (readers + builders).map { it.definingClass }.toMutableSet()
@@ -772,8 +805,11 @@ class HiddenChatHookTest {
                     method.visualCode().mapNotNullTo(named) { (it.visualReference() as? FieldReference)?.type }
                 }
             }
-            val views = FixtureDex.methodsWhere(bundle, { dex -> dex.typeSection.any { it == "Ljava/util/LinkedHashSet;" } }) { it.badgeReadAt() != null }
-            named += views.map { it.definingClass }
+            // 456's snapshot reads the summaries through a helper of the store that wraps them.
+            val wrappers = FixtureDex.methodsWhere(bundle, { dex -> dex.typeSection.any { it == "Ljava/util/Collections;" } }) { it.wrappedSummaryRead() != null }
+            val wrapperIds = wrappers.mapTo(HashSet()) { it.signature() }
+            val views = FixtureDex.methodsWhere(bundle, { dex -> dex.typeSection.any { it == "Ljava/util/LinkedHashSet;" } }) { it.badgeReadAt(wrapperIds) != null }
+            named += (wrappers + views).map { it.definingClass }
             val rows = rowAnchors(bundle)
             named += (rows.factories + rows.starters + rows.writes.map { it.first }).map { it.definingClass }
             classes += FixtureDex.classes(bundle, named.filter { it.startsWith("L") && it !in classes }.toSet())
