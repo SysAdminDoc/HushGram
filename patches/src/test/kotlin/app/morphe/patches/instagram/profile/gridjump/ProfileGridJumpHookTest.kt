@@ -118,6 +118,12 @@ class ProfileGridJumpHookTest {
         assertEquals("$label: the tab's paging state", rest.state.toString(), steps[7].referenceText())
         assertEquals("$label: its cursor", rest.cursor.toString(), steps[10].referenceText())
         assertEquals("$label: whether it's free", rest.free.toString(), steps[12].referenceText())
+        val asked = steps[12] as FiveRegisterInstruction
+        assertEquals(
+            "$label: the free check gets the state and the false for each of its flags",
+            listOf(3) + List(rest.free.parameterTypes.size) { 6 },
+            listOf(asked.registerC, asked.registerD, asked.registerE).take(asked.registerCount),
+        )
         assertEquals("$label: the hook", JUMP_REST_MAX_ID, steps[15].referenceText())
         assertEquals("$label: the hook once", 1, steps.count { it.referenceText() == JUMP_REST_MAX_ID })
         assertEquals("$label: the request", rest.request.toString(), steps[19].referenceText())

@@ -77,7 +77,8 @@ internal class GridJumpSite(
  * The route the jump borrows from the tagged posts tab. [entry] is the load picking a route for a
  * page. For a user, read through [userId], it asks the [request] with the [session], the user's id
  * and the cursor read through [state], [paging] and [cursor], then hands that to [fetch]. [free] says
- * whether the paging state can load now. The request's path is in [pathRegister] by [pathAt].
+ * whether the paging state can load now, asked with false for each of its one or two flags. The
+ * request's path is in [pathRegister] by [pathAt].
  */
 internal class GridJumpRest(
     val entry: Method,
@@ -209,11 +210,13 @@ private fun BytecodePatchContext.findGridJumpRest(): GridJumpRest {
     val sessions = reads.filter { it.definingClass == host.type && it.type == USER_SESSION }
     val session = sessions.singleOrNull() ?: refuse("expected one read of the session before the request, found ${sessions.size}")
     val pagingClass = classDefByOrNull(paging.type) ?: refuse("this Instagram build has no ${paging.type}")
+    // 455 asks (Z)Z, 456 grew a second flag, (ZZ)Z. With the first flag false both answer whether the
+    // state isn't loading, whatever the second says, so the hook passes false for every flag.
     val frees = pagingClass.methods.filter { method ->
-        method.returnType == "Z" && method.parameterTypes.map { it.toString() } == listOf("Z") &&
+        method.returnType == "Z" && method.parameterTypes.size in 1..2 && method.parameterTypes.all { it.toString() == "Z" } &&
             !AccessFlags.STATIC.isSet(method.accessFlags) && !AccessFlags.PRIVATE.isSet(method.accessFlags)
     }
-    val free = frees.singleOrNull() ?: refuse("expected one (Z)Z on the paging state, found ${frees.size}")
+    val free = frees.singleOrNull() ?: refuse("expected one (Z)Z or (ZZ)Z on the paging state, found ${frees.size}")
 
     val path = request.implementation?.instructions?.toList() ?: refuse("the request has no body")
     val loads = path.indices.filter { stringLoadedAt(path, it) == TAGGED_POSTS_PATH }
@@ -252,7 +255,7 @@ internal fun BytecodePatchContext.applyGridJump(site: GridJumpSite) {
             iget-object v3, v2, ${rest.paging.spelled()}
             iget-object v5, v3, ${rest.cursor.spelled()}
             const/4 v6, 0x0
-            invoke-virtual { v3, v6 }, ${rest.free.spelled()}
+            invoke-virtual { v3${", v6".repeat(rest.free.parameterTypes.size)} }, ${rest.free.spelled()}
             move-result v6
             move/from16 v7, p4
             invoke-static { v2, v1, v7, v5, v6 }, $JUMP_REST_MAX_ID
