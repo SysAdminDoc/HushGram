@@ -3339,20 +3339,18 @@ shared-call Lapp/hushgram/extension/instagram/reels/ReelSkip;->secondsDouble(D)D
 # navigator reads it, so the arrows flash on that side (#691). Left out, a skip shows nothing.
 once-call Lapp/hushgram/extension/instagram/reels/ReelSkip;->skipped(Ljava/lang/Object;)V sites 2 holding const:0x8412170000047b
 # Hide the 2x popup on Reels hands the "2x" label a reel's fast play part builds to FastPlayLabel.label
-# where the part's draw returns it (0Bcw.A0q on 454's 386014758, returning 0Bcw.A00's answer) (#552).
-# Left out, the label shows with the switch on; twice or elsewhere, it isn't the filter the patch wrote.
-# Some builds may ask a string pool for the draw's string, so pool asks count (pooled).
-once-call Lapp/hushgram/extension/instagram/reels/FastPlayLabel;->label(Ljava/lang/Object;)Ljava/lang/Object; in instance (LX/*;)LX/*; pooled holding android_purge_26_q3_ClipsFastPlayComponent_render
-# It also hands each speed lock toast to FastPlayLabel.lockToast in place of its show: "Locked at 2x speed" in
-# the long press navigator's lock call (0AIS.A07 on 454's 386014758) and the one when the lock ends (0AIS.A06)
-# (#702, #552). Left out, the toast shows with the switch on; beside the show, it shows anyway; on another
-# register the hook gets something else. Pool asks count (pooled). Other builds (386014705, 386014714,
-# 386014759, 386014760) fold both toasts into one lambda's invoke() with one show (0241.invoke on
-# 386014759), which both rules pick there, so the shape is any method returning an Object. 455's 386113970
-# keeps a show on each marker's branch of its folded lambda (0241.invoke), so each rule holds the hook to
-# once in place of each show the clean build makes there (sites each).
-sole-call Lapp/hushgram/extension/instagram/reels/FastPlayLabel;->lockToast(Landroid/widget/Toast;)V replacing Landroid/widget/Toast;->show()V in (*)Ljava/lang/Object; sites each pooled holding android_purge_26_q3_ClipsLongPressToFeatureNavigator_showLockUpToast
-sole-call Lapp/hushgram/extension/instagram/reels/FastPlayLabel;->lockToast(Landroid/widget/Toast;)V replacing Landroid/widget/Toast;->show()V in (*)Ljava/lang/Object; sites each pooled holding android_purge_26_q3_ClipsLongPressToFeatureNavigator_showExitLockUpToast
+# where the part's draw returns it (0Er0.A0p on 456's 386214574, tagging its swipe hint and returning
+# 0Er0.A00's answer) (#552). Left out, the label shows with the switch on; twice or elsewhere, it isn't
+# the filter the patch wrote. Pool asks count (pooled).
+once-call Lapp/hushgram/extension/instagram/reels/FastPlayLabel;->label(Ljava/lang/Object;)Ljava/lang/Object; in instance (LX/*;)LX/*; pooled holding swipe_indicator
+# It also hands each speed lock toast to FastPlayLabel.lockToast in place of its show: "Locked at 2x speed" and
+# the one when the lock ends, the only toasts placed at the top center (gravity 0x31) (#702, #552). Left out,
+# the toast shows with the switch on; beside the show, it shows anyway; on another register the hook gets
+# something else. On 456 both are folded into one lambda's invoke(), the only method returning an Object
+# that sets a toast's gravity: 0BR6.invoke on 386214574 shows each on its own branch, 0BPD.invoke on
+# 386214562 and 0BP5.invoke on 386214575 share one show, so the rule holds the hook to once in place of
+# each show the clean build makes there (sites each).
+sole-call Lapp/hushgram/extension/instagram/reels/FastPlayLabel;->lockToast(Landroid/widget/Toast;)V replacing Landroid/widget/Toast;->show()V in (*)Ljava/lang/Object; calling instance Landroid/widget/Toast;->setGravity(III)V sites each holding const:0x31
 # Hide Instagram Plus prompts hands each answer of Instagram's Plus offer check to PlusUpsell.offer
 # right before its three returns (002K.A02 on 454's 386014758, the check every Plus card, menu row and
 # viewer list diamond asks first) (#559). Left out, a return answers yes with the switch on; anywhere

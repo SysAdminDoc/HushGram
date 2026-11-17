@@ -9,6 +9,7 @@ import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.instagram.misc.extension.classesCalling
 import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.filterReturnAt
@@ -21,32 +22,62 @@ import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
-import com.android.tools.smali.dexlib2.iface.reference.StringReference
 
 private const val PATCH = "Hide the 2x popup on Reels"
 internal const val FAST_PLAY_LABEL = "$EXTENSION_PACKAGE/reels/FastPlayLabel;->label(Ljava/lang/Object;)Ljava/lang/Object;"
 
-/** Loaded by the reel's fast play part as it draws (0Bcw.A0q on 454's 386014758). */
-internal const val FAST_PLAY_RENDER = "android_purge_26_q3_ClipsFastPlayComponent_render"
+/** The test tag the reel's fast play part gives its swipe hint as it draws (0Er0.A0p on 456's 386214574). */
+internal const val FAST_PLAY_RENDER = "swipe_indicator"
 
-/** Loaded by the call in it that builds the "2x" label with its arrows and lock icon (0Bcw.A00). */
-internal const val FAST_PLAY_LABEL_RENDER = "android_purge_26_q3_ClipsFastPlayComponent_renderFastPlayLabel"
+/** The tag on the "2x" icon, drawn by the call in it that builds the label with its arrows and lock icon (0Er0.A00). */
+internal const val FAST_PLAY_LABEL_RENDER = "2x_active_icon"
 
 internal const val LOCK_TOAST = "$EXTENSION_PACKAGE/reels/FastPlayLabel;->lockToast(Landroid/widget/Toast;)V"
 
-/** Loaded by the static call that builds and shows the "Locked at 2x speed" toast (0AIS.A07 on 454's 386014758). */
-internal const val LOCK_TOAST_SHOW = "android_purge_26_q3_ClipsLongPressToFeatureNavigator_showLockUpToast"
+private const val TOAST = "Landroid/widget/Toast;"
 
-/** Loaded by the one beside it that shows the toast when the lock ends (0AIS.A06; 0288.invoke holds both on 386014714). */
-internal const val EXIT_LOCK_TOAST_SHOW = "android_purge_26_q3_ClipsLongPressToFeatureNavigator_showExitLockUpToast"
+/**
+ * Where the "Locked at 2x speed" toast and the one when the lock ends sit: top, centered across
+ * (Gravity.TOP | CENTER_HORIZONTAL), loaded as a literal right before the toast's `setGravity`. No
+ * other toast Instagram shows takes it.
+ */
+internal const val LOCK_TOAST_GRAVITY = 0x31
 
-private fun showsAToast(call: MethodReference) =
-    call.definingClass == "Landroid/widget/Toast;" && call.name == "show" &&
-        call.parameterTypes.isEmpty() && call.returnType == "V"
+private val narrowConsts = setOf(Opcode.CONST_4, Opcode.CONST_16, Opcode.CONST)
+
+/** Whether this calls [name] with [parameters] on a Toast. */
+private fun Instruction.callsToast(name: String, parameters: String): Boolean {
+    if (opcode != Opcode.INVOKE_VIRTUAL && opcode != Opcode.INVOKE_VIRTUAL_RANGE) return false
+    val call = (this as ReferenceInstruction).reference as? MethodReference ?: return false
+    return call.definingClass == TOAST && call.name == name && call.returnType == "V" &&
+        call.parameterTypes.joinToString("") { it.toString() } == parameters
+}
+
+/** The registers this call passes, in order. */
+private fun Instruction.callRegisters(): List<Int> = when (this) {
+    is FiveRegisterInstruction -> listOf(registerC, registerD, registerE, registerF, registerG).take(registerCount)
+    is RegisterRangeInstruction -> (startRegister until startRegister + registerCount).toList()
+    else -> emptyList()
+}
+
+/**
+ * Whether the `Toast.show()` at [at] shows a toast placed at [LOCK_TOAST_GRAVITY] right before it: the
+ * instruction ahead sets that same toast's gravity, and the one ahead of that loads the gravity it passes.
+ */
+private fun placedForLock(code: List<Instruction>, at: Int): Boolean {
+    val toast = code[at].callRegisters().singleOrNull() ?: return false
+    val placing = code.getOrNull(at - 1)?.takeIf { it.callsToast("setGravity", "III") }?.callRegisters() ?: return false
+    if (placing.size != 4 || placing[0] != toast) return false
+    val gravity = code.getOrNull(at - 2)?.takeIf { it.opcode in narrowConsts } ?: return false
+    return (gravity as OneRegisterInstruction).registerA == placing[1] &&
+        (gravity as NarrowLiteralInstruction).narrowLiteral == LOCK_TOAST_GRAVITY
+}
 
 /**
  * Keeps the "2x" label off a reel while a held finger plays it faster, and with its own switch the
@@ -78,54 +109,27 @@ val hideReelFastPlayLabelPatch = bytecodePatch(
 internal class LockToastShow(val method: Method, val at: Int, val register: Int)
 
 /**
- * The show of each speed lock toast: for [LOCK_TOAST_SHOW] and [EXIT_LOCK_TOAST_SHOW], the one method
- * loading it, and in it the one call to `Toast.show()`, after its marker. Most builds have a static call
- * for each toast. On others (386014705, 386014714, 386014759 and 386014760) Redex folds both into one
- * lambda's `invoke()` with a single show the two share, and that one show is found once. On 455's
- * 386113970 the folded lambda keeps a show on each marker's branch (0241.invoke), so a method loading
- * both markers may instead show twice, once after each marker and before the next, and both shows are
- * found. Fails before anything changes when any of it isn't so.
+ * The show of each speed lock toast: every `Toast.show()` right after a `setGravity` placing that toast
+ * at [LOCK_TOAST_GRAVITY]. On 456 Redex folds both toasts into one lambda's `invoke()`, which either
+ * shows each on its own branch (0BR6.invoke on 386214574, two shows) or lets the branches meet at one
+ * show the two share (0BPD.invoke on 386214562, 0BP5.invoke on 386214575), so the shows are all in one
+ * method, one or two of them. Any other toast that method shows is left alone. Fails before anything
+ * changes when any of it isn't so.
  */
 internal fun BytecodePatchContext.findLockToasts(): List<LockToastShow> {
-    val markers = listOf(LOCK_TOAST_SHOW, EXIT_LOCK_TOAST_SHOW)
-    val methods = markers.map { marker ->
-        val loading = classesLoadingString(marker).flatMap { it.methods }
-            .filter { method -> method.implementation != null && loadsString(method, marker) }
-        loading.singleOrNull() ?: refuse("expected one speed lock toast loading \"$marker\", found ${loading.size}")
-    }.distinctBy { "${it.definingClass}->${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
-    return methods.flatMap { method ->
-        val where = "${method.definingClass}->${method.name}"
-        val code = method.implementation!!.instructions.toList()
-        val calls = code.indices.filter { at ->
-            (code[at].opcode == Opcode.INVOKE_VIRTUAL || code[at].opcode == Opcode.INVOKE_VIRTUAL_RANGE) &&
-                ((code[at] as ReferenceInstruction).reference as? MethodReference)?.let { showsAToast(it) } == true
-        }
-        val loads = code.indices.filter { index ->
-            ((code[index] as? ReferenceInstruction)?.reference as? StringReference)?.string in markers
-        }
-        if (loads.isEmpty()) refuse("$where asks a string pool for its marker, so where it loads it can't be read")
-        val shows = when {
-            calls.size == 1 -> {
-                if (calls.single() < loads.last()) refuse("$where shows its toast before it loads its marker")
-                calls
-            }
-            loads.map { ((code[it] as ReferenceInstruction).reference as StringReference).string }.toSet().size == 2 -> {
-                // One show on each marker's branch: marker, show, the other marker, its show.
-                val apart = calls.size == 2 && loads.size == 2 && loads[0] < calls[0] && calls[0] < loads[1] && loads[1] < calls[1]
-                if (!apart) refuse("expected $where to show its toast once, or once after each marker, found ${calls.size}")
-                calls
-            }
-            else -> refuse("expected $where to show its toast once, found ${calls.size}")
-        }
-        shows.map { at ->
-            val register = when (val call = code[at]) {
-                is FiveRegisterInstruction -> call.registerC
-                is RegisterRangeInstruction -> call.startRegister
-                else -> refuse("$where's toast show reads no register")
-            }
-            LockToastShow(method, at, register)
-        }
+    val placing = classesCalling(TOAST, "setGravity").flatMap { it.methods }.mapNotNull { method ->
+        val code = method.implementation?.instructions?.toList() ?: return@mapNotNull null
+        val shows = code.indices.filter { at -> code[at].callsToast("show", "") && placedForLock(code, at) }
+        if (shows.isEmpty()) null else Triple(method, code, shows)
     }
+    val (method, code, shows) = placing.singleOrNull() ?: refuse(
+        "expected one method showing a toast placed at gravity 0x${LOCK_TOAST_GRAVITY.toString(16)}, found " +
+            "${placing.size}: ${placing.map { "${it.first.definingClass}->${it.first.name}" }}",
+    )
+    if (shows.size > 2) {
+        refuse("expected ${method.definingClass}->${method.name} to show the speed lock toasts once or once each, found ${shows.size}")
+    }
+    return shows.map { at -> LockToastShow(method, at, code[at].callRegisters().single()) }
 }
 
 /** Hands each speed lock toast to [LOCK_TOAST] in place of showing it, which shows it unless its switch is on. */
