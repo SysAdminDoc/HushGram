@@ -630,10 +630,16 @@ class HideMetaAiHookTest {
         }
         for (page in RESULTS_PAGES + "rows") assertTrue("$name: $page keeps Instagram's answer, kept $kept", kept.any { it == page || it.startsWith("$page->") })
         assertTrue("$name: the results page answered through the extension: $answered", answered.none { where -> RESULTS_PAGES.any { where.startsWith("$it->") } })
-        // 453 reads Home's answer in its top bar setup rather than in MainFeedFragment.
-        val homeBars = classes.values.filter { c -> c.methods.any { it.holdsAll(HOME_BAR_SETUP) } }.map { it.originalName() ?: it.type }
-        for (tab in listOf(listOf("ExploreFragment"), listOf("MainFeedFragment") + homeBars)) {
-            assertTrue("$name: ${tab.first()} doesn't answer through the extension: $answered", answered.any { where -> tab.any { where.startsWith("$it->") } })
+        // 453 reads Home's answer in its top bar setup rather than in MainFeedFragment, for the Meta AI
+        // donut it shows there. 456 dropped that donut (and its ig_meta_ai_donut_imp event), and Home
+        // reads the flag nowhere, so only a build whose bar still logs the donut has a Home answer.
+        val bars = classes.values.filter { c -> c.methods.any { it.holdsAll(HOME_BAR_SETUP) } }
+        val home = listOf("MainFeedFragment") + bars.map { it.originalName() ?: it.type }
+        val donut = bars.any { c -> c.methods.any { it.holdsAll(listOf("ig_meta_ai_donut_imp")) } }
+        assertTrue("$name: ExploreFragment doesn't answer through the extension: $answered", answered.any { it.startsWith("ExploreFragment->") })
+        assertTrue("$name: Home keeps Instagram's answer: $kept", kept.none { where -> home.any { where.startsWith("$it->") } })
+        if (donut) {
+            assertTrue("$name: MainFeedFragment doesn't answer through the extension: $answered", answered.any { where -> home.any { where.startsWith("$it->") } })
         }
     }
 
