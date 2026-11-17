@@ -103,14 +103,19 @@ class StopReelsScrollingHookTest {
     @Test
     fun aBuildThePatchCantReadFailsBeforeAnythingChanges() {
         val stored = "expected $viewerType->onViewCreated to store $pagerField once, found"
+        val switch = "expected one static method of $pagerImpl taking it that reads $pagerField and calls $VIEW_PAGER->$SET_USER_INPUT, found"
+        val setup = "expected one method handed a $view to store $pagerField, found"
         val cases = listOf(
-            classes(switches = 0) to "expected exactly one Reels pager switch holding \"$ENABLE_SCROLLING\" in this Instagram build, found none",
-            classes(switches = 2) to "expected exactly one Reels pager switch holding \"$ENABLE_SCROLLING\" in this Instagram build, found $pagerImpl",
-            classes(switchReadsPager = false) to "expected $pagerImpl->enable to read one $VIEW_PAGER field of its class, found 0",
-            classes(switchSetsInput = false) to "$pagerImpl->enable doesn't call $VIEW_PAGER->$SET_USER_INPUT",
-            classes(viewers = 0) to "expected exactly one Reels pager setup holding \"$PAGER_SETUP\" in this Instagram build, found none",
-            classes(viewers = 2) to "expected exactly one Reels pager setup holding \"$PAGER_SETUP\" in this Instagram build, found Lfixture/",
-            classes(stores = 0) to "$stored 0",
+            classes(lookups = 0) to "expected one method loading \"$PAGER_VIEW_LOOKUP\", found 0",
+            classes(lookups = 2) to "expected one method loading \"$PAGER_VIEW_LOOKUP\", found 2",
+            classes(pagerFields = 2) to "expected $pagerImpl to hold one $VIEW_PAGER field, found 2",
+            classes(switches = 0) to "$switch 0",
+            classes(switches = 2) to "$switch 2",
+            classes(switchReadsPager = false) to "$switch 0",
+            classes(switchSetsInput = false) to "$switch 0",
+            classes(viewers = 0) to "$setup 0",
+            classes(viewers = 2) to "$setup 2",
+            classes(stores = 0) to "$setup 0",
             classes(stores = 2) to "$stored 2",
             classes(busyLocals = true) to "$viewerType->onViewCreated has no local register up to v15 that nothing reads after storing its pager",
             classes(pagerConfigs = 0) to "$pagerImpl holds 0 $VIEWER_CONFIG fields, not one",
@@ -193,8 +198,7 @@ class StopReelsScrollingHookTest {
     }
 
     private fun builds(bundle: File, label: String) {
-        val holders = (FixtureDex.classesHolding(bundle, PAGER_SETUP) + FixtureDex.classesHolding(bundle, ENABLE_SCROLLING))
-            .map { it.type }.toSet()
+        val holders = reelsPagerHolders(bundle)
         val types = holders + VIEW_PAGER + PULL_LAYOUT + VIEWER_CONFIG
         for ((read, classesOf) in listOf("copied" to FixtureDex::classes, "as read" to FixtureDex::classesAsRead)) {
             val what = "${label} ($read)"
@@ -318,12 +322,14 @@ class StopReelsScrollingHookTest {
     // ---- stand-ins shaped like Instagram 449's -------------------------------------------------
 
     /**
-     * The Reels viewer, whose onViewCreated traces the pager's setup, stores the pager in the pager
-     * object's field and keeps using it; the pager object, whose switch reads that field and turns
-     * its input back on; AndroidX's pager, whose setter stores its value; and the pull-down layout
-     * with its two touch handlers.
+     * The Reels viewer, whose onViewCreated is handed a View, stores the pager in the pager object's
+     * field and keeps using it; the pager object, which loads its view lookup's trace name and whose
+     * static switch reads that field and turns its input back on; AndroidX's pager, whose setter
+     * stores its value; and the pull-down layout with its two touch handlers.
      */
     private fun classes(
+        lookups: Int = 1,
+        pagerFields: Int = 1,
         switches: Int = 1,
         switchReadsPager: Boolean = true,
         switchSetsInput: Boolean = true,
@@ -346,9 +352,13 @@ class StopReelsScrollingHookTest {
     ): List<ClassDef> {
         val classes = mutableListOf<ClassDef>()
 
-        val enable = method(pagerImpl, "enable", emptyList(), "V", 2, body = """
-            const-string v0, "$ENABLE_SCROLLING"
+        val lookup = method(pagerImpl, "getViewAtIndex", listOf("I"), "V", 1, body = """
+            const-string v0, "$PAGER_VIEW_LOOKUP"
             invoke-static { v0 }, $trace
+            return-void
+        """)
+        val lookupMethods = (0 until lookups).map { if (it == 0) lookup else ImmutableMethod.of(renamed(lookup, "getViewAtIndexAgain")) }
+        val enable = method(pagerImpl, "enable", listOf(pagerImpl), "V", 2, static = true, body = """
             ${if (switchReadsPager) "iget-object v1, p0, $pagerField" else "const/4 v1, 0x0\ncheck-cast v1, $VIEW_PAGER"}
             if-eqz v1, :done
             const/4 v0, 0x1
@@ -357,15 +367,15 @@ class StopReelsScrollingHookTest {
             return-void
         """)
         val enables = (0 until switches).map { if (it == 0) enable else ImmutableMethod.of(renamed(enable, "enableAgain")) }
-        classes += classDef(pagerImpl, enables, fields = listOf("pager" to VIEW_PAGER) + (0 until pagerConfigs).map { "config$it" to VIEWER_CONFIG })
+        val pagers = (0 until pagerFields).map { if (it == 0) "pager" to VIEW_PAGER else "pager$it" to VIEW_PAGER }
+        classes += classDef(pagerImpl, lookupMethods + enables, fields = pagers + (0 until pagerConfigs).map { "config$it" to VIEWER_CONFIG })
         if (configClass) classes += classDef(VIEWER_CONFIG, emptyList(), fields = (0 until configSources).map { "source$it" to VIEWER_SOURCE })
 
         // v2 holds the pager and is read after the store; v0 and v1 are free there, unless the
         // stand-in keeps every local busy.
         val viewer = { type: String ->
             method(type, "onViewCreated", listOf(view, bundle), "V", if (busyLocals) 3 else 4, body = """
-                const-string v0, "$PAGER_SETUP"
-                invoke-static { v0 }, $trace
+                const/4 v0, 0x0
                 iget-object v1, p0, $type->pagerImpl:$pagerImpl
                 invoke-virtual { p1 }, $view->getRootView()$view
                 move-result-object v2
@@ -485,4 +495,23 @@ class StopReelsScrollingHookTest {
         if (this@describe is NarrowLiteralInstruction) append(" #$narrowLiteral")
         referenceText()?.let { append(" $it") }
     }
+}
+
+/**
+ * The types a slice of [bundle] needs for [reelsPager] and [reelsPagerSetup]: the classes loading
+ * [PAGER_VIEW_LOOKUP] (the pager and any string pool it asks) and every class storing the pager's
+ * [VIEW_PAGER] field.
+ */
+internal fun reelsPagerHolders(bundle: File): Set<String> {
+    val loading = FixtureDex.classesLoading(bundle, PAGER_VIEW_LOOKUP)
+    val fields = loading.flatMap { holder ->
+        holder.fields.filter { it.type == VIEW_PAGER && !AccessFlags.STATIC.isSet(it.accessFlags) }.map { "${holder.type}->${it.name}:$VIEW_PAGER" }
+    }.toSet()
+    val owners = fields.map { it.substringBefore("->") }.toSet()
+    val storers = FixtureDex.methodsWhere(bundle, { dex -> dex.typeSection.any { it in owners } }) { method ->
+        method.implementation?.instructions?.any {
+            it.opcode == Opcode.IPUT_OBJECT && ((it as? ReferenceInstruction)?.reference as? FieldReference)?.toString() in fields
+        } == true
+    }.map { it.definingClass }
+    return loading.map { it.type }.toSet() + storers
 }

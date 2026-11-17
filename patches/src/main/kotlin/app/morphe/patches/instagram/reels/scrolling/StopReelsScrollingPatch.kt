@@ -4,26 +4,26 @@
  */
 package app.morphe.patches.instagram.reels.scrolling
 
-import app.morphe.patcher.Fingerprint
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
 import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
-import app.morphe.patcher.string
 import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.instagram.misc.extension.classesAccessing
+import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.freeLocalsAt
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.liveAcrossInjection
+import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
 import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
 import app.morphe.patches.instagram.misc.extension.requireParameterIntact
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
-import app.morphe.patches.instagram.misc.extension.uniqueMethod
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
@@ -35,7 +35,6 @@ import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
-import com.android.tools.smali.dexlib2.iface.reference.StringReference
 
 private const val PATCH = "Stop Reels scrolling"
 internal const val REEL_SCROLLING = "$EXTENSION_PACKAGE/reels/ReelScrolling;"
@@ -57,11 +56,14 @@ internal const val PULL_LAYOUT = "Linstagram/features/clips/viewer/ui/ClipsSwipe
 /** The layout's two touch handlers, Android's names. */
 internal val PULL_TOUCHES = listOf("onInterceptTouchEvent", "onTouchEvent")
 
-/** The trace name the pager's setup carries. It sits in the viewer's onViewCreated on 451 and in the pager's own setupView on 452. */
-internal const val PAGER_SETUP = "android_purge_26_q3_ClipsViewPagerImpl_setupView"
+/**
+ * The tag the Reels pager's lookup of a page's view loads, a plain string from 456 on, where the
+ * pager's other trace names went (`LX/091c;->EDF` on 386214574).
+ */
+internal const val PAGER_VIEW_LOOKUP = "ClipsViewPagerImpl_getViewAtIndex"
 
-/** The trace name of the Reels pager's own switch that lets a finger move it again. */
-internal const val ENABLE_SCROLLING = "android_purge_26_q3_ClipsViewPagerImpl_enableScrolling"
+/** Android's view, which the pager's setup is handed and the viewer's teardown isn't. */
+private const val ANDROID_VIEW = "Landroid/view/View;"
 
 private const val MOTION_EVENT = "Landroid/view/MotionEvent;"
 
@@ -100,46 +102,50 @@ val stopReelsScrollingPatch = bytecodePatch(
 
 private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $detail")
 
-/** The method that sets the Reels pager up, by the trace name of that setup, whichever class holds it. */
-internal object ReelsViewerSetupFingerprint : Fingerprint(
-    returnType = "V",
-    filters = listOf(string(PAGER_SETUP)),
-    custom = { method, _ -> method.holdsString(PAGER_SETUP) },
-)
-
-/** The Reels pager's switch that lets a finger move it again, by its trace name. */
-internal object ReelsPagerEnableFingerprint : Fingerprint(
-    returnType = "V",
-    parameters = emptyList(),
-    filters = listOf(string(ENABLE_SCROLLING)),
-    custom = { method, _ -> method.holdsString(ENABLE_SCROLLING) },
-)
+/** The Reels pager's class and its [VIEW_PAGER] field, as `Lclass;->name:type`. */
+internal class ReelsPager(val owner: String, val field: String)
 
 /**
- * The code of the Reels pager's switch [enable], followed, when it reads no pager of its class itself,
- * by the code of the one static method of its class taking just that class that it hands itself to.
- * From 455 the switch only sets its flag and leaves the pager's input to that helper
- * (`LX/06Sp;->BEh` calling `LX/06Sp;->A01(LX/06Sp;)V` on 386113969).
+ * The Reels pager: the class of the one method loading [PAGER_VIEW_LOOKUP]. It holds one
+ * [VIEW_PAGER] field, and its switches that stop and free a finger's hold on the pager go through
+ * one static method of the class taking just the class, which reads that field and calls
+ * [SET_USER_INPUT] (`LX/091c;->A01(LX/091c;)V` on 386214574).
  */
-internal fun BytecodePatchContext.reelsPagerSwitchCode(enable: Method): List<Instruction> {
-    val code = enable.instructions()
-    val owner = enable.definingClass
-    fun List<Instruction>.readsPager() = any { instruction ->
-        instruction.opcode == Opcode.IGET_OBJECT && instruction.fieldReference()?.let { it.definingClass == owner && it.type == VIEW_PAGER } == true
+internal fun BytecodePatchContext.reelsPager(refuse: (String) -> Nothing): ReelsPager {
+    val lookups = classesLoadingString(PAGER_VIEW_LOOKUP).sortedBy { it.type }.flatMap { it.methods }
+        .filter { loadsString(it, PAGER_VIEW_LOOKUP) }
+    val lookup = lookups.singleOrNull() ?: refuse("expected one method loading \"$PAGER_VIEW_LOOKUP\", found ${lookups.size}")
+    val owner = lookup.definingClass
+    val pagerClass = classDefBy(owner)
+    val fields = pagerClass.fields.filter { it.type == VIEW_PAGER && !AccessFlags.STATIC.isSet(it.accessFlags) }
+    val field = fields.singleOrNull()?.let { "$owner->${it.name}:$VIEW_PAGER" }
+        ?: refuse("expected $owner to hold one $VIEW_PAGER field, found ${fields.size}")
+    val switches = pagerClass.methods.filter { method ->
+        val code = method.instructions()
+        AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "V" &&
+            method.parameterTypes.map(CharSequence::toString) == listOf(owner) &&
+            code.any { it.opcode == Opcode.IGET_OBJECT && it.fieldReference()?.toString() == field } &&
+            code.any { it.methodReference()?.let { called -> called.definingClass == VIEW_PAGER && called.name == SET_USER_INPUT } == true }
     }
-    if (code.readsPager()) return code
-    val helpers = code.mapNotNull { instruction ->
-        instruction.methodReference()?.takeIf {
-            instruction.opcode == Opcode.INVOKE_STATIC && it.definingClass == owner && it.returnType == "V" &&
-                it.parameterTypes.map(CharSequence::toString) == listOf(owner)
-        }?.name
-    }.distinct()
-    val helper = helpers.singleOrNull()?.let { name ->
-        classDefByOrNull(owner)?.methods?.singleOrNull {
-            it.name == name && AccessFlags.STATIC.isSet(it.accessFlags) && it.parameterTypes.map(CharSequence::toString) == listOf(owner)
-        }
-    } ?: return code
-    return code + helper.instructions()
+    if (switches.size != 1) {
+        refuse("expected one static method of $owner taking it that reads $field and calls $VIEW_PAGER->$SET_USER_INPUT, found ${switches.size}")
+    }
+    return ReelsPager(owner, field)
+}
+
+/**
+ * The method that sets the Reels pager up: of the methods storing [pager]'s field, the one handed
+ * an [ANDROID_VIEW], since the viewer's teardown clearing the field takes none. A static of the
+ * Reels viewer on 456 (`LX/06ZV;->A0R` on 386214574), the viewer's onViewCreated on 451 and the
+ * pager's own setupView on 452.
+ */
+internal fun BytecodePatchContext.reelsPagerSetup(pager: ReelsPager, refuse: (String) -> Nothing): Method {
+    val name = pager.field.substringAfter("->").substringBefore(":")
+    val setups = classesAccessing(pager.owner, name, Opcode.IPUT_OBJECT).flatMap { it.methods }.filter { method ->
+        ANDROID_VIEW in method.parameterTypes.map(CharSequence::toString) &&
+            method.instructions().any { it.opcode == Opcode.IPUT_OBJECT && it.fieldReference()?.toString() == pager.field }
+    }
+    return setups.singleOrNull() ?: refuse("expected one method handed a $ANDROID_VIEW to store ${pager.field}, found ${setups.size}")
 }
 
 /**
@@ -167,26 +173,15 @@ internal class ReelsScrollingSite(
  * Finds all three places before anything changes, failing when one isn't there exactly once, since
  * that's an update this patch hasn't seen.
  *
- * The Reels pager is the [VIEW_PAGER] field its own [ENABLE_SCROLLING] switch reads, itself or
- * through its helper ([reelsPagerSwitchCode]), and the viewer's onViewCreated stores it once. AndroidX's [SET_USER_INPUT] stores its parameter in one
+ * The Reels pager is the [VIEW_PAGER] field of [reelsPager], and its setup ([reelsPagerSetup])
+ * stores it once. AndroidX's [SET_USER_INPUT] stores its parameter in one
  * field. The pull-down layout declares both [PULL_TOUCHES] itself. The object the pager is stored in
  * holds one [VIEWER_CONFIG], and that holds one [VIEWER_SOURCE].
  */
 internal fun BytecodePatchContext.findReelsScrolling(): ReelsScrollingSite {
-    val enable = uniqueMethod(PATCH, "Reels pager switch holding \"$ENABLE_SCROLLING\"", ReelsPagerEnableFingerprint)
-    val enableCode = reelsPagerSwitchCode(enable)
-    val pagerReads = enableCode.mapNotNull { instruction ->
-        instruction.fieldReference()?.takeIf {
-            instruction.opcode == Opcode.IGET_OBJECT && it.definingClass == enable.definingClass && it.type == VIEW_PAGER
-        }?.toString()
-    }.distinct()
-    val field = pagerReads.singleOrNull()
-        ?: refuse("expected ${enable.definingClass}->${enable.name} to read one $VIEW_PAGER field of its class, found ${pagerReads.size}")
-    if (enableCode.none { it.methodReference()?.let { called -> called.definingClass == VIEW_PAGER && called.name == SET_USER_INPUT } == true }) {
-        refuse("${enable.definingClass}->${enable.name} doesn't call $VIEW_PAGER->$SET_USER_INPUT")
-    }
-
-    val viewer = uniqueMethod(PATCH, "Reels pager setup holding \"$PAGER_SETUP\"", ReelsViewerSetupFingerprint)
+    val found = reelsPager(::refuse)
+    val field = found.field
+    val viewer = reelsPagerSetup(found, ::refuse)
     val code = viewer.instructions()
     val where = "${viewer.definingClass}->${viewer.name}"
     val stores = code.indices.filter { code[it].opcode == Opcode.IPUT_OBJECT && code[it].fieldReference()?.toString() == field }
@@ -322,12 +317,6 @@ internal fun BytecodePatchContext.stopReelsScrolling(site: ReelsScrollingSite) {
 }
 
 private fun Method.instructions(): List<Instruction> = implementation?.instructions?.toList().orEmpty()
-
-private fun Method.holdsString(value: String) = instructions().any { it.stringLoaded() == value }
-
-private fun Instruction.stringLoaded(): String? =
-    if (opcode != Opcode.CONST_STRING && opcode != Opcode.CONST_STRING_JUMBO) null
-    else ((this as ReferenceInstruction).reference as StringReference).string
 
 private fun Instruction.fieldReference(): FieldReference? = (this as? ReferenceInstruction)?.reference as? FieldReference
 
