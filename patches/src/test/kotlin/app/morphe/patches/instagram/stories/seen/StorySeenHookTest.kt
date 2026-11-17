@@ -404,13 +404,15 @@ class StorySeenHookTest {
         }
         found += FixtureDex.classes(bundle, builderCallers.map { it.definingClass }.filter { it !in found }.toSet())
         val reader = found.values.flatMap { it.methods }.single { method -> method.code().any { it.string() == "PendingReelSeenStateStore.deserializeFromDisk" } }
-        val claim = found.values.flatMap { it.methods }.single { method -> method.code().any {
+        // 456's store base has two claims holding the tag (00F8.A0H and A0I on 386214574); the run calls one.
+        val claims = found.values.flatMap { it.methods }.filter { method -> method.code().any {
             it.string() == "null cannot be cast to non-null type T of com.instagram.store.PendingActionStore" } }
+        assertTrue("no claim holds the store's cast tag", claims.isNotEmpty())
         val helpers = (reader.code().filter { it.opcode == Opcode.INVOKE_VIRTUAL || it.opcode == Opcode.INVOKE_STATIC }
             .mapNotNull { (it as? ReferenceInstruction)?.reference as? MethodReference }.filter {
                 it.parameterTypes.map(Any::toString) == listOf(STRING) && it.returnType == "V" ||
                     it.parameterTypes.map(Any::toString) == listOf(STRING, STRING) && it.returnType == STRING
-            } + claim.code().filter { it.opcode == Opcode.INVOKE_STATIC }
+            } + claims.flatMap { claim -> claim.code().filter { it.opcode == Opcode.INVOKE_STATIC } }
             .mapNotNull { (it as? ReferenceInstruction)?.reference as? MethodReference }).map { it.definingClass }.toSet()
         found += FixtureDex.classes(bundle, helpers.filter { it !in found }.toSet())
         val extra = mutableSetOf<String>()

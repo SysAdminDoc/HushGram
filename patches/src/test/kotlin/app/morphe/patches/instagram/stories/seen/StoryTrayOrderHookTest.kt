@@ -275,15 +275,23 @@ class StoryTrayOrderHookTest {
         val stateWrite = stateClass.methods.single {
             AccessFlags.STATIC.isSet(it.accessFlags) && it.parameterTypes.map(Any::toString) == listOf(state, STRING, "J")
         }.key()
+        // 456's reel write calls the store's own write of a reel's time, which calls the state's.
         val stateWriters = callersOf(bundle, stateWrite)
-        val reelWrite = stateWriters.single { it.definingClass != state && stores.none { store -> store.type == it.definingClass } }.key()
+        val storeWrites = stateWriters.filter { method ->
+            stores.any { it.type == method.definingClass } && method.parameterTypes.map(Any::toString) == listOf(STRING, "J")
+        }
+        val writers = stateWriters + storeWrites.flatMap { callersOf(bundle, it.key()) }
+        val reelWrite = writers.single {
+            it.definingClass != state && stores.none { store -> store.type == it.definingClass } &&
+                it.parameterTypes.map(Any::toString) == listOf(USER_SESSION, "J")
+        }.key()
         val reelWriters = callersOf(bundle, reelWrite)
         val reel = reelWrite.substringBefore("->")
         val trayStores = FixtureDex.methodsWhere(bundle, { true }) { method -> isListMethod(method, reel) }.map { it.definingClass }.toSet()
         val identityTypes = FixtureDex.classes(bundle, setOf(reel)).getValue(reel).fields
             .map { it.type }.filter { it.startsWith("L") } + listOf("Lcom/instagram/user/model/User;", USER_SESSION)
         val responses = (FixtureDex.classesLoading(bundle, TRAY_RESPONSE_LOG) + FixtureDex.classesLoading(bundle, TRAY_REQUEST_TEXT)).map { it.type }
-        val types = (stores.map { it.type } + state + stateWriters.map { it.definingClass } + reelWriters.map { it.definingClass } + trayStores + identityTypes + responses + STORY_VIEWER).toSet()
+        val types = (stores.map { it.type } + state + writers.map { it.definingClass } + reelWriters.map { it.definingClass } + trayStores + identityTypes + responses + STORY_VIEWER).toSet()
         return (
             FixtureDex.withStringPools(bundle, FixtureDex.classes(bundle, types).values) +
                 ExtensionDex.classDef(STORY_SEEN_RINGS) + ExtensionDex.classDef(STORY_TRAY_ORDER)
