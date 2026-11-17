@@ -25,6 +25,7 @@ import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 import app.hushgram.extension.shared.settings.HushgramPause;
+import kotlin.jvm.functions.Function1;
 
 /**
  * Keep clear mode on (#138): once you turn Instagram's clear mode on for a reel, the next reels you
@@ -43,6 +44,11 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * ({@link #built}). When a reel you put in clear mode leaves it because it left the screen, this
  * class asks the handler to turn clear mode on again, with the reason your own turn-on gave, so
  * Instagram does to the next reel exactly what your tap would have done.
+ *
+ * <p>Instagram 456 has no turn-on method in the handler: each caller reads the action the viewer
+ * set and runs it itself. There the patch fills {@link #turnOnAction} and {@link #setTurnOnAction},
+ * and {@link #ready} wraps the action in a {@link TurnOn}, which runs it and then tells
+ * {@link #entered}, as the hook in the handler's own turn-on does on earlier builds.
  *
  * <p>Instagram's clear mode fades a reel's buttons, author row and top bar out but leaves the seek
  * bar of a long reel on screen (#277). The patch asks {@link #scrubber} where the seek bar row
@@ -175,6 +181,13 @@ public final class ReelClearMode {
         /** The handler's own reason for a turn-on from Instagram's menu row, or null when it has none. */
         @Nullable
         Object reason(Object handler);
+
+        /** The turn-on action the handler holds, where the patch reached it (456), or null. */
+        @Nullable
+        Object action(Object handler);
+
+        /** Gives the handler [action] as its turn-on action. */
+        void setAction(Object handler, Object action);
     }
 
     static final Viewer PATCHED = new Viewer() {
@@ -213,26 +226,38 @@ public final class ReelClearMode {
         }
 
         /**
-         * The reason enum is the one parameter of the handler's turn-on. Its constants are read from
-         * its own static fields, since Redex may leave an enum without values().
+         * The reason enum is the one parameter of the handler's turn-on, and the last of its
+         * turn-off, the only method of the handler 456 keeps. Its constants are read from its own
+         * static fields, since Redex may leave an enum without values().
          */
         @Override
         public Object reason(Object handler) {
             for (Method method : handler.getClass().getDeclaredMethods()) {
-                Class<?>[] parameters = method.getParameterTypes();
-                if (parameters.length != 1 || !Enum.class.isAssignableFrom(parameters[0])) continue;
-                for (Field field : parameters[0].getDeclaredFields()) {
-                    if (!Modifier.isStatic(field.getModifiers()) || field.getType() != parameters[0]) continue;
-                    try {
-                        field.setAccessible(true);
-                        Object constant = field.get(null);
-                        if (constant instanceof Enum && MENU.equals(((Enum<?>) constant).name())) return constant;
-                    } catch (ReflectiveOperationException | RuntimeException unreadable) {
-                        // Another constant may still be readable.
+                for (Class<?> parameter : method.getParameterTypes()) {
+                    if (!Enum.class.isAssignableFrom(parameter)) continue;
+                    for (Field field : parameter.getDeclaredFields()) {
+                        if (!Modifier.isStatic(field.getModifiers()) || field.getType() != parameter) continue;
+                        try {
+                            field.setAccessible(true);
+                            Object constant = field.get(null);
+                            if (constant instanceof Enum && MENU.equals(((Enum<?>) constant).name())) return constant;
+                        } catch (ReflectiveOperationException | RuntimeException unreadable) {
+                            // Another constant may still be readable.
+                        }
                     }
                 }
             }
             return null;
+        }
+
+        @Override
+        public Object action(Object handler) {
+            return turnOnAction(handler);
+        }
+
+        @Override
+        public void setAction(Object handler, Object action) {
+            setTurnOnAction(handler, action);
         }
     };
 
@@ -334,6 +359,20 @@ public final class ReelClearMode {
     /** Filled in by the patch: the reel's own getId. Only a reel may be passed. */
     public static String reelId(Object item) {
         return null;
+    }
+
+    /**
+     * Filled in by the patch where Instagram runs the handler's turn-on action from its callers
+     * (456): the action the handler holds. Elsewhere it answers null, so nothing is wrapped. Only
+     * the handler may be passed.
+     */
+    @Nullable
+    public static Object turnOnAction(Object handler) {
+        return null;
+    }
+
+    /** Filled in by the patch with {@link #turnOnAction}: gives the handler its turn-on action. Only the handler and a Function1 may be passed. */
+    public static void setTurnOnAction(Object handler, Object action) {
     }
 
     // ------------------------------------------------------------------ hooks
@@ -564,13 +603,17 @@ public final class ReelClearMode {
 
     /**
      * The hook, in the Reels viewer's setup right after it handed the handler its turn-on action.
-     * With Start every reel in clear mode on, the handler is kept, weakly, for the first reel with
-     * an exit button. Otherwise nothing is kept (#138).
+     * Where the patch reached that action (456), it's wrapped so {@link #entered} hears of each
+     * turn-on. With Start every reel in clear mode on, the handler is kept, weakly, for the first
+     * reel with an exit button. Otherwise nothing is kept (#138).
      */
     public static void ready(@Nullable Object handler) {
         try {
             HookStatus.invoked(FAMILY);
-            if (handler != null) remember(handler);
+            if (handler != null) {
+                remember(handler);
+                wrap(handler);
+            }
             if (handler == null || !startsOn()) {
                 starting = null;
                 return;
@@ -694,6 +737,44 @@ public final class ReelClearMode {
         } catch (Throwable failure) {
             HookStatus.threw(FAMILY, "full screen icon", failure);
             return false;
+        }
+    }
+
+    /**
+     * Wraps the turn-on action the handler holds in a {@link TurnOn}, once. A handler the patch
+     * couldn't reach that way (anything before 456) answers no action and is left alone. A failure
+     * here leaves Instagram's action as it was.
+     */
+    @SuppressWarnings("unchecked")
+    private static void wrap(Object handler) {
+        try {
+            Object action = access.action(handler);
+            if (!(action instanceof Function1) || action instanceof TurnOn) return;
+            access.setAction(handler, new TurnOn(handler, (Function1<Object, Object>) action));
+        } catch (Throwable failure) {
+            HookStatus.threw(FAMILY, "clear mode turn-on", failure);
+        }
+    }
+
+    /**
+     * The handler's turn-on action, which Instagram 456's callers run themselves: runs Instagram's
+     * own, then tells {@link #entered} with the handler and the reason, as the hook in the handler's
+     * turn-on does on earlier builds. What Instagram's action answers is answered.
+     */
+    static final class TurnOn implements Function1<Object, Object> {
+        final Object handler;
+        final Function1<Object, Object> action;
+
+        TurnOn(Object handler, Function1<Object, Object> action) {
+            this.handler = handler;
+            this.action = action;
+        }
+
+        @Override
+        public Object invoke(Object reason) {
+            Object answer = action.invoke(reason);
+            entered(handler, reason);
+            return answer;
         }
     }
 

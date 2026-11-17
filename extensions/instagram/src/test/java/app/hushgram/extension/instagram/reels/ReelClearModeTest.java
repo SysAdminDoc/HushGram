@@ -38,6 +38,7 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
 import app.hushgram.extension.shared.settings.BaseSettings;
 import app.hushgram.extension.shared.settings.HushgramPause;
 import app.hushgram.extension.shared.settings.PauseForTests;
+import kotlin.jvm.functions.Function1;
 
 /**
  * Keep clear mode on: clear mode you turn on for a reel is handed to each next reel through
@@ -96,16 +97,24 @@ public class ReelClearModeTest {
             if (enterFailure != null) throw enterFailure;
             Reel own = pageOf.get(handler);
             if (own == null) {
-                turnOn(handler, source);
+                act(handler, source);
                 return;
             }
             Reel was = page;
             page = own;
             try {
-                turnOn(handler, source);
+                act(handler, source);
             } finally {
                 page = was;
             }
+        }
+
+        /** The patched turn-on: the action a 456 handler holds where it holds one, else the hooked one. */
+        @SuppressWarnings("unchecked")
+        void act(Object handler, Object source) {
+            Object action = actions.get(handler);
+            if (action == null) turnOn(handler, source);
+            else ((Function1<Object, Object>) action).invoke(source);
         }
 
         void turnOn(Object handler, Object source) {
@@ -152,6 +161,21 @@ public class ReelClearModeTest {
         @Override
         public Object reason(Object handler) {
             return menuReason;
+        }
+
+        /** The turn-on action each handler holds, as Instagram 456's handler holds one. */
+        final Map<Object, Object> actions = new IdentityHashMap<>();
+        RuntimeException setActionFailure;
+
+        @Override
+        public Object action(Object handler) {
+            return actions.get(handler);
+        }
+
+        @Override
+        public void setAction(Object handler, Object action) {
+            if (setActionFailure != null) throw setActionFailure;
+            actions.put(handler, action);
         }
 
         void runPosted() {
@@ -1056,11 +1080,84 @@ public class ReelClearModeTest {
         }
     }
 
+    /** Stands in for Instagram 456's handler: no turn-on, and its turn-off takes the reel, then the reason. */
+    @SuppressWarnings("unused")
+    private static final class Handler456 {
+        void A01(Object item, Reason reason) {
+        }
+    }
+
     @Test
     public void theMenuReasonIsTheHandlersOwnEnumConstant() {
         assertSame(Reason.OVERFLOW_MENU, ReelClearMode.PATCHED.reason(new StockHandler()));
+        assertSame("456 names it in its turn-off", Reason.OVERFLOW_MENU, ReelClearMode.PATCHED.reason(new Handler456()));
         assertNull("no enum parameter names one", ReelClearMode.PATCHED.reason(new OtherHandler()));
         assertNull("no enum parameter at all", ReelClearMode.PATCHED.reason(new Object()));
+    }
+
+    /** Instagram 456's turn-on action: reads the pager's reel through the hook and acts on it unless it's null. */
+    private final class Action456 implements Function1<Object, Object> {
+        final Object answer = new Object();
+        final List<String> wantedWhenRun = new ArrayList<>();
+
+        @Override
+        public Object invoke(Object reason) {
+            wantedWhenRun.add(String.valueOf(ReelClearMode.wanted()));
+            Object reel = ReelClearMode.current(viewer.page);
+            if (reel != null) viewer.turnedOn.add(((Reel) reel).id + " " + reason);
+            return answer;
+        }
+    }
+
+    /**
+     * Instagram 456 has no turn-on to hook: its callers run the action the handler holds. The
+     * viewer's setup wraps that action once, so your own turn-on is heard after Instagram's ran, and
+     * clear mode carries through the same action.
+     */
+    @Test
+    public void on456TheHandlersActionIsWrappedOnceAndCarriesClearMode() {
+        Action456 stock = new Action456();
+        viewer.actions.put(viewer.handler, stock);
+        ReelClearMode.ready(viewer.handler);
+        Object wrapped = viewer.actions.get(viewer.handler);
+        assertTrue("wrapped", wrapped instanceof ReelClearMode.TurnOn);
+        assertSame(stock, ((ReelClearMode.TurnOn) wrapped).action);
+        ReelClearMode.ready(viewer.handler);
+        assertSame("set up again, it isn't wrapped twice", wrapped, viewer.actions.get(viewer.handler));
+
+        Reel first = reel("reel 0");
+        viewer.page = first;
+        @SuppressWarnings("unchecked")
+        Object answer = ((Function1<Object, Object>) wrapped).invoke(Reason.OVERFLOW_MENU);
+        assertSame("Instagram's answer goes back to its caller", stock.answer, answer);
+        assertEquals("Instagram's action ran first", Collections.singletonList("false"), stock.wantedWhenRun);
+        assertTrue("then the turn-on was heard", ReelClearMode.wanted());
+
+        Reel second = reel("reel 1");
+        swipe(first, second);
+        assertEquals(Arrays.asList("reel 0 OVERFLOW_MENU", "reel 1 OVERFLOW_MENU"), viewer.turnedOn);
+        assertEquals("asked once, through the same action", 1, viewer.asked);
+        assertTrue(HookStatus.report().toString(), counted(1));
+        assertTrue(ReelClearMode.wanted());
+    }
+
+    @Test
+    public void aHandlerWithoutAnActionOrOneThatCantBeSetIsLeftAlone() {
+        ReelClearMode.ready(viewer.handler);
+        assertFalse("before 456 there's no action to wrap", viewer.actions.containsKey(viewer.handler));
+
+        Object other = new Object();
+        viewer.actions.put(other, "not an action");
+        ReelClearMode.ready(other);
+        assertEquals("not a Function1, left as it is", "not an action", viewer.actions.get(other));
+
+        Object third = new Object();
+        Action456 stock = new Action456();
+        viewer.actions.put(third, stock);
+        viewer.setActionFailure = new IllegalStateException("the field changed");
+        ReelClearMode.ready(third);
+        assertSame("a failure leaves Instagram's action as it was", stock, viewer.actions.get(third));
+        assertTrue(reported("clear mode turn-on"));
     }
 
     /** Start every reel in clear mode (#138): the first reel with an exit button gets it with no tap. */

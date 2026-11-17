@@ -579,40 +579,55 @@ once-call Lapp/hushgram/extension/instagram/reels/ReelsTopBar;->friendsTab(Landr
 # dropped its purge marker, so it's held by the session name it loads, which a few dozen others load too.
 once-call Lapp/hushgram/extension/instagram/reels/ReelsTopBar;->friendsTabAnyway(Ljava/lang/Object;)Z in static (L*;)V pooled holding clipsViewerSession
 # Keep clear mode on, the same patch's eighth switch, has Instagram's clear mode (its fullscreen view)
-# carry from reel to reel. The action handler's turn-on and turn-off each tell the extension once,
-# after the action they run, with what they were handed: entered(handler, reason) in the one instance
-# method holding the handler's enable marker, and left(handler, reel, reason) in the one holding its
-# dismiss marker. The viewer's turn-on, the one static method holding its own enable marker (taking
-# two of Instagram's objects and answering nothing on 452, 04Cq.A05), passes the reel it read off
-# the pager through current() before testing it. The pager
-# listener's page report asks paged() first thing, and the exit button's render hands built() its
-# reel first thing. The seek bar row's render asks scrubber() once, at its test of whether to draw
-# the scrubber, with Instagram's answer and the reel state's clear mode flag (#277); left out, a long
-# reel in clear mode keeps its seek bar. The reel holder's chrome alpha setter passes the alpha it was
-# asked for through chrome() once, with the one it holds, right after reading that (#233); left out,
-# Instagram's reset of a page it binds at rest brings back the buttons of a reel in clear mode. The
-# pager listener's scroll state change hands settled() the pager and the state once, right after
-# reading the pager on its way to rest (#233); left out, a swipe back that snaps back ends clear mode.
-# The exit button's render also asks quiet() once, right before its 30 ms buzz, and skips the buzz on a
-# yes (#480); left out, Don't vibrate in clear mode does nothing.
-# On 450 to 455 each hook was called from its one method and nowhere else. Left out, clear mode ends
-# with every swipe as Instagram has it; twice or elsewhere, it isn't the hook the patch wrote.
-# The two stubs, filled with the handler's turn-on and the reel's getId, each have to leave the
-# extension before they return. ClearModeHookTest checks on every 450 fixture where each one lands.
-# 456 inlines the handler's turn-on into its callers on every build, as 455's 386113922 did, and
-# keeps none of the nine markers, so Clean up Reels goes in without Keep clear mode on there and
-# says so. Until the patch finds its places again, no host method calls any of its hooks: one
-# left in without the others would end clear mode half done.
+# carry from reel to reel. On 450 to 455 the patch finds its places by Instagram's markers, and the
+# handler's turn-on tells entered() itself. 456 keeps none of the nine markers and runs the handler's
+# turn-on action (a Function1 on the handler) wherever it turns clear mode on, so the patch finds its
+# places by what 456 keeps instead, and these rules are 456's. ClearModeHookTest checks every place
+# on all four 456 fixtures, and the marker path on the 450 ones. Left out, clear mode ends with every
+# swipe as Instagram has it; twice or elsewhere, it isn't the hook the patch wrote.
+# The handler's turn-off, its one instance (reel, reason) method, hands left() the handler, the reel and
+# the reason once, after the action it runs. It's the one such method calling a two-argument invoke on
+# one of Instagram's classes, in the class holding these four ints (0CLm.A01 on 386214574).
+once-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->left(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V in instance (LX/*;LX/*;)V calling instance LX/*;->invoke(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; class-holding const:0x10e895f0 const:0x4b6e619a const:0x4f8387b8 const:0x14e06b
+# The viewer's turn-on passes the reel it read off the pager through current() once, before testing
+# it: the one static method holding the 0x2000 window flag that reads the window and a view's tag
+# (08PD.A03 on 386214574). Block screenshots rewrites its setFlags call, so the rule can't name that.
+once-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->current(Ljava/lang/Object;)Ljava/lang/Object; in static (LX/*;LX/*;)V holding const:0x2000 Landroid/app/Activity;->getWindow()Landroid/view/Window; Landroid/view/View;->getTag()Ljava/lang/Object;
+# The pager listener's page report asks paged() first thing, and its scroll state change hands
+# settled() the pager and the state once, right after reading the pager on its way to rest (#233);
+# left out, a swipe back that snaps back ends clear mode. Each loads its own trace from a pool.
+start-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->paged()V in instance (II)V pooled holding ClipsViewerViewPagerListener.onPageSelected
+once-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->paged()V in instance (II)V pooled holding ClipsViewerViewPagerListener.onPageSelected
+once-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->settled(Ljava/lang/Object;Ljava/lang/Object;)V in instance (LX/*;)V pooled holding ClipsViewerViewPagerListener.onScrollStateChanged
+# The exit button's render, the one loading its icon and drawing its round background (0ErM.A0p on
+# 386214574), hands built() its reel first thing and asks quiet() once, right before its 30 ms buzz,
+# skipping the buzz on a yes (#480); left out, Don't vibrate in clear mode does nothing. Download any
+# reel puts its speaker in the same render's row once, through ReelMuteButton.clearMode, right after
+# the last button Instagram adds; left out, clear mode has no speaker.
+start-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->built(Ljava/lang/Object;)V in instance (LX/*;)LX/*; holding const:0x7f08262e Landroid/graphics/drawable/shapes/OvalShape;-><init>()V
+once-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->built(Ljava/lang/Object;)V in instance (LX/*;)LX/*; holding const:0x7f08262e Landroid/graphics/drawable/shapes/OvalShape;-><init>()V
+once-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->quiet()Z in instance (LX/*;)LX/*; holding const:0x7f08262e Landroid/graphics/drawable/shapes/OvalShape;-><init>()V
+once-call Lapp/hushgram/extension/instagram/download/ReelMuteButton;->clearMode(Ljava/lang/Object;)V in instance (LX/*;)LX/*; holding const:0x7f08262e Landroid/graphics/drawable/shapes/OvalShape;-><init>()V
+# The reel holder's chrome alpha setter passes the alpha it was asked for through chrome() once, with
+# the one it holds, right after reading that (#233); left out, Instagram's reset of a page it binds at
+# rest brings back the buttons of a reel in clear mode. 456's setter clamps the alpha behind a
+# Function0 it asks first, which the rule holds.
+once-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->chrome(FF)F in instance (F)V holding Ljava/lang/Number;->floatValue()F Lkotlin/jvm/functions/Function0;->invoke()Ljava/lang/Object; Ljava/lang/Boolean;->booleanValue()Z Ljava/lang/Float;->valueOf(F)Ljava/lang/Float;
+# The viewer's setup, the one method writing the handler's turn-on action, hands ready() the handler
+# once right after, and the extension wraps the action so entered() hears each turn-on after it runs.
+# The setup is the one reading these four of the viewer's Kotlin function fields (08PD.A07 on
+# 386214574; the field names match on all three 456 builds).
+once-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->ready(Ljava/lang/Object;)V in instance (LX/*;)V holding LX/*;->A43:Lkotlin/jvm/functions/Function1; LX/*;->A4C:Lkotlin/jvm/functions/Function1; LX/*;->A4Z:Lkotlin/jvm/functions/Function3; LX/*;->A0K:Lkotlin/jvm/functions/Function3;
+# So no host method calls entered(): only the extension's wrapper does. 456 draws the seek bar row
+# inside the reel's render, with no method of its own to ask scrubber() in (#277), so a long reel in
+# clear mode keeps its seek bar there, the patch says so, and no host method calls scrubber() either.
 no-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->entered(Ljava/lang/Object;Ljava/lang/Object;)V outside Lapp/hushgram/extension/
-no-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->left(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V outside Lapp/hushgram/extension/
-no-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->current(Ljava/lang/Object;)Ljava/lang/Object; outside Lapp/hushgram/extension/
-no-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->paged()V outside Lapp/hushgram/extension/
-no-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->built(Ljava/lang/Object;)V outside Lapp/hushgram/extension/
-no-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->quiet()Z outside Lapp/hushgram/extension/
 no-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->scrubber(II)Z outside Lapp/hushgram/extension/
-no-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->chrome(FF)F outside Lapp/hushgram/extension/
-no-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->settled(Ljava/lang/Object;Ljava/lang/Object;)V outside Lapp/hushgram/extension/
-no-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->ready(Ljava/lang/Object;)V outside Lapp/hushgram/extension/
+# The stubs: enter runs the handler's action with the reason, and reelId calls the reel's getId, so each
+# has to leave the extension before it returns. turnOnAction and setTurnOnAction read and write the
+# action field and call nothing, so no rule here can hold them; ClearModeHookTest checks their bodies.
+first-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->enter(Ljava/lang/Object;Ljava/lang/Object;)V outside Lapp/hushgram/extension/
+first-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->reelId(Ljava/lang/Object;)Ljava/lang/String; outside Lapp/hushgram/extension/
 #
 # Sanitize sharing links passes the link the permalink parser for a post or reel reads through the
 # extension, once, before the parser stores it: the one instance parser holding its model's name.

@@ -17,6 +17,8 @@ import app.morphe.patches.instagram.misc.extension.markers
 import app.morphe.patches.instagram.misc.extension.patchLog
 import app.morphe.patches.instagram.misc.extension.typesMarked
 import app.morphe.patches.instagram.reels.cleanup.CLEAR_MODE_BUTTON
+import app.morphe.patches.instagram.reels.cleanup.KEEP_CLEAR_MODE
+import app.morphe.patches.instagram.reels.cleanup.findClearModeButtonByAnchors
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
@@ -107,10 +109,11 @@ internal fun BytecodePatchContext.addMuteButtonToClearMode() {
 }
 
 /**
- * Where [addMuteButtonToClearMode] goes: in the one method marked [CLEAR_MODE_BUTTON] (the mutable
- * one, since Clear mode's patch may have hooked it already), right after the last add to the one list
- * it builds, when the next thing it does is build the row whose constructor takes a list. Answers the
- * method, that index and the list's register. Fails before anything changes.
+ * Where [addMuteButtonToClearMode] goes: in the one method marked [CLEAR_MODE_BUTTON], or on a build
+ * without the marker (456) the exit button's render as Keep clear mode on finds it there (the
+ * mutable one, since Clear mode's patch may have hooked it already), right after the last add to the
+ * one list it builds, when the next thing it does is build the row whose constructor takes a list.
+ * Answers the method, that index and the list's register. Fails before anything changes.
  */
 internal fun BytecodePatchContext.findClearModeRowAdd(): Triple<MutableMethod, Int, Int> {
     fun refuse(detail: String): Nothing = throw PatchException("$PLAYER_ICONS_PATCH, mute icon in clear mode: $detail")
@@ -118,7 +121,15 @@ internal fun BytecodePatchContext.findClearModeRowAdd(): Triple<MutableMethod, I
     val marked = typesMarked(CLEAR_MODE_BUTTON).flatMap { type ->
         classDefByOrNull(type)?.methods?.filter { CLEAR_MODE_BUTTON in it.markers() } ?: emptyList()
     }
-    val stock = marked.singleOrNull() ?: refuse("expected one method marked $CLEAR_MODE_BUTTON, found ${marked.size}")
+    val stock = if (marked.isEmpty()) {
+        try {
+            findClearModeButtonByAnchors()
+        } catch (unknown: PatchException) {
+            refuse(unknown.message.orEmpty().removePrefix("$KEEP_CLEAR_MODE: "))
+        }
+    } else {
+        marked.singleOrNull() ?: refuse("expected one method marked $CLEAR_MODE_BUTTON, found ${marked.size}")
+    }
     val render = mutableClassDefBy(stock.definingClass).methods.single {
         it.name == stock.name && it.parameterNames() == stock.parameterNames() && it.returnType == stock.returnType
     }
