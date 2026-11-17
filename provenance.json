@@ -578,6 +578,11 @@
         "extensions/instagram/src/main/java/app/hushgram/extension/instagram/misc/TextSize.java",
         "extensions/instagram/src/test/java/app/hushgram/extension/instagram/misc/TextSizeTest.java",
         "extensions/instagram/src/test/java/app/hushgram/extension/instagram/feed/ChatReachTest.java",
+        "patches/src/main/kotlin/app/morphe/patches/instagram/feed/viewhistory/DontSendFeedViewHistoryPatch.kt",
+        "patches/src/test/kotlin/app/morphe/patches/instagram/feed/viewhistory/FeedViewHistoryHookTest.kt",
+        "extensions/instagram/src/main/java/app/hushgram/extension/instagram/feed/FeedViewInfo.java",
+        "extensions/instagram/src/test/java/app/hushgram/extension/instagram/feed/FeedViewInfoTest.java",
+        "extensions/instagram/src/test/java/app/hushgram/extension/instagram/settings/FeedViewHistorySettingsTest.java",
         "scripts/gen-readme-patches.py"
       ],
       "origin": "original",

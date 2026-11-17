@@ -224,6 +224,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_dont_send_reel_watch_history", FALSE);
 
     /**
+     * The posts you looked at in Home, and for how long, which Instagram sends with each Home page
+     * it asks feed/timeline/ for (feed_view_info) to rank Home. Nobody else sees it. Held back,
+     * posts you've seen may come back. Off to start. Ghost mode turns it too (#664).
+     */
+    public static final BooleanSetting DONT_SEND_FEED_VIEW_HISTORY =
+            new BooleanSetting("hushgram_dont_send_feed_view_history", FALSE);
+
+    /**
      * A story whose photo timer ran out or whose video ended stays on screen until you tap or
      * swipe, instead of the viewer moving on by itself. Off to start.
      */

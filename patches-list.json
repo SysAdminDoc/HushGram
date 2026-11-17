@@ -1128,6 +1128,46 @@
       "options": []
     },
     {
+      "name": "Don't send feed view history",
+      "description": "Stops Instagram from learning which posts in Home you looked at and for how long. Posts you've already seen may come back. Ghost mode, at the top of Ads and privacy, turns it on with the others. Starts off. Turn it on in HushGram settings > Feed.",
+      "category": "Ghost mode",
+      "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "455.0.0.51.72"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "455.0.0.51.72",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 386113969,
+                "ARMEABI_V7A": 386113968,
+                "X86": 386113970,
+                "X86_64": 386113971
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
       "name": "Don't send reel watch history",
       "description": "Stops Instagram from learning which reels you watched and how far you got. Reels you've already watched may come back. Starts off. Turn it on in HushGram settings > Reels.",
       "category": "Privacy",

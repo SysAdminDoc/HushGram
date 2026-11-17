@@ -35,10 +35,11 @@ public class GhostModeEntryTest {
 
     @Before public void prepare() {
         ALL_GHOST = EnumSet.of(PatchFamily.HIDE_ADS, PatchFamily.STORY_SEEN, PatchFamily.LIVE_SEEN, PatchFamily.THREAD_SEEN,
-                PatchFamily.DM_MEDIA_SEEN, PatchFamily.TYPING, PatchFamily.SCREENSHOT_REPORTS, PatchFamily.BLEND_VISITS);
+                PatchFamily.DM_MEDIA_SEEN, PatchFamily.TYPING, PatchFamily.SCREENSHOT_REPORTS, PatchFamily.BLEND_VISITS,
+                PatchFamily.FEED_VIEW_HISTORY);
         GHOST = new BooleanSetting[] {Settings.VIEW_STORIES_ANONYMOUSLY, Settings.VIEW_LIVE_ANONYMOUSLY,
                 Settings.READ_WITHOUT_SEEN_RECEIPT, Settings.VIEW_DM_MEDIA_ANONYMOUSLY, Settings.HIDE_TYPING, Settings.HIDE_SCREENSHOTS,
-                Settings.HIDE_BLEND_VISITS};
+                Settings.HIDE_BLEND_VISITS, Settings.DONT_SEND_FEED_VIEW_HISTORY};
         for (BooleanSetting setting : GHOST) setting.resetToDefault();
         Settings.GHOST_MODE_PICKS.resetToDefault();
         BaseSettings.PAUSED.save(false);

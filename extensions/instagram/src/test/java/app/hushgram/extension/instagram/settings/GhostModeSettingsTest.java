@@ -45,12 +45,13 @@ public class GhostModeSettingsTest {
     private static BooleanSetting[] ghostSwitches() {
         return new BooleanSetting[] {Settings.VIEW_STORIES_ANONYMOUSLY, Settings.VIEW_LIVE_ANONYMOUSLY,
                 Settings.READ_WITHOUT_SEEN_RECEIPT, Settings.VIEW_DM_MEDIA_ANONYMOUSLY, Settings.HIDE_TYPING, Settings.HIDE_SCREENSHOTS,
-                Settings.HIDE_BLEND_VISITS};
+                Settings.HIDE_BLEND_VISITS, Settings.DONT_SEND_FEED_VIEW_HISTORY};
     }
     /** A method too: PatchFamily loads the settings, and a static field would load them with no context. */
     private static EnumSet<PatchFamily> allGhost() {
         return EnumSet.of(PatchFamily.HIDE_ADS, PatchFamily.STORY_SEEN, PatchFamily.LIVE_SEEN, PatchFamily.THREAD_SEEN,
-                PatchFamily.DM_MEDIA_SEEN, PatchFamily.TYPING, PatchFamily.SCREENSHOT_REPORTS, PatchFamily.BLEND_VISITS);
+                PatchFamily.DM_MEDIA_SEEN, PatchFamily.TYPING, PatchFamily.SCREENSHOT_REPORTS, PatchFamily.BLEND_VISITS,
+                PatchFamily.FEED_VIEW_HISTORY);
     }
 
     @Rule public final SettingsContextRule settings = new SettingsContextRule();

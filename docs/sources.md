@@ -329,6 +329,8 @@ What this means for privacy work: behavioral context can be carried on functiona
 
 The current binary also contains Home and Stories request routes. The current request-method inventory identifies feed/timeline/, feed/reels_tray/ and feed/reels_media/ in request methods. Stream variants are present too. TigonServiceLayer.logQPL knows feed/timeline and feed/reels_tray. This is a multiple-request architecture, not one monolithic feed payload.
 
+A Home request also carries what you looked at. On 455.0.0.51.72 two methods add feed_view_info to a feed/timeline/ request from a record they read off the request, and each tests that record for null first and skips the parameter when it's missing. Don't send feed view history (#664) hands the record to FeedViewInfo.held right before that test. With its switch on the extension answers null, so Instagram takes its own path for a request without one. See [DontSendFeedViewHistoryPatch.kt](../patches/src/main/kotlin/app/morphe/patches/instagram/feed/viewhistory/DontSendFeedViewHistoryPatch.kt). This removes one input to Home ranking. It doesn't clear what Instagram already learned, and separate logging routes may still report what you saw.
+
 **Current binary.** The client has an ad pool and an insertion controller. The controller has one matching static boolean insertion method in `classes2.dex`. It contains both cross_surface_duplicate_ad and Is ad pod, exactly the current HushGram fingerprint. The bounded method probe inspected its fields, constructor and method body.
 
 The insertion path reads an item, its placement state and a pool, invokes validity and duplicate checks, changes state, updates a timestamp, and adds to collections. Neighboring controller callbacks contain onHighestPositionPushUp, onInjectionRuleStatusUpdated, injection_orchestrator_position_passed_with_insertion_but_not_impression_, remove_for_reinsertion and replaced_by_ad_id. The caller scan found four direct static call sites in one injection orchestrator, split between two callbacks. This proves insertion/reinsertion orchestration exists. It does not prove that every placement surface or future server format uses it.
@@ -480,7 +482,7 @@ Contacts/location setup suppression must not be described as permission removal.
 
 #### Feature receipts and user-visible privacy
 
-Ghost mode is a convenience switch over installed Story Seen, Live Seen, ordinary DM Seen, visual-media Opened, typing, active status and screenshot-report settings. It has no independent protection layer and does not include analytics or Reel watch history. It is offered only when at least two of those installed families exist. Each component keeps its own default and pause behavior. See [settings/GhostMode.java:14-50](../extensions/instagram/src/main/java/app/hushgram/extension/instagram/settings/GhostMode.java#L14-L50).
+Ghost mode is a convenience switch over installed Story Seen, Live Seen, ordinary DM Seen, visual-media Opened, typing, active status, screenshot-report, Blend-visit and Home feed view history (#664) settings. It has no independent protection layer and does not include analytics or Reel watch history. It is offered only when at least two of those installed families exist. Each component keeps its own default and pause behavior. See [settings/GhostMode.java:14-50](../extensions/instagram/src/main/java/app/hushgram/extension/instagram/settings/GhostMode.java#L14-L50).
 
 | Feature | Native anchor or operation | HushGram interception | Important limit |
 | --- | --- | --- | --- |

@@ -61,6 +61,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean feedViewHistory() {
+        return false;
+    }
+
     public static boolean storyAutoAdvance() {
         return false;
     }

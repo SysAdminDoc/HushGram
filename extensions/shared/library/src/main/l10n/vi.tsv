@@ -2412,3 +2412,6 @@ Viewers: %1$d. Followers not on the list: %2$d	Người xem: %1$d. Người theo
 No stories kept in this period.	Không có tin nào được giữ trong khoảng này.
 Every follower viewed at least one story in this period.	Mọi người theo dõi đều đã xem ít nhất một tin trong khoảng này.
 No one has viewed half of this period's stories yet.	Chưa ai xem một nửa số tin của khoảng này.
+# context: Feed: switch under Hide the home feed that keeps Instagram from learning which posts in Home you looked at and for how long (#664)
+Don't send feed view history	Không gửi lịch sử xem bảng feed
+Stops telling Instagram which posts in Home you looked at and for how long. Instagram uses that to pick what Home shows. Posts you've seen may come back.	Ngừng báo cho Instagram biết bạn đã xem những bài viết nào trên Trang chủ và xem trong bao lâu. Instagram dùng thông tin đó để chọn nội dung hiển thị trên Trang chủ. Các bài viết đã xem có thể xuất hiện lại.

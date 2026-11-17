@@ -22,8 +22,8 @@ import org.junit.Test
 class PatchCategoriesTest {
     /**
      * One name per group, mostly the HushGram settings section the patch's switch sits in, and
-     * Hushfeed's names where they fit. Ghost mode is the settings card that turns those seven
-     * switches on together.
+     * Hushfeed's names where they fit. Ghost mode is the settings card that turns those nine
+     * switches on together, Don't send feed view history (#664) among them.
      */
     private val taxonomy = setOf(
         "Ads", "Ghost mode", "Privacy", "Messages", "Feed", "Stories", "Reels", "Playback", "Interaction",

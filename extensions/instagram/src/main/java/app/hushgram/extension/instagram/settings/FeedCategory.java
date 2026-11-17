@@ -75,7 +75,8 @@ final class FeedCategory {
         boolean feedAutoScroll = build.contains(PatchFamily.FEED_AUTO_SCROLL);
         boolean homeTopBar = build.contains(PatchFamily.HOME_TOP_BAR);
         boolean activityBubbles = build.contains(PatchFamily.ACTIVITY_BUBBLES);
-        PreferenceCategory feed = suggestions || following || swipe || fullResolution || homeFeed || tabSwipe
+        boolean feedViewHistory = build.contains(PatchFamily.FEED_VIEW_HISTORY);
+        PreferenceCategory feed = suggestions || following || swipe || fullResolution || homeFeed || feedViewHistory || tabSwipe
                 || askLike || askRefresh || saveTray || postTime || hiddenLikes || backHome || homePlace || feedSound || feedTapPause || feedHoldFast || feedSeekBar || longPressZoom
                 || roundedCorners || carouselArrows || ambientLight
                 || fullScreen || feedFollow || editsLabel || feedSave || watchAgain || hideCaptions || feedAudioIcon || feedAutoScroll || homeTopBar
@@ -171,6 +172,11 @@ final class FeedCategory {
             feed.addPreference(toggle(context, Settings.HIDE_HOME_FEED, L10n.t("Hide the home feed"),
                     L10n.t("Empties Home on purpose, so you see the stories row and nothing under it. Profiles, "
                             + "Explore and Reels still show posts. Pull down on Home to refresh after changing it.")));
+        }
+        if (feedViewHistory) {
+            feed.addPreference(toggle(context, Settings.DONT_SEND_FEED_VIEW_HISTORY, L10n.t("Don't send feed view history"),
+                    L10n.t("Stops telling Instagram which posts in Home you looked at and for how long. Instagram uses "
+                            + "that to pick what Home shows. Posts you've seen may come back.")));
         }
         if (swipe) {
             feed.addPreference(toggle(context, Settings.STOP_SWIPE_TO_CREATE, L10n.t("Stop swipe to create"),

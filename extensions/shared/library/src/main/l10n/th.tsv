@@ -2494,3 +2494,6 @@ Viewers: %1$d. Followers not on the list: %2$d	ผู้ดู: %1$d ผู้�
 No stories kept in this period.	ไม่มีสตอรี่ที่เก็บไว้ในช่วงนี้
 Every follower viewed at least one story in this period.	ผู้ติดตามทุกคนดูอย่างน้อยหนึ่งสตอรี่ในช่วงนี้
 No one has viewed half of this period's stories yet.	ยังไม่มีใครดูครึ่งหนึ่งของสตอรี่ในช่วงนี้
+# context: Feed: switch under Hide the home feed that keeps Instagram from learning which posts in Home you looked at and for how long (#664)
+Don't send feed view history	ไม่ส่งประวัติการดูฟีด
+Stops telling Instagram which posts in Home you looked at and for how long. Instagram uses that to pick what Home shows. Posts you've seen may come back.	หยุดส่งข้อมูลให้ Instagram ว่าคุณดูโพสต์ใดในหน้าหลักและดูนานเท่าใด Instagram ใช้ข้อมูลนี้เพื่อเลือกสิ่งที่จะแสดงในหน้าหลัก โพสต์ที่คุณเห็นแล้วอาจวนกลับมาแสดงอีก

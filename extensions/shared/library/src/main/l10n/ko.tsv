@@ -2496,3 +2496,6 @@ Viewers: %1$d. Followers not on the list: %2$d	조회자: %1$d. 목록에 없는
 No stories kept in this period.	이 기간에 보관된 스토리가 없습니다.
 Every follower viewed at least one story in this period.	모든 팔로워가 이 기간에 스토리를 하나 이상 봤습니다.
 No one has viewed half of this period's stories yet.	아직 이 기간 스토리의 절반을 본 사람이 없습니다.
+# context: Feed: switch under Hide the home feed that keeps Instagram from learning which posts in Home you looked at and for how long (#664)
+Don't send feed view history	피드 조회 기록 전송하지 않기
+Stops telling Instagram which posts in Home you looked at and for how long. Instagram uses that to pick what Home shows. Posts you've seen may come back.	홈에서 어떤 게시물을 얼마나 오래 봤는지 Instagram에 알리지 않습니다. Instagram은 이 정보로 홈에 보여 줄 내용을 고릅니다. 이미 본 게시물이 다시 나올 수 있습니다.

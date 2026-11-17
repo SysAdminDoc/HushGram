@@ -2497,3 +2497,6 @@ Viewers: %1$d. Followers not on the list: %2$d	Zuschauer: %1$d. Follower nicht a
 No stories kept in this period.	In diesem Zeitraum sind keine Stories gespeichert.
 Every follower viewed at least one story in this period.	Alle Follower haben in diesem Zeitraum mindestens eine Story angesehen.
 No one has viewed half of this period's stories yet.	Noch niemand hat die Hälfte der Stories dieses Zeitraums angesehen.
+# context: Feed: switch under Hide the home feed that keeps Instagram from learning which posts in Home you looked at and for how long (#664)
+Don't send feed view history	Feed-Ansichtsverlauf nicht senden
+Stops telling Instagram which posts in Home you looked at and for how long. Instagram uses that to pick what Home shows. Posts you've seen may come back.	Instagram erfährt nicht mehr, welche Beiträge auf der Startseite du dir angesehen hast und wie lange. Instagram nutzt das, um auszuwählen, was die Startseite zeigt. Gesehene Beiträge können wiederkommen.

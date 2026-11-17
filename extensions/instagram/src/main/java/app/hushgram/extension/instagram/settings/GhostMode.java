@@ -79,6 +79,7 @@ final class GhostMode {
         if (build.contains(PatchFamily.ACTIVE_STATUS)) switches.add(Settings.HIDE_ACTIVE_STATUS);
         if (build.contains(PatchFamily.SCREENSHOT_REPORTS)) switches.add(Settings.HIDE_SCREENSHOTS);
         if (build.contains(PatchFamily.BLEND_VISITS)) switches.add(Settings.HIDE_BLEND_VISITS);
+        if (build.contains(PatchFamily.FEED_VIEW_HISTORY)) switches.add(Settings.DONT_SEND_FEED_VIEW_HISTORY);
         return switches;
     }
 

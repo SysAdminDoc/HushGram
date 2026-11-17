@@ -3745,3 +3745,10 @@ once-call Lapp/hushgram/extension/instagram/direct/OnlineHistory;->received(Ljav
 # answer every page of viewers comes back in.
 start-call Lapp/hushgram/extension/instagram/stories/StoryViewers;->listed(Ljava/lang/Object;Ljava/lang/Object;)V in instance (Ljava/lang/Object;)V pooled holding fetched_ig_viewers_count total_viewer_count
 once-call Lapp/hushgram/extension/instagram/stories/StoryViewers;->listed(Ljava/lang/Object;Ljava/lang/Object;)V in instance (Ljava/lang/Object;)V pooled holding fetched_ig_viewers_count total_viewer_count
+# Don't send feed view history (#664). The two static methods that add feed_view_info to a Home request
+# (feed/timeline/), one taking the context, two objects and the session and the other the context, one
+# object and the session (03aR.A01 and 0Ago.A00 on 455), each hand the record they read for it to
+# FeedViewInfo.held right before testing it for null. Left out, the posts you looked at still go to
+# Instagram; twice or elsewhere, it isn't the hook the patch wrote. Some builds may pool the name (pooled).
+once-call Lapp/hushgram/extension/instagram/feed/FeedViewInfo;->held(Ljava/lang/Object;)Ljava/lang/Object; in static (Landroid/content/Context;L*;L*;Lcom/instagram/common/session/UserSession;L*;L*;)V pooled holding feed_view_info
+once-call Lapp/hushgram/extension/instagram/feed/FeedViewInfo;->held(Ljava/lang/Object;)Ljava/lang/Object; in static (Landroid/content/Context;L*;Lcom/instagram/common/session/UserSession;L*;L*;)V pooled holding feed_view_info
