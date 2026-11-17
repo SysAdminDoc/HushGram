@@ -13,6 +13,7 @@ import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
@@ -27,6 +28,12 @@ internal const val NOTE_CARD = "$EXTENSION_PACKAGE/misc/NoteBubble;->card(J)J"
  * file's line number follows and changes from build to build.
  */
 internal const val NOTE_CARD_TRACE = "com.instagram.direct.inbox.notes.tray.compose.bubble.NotesTrayBubbleCard ("
+
+/**
+ * The key the card's Compose trace starts with on 456, which logs the key without its label
+ * (`LX/0P9R;->A0A` on 386214574). The key moves with the card's source, so it holds for 456 only.
+ */
+internal const val NOTE_CARD_TRACE_KEY = 0xb2ebae6f.toInt()
 
 /** A note's own theme, which the card takes as an argument. */
 internal const val NOTE_CUSTOM_THEME = "Lcom/instagram/direct/inbox/notes/models/domain/notecustomtheme/NoteCustomTheme;"
@@ -69,10 +76,11 @@ internal fun BytecodePatchContext.blackenNoteBubbles() {
     )
 }
 
-/** Whether [method] starts the Compose trace of the note card, [NOTE_CARD_TRACE]. */
+/** Whether [method] starts the Compose trace of the note card, by its label [NOTE_CARD_TRACE] or its key [NOTE_CARD_TRACE_KEY]. */
 internal fun tracesNoteCard(method: Method): Boolean = method.implementation?.instructions?.any { instruction ->
     (instruction.opcode == Opcode.CONST_STRING || instruction.opcode == Opcode.CONST_STRING_JUMBO) &&
-        ((instruction as ReferenceInstruction).reference as StringReference).string.startsWith(NOTE_CARD_TRACE)
+        ((instruction as ReferenceInstruction).reference as StringReference).string.startsWith(NOTE_CARD_TRACE) ||
+        instruction.opcode == Opcode.CONST && (instruction as NarrowLiteralInstruction).narrowLiteral == NOTE_CARD_TRACE_KEY
 } == true
 
 /**

@@ -3469,11 +3469,14 @@ once-call Lapp/hushgram/extension/instagram/comment/CommentSearch;->contentShown
 # holds no string, so its rule takes the label from its class (454's label names line 3633, 453's
 # named 3634). Left out, new rows stay gray; twice or elsewhere, it isn't the hook the patch wrote.
 # On 455 the swipe background's row names line 3791, and the swipe background is inlined into that
-# row's invoke on 386113968 (0Z9T) but outlined elsewhere (0Z4F.A02 on 386113969), so its rule takes
-# the two Compose group keys it loads on every build.
-once-call Lapp/hushgram/extension/instagram/misc/NewRowTint;->color(J)J in static (*)Ljava/lang/Object; pooled holding com.instagram.newsfeed.ui.buildAnnotatedString\s(NewsfeedStoryMessageState.kt:59)
-once-call Lapp/hushgram/extension/instagram/misc/NewRowTint;->color(J)J in (*)Ljava/lang/Object; sites 2 holding const:0x8866a52c const:0xd1f974d9
-once-call Lapp/hushgram/extension/instagram/misc/NewRowTint;->color(J)J in instance (Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; pooled holding com.instagram.newsfeed.compose.ui.StartAvatar.<anonymous>.<anonymous>\s(NewsfeedStoryRow.kt:359)
+# row's invoke on 386113968 (0Z9T) but outlined elsewhere (0Z4F.A02 on 386113969).
+# 456 drops the trace labels and starts each trace with its key alone, so the rules take the keys
+# the labels went with: the row text's buildAnnotatedString (0Qd2.A01 on 386214574), the row's
+# lambda with its swipe background inlined on every 456 build (0OKO.invoke), and the avatar's ring
+# (0R30.invoke).
+once-call Lapp/hushgram/extension/instagram/misc/NewRowTint;->color(J)J in static (*)Ljava/lang/Object; holding const:0x6b7b1e32
+once-call Lapp/hushgram/extension/instagram/misc/NewRowTint;->color(J)J in instance (Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; sites 2 holding const:0xabc6d658 const:0xd1f974d9
+once-call Lapp/hushgram/extension/instagram/misc/NewRowTint;->color(J)J in instance (Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; holding const:0x676a129d
 # Hide Notes on profile pictures answers the reads of Instagram's is_consumption_disabled flag for
 # profiles through ProfileNotes.consumptionDisabled, right after each read's move-result. One read
 # is in the profile header builder, the instance void method taking a View first and a boolean last

@@ -963,6 +963,36 @@ class PureBlackTest {
         assertTrue(failure.message!!, "found 2" in failure.message!!)
     }
 
+    /**
+     * 456 starts a trace with its key alone, so the avatar's and a new row's keys stand in for their
+     * labels (`LX/0R30;->invoke` and `LX/0OKO;->invoke` on 386214574). Another key reads as no label.
+     */
+    @Test
+    fun theTraceKeysOfTheAvatarAndARowStandInForTheirLabels() {
+        val avatar = "Lfixture/Avatar;"
+        val row = "Lfixture/Row;"
+        val other = "Lfixture/OtherRow;"
+        val patch = newRowContext(
+            classDef(avatar, """
+                const v0, 0x676a129d
+                iget-wide v1, v5, $FAKE_THEME->tint:J
+                return-void
+            """),
+            classDef(row, """
+                const v0, 0xabc6d658
+                iget-wide v1, v5, $FAKE_THEME->tint:J
+                return-void
+            """),
+            classDef(other, """
+                const v0, 0x676a129e
+                iget-wide v1, v5, $FAKE_THEME->tint:J
+                return-void
+            """),
+        )
+
+        assertEquals(listOf(avatar to 1, row to 1), patch.findNewRowTintReads().map { it.type to it.index }.sortedBy { it.first })
+    }
+
     /** No class making a theme from Prism's tint means an update the patch hasn't seen. */
     @Test
     fun noThemeFails() {

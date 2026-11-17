@@ -19,6 +19,7 @@ import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
@@ -40,6 +41,20 @@ private const val NOTIFICATIONS_LABEL = "com.instagram.newsfeed."
 
 /** The avatar reads the tint from the theme, alone or on its new notification's arm, which is how a build's Redex name for that field is found. */
 private const val AVATAR_LABEL = "${NOTIFICATIONS_LABEL}compose.ui.StartAvatar."
+
+/**
+ * The keys of the Notifications traces that read the tint, with the labels they logged before 456.
+ * 456 starts a trace with its key alone (`LX/04nK;->A01(I)V` on 386214574), and a key stays put as
+ * long as its composable's source does: the avatar's ring (`LX/0R30;->invoke`), a new row's lambda
+ * (`LX/0OKO;->invoke`) and the row's text (`LX/0Qd2;->A01`) on 386214574.
+ */
+private val NOTIFICATIONS_TRACE_KEYS = mapOf(
+    0x676a129d to "${AVATAR_LABEL}<anonymous>.<anonymous> (NewsfeedStoryRow.kt:359)",
+    0xabc6d658.toInt() to "${NOTIFICATIONS_LABEL}fragment.NewsfeedRow.<anonymous> (NewsfeedYouComposeFragment.kt:3791)",
+    0x6b7b1e32 to "${NOTIFICATIONS_LABEL}ui.buildAnnotatedString (NewsfeedStoryMessageState.kt:59)",
+)
+
+private val TRACE_KEY_LOADS = setOf(Opcode.CONST, Opcode.CONST_HIGH16, Opcode.CONST_16, Opcode.CONST_4)
 
 private const val NEW_ROW_PATCH = "Pure black dark mode"
 
@@ -132,9 +147,13 @@ private fun newArmColor(avatar: NewRowPage, theme: String): String? {
 private fun Instruction.readsFlagOf(type: String): Boolean =
     opcode == Opcode.IGET_BOOLEAN && ((this as ReferenceInstruction).reference as FieldReference).definingClass == type
 
-/** Each Notifications label [code] loads, with the index of its load. */
+/** Each Notifications label [code] loads, or the trace key standing in for it, with the index of its load. */
 private fun BytecodePatchContext.notificationLabels(code: List<Instruction>): List<Pair<Int, String>> =
-    code.indices.mapNotNull { at -> stringLoadedAt(code, at)?.takeIf { it.startsWith(NOTIFICATIONS_LABEL) }?.let { at to it } }
+    code.indices.mapNotNull { at ->
+        val label = stringLoadedAt(code, at)?.takeIf { it.startsWith(NOTIFICATIONS_LABEL) }
+            ?: code[at].takeIf { it.opcode in TRACE_KEY_LOADS }?.let { NOTIFICATIONS_TRACE_KEYS[(it as NarrowLiteralInstruction).narrowLiteral] }
+        label?.let { at to it }
+    }
 
 /**
  * The Notifications labels of a lambda body Redex moved out of its invoke. The body becomes a static
