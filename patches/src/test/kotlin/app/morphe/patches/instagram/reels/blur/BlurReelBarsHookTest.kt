@@ -13,10 +13,10 @@ import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.instagram.NeutralNativePath
-import app.morphe.patches.instagram.reels.scrolling.ENABLE_SCROLLING
-import app.morphe.patches.instagram.reels.scrolling.PAGER_SETUP
+import app.morphe.patches.instagram.reels.scrolling.PAGER_VIEW_LOOKUP
 import app.morphe.patches.instagram.reels.scrolling.SET_USER_INPUT
 import app.morphe.patches.instagram.reels.scrolling.VIEW_PAGER
+import app.morphe.patches.instagram.reels.scrolling.reelsPagerHolders
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -93,14 +93,17 @@ class BlurReelBarsHookTest {
     @Test
     fun aBuildThePatchCantReadFailsBeforeAnythingChanges() {
         val stored = "expected $viewerType->onViewCreated to store $pagerField once, found"
+        val switch = "expected one static method of $pagerImpl taking it that reads $pagerField and calls $VIEW_PAGER->$SET_USER_INPUT, found"
+        val setup = "expected one method handed a $view to store $pagerField, found"
         val cases = listOf(
-            classes(switches = 0) to "expected exactly one Reels pager switch holding \"$ENABLE_SCROLLING\" in this Instagram build, found none",
-            classes(switches = 2) to "expected exactly one Reels pager switch holding \"$ENABLE_SCROLLING\" in this Instagram build, found $pagerImpl",
-            classes(switchReadsPager = false) to "expected $pagerImpl->enable to read one $VIEW_PAGER field of its class, found 0",
-            classes(switchSetsInput = false) to "$pagerImpl->enable doesn't call $VIEW_PAGER->$SET_USER_INPUT",
-            classes(viewers = 0) to "expected exactly one Reels pager setup holding \"$PAGER_SETUP\" in this Instagram build, found none",
-            classes(viewers = 2) to "expected exactly one Reels pager setup holding \"$PAGER_SETUP\" in this Instagram build, found Lfixture/",
-            classes(stores = 0) to "$stored 0",
+            classes(lookups = 0) to "expected one method loading \"$PAGER_VIEW_LOOKUP\", found 0",
+            classes(switches = 0) to "$switch 0",
+            classes(switches = 2) to "$switch 2",
+            classes(switchReadsPager = false) to "$switch 0",
+            classes(switchSetsInput = false) to "$switch 0",
+            classes(viewers = 0) to "$setup 0",
+            classes(viewers = 2) to "$setup 2",
+            classes(stores = 0) to "$setup 0",
             classes(stores = 2) to "$stored 2",
             classes(jumpsToTheInstructionAfter = true) to "something in $viewerType->onViewCreated jumps to the instruction after its store of $pagerField",
         )
@@ -144,8 +147,7 @@ class BlurReelBarsHookTest {
     }
 
     private fun builds(bundle: File, label: String) {
-        val holders = (FixtureDex.classesHolding(bundle, PAGER_SETUP) + FixtureDex.classesHolding(bundle, ENABLE_SCROLLING))
-            .map { it.type }.toSet()
+        val holders = reelsPagerHolders(bundle)
         val types = holders + VIEW_PAGER
         for ((read, classesOf) in listOf("copied" to FixtureDex::classes, "as read" to FixtureDex::classesAsRead)) {
             val what = "${label} ($read)"
@@ -195,11 +197,12 @@ class BlurReelBarsHookTest {
     // ---- stand-ins shaped like Instagram 450's -------------------------------------------------
 
     /**
-     * The Reels viewer, whose onViewCreated traces the pager's setup and stores the pager in the pager
-     * object's field; the pager object, whose switch reads that field and turns its input back on;
-     * and AndroidX's pager with its setter.
+     * The Reels viewer, whose onViewCreated is handed a View and stores the pager in the pager object's
+     * field; the pager object, which loads its view lookup's trace name and whose static switch reads
+     * that field and turns its input back on; and AndroidX's pager with its setter.
      */
     private fun classes(
+        lookups: Int = 1,
         switches: Int = 1,
         switchReadsPager: Boolean = true,
         switchSetsInput: Boolean = true,
@@ -209,9 +212,13 @@ class BlurReelBarsHookTest {
     ): List<ClassDef> {
         val classes = mutableListOf<ClassDef>()
 
-        val enable = method(pagerImpl, "enable", emptyList(), "V", 2, body = """
-            const-string v0, "$ENABLE_SCROLLING"
+        val lookup = method(pagerImpl, "getViewAtIndex", listOf("I"), "V", 1, body = """
+            const-string v0, "$PAGER_VIEW_LOOKUP"
             invoke-static { v0 }, $trace
+            return-void
+        """)
+        val lookupMethods = (0 until lookups).map { if (it == 0) lookup else ImmutableMethod.of(renamed(lookup, "getViewAtIndexAgain")) }
+        val enable = method(pagerImpl, "enable", listOf(pagerImpl), "V", 2, static = true, body = """
             ${if (switchReadsPager) "iget-object v1, p0, $pagerField" else "const/4 v1, 0x0\ncheck-cast v1, $VIEW_PAGER"}
             if-eqz v1, :done
             const/4 v0, 0x1
@@ -220,13 +227,12 @@ class BlurReelBarsHookTest {
             return-void
         """)
         val enables = (0 until switches).map { if (it == 0) enable else ImmutableMethod.of(renamed(enable, "enableAgain")) }
-        classes += classDef(pagerImpl, enables, fields = listOf("pager" to VIEW_PAGER))
+        classes += classDef(pagerImpl, lookupMethods + enables, fields = listOf("pager" to VIEW_PAGER))
 
         // v2 holds the pager and is read after the store.
         val viewer = { type: String ->
             method(type, "onViewCreated", listOf(view, bundle), "V", 4, body = """
-                const-string v0, "$PAGER_SETUP"
-                invoke-static { v0 }, $trace
+                const/4 v0, 0x0
                 iget-object v1, p0, $type->pagerImpl:$pagerImpl
                 invoke-virtual { p1 }, $view->getRootView()$view
                 move-result-object v2
@@ -263,12 +269,14 @@ class BlurReelBarsHookTest {
         parameters: List<String>,
         returns: String,
         registers: Int,
+        static: Boolean = false,
         body: String,
     ): Method {
-        val total = registers + 1 + parameters.size
+        val total = registers + (if (static) 0 else 1) + parameters.size
+        val flags = AccessFlags.PUBLIC.value or (if (static) AccessFlags.STATIC.value else 0)
         val mutable = MutableMethod(
             ImmutableMethod(
-                owner, name, parameters.map { ImmutableMethodParameter(it, null, null) }, returns, AccessFlags.PUBLIC.value, null, null,
+                owner, name, parameters.map { ImmutableMethodParameter(it, null, null) }, returns, flags, null, null,
                 ImmutableMethodImplementation(total, emptyList(), null, null),
             ),
         )

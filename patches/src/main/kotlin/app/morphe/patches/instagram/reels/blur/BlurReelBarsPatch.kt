@@ -14,15 +14,9 @@ import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
-import app.morphe.patches.instagram.misc.extension.uniqueMethod
 import app.morphe.patches.instagram.misc.settings.settingsPatch
-import app.morphe.patches.instagram.reels.scrolling.ENABLE_SCROLLING
-import app.morphe.patches.instagram.reels.scrolling.PAGER_SETUP
-import app.morphe.patches.instagram.reels.scrolling.ReelsPagerEnableFingerprint
-import app.morphe.patches.instagram.reels.scrolling.ReelsViewerSetupFingerprint
-import app.morphe.patches.instagram.reels.scrolling.SET_USER_INPUT
-import app.morphe.patches.instagram.reels.scrolling.VIEW_PAGER
-import app.morphe.patches.instagram.reels.scrolling.reelsPagerSwitchCode
+import app.morphe.patches.instagram.reels.scrolling.reelsPager
+import app.morphe.patches.instagram.reels.scrolling.reelsPagerSetup
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
@@ -30,7 +24,6 @@ import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
-import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 
 private const val PATCH = "Blur the bars around Reels"
 internal const val REEL_BLUR_BARS = "$EXTENSION_PACKAGE/reels/ReelBlurBars;"
@@ -71,33 +64,21 @@ val blurReelBarsPatch = bytecodePatch(
 }
 
 /**
- * The method that stores the pager (onViewCreated on 451, the pager's setupView on 452), the index of
+ * The method that stores the pager (a static of the Reels viewer on 456), the index of
  * its one store of the pager, the register that holds it, and the pager field it stores.
  */
 internal class ReelPagerStore(val viewer: String, val name: String, val parameters: List<String>, val store: Int, val pager: Int, val field: String)
 
 /**
- * The Reels pager is the [VIEW_PAGER] field its own [ENABLE_SCROLLING] switch reads, itself or
- * through its helper ([reelsPagerSwitchCode]), and the viewer
- * whose onViewCreated holds [PAGER_SETUP] stores it exactly once. Nothing may jump to the
+ * The Reels pager is the pager field of [reelsPager], and its setup ([reelsPagerSetup]) stores it
+ * exactly once. Nothing may jump to the
  * instruction after the store, so the hook sits in the straight line behind it with the pager still
  * in its register.
  */
 internal fun BytecodePatchContext.findReelPagerStore(): ReelPagerStore {
-    val enable = uniqueMethod(PATCH, "Reels pager switch holding \"$ENABLE_SCROLLING\"", ReelsPagerEnableFingerprint)
-    val enableCode = reelsPagerSwitchCode(enable)
-    val pagerReads = enableCode.mapNotNull { instruction ->
-        instruction.fieldReference()?.takeIf {
-            instruction.opcode == Opcode.IGET_OBJECT && it.definingClass == enable.definingClass && it.type == VIEW_PAGER
-        }?.toString()
-    }.distinct()
-    val field = pagerReads.singleOrNull()
-        ?: refuse("expected ${enable.definingClass}->${enable.name} to read one $VIEW_PAGER field of its class, found ${pagerReads.size}")
-    if (enableCode.none { it.methodReference()?.let { called -> called.definingClass == VIEW_PAGER && called.name == SET_USER_INPUT } == true }) {
-        refuse("${enable.definingClass}->${enable.name} doesn't call $VIEW_PAGER->$SET_USER_INPUT")
-    }
-
-    val viewer = uniqueMethod(PATCH, "Reels pager setup holding \"$PAGER_SETUP\"", ReelsViewerSetupFingerprint)
+    val found = reelsPager(::refuse)
+    val field = found.field
+    val viewer = reelsPagerSetup(found, ::refuse)
     val code = viewer.instructions()
     val where = "${viewer.definingClass}->${viewer.name}"
     val stores = code.indices.filter { code[it].opcode == Opcode.IPUT_OBJECT && code[it].fieldReference()?.toString() == field }
@@ -124,5 +105,3 @@ internal fun BytecodePatchContext.applyBlurReelBars(site: ReelPagerStore) {
 private fun Method.instructions(): List<Instruction> = implementation?.instructions?.toList().orEmpty()
 
 private fun Instruction.fieldReference(): FieldReference? = (this as? ReferenceInstruction)?.reference as? FieldReference
-
-private fun Instruction.methodReference(): MethodReference? = (this as? ReferenceInstruction)?.reference as? MethodReference
