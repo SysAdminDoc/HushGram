@@ -35,6 +35,7 @@ import org.robolectric.annotation.GraphicsMode;
 import org.robolectric.shadows.ShadowLooper;
 
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.ToIntFunction;
 
 import app.hushgram.extension.instagram.misc.GlassTabBar;
 import app.hushgram.extension.instagram.settings.Settings;
@@ -56,8 +57,15 @@ public class ChatReachTest {
     private static final int STATUS = 75;
     private static final int HEADER = 150;
     private static final int PADDING = 12;
+    /** Where Instagram ends the list above the bottom of the view holding the messages, the navigation bar, the keyboard. */
+    private static final int ENDS = 66;
+    private static final int NAV = 48;
+    private static final int KEYBOARD = 600;
 
     @Rule public final SettingsContextRule settings = new SettingsContextRule();
+
+    private final ToIntFunction<View> window = ChatReach.window;
+    private final ToIntFunction<View> navigation = ChatReach.navigation;
 
     private Activity activity;
     private FrameLayout screen;
@@ -74,6 +82,8 @@ public class ChatReachTest {
     public void prepare() {
         resetSwitches();
         GlassReach.insets = view -> STATUS;
+        ChatReach.window = view -> TALL;
+        ChatReach.navigation = view -> 0;
         ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class);
         controller.get().setTheme(android.R.style.Theme_Material_NoActionBar);
         activity = controller.setup().get();
@@ -83,6 +93,8 @@ public class ChatReachTest {
     @After
     public void restore() {
         GlassReach.insets = GlassReach::statusBar;
+        ChatReach.window = window;
+        ChatReach.navigation = navigation;
         resetSwitches();
     }
 
@@ -169,6 +181,33 @@ public class ChatReachTest {
         return ((ViewGroup.MarginLayoutParams) view.getLayoutParams()).topMargin;
     }
 
+    private static int windowBottom(View view) {
+        return windowTop(view) + view.getHeight();
+    }
+
+    private static int bottomMargin(View view) {
+        return ((ViewGroup.MarginLayoutParams) view.getLayoutParams()).bottomMargin;
+    }
+
+    private static void bottomMargin(View view, int margin) {
+        ViewGroup.MarginLayoutParams params = (ViewGroup.MarginLayoutParams) view.getLayoutParams();
+        params.bottomMargin = margin;
+        view.setLayoutParams(params);
+    }
+
+    /**
+     * Instagram's chat at its bottom: the coordinator ends the panel above the navigation bar, and the list ends
+     * [ENDS] above the bottom of the view holding the messages, halfway down the message bar.
+     */
+    private void aboveTheNavigationBar() {
+        ChatReach.navigation = view -> NAV;
+        bottomMargin(panel, NAV);
+        bottomMargin(refresh, ENDS);
+        layout();
+        assertEquals(TALL - NAV, windowBottom(messages));
+        assertEquals(TALL - NAV - ENDS, windowBottom(list));
+    }
+
     private void assertLeftAlone() {
         assertEquals(0, margin(list));
         assertEquals(0, margin(refresh));
@@ -231,6 +270,87 @@ public class ChatReachTest {
         assertEquals(PADDING, list.getPaddingTop());
         assertNull(messages.getClipBounds());
         assertNull(messages.getForeground());
+    }
+
+    /**
+     * The list runs on down behind the message bar and the navigation bar to the window's bottom, padded so the
+     * newest message stops where it did, and only to the bottom of the view holding the messages while the
+     * keyboard is up (#729). The window is the test's own size: the reach down measures against the window's
+     * bottom each frame, and a traversal at another size between frames would move it.
+     */
+    @Test
+    @Config(qualifiers = "w1080dp-h2000dp")
+    public void theMessagesRunOnDownBehindTheMessageBarAndTheNavigationBar() {
+        aboveTheNavigationBar();
+        glaze();
+        assertEquals("down to the window's bottom", TALL, windowBottom(list));
+        assertEquals("up to its top still", 0, windowTop(list));
+        assertEquals("the newest message stops where it did", ENDS + NAV, list.getPaddingBottom());
+        assertEquals(PADDING + STATUS + HEADER, list.getPaddingTop());
+        assertEquals("the view holding them stays put", TALL - NAV, windowBottom(messages));
+        assertEquals("drawn on behind the navigation bar",
+                new Rect(0, 0, messages.getWidth(), messages.getHeight() + NAV), messages.getClipBounds());
+        for (ViewGroup group : new ViewGroup[] {screen, panel, source, holder, refresh, messages}) {
+            assertFalse(group.getClipChildren());
+        }
+
+        // Instagram setting the margin and the padding again keeps it down.
+        bottomMargin(refresh, ENDS);
+        list.setPadding(0, list.getPaddingTop(), 0, 20);
+        frame();
+        assertEquals(TALL, windowBottom(list));
+        assertEquals(20 + ENDS + NAV, list.getPaddingBottom());
+
+        // The keyboard up: down to the bottom of the view holding the messages, above the keyboard.
+        bottomMargin(panel, KEYBOARD);
+        frame();
+        frame();
+        assertEquals(TALL - KEYBOARD, windowBottom(messages));
+        assertEquals(TALL - KEYBOARD, windowBottom(list));
+        assertEquals(20 + ENDS, list.getPaddingBottom());
+        assertEquals(new Rect(0, 0, messages.getWidth(), messages.getHeight()), messages.getClipBounds());
+
+        bottomMargin(panel, NAV);
+        frame();
+        frame();
+        assertEquals("the keyboard down, down to the window's bottom again", TALL, windowBottom(list));
+        assertEquals(20 + ENDS + NAV, list.getPaddingBottom());
+        String report = HookStatus.report().toString();
+        assertFalse(report, report.contains(GlassTopBar.HOOK));
+    }
+
+    @Test
+    @Config(qualifiers = "w1080dp-h2000dp")
+    public void offTheMessagesComeBackUpFromTheBottom() {
+        aboveTheNavigationBar();
+        glaze();
+        assertEquals(TALL, windowBottom(list));
+        on.set(false);
+        frame();
+        assertEquals(ENDS, bottomMargin(refresh));
+        assertEquals(0, list.getPaddingBottom());
+        assertNull(messages.getClipBounds());
+        for (ViewGroup group : new ViewGroup[] {screen, panel, source, holder, refresh, messages}) {
+            assertTrue(group.getClipChildren());
+        }
+        assertEquals(TALL - NAV - ENDS, windowBottom(list));
+        assertEquals(STATUS + HEADER, windowTop(list));
+    }
+
+    /** A parent laying the view out where it likes at the bottom: the list keeps its bottom, and its top stays up. */
+    @Test
+    @Config(qualifiers = "w1080dp-h2000dp")
+    public void aParentIgnoringTheBottomMarginLeavesTheListsBottomAlone() {
+        build(new Pinned(activity, ENDS), new FrameLayout(activity), HEADER);
+        aboveTheNavigationBar();
+        glaze();
+        frame();
+        assertEquals("the top still up", 0, windowTop(list));
+        assertEquals(PADDING + STATUS + HEADER, list.getPaddingTop());
+        assertEquals("the bottom where Instagram had it", TALL - NAV - ENDS, windowBottom(list));
+        assertEquals(ENDS, bottomMargin(refresh));
+        assertEquals(0, list.getPaddingBottom());
+        assertEquals(new Rect(0, 0, messages.getWidth(), messages.getHeight()), messages.getClipBounds());
     }
 
     @Test
@@ -395,6 +515,25 @@ public class ChatReachTest {
             canvas.clipRect(0, 0, getWidth(), getHeight());
             super.dispatchDraw(canvas);
             canvas.restoreToCount(saved);
+        }
+    }
+
+    /** A FrameLayout ending its children [keep] above its bottom whatever their bottom margins. */
+    private static final class Pinned extends FrameLayout {
+        private final int keep;
+
+        Pinned(Context context, int keep) {
+            super(context);
+            this.keep = keep;
+        }
+
+        @Override
+        protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
+            for (int i = 0; i < getChildCount(); i++) {
+                View child = getChildAt(i);
+                int from = ((MarginLayoutParams) child.getLayoutParams()).topMargin;
+                child.layout(0, from, getWidth(), getHeight() - keep);
+            }
         }
     }
 

@@ -486,6 +486,68 @@ public class GlassTopBarTest {
                 Color.alpha(drawn(story.getBackground()).getPixel(50, 25)), 1);
     }
 
+    /**
+     * Bigger text makes a chat's message box taller while Instagram keeps its buttons the same size, the same
+     * distance from its edges: the pill's ends then round about the first button, which stays in the middle of the
+     * curve and not out in the corner (#729).
+     */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    @Config(sdk = 33)
+    public void aTallerMessageBoxRoundsItsEndsAboutItsFirstButton() {
+        int edge = 16;
+        int inset = 12;
+        int button = 76;
+        screen.setId(View.generateViewId());
+        FrameLayout holder = new FrameLayout(activity);
+        FrameLayout box = new FrameLayout(activity);
+        FrameLayout.LayoutParams boxAt = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 100);
+        boxAt.leftMargin = edge;
+        boxAt.rightMargin = edge;
+        holder.addView(box, boxAt);
+        View camera = new View(activity);
+        camera.setId(View.generateViewId());
+        FrameLayout.LayoutParams cameraAt = new FrameLayout.LayoutParams(button, button);
+        cameraAt.leftMargin = edge + inset;
+        cameraAt.topMargin = inset;
+        holder.addView(camera, cameraAt);
+        screen.addView(holder, 2, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, HEADER));
+        layout();
+        GlassTopBar.glazeBox(box, screen.getId(), false, () -> true, FamilyNames.GLASS_CHAT,
+                Settings.GLASS_CHAT_BOX_OPACITY, camera.getId());
+        frame();
+        assertTrue(GlassTopBar.boxShowing(box));
+        assertEquals("Instagram's own size: fully round", 50f, GlassTopBar.pillRadius(box), 0.01f);
+
+        boxAt.height = 140;
+        box.setLayoutParams(boxAt);
+        layout();
+        frame();
+        assertEquals(140, box.getHeight());
+        assertEquals("taller: round about the camera's middle", inset + button / 2f, GlassTopBar.pillRadius(box), 0.01f);
+
+        boxAt.height = 60;
+        box.setLayoutParams(boxAt);
+        layout();
+        frame();
+        assertEquals("smaller: fully round", 30f, GlassTopBar.pillRadius(box), 0.01f);
+
+        boxAt.height = 140;
+        box.setLayoutParams(boxAt);
+        camera.setVisibility(View.GONE);
+        layout();
+        frame();
+        assertEquals("no camera showing: fully round", 70f, GlassTopBar.pillRadius(box), 0.01f);
+
+        FrameLayout story = messageBox();
+        GlassTopBar.glazeBox(story, screen.getId(), true, () -> true, FamilyNames.GLASS_CHAT);
+        layout();
+        frame();
+        assertEquals("a box with no button named stays fully round", HEADER / 2f, GlassTopBar.pillRadius(story), 0.01f);
+        String report = HookStatus.report().toString();
+        assertFalse(report, report.contains(GlassTopBar.HOOK));
+    }
+
     /** A message box in a holder over the feed, laid out, as a chat's composer sits. */
     private FrameLayout messageBox() {
         if (screen.getId() == View.NO_ID) screen.setId(View.generateViewId());

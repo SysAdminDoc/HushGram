@@ -71,6 +71,7 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
+* With `Glass in chats` on, the messages now run all the way down behind the message bar and the strip under it, so the bar is see-through from top to bottom. Before, they stopped halfway down the bar and left black below. A bigger `Text size` also keeps the camera and + buttons inside the bar's round ends now, where they used to poke out at the corners. Reported in #729.
 * Long press a chat low in your messages and its menu now opens above the chat when it wouldn't fit between the chat and the tab bar. Before, it covered the tab bar, and with a bigger font its last rows were cut off. Reported in #728.
 * `Keep playing in the background` shows its notification on a Root Mount install too, with Pause, Play and Stop. A mount can't add the service HushGram normally uses, so the video used to keep playing with no notification and no way to stop it short of opening Instagram again. Reported in #349.
 * Picking friends on the Friends tab in Reels now leaves the other reels out. Before, one reel from each page without your picks still showed between theirs, so the tab barely looked filtered. Reported in #503.

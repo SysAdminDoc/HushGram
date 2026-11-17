@@ -32,6 +32,7 @@ import android.view.ViewTreeObserver;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 
+import java.lang.ref.WeakReference;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -160,9 +161,21 @@ public final class GlassTopBar {
     /** {@link #glazeBox(View, int, boolean, BooleanSupplier, String)} with the tint under [tintSlider] too (#688). */
     public static void glazeBox(@Nullable View box, int source, boolean dark, BooleanSupplier on, String family,
                                 @Nullable IntegerSetting tintSlider) {
+        glazeBox(box, source, dark, on, family, tintSlider, 0);
+    }
+
+    /**
+     * {@link #glazeBox(View, int, boolean, BooleanSupplier, String, IntegerSetting)}, with the pill's ends rounding
+     * about the view with the id [corner] beside the box, its first button, when that sits nearer the end than half
+     * the box's height (#729). 0 keeps the ends fully round.
+     */
+    public static void glazeBox(@Nullable View box, int source, boolean dark, BooleanSupplier on, String family,
+                                @Nullable IntegerSetting tintSlider, int corner) {
         try {
             if (box == null || source == 0 || !on.getAsBoolean() || under(box, source) == null || !GLAZED.add(box)) return;
-            listen(new Glass(box, on, family, source, dark, tintSlider));
+            Glass glass = new Glass(box, on, family, source, dark, tintSlider);
+            glass.cornerId = corner;
+            listen(glass);
             HookStatus.counted(family, COUNT_BOXES);
         } catch (Throwable failure) {
             HookStatus.threw(family, HOOK, failure);
@@ -282,6 +295,12 @@ public final class GlassTopBar {
         return found.toString();
     }
 
+    /** How round the ends of [box]'s pill are, drawn over the whole box, 0 with no glass on it (#729). */
+    static float pillRadius(View box) {
+        Drawable frost = box.getForeground() instanceof Frost ? box.getForeground() : box.getBackground();
+        return frost instanceof Frost ? ((Frost) frost).glass.pillRadius(new Rect(0, 0, box.getWidth(), box.getHeight())) : 0f;
+    }
+
     /** Whether [header]'s glass has its backdrop recorded. */
     static boolean recorded(View header) {
         Drawable background = header.getBackground();
@@ -396,6 +415,10 @@ public final class GlassTopBar {
         final boolean lined;
         /** For a message box, the id of the view drawing what's under it (#391). 0 for a header. */
         final int sourceId;
+        /** For a message box, the id of its first button, which the pill's ends round about (#729). 0 for none. */
+        int cornerId;
+        @Nullable private WeakReference<View> corner;
+        private final int[] cornerAt = new int[2];
         /** Whether a message box's glass stays dark whatever the theme. */
         private final boolean dark;
         /** Whether a message box takes the glass over itself, as a foreground, and not as its background. */
@@ -875,10 +898,39 @@ public final class GlassTopBar {
                 int height = bounds.height();
                 rimBox.set(0, 0, bounds.width(), height);
                 return lens().paint(canvas, node, -nodePad - bounds.left, -nodePad - nodeAbove - bounds.top, DOWNSAMPLE,
-                        bounds.width(), height, rimBox, height / 2f, height);
+                        bounds.width(), height, rimBox, pillRadius(bounds), height);
             } finally {
                 canvas.restoreToCount(saved);
             }
+        }
+
+        /**
+         * How round a message box's pill over [bounds] is at its ends: fully, unless its first button sits nearer
+         * the end than half the box's height. Bigger text makes the box taller while Instagram keeps its buttons
+         * the same size, the same distance from its edges (#729), so the ends then round about the button and it
+         * stays in the middle of the curve, not out in the corner.
+         */
+        float pillRadius(Rect bounds) {
+            float full = bounds.height() / 2f;
+            View button = corner();
+            if (button == null || !button.isShown() || button.getWidth() == 0) return full;
+            header.getLocationInWindow(cornerAt);
+            int boxLeft = cornerAt[0] + bounds.left;
+            button.getLocationInWindow(cornerAt);
+            float round = cornerAt[0] - boxLeft + button.getWidth() / 2f;
+            return round > 0 && round < full ? round : full;
+        }
+
+        /** The box's first button, found beside it by its id, or null. */
+        @Nullable
+        private View corner() {
+            if (cornerId == 0) return null;
+            View known = corner == null ? null : corner.get();
+            if (known != null && known.isAttachedToWindow()) return known;
+            ViewParent up = header.getParent();
+            View found = up instanceof View ? ((View) up).findViewById(cornerId) : null;
+            corner = found == null ? null : new WeakReference<>(found);
+            return found;
         }
 
         private GlassLens lens() {
@@ -985,7 +1037,7 @@ public final class GlassTopBar {
          * it, so an outline Instagram draws on it stays.
          */
         private void drawPill(Canvas canvas, Rect bounds) {
-            float radius = bounds.height() / 2f;
+            float radius = glass.pillRadius(bounds);
             pillBox.set(bounds);
             pill.rewind();
             pill.addRoundRect(pillBox, radius, radius, Path.Direction.CW);

@@ -74,6 +74,8 @@ public final class GlassChat {
     /** The message bar's pill, and the view drawing the messages before the bar. */
     static final String MESSAGE_BOX = "blurred_text_area_background";
     static final String MESSAGES = "direct_thread_content_below_action_bar";
+    /** The camera button at the bar's start, which the pill's ends round about when bigger text makes it taller (#729). */
+    static final String MESSAGE_BOX_BUTTON = "row_thread_composer_shortcut_viewgroup";
     /** The list of messages in it, run on under the header's glass (#684). */
     static final String MESSAGE_LIST = "message_list";
     /** The story viewer, one person's page in it, which draws the story first, and the page's reply box. */
@@ -322,7 +324,7 @@ public final class GlassChat {
     private static void dress(View container, Activity activity) {
         GlassTopBar.glazeChat(container, id(activity, MESSAGES), id(activity, MESSAGE_LIST), GlassChat::topBarOn);
         GlassTopBar.glazeBox(messageBox(activity), id(activity, MESSAGES), false, GlassChat::on, FamilyNames.GLASS_CHAT,
-                Settings.GLASS_CHAT_BOX_OPACITY);
+                Settings.GLASS_CHAT_BOX_OPACITY, id(activity, MESSAGE_BOX_BUTTON));
         boolean night = (container.getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK)
                 == Configuration.UI_MODE_NIGHT_YES;
         float density = container.getResources().getDisplayMetrics().density;

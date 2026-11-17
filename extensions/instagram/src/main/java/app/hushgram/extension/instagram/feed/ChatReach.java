@@ -5,10 +5,12 @@
 package app.hushgram.extension.instagram.feed;
 
 import android.graphics.Rect;
+import android.os.Build;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
+import android.view.WindowInsets;
 import android.widget.FrameLayout;
 
 import androidx.annotation.Nullable;
@@ -16,6 +18,7 @@ import androidx.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.function.ToIntFunction;
 
 import app.hushgram.extension.shared.Logger;
 
@@ -33,6 +36,13 @@ import app.hushgram.extension.shared.Logger;
  * the header's up to the one at the window's top stops clipping as well, so the glass reaches up behind the
  * clock.
  *
+ * <p>The list runs on down the same way (#729). Instagram ends it about 33dp above the bottom of the view holding
+ * the messages, halfway down the message bar, and that view ends above the navigation bar, where the window shows
+ * black. So the message bar's glass had messages behind its top half only, cut off sharp across it, and black
+ * under that. The view whose bottom the list shares is stretched down to the window's bottom (to the bottom of
+ * the view holding the messages while the keyboard is up), the list padded by as much so the newest message
+ * still stops where it did, and the parents down to the one at the window's bottom stop clipping.
+ *
  * <p>Nothing moves unless the list starts at the header's bottom edge and the header is where it rests. A
  * view whose parent lays it out where it likes, margin or not, is let go on the first layout and the next one up
  * tried. Everything goes back when the glass comes off or the header is hidden. Main thread only.
@@ -42,6 +52,10 @@ final class ChatReach {
     private static final int DEPTH = 16;
     /** How many views up from the list the one to pull is looked for, below the view holding the messages. */
     private static final int PULL_DEPTH = 6;
+
+    /** The height of [view]'s window, and of the navigation bar at its bottom. Swapped in tests. */
+    static ToIntFunction<View> window = view -> view.getRootView().getHeight();
+    static ToIntFunction<View> navigation = ChatReach::navigationBar;
 
     /** The ids of the view beside the header holding the messages, and of the list in it. */
     private final int messagesId;
@@ -68,9 +82,27 @@ final class ChatReach {
     /** How far the glass reaches above the header, behind the status bar, 0 while it doesn't. */
     int gap;
 
+    /** The view stretched down, whose bottom the list shares, with its own bottom margin, and the list's own bottom padding. */
+    @Nullable private View stretched;
+    private int stretchedMargin;
+    private int listBottomPadding;
+    /** How far the list was taken down, and how much of that is behind the navigation bar. */
+    private int down;
+    private int beneath;
+    /** Whether the parents down to the window's bottom stopped clipping, and whether the stretch was checked or let go. */
+    private boolean unclippedBelow;
+    private boolean checkedDown;
+    private boolean failedDown;
+
     ChatReach(int messagesId, int listId) {
         this.messagesId = messagesId;
         this.listId = listId;
+    }
+
+    static int navigationBar(View view) {
+        WindowInsets insets = view.getRootWindowInsets();
+        if (insets == null || Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return 0;
+        return insets.getInsets(WindowInsets.Type.navigationBars()).bottom;
     }
 
     /** The view holding the messages while they run on under the header, else null. */
@@ -160,18 +192,84 @@ final class ChatReach {
         found.setPadding(found.getPaddingLeft(), listPadding + up, found.getPaddingRight(), found.getPaddingBottom());
         if (found instanceof ViewGroup) ((ViewGroup) found).setClipToPadding(false);
         messagesClip = content.getClipBounds();
-        clipToBounds(content);
         messages = content;
         list = found;
         pulled = pull;
         by = up;
         gap = top != null ? status : 0;
+        View stretch = failedDown ? null : stretchable(found, content);
+        if (stretch != null) {
+            unclipBetween(stretch, content, true);
+            stretched = stretch;
+            stretchedMargin = ((ViewGroup.MarginLayoutParams) stretch.getLayoutParams()).bottomMargin;
+            listBottomPadding = found.getPaddingBottom();
+            reachDown(stretch, found, content);
+        }
+        clipToBounds(content, beneath);
         if (!described) {
             described = true;
+            String stretching = stretch == null ? "nothing to stretch down" : "taken down " + down + " on "
+                    + stretch.getClass().getSimpleName() + ", behind the navigation bar " + beneath;
             Logger.printDebug(() -> "Chat glass: messages pulled up " + up + " on " + pull.getClass().getSimpleName()
-                    + ", behind the status bar " + gap + ", cut short by " + cut);
+                    + ", behind the status bar " + gap + ", " + stretching + ", cut short by " + cut);
         }
         return gap;
+    }
+
+    /**
+     * Stretches [stretch], and [found] in it, down to the bottom of [content], or on to the window's bottom when
+     * only the navigation bar is below [content], padding the list by as much. Puts back the margin and padding
+     * Instagram set again since. Says how far down it goes.
+     */
+    private void reachDown(View stretch, View found, View content) {
+        if (!(stretch.getLayoutParams() instanceof ViewGroup.MarginLayoutParams) || !(stretch.getParent() instanceof View)) return;
+        ViewGroup.MarginLayoutParams params = (ViewGroup.MarginLayoutParams) stretch.getLayoutParams();
+        if (params.bottomMargin != stretchedMargin - down) stretchedMargin = params.bottomMargin;
+        if (found.getPaddingBottom() != listBottomPadding + down) listBottomPadding = found.getPaddingBottom();
+        View parent = (View) stretch.getParent();
+        int natural = windowTop(parent) + parent.getHeight() - parent.getPaddingBottom() - stretchedMargin;
+        int bottom = windowTop(content) + content.getHeight();
+        int below = window.applyAsInt(content) - bottom;
+        int under = below > 0 && below <= navigation.applyAsInt(content) + 1 ? below : 0;
+        if (under > 0 && !unclippedBelow) {
+            View frame = frameBelow(content, bottom + under);
+            if (frame != null) {
+                unclipBetween(content, frame, true);
+                unclippedBelow = true;
+            } else {
+                under = 0;
+            }
+        }
+        beneath = under;
+        int want = Math.max(0, bottom + under - natural);
+        if (params.bottomMargin != stretchedMargin - want) {
+            params.bottomMargin = stretchedMargin - want;
+            stretch.setLayoutParams(params);
+        }
+        if (found.getPaddingBottom() != listBottomPadding + want) {
+            found.setPadding(found.getPaddingLeft(), found.getPaddingTop(), found.getPaddingRight(), listBottomPadding + want);
+        }
+        down = want;
+    }
+
+    /** Puts the stretched view's margin and the list's bottom padding back as Instagram had them. */
+    private void letDown() {
+        View stretch = stretched;
+        if (stretch != null && stretch.getLayoutParams() instanceof ViewGroup.MarginLayoutParams) {
+            ViewGroup.MarginLayoutParams params = (ViewGroup.MarginLayoutParams) stretch.getLayoutParams();
+            if (params.bottomMargin == stretchedMargin - down) {
+                params.bottomMargin = stretchedMargin;
+                stretch.setLayoutParams(params);
+            }
+        }
+        View found = list;
+        if (stretch != null && found != null && found.getPaddingBottom() == listBottomPadding + down) {
+            found.setPadding(found.getPaddingLeft(), found.getPaddingTop(), found.getPaddingRight(), listBottomPadding);
+        }
+        stretched = null;
+        down = 0;
+        beneath = 0;
+        checkedDown = false;
     }
 
     /**
@@ -199,7 +297,12 @@ final class ChatReach {
             found.setPadding(found.getPaddingLeft(), listPadding + by, found.getPaddingRight(), found.getPaddingBottom());
         }
         if (found instanceof ViewGroup && ((ViewGroup) found).getClipToPadding()) ((ViewGroup) found).setClipToPadding(false);
-        clipToBounds(content);
+        View stretch = stretched;
+        if (stretch != null) {
+            reachDown(stretch, found, content);
+            if (!checkedDown && !stretch.isLayoutRequested() && !found.isLayoutRequested()) checkDown(stretch);
+        }
+        clipToBounds(content, beneath);
         // Checked once, on the first layout since the pull: an animation moving the list later isn't the parent.
         if (checked || pull.isLayoutRequested() || found.isLayoutRequested()) return true;
         ViewParent parent = pull.getParent();
@@ -212,8 +315,26 @@ final class ChatReach {
         return false;
     }
 
+    /**
+     * Checks once, laid out since, that [stretch]'s parent took its bottom margin. One laying it out where it
+     * likes leaves the list where Instagram had it at the bottom, while the top stays under the header.
+     */
+    private void checkDown(View stretch) {
+        checkedDown = true;
+        ViewParent parent = stretch.getParent();
+        if (!(parent instanceof View) || !(stretch.getLayoutParams() instanceof ViewGroup.MarginLayoutParams)) return;
+        int margin = ((ViewGroup.MarginLayoutParams) stretch.getLayoutParams()).bottomMargin;
+        View holding = (View) parent;
+        if (stretch.getBottom() == holding.getHeight() - holding.getPaddingBottom() - margin) return;
+        failedDown = true;
+        letDown();
+        Logger.printDebug(() -> "Chat glass: " + stretch.getClass().getSimpleName() + " didn't stretch, the list keeps its bottom");
+    }
+
     /** Puts everything back as Instagram had it, leaving what Instagram set itself since. */
     void retreat() {
+        letDown();
+        unclippedBelow = false;
         View pull = pulled;
         if (pull != null && pull.getLayoutParams() instanceof ViewGroup.MarginLayoutParams) {
             ViewGroup.MarginLayoutParams params = (ViewGroup.MarginLayoutParams) pull.getLayoutParams();
@@ -292,20 +413,59 @@ final class ChatReach {
 
     /** Every parent from [from]'s up to [top], [top] too, stops clipping. */
     private void unclipBetween(View from, View top) {
+        unclipBetween(from, top, false);
+    }
+
+    /** {@link #unclipBetween(View, View)}, and with [bottom], each with bottom padding lets the list draw over it too. */
+    private void unclipBetween(View from, View top, boolean bottom) {
         for (View at = (View) from.getParent(); at instanceof ViewGroup; at = (View) at.getParent()) {
             ViewGroup group = (ViewGroup) at;
             if (!unclipped.contains(group)) {
                 unclipped.add(group);
                 GlassReach.stopClipping(group);
             }
+            if (bottom && group.getPaddingBottom() > 0 && group.getClipToPadding()) group.setClipToPadding(false);
             if (at == top || !(at.getParent() instanceof View)) break;
         }
     }
 
-    /** Keeps [content] drawing inside its own bounds, wherever the list in it runs. */
-    private static void clipToBounds(View content) {
+    /**
+     * The view holding the messages, down to the bottom of [list]'s parent, that a FrameLayout lays out filling it,
+     * from [list] up to, not counting, [content]: stretched down, it takes the list down with it. Null when the list
+     * isn't laid out like that.
+     */
+    @Nullable
+    static View stretchable(View list, View content) {
+        int bottom = windowTop(list) + list.getHeight();
+        View found = null;
+        View at = list;
+        for (int depth = 0; depth < PULL_DEPTH && at != content; depth++) {
+            ViewParent up = at.getParent();
+            if (!(up instanceof FrameLayout) || !(at.getLayoutParams() instanceof FrameLayout.LayoutParams)) break;
+            if (at.getLayoutParams().height != ViewGroup.LayoutParams.MATCH_PARENT || windowTop(at) + at.getHeight() != bottom) break;
+            found = at;
+            at = (View) up;
+        }
+        return found;
+    }
+
+    /** The parent of [content] reaching down to [bottom] in the window, or null. */
+    @Nullable
+    private static View frameBelow(View content, int bottom) {
+        View view = content;
+        for (int depth = 0; depth < DEPTH + GlassTopBar.HOST_DEPTH; depth++) {
+            ViewParent up = view.getParent();
+            if (!(up instanceof ViewGroup)) return null;
+            view = (View) up;
+            if (windowTop(view) + view.getHeight() >= bottom) return view;
+        }
+        return null;
+    }
+
+    /** Keeps [content] drawing inside its own bounds, and [beneath] more below them, wherever the list in it runs. */
+    private static void clipToBounds(View content, int beneath) {
         int wide = content.getWidth();
-        int tall = content.getHeight();
+        int tall = content.getHeight() + beneath;
         Rect now = content.getClipBounds();
         if (now != null && now.left == 0 && now.top == 0 && now.right == wide && now.bottom == tall) return;
         content.setClipBounds(new Rect(0, 0, wide, tall));
