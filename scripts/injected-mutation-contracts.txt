@@ -2309,6 +2309,17 @@ single-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->headerIcons(Lan
 start-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->tabIcons(I)I in instance (ILjava/lang/Integer;)V holding Lcom/instagram/common/ui/colorfilter/ColorFilterAlphaImageView;->setActiveColor(I)V Lcom/instagram/common/ui/colorfilter/ColorFilterAlphaImageView;->setNormalColor(I)V
 once-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->tabIcons(I)I in instance (ILjava/lang/Integer;)V holding Lcom/instagram/common/ui/colorfilter/ColorFilterAlphaImageView;->setActiveColor(I)V Lcom/instagram/common/ui/colorfilter/ColorFilterAlphaImageView;->setNormalColor(I)V
 once-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->tabIcons(Ljava/lang/Integer;)Ljava/lang/Integer; in instance (ILjava/lang/Integer;)V holding Lcom/instagram/common/ui/colorfilter/ColorFilterAlphaImageView;->setActiveColor(I)V Lcom/instagram/common/ui/colorfilter/ColorFilterAlphaImageView;->setNormalColor(I)V
+# The default secondary button (Edit profile, Share profile, Following) takes its fill from one
+# button-styles class (03tb on 386113969), which loads the filled color in its int answer for a context
+# and a style (A0C) and in its ColorStateList answer (A0E, a jump to the list's build), and the
+# _filled_light color in the static method both call on a dark screen (A03). Accent color hands each
+# loaded fill to AccentTheme.secondaryButtonFill right after the load. None of the three loads a string,
+# so the rules name the colors' numbers, which move every update (456 builds the list from the int
+# answer, so it has no third rule). Left out, the buttons keep Instagram's gray with the backgrounds in
+# the accent color (#187). SecondaryButtonsTest checks every build.
+shared-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->secondaryButtonFill(Landroid/content/Context;I)I in static (Landroid/content/Context;LX/*;)I holding const:0x7f060359
+shared-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->secondaryButtonFill(Landroid/content/Context;I)I in instance (Landroid/content/Context;LX/*;)I holding const:0x7f060357
+shared-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->secondaryButtonFill(Landroid/content/Context;I)I in instance (Landroid/content/Context;)Landroid/content/res/ColorStateList; holding const:0x7f060357
 # The unread dot on the Messages folder chips (Primary, Requests) is Compose, a background whose color
 # the chip content (0F24.invoke on 386014758, 0YXX.invoke on 386014704) reads from a static palette
 # object, so no theme style reaches it. Accent color hands that one color to AccentTheme.composeBadge

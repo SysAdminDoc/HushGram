@@ -652,8 +652,8 @@ public final class AccentTheme {
     }
 
     /**
-     * Injected where Instagram's button styles answer the fill of its default secondary button, [fill],
-     * a color resource's number (#187). That fill is a color of Instagram's own rather than a theme
+     * Injected right after each load of the fill Instagram's button styles give its default secondary
+     * button, [fill], a color resource's number, in light and in dark (#187). That fill is a color of Instagram's own rather than a theme
      * attribute, so Edit profile and Share profile kept Prism's gray over the backgrounds in the accent
      * color. Answers the color [context]'s theme points {@link #SECONDARY_BUTTON_ATTRIBUTE} at once
      * Backgrounds in the accent color or Classic colors have pointed it at one of the patch's shades, the
