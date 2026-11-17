@@ -64,7 +64,7 @@ class HideActivityBubblesHookTest {
         assertEquals("the check", "$HOLDER->check", "${setting.check.definingClass}->${setting.check.name}")
         assertEquals("has the setting", "has", setting.has.name)
         assertEquals("the setting", "hide", setting.hide.name)
-        assertEquals("the reads", setOf("check" to 2, "check" to 4, "build" to 1), setting.reads.map { it.method.name to it.index }.toSet())
+        assertEquals("the reads", setOf("check" to 2, "check" to 5, "build" to 1), setting.reads.map { it.method.name to it.index }.toSet())
 
         context.hideActivityBubbles(setting)
 
@@ -72,7 +72,7 @@ class HideActivityBubblesHookTest {
         assertHooked("check", check, setOf("has", "hide"))
         assertEquals("check: the test stays right after the hook", Opcode.IF_EQZ, check.code()[5].opcode)
         assertEquals("check: without the setting it still leaves through Instagram's return", check.code().lastIndex, landsOn(check.code(), 5))
-        assertEquals("check: the setting is still returned", Opcode.RETURN, check.code()[9].opcode)
+        assertEquals("check: the setting is still returned", Opcode.RETURN, check.code()[10].opcode)
         val build = context.method(READER, "build")
         assertHooked("reader", build, setOf("hide"))
         assertEquals("reader: the skip stays right after the hook", Opcode.IF_NEZ, build.code()[4].opcode)
@@ -80,13 +80,13 @@ class HideActivityBubblesHookTest {
 
     @Test
     fun aMissingOrDoubledHolderFailsThePatch() {
-        refuses("found 0", listOf(holder(experiment = false), reader()))
+        refuses("found 0", listOf(holder(grid = false), reader()))
         refuses("found 2", listOf(holder(), holder(type = "Lfixture/OtherSettings;"), reader()))
     }
 
     @Test
     fun aCheckOfAnotherShapeFailsThePatch() {
-        refuses("2 static (UserSession, ...)Z checks", listOf(holder(checks = 2), reader()))
+        refuses("check loading \"$SELF_REPOSTS_GRID\", found 2", listOf(holder(checks = 2), reader()))
         refuses("reads 3 of", listOf(holder(flags = listOf("has", "other", "hide")), reader()))
         refuses("reads has twice", listOf(holder(flags = listOf("has", "has")), reader()))
         refuses("doesn't test has", listOf(holder(test = Opcode.IF_NEZ), reader()))
@@ -119,14 +119,11 @@ class HideActivityBubblesHookTest {
     }
 
     /**
-     * The class checking the experiment, found first, names the setting; then every class reading
-     * the setting comes along, so the patch sees all of Instagram's reads.
+     * The check, found first by the module name it compares against, names the setting; then every
+     * class reading the setting comes along, so the patch sees all of Instagram's reads.
      */
     private fun builds(bundle: File, label: String) {
-        val pooled = FixtureDex.classesLoading(bundle, BUBBLE_EXPERIMENT)
-        // A build that inlined the holder's constructor makes the holder somewhere else; bring it along.
-        val made = pooled.flatMap { it.methods }.flatMap(::inlinedConstructions).toSet()
-        val loading = (pooled + FixtureDex.classes(bundle, made).values).distinctBy { it.type }
+        val loading = FixtureDex.classesLoading(bundle, SELF_REPOSTS_GRID)
         val first = PatchContexts.of(loading).findBubbleSetting()
         val holder = first.check.definingClass
         val hide = first.hide.name
@@ -237,37 +234,28 @@ class HideActivityBubblesHookTest {
         fun flag(type: String, name: String) = ImmutableFieldReference(type, name, "Z")
 
         /**
-         * Shaped like the class holding the account's activity bubble setting: its constructor checks
-         * the experiment, and its static check reads [flags] from the shared instance, the first into
-         * v2 tested by [test] to leave with false, the last returned. Three locals and the three
-         * parameters (session, item, module name).
+         * Shaped like the class holding the account's activity bubble setting: its static check reads
+         * [flags] from the shared instance, the first into v2 tested by [test] to leave with false,
+         * then loads the module name it compares against ([grid]) and ends returning the last flag.
+         * Three locals and the three parameters (session, item, module name).
          */
         fun holder(
             type: String = HOLDER,
-            experiment: Boolean = true,
+            grid: Boolean = true,
             checks: Int = 1,
             flags: List<String> = listOf("has", "hide"),
             test: Opcode = Opcode.IF_EQZ,
             returnsHide: Boolean = true,
         ): ClassDef {
-            val made = if (experiment) {
-                ImmutableMethod(type, "<init>", emptyList(), "V", AccessFlags.PUBLIC.value or AccessFlags.CONSTRUCTOR.value, null, null,
-                    ImmutableMethodImplementation(2, listOf(
-                        ImmutableInstruction21c(Opcode.CONST_STRING, 0, ImmutableStringReference(BUBBLE_EXPERIMENT)),
-                        ImmutableInstruction10x(Opcode.RETURN_VOID),
-                    ), null, null))
-            } else {
-                ImmutableMethod(type, "<init>", emptyList(), "V", AccessFlags.PUBLIC.value or AccessFlags.CONSTRUCTOR.value, null, null,
-                    ImmutableMethodImplementation(1, listOf(ImmutableInstruction10x(Opcode.RETURN_VOID)), null, null))
-            }
             val middle = flags.drop(1).dropLast(1)
             val code = mutableListOf<ImmutableInstruction>(
                 ImmutableInstruction11n(Opcode.CONST_4, 0, 0),
                 ImmutableInstruction21c(Opcode.SGET_OBJECT, 1, ImmutableFieldReference(type, "instance", type)),
                 ImmutableInstruction22c(Opcode.IGET_BOOLEAN, 2, 1, flag(type, flags.first())),
-                // Past the reads after it and the return, onto the last return.
-                ImmutableInstruction21t(test, 2, 2 + 2 * middle.size + 2 + 1),
+                // Past the name's load, the reads after it and the return, onto the last return.
+                ImmutableInstruction21t(test, 2, 2 + (if (grid) 2 else 0) + 2 * middle.size + 2 + 1),
             )
+            if (grid) code += ImmutableInstruction21c(Opcode.CONST_STRING, 2, ImmutableStringReference(SELF_REPOSTS_GRID))
             for (name in middle) code += ImmutableInstruction22c(Opcode.IGET_BOOLEAN, 2, 1, flag(type, name))
             code += ImmutableInstruction22c(Opcode.IGET_BOOLEAN, if (returnsHide) 0 else 2, 1, flag(type, flags.last()))
             code += ImmutableInstruction11x(Opcode.RETURN, 0)
@@ -278,7 +266,7 @@ class HideActivityBubblesHookTest {
                 ImmutableMethod(type, if (n == 0) "check" else "check$n", parameters, "Z", access, null, null,
                     ImmutableMethodImplementation(6, code, null, null))
             }
-            return ImmutableClassDef(type, AccessFlags.PUBLIC.value, "Ljava/lang/Object;", null, null, null, null, listOf(made) + methods)
+            return ImmutableClassDef(type, AccessFlags.PUBLIC.value, "Ljava/lang/Object;", null, null, null, null, methods)
         }
 
         /**
