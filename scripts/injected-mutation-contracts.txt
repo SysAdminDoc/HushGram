@@ -2798,14 +2798,17 @@ once-call Lapp/hushgram/extension/instagram/reels/ReelPostTime;->noClick()Landro
 # which only the binder reads (the legacy component's is its A0F). On 453 the binder (0455.invoke)
 # reads 0VSn.A0F instead. 451's 385713109 and 385713111
 # ask a string pool for clips_scrubber_, so the rule takes pooled strings.
+# On 456 the binder (0TJ0.invoke on 386214574) builds the tag through a static helper of its own
+# (0EIA.A01, the one method loading clips_scrubber_), so its rules name the two scrubber view tags
+# it still asks the string pool for, which no other lambda of its shape asks for.
 once-call Lapp/hushgram/extension/instagram/reels/ReelSeekBar;->minSeconds(J)J in static (Lcom/instagram/common/session/UserSession;JZZ)Z holding const:0x8208b900291365 const:0x8208b9000f1364
 once-call Lapp/hushgram/extension/instagram/reels/ReelSeekBar;->minSeconds(J)J in static (Lcom/instagram/common/session/UserSession;JZ)Z holding const:0x8208b900291365
 once-call Lapp/hushgram/extension/instagram/reels/ReelSeekBar;->minSeconds(J)J in static (LX/*;)Ljava/lang/Object; holding const:0x8208b900291365 const:0x8208b9000f1364
 once-call Lapp/hushgram/extension/instagram/reels/ReelSeekBar;->lazy(I)Z in static (Lcom/instagram/clips/intf/ClipsViewerConfig;L*;L*;Lcom/instagram/common/session/UserSession;Z)L*; holding const:0x8108b9001031f3
 start-call Lapp/hushgram/extension/instagram/reels/ReelSeekBar;->progress(Landroid/widget/SeekBar;I)V in instance (Landroid/widget/SeekBar;IZ)V holding Lcom/instagram/ui/mediaactions/VideoScrubberSeekBar;->A01:Landroid/widget/SeekBar$OnSeekBarChangeListener;
 once-call Lapp/hushgram/extension/instagram/reels/ReelSeekBar;->progress(Landroid/widget/SeekBar;I)V in instance (Landroid/widget/SeekBar;IZ)V holding Lcom/instagram/ui/mediaactions/VideoScrubberSeekBar;->A01:Landroid/widget/SeekBar$OnSeekBarChangeListener;
-once-call Lapp/hushgram/extension/instagram/reels/ReelSeekBar;->bind(Ljava/lang/Object;I)V in instance (Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; pooled holding clips_scrubber_ LX/*;->A0F:Landroid/graphics/drawable/Drawable;
-once-call Lapp/hushgram/extension/instagram/reels/ReelSeekBar;->bindReel(Ljava/lang/Object;Ljava/lang/Object;)V in instance (Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; pooled holding clips_scrubber_ LX/*;->A0F:Landroid/graphics/drawable/Drawable;
+once-call Lapp/hushgram/extension/instagram/reels/ReelSeekBar;->bind(Ljava/lang/Object;I)V in instance (Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; pooled holding clips_attached_scrubber_keyframe_chapters_text_preview_view_tag clips_in_stream_ad_scrubber_thumbnail_view_tag
+once-call Lapp/hushgram/extension/instagram/reels/ReelSeekBar;->bindReel(Ljava/lang/Object;Ljava/lang/Object;)V in instance (Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; pooled holding clips_attached_scrubber_keyframe_chapters_text_preview_view_tag clips_in_stream_ad_scrubber_thumbnail_view_tag
 first-call Lapp/hushgram/extension/instagram/reels/ReelItemReader;->id(Ljava/lang/Object;)Ljava/lang/String; outside Lapp/hushgram/extension/
 # Seek bar on photos with music (#10), on its own switch, hands ReelSeekBar the reel's kind and id where
 # Instagram decides whether a reel gets the bar (08LX.A00 on 456's 386214574, the one static check of
@@ -2863,7 +2866,9 @@ shared-call Lapp/hushgram/extension/instagram/reels/ReelAutoScroll;->saved(I)Z i
 shared-call Lapp/hushgram/extension/instagram/reels/ReelAutoScroll;->answer(I)Z in instance (*)L*; holding const:0x8108f0000a331b const:0x810237000b07d9
 shared-call Lapp/hushgram/extension/instagram/reels/ReelAutoScroll;->answer(I)Z in instance (Landroid/os/Bundle;)V pooled holding clips_pip_fragment
 once-call Lapp/hushgram/extension/instagram/reels/ReelAutoScroll;->stored(I)V in instance (Landroidx/fragment/app/FragmentActivity;Lcom/instagram/common/session/UserSession;L*;Lkotlin/jvm/functions/Function0;IJZ)V sites 2 pooled holding instagram_clips_viewer_autoplay_tap
-once-call Lapp/hushgram/extension/instagram/reels/ReelAutoScroll;->timerSet(J)V in instance ()Ljava/lang/Object; calling static Ljava/lang/System;->currentTimeMillis()J sites 3 holding Landroidx/compose/foundation/lazy/LazyListState;->A02()LX/*; const:0x36ee80 const:0x5265c00
+# On 456 the duration callback is merged into a Function0 (0Pll.invoke on 386214574) that no longer
+# reads the list state, so its rule holds the three durations it sets: always, one day and one hour.
+once-call Lapp/hushgram/extension/instagram/reels/ReelAutoScroll;->timerSet(J)V in instance ()Ljava/lang/Object; calling static Ljava/lang/System;->currentTimeMillis()J sites 3 holding const:0x7fffffffffffffff const:0x36ee80 const:0x5265c00
 # The auto scroller's constructor (0AMZ.<init> on 456's 386214574, the one method loading the scroll
 # buffer flag below) keeps the server switch
 # that lets its progress ticks move on before a reel loops, then the lead time clamped to 10..400 ms.
@@ -2894,9 +2899,10 @@ once-call Lapp/hushgram/extension/instagram/reels/ReelAutoScroll;->install(I)Z i
 # On 456 the pager setup holds its viewPagerSetup trace in place of the marker (06ZV.A0R on
 # 386214574), and the handlers' markers are gone: each is the layout's one (MotionEvent) method
 # calling its superclass's handler of the same name, in the class whose constructor keeps its marker.
+# 456 renamed the pager's input field to A0A, the same in all its builds.
 once-call Lapp/hushgram/extension/instagram/reels/ReelScrolling;->pager(Ljava/lang/Object;Ljava/lang/Object;)I in static (Landroid/os/BaseBundle;Landroid/view/View;*)V holding ClipsViewerFragment.onViewCreated:viewPagerSetup
-start-call Lapp/hushgram/extension/instagram/reels/ReelScrolling;->userInput(Ljava/lang/Object;I)I in instance (Z)V holding Landroidx/viewpager2/widget/ViewPager2;->A09:Z
-once-call Lapp/hushgram/extension/instagram/reels/ReelScrolling;->userInput(Ljava/lang/Object;I)I in instance (Z)V holding Landroidx/viewpager2/widget/ViewPager2;->A09:Z
+start-call Lapp/hushgram/extension/instagram/reels/ReelScrolling;->userInput(Ljava/lang/Object;I)I in instance (Z)V holding Landroidx/viewpager2/widget/ViewPager2;->A0A:Z
+once-call Lapp/hushgram/extension/instagram/reels/ReelScrolling;->userInput(Ljava/lang/Object;I)I in instance (Z)V holding Landroidx/viewpager2/widget/ViewPager2;->A0A:Z
 start-call Lapp/hushgram/extension/instagram/reels/ReelScrolling;->pull(Ljava/lang/Object;)I in instance (Landroid/view/MotionEvent;)Z calling instance LX/*;->onInterceptTouchEvent(Landroid/view/MotionEvent;)Z class-holding android_purge_26_q3_ClipsSwipeRefreshLayout_init
 shared-call Lapp/hushgram/extension/instagram/reels/ReelScrolling;->pull(Ljava/lang/Object;)I in instance (Landroid/view/MotionEvent;)Z calling instance LX/*;->onInterceptTouchEvent(Landroid/view/MotionEvent;)Z class-holding android_purge_26_q3_ClipsSwipeRefreshLayout_init
 start-call Lapp/hushgram/extension/instagram/reels/ReelScrolling;->pull(Ljava/lang/Object;)I in instance (Landroid/view/MotionEvent;)Z calling instance LX/*;->onTouchEvent(Landroid/view/MotionEvent;)Z class-holding android_purge_26_q3_ClipsSwipeRefreshLayout_init
