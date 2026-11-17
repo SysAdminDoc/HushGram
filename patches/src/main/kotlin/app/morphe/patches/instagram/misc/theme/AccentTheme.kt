@@ -1162,6 +1162,61 @@ internal fun BytecodePatchContext.tintTabIcons() {
     )
 }
 
+/** The extension's hook that lays the icon style onto a theme as Litho's resource resolver keeps it (#724). */
+internal const val LITHO_ICONS = "$ACCENT_THEME->lithoIcons(Landroid/content/Context;)V"
+
+private const val RESOURCES = "Landroid/content/res/Resources;"
+
+/**
+ * The constructor of Litho's resource resolver (`LX/00b9` on 386214574): the one constructor taking a
+ * Context first that keeps that Context's getTheme() in a Theme field of its own class, which holds the
+ * Context's Resources as well. Every color a Litho tree reads from a theme attribute comes from that
+ * Theme, the feed's post buttons' glyphColorPrimary among them (`LX/01LA;->A05`), and the Context a tree
+ * is built on isn't always one the overrides or the theme util reached, so with Icons in the accent
+ * color on those buttons stayed black (#724). Answers null with a warning when there's not exactly one.
+ */
+internal fun BytecodePatchContext.findLithoThemeHolder(): MutableMethod? {
+    val found = classesCalling(CONTEXT, "getTheme").flatMap { type ->
+        if (type.fields.none { it.type == RESOURCES } || type.fields.none { it.type == CONTEXT }) return@flatMap emptyList()
+        type.methods.filter { it.keepsItsTheme(type.type) }.map { type.type to it }
+    }
+    if (found.size != 1) {
+        patchLog.warning("$PATCH: ${found.size} constructors keep a Context's theme for Litho, not one, so the feed's post buttons keep Instagram's icon color")
+        return null
+    }
+    if (extensionMethod(LITHO_ICONS) == null) refuse("the extension has no public static $LITHO_ICONS")
+    val (type, method) = found.single()
+    val returns = method.code().indices.filter { method.code()[it].opcode == Opcode.RETURN_VOID }
+    if (returns.isEmpty()) refuse("${method.where()} never returns")
+    method.requireParameterIntact(PATCH, 0, returns)
+    return mutableClassDefBy(type).methods.single { it.name == "<init>" && it.keepsItsTheme(type) }
+}
+
+/** A constructor taking a Context first that stores Context.getTheme()'s answer in a Theme field of [type]. */
+private fun Method.keepsItsTheme(type: String): Boolean {
+    if (name != "<init>" || parameterTypes.firstOrNull()?.toString() != CONTEXT) return false
+    val code = code()
+    return code.any { it.calls(CONTEXT, "getTheme") } && code.any { instruction ->
+        val field = (instruction as? ReferenceInstruction)?.reference as? FieldReference
+        instruction.opcode == Opcode.IPUT_OBJECT && field != null && field.definingClass == type && field.type == THEME
+    }
+}
+
+/**
+ * Hands the Context Litho's resource resolver was built from to the extension at each of its
+ * constructor's returns, once it keeps that Context's theme, so the icon style can go onto a theme the
+ * accent never reached before the tree reads its icon colors (#724). Leaves Litho as it is when
+ * [findLithoThemeHolder] finds no one constructor.
+ */
+internal fun BytecodePatchContext.tintLithoIcons() {
+    val method = findLithoThemeHolder() ?: return
+    val context = method.parameterRegisterNumber(0)
+    val returns = method.code().indices.filter { method.code()[it].opcode == Opcode.RETURN_VOID }
+    for (at in returns.asReversed()) {
+        method.addInstructionsAtControlFlowLabel(at, "invoke-static/range { v$context .. v$context }, $LITHO_ICONS")
+    }
+}
+
 private fun BytecodePatchContext.extensionMethod(signature: String): Method? =
     classDefByOrNull(ACCENT_THEME)?.methods?.singleOrNull {
         it.signature() == signature && AccessFlags.STATIC.isSet(it.accessFlags) && AccessFlags.PUBLIC.isSet(it.accessFlags)

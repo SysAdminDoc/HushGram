@@ -2350,6 +2350,12 @@ shared-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->apply(Landroid/
 # and Redex renames its fields, so the rule names the constructor alone. Left out, the heart stays
 # white with Icons in the accent color on (#8). AccentThemeTest checks every 453 build.
 single-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->headerIcons(Landroid/content/Context;I)I in <init>
+# Litho's resource resolver (00b9 on 386214574) keeps the theme of the context a tree is built on,
+# and every color a Litho tree reads from a theme attribute comes from that theme. The feed's post
+# buttons read their glyph color there, so Accent color hands the context to AccentTheme.lithoIcons
+# at the end of the resolver's constructor, once. Left out, the buttons under posts stay black with
+# Icons in the accent color on (#724). AccentThemeTest checks every build.
+single-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->lithoIcons(Landroid/content/Context;)V in <init>
 # Opening Reels tells each tab button a white made for the black bar, and leaving it the theme's text
 # color, through the one method (int, Integer)V that hands them to the tab icon view's setActiveColor
 # and setNormalColor (02a0.A0A on 386014758). Accent color hands both to AccentTheme.tabIcons first

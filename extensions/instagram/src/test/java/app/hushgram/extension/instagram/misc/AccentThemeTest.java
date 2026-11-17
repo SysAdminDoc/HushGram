@@ -580,6 +580,72 @@ public class AccentThemeTest {
     }
 
     /**
+     * The theme Litho's resource resolver keeps takes the picked color's icon style with both switches
+     * on, so the feed's post buttons read the accent (#724). Each theme is looked at once, one already
+     * holding the style's color isn't counted, a viewer's keeps its own, a build without the styles says
+     * so, and with either switch off, paused or no context nothing changes.
+     */
+    @Test
+    public void lithosThemeTakesTheIconStyleOnce() {
+        Settings.ACCENT_COLOR.save(true);
+        Settings.ACCENT_HUE.save(AccentHue.TEAL);
+        Ids ids = (name, type) -> {
+            if (type.equals("style") && name.startsWith("HushGramAccentIcons_TEAL_")) return android.R.style.Theme_Material;
+            if (type.equals("attr") && (name.equals(AccentTheme.ICON_ATTRIBUTE) || name.equals(AccentTheme.GLYPH_ATTRIBUTE))) {
+                return android.R.attr.colorForeground;
+            }
+            return type.equals("attr") && name.equals(AccentTheme.BACKGROUND_ATTRIBUTE) ? android.R.attr.colorBackground : 0;
+        };
+        int accent = foreground(new ContextThemeWrapper(RuntimeEnvironment.getApplication(), android.R.style.Theme_Material));
+        Context light = new ContextThemeWrapper(themed(THEMED + ".litho", ids), android.R.style.Theme_Material_Light);
+        int own = foreground(light);
+        assertFalse("the light theme's icon color differs from the style's", own == accent);
+
+        AccentTheme.lithoIcons(light);
+        assertEquals("icons off", own, foreground(light));
+        Settings.ACCENT_ICONS.save(true);
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        AccentTheme.lithoIcons(light);
+        assertEquals("paused", own, foreground(light));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        AccentTheme.lithoIcons(null);
+        assertEquals("nothing counted yet", List.of(), HookStatus.report());
+
+        AccentTheme.lithoIcons(light);
+        assertEquals(accent, foreground(light));
+        light.getTheme().applyStyle(android.R.style.Theme_Material_Light, true);
+        AccentTheme.lithoIcons(light);
+        assertEquals("looked at once", own, foreground(light));
+        Context another = new ContextThemeWrapper(themed(THEMED + ".litho", ids), android.R.style.Theme_Material_Light);
+        AccentTheme.lithoIcons(another);
+        assertEquals("another tree's theme", accent, foreground(another));
+
+        Context dark = new ContextThemeWrapper(themed(THEMED + ".litho", ids), android.R.style.Theme_Material);
+        AccentTheme.lithoIcons(dark);
+        assertEquals("already the dark style's color", accent, foreground(dark));
+        Context viewer = new ContextThemeWrapper(themed(THEMED + ".litho.viewer", (name, type) ->
+                type.equals("attr") && name.equals(AccentTheme.BACKGROUND_ATTRIBUTE) ? android.R.attr.textColorPrimary : ids.of(name, type)),
+                android.R.style.Theme_Material_Light);
+        AccentTheme.lithoIcons(viewer);
+        assertEquals("over media", own, foreground(viewer));
+        AccentTheme.lithoIcons(new ContextThemeWrapper(themed(THEMED + ".litho.missing", (name, type) -> 0),
+                android.R.style.Theme_Material_Light));
+
+        String report = HookStatus.report().toString();
+        assertTrue(report, report.contains(AccentTheme.LITHO_ICONS + " 2"));
+        assertTrue(report, report.contains(AccentTheme.ICONS_MISSING + " 1"));
+    }
+
+    /** The plain color [context]'s theme holds for {@code android:colorForeground}. */
+    private static int foreground(Context context) {
+        TypedValue value = new TypedValue();
+        assertTrue(context.getTheme().resolveAttribute(android.R.attr.colorForeground, value, true));
+        return value.data;
+    }
+
+    /**
      * A tab's icon told Reels' white takes the picked color's shade for a dark screen, and told the
      * dark text color Instagram resets to after Reels takes its shade for a light one, alpha kept, with
      * both switches on (#663). Either switch off or paused leaves the color as told, and a missing

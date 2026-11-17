@@ -31,8 +31,10 @@ import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
+import com.android.tools.smali.dexlib2.immutable.ImmutableField
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodParameter
@@ -1088,6 +1090,83 @@ class AccentThemeTest {
     }
 
     /**
+     * Litho's resource resolver hands the Context it keeps the theme of to the extension right before
+     * its one return, once the theme is kept, so a tree built on a context the accent never reached
+     * still gets the icon style before it reads its icon colors (#724). The branch to the throw keeps
+     * no hook and Instagram's code is kept. Two such constructors or none leave Litho as it is, a
+     * constructor reusing the Context's register or an extension without the hook refuses.
+     */
+    @Test
+    fun lithosResolverHandsTheContextItKeepsTheThemeOfToTheExtension() {
+        val stock = holder().methods.single().code()
+        val context = PatchContexts.of(listOf(holder(), extension()))
+        context.tintLithoIcons()
+        val code = context.mutableClassDefBy(HOLDER).methods.single().code()
+        val at = code.indexOfFirst { (it as? ReferenceInstruction)?.reference?.toString() == LITHO_ICONS }
+        assertEquals("one hook", 1, code.count { (it as? ReferenceInstruction)?.reference?.toString() == LITHO_ICONS })
+        assertEquals("right after the theme is kept", Opcode.IPUT_OBJECT, code[at - 1].opcode)
+        assertEquals("right before the return", Opcode.RETURN_VOID, code[at + 1].opcode)
+        val hook = code[at] as RegisterRangeInstruction
+        // Two locals, then this in v2 and the Context in v3.
+        assertEquals("the Context, one register", listOf(3, 1), listOf(hook.startRegister, hook.registerCount))
+        assertEquals("Instagram's code kept", stock.map { it.opcode }, code.filterIndexed { index, _ -> index != at }.map { it.opcode })
+
+        for ((case, classes) in listOf(
+            "two resolvers" to listOf(holder(), holder(type = "Lfixture/LithoResources2;"), extension()),
+            "the theme not kept" to listOf(holder(keepsTheme = false), extension()),
+        )) {
+            val untouched = PatchContexts.of(classes)
+            untouched.tintLithoIcons()
+            val hooked = classes.filter { it.type != ACCENT_THEME }.flatMap { untouched.mutableClassDefBy(it.type).methods }
+                .filter { method -> method.code().any { (it as? ReferenceInstruction)?.reference?.toString() == LITHO_ICONS } }
+            assertTrue("$case: no hook", hooked.isEmpty())
+        }
+        PatchContexts.of(listOf(extension(lithoIcons = false))).tintLithoIcons()
+        for ((case, classes) in listOf(
+            "the Context's register reused" to listOf(holder(reuseContext = true), extension()),
+            "no hook in the extension" to listOf(holder(), extension(lithoIcons = false)),
+        )) {
+            val failure = assertThrows(PatchException::class.java) { PatchContexts.of(classes).tintLithoIcons() }
+            assertTrue("$case: ${failure.message}", failure.message!!.startsWith("Accent color"))
+        }
+    }
+
+    /**
+     * Every build of Instagram: one constructor takes a Context first and keeps its theme, Litho's
+     * resource resolver, and it hands that Context to the extension right before its return, with
+     * Instagram's code around it (#724).
+     */
+    @Test
+    fun everyBuildHandsLithosThemeContextToTheExtension() {
+        for ((code, bundle) in builds()) {
+            val keeps = FixtureDex.methodsWhere(bundle, { dex -> dex.typeSection.any { it == THEME } }) { method ->
+                method.name == "<init>" && method.parameterTypes.firstOrNull()?.toString() == CONTEXT &&
+                    method.code().any { it.callsNamed(CONTEXT, "getTheme") } &&
+                    method.code().any { instruction ->
+                        val field = (instruction as? ReferenceInstruction)?.reference as? FieldReference
+                        instruction.opcode == Opcode.IPUT_OBJECT && field != null && field.definingClass == method.definingClass && field.type == THEME
+                    }
+            }
+            assertEquals("$code: one constructor keeps a Context's theme, ${keeps.map { it.definingClass }}", 1, keeps.size)
+            val found = keeps.single()
+            val context = PatchContexts.of(listOf(FixtureDex.classes(bundle, setOf(found.definingClass)).getValue(found.definingClass), extension()))
+            context.tintLithoIcons()
+            val method = context.mutableClassDefBy(found.definingClass).methods.single { it.name == "<init>" && it.parameterTypes.size == found.parameterTypes.size }
+            val body = method.code()
+            val hooks = body.indices.filter { (body[it] as? ReferenceInstruction)?.reference?.toString() == LITHO_ICONS }
+            assertEquals("$code: one hook", 1, hooks.size)
+            val at = hooks.single()
+            assertEquals("$code: right before the return", Opcode.RETURN_VOID, body[at + 1].opcode)
+            assertEquals("$code: the Context", method.parameterRegisterNumber(0), (body[at] as RegisterRangeInstruction).startRegister)
+            assertEquals(
+                "$code: Instagram's own code kept",
+                found.code().map { it.opcode }.filter { it != Opcode.NOP },
+                body.filterIndexed { index, _ -> index != at }.map { it.opcode }.filter { it != Opcode.NOP },
+            )
+        }
+    }
+
+    /**
      * The declared build decoded and encoded as Manager does: the link and primary button attributes
      * are among the uses, every resource keeps its number, and the patched build gains just the added
      * names, which read back as written.
@@ -1322,6 +1401,7 @@ class AccentThemeTest {
             headerIcon: Boolean = true,
             customStub: Boolean = true,
             tabIcons: Boolean = true,
+            lithoIcons: Boolean = true,
         ): ClassDef = classOf(
             ACCENT_THEME,
             *listOfNotNull(
@@ -1332,8 +1412,48 @@ class AccentThemeTest {
                 if (headerIcon) method(ACCENT_THEME, "headerIcon", listOf(CONTEXT, DRAWABLE), 0, "return-void", static = true) else null,
                 if (tabIcons) method(ACCENT_THEME, "tabIcons", listOf("I"), 0, "return p0", static = true, returns = "I") else null,
                 if (tabIcons) method(ACCENT_THEME, "tabIcons", listOf(BOXED), 0, "return-object p0", static = true, returns = BOXED) else null,
+                if (lithoIcons) method(ACCENT_THEME, "lithoIcons", listOf(CONTEXT), 0, "return-void", static = true) else null,
             ).toTypedArray(),
         )
+
+        const val HOLDER = "Lfixture/LithoResources;"
+        const val CONFIG = "Lfixture/LithoConfig;"
+        const val RESOURCES = "Landroid/content/res/Resources;"
+
+        /**
+         * Litho's resource resolver as 456's `LX/00b9` has it: the Context and the config kept, then the
+         * Context's Resources and, with [keepsTheme], its theme, each checked for null on the way to the
+         * one return. With [reuseContext] the Context's register is written over before the return.
+         */
+        fun holder(type: String = HOLDER, keepsTheme: Boolean = true, reuseContext: Boolean = false): ClassDef {
+            val body = buildString {
+                appendLine("invoke-direct { p0 }, Ljava/lang/Object;-><init>()V")
+                appendLine("iput-object p1, p0, $type->A00:$CONTEXT")
+                appendLine("iput-object p2, p0, $type->A03:$CONFIG")
+                appendLine("invoke-virtual { p1 }, $CONTEXT->getResources()$RESOURCES")
+                appendLine("move-result-object v0")
+                appendLine("if-eqz v0, :missing")
+                appendLine("iput-object v0, p0, $type->A02:$RESOURCES")
+                appendLine("invoke-virtual { p1 }, $CONTEXT->getTheme()$THEME")
+                appendLine("move-result-object v0")
+                appendLine("if-eqz v0, :missing")
+                if (reuseContext) appendLine("const/4 p1, 0x0")
+                if (keepsTheme) appendLine("iput-object v0, p0, $type->A01:$THEME")
+                appendLine("return-void")
+                appendLine(":missing")
+                appendLine("const-string v0, \"INVOKE_RETURN\"")
+                appendLine("new-instance v1, Ljava/lang/IllegalStateException;")
+                appendLine("invoke-direct { v1, v0 }, Ljava/lang/IllegalStateException;-><init>(Ljava/lang/String;)V")
+                appendLine("throw v1")
+            }
+            val fields = listOf("A00" to CONTEXT, "A01" to THEME, "A02" to RESOURCES, "A03" to CONFIG).map { (name, fieldType) ->
+                ImmutableField(type, name, fieldType, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, null, null, null)
+            }
+            return ImmutableClassDef(
+                type, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, "Ljava/lang/Object;", null, null, null, fields,
+                listOf(method(type, "<init>", listOf(CONTEXT, CONFIG), 2, body, static = false)),
+            )
+        }
 
         const val BOXED = "Ljava/lang/Integer;"
         const val TAB_BUTTON = "Lfixture/TabButton;"
