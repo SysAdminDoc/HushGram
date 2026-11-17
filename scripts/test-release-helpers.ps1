@@ -369,7 +369,7 @@ if ($apkIn -like '*384510833*') { exit 3 }
 $names = @()
 for ($i = 0; $i -lt $args.Count - 1; $i++) { if ($args[$i] -eq '-e') { $names += $args[$i + 1] } }
 $failed = @()
-if ($apkIn -like '*OTHER_CODE*') { $failed = @(@{ patch = @{ name = $names[0] }; reason = "Could not find the target.`nat stand-in" }); $names = @($names | Select-Object -Skip 1) }
+if ($apkIn -like '*OTHER_CODE*') { $failed = @(@{ name = $names[0]; error = "Could not find the target.`r`nat stand-in" }); $names = @($names | Select-Object -Skip 1) }
 Set-Content -LiteralPath $values['-r'] -Value (@{ appliedPatches = @($names | ForEach-Object { @{ name = $_ } }); failedPatches = $failed } | ConvertTo-Json -Depth 5)
 Set-Content -LiteralPath $values['-o'] -Value 'patched'
 exit 0

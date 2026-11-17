@@ -203,8 +203,10 @@ foreach ($build in $builds) {
             $appliedNames = @(Get-ReportPatchNames -Entries $report.appliedPatches)
             $entry.applied = @($names | Where-Object { $appliedNames -ccontains $_ }).Count
             $entry.failed = @(foreach ($failure in @($report.failedPatches)) {
-                $name = if ($failure.patch) { [string]$failure.patch.name } else { '(unnamed)' }
-                [ordered]@{ name = $name; reason = (([string]$failure.reason) -split "`n" | Select-Object -First 1).Trim() }
+                # morphe-desktop 1.20.0 and newer write {name, error}; older CLIs wrote {patch: {name}, reason}.
+                $name = if ($failure.name) { [string]$failure.name } elseif ($failure.patch) { [string]$failure.patch.name } else { '(unnamed)' }
+                $failedText = if ($failure.error) { [string]$failure.error } else { [string]$failure.reason }
+                [ordered]@{ name = $name; reason = ($failedText -split "`n" | Select-Object -First 1).Trim() }
             })
             # A gate run kept from earlier passed this same check, so only a fresh log is read.
             if (-not $kept) {

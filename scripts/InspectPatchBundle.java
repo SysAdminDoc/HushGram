@@ -2,7 +2,6 @@
  * https://github.com/SysAdminDoc/HushGram
  */
 import app.morphe.patcher.patch.AppTarget;
-import app.morphe.patcher.patch.BytecodePatch;
 import app.morphe.patcher.patch.Compatibility;
 import app.morphe.patcher.patch.Patch;
 import app.morphe.patcher.patch.PatchLoader;
@@ -72,12 +71,12 @@ public final class InspectPatchBundle {
         return result.append('"').toString();
     }
 
-    private static boolean forPackage(Patch<?> patch, String packageName) {
+    private static boolean forPackage(Patch patch, String packageName) {
         return patch.getCompatibility() == null || patch.getCompatibility().stream()
                 .anyMatch(target -> target.getPackageName() == null || target.getPackageName().equals(packageName));
     }
 
-    private static List<Map<String, Object>> compatibility(Patch<?> patch) {
+    private static List<Map<String, Object>> compatibility(Patch patch) {
         if (patch.getCompatibility() == null) return null;
         List<Map<String, Object>> result = new ArrayList<>();
         for (Compatibility compatible : patch.getCompatibility()) {
@@ -146,21 +145,21 @@ public final class InspectPatchBundle {
         }
         Map<String, Object> header = header(bundle);
         PatchLoader loader = new PatchLoader.Jar(Set.of(bundle.toFile()));
-        List<Patch<?>> named = loader.stream().filter(patch -> forPackage(patch, packageName))
+        List<Patch> named = loader.stream().filter(patch -> forPackage(patch, packageName))
                 .sorted(Comparator.comparing(Patch::getName)).toList();
-        List<Patch<?>> selected = new ArrayList<>();
+        List<Patch> selected = new ArrayList<>();
         if (requested.equals(List.of("*"))) selected.addAll(named);
         else for (String name : requested) {
-            List<Patch<?>> matches = named.stream().filter(patch -> name.equals(patch.getName())).toList();
+            List<Patch> matches = named.stream().filter(patch -> name.equals(patch.getName())).toList();
             if (matches.size() != 1) throw new IllegalArgumentException("Missing or ambiguous selected patch");
             if (!selected.contains(matches.getFirst())) selected.add(matches.getFirst());
         }
         if (selected.isEmpty()) throw new IllegalArgumentException("No patches selected for this package");
         Field execute = Patch.class.getDeclaredField("executeBlock");
         execute.setAccessible(true);
-        Map<Patch<?>, String> ids = new IdentityHashMap<>();
-        ArrayDeque<Patch<?>> pending = new ArrayDeque<>();
-        for (Patch<?> patch : selected) {
+        Map<Patch, String> ids = new IdentityHashMap<>();
+        ArrayDeque<Patch> pending = new ArrayDeque<>();
+        for (Patch patch : selected) {
             if (!ids.containsKey(patch)) { ids.put(patch, "p" + ids.size()); pending.add(patch); }
         }
         List<Map<String, Object>> nodes = new ArrayList<>();
@@ -168,9 +167,9 @@ public final class InspectPatchBundle {
         // Inspect selected dependency closure, including unnamed initializers. Reading extension
         // streams is distinct from calling execute/finalize after the patcher merges those streams.
         while (!pending.isEmpty()) {
-            Patch<?> patch = pending.remove();
+            Patch patch = pending.remove();
             List<String> dependencies = new ArrayList<>();
-            for (Patch<?> dependency : patch.getDependencies()) {
+            for (Patch dependency : patch.getDependencies()) {
                 if (!ids.containsKey(dependency)) {
                     ids.put(dependency, "p" + ids.size()); pending.add(dependency);
                 }
@@ -181,15 +180,14 @@ public final class InspectPatchBundle {
             nodes.add(entry("id", ids.get(patch), "name", patch.getName(), "implementation", implementation,
                     "selected", selected.contains(patch), "compatibility", compatibility(patch),
                     "dependencies", dependencies));
-            if (patch instanceof BytecodePatch bytecode) {
-                for (var provider : bytecode.getExtensionStreamProviders$morphe_patcher()) {
-                    for (var stream : provider.get()) {
-                        try (InputStream input = stream.get()) {
-                            if (input == null) throw new IllegalArgumentException("Missing selected extension");
-                            var dex = new DexBackedDexFile(Opcodes.getDefault(), ByteBuffer.wrap(input.readAllBytes()));
-                            for (ClassDef type : dex.getClasses()) extensions.add(entry("type", type.getType(),
-                                    "sha256", definitionHash(type), "patch", ids.get(patch)));
-                        }
+            // Patcher 2.4 keeps a patch's extensions on Patch itself; a patch without any answers none.
+            for (var provider : patch.getExtensionStreamProviders$morphe_patcher()) {
+                for (var stream : provider.get()) {
+                    try (InputStream input = stream.get()) {
+                        if (input == null) throw new IllegalArgumentException("Missing selected extension");
+                        var dex = new DexBackedDexFile(Opcodes.getDefault(), ByteBuffer.wrap(input.readAllBytes()));
+                        for (ClassDef type : dex.getClasses()) extensions.add(entry("type", type.getType(),
+                                "sha256", definitionHash(type), "patch", ids.get(patch)));
                     }
                 }
             }

@@ -37,7 +37,8 @@ New-Item -ItemType Directory -Path $scratch | Out-Null
 $classes = Join-Path $scratch 'classes'
 New-Item -ItemType Directory -Path $classes | Out-Null
 $javac = Join-Path (Split-Path -Parent $Java) 'javac.exe'
-& $javac '-cp' $DesktopJar '-d' $classes (Join-Path $PSScriptRoot 'CompositionFixture.java') `
+# Patcher 2.4 refuses a bundle holding classes newer than Java 17, whatever JDK runs this.
+& $javac '--release' '17' '-cp' $DesktopJar '-d' $classes (Join-Path $PSScriptRoot 'CompositionFixture.java') `
     (Join-Path $PSScriptRoot 'CompositionInitializer.java')
 if ($LASTEXITCODE -ne 0) { throw 'Composition fixtures did not compile.' }
 & $Java '-cp' "$DesktopJar$([IO.Path]::PathSeparator)$classes" 'CompositionFixture' $classes $scratch

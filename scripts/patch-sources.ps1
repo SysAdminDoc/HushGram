@@ -122,8 +122,11 @@ function Get-PatchFailureOwnership {
         }
     }
     if ($null -ne $Report) {
+        # morphe-desktop 1.20.0 and newer write {name, error}; older CLIs wrote {patch: {name}, reason}.
         foreach ($failure in @($Report.failedPatches)) {
-            Read-FailureBlock -Name ([string]$failure.patch.name) -Lines @([string]$failure.reason)
+            $failedName = if ($failure.name) { [string]$failure.name } else { [string]$failure.patch.name }
+            $failedText = if ($failure.error) { [string]$failure.error } else { [string]$failure.reason }
+            Read-FailureBlock -Name $failedName -Lines @($failedText)
         }
         return
     }

@@ -292,9 +292,11 @@ function Get-PatchVerdicts {
         [System.StringComparer]::Ordinal)
     $failures = @{}
     foreach ($failure in @($Report.failedPatches)) {
-        $name = if ($null -ne $failure.patch) { [string]$failure.patch.name } else { $null }
+        # morphe-desktop 1.20.0 and newer write {name, error}; older CLIs wrote {patch: {name}, reason}.
+        $name = if ($failure.name) { [string]$failure.name } elseif ($null -ne $failure.patch) { [string]$failure.patch.name } else { $null }
         if (-not $name) { continue }
-        $reason = ([string]$failure.reason -split "`n" | Select-Object -First 1).Trim()
+        $failedText = if ($failure.error) { [string]$failure.error } else { [string]$failure.reason }
+        $reason = ($failedText -split "`n" | Select-Object -First 1).Trim()
         $failures[$name] = $reason
     }
 

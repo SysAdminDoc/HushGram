@@ -5,6 +5,7 @@ import app.morphe.patcher.patch.AppTarget;
 import app.morphe.patcher.patch.ApkFileType;
 import app.morphe.patcher.patch.BytecodePatchContext;
 import app.morphe.patcher.patch.Compatibility;
+import app.morphe.patcher.patch.FormFactor;
 import app.morphe.patcher.patch.Patch;
 import app.morphe.patcher.patch.PatchKt;
 import app.morphe.patcher.patch.SupportedAbi;
@@ -48,11 +49,11 @@ public final class CompositionFixture {
             MODE.equals("wrong-code") ? 385611437 : 385611438);
 
     private static Compatibility target(String version, int code) {
-        return new Compatibility("com.instagram.android", "Instagram fixture", null, ApkFileType.APK, null, null,
-                List.of(new AppTarget(version, Map.of(SupportedAbi.ARM64_V8A, code), false, null, null)), false);
+        return new Compatibility("com.instagram.android", "Instagram fixture", null, ApkFileType.APK, (Integer) null, null,
+                List.of(new AppTarget(version, Map.of(SupportedAbi.ARM64_V8A, code), false, null, null)), FormFactor.MOBILE);
     }
 
-    public static final Patch<?> SETTINGS = PatchKt.bytecodePatch("Fixture settings", "Native initializer", false, builder -> {
+    public static final Patch SETTINGS = PatchKt.bytecodePatch("Fixture settings", "Native initializer", false, builder -> {
         builder.compatibleWith(MODE.equals("dependency-target") ? target("439.0.0.37.89", 384510827) : TARGET);
         builder.extendWith(() -> CompositionFixture.class.getResourceAsStream("/extensions/fixture.mpe"));
         builder.execute(context -> {
@@ -71,7 +72,7 @@ public final class CompositionFixture {
         return Unit.INSTANCE;
     });
 
-    public static final Patch<?> SELECTED = PatchKt.bytecodePatch(
+    public static final Patch SELECTED = PatchKt.bytecodePatch(
             MODE.equals("base") ? "Fixture base" : "Compatible addon", "Source composition fixture", false, builder -> {
         builder.compatibleWith(TARGET);
         builder.dependsOn(SETTINGS);
@@ -85,7 +86,7 @@ public final class CompositionFixture {
         return Unit.INSTANCE;
     });
 
-    public static Patch<?> getUnused() {
+    public static Patch getUnused() {
         if (!MODE.equals("mixed")) return SETTINGS;
         return PatchKt.bytecodePatch("Unselected old patch", "Deliberately incompatible", false, builder -> {
             builder.compatibleWith(target("439.0.0.37.89", 384510827));
