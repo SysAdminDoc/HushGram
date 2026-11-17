@@ -12,7 +12,7 @@ import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.instagram.NeutralNativePath
-import app.morphe.patches.instagram.reels.tapvolume.TOGGLE_AUDIO
+import app.morphe.patches.instagram.media.taptoplay.REELS_PLAYER_PAUSE
 import app.morphe.patches.instagram.stories.autoadvance.STORY_VIEWER
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
@@ -51,7 +51,6 @@ class StartStoriesWithSoundHookTest {
     private val check = "Lfixture/SoundCheck;"
     private val integer = "Ljava/lang/Integer;"
     private val trace = "Lfixture/Trace;->begin(Ljava/lang/String;)V"
-    private val toggleMarker = "android_purge_26_q3_$TOGGLE_AUDIO"
 
     /** The instructions the hook adds: ask, test, take the session, take the state, read it, tell, set it on. */
     private val hookLength = 14
@@ -302,7 +301,7 @@ class StartStoriesWithSoundHookTest {
 
     // The files a build is read from, by the types the finder walks: the viewer, what's above it, the toggles and what they and the viewer name.
     private fun wanted(apk: File): Set<String> {
-        val toggles = FixtureDex.classesHolding(apk, toggleMarker)
+        val toggles = FixtureDex.classesLoading(apk, REELS_PLAYER_PAUSE)
         val seed = mutableSetOf(STORY_VIEWER) + toggles.map { it.type }
         var up = FixtureDex.classes(apk, setOf(STORY_VIEWER)).getValue(STORY_VIEWER).superclass
         var depth = 0
@@ -373,7 +372,7 @@ class StartStoriesWithSoundHookTest {
         val readState = if (checkReadsOtherState) hiddenState else state
         val toggle = { name: String ->
             method(reels, name, listOf("I"), "V", 6, body = """
-                const-string v0, "$toggleMarker"
+                const-string v0, "toggleAudio"
                 invoke-static { v0 }, $trace
                 iget-object v1, p0, $reels->session:$userSession
                 invoke-static { v1 }, $state->of($userSession)$state
@@ -385,7 +384,13 @@ class StartStoriesWithSoundHookTest {
                 return-void
             """)
         }
-        val reelMethods = if (toggles == 0) listOf(method(reels, "other", emptyList(), "V", 0, body = "return-void"))
+        val pause = method(reels, "pause", listOf("Ljava/lang/String;"), "I", 1, body = """
+            const-string v0, "$REELS_PLAYER_PAUSE"
+            invoke-static { v0 }, $trace
+            const/4 v0, 0x0
+            return v0
+        """)
+        val reelMethods = listOf(pause) + if (toggles == 0) listOf(method(reels, "other", emptyList(), "V", 0, body = "return-void"))
         else (0 until toggles).map { toggle(if (it == 0) "toggleAudio" else "toggleAudioAgain") }
         val stateFlags = if (statePublic) AccessFlags.PUBLIC.value else 0
         val stateMethods = { owner: String, factoryFlags: Int ->

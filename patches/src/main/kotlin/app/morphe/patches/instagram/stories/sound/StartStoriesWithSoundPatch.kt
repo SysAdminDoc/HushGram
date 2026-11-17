@@ -16,12 +16,10 @@ import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.freeLocalsAt
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.jumpTargets
-import app.morphe.patches.instagram.misc.extension.markers
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.extension.requireThisIntact
-import app.morphe.patches.instagram.misc.extension.typesMarked
 import app.morphe.patches.instagram.misc.settings.settingsPatch
-import app.morphe.patches.instagram.reels.tapvolume.TOGGLE_AUDIO
+import app.morphe.patches.instagram.reels.tapvolume.reelsAudioToggle
 import app.morphe.patches.instagram.stories.autoadvance.STORY_VIEWER
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
@@ -108,7 +106,7 @@ internal class StorySoundSite(
 )
 
 /**
- * Instagram's account audio state is the object the Reels audio toggle ([TOGGLE_AUDIO]) takes from
+ * Instagram's account audio state is the object the Reels audio toggle ([reelsAudioToggle]) takes from
  * the user session with a public static, asks whether sound is on, and sets to the opposite with a
  * public boolean setter. The story viewer's sound check, the one `(Integer, boolean, boolean)`
  * boolean it asks of an object it holds, reads that same object through the same static, which this
@@ -208,19 +206,13 @@ private fun BytecodePatchContext.findSessionGetter(start: String?): MethodRefere
 }
 
 /**
- * The Reels audio toggle ([TOGGLE_AUDIO]) takes the audio state from the session (a static taking
+ * The Reels audio toggle ([reelsAudioToggle]) takes the audio state from the session (a static taking
  * the session), asks it whether sound is on (a no-argument boolean), flips that with an xor and
  * hands the result to a boolean setter on the same object. Found once, or the patch stops.
  * `Start reels with sound` sets the same state.
  */
 internal fun BytecodePatchContext.findAudioState(): Triple<MethodReference, MethodReference, MethodReference> {
-    val toggles = mutableListOf<Method>()
-    val marked = typesMarked(TOGGLE_AUDIO)
-    classDefForEach { classDef ->
-        if (classDef.type !in marked) return@classDefForEach
-        classDef.methods.forEach { method -> if (TOGGLE_AUDIO in method.markers()) toggles += method }
-    }
-    val toggle = toggles.singleOrNull() ?: refuse("the Reels audio toggle: expected one method marked $TOGGLE_AUDIO, found ${toggles.size}")
+    val toggle = reelsAudioToggle(::refuse)
     val code = toggle.code()
     val found = mutableListOf<Triple<MethodReference, MethodReference, MethodReference>>()
     for (at in code.indices) {
