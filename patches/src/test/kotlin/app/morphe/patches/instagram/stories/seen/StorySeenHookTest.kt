@@ -415,6 +415,17 @@ class StorySeenHookTest {
             } + claims.flatMap { claim -> claim.code().filter { it.opcode == Opcode.INVOKE_STATIC } }
             .mapNotNull { (it as? ReferenceInstruction)?.reference as? MethodReference }).map { it.definingClass }.toSet()
         found += FixtureDex.classes(bundle, helpers.filter { it !in found }.toSet())
+        // 456's loop hands each item to a step holding the claim (00F8.A0Q(String, Object)V on 386214574),
+        // which the saved posts store overrides and calls with invoke-super (02qD.A0V). The patch reads
+        // every caller of that step.
+        val claimKeys = claims.map { it.toString() }.toSet()
+        val stepKeys = found.values.flatMap { it.methods }.filter { method ->
+            method.parameterTypes.isNotEmpty() && method.returnType == "V" && method.code().any { it.referenceText() in claimKeys }
+        }.map { it.toString() }.toSet()
+        val stepCallers = FixtureDex.methodsWhere(bundle, { dex -> dex.methodSection.any { it.toString() in stepKeys } }) { method ->
+            method.code().any { it.referenceText() in stepKeys }
+        }
+        found += FixtureDex.classes(bundle, stepCallers.map { it.definingClass }.filter { it !in found }.toSet())
         val extra = mutableSetOf<String>()
         for (owner in helpers.mapNotNull { found[it] }) {
             owner.methods.filter { it.parameterTypes.map(Any::toString) == listOf(STRING) && it.returnType == "V" && it.code().size == 7 }
@@ -592,6 +603,7 @@ class StorySeenHookTest {
         reelItemInterface: Boolean = false,
         itemViewPublic: Boolean = true,
         splitQueue: Boolean = false,
+        siblingHandBack: String = "invoke-super",
     ): List<ClassDef> {
         val stories = if (storiesFromStatic) "sget-object v0, $BATCH->shared:Ljava/util/HashMap;" else "iget-object v0, p0, $BATCH->stories:Ljava/util/HashMap;"
         val builder = """
@@ -880,6 +892,7 @@ class StorySeenHookTest {
             classOf(VIEWER, emptyList(), emptyList()),
             ImmutableClassDef.of(ExtensionDex.classDef(STORY_SEEN)),
             ImmutableClassDef.of(ExtensionDex.classDef(STORY_SEEN_BUTTON)),
+            if (splitQueue) storySiblingStore(STORE_BASE, SIBLING_STORE, siblingHandBack) else null,
         ) + storyQueueDiskHelpers()
     }
 
@@ -969,6 +982,7 @@ class StorySeenHookTest {
         const val SEEN_STATE = "Lfixture/SeenState;"
         const val STORE = "Lfixture/PendingReelSeenStateStore;"
         const val STORE_BASE = "Lfixture/SessionStore;"
+        const val SIBLING_STORE = "Lfixture/PendingSavesStore;"
         const val RESET_NUX = "Lfixture/ResetNux;"
         const val REQUEST = "Lfixture/Request;"
         const val FACTORY = "Lfixture/RequestFactory;"

@@ -82,6 +82,21 @@ class StoryRetryQueueTest {
         refused(replace(classes, owner, methods = owner.methods.toList() + second), "expected one call of the request step, found 2")
     }
 
+    @Test fun aSiblingStoreHandingTheStepAnItemWithoutSuperRefusesUntouched() = refused(
+        fixtures.standIns(splitQueue = true, siblingHandBack = "invoke-virtual"), "expected one call of the request step, found 2")
+
+    @Test fun theStoryStoreHandingTheStepAnItemBySuperRefusesUntouched() {
+        val classes = fixtures.standIns(splitQueue = true)
+        val found = PatchContexts.of(classes).findStorySeen()
+        val store = classes.single { it.type == found.store }
+        val step = owner(classes, found).hooked(found.queue!!)
+        val handBack = storyQueueMethod(store.type, "handBack", step.parameterTypes.map(Any::toString), "V", 3, """
+            invoke-super { p0, p1, p2 }, $step
+            return-void
+        """)
+        refused(replace(classes, store, methods = store.methods.toList() + handBack), "expected one call of the request step, found 2")
+    }
+
     @Test fun anOutlinedStepTheStoreOverridesRefusesUntouched() {
         val classes = fixtures.standIns(splitQueue = true)
         val found = PatchContexts.of(classes).findStorySeen()

@@ -304,8 +304,8 @@ private fun BytecodePatchContext.wholeLoop(run: Method, at: Int): QueueLoop {
  * 456's loop calls an outlined step for each pending item it looks up, still holding its lock: the
  * step (00F8.A0Q(String, Object)V on 386214574) claims the key, builds the request and sends it. The
  * hook goes in the step before its claim, and a held story returns from the step to the loop, which
- * goes on to the next key. The step must have that loop as its one caller, and the story store
- * mustn't override it.
+ * goes on to the next key. The step must have that loop as its one caller, other than another
+ * store's invoke-super, and the story store mustn't override it.
  */
 private fun BytecodePatchContext.splitLoop(base: ClassDef, store: ClassDef, step: Method, at: Int): QueueLoop {
     val parameters = step.parameterTypes.map(Any::toString)
@@ -345,7 +345,10 @@ private fun BytecodePatchContext.splitLoop(base: ClassDef, store: ClassDef, step
     if ((3..7).any { it in step.jumpTargets() }) refuseQueue("a branch skips the cancellation site")
     if (self > 15 || key > 15 || item > 15) refuseQueue("operands exceed the cancellation instruction range")
 
-    val callers = listOf(base.type, store.type).flatMap { owner -> classesCalling(owner, step.name, parameters, "V") }
+    // A sibling store may override the step and hand some items back to it with invoke-super (456's
+    // saved posts store, 02qD.A0V on 386214574). That call runs with the sibling as its receiver, so
+    // the hook's store check sends it down the native path, and only the loop's call can hold a story.
+    val calls = listOf(base.type, store.type).flatMap { owner -> classesCalling(owner, step.name, parameters, "V") }
         .distinctBy { it.type }
         .flatMap { type ->
             type.methods.flatMap { method ->
@@ -354,9 +357,14 @@ private fun BytecodePatchContext.splitLoop(base: ClassDef, store: ClassDef, step
                         it.name == step.name && it.definingClass in setOf(base.type, store.type) &&
                             it.parameterTypes.map(Any::toString) == parameters && it.returnType == "V"
                     } == true
-                }.map { method to it }
+                }.map { Triple(type, method, it) }
             }
         }
+    val callers = calls.filterNot { (type, method, index) ->
+        method.code()[index].opcode in setOf(Opcode.INVOKE_SUPER, Opcode.INVOKE_SUPER_RANGE) &&
+            method.code()[index].call()!!.definingClass == base.type &&
+            type.superclass == base.type && type.type != store.type
+    }.map { (_, method, index) -> method to index }
     val (run, stepAt) = callers.singleOrNull() ?: refuseQueue("expected one call of the request step, found ${callers.size}")
     if (run.definingClass != base.type || run.parameterTypes.isNotEmpty() || run.returnType != "V" ||
         AccessFlags.STATIC.isSet(run.accessFlags) || !AccessFlags.DECLARED_SYNCHRONIZED.isSet(run.accessFlags)) {

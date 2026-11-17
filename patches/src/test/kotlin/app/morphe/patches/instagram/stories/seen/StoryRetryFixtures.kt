@@ -272,6 +272,27 @@ internal fun storyQueueKey(store: String, owner: String): Method = storyQueueMet
     return-object v0
 """, private = true)
 
+/**
+ * Another store on [owner] overriding the split loop's step, the way 456's saved posts store 02qD
+ * does on 386214574: it sends some items itself and hands the rest back to the step with
+ * invoke-super, or with [handBack] in their place.
+ */
+internal fun storySiblingStore(owner: String, sibling: String, handBack: String = "invoke-super"): ImmutableClassDef {
+    val step = "A0Q(Ljava/lang/String;Ljava/lang/Object;)V"
+    return ImmutableClassDef(sibling, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, owner, null, null, null, emptyList(), listOf(
+        storyQueueMethod(sibling, "A0Q", listOf("Ljava/lang/String;", "Ljava/lang/Object;"), "V", 3, """
+            invoke-virtual { p0, p2, p1 }, $sibling->A0V(Ljava/lang/Object;Ljava/lang/String;)V
+            return-void
+        """),
+        storyQueueMethod(sibling, "A0V", listOf("Ljava/lang/Object;", "Ljava/lang/String;"), "V", 3, """
+            if-nez p1, :own
+            $handBack { p0, p2, p1 }, $owner->$step
+            :own
+            return-void
+        """),
+    ))
+}
+
 internal fun storyQueueMethod(owner: String, name: String, parameters: List<String>, returns: String, registers: Int, body: String,
     constructor: Boolean = false, monitor: Boolean = false, protected: Pair<Int, Int>? = null, static: Boolean = false,
     cleanup: Boolean = false, private: Boolean = false): ImmutableMethod {
