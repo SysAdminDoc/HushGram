@@ -24,13 +24,11 @@ import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
-import app.morphe.patches.instagram.misc.extension.markers
 import app.morphe.patches.instagram.misc.extension.methodsCalling
 import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
 import app.morphe.patches.instagram.misc.extension.requireParameterIntact
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.extension.requireThisIntact
-import app.morphe.patches.instagram.misc.extension.typesMarked
 import app.morphe.patches.instagram.misc.flags.FlagLoad
 import app.morphe.patches.instagram.misc.flags.answerFlagLoads
 import app.morphe.patches.instagram.misc.flags.findFlagLoads
@@ -39,8 +37,8 @@ import app.morphe.patches.instagram.reels.scrolling.VIEW_PAGER
 import app.morphe.patches.instagram.reels.scrolling.reelsPager
 import app.morphe.patches.instagram.reels.scrolling.reelsPagerSetup
 import app.morphe.patches.shared.compat.AppCompatibilities
+import app.morphe.util.ControlFlow
 import app.morphe.util.addInstructionsAtControlFlowLabel
-import app.morphe.util.extendsClass
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
@@ -153,20 +151,12 @@ internal const val REPLY_TO = "$CHAT_REELS->replyTo(Ljava/lang/Object;Ljava/lang
 internal const val REPLY_INFO = "$CHAT_REELS->replyInfo(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;"
 
 /**
- * The purge markers of the reply bar under a reel opened from a chat (LX/0T5D on 453's 385914557,
- * ClipsViewerDirectReplyBarController): its hint update for a page (A19), which shows or hides the
- * bar, its reply info for the reel on screen (A03), which a typed reply and a quick reaction quote,
- * and its reel on screen (A02). Redex keeps the names.
+ * What the reply info for the reel on screen of the reply bar under a reel opened from a chat
+ * (ClipsViewerDirectReplyBarController, `LX/0I4a;->A03` on 456's 386214574) reports when it finds
+ * none. It's the one method loading it, so it finds the controller, its hint update for a page
+ * (A1G there) and its reel on screen (A02).
  */
-internal const val REPLY_HINT = "ClipsViewerDirectReplyBarController_updateHintText"
-internal const val REPLY_CURRENT_INFO = "ClipsViewerDirectReplyBarController_getCurrentClipsReshareInfo"
-internal const val REPLY_CURRENT_ITEM = "ClipsViewerDirectReplyBarController_getCurrentClipsItem"
-
-/**
- * The purge marker of the reply bar's page select (0T5D.Fxj on 453's 385914557), which the viewer calls
- * as each page is selected and which hands the page on to the hint update. Redex keeps the name.
- */
-internal const val REPLY_PAGE = "ClipsViewerDirectReplyBarController_onPageSelected"
+internal const val REPLY_INFO_MISSING = "ClipsReshareInfo was null"
 
 internal const val CHAT_REELS_NOTICE = "$EXTENSION_PACKAGE/direct/ChatReelsNotice;"
 internal const val NOTICE_PAGE = "$CHAT_REELS_NOTICE->page(Ljava/lang/Object;I)V"
@@ -1101,11 +1091,13 @@ internal fun BytecodePatchContext.watchChatViewers(found: ChatViewers = findChat
 
 /**
  * The reply bar under a reel opened from a chat, ClipsViewerDirectReplyBarController (LX/0T5D on 453's
- * 385914557): its hint update for a page ([REPLY_HINT]), the method that reads the page's info for it
- * ([hintAsks], the hint update itself up to 454), and its reply info for the reel on screen
- * ([REPLY_CURRENT_INFO]), each with the register holding Instagram's info where its two ways in meet and
- * the locals the hook borrows there, its reel on screen ([REPLY_CURRENT_ITEM]), the info class with its
- * constructor and message field, the controller's adapter field with the adapter's count and item at a
+ * 385914557, LX/0I4a on 456's 386214574): its hint update for a page (updateHintText), the method that
+ * reads the page's info for it ([hintAsks] on 455, the hint update itself up to 454 and again on 456),
+ * and its reply info for the reel on screen (getCurrentClipsReshareInfo, loading [REPLY_INFO_MISSING]),
+ * each with the register holding Instagram's info where its ways in meet and the locals the hook
+ * borrows there, its reel on screen (getCurrentClipsItem), the info class with its
+ * constructor and message field, the fields leading from the controller to its adapter (one up to 455,
+ * the controller's viewer state and then its adapter on 456) with the adapter's count and item at a
  * position, and the controller's [VIEWER_SOURCE] field. Also the collector's register holding the info it
  * just built and the two locals its hook borrows, for the message's wrapper and the collector itself.
  */
@@ -1121,7 +1113,7 @@ internal class ReplyBar(
     val info: String,
     val init: String,
     val message: FieldReference,
-    val adapter: FieldReference,
+    val adapter: List<FieldReference>,
     val count: MethodReference,
     val item: MethodReference,
     val source: String,
@@ -1136,19 +1128,39 @@ private val INFO_TESTS = setOf(Opcode.IF_EQZ, Opcode.IF_NEZ)
 private fun replyCall(method: Method) =
     "${method.definingClass}->${method.name}(${method.parameterTypes.joinToString("")})${method.returnType}"
 
+private val GOTOS = setOf(Opcode.GOTO, Opcode.GOTO_16, Opcode.GOTO_32)
+
 /**
- * Where [method]'s ways to its reply info meet: the one null test of a register, up to v15, that the
- * instruction before it casts to [info] and something jumps to. Null when there isn't exactly one.
+ * Where [method]'s ways to its reply info meet: the one null test of a register, up to v15, that
+ * something jumps to, with at least one way in leaving a [info] in that register just before it,
+ * cast to it or answered by a call, in the way's last instruction or the one before its goto. On 456
+ * the reply info for the reel on screen casts one way's info and goes to the test, and the hint update
+ * gets it from a call on two of its three ways. Null when there isn't exactly one.
  */
 private fun replyJoin(method: Method, info: String): Int? {
-    val code = method.implementation?.instructions?.toList() ?: return null
+    if (method.implementation == null) return null
+    val flow = ControlFlow.of(method)
+    val code = flow.instructions
+    val ways = Array(code.size) { mutableListOf<Int>() }
+    code.indices.forEach { from -> flow.normal[from].forEach { ways[it] += from } }
+    fun leavesInfo(at: Int, register: Int): Boolean {
+        val instruction = code.getOrNull(at) ?: return false
+        if ((instruction as? OneRegisterInstruction)?.registerA != register) return false
+        return when (instruction.opcode) {
+            Opcode.CHECK_CAST -> "${(instruction as ReferenceInstruction).reference}" == info
+            Opcode.MOVE_RESULT_OBJECT -> ((code.getOrNull(at - 1) as? ReferenceInstruction)?.reference as? MethodReference)?.returnType == info
+            else -> false
+        }
+    }
     val targets = method.jumpTargets()
-    return (1 until code.size).filter { at ->
-        val cast = code[at - 1]
+    return code.indices.filter { at ->
         val test = code[at]
-        cast.opcode == Opcode.CHECK_CAST && "${(cast as ReferenceInstruction).reference}" == info && test.opcode in INFO_TESTS &&
-            (test as OneRegisterInstruction).registerA == (cast as OneRegisterInstruction).registerA && test.registerA <= 15 &&
-            at in targets
+        if (test.opcode !in INFO_TESTS || at !in targets) return@filter false
+        val register = (test as OneRegisterInstruction).registerA
+        register <= 15 && ways[at].any { way ->
+            val last = if (code[way].opcode in GOTOS && ways[way] == listOf(way - 1)) way - 1 else way
+            leavesInfo(last, register)
+        }
     }.singleOrNull()
 }
 
@@ -1186,17 +1198,42 @@ private fun BytecodePatchContext.hintAsks(hint: Method, info: String): Pair<Meth
     return asked.singleOrNull()
 }
 
+/**
+ * The object fields [code] reads, in order, from what [start] holds on entry to the object in [register]
+ * at [at], walking back through the instructions before it. Null when something else writes one of them
+ * or [start] is written before its read.
+ */
+private fun fieldsTo(code: List<Instruction>, at: Int, register: Int, start: Int): List<FieldReference>? {
+    fun writes(index: Int, register: Int): Boolean {
+        val instruction = code[index]
+        val destination = (instruction as? OneRegisterInstruction)?.registerA ?: return false
+        return instruction.opcode.setsRegister() &&
+            (destination == register || (instruction.opcode.setsWideRegister() && destination + 1 == register))
+    }
+    val path = ArrayDeque<FieldReference>()
+    var wanted = register
+    var index = at - 1
+    while (wanted != start) {
+        val write = (index downTo 0).firstOrNull { writes(it, wanted) } ?: return null
+        if (code[write].opcode != Opcode.IGET_OBJECT) return null
+        path.addFirst((code[write] as ReferenceInstruction).reference as FieldReference)
+        wanted = (code[write] as TwoRegisterInstruction).registerB
+        index = write - 1
+    }
+    return if (path.isEmpty() || (0..index).any { writes(it, start) }) null else path.toList()
+}
+
 /** The virtual calls in [code]. */
 private fun virtualCalls(code: List<Instruction>) = code.mapNotNull { instruction ->
     if (instruction.opcode != Opcode.INVOKE_VIRTUAL) null else (instruction as ReferenceInstruction).reference as MethodReference
 }.distinctBy { "$it" }
 
 /**
- * Finds the reply bar under a reel opened from a chat before anything changes. The [REPLY_HINT],
- * [REPLY_CURRENT_INFO] and [REPLY_CURRENT_ITEM] markers each sit in one method of one class: an instance
- * method taking an int page and returning nothing, a static one taking the controller and answering the
- * reply info, and a static one taking the controller and answering the [collector]'s reel item. The
- * item comes from one virtual call on an adapter taking a position, next to one call of the adapter's
+ * Finds the reply bar under a reel opened from a chat before anything changes. The reply info for the
+ * reel on screen is the one method loading [REPLY_INFO_MISSING], a static one taking the controller, its
+ * class, and answering the info. The controller has one instance method taking an int page and returning
+ * nothing, the hint update, and one static method taking it and answering the [collector]'s reel item,
+ * the reel on screen. The item comes from one virtual call on an adapter taking a position, next to one call of the adapter's
  * count, on one field of the controller, and the controller keeps one [VIEWER_SOURCE]. The info class
  * has one constructor, storing its first String, the message, in one field, and the collector builds
  * one with two free locals after it where nothing jumps. Both reply methods test the info they cast where
@@ -1204,43 +1241,42 @@ private fun virtualCalls(code: List<Instruction>) = code.mapNotNull { instructio
  * itself. Fails when any of it isn't so.
  */
 internal fun BytecodePatchContext.findReplyBar(collector: ReelCollector = findReelCollector()): ReplyBar {
-    val names = listOf(REPLY_HINT, REPLY_CURRENT_INFO, REPLY_CURRENT_ITEM)
-    val types = typesMarked(*names.toTypedArray())
-    val marked = names.associateWith { name ->
-        types.flatMap { type -> classDefBy(type).methods.filter { name in it.markers() } }
-    }
-    for ((name, methods) in marked) {
-        if (methods.size != 1) refuse("expected one method holding the $name marker, found ${methods.size}")
-    }
-    val hint = marked.getValue(REPLY_HINT).single()
-    val current = marked.getValue(REPLY_CURRENT_INFO).single()
-    val currentItem = marked.getValue(REPLY_CURRENT_ITEM).single()
-    val controller = hint.definingClass
-    if (current.definingClass != controller || currentItem.definingClass != controller) {
-        refuse("the reply bar's markers sit in ${current.definingClass}, ${currentItem.definingClass} and $controller, not one class")
-    }
-    val itemType = collector.media.definingClass
     fun names(types: List<CharSequence>) = types.map(CharSequence::toString)
     fun takes(method: Method) = names(method.parameterTypes)
-    if (AccessFlags.STATIC.isSet(hint.accessFlags) || takes(hint) != listOf("I") || hint.returnType != "V") {
-        refuse("$controller->${hint.name} isn't an instance method taking a page and returning nothing")
+    fun isStatic(method: Method) = AccessFlags.STATIC.isSet(method.accessFlags)
+    val loaders = classesLoadingString(REPLY_INFO_MISSING).flatMap { it.methods }.filter { method ->
+        // A static (int)String pool loads it too.
+        !(isStatic(method) && takes(method) == listOf("I") && method.returnType == "Ljava/lang/String;") && loadsString(method, REPLY_INFO_MISSING)
     }
-    if (!AccessFlags.STATIC.isSet(current.accessFlags) || takes(current) != listOf(controller) || !current.returnType.startsWith("L")) {
+    val current = loaders.singleOrNull()
+        ?: refuse("expected one method loading \"$REPLY_INFO_MISSING\", the reply bar's reply info, found ${loaders.size}")
+    val controller = current.definingClass
+    if (!isStatic(current) || takes(current) != listOf(controller) || !current.returnType.startsWith("L")) {
         refuse("$controller->${current.name} isn't a static method taking $controller and answering an object")
     }
-    if (!AccessFlags.STATIC.isSet(currentItem.accessFlags) || takes(currentItem) != listOf(controller) || currentItem.returnType != itemType) {
-        refuse("$controller->${currentItem.name} isn't a static method taking $controller and answering a $itemType")
-    }
+    val methods = classDefBy(controller).methods
+    val hints = methods.filter { !isStatic(it) && takes(it) == listOf("I") && it.returnType == "V" && it.implementation != null }
+    val hint = hints.singleOrNull() ?: refuse("expected $controller to have one instance (I)V method, its hint update, found ${hints.size}")
+    val itemType = collector.media.definingClass
+    val currentItems = methods.filter { isStatic(it) && takes(it) == listOf(controller) && it.returnType == itemType }
+    val currentItem = currentItems.singleOrNull()
+        ?: refuse("expected $controller to have one static method taking it and answering a $itemType, its reel on screen, found ${currentItems.size}")
 
     val itemCode = currentItem.implementation?.instructions?.toList().orEmpty()
     val items = virtualCalls(itemCode).filter { names(it.parameterTypes) == listOf("I") && it.returnType == itemType }
     val item = items.singleOrNull() ?: refuse("$controller->${currentItem.name} asks for ${items.size} reel items at a position, not one")
     val counts = virtualCalls(itemCode).filter { it.definingClass == item.definingClass && it.parameterTypes.isEmpty() && it.returnType == "I" }
     val count = counts.singleOrNull() ?: refuse("$controller->${currentItem.name} asks ${item.definingClass} for ${counts.size} counts, not one")
-    val adapters = itemCode.mapNotNull { instruction ->
-        if (instruction.opcode != Opcode.IGET_OBJECT) null else (instruction as ReferenceInstruction).reference as FieldReference
-    }.filter { it.type == item.definingClass }.distinctBy { "$it" }
-    val adapter = adapters.singleOrNull() ?: refuse("$controller->${currentItem.name} reads ${adapters.size} ${item.definingClass} fields, not one")
+    val asked = itemCode.indexOfFirst { it.opcode == Opcode.INVOKE_VIRTUAL && "${(it as ReferenceInstruction).reference}" == "$item" }
+    val adapter = (itemCode[asked] as? FiveRegisterInstruction)?.let { call ->
+        fieldsTo(itemCode, asked, call.registerC, currentItem.parameterRegisterNumber(0))
+    } ?: refuse("$controller->${currentItem.name} doesn't reach its ${item.definingClass} through fields of $controller")
+    for (field in adapter) {
+        val declared = classDefByOrNull(field.definingClass)?.fields?.singleOrNull { it.name == field.name && it.type == field.type }
+        if (declared == null || !AccessFlags.PUBLIC.isSet(declared.accessFlags) || AccessFlags.STATIC.isSet(declared.accessFlags)) {
+            refuse("$field, on the way to the reply bar's adapter, isn't a public instance field the extension can read")
+        }
+    }
     val sources = classDefBy(controller).fields.filter { !AccessFlags.STATIC.isSet(it.accessFlags) && it.type == VIEWER_SOURCE }
     val source = sources.singleOrNull() ?: refuse("$controller holds ${sources.size} $VIEWER_SOURCE fields, not one")
 
@@ -1335,7 +1371,8 @@ internal fun BytecodePatchContext.giveSwipedReelsTheirReplies(collector: ReelCol
         hintJoin,
         """
             move-object/from16 v$source, p0
-            iget-object v$adapter, v$source, ${found.adapter}
+            iget-object v$adapter, v$source, ${found.adapter.first()}
+            ${found.adapter.drop(1).joinToString("\n") { "iget-object v$adapter, v$adapter, $it" }}
             iget-object v$source, v$source, ${found.source}
             move/from16 v$page, p1
             invoke-static { v${found.hintInfo}, v$source, v$adapter, v$page }, $REPLY_TO
@@ -1394,35 +1431,35 @@ internal fun BytecodePatchContext.giveSwipedReelsTheirReplies(collector: ReelCol
 }
 
 /**
- * The reply bar's page select, 0T5D.Fxj on 453's 385914557 ([REPLY_PAGE]), and where its hint update
- * leaves the controller and the page: the instruction after that call, [at], and the call's own
- * registers, a [range] call's or a five-register one's.
+ * The reply bar's page select, 0T5D.Fxj on 453's 385914557 (onPageSelected, `LX/0I4X;->GAC` on 456's
+ * 386214574), and where its hint update leaves the controller and the page: the instruction after that
+ * call, [at], and the call's own registers, a [range] call's or a five-register one's.
  */
 internal class ReplyPage(val select: MutableMethod, val at: Int, val controller: Int, val page: Int, val range: Boolean)
 
 /**
- * Finds the reply bar's page select before anything changes. The [REPLY_PAGE] marker sits in one instance
- * method taking an int page first and returning nothing, in the class holding [replies]' hint update or
- * in one it extends: Redex hoists it into the superclass on some builds (454's 386014757 casts this to the
- * controller first), and on others merges the reply bars of two viewers into it behind an instance-of.
- * The method calls the hint update once, handing it the controller and the page parameter, still in its
- * own register, with nothing jumping onto the instruction after the call. The [collector]'s message time
- * is text, for the extension's bridge to answer. Fails when any of it isn't so.
+ * Finds the reply bar's page select before anything changes: the one instance method taking an int page
+ * first and returning nothing that calls [replies]' hint update, in the controller's class or one it
+ * extends. Redex hoists it into the superclass on some builds (454's 386014757 casts this to the
+ * controller first), and on others (456) merges the reply bars of two viewers into it behind an
+ * instance-of. The method calls the hint update once, handing it the controller and the page parameter,
+ * still in its own register, with nothing jumping onto the instruction after the call. The
+ * [collector]'s message time is text, for the extension's bridge to answer. Fails when any of it isn't so.
  */
 internal fun BytecodePatchContext.findReplyPage(collector: ReelCollector, replies: ReplyBar): ReplyPage {
-    val marked = typesMarked(REPLY_PAGE).flatMap { type -> classDefBy(type).methods.filter { REPLY_PAGE in it.markers() } }
-    val select = marked.singleOrNull() ?: refuse("expected one method holding the $REPLY_PAGE marker, found ${marked.size}")
     val controller = replies.hint.definingClass
-    val where = "${select.definingClass}->${select.name}"
-    if (!extendsClass(controller, select.definingClass)) {
-        refuse("the $REPLY_PAGE marker sits in ${select.definingClass}, neither the reply bar $controller nor a class it extends")
-    }
-    val takes = select.parameterTypes.map(CharSequence::toString)
-    if (AccessFlags.STATIC.isSet(select.accessFlags) || takes.firstOrNull() != "I" || select.returnType != "V") {
-        refuse("$where isn't an instance method taking a page first and returning nothing")
-    }
-    val code = select.implementation?.instructions?.toList() ?: refuse("$where has no code")
     val hint = replyCall(replies.hint)
+    fun callsHint(method: Method) = method.implementation?.instructions?.any { "${(it as? ReferenceInstruction)?.reference}" == hint } == true
+    val chain = generateSequence(classDefByOrNull(controller)) { type -> type.superclass?.let { classDefByOrNull(it) } }.toList()
+    val selects = chain.flatMap { it.methods }.filter { method ->
+        !AccessFlags.STATIC.isSet(method.accessFlags) && method.parameterTypes.firstOrNull()?.toString() == "I" &&
+            method.returnType == "V" && callsHint(method)
+    }
+    val select = selects.singleOrNull()
+        ?: refuse("expected one instance method of $controller or a class it extends taking a page first and returning nothing to call $hint, its page select, found ${selects.size}")
+    val where = "${select.definingClass}->${select.name}"
+    val takes = select.parameterTypes.map(CharSequence::toString)
+    val code = select.implementation?.instructions?.toList() ?: refuse("$where has no code")
     val calls = code.indices.filter { "${(code[it] as? ReferenceInstruction)?.reference}" == hint }
     val call = calls.singleOrNull() ?: refuse("expected $where to call $hint once, found ${calls.size}")
     val page = select.parameterRegisterNumber(0)
@@ -1488,7 +1525,7 @@ internal fun BytecodePatchContext.pointOutMessagesAfterReels(collector: ReelColl
         0,
         """
             check-cast p0, $controller
-            iget-object p0, p0, ${replies.adapter}
+            ${replies.adapter.joinToString("\n") { "iget-object p0, p0, $it" }}
             return-object p0
         """,
     )

@@ -17,8 +17,6 @@ import app.morphe.patches.instagram.direct.seen.NativeVisualSeenTest.Companion.f
 import app.morphe.patches.instagram.direct.seen.NativeVisualSeenTest.Companion.otherBuilds
 import app.morphe.patches.instagram.direct.seen.visualCode
 import app.morphe.patches.instagram.direct.seen.visualReference
-import app.morphe.patches.instagram.misc.extension.PURGE_MARKER
-import app.morphe.patches.instagram.misc.extension.markers
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
@@ -322,15 +320,9 @@ class OnlyReceivedReelsTest {
 
         // The reply bar under a reel opened from a chat, and the reply info class it answers (#488), with
         // its page select (#489) and the classes they extend, where Redex hoists the select on some builds.
-        val replyMarkers = setOf(REPLY_HINT, REPLY_CURRENT_INFO, REPLY_CURRENT_ITEM, REPLY_PAGE)
-        val replyClasses = mutableListOf<ClassDef>()
-        FixtureDex.forEach(bundle) { dex ->
-            val holds = dex.stringSection.any { it.startsWith("android_purge_") && PURGE_MARKER.find(it)?.groupValues?.get(1) in replyMarkers }
-            if (!holds) return@forEach
-            for (classDef in dex.classes) {
-                if (classDef.methods.any { m -> m.markers().any { it in replyMarkers } }) replyClasses += ImmutableClassDef.of(classDef)
-            }
-        }
+        // The controller is the class whose reply info reports a missing one; the adapter is read through
+        // its fields' types, so those come along too.
+        val replyClasses = FixtureDex.withStringPools(bundle, FixtureDex.classesLoading(bundle, REPLY_INFO_MISSING))
         for (classDef in replyClasses) classes[classDef.type] = classDef
         var supers = replyClasses.mapNotNull { it.superclass }.toSet() - classes.keys
         while (supers.isNotEmpty()) {
@@ -338,8 +330,13 @@ class OnlyReceivedReelsTest {
             classes += got
             supers = got.values.mapNotNull { it.superclass }.toSet() - classes.keys
         }
-        val infos = replyClasses.flatMap { c -> c.methods.filter { REPLY_CURRENT_INFO in it.markers() }.map { it.returnType } }
-        classes += FixtureDex.classes(bundle, infos.toSet() - classes.keys)
+        val infos = replyClasses.flatMap { c ->
+            c.methods.filter { AccessFlags.STATIC.isSet(it.accessFlags) && it.parameterTypes.map(CharSequence::toString) == listOf(c.type) }
+                .map { it.returnType }
+        }
+        classes += FixtureDex.classes(bundle, infos.filter { it.startsWith("L") }.toSet() - classes.keys)
+        val held = replyClasses.flatMap { c -> c.fields.filter { !AccessFlags.STATIC.isSet(it.accessFlags) }.map { it.type } }
+        classes += FixtureDex.classes(bundle, held.filter { it.startsWith("L") }.toSet() - classes.keys)
         classes[CHAT_REELS_NOTICE] = ImmutableClassDef.of(ExtensionDex.classDef(CHAT_REELS_NOTICE))
 
         val context = PatchContexts.of(classes.values)

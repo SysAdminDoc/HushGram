@@ -963,11 +963,14 @@ once-call Lapp/hushgram/extension/instagram/direct/ChatMediaWalk;->tap(Ljava/lan
 # after the placeholder guard, so the chat's own server pages lose the sent reels too; left out, they come
 # back as the viewer pages on. The adapter's update (044l.A0b, updateClipsItems) and its insert at a
 # position (044l.A0Y) merge pages without the add, so each hands its reels to leaveOutSent first too.
+# On 456 their markers are gone: the update is the one other (List, boolean) method of the add's
+# class, the one calling a method of that shape (08YO.A0V on 386214574), and the insert the one
+# loading its insertItems() log (08YO.A0S).
 start-call Lapp/hushgram/extension/instagram/direct/ChatReels;->received(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Z in instance (LX/*;)V holding Lkotlin/jvm/functions/Function0;->invoke()Ljava/lang/Object; LX/*;->*()Lcom/instagram/feed/media/Media; Lkotlin/jvm/functions/Function3;->invoke(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; LX/*;->*()Ljava/util/ArrayList;
 once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->received(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Z in instance (LX/*;)V holding Lkotlin/jvm/functions/Function0;->invoke()Ljava/lang/Object; LX/*;->*()Lcom/instagram/feed/media/Media; Lkotlin/jvm/functions/Function3;->invoke(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; LX/*;->*()Ljava/util/ArrayList;
 once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->leaveOutSent(Ljava/util/List;Ljava/lang/Object;)Ljava/util/List; in instance (Ljava/util/List;Z)V holding ClipsViewerAdapter.addClipsItems
-once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->leaveOutSent(Ljava/util/List;Ljava/lang/Object;)Ljava/util/List; in instance (Ljava/util/List;Z)V holding android_purge_26_q2_ClipsViewerAdapter_updateClipsItems
-once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->leaveOutSent(Ljava/util/List;Ljava/lang/Object;)Ljava/util/List; in instance (Ljava/util/List;I)V holding android_purge_26_q2_ClipsViewerAdapter_insertClipsItemsAtPosition
+once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->leaveOutSent(Ljava/util/List;Ljava/lang/Object;)Ljava/util/List; in instance (Ljava/util/List;Z)V calling instance LX/*;->*(Ljava/util/List;Z)V class-holding ClipsViewerAdapter.addClipsItems
+once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->leaveOutSent(Ljava/util/List;Ljava/lang/Object;)Ljava/util/List; in instance (Ljava/util/List;I)V holding insertItems()
 # Swipe through a chat's reels (#488) also hands ChatReels.collected each reply info the same collector
 # builds (0W3G), with the message's wrapper and the collector, one per chat (#658), right after its
 # constructor. The reply bar's hint update
@@ -977,16 +980,20 @@ once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->leaveOutSent(Ljav
 # reply info for the reel on screen (0T5D.A03, getCurrentClipsReshareInfo) asks ChatReels.replyInfo the
 # same way, so a reel swiped to past the tapped one shows the bar and quotes its own message. Left out,
 # the bar hides past the first reel and a reaction quotes the tapped message; twice or elsewhere, some
-# other reply quotes the wrong message.
+# other reply quotes the wrong message. On 456 the markers are gone and handleReshareChaining is inlined
+# back into the hint update (0I4a.A1G on 386214574), the controller's one instance (int) method; the
+# reply info (0I4a.A03) is the one method loading its missing-info report.
 once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->collected(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V in instance (LX/*;)V holding Lkotlin/jvm/functions/Function0;->invoke()Ljava/lang/Object; LX/*;->*()Lcom/instagram/feed/media/Media; Lkotlin/jvm/functions/Function3;->invoke(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; LX/*;->*()Ljava/util/ArrayList;
-once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->replyTo(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;I)Ljava/lang/Object; in instance (I)Z holding android_purge_26_q3_ClipsViewerDirectReplyBarController_handleReshareChaining
-once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->replyInfo(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; in static (LX/*;)LX/*; holding android_purge_26_q3_ClipsViewerDirectReplyBarController_getCurrentClipsReshareInfo
+once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->replyTo(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;I)Ljava/lang/Object; in instance (I)V class-holding ClipsReshareInfo\swas\snull
+once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->replyInfo(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; in static (LX/*;)LX/*; holding ClipsReshareInfo\swas\snull
 # Messages after a reel (#489): the reply bar's page select (0T5D.Fxj, onPageSelected) hands the controller
 # and its page to ChatReelsNotice.page right after its one hint update, on that call's controller, so the
 # banner over the viewer follows the reel on screen. Redex hoists the select into the bar's superclass on
 # some builds and merges another viewer's bar into it on others, so the hint's names are left open. Left
-# out, the banner never shows; twice or elsewhere, it shows for some other reel.
-next-call Lapp/hushgram/extension/instagram/direct/ChatReelsNotice;->page(Ljava/lang/Object;I)V after LX/*;->*(I)V in instance (II)V holding android_purge_26_q3_ClipsViewerDirectReplyBarController_onPageSelected
+# out, the banner never shows; twice or elsewhere, it shows for some other reel. On 456 the select lives in
+# the superclass (0I4X.GAC on 386214574) behind an instance-of, merged with the Spotlight bar's, and
+# holds only that bar's markers.
+next-call Lapp/hushgram/extension/instagram/direct/ChatReelsNotice;->page(Ljava/lang/Object;I)V after LX/*;->*(I)V in instance (II)V holding android_purge_26_q3_ClipsViewerSpotlightReplyBarController_onPageSelected
 # Stop after the chat's reels answers every read of the viewer config's refresh permission (A3G on
 # 453's 385914557, #390) through ChatReels.refresh: twice in the Reels tab adapter's fragment for a
 # position (0Idq.A00), once in the pager setup holding its trace name (01WS.A0j), the refresh
@@ -1006,19 +1013,24 @@ next-call Lapp/hushgram/extension/instagram/direct/ChatReelsNotice;->page(Ljava/
 # (0C2H.invoke) or outlined (09hB.A0A on 386113970), and the setter one is a static case
 # (0JjY.A0B on 386113968). 0C2H also calls a boolean setter, so the setter case is held by the
 # holder field A0b it reads the config through, which the receiver lambda never reads.
-once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->refresh(Ljava/lang/Object;)Z in instance (I)LX/*; sites 2 holding ClipsTabRecyclerAdapter.createFragmentForPosition Lcom/instagram/clips/intf/ClipsViewerConfig;->A3I:Z
-once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->refresh(Ljava/lang/Object;)Z in static (Landroid/os/BaseBundle;Landroid/view/View;*)V holding android_purge_26_q3_ClipsViewPagerImpl_setupView
-once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->refresh(Ljava/lang/Object;)Z in instance (Z)V holding refresh_not_allowed
-once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->refresh(Ljava/lang/Object;)Z in (*)Ljava/lang/Object; holding LX/*;->receiver:Ljava/lang/Object; Lcom/instagram/clips/intf/ClipsViewerConfig;->A3I:Z Lcom/instagram/clips/intf/ClipsViewerConfig;->A3K:Z
-once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->refresh(Ljava/lang/Object;)Z in (*)Ljava/lang/Object; calling instance LX/*;->*(Z)V holding LX/*;->A0b:LX/*; Lcom/instagram/clips/intf/ClipsViewerConfig;->A3I:Z Lcom/instagram/clips/intf/ClipsViewerConfig;->A3K:Z
-once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->refresh(Ljava/lang/Object;)Z in instance ()Ljava/lang/Object; holding android_purge_26_q3_ClipsLongPressToFeatureUseCase_getUiState Lcom/instagram/clips/intf/ClipsViewerConfig;->A3I:Z
-once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->refresh(Ljava/lang/Object;)Z in instance (Landroid/os/Bundle;)V sites 3 holding direct_search_thread_match_seed_grid Lcom/instagram/clips/intf/ClipsViewerConfig;->A3I:Z
-once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->refresh(Ljava/lang/Object;)Z in static (Lcom/instagram/clips/intf/ClipsViewerConfig;Ljava/lang/String;)Lcom/instagram/clips/intf/ClipsViewerConfig; holding Lcom/instagram/clips/intf/ClipsViewerConfig;->A3I:Z
+# On 456 the fields are A3J and A3L and the refresh handler takes two booleans (07NO.A1V on
+# 386214574). The pager setup holds the trace ClipsViewerFragment.onViewCreated:viewPagerSetup in
+# place of its marker (06ZV.A0R), the argument parse is the fragment's onCreate (08Gr.A01 on
+# 386214562), and the long-press state lambda (0JeZ.invoke), merged with others and holding no
+# marker, is the one reading the config's watch-and-browse data and that data's flag right after.
+once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->refresh(Ljava/lang/Object;)Z in instance (I)LX/*; sites 2 holding ClipsTabRecyclerAdapter.createFragmentForPosition Lcom/instagram/clips/intf/ClipsViewerConfig;->A3J:Z
+once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->refresh(Ljava/lang/Object;)Z in static (Landroid/os/BaseBundle;Landroid/view/View;*)V holding ClipsViewerFragment.onViewCreated:viewPagerSetup
+once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->refresh(Ljava/lang/Object;)Z in instance (ZZ)V holding refresh_not_allowed
+once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->refresh(Ljava/lang/Object;)Z in (*)Ljava/lang/Object; holding LX/*;->receiver:Ljava/lang/Object; Lcom/instagram/clips/intf/ClipsViewerConfig;->A3J:Z Lcom/instagram/clips/intf/ClipsViewerConfig;->A3L:Z
+once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->refresh(Ljava/lang/Object;)Z in (*)Ljava/lang/Object; calling instance LX/*;->*(Z)V holding LX/*;->A0b:LX/*; Lcom/instagram/clips/intf/ClipsViewerConfig;->A3J:Z Lcom/instagram/clips/intf/ClipsViewerConfig;->A3L:Z
+once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->refresh(Ljava/lang/Object;)Z in instance ()Ljava/lang/Object; holding Lcom/instagram/clips/intf/ClipsViewerConfig;->A3J:Z Lcom/instagram/clips/intf/ClipsViewerConfig;->A0T:Lcom/instagram/clips/intf/ClipsWatchAndBrowseData; Lcom/instagram/clips/intf/ClipsWatchAndBrowseData;->A0h:Z
+once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->refresh(Ljava/lang/Object;)Z in instance (Landroid/os/Bundle;)V sites 3 holding direct_search_thread_match_seed_grid Lcom/instagram/clips/intf/ClipsViewerConfig;->A3J:Z
+once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->refresh(Ljava/lang/Object;)Z in static (Lcom/instagram/clips/intf/ClipsViewerConfig;Ljava/lang/String;)Lcom/instagram/clips/intf/ClipsViewerConfig; holding Lcom/instagram/clips/intf/ClipsViewerConfig;->A3J:Z
 # The pager setup (01WS.A0j on 453's 385914557, #390) also hands ChatReelsExit.viewer the Reels
 # ViewPager2 and the viewer's config right before it stores the pager, so a long swipe up past a
 # chat's last reel goes back to the chat. Left out, that swipe does nothing; twice or elsewhere,
 # some other pager is watched.
-once-call Lapp/hushgram/extension/instagram/direct/ChatReelsExit;->viewer(Ljava/lang/Object;Ljava/lang/Object;)V in static (Landroid/os/BaseBundle;Landroid/view/View;*)V holding android_purge_26_q3_ClipsViewPagerImpl_setupView
+once-call Lapp/hushgram/extension/instagram/direct/ChatReelsExit;->viewer(Ljava/lang/Object;Ljava/lang/Object;)V in static (Landroid/os/BaseBundle;Landroid/view/View;*)V holding ClipsViewerFragment.onViewCreated:viewPagerSetup
 # Restore trust on re-signed builds puts its call first in the package signer reader, which its
 # fingerprint picks by the SigningInfo and PackageInfo calls it makes. The reader holds no string,
 # so the rule holds the old signatures array it reads, which 28 methods read on 449. Of
