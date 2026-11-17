@@ -17,6 +17,7 @@ import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
@@ -35,6 +36,7 @@ import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstructio
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction21c
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction21s
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction22c
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction31i
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction31t
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction35c
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction3rc
@@ -232,8 +234,8 @@ class ShowPostTimeHookTest {
         val kept = mutableListOf<ClassDef>()
         FixtureDex.forEach(bundle) { dex ->
             for (classDef in dex.classes) {
-                if (classDef.methods.any { it.holds { string -> string == LONG_AGO_PATTERN || string == FEED_FOOTER || string == FEED_LABEL ||
-                            string == COMMENT_ROW_TIME || string.startsWith(COMMENT_HEADER) } }
+                if (classDef.methods.any { it.loadsHeaderKey() || it.holds { string -> string == LONG_AGO_PATTERN || string == FEED_FOOTER ||
+                            string == FEED_LABEL || string == COMMENT_ROW_TIME } }
                 ) kept += ImmutableClassDef.of(classDef)
             }
         }
@@ -256,7 +258,7 @@ class ShowPostTimeHookTest {
         val time = row.fields.single { !AccessFlags.STATIC.isSet(it.accessFlags) && it.type == LONG_BOX }
         // From 452 the header's callers hand it the time as a lambda they make, so the callers come
         // too, and then what they make.
-        val header = kept.flatMap { it.methods }.single { method -> method.holds { it.startsWith(COMMENT_HEADER) } }
+        val header = kept.flatMap { it.methods }.single { it.loadsHeaderKey() }
         val made = HashSet<String>()
         FixtureDex.forEach(bundle) { dex ->
             for (classDef in dex.classes) {
@@ -336,6 +338,10 @@ class ShowPostTimeHookTest {
     /** A static (int)String method, the shape of a Redex pool of shared strings. */
     private fun Method.isPool() = AccessFlags.STATIC.isSet(accessFlags) && returnType == STRING && parameterTypes.map(CharSequence::toString) == listOf("I")
     /** How many boxed Long instance fields the class keeps. */
+    private fun Method.loadsHeaderKey() = code().any {
+        !it.opcode.setsWideRegister() && (it as? NarrowLiteralInstruction)?.narrowLiteral == COMMENT_HEADER_KEY
+    }
+
     private fun ClassDef.times() = fields.count { !AccessFlags.STATIC.isSet(it.accessFlags) && it.type == LONG_BOX }
     private fun Instruction.reference() = (this as? ReferenceInstruction)?.reference
     private fun Instruction.called() = reference() as? MethodReference
@@ -358,7 +364,7 @@ class ShowPostTimeHookTest {
         const val FUNCTION = "Lkotlin/jvm/functions/Function1;"
         const val ROW = "Lfixture/CommentRow;"
         const val ROW_TIME = "Lfixture/CommentRowTime;"
-        const val HEADER_TRACE = "${COMMENT_HEADER}CommentAuthorHeader.kt:77)"
+        val HEADER_TRACE = ImmutableInstruction31i(Opcode.CONST, 0, COMMENT_HEADER_KEY)
         val PUBLIC_FINAL = AccessFlags.PUBLIC.value or AccessFlags.FINAL.value
         val PUBLIC_STATIC = AccessFlags.PUBLIC.value or AccessFlags.STATIC.value
         val ROW_FIELD = ImmutableFieldReference(ROW, "time", LONG_BOX)
@@ -451,14 +457,14 @@ class ShowPostTimeHookTest {
             val label = builder(LABEL, FEED_LABEL, if (secondFormatting) RELATIVE_TOO else RELATIVE)
             val header = if (directHeader) {
                 type(HEADER, listOf(method(HEADER, "compose", listOf(FORMATTER, CONTEXT, "J"), "V", PUBLIC_STATIC, 5, listOf(
-                    string(0, HEADER_TRACE),
+                    HEADER_TRACE,
                     call(SHORT, 1, 2, 3, 4),
                     ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 0),
                     ImmutableInstruction10x(Opcode.RETURN_VOID),
                 ))))
             } else {
                 type(HEADER, listOf(method(HEADER, COMPOSE.name, listOf(FUNCTION), "V", PUBLIC_STATIC, 2, listOf(
-                    string(0, HEADER_TRACE),
+                    HEADER_TRACE,
                     ImmutableInstruction10x(Opcode.RETURN_VOID),
                 ))))
             }

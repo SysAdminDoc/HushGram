@@ -5,7 +5,6 @@
 package app.morphe.patches.instagram.feed.time
 
 import app.morphe.patcher.Fingerprint
-import app.morphe.patcher.StringComparisonType
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.extensions.InstructionExtensions.replaceInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
@@ -15,6 +14,7 @@ import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesAccessing
 import app.morphe.patches.instagram.misc.extension.classesCalling
+import app.morphe.patches.instagram.misc.extension.classesLoading
 import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
@@ -31,13 +31,13 @@ import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
-import com.android.tools.smali.dexlib2.iface.reference.StringReference
 import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 
 internal const val POST_TIME_PATCH = "Show a post's exact time"
@@ -76,8 +76,12 @@ internal const val FEED_FOOTER = "CoalescedFooterUseCase#getUiState"
  */
 internal const val FEED_LABEL = "LabelBelowCommentUseCase#getUiState"
 
-/** How Compose names the comment header (author, time and badges), less the line number. */
-internal const val COMMENT_HEADER = "com.instagram.comments.mvvm.view.compose.CommentAuthorHeader ("
+/**
+ * The Compose trace key of the comment header (author, time and badges), CommentAuthorHeader in
+ * CommentAuthorHeader.kt (`LX/036q;->A00` on 386214574). 456 dropped the trace name this patch knew
+ * it by; the key is the one 455 had.
+ */
+internal const val COMMENT_HEADER_KEY = 0xf9c68cf7.toInt()
 
 /** The test tag of a comment row's time, in the row's render. */
 internal const val COMMENT_ROW_TIME = "row_comment_textview_time_ago"
@@ -120,6 +124,11 @@ val showPostTimePatch = bytecodePatch(
 
 private fun refuse(why: String): Nothing = throw PatchException("$POST_TIME_PATCH: $why")
 
+/** Whether this loads [key] as a narrow constant, the way a composable hands its trace key on. */
+private fun Method.loadsTraceKey(key: Int) = code().any {
+    !it.opcode.setsWideRegister() && (it as? NarrowLiteralInstruction)?.narrowLiteral == key
+}
+
 /** How a call hands the time over: with a context as a double or a long, or with the resources. */
 internal enum class TimeShape { DOUBLE, LONG, RESOURCES }
 
@@ -150,7 +159,7 @@ internal class PostTimes(
  *  - the relative formatter, the class of the one core method [RelativeTimeFingerprint] finds;
  *  - the feed: the one method loading [FEED_FOOTER] that calls the formatter, and the one loading
  *    [FEED_LABEL] that does, the same method on 453, whose calls are taken once;
- *  - the comment header: the one method holding a string starting with [COMMENT_HEADER]. Up to 451
+ *  - the comment header: the one method loading [COMMENT_HEADER_KEY]. Up to 451
  *    it called the formatter itself. From 452 its callers hand it the time's formatting as a
  *    lambda, so the calls are the formatter's static resources overload in the classes those
  *    callers create, themselves or through a static method that only makes one and returns it
@@ -198,10 +207,10 @@ internal fun BytecodePatchContext.findPostTimes(): PostTimes {
         one("feed footer builder loading \"$FEED_FOOTER\"", FEED_FOOTER) +
             one("feed label builder loading \"$FEED_LABEL\"", FEED_LABEL)
         ).distinctBy { Triple(it.method.definingClass, it.method.name + it.method.parameterTypes + it.method.returnType, it.index) }
-    val headers = classDefByStrings(COMMENT_HEADER, StringComparisonType.STARTS_WITH).filterNot { it.type.startsWith(EXTENSION_ROOT) }
-        .flatMap { it.methods }.filter { method -> method.code().any { (it.reference() as? StringReference)?.string?.startsWith(COMMENT_HEADER) == true } }
+    val headers = classesLoading(COMMENT_HEADER_KEY.toLong()).filterNot { it.type.startsWith(EXTENSION_ROOT) }
+        .flatMap { it.methods }.filter { it.loadsTraceKey(COMMENT_HEADER_KEY) }
     val headerMethod = headers.singleOrNull()
-        ?: refuse("expected one comment header holding \"$COMMENT_HEADER\", found ${headers.size}")
+        ?: refuse("expected one comment header loading its trace key 0x${Integer.toHexString(COMMENT_HEADER_KEY)}, found ${headers.size}")
     val header = headerMethod.formatterCalls().ifEmpty {
         val callers = classesCalling(headerMethod.definingClass, headerMethod.name).flatMap { it.methods }.filter { it.calls(headerMethod) }
         val created = callers.flatMap { caller ->
