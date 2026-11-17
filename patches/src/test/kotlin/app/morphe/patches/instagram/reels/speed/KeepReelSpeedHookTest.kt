@@ -13,8 +13,6 @@ import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.FixtureDex
-import app.morphe.patches.instagram.misc.extension.PURGE_MARKER
-import app.morphe.patches.instagram.misc.extension.markers
 import app.morphe.patches.instagram.reels.tapvolume.SPEAKER_RESUMING
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
@@ -48,12 +46,10 @@ class KeepReelSpeedHookTest {
     private val hold = "Lfixture/LongPressEnd;"
     private val feature = "Lfixture/LongPressToFeature;"
     private val nux = "Lfixture/FastPlayNux;"
-    private val purge = "Lfixture/Purge;->mark(Ljava/lang/String;)V"
     private val log = "Lfixture/Log;->log(Ljava/lang/String;)V"
     private val setterRef = "$controller->A19(Lkotlin/jvm/functions/Function1;F)V"
     private val hooks = listOf(SPEED_SET, LOCKED_UP, LOCK_UP_ENDED, RESET_SPEED, HOLD_ENDED, ITEM, RESUMING)
-
-    private fun marker(name: String, quarter: String = "q3") = "android_purge_26_${quarter}_$name"
+    private val setterFound = "instance (Function1, float) method returning nothing in"
 
     /** Every hook the patch writes is in the ReelSpeed the bundle ships, public and static, and so is every stub. */
     @Test
@@ -69,8 +65,8 @@ class KeepReelSpeedHookTest {
 
     /**
      * The setter tells the extension each speed first thing; the hold handler tells it after its
-     * lock-begin marker and after its "ended" event; the reset hands over the reason after its
-     * lock-end marker and asks for the speed in front of its call to the setter; and maybeResumePlayer
+     * "locked" event and after its "ended" event; the reset hands over the reason after its
+     * "ended" event and asks for the speed in front of its call to the setter; and maybeResumePlayer
      * hands over the reel and its player in front of the call that plays it, where a branch to that
      * call lands on the hooks. The stubs call the player's setter and read the reel's ad flag.
      */
@@ -95,14 +91,14 @@ class KeepReelSpeedHookTest {
         assertEquals("the branch to the play call skips the hooks", itemHook, resume.target(branch))
 
         val holdCode = context.method(hold, "end")
-        val begun = holdCode.indexOfFirst { it.string()?.endsWith(LOCK_UP_BEGIN) == true }
-        assertEquals("the lock hook isn't right after the marker", LOCKED_UP, holdCode[begun + 1].referenceText())
+        val begun = holdCode.indexOfFirst { it.string() == LOCKED_EVENT }
+        assertEquals("the lock hook isn't right after the event", LOCKED_UP, holdCode[begun + 1].referenceText())
         val ended = holdCode.indexOfFirst { it.string() == HOLD_ENDED_EVENT }
         assertEquals("the hold-end hook isn't right after the event", HOLD_ENDED, holdCode[ended + 1].referenceText())
 
         val reset = context.method(feature, "reset")
-        val endMarker = reset.indexOfFirst { it.string()?.endsWith(LOCK_UP_END) == true }
-        assertCall("the lock-end reason", reset[endMarker + 1], LOCK_UP_ENDED, listOf(2))
+        val endEvent = reset.indexOfFirst { it.string() == HOLD_ENDED_EVENT }
+        assertCall("the lock-end reason", reset[endEvent + 1], LOCK_UP_ENDED, listOf(2))
         val asked = reset.indexOfFirst { it.referenceText() == RESET_SPEED }
         assertCall("the reset's speed", reset[asked], RESET_SPEED, listOf(0))
         assertEquals(Opcode.MOVE_RESULT, reset[asked + 1].opcode)
@@ -145,19 +141,21 @@ class KeepReelSpeedHookTest {
     @Test
     fun aBuildThePatchCantReadFailsBeforeAnythingChanges() {
         val cases = listOf(
-            Shape(setters = 0) to "marked $SET_PLAYBACK_SPEED, found 0",
-            Shape(setters = 2) to "marked $SET_PLAYBACK_SPEED, found 2",
-            Shape(setterTakesInt = true) to "isn't an instance (Function1, float) method",
+            Shape(setters = 0) to "$setterFound $controller, found 0",
+            Shape(setters = 2) to "$setterFound $controller, found 2",
+            Shape(setterTakesInt = true) to "$setterFound $controller, found 0",
             Shape(speedCalls = 2) to "makes 2 interface calls taking a float",
             Shape(playerPublic = false) to "isn't a public interface",
-            Shape(resumeElsewhere = true) to "$MAYBE_RESUME_PLAYER isn't in $controller",
+            Shape(resumeElsewhere = true) to "$setterFound Lfixture/Other;, found 0",
+            Shape(resumes = 0) to "expected one method loading \"$RESUME_PLAYER_TRACE\", found 0",
             Shape(plays = 0) to "makes 0 (String, boolean) calls on the player",
             Shape(plays = 2) to "makes 2 (String, boolean) calls on the player",
             Shape(itemOverwritten = true) to "writes over parameter 0",
-            Shape(holdIsLongPressEnd = false) to "isn't marked $LONG_PRESS_END",
+            Shape(holdAtEdge = false) to "expected one method loading \"$LONG_PRESS_EDGE\", found 0",
             Shape(endedEvents = 2) to "loads \"$HOLD_ENDED_EVENT\" 2 times",
-            Shape(branchAfterBegin = true) to "reaches the instruction after the lock-begin marker",
-            Shape(lockEndMarked = false) to "isn't marked $LOCK_UP_END",
+            Shape(branchAfterBegin = true) to "reaches the instruction after the \"$LOCKED_EVENT\" event",
+            Shape(lockEndLogged = false) to "loads \"$HOLD_ENDED_EVENT\" 0 times, expected once",
+            Shape(nuxShown = false) to "expected one method loading \"$FAST_PLAY_NUX_SHOWN\", found 0",
             Shape(reasonsInTwoRegisters = true) to "expected one register",
             Shape(reasonOverwritten = true) to "holds something other than the lock-end reason",
             Shape(resetCalls = 0) to "times, expected once",
@@ -181,8 +179,23 @@ class KeepReelSpeedHookTest {
     }
 
     /**
+     * Instagram 456 loads the scroll's reason as a string of its own, where 449 got it from a call. A
+     * string the reset loads into the reason's register is a reason, so the reason still goes over.
+     */
+    @Test
+    fun aScrollReasonLoadedAsAStringStillHandsTheReasonOver() {
+        val context = PatchContexts.of(classes(Shape(scrollLoaded = true)))
+
+        context.keepReelSpeed()
+
+        val reset = context.method(feature, "reset")
+        val endEvent = reset.indexOfFirst { it.string() == HOLD_ENDED_EVENT }
+        assertCall("the lock-end reason", reset[endEvent + 1], LOCK_UP_ENDED, listOf(2))
+    }
+
+    /**
      * In each declared build every hook goes where the stand-ins put it: the setter's first, the lock
-     * and hold hooks right after their events, the reason after the lock-end marker and the speed in
+     * and hold hooks right after their events, the reason after the reset's "ended" event and the speed in
      * front of the reset's setter call, and the reel and its player in front of the play call.
      */
     @Test
@@ -204,20 +217,19 @@ class KeepReelSpeedHookTest {
     }
 
     private fun builds(bundle: File, label: String) {
-        val markers = setOf(SET_PLAYBACK_SPEED, MAYBE_RESUME_PLAYER, LOCK_UP_BEGIN, RESET, FAST_PLAY_NUX)
-        val holders = mutableListOf<ClassDef>()
-        FixtureDex.forEach(bundle) { dex ->
-            val holds = dex.stringSection.any { string ->
-                string.startsWith("android_purge_") && PURGE_MARKER.find(string)?.groupValues?.get(1) in markers
-            }
-            if (!holds) return@forEach
-            for (classDef in dex.classes) {
-                if (classDef.methods.any { method -> method.markers().any { it in markers } }) holders += ImmutableClassDef.of(classDef)
-            }
+        val holders = listOf(RESUME_PLAYER_TRACE, LONG_PRESS_EDGE, LOCK_UP_CANCELLED, FAST_PLAY_NUX_SHOWN)
+            .flatMap { FixtureDex.classesLoading(bundle, it) }.distinctBy { it.type }
+        val byType = holders.associateBy { it.type }
+        val isPool = { method: Method ->
+            AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "Ljava/lang/String;" &&
+                method.parameterTypes.map(Any::toString) == listOf("I")
         }
-        val methods = holders.flatMap { it.methods }
-        val setter = methods.single { SET_PLAYBACK_SPEED in it.markers() }
-        val resume = methods.single { MAYBE_RESUME_PLAYER in it.markers() }
+        val loading = { value: String -> holders.flatMap { it.methods }.single { !isPool(it) && FixtureDex.loads(it, value, byType) } }
+        val resume = loading(RESUME_PLAYER_TRACE)
+        val setter = byType.getValue(resume.definingClass).methods.single {
+            !AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == "V" &&
+                it.parameterTypes.map(Any::toString) == listOf("Lkotlin/jvm/functions/Function1;", "F")
+        }
         val playerType = setter.code().mapNotNull { it.methodRef() }.single { it.parameterTypes.map(Any::toString) == listOf("F") }.definingClass
         val itemType = resume.parameterTypes.first().toString()
         val extra = FixtureDex.classes(bundle, setOf(playerType, itemType)).values
@@ -239,20 +251,20 @@ class KeepReelSpeedHookTest {
         assertTrue("$name: the play call follows", playCall.methodRef()?.definingClass == playerType && playCall.methodRef()?.returnType == "Z")
         assertEquals("$name: the player handed over is the one played", playCall.registers().first(), newResume[itemHook + 1].registers().single())
 
-        val holdBefore = methods.single { LOCK_UP_BEGIN in it.markers() }
+        val holdBefore = loading(LONG_PRESS_EDGE)
         val newHold = after(holdBefore)
         assertEquals("$name: the hold handler grew", holdBefore.code().size + 2, newHold.size)
-        val begun = newHold.indexOfFirst { it.string()?.endsWith("_$LOCK_UP_BEGIN") == true }
+        val begun = newHold.indexOfFirst { it.string() == LOCKED_EVENT }
         assertEquals("$name: the lock hook", LOCKED_UP, newHold[begun + 1].referenceText())
         val ended = newHold.indexOfFirst { it.string() == HOLD_ENDED_EVENT }
         assertEquals("$name: the hold-end hook", HOLD_ENDED, newHold[ended + 1].referenceText())
 
-        val resetBefore = methods.single { RESET in it.markers() }
+        val resetBefore = loading(LOCK_UP_CANCELLED)
         val newReset = after(resetBefore)
         assertEquals("$name: the reset grew", resetBefore.code().size + 3, newReset.size)
-        val endMarker = newReset.indexOfFirst { it.string()?.endsWith("_$LOCK_UP_END") == true }
-        assertEquals("$name: the reason hook", LOCK_UP_ENDED, newReset[endMarker + 1].referenceText())
-        val reasonRegister = newReset[endMarker + 1].registers().single()
+        val endEvent = newReset.indexOfFirst { it.string() == HOLD_ENDED_EVENT }
+        assertEquals("$name: the reason hook", LOCK_UP_ENDED, newReset[endEvent + 1].referenceText())
+        val reasonRegister = newReset[endEvent + 1].registers().single()
         assertEquals(
             "$name: the reason handed over is the register the reasons go in",
             setOf(reasonRegister),
@@ -277,14 +289,17 @@ class KeepReelSpeedHookTest {
         val speedCalls: Int = 1,
         val playerPublic: Boolean = true,
         val resumeElsewhere: Boolean = false,
+        val resumes: Int = 1,
         val plays: Int = 1,
         val itemOverwritten: Boolean = false,
-        val holdIsLongPressEnd: Boolean = true,
+        val holdAtEdge: Boolean = true,
         val endedEvents: Int = 1,
         val branchAfterBegin: Boolean = false,
-        val lockEndMarked: Boolean = true,
+        val lockEndLogged: Boolean = true,
         val reasonsInTwoRegisters: Boolean = false,
         val reasonOverwritten: Boolean = false,
+        val scrollLoaded: Boolean = false,
+        val nuxShown: Boolean = true,
         val resetCalls: Int = 1,
         val speedReadAfterReset: Boolean = false,
         val adTested: Boolean = true,
@@ -304,7 +319,6 @@ class KeepReelSpeedHookTest {
         val speedParameter = if (shape.setterTakesInt) "I" else "F"
         val setters = (0 until shape.setters).map { copy ->
             method(controller, if (copy == 0) "A19" else "A1B", listOf("Lkotlin/jvm/functions/Function1;", speedParameter), "V", 5, """
-                const-string v0, "${marker(SET_PLAYBACK_SPEED)}"
                 iget-object v0, p0, $controller->player:$player
                 if-eqz v0, :done
                 ${"invoke-interface { v0, p2 }, $player->setSpeed(F)V\n".repeat(shape.speedCalls)}
@@ -315,7 +329,7 @@ class KeepReelSpeedHookTest {
         val plays = "invoke-interface { v1, p2, p3 }, $player->play(Ljava/lang/String;Z)Z\nmove-result v0\n".repeat(shape.plays)
         val resume = method(if (shape.resumeElsewhere) "Lfixture/Other;" else controller, "A0E",
             listOf(item, "Ljava/lang/String;", "Z"), "V", 6, """
-                const-string v0, "${marker(MAYBE_RESUME_PLAYER)}"
+                const-string v0, "${if (shape.resumes > 0) RESUME_PLAYER_TRACE else "maybeResumePlayer"}"
                 iget-object v1, p0, $controller->player:$player
                 ${if (shape.itemOverwritten) "const/4 p1, 0x0" else ""}
                 iget-boolean v0, p1, $item->ready:Z
@@ -346,7 +360,7 @@ class KeepReelSpeedHookTest {
 
         val endedEvents = "const-string v1, \"$HOLD_ENDED_EVENT\"\ninvoke-static { v1 }, $log\n".repeat(shape.endedEvents)
         val holdMethod = method(hold, "end", listOf("Ljava/lang/Object;", "Z"), "Ljava/lang/Object;", 4, """
-            const-string v0, "${marker(if (shape.holdIsLongPressEnd) LONG_PRESS_END else "ClipsLongPressController_onLongPressStart", "q2")}"
+            const-string v0, "${if (shape.holdAtEdge) LONG_PRESS_EDGE else "long_press_start"}"
             if-eqz p1, :ended
             if-nez p1, :up
             const-string v0, "down"
@@ -354,11 +368,10 @@ class KeepReelSpeedHookTest {
             :up
             const-string v0, "up"
             :log
-            const-string v1, "${marker(LOCK_UP_BEGIN, "q2")}"
+            const-string v1, "$LOCKED_EVENT"
             ${if (shape.branchAfterBegin) ":after" else ""}
-            invoke-static { v1 }, $purge
+            invoke-static { v1 }, $log
             ${if (shape.branchAfterBegin) "if-eqz p1, :after" else ""}
-            const-string v1, "locked"
             return-object v1
             :ended
             $endedEvents
@@ -368,7 +381,6 @@ class KeepReelSpeedHookTest {
         val reasonInto = { reason: String -> if (shape.reasonsInTwoRegisters && reason == "switch_tab") 1 else 2 }
         val resetCalls = "invoke-virtual { p1, v1, v0 }, $setterRef\n".repeat(shape.resetCalls)
         val resetMethod = method(feature, "reset", listOf(item, controller, "Ljava/lang/Integer;", "Z"), "V", 7, """
-            const-string v0, "${marker(RESET, "q2")}"
             if-eqz p0, :unlocked
             invoke-virtual { p2 }, Ljava/lang/Integer;->intValue()I
             move-result v1
@@ -379,8 +391,8 @@ class KeepReelSpeedHookTest {
             if-eq v1, v0, :slid
             const-string v2, "cancel_lock_up"
             :reason
-            const-string v0, "${marker(if (shape.lockEndMarked) LOCK_UP_END else "ClipsFastPlayLogger_logFastPlayExposure", "q2")}"
-            invoke-static { v0 }, $purge
+            const-string v0, "${if (shape.lockEndLogged) HOLD_ENDED_EVENT else "exposed"}"
+            invoke-static { v0 }, $log
             invoke-static { v2 }, $log
             :unlocked
             if-nez p3, :done
@@ -395,21 +407,21 @@ class KeepReelSpeedHookTest {
             goto :reason
             :tab
             const-string v${reasonInto("switch_tab")}, "switch_tab"
-            ${if (shape.reasonOverwritten) "const-string v2, \"elsewhere\"" else ""}
+            ${if (shape.reasonOverwritten) "const/4 v2, 0x0" else ""}
             goto :reason
             :scrolled
-            const/16 v0, 0x106
-            invoke-static { v0 }, Lfixture/Strings;->get(I)Ljava/lang/String;
-            move-result-object v2
+            ${if (shape.scrollLoaded) "const-string v2, \"scroll_away\"" else "const/16 v0, 0x106"}
+            ${if (shape.scrollLoaded) "" else "invoke-static { v0 }, Lfixture/Strings;->get(I)Ljava/lang/String;"}
+            ${if (shape.scrollLoaded) "" else "move-result-object v2"}
             goto :reason
         """, AccessFlags.PUBLIC.value or AccessFlags.STATIC.value)
 
         val flagOwner = if (shape.adFromAnotherClass) "Lfixture/OtherItem;" else item
         val nuxMethod = method(nux, "show", listOf(item, "Ljava/lang/String;"), "V", 4, """
-            const-string v0, "${marker(FAST_PLAY_NUX, "q2")}"
+            const-string v0, "${if (shape.nuxShown) FAST_PLAY_NUX_SHOWN else "fast_play_nux"}"
             ${if (shape.adFromAnotherClass) "check-cast p0, $flagOwner" else ""}
             iget-boolean v1, p0, $flagOwner->ad:Z
-            const-string v0, "${marker("ClipsFastPlayRepository_updateClipFastPlayNuxShown", "q2")}"
+            const-string v0, "nux_shown"
             ${if (shape.adTested) "if-eqz v1, :organic" else "if-eqz v1, :organic\nconst/4 v1, 0x0"}
             const-string v0, "$ADS_HINT_KEY"
             :shown

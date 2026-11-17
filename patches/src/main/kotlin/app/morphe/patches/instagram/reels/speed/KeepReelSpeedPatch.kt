@@ -10,14 +10,14 @@ import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
-import app.morphe.patches.instagram.misc.extension.markers
+import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.parameterRegister
 import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
 import app.morphe.patches.instagram.misc.extension.requireParameterIntact
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
-import app.morphe.patches.instagram.misc.extension.typesMarked
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.util.ControlFlow
@@ -50,19 +50,33 @@ internal const val RESUMING = "$REEL_SPEED->resuming(Ljava/lang/Object;)V"
 internal const val SET_PLAYER_SPEED_STUB = "setPlayerSpeed"
 internal const val AD_ITEM_STUB = "adItem"
 
-/** The markers, after Instagram's release prefix, of the methods the patch reads or changes. */
-internal const val SET_PLAYBACK_SPEED = "ClipsVideoPlayerController_setPlaybackSpeed"
-internal const val MAYBE_RESUME_PLAYER = "ClipsVideoPlayerController_maybeResumePlayer"
-internal const val LONG_PRESS_END = "ClipsLongPressController_onLongPressEnd"
-internal const val LOCK_UP_BEGIN = "ClipsFastPlayLogger_logFastPlayLockUpBegin"
-internal const val RESET = "ClipsLongPressToFeatureController_reset"
-internal const val LOCK_UP_END = "ClipsFastPlayLogger_logFastPlayLockUpEnd"
-internal const val FAST_PLAY_NUX = "ClipsLongPressToFeatureController_displayFastPlayNux"
+/**
+ * Strings only one method each loads, which name the methods the patch reads or changes. Instagram
+ * 456 dropped the purge markers these methods carried.
+ *
+ * - [RESUME_PLAYER_TRACE]: the Reels controller's maybeResumePlayer, whose class also holds setPlaybackSpeed
+ * - [LONG_PRESS_EDGE]: fast play's hold handler (onLongPressEnd), which logs a hold at a reel's edge
+ * - [LOCK_UP_CANCELLED]: the reset, the first of its [LOCK_END_REASONS]
+ * - [FAST_PLAY_NUX_SHOWN]: the fast-play hint (displayFastPlayNux)
+ */
+internal const val RESUME_PLAYER_TRACE = "ClipsVideoPlayerController.maybeResumePlayer playVideoInZeroMode: "
+internal const val LONG_PRESS_EDGE = "long_press_edge"
+internal const val LOCK_UP_CANCELLED = "cancel_lock_up"
+internal const val FAST_PLAY_NUX_SHOWN = "instagram_clips_fast_reels_nux_impression"
 
-/** The event fast play logs when a hold at the edge is let go of without a lock. */
+/** The event fast play logs when a hold locks the speed, once in the hold handler. */
+internal const val LOCKED_EVENT = "locked"
+
+/** The event fast play logs when a hold at the edge is let go of without a lock, and when a lock ends. */
 internal const val HOLD_ENDED_EVENT = "ended"
 
-/** The reasons the reset logs a lock ending with, each a string of its own. A fourth, a scroll, comes from elsewhere. */
+/** maybeResumePlayer: every method loading [RESUME_PLAYER_TRACE], one in a build the patch fits. */
+internal fun BytecodePatchContext.reelsResumePlayers(): List<Method> = methodsLoading(RESUME_PLAYER_TRACE)
+
+private fun BytecodePatchContext.methodsLoading(value: String): List<Method> =
+    classesLoadingString(value).sortedBy { it.type }.flatMap { it.methods }.filter { loadsString(it, value) }
+
+/** The reasons the reset logs a lock ending with, each a string of its own. A fourth, a scroll, comes from elsewhere or, on 456, a string of its own too. */
 internal val LOCK_END_REASONS = listOf("cancel_lock_up", "swipe_down", "switch_tab")
 
 /** The fast-play hint keeps a count of its own for ads, and picks it by the reel's ad flag. */
@@ -84,7 +98,7 @@ private const val OBJECT = "Ljava/lang/Object;"
  * goes on. The extension's stubs are filled with the player's speed setter, the interface call
  * setPlaybackSpeed makes, and the reel's ad flag, the one fast play picks its ads hint by.
  *
- * Every method is found by Instagram's own markers and strings, and everything is found and checked
+ * Every method is found by strings only it loads, and everything is found and checked
  * before anything changes, so a build that differs stops the patch naming what it couldn't find, and
  * nothing is half done.
  */
@@ -140,27 +154,19 @@ internal class ReelSpeedHooks(
 )
 
 internal fun BytecodePatchContext.findReelSpeedHooks(): ReelSpeedHooks {
-    val wanted = setOf(SET_PLAYBACK_SPEED, MAYBE_RESUME_PLAYER, LOCK_UP_BEGIN, RESET, FAST_PLAY_NUX)
-    val marked = mutableMapOf<String, MutableList<Method>>()
-    val holders = typesMarked(*wanted.toTypedArray())
-    classDefForEach { classDef ->
-        if (classDef.type !in holders) return@classDefForEach
-        classDef.methods.forEach { method ->
-            method.markers().filter { it in wanted }.distinct().forEach { marked.getOrPut(it) { mutableListOf() } += method }
-        }
-    }
-    fun single(marker: String): Method {
-        val found = marked[marker].orEmpty()
-        return found.singleOrNull() ?: refuse("expected one method marked $marker, found ${found.size}")
+    fun single(value: String): Method {
+        val found = methodsLoading(value)
+        return found.singleOrNull() ?: refuse("expected one method loading \"$value\", found ${found.size}")
     }
 
-    // setPlaybackSpeed(Function1, float): the speed set on the reel on screen, through one interface call.
-    val setter = single(SET_PLAYBACK_SPEED)
-    if (AccessFlags.STATIC.isSet(setter.accessFlags) || setter.returnType != "V" ||
-        setter.parameterTypes.map(Any::toString) != listOf(FUNCTION1, "F")
-    ) {
-        refuse("${setter.text()}, marked $SET_PLAYBACK_SPEED, isn't an instance (Function1, float) method returning nothing")
+    // maybeResumePlayer's class is the controller, and setPlaybackSpeed(Function1, float) its one instance
+    // method of that shape: the speed set on the reel on screen, through one interface call.
+    val resume = single(RESUME_PLAYER_TRACE)
+    val setters = classDefBy(resume.definingClass).methods.filter {
+        !AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == "V" && it.parameterTypes.map(Any::toString) == listOf(FUNCTION1, "F")
     }
+    val setter = setters.singleOrNull()
+        ?: refuse("expected one instance (Function1, float) method returning nothing in ${resume.definingClass}, found ${setters.size}")
     val speedCalls = setter.code().filter { it.isInterfaceCall() }.mapNotNull { it.methodReference() }
         .filter { it.returnType == "V" && it.parameterTypes.map(Any::toString) == listOf("F") }
     val playerSpeed = speedCalls.singleOrNull()
@@ -175,8 +181,6 @@ internal fun BytecodePatchContext.findReelSpeedHooks(): ReelSpeedHooks {
     }
 
     // maybeResumePlayer(reel, ...): plays the reel through the player's (String, boolean) call.
-    val resume = single(MAYBE_RESUME_PLAYER)
-    if (resume.definingClass != setter.definingClass) refuse("$MAYBE_RESUME_PLAYER isn't in ${setter.definingClass}")
     if (AccessFlags.STATIC.isSet(resume.accessFlags) || resume.parameterTypes.isEmpty()) {
         refuse("${resume.text()} isn't an instance method taking the reel first")
     }
@@ -192,19 +196,17 @@ internal fun BytecodePatchContext.findReelSpeedHooks(): ReelSpeedHooks {
     val player = resumeCode[play].registers().first()
     resume.requireParameterIntact(PATCH, 0, listOf(play))
 
-    // The hold handler logs a lock beginning, and a hold let go of without one as "ended".
-    val hold = single(LOCK_UP_BEGIN)
-    if (LONG_PRESS_END !in hold.markers()) refuse("${hold.text()}, marked $LOCK_UP_BEGIN, isn't marked $LONG_PRESS_END")
-    val lockBegun = hold.singleString("android_purge_", LOCK_UP_BEGIN) + 1
-    hold.requireOnlyFrom("the lock-begin marker", lockBegun)
-    val holdEnded = hold.singleString(null, HOLD_ENDED_EVENT) + 1
+    // The hold handler logs a lock beginning as "locked", and a hold let go of without one as "ended".
+    val hold = single(LONG_PRESS_EDGE)
+    val lockBegun = hold.singleString(LOCKED_EVENT) + 1
+    hold.requireOnlyFrom("the \"$LOCKED_EVENT\" event", lockBegun)
+    val holdEnded = hold.singleString(HOLD_ENDED_EVENT) + 1
     hold.requireOnlyFrom("the \"$HOLD_ENDED_EVENT\" event", holdEnded)
 
-    // The reset logs why a lock ended, then may set the reel back to normal speed through setPlaybackSpeed.
-    val reset = single(RESET)
-    if (LOCK_UP_END !in reset.markers()) refuse("${reset.text()}, marked $RESET, isn't marked $LOCK_UP_END")
-    val lockEnded = reset.singleString("android_purge_", LOCK_UP_END) + 1
-    reset.requireOnlyFrom("the lock-end marker", lockEnded)
+    // The reset logs why a lock ended as "ended", then may set the reel back to normal speed through setPlaybackSpeed.
+    val reset = single(LOCK_UP_CANCELLED)
+    val lockEnded = reset.singleString(HOLD_ENDED_EVENT) + 1
+    reset.requireOnlyFrom("the \"$HOLD_ENDED_EVENT\" event", lockEnded)
     val reason = reset.reasonRegister(lockEnded)
     val resetCode = reset.code()
     val resetCalls = resetCode.indices.filter { resetCode[it].methodReference()?.let { call -> call.text() == setter.text() } == true }
@@ -216,7 +218,7 @@ internal fun BytecodePatchContext.findReelSpeedHooks(): ReelSpeedHooks {
     if (readLater.isNotEmpty()) refuse("${reset.text()} reads v$resetSpeed again after its reset, at ${readLater.joinToString()}")
 
     // The fast-play hint picks its ads count by the reel's ad flag, tested just before the ads key.
-    val nux = single(FAST_PLAY_NUX)
+    val nux = single(FAST_PLAY_NUX_SHOWN)
     val adFlag = nux.adFlag(itemType)
     val itemClass = classDefByOrNull(itemType) ?: refuse("the reel $itemType isn't in the app")
     if (!AccessFlags.PUBLIC.isSet(itemClass.accessFlags)) refuse("the reel $itemType isn't public, so the extension can't reach it")
@@ -315,13 +317,10 @@ internal fun BytecodePatchContext.reelSpeedStubs(): ReelSpeedStubs {
     )
 }
 
-/** The index of the one const-string loading [string], or a purge marker ending in it when [prefix] is given. */
-private fun Method.singleString(prefix: String?, string: String): Int {
+/** The index of the one const-string loading [string]. */
+private fun Method.singleString(string: String): Int {
     val code = code()
-    val loads = code.indices.filter { index ->
-        val loaded = code[index].stringLoaded() ?: return@filter false
-        if (prefix == null) loaded == string else loaded.startsWith(prefix) && loaded.endsWith("_$string")
-    }
+    val loads = code.indices.filter { index -> code[index].stringLoaded() == string }
     return loads.singleOrNull() ?: refuse("${text()} loads \"$string\" ${loads.size} times, expected once")
 }
 
@@ -335,7 +334,8 @@ private fun Method.requireOnlyFrom(what: String, index: Int) {
 
 /**
  * The register holding the reason the reset logs at [index]: the one each of [LOCK_END_REASONS] is
- * loaded into, and on every path there either one of them or a string a call just returned.
+ * loaded into, and on every path there either a string it loads itself (456 loads the scroll's
+ * "scroll_away" too) or a string a call just returned.
  */
 private fun Method.reasonRegister(index: Int): Int {
     val code = code()
@@ -348,7 +348,8 @@ private fun Method.reasonRegister(index: Int): Int {
         ?: refuse("${text()} loads its lock-end reasons into ${registers.joinToString { "v$it" }}, expected one register")
     val reaching = writesReaching(index, register)
     val strange = reaching.filter { at ->
-        at !in loads && !(at > 0 && code[at].opcode == Opcode.MOVE_RESULT_OBJECT && code[at - 1].methodReference()?.returnType == STRING)
+        at !in loads && code[at].stringLoaded() == null &&
+            !(at > 0 && code[at].opcode == Opcode.MOVE_RESULT_OBJECT && code[at - 1].methodReference()?.returnType == STRING)
     }
     if (strange.isNotEmpty() || !reaching.containsAll(loads)) {
         refuse("${text()}'s v$register holds something other than the lock-end reason where it logs the end, from ${reaching.joinToString()}")
@@ -362,7 +363,7 @@ private fun Method.reasonRegister(index: Int): Int {
  */
 private fun Method.adFlag(itemType: String): FieldReference {
     val code = code()
-    val key = singleString(null, ADS_HINT_KEY)
+    val key = singleString(ADS_HINT_KEY)
     val test = code.getOrNull(key - 1)
     if (test == null || (test.opcode != Opcode.IF_EQZ && test.opcode != Opcode.IF_NEZ)) {
         refuse("${text()} doesn't test a flag just before it loads \"$ADS_HINT_KEY\"")
