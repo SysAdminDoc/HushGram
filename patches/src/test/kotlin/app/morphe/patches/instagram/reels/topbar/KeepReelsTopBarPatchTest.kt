@@ -13,7 +13,6 @@ import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.instagram.misc.extension.SETTINGS_STATUS
-import app.morphe.patches.instagram.misc.extension.markers
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -91,16 +90,20 @@ class KeepReelsTopBarPatchTest {
     }
 
     @Test
-    fun noReelScrollFailsThePatch() = refused("found 0", classes(leaveOut = true))
+    fun noReelScrollFailsThePatch() = refused("five flags, found 0", classes(leaveOut = true))
+
+    /** A scroll shaped method outside the top bar doesn't count, and a second one in it is refused. */
+    @Test
+    fun twoReelScrollsFailThePatch() = refused("five flags, found 2", classes(second = true))
 
     @Test
-    fun twoReelScrollsFailThePatch() = refused("found 2", classes(second = true))
+    fun aChangedScrollFailsThePatch() = refused("five flags, found 0", classes(variant = "shape"))
 
     @Test
-    fun aChangedScrollFailsThePatch() = refused("not a session, the scroll state", classes(variant = "shape"))
+    fun anUpdateWithoutTheFlagFailsThePatch() = refused("calls 0 updates", classes(updateFlag = false))
 
     @Test
-    fun anUpdateWithoutTheFlagFailsThePatch() = refused("no flag at 8", classes(updateFlag = false))
+    fun twoUpdatesFailThePatch() = refused("calls 2 updates", classes(variant = "two"))
 
     @Test
     fun aFlagNotHandedOverFailsThePatch() = refused("doesn't hand its second flag", classes(variant = "lost"))
@@ -133,12 +136,12 @@ class KeepReelsTopBarPatchTest {
     }
 
     /**
-     * Slices the fixture the way the finder reads it, every class holding either marker, and runs
-     * the whole patch over it: one scroll callback, hooked once.
+     * Slices the fixture the way the finder reads it, the top bar's class alone, and runs the whole
+     * patch over it: one scroll callback, hooked once.
      */
     private fun keepsTopBar(bundle: File, label: String) {
-        val marked = markedClasses(bundle)
-        assertTrue("$label: nothing holds $ON_REEL_SCROLL", marked.isNotEmpty())
+        val marked = FixtureDex.classes(bundle, setOf(ACTION_BAR)).values.toList()
+        assertTrue("$label: no $ACTION_BAR", marked.isNotEmpty())
         val context = PatchContexts.of(listOf(ExtensionDex.classDef(SETTINGS_STATUS)) + marked)
         val found = context.findReelScroll()
 
@@ -153,17 +156,6 @@ class KeepReelsTopBarPatchTest {
             }.map { "${it.definingClass}->${it.name}" }
         }
         assertEquals("$label: only the scroll callback is hooked", listOf("${found.type}->${found.name}"), hooked)
-    }
-
-    /** Every class in [bundle] with a method carrying the scroll callback's or the update's marker. */
-    private fun markedClasses(bundle: File): List<ClassDef> {
-        val names = setOf(ON_REEL_SCROLL, SCROLL_UPDATE)
-        val found = mutableListOf<ClassDef>()
-        FixtureDex.forEach(bundle) { dex ->
-            if (dex.stringSection.none { string -> string.startsWith("android_purge_") && names.any { string.endsWith("_$it") } }) return@forEach
-            dex.classes.filterTo(found) { classDef -> classDef.methods.any { method -> method.markers().any { it in names } } }
-        }
-        return found.map { ImmutableClassDef.of(it) }
     }
 
     /** The hook first, on the flag alone, then its answer back in the flag's register. */
@@ -193,34 +185,35 @@ class KeepReelsTopBarPatchTest {
 
     private companion object {
         const val OBJECT = "Ljava/lang/Object;"
-        const val ACTION_BAR = "Lfixture/ActionBar;"
-        const val SECOND = "Lfixture/OtherActionBar;"
         const val HELPER = "Lfixture/ScrollHelper;"
-        val SCROLL_PARAMETERS = listOf("Lfixture/Session;", "Lfixture/State;", "I", "I", "Z", "Z", "Z", "Z", "Z")
+        val SCROLL_PARAMETERS = listOf("Lcom/instagram/common/session/UserSession;", "Lfixture/State;", "I", "I", "Z", "Z", "Z", "Z", "Z")
         val UPDATE_PARAMETERS = listOf(
             "Landroid/view/View;", "Lfixture/State;", "Lfixture/Key;", "Lkotlin/jvm/functions/Function0;",
             "I", "I", "Z", "Z", "Z", "Z", "Z", "Z", "Z",
         )
-        val UPDATE = "$HELPER->A02(${UPDATE_PARAMETERS.joinToString("")})V"
+
+        /** The helper's update, named [name], its third flag an int when it isn't [flagged]. */
+        fun update(name: String = "A02", flagged: Boolean = true): String {
+            val parameters = if (flagged) UPDATE_PARAMETERS else UPDATE_PARAMETERS.mapIndexed { i, type -> if (i == 8) "I" else type }
+            return "$HELPER->$name(${parameters.joinToString("")})V"
+        }
 
         /**
-         * Shaped like 453's ClipsViewerActionBar->A07: loads its marker, copies `this` down to a
-         * register a field read takes, then hands the title to the helper's update with its own
-         * second flag as update's third. "chain" copies the flag twice
-         * on the way, "lost" hands a constant instead, "jump" branches back to the start, "shape"
-         * drops the last flag, "unmarked" leaves the marker out.
+         * Shaped like 456's ClipsViewerActionBar->A0O: copies `this` down to a register a field read
+         * takes, then hands the title to the helper's update [call] with its own second flag as update's
+         * third. "chain" copies the flag twice on the way, "lost" hands a constant instead, "jump"
+         * branches back to the start, "shape" drops the last flag, "two" calls a second update.
          */
-        fun smali(variant: String): String {
-            val marker = if (variant == "unmarked") "" else "const-string v14, \"android_purge_26_q3_$ON_REEL_SCROLL\""
+        fun smali(variant: String, call: String): String {
             val copy = when (variant) {
                 "chain" -> "move/from16 v15, p6\n                move v9, v15"
                 "lost" -> "const/4 v9, 0x1"
                 else -> "move/from16 v9, p6"
             }
             val jump = if (variant == "jump") "if-eqz p5, :start" else ""
+            val second = if (variant == "two") "invoke-virtual/range {v0 .. v13}, ${update("A04")}" else ""
             return """
                 :start
-                $marker
                 move-object/from16 v14, p0
                 iget-object v0, v14, $ACTION_BAR->helper:$HELPER
                 iget-object v1, v14, $ACTION_BAR->title:Landroid/view/View;
@@ -236,7 +229,8 @@ class KeepReelsTopBarPatchTest {
                 const/4 v11, 0x0
                 const/4 v12, 0x0
                 const/4 v13, 0x0
-                invoke-virtual/range {v0 .. v13}, $UPDATE
+                invoke-virtual/range {v0 .. v13}, $call
+                $second
                 $jump
                 return-void
             """.trimIndent()
@@ -254,24 +248,29 @@ class KeepReelsTopBarPatchTest {
             return ImmutableMethod.of(method)
         }
 
-        fun scroll(owner: String, variant: String): Method {
+        fun scroll(owner: String, variant: String, name: String = "A07", call: String = update()): Method {
             val parameters = if (variant == "shape") SCROLL_PARAMETERS.dropLast(1) else SCROLL_PARAMETERS
-            return method(owner, "A07", parameters, 30, smali(variant))
+            return method(owner, name, parameters, 30, smali(variant, call))
         }
 
-        fun update(flagged: Boolean): Method {
-            val parameters = if (flagged) UPDATE_PARAMETERS else UPDATE_PARAMETERS.mapIndexed { i, type -> if (i == 8) "I" else type }
-            return method(HELPER, "A02", parameters, 15, "const-string v0, \"android_purge_26_q3_$SCROLL_UPDATE\"\nreturn-void")
-        }
-
+        /**
+         * The top bar with its scroll callback (left out, or with a [second] one), calling an update
+         * with its keep-in-place flag or, without [updateFlag], an int there, then the helper and a
+         * class outside the bar with a method of the scroll's shape, which the finder never reads.
+         */
         fun classes(leaveOut: Boolean = false, second: Boolean = false, variant: String = "ok", updateFlag: Boolean = true): List<ClassDef> {
             fun type(type: String, vararg methods: Method) = ImmutableClassDef(
                 type, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, OBJECT, null, null, null, null, methods.toList(),
             )
-            val bar = if (leaveOut) emptyList() else listOf(type(ACTION_BAR, scroll(ACTION_BAR, variant)))
-            val other = if (second) listOf(type(SECOND, scroll(SECOND, "ok"))) else emptyList()
-            return bar + other + type(HELPER, update(updateFlag)) +
-                type("Lfixture/Unrelated;", scroll("Lfixture/Unrelated;", "unmarked"))
+            val call = update(flagged = updateFlag)
+            val scrolls = listOfNotNull(scroll(ACTION_BAR, variant, call = call), if (second) scroll(ACTION_BAR, "ok", "A08") else null)
+            val bar = if (leaveOut) emptyList() else listOf(type(ACTION_BAR, *scrolls.toTypedArray()))
+            val helper = method(HELPER, "A02", call.substringAfter("(").substringBefore(")").let(::split), 15, "return-void")
+            return bar + type(HELPER, helper) + type("Lfixture/Unrelated;", scroll("Lfixture/Unrelated;", "ok"))
         }
+
+        /** A descriptor's parameter list, one type per entry. */
+        fun split(descriptor: String): List<String> =
+            Regex("\\[*(?:L[^;]+;|[ZBSCIJFD])").findAll(descriptor).map { it.value }.toList()
     }
 }

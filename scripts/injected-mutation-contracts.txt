@@ -480,9 +480,11 @@ start-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideEveryComm
 once-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideEveryCommentBar()Z holding android_purge_26_q3_ClipsViewerInViewerCommentBarComponent_render
 # Keep the Reels top bar puts the top bar's onReelScroll second flag, the one it hands the scroll
 # helper's update as the keep-in-place flag, through ReelsTopBarScroll.keepInPlace first thing (#411).
+# onReelScroll (ClipsViewerActionBar.A0O on 456's 386214574) is the one method of its shape calling
+# that update, the one method taking a view, two states, a callback, two ints and seven flags (0AU0.A03).
 # Left out, the title, the tabs and the buttons slide away with the switch on.
-start-call Lapp/hushgram/extension/instagram/reels/ReelsTopBarScroll;->keepInPlace(I)Z in instance (Lcom/instagram/common/session/UserSession;LX/*;IIZZZZZ)V holding android_purge_26_q2_ClipsViewerActionBar_onReelScroll
-once-call Lapp/hushgram/extension/instagram/reels/ReelsTopBarScroll;->keepInPlace(I)Z in instance (Lcom/instagram/common/session/UserSession;LX/*;IIZZZZZ)V holding android_purge_26_q2_ClipsViewerActionBar_onReelScroll
+start-call Lapp/hushgram/extension/instagram/reels/ReelsTopBarScroll;->keepInPlace(I)Z in instance (Lcom/instagram/common/session/UserSession;LX/*;IIZZZZZ)V holding LX/*;->*(Landroid/view/View;LX/*;LX/*;Lkotlin/jvm/functions/Function0;IIZZZZZZZ)V
+once-call Lapp/hushgram/extension/instagram/reels/ReelsTopBarScroll;->keepInPlace(I)Z in instance (Lcom/instagram/common/session/UserSession;LX/*;IIZZZZZ)V holding LX/*;->*(Landroid/view/View;LX/*;LX/*;Lkotlin/jvm/functions/Function0;IIZZZZZZZ)V
 # Mark one-time photos and videos hands the bubble frame and the message flag to ViewOnceMark.mark
 # once, in the old photo and video bubble bind, right after it casts its holder and message (#165).
 # The bind is the one (holder, message) method loading both reply keys. Left out, the border and

@@ -12,9 +12,7 @@ import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.jumpTargets
-import app.morphe.patches.instagram.misc.extension.markers
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
-import app.morphe.patches.instagram.misc.extension.typesMarked
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
@@ -32,11 +30,13 @@ internal const val KEEP_REELS_TOP_BAR_STATUS = "keepReelsTopBar"
 internal const val REELS_TOP_BAR_SCROLL = "$EXTENSION_PACKAGE/reels/ReelsTopBarScroll;"
 internal const val KEEP_IN_PLACE = "$REELS_TOP_BAR_SCROLL->keepInPlace(I)Z"
 
-/** The marker of the top bar's (ClipsViewerActionBar's) scroll callback, A07 on 453's 385914557. */
-internal const val ON_REEL_SCROLL = "ClipsViewerActionBar_onReelScroll"
+/**
+ * The top bar, a class Redex leaves its name on. Its scroll callback, onReelScroll, is A0O on 456's
+ * 386214574; 455 also traced ClipsViewerActionBar_onReelScroll there, which 456 dropped.
+ */
+internal const val ACTION_BAR = "Linstagram/features/clips/viewer/actionbar/ClipsViewerActionBar;"
 
-/** The marker of the scroll helper's update, which moves one part of the bar (LX/05Yp->A02 on 453). */
-internal const val SCROLL_UPDATE = "ClipsViewerActionBarScrollHelper_update"
+private const val USER_SESSION = "Lcom/instagram/common/session/UserSession;"
 
 /**
  * onReelScroll's parameters: the session, the scroll state, the first visible item and the scroll
@@ -46,9 +46,15 @@ internal const val SCROLL_UPDATE = "ClipsViewerActionBarScrollHelper_update"
 private const val FLAG = 5
 
 /**
- * update's parameters: the view, the scroll state, its key, a callback, the first visible item and
- * the distance, then seven flags. The third flag, at this index, keeps the view in place.
+ * The scroll helper's update, which moves one part of the bar (0AU0.A03 on 456's 386214574; 455 also
+ * traced ClipsViewerActionBarScrollHelper_update there). Its parameters: the view, the scroll state,
+ * its key, a callback, the first visible item and the distance, then seven flags. The third flag, at
+ * [UPDATE_FLAG], keeps the view in place. A null is a type the build names its own way.
  */
+private val UPDATE_PARAMETERS =
+    listOf("Landroid/view/View;", null, null, "Lkotlin/jvm/functions/Function0;", "I", "I") + List(7) { "Z" }
+
+/** The index of the update's flag that keeps the view in place, among [UPDATE_PARAMETERS]. */
 private const val UPDATE_FLAG = 8
 
 private val MOVES = setOf(Opcode.MOVE, Opcode.MOVE_FROM16, Opcode.MOVE_16)
@@ -100,23 +106,25 @@ internal class ReelScroll(val type: String, val name: String, val parameters: Li
 }
 
 /**
- * Finds the one instance method holding the [ON_REEL_SCROLL] marker and the one holding the
- * [SCROLL_UPDATE] marker, checks both take what they took on 453, and that onReelScroll hands its
- * second flag, or a copy of it, to update as the flag that keeps a view in place. Anything else is
- * an update this patch hasn't seen, and it stops.
+ * Finds onReelScroll, the one instance method of [ACTION_BAR] taking a session, the scroll state, two
+ * ints and five flags, and in it the one update it calls, a method taking [UPDATE_PARAMETERS]. Then
+ * checks onReelScroll hands its second flag, or a copy of it, to update as the flag that keeps a view
+ * in place. Anything else is an update this patch hasn't seen, and it stops.
  */
 internal fun BytecodePatchContext.findReelScroll(): ReelScroll {
-    val scroll = marked(ON_REEL_SCROLL)
-    val update = marked(SCROLL_UPDATE)
+    val scrolls = classDefByOrNull(ACTION_BAR)?.methods?.filter { it.isReelScroll() } ?: emptyList()
+    val scroll = scrolls.singleOrNull() ?: refuse(
+        "expected one instance method of $ACTION_BAR taking a session, the scroll state, two ints and five flags, " +
+            "found ${scrolls.size}",
+    )
     val where = "${scroll.definingClass}->${scroll.name}"
     val parameters = scroll.parameters()
-    if (scroll.returnType != "V" || parameters.size != 9 || parameters.subList(2, 4) != listOf("I", "I") ||
-        parameters.subList(4, 9).any { it != "Z" }
-    ) refuse("$where takes $parameters now, not a session, the scroll state, two ints and five flags")
-    if (update.returnType != "V" || update.parameters().getOrNull(UPDATE_FLAG) != "Z") {
-        refuse("${update.definingClass}->${update.name} takes ${update.parameters()} now, with no flag at $UPDATE_FLAG")
-    }
     val implementation = scroll.implementation ?: refuse("$where has no code")
+    val updates = implementation.instructions.mapNotNull { instruction ->
+        ((instruction as? ReferenceInstruction)?.reference as? MethodReference)?.takeIf { it.isUpdate() }
+    }.distinctBy { it.toString() }
+    val update = updates.singleOrNull()
+        ?: refuse("$where calls ${updates.size} updates taking a view, two states, a callback, two ints and seven flags, expected one")
     // The parameters take the last registers, `this` first, and each of them is one register wide.
     val self = implementation.registerCount - parameters.size - 1
     val flag = self + 1 + FLAG
@@ -132,13 +140,18 @@ internal fun BytecodePatchContext.findReelScroll(): ReelScroll {
     return ReelScroll(scroll.definingClass, scroll.name, parameters, flag)
 }
 
-/** The one instance method of Instagram's holding the purge marker [name]. */
-private fun BytecodePatchContext.marked(name: String): Method {
-    val found = typesMarked(name).mapNotNull { classDefByOrNull(it) }
-        .flatMap { classDef -> classDef.methods.filter { name in it.markers() } }
-    val method = found.singleOrNull() ?: refuse("expected one method holding the $name marker, found ${found.size}")
-    if (AccessFlags.STATIC.isSet(method.accessFlags)) refuse("${method.definingClass}->${method.name} is static now")
-    return method
+/** An instance method returning nothing and taking a session, any state, two ints and five flags. */
+private fun Method.isReelScroll(): Boolean {
+    val parameters = parameters()
+    return !AccessFlags.STATIC.isSet(accessFlags) && returnType == "V" && parameters.size == 9 &&
+        parameters[0] == USER_SESSION && parameters.subList(2, 4) == listOf("I", "I") && parameters.subList(4, 9).all { it == "Z" }
+}
+
+/** A method returning nothing and taking [UPDATE_PARAMETERS], any type where that list holds a null. */
+private fun MethodReference.isUpdate(): Boolean {
+    val parameters = parameterTypes.map(CharSequence::toString)
+    return returnType == "V" && parameters.size == UPDATE_PARAMETERS.size &&
+        UPDATE_PARAMETERS.zip(parameters).all { (wanted, type) -> wanted == null || wanted == type }
 }
 
 /** [register] and every register a move in [code] copies it, or a copy of it, into. */
@@ -152,11 +165,10 @@ private fun copiesOf(register: Int, code: List<Instruction>): Set<Int> {
     return copies
 }
 
-private fun Instruction.calls(method: Method): Boolean {
+private fun Instruction.calls(method: MethodReference): Boolean {
     if (opcode != Opcode.INVOKE_VIRTUAL && opcode != Opcode.INVOKE_VIRTUAL_RANGE) return false
     val target = (this as ReferenceInstruction).reference as? MethodReference ?: return false
-    return target.definingClass == method.definingClass && target.name == method.name &&
-        target.parameterTypes.map(CharSequence::toString) == method.parameters()
+    return target.toString() == method.toString()
 }
 
 /** The register a call passes as its [index]th argument, `this` being the 0th. */
