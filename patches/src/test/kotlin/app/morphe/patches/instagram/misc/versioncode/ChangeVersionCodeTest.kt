@@ -188,7 +188,11 @@ class ChangeVersionCodeTest {
 
     @Test
     fun eachOtherBuildChangesTheVersionCodeToo() {
-        for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
+        // Every build is checked before any failure is reported, so one run shows each build's counts.
+        val failures = Fixtures.otherBuilds().mapNotNull { base ->
+            runCatching { builds(base, base.parentFile.name) }.exceptionOrNull()?.let { "[${base.parentFile.name}] ${it.message}" }
+        }
+        assertTrue(failures.joinToString("\n"), failures.isEmpty())
     }
 
     /**
@@ -244,16 +248,23 @@ class ChangeVersionCodeTest {
         assertEquals("the job scheduler check's two reads", 2,
             prepared.reads.count { read -> read.method.implementation!!.instructions.any { it.string()?.startsWith(SCHEDULER_CHECK) == true } })
         val fallback = hasPre28Fallback(label)
-        // 453 reads its own code in two more places than 452 did, on every build.
-        assertEquals("own reads", if (fallback) 18 else 17, prepared.reads.size)
-        assertEquals("own long reads", 1, prepared.reads.count { it.long })
-        val longRead = prepared.reads.single { it.long }
-        val beside = prepared.reads.filter { !it.long && it.method == longRead.method }
+        // On the arm64 builds 456 reads its own code in two more places than 455 did: the Iglu shader
+        // prewarmer reads it twice as a long (LX/0Nxj;->run on 386214574) to key its cache, beside the crash
+        // reporter's one long read (LX/01A8;->GvU). The armeabi-v7a and x86 builds read it there through a
+        // helper handed the PackageInfo, which isn't proven to be Instagram's own, so theirs stay at 455's.
+        assertEquals("own reads", if (fallback) 18 else 19, prepared.reads.size)
+        val longReads = prepared.reads.filter { it.long }
+        val where = longReads.map { "${it.method.definingClass}->${it.method.name}" }
+        assertEquals("own long reads: $where", if (fallback) 1 else 3, longReads.size)
+        val beside = longReads.associateWith { long -> prepared.reads.filter { !it.long && it.method == long.method } }
+            .filterValues { it.isNotEmpty() }
         if (fallback) {
-            assertEquals("${label}: the pre-28 fallback beside the long read", 1, beside.size)
-            assertEquals("${label}: it reads the long read's PackageInfo", longRead.holder, beside.single().holder)
+            assertEquals("${label}: the pre-28 fallback beside a long read: $where", 1, beside.size)
+            val (longRead, ints) = beside.entries.single()
+            assertEquals("${label}: the pre-28 fallback beside the long read", 1, ints.size)
+            assertEquals("${label}: it reads the long read's PackageInfo", longRead.holder, ints.single().holder)
         } else {
-            assertTrue("${label}: no int read beside the long read", beside.isEmpty())
+            assertTrue("${label}: no int read beside a long read: $where", beside.isEmpty())
         }
         assertEquals("kept raised", listOf(
             "held against the manifest of Instagram's own APK file, which is raised too",

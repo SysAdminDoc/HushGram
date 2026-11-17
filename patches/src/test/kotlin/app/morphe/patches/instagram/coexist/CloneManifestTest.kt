@@ -67,8 +67,9 @@ class CloneManifestTest {
 
             val renamed = renameManifest(manifest, clone, "Second")
 
+            // 456 adds com.instagram.task.LoginViaApp to 455's 19 affinities.
             assertEquals("[$build]", ManifestRename(labels = 20, authorities = 26, permissions = 3, permissionUses = 3,
-                affinities = 19, categories = 2, hosts = 1, processes = 0, classNames = 0), renamed)
+                affinities = 20, categories = 2, hosts = 1, processes = 0, classNames = 0), renamed)
             assertEquals(clone, manifest.documentElement.getAttribute("package"))
             assertEquals("@string/$CLONE_LABEL_RESOURCE", manifest.elements("application").single().getAttribute("android:label"))
             assertTrue("[$build] the old label is gone", label !in manifest.values("android:label"))

@@ -253,8 +253,8 @@ class HideRepostButtonHookTest {
      * returns nothing. On 455's arm64 build 386113969 there are eight reads: two in LX/0R5O;->invoke,
      * two in LX/0HuL;->A0E, and one each in LX/0hoc;->A00, LX/02Pc;->A02, LX/052f;->A0Q and
      * LX/0IpL;->invoke. 451's and 453's declared builds had six, 450's 438 five, so another build's
-     * count isn't pinned. On 969 the hook goes where it went when the renderer was found by its label: in
-     * [RENDERER_969], at [PART_969], the start of a renderer that draws Repost alone and reaches both
+     * count isn't pinned. On 574 the hook goes where it went when the renderer was found by its label: in
+     * [RENDERER_574], at [PART_574], the start of a renderer that draws Repost alone and reaches both
      * the repost icon and the label.
      */
     @Test
@@ -307,8 +307,8 @@ class HideRepostButtonHookTest {
         }
         if (pinned) {
             val renderer = "${component.method.definingClass}->${component.method.name}"
-            assertEquals("$label: the renderer, at ${component.at}", RENDERER_969, renderer)
-            assertEquals("$label: the Repost part", PART_969, component.at)
+            assertEquals("$label: the renderer, at ${component.at}", RENDERER_574, renderer)
+            assertEquals("$label: the Repost part", PART_574, component.at)
             val reached = partReached(component.method, component.at)
             val code = component.method.implementation!!.instructions.toList()
             for ((what, id) in listOf("icon" to REPOSTS_UFI_ICON_ID, "label" to LABEL)) {
@@ -533,14 +533,14 @@ class HideRepostButtonHookTest {
         )
 
         /**
-         * 386113969's Repost label, the button's content description (0x7f137490 on 454's 386014758). The
+         * 386214574's Repost label, the button's content description (0x7f1375f4 on 455's 386113969). The
          * reel and long-form repost buttons load it too.
          */
-        const val LABEL = 0x7f1375f4
+        const val LABEL = 0x7f137690
 
-        /** 386113969's Feed component renderer, a renderer of its own, so its Repost part is the whole of it. */
-        const val RENDERER_969 = "LX/03Sh;->A0p"
-        const val PART_969 = 0
+        /** 386214574's Feed component renderer, a renderer of its own, so its Repost part is the whole of it. */
+        const val RENDERER_574 = "LX/011T;->A0p"
+        const val PART_574 = 0
 
         /** A renderer of its own: the icon, the label, the [role] it gives the button, then null. */
         fun feedComponent(

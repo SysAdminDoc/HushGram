@@ -53,9 +53,10 @@ class FeedAutoScrollHookTest {
     }
 
     /**
-     * On 455.0.0.51.72's arm64 build 386113969 the patch finds the feed player 06yJ by its progress
-     * callback, and its Ftv(I)V and FQA()V, the ones IgVideoPlayerImpl (04q9) calls on its listener
-     * (a 0Kga) from Ftx, which loads "Playback looping ", and FQC, which loads "Playback completed ".
+     * On 456.0.0.53.78's arm64 build 386214574 the patch finds the feed player 03hQ by its progress
+     * callback, and its G01(I)V and FVn()V, the ones IgVideoPlayerImpl (03Hj) calls on its listener
+     * (a 0Hfo, which 03hQ's superclass 00i5 is) from G03, which loads "Playback looping ", and FVp,
+     * which loads "Playback completed ".
      * Each build has its own names.
      */
     @Test
@@ -68,7 +69,7 @@ class FeedAutoScrollHookTest {
                 if (bundle.name.contains("386214574")) {
                     assertEquals(
                         "${bundle.name}: the player and its callbacks for a video starting over and ending",
-                        listOf("LX/06yJ;", "Ftv", "FQA"),
+                        listOf("LX/03hQ;", "G01", "FVn"),
                         listOf(sites.player, sites.looped, sites.ended),
                     )
                 }
