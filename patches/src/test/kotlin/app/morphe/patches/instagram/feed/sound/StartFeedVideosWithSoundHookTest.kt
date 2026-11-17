@@ -12,7 +12,7 @@ import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.instagram.NeutralNativePath
-import app.morphe.patches.instagram.reels.tapvolume.TOGGLE_AUDIO
+import app.morphe.patches.instagram.media.taptoplay.REELS_PLAYER_PAUSE
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -47,7 +47,6 @@ class StartFeedVideosWithSoundHookTest {
     private val userSession = "Lcom/instagram/common/session/UserSession;"
     private val state = "Lfixture/AudioState;"
     private val reels = "Lfixture/ClipsVideoPlayerController;"
-    private val toggleMarker = "android_purge_26_q3_$TOGGLE_AUDIO"
 
     /**
      * The instructions the hook adds: test the flag, ask, test the answer, set the flag, take the session, test it,
@@ -258,7 +257,7 @@ class StartFeedVideosWithSoundHookTest {
     // The classes a build is read from: the controller and the types its code makes, the Reels audio toggles and the
     // classes their code calls into, the audio state among them.
     private fun wanted(apk: File, holder: ClassDef): Set<String> {
-        val toggles = FixtureDex.classesHolding(apk, toggleMarker)
+        val toggles = FixtureDex.classesLoading(apk, REELS_PLAYER_PAUSE)
         val called = toggles.flatMap { c -> c.methods.flatMap { m -> m.code().mapNotNull { (it.reference() as? MethodReference)?.definingClass } } }
         return holder.methods.flatMap { m -> m.code().filter { it.opcode == Opcode.NEW_INSTANCE }.map { (it as ReferenceInstruction).reference.toString() } }
             .toSet() + holder.type + toggles.map { it.type } + called.filter { it.startsWith("L") }
@@ -331,7 +330,7 @@ class StartFeedVideosWithSoundHookTest {
         )
         val audioState = if (statePublic) state else "Lother/AudioState;"
         val toggle = method(reels, "toggleAudio", listOf("I"), "V", 6, body = """
-            const-string v0, "$toggleMarker"
+            const-string v0, "toggleAudio"
             invoke-static { v0 }, $trace
             iget-object v1, p0, $reels->session:$userSession
             invoke-static { v1 }, $audioState->of($userSession)$audioState
@@ -342,10 +341,16 @@ class StartFeedVideosWithSoundHookTest {
             invoke-virtual { v2, v4 }, $audioState->set(Z)V
             return-void
         """)
+        val pause = method(reels, "pause", listOf("Ljava/lang/String;"), "I", 1, body = """
+            const-string v0, "$REELS_PLAYER_PAUSE"
+            invoke-static { v0 }, $trace
+            const/4 v0, 0x0
+            return v0
+        """)
         val reelsClass = ImmutableClassDef(
             reels, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, "Ljava/lang/Object;", null, null, null,
             listOf(ImmutableField(reels, "session", userSession, AccessFlags.PUBLIC.value, null, null, null)),
-            listOf(toggle),
+            listOf(toggle, pause),
         )
         // Out of the controller's package, a state class that isn't public can't be reached from it.
         val stateClass = ImmutableClassDef(

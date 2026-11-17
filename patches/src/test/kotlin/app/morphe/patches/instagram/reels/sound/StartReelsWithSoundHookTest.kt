@@ -9,7 +9,7 @@ import app.morphe.Fixtures
 import app.morphe.PatchContexts
 import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.instagram.NeutralNativePath
-import app.morphe.patches.instagram.reels.tapvolume.TOGGLE_AUDIO
+import app.morphe.patches.instagram.media.taptoplay.REELS_PLAYER_PAUSE
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -32,7 +32,6 @@ import org.junit.Test
 class StartReelsWithSoundHookTest {
     private val userSession = "Lcom/instagram/common/session/UserSession;"
     private val bundle = "Landroid/os/Bundle;"
-    private val toggleMarker = "android_purge_26_q3_$TOGGLE_AUDIO"
 
     /** The onCreate hook: ask, read the source, ask with it, take the session, take the state, read it, tell, set it on. */
     private val hookLength = 21
@@ -210,7 +209,7 @@ class StartReelsWithSoundHookTest {
         val viewers = FixtureDex.classesHolding(apk, VIEWER_TRACE).map { it.type }.distinct()
         assertEquals("${apk.name}: classes loading \"$VIEWER_TRACE\"", 1, viewers.size)
         val viewerType = viewers.single()
-        val toggles = FixtureDex.classesHolding(apk, toggleMarker).map { it.type }
+        val toggles = FixtureDex.classesLoading(apk, REELS_PLAYER_PAUSE).map { it.type }
         val seed = setOf(viewerType, VIEWER_CONFIG) + toggles
         val loaded = FixtureDex.classes(apk, seed)
         val named = loaded.values.filter { it.type in toggles }

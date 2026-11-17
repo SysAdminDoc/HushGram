@@ -387,7 +387,7 @@ class TapToPlayHookTest {
             Reel(decision = "p3") to "in a parameter's register",
             Reel(decision = "v16") to "past v15",
             Reel(objectDecision = true) to "v1 holds something other than a boolean",
-            Reel(pauseCall = "A0d") to "never pauses through $controller",
+            Reel(pauseCall = "A0d") to "pausing through $controller->A0c, found 0",
             Reel(privateSupplier = true) to "can't reach $navigator->A03",
             Reel(privateHolder = true) to "can't reach $holder",
             Reel(secondHolderAccessor = true) to "one holder accessor on $controller",
@@ -921,7 +921,7 @@ class TapToPlayHookTest {
             listOf(
                 method(navigator, "A01", listOf("Landroid/view/View;", objectType, objectType), "V", if (wide) 24 else 9, static = false, body = """
                     ${if (wide) "move-object/from16 v5, p0" else ""}
-                    const-string v0, "android_purge_26_q3_$TOGGLE_PAUSE"
+                    const-string v0, "PauseAndMuteNavigator"
                     ${if (d == "p3") "" else setDecision(0)}
                     if-eqz p3, :decided
                     ${if (d == "p3") "" else setDecision(1)}
@@ -947,7 +947,7 @@ class TapToPlayHookTest {
             controller,
             listOf(
                 method(controller, "A0c", listOf(string, "Z", "Z"), "I", 7, static = false, body = """
-                    const-string v0, "android_purge_26_q3_$PAUSE_CURRENT_PLAYER"
+                    const-string v0, "$REELS_PLAYER_PAUSE"
                     invoke-virtual { p0 }, $controller->A0f()$holder
                     move-result-object v2
                     if-eqz v2, :none

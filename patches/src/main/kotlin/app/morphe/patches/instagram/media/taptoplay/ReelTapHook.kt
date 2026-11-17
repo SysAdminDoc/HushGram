@@ -9,10 +9,10 @@ import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.instagram.misc.extension.classesLoadingString
+import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
-import app.morphe.patches.instagram.misc.extension.markers
 import app.morphe.patches.instagram.misc.extension.requireThisIntact
-import app.morphe.patches.instagram.misc.extension.typesMarked
 import app.morphe.util.addInstructionsAtControlFlowLabel
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -42,12 +42,38 @@ internal val REEL_STUBS = listOf("controllerOf" to 1, "holderOf" to 1, "playersO
 private const val OBJECT = "Ljava/lang/Object;"
 internal const val FUNCTION0 = "Lkotlin/jvm/functions/Function0;"
 
-/** The purge markers, less their release, of the Reels tap and of the controller's pause. */
-internal const val TOGGLE_PAUSE = "PauseAndMuteNavigator_togglePause"
-internal const val PAUSE_CURRENT_PLAYER = "ClipsVideoPlayerController_pauseCurrentPlayer"
+/**
+ * The trace the Reels controller (ClipsVideoPlayerController) writes when it pauses the current
+ * player, which only that pause loads. Instagram 456 dropped the pause's purge marker.
+ */
+internal const val REELS_PLAYER_PAUSE = "ClipsVideoPlayerController.pauseCurrentPlayer pauseReason="
 
 /** What the Reels tap loads first thing on its pause path. */
 internal const val CLIPS_PAUSE = "clips_pause"
+
+/** The Reels controller's pause: the one method loading [REELS_PLAYER_PAUSE]. [refuse] stops the patch. */
+internal fun BytecodePatchContext.reelsPlayerPause(refuse: (String) -> Nothing): Method {
+    val pauses = classesLoadingString(REELS_PLAYER_PAUSE).sortedBy { it.type }.flatMap { it.methods }
+        .filter { loadsString(it, REELS_PLAYER_PAUSE) }
+    return pauses.singleOrNull() ?: refuse("expected one method loading \"$REELS_PLAYER_PAUSE\", found ${pauses.size}")
+}
+
+/**
+ * The Reels tap (PauseAndMuteNavigator's togglePause): the one method that loads [CLIPS_PAUSE] and
+ * also pauses through the controller's [pause]. Instagram 456 dropped the tap's purge marker.
+ */
+internal fun BytecodePatchContext.reelsTap(pause: Method, refuse: (String) -> Nothing): Method {
+    val pauseParameters = pause.parameterTypes.map(Any::toString)
+    val taps = classesLoadingString(CLIPS_PAUSE).sortedBy { it.type }.flatMap { it.methods }.filter { method ->
+        loadsString(method, CLIPS_PAUSE) && method.code().any { instruction ->
+            instruction.methodReference()?.let {
+                it.definingClass == pause.definingClass && it.name == pause.name && it.parameterTypes.map(Any::toString) == pauseParameters
+            } == true
+        }
+    }
+    return taps.singleOrNull()
+        ?: refuse("expected one method loading \"$CLIPS_PAUSE\" and pausing through ${pause.definingClass}->${pause.name}, found ${taps.size}")
+}
 
 /** The constant names of IgVideoPlayerImpl's state enum, which Instagram's build keeps. */
 internal val PLAYER_STATES = listOf("IDLE", "PREPARING", "PREPARED", "PLAYING", "PAUSED", "STOPPING")
@@ -148,8 +174,8 @@ internal fun BytecodePatchContext.hookReelTap(found: ReelTap) {
 }
 
 /**
- * The Reels tap, the one method carrying the [TOGGLE_PAUSE] marker, and the ClipsVideoPlayerController
- * whose pause carries [PAUSE_CURRENT_PLAYER]. The tap must branch to its [CLIPS_PAUSE] path on one
+ * The Reels tap ([reelsTap]), and the ClipsVideoPlayerController whose pause loads
+ * [REELS_PLAYER_PAUSE] ([reelsPlayerPause]). The tap must branch to its [CLIPS_PAUSE] path on one
  * register that holds only a boolean before it, since the extension reads that register as the
  * tap's yes or no, and reach the controller through one Function0 field of its own; the
  * controller's pause must get its player from one field, for the holder its no-argument accessor
@@ -157,19 +183,8 @@ internal fun BytecodePatchContext.hookReelTap(found: ReelTap) {
  */
 internal fun BytecodePatchContext.findReelTap(): ReelTap {
     fun refuse(detail: String): Nothing = throw PatchException("$PATCH: the Reels tap: $detail")
-    val taps = mutableListOf<Method>()
-    val pauses = mutableListOf<Method>()
-    val marked = typesMarked(TOGGLE_PAUSE, PAUSE_CURRENT_PLAYER)
-    classDefForEach { classDef ->
-        if (classDef.type !in marked) return@classDefForEach
-        classDef.methods.forEach { method ->
-            val markers = method.markers()
-            if (TOGGLE_PAUSE in markers) taps += method
-            if (PAUSE_CURRENT_PLAYER in markers) pauses += method
-        }
-    }
-    val tap = taps.singleOrNull() ?: refuse("expected one method marked $TOGGLE_PAUSE, found ${taps.size}")
-    val pause = pauses.singleOrNull() ?: refuse("expected one method marked $PAUSE_CURRENT_PLAYER, found ${pauses.size}")
+    val pause = reelsPlayerPause(::refuse)
+    val tap = reelsTap(pause, ::refuse)
     val controller = pause.definingClass
     if (AccessFlags.STATIC.isSet(tap.accessFlags) || tap.returnType != "V") refuse("${tap.definingClass}->${tap.name} isn't an instance method returning nothing")
     if (AccessFlags.STATIC.isSet(pause.accessFlags) || pause.parameterTypes.firstOrNull()?.toString() != "Ljava/lang/String;") {
