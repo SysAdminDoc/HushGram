@@ -95,8 +95,8 @@ private const val USER_SESSION = "Lcom/instagram/common/session/UserSession;"
  * so the extension's choice of where Tap to play holds starts can leave Reels out, or everything else.
  *
  * Everything is found before anything changes, so a build that differs stops the patch naming
- * what it couldn't find, and nothing is half done. The one exception is a build with no auto
- * scroller marker at all, which gets every other hook and a warning in the patch log
+ * what it couldn't find, and nothing is half done. The one exception is a build where nothing
+ * loads the auto scroller's event, which gets every other hook and a warning in the patch log
  * ([findAutoScroll] says why).
  */
 @Suppress("unused")
