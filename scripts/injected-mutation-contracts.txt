@@ -64,8 +64,10 @@ shared-call Lapp/hushgram/extension/instagram/settings/NavigationSettings;->setO
 
 start-call Lapp/hushgram/extension/instagram/direct/VisualSeen;->hold()Z in instance (L*;L*;L*;)V holding direct_v2/visual_threads/%s/item_seen/ raven_media
 once-call Lapp/hushgram/extension/instagram/direct/VisualSeen;->hold()Z in instance (L*;L*;L*;)V holding direct_v2/visual_threads/%s/item_seen/ raven_media
-# The inbox builder holds this selector in a sibling and filters its native Meta AI row once.
-once-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->inboxRow(Ljava/lang/Object;)Ljava/lang/Object; in static (L*;L*;L*;L*;)Z class-holding No\ssection\sgenerator\sfound\sfor\ssection\stype\s
+# The threads section filters its native Meta AI row once, where it reads the row's model from its own
+# field. On 456 that's the one instance method taking one object and answering a List that loads the
+# section's MobileConfig flag (LX/01PC;->A05 on 386214574; its only other loader is a lambda's apply).
+once-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->inboxRow(Ljava/lang/Object;)Ljava/lang/Object; in instance (LX/*;)Ljava/util/List; holding const:0x810ea5000051f8
 # Hide the notes row hands the sections your messages may show to NotesRow right before the inbox
 # generator builds its set of enabled sections from them. On 452 that set is built in 07SN.A00, the
 # static per mode factory the diff update calls, which holds no string, so the rule picks it as the
