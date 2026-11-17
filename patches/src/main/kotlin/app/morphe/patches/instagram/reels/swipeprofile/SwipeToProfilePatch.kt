@@ -18,14 +18,14 @@ import app.morphe.patches.instagram.media.taptoplay.FRAGMENT_ACTIVITY
 import app.morphe.patches.instagram.media.taptoplay.TOUCH as TAP_CLOCK
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesCalling
+import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.jumpTargets
+import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
-import app.morphe.patches.instagram.misc.extension.markers
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.extension.requireThisIntact
-import app.morphe.patches.instagram.misc.extension.typesMarked
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
@@ -60,8 +60,14 @@ internal const val PROFILE_RESUMED_HOOK = "$SWIPE_TO_PROFILE->profileResumed(Lja
 internal const val PROFILE_PAUSED_HOOK = "$SWIPE_TO_PROFILE->profilePaused(Ljava/lang/Object;)V"
 internal const val SWIPE_TARGETS = "$EXTENSION_PACKAGE/reels/SwipeToProfileTargets;"
 
-/** The marker, less its release, of the Reels viewer's check of whether a swipe may go from a reel to its side panel. */
-internal const val SWIPE_ALLOWED = "ClipsViewerSwipeNavigationDelegate_isSwipeFromReelsToActionAllowed"
+/**
+ * A name the Reels viewer's check of whether a swipe may go from a reel to its side panel loads
+ * (`LX/0A4B;->A00()Z` on 386214574): a reel showing a megaphone keeps its own swipe. Instagram 456
+ * dropped the check's ClipsViewerSwipeNavigationDelegate_isSwipeFromReelsToActionAllowed purge
+ * marker; the check is the one instance method loading this name that takes nothing and answers a
+ * boolean.
+ */
+internal const val REELS_MEGAPHONE = "reels_megaphone"
 
 /** The view that slides a tab's side panels in under a sideways swipe. Instagram keeps its name. */
 internal const val SWIPE_CONTAINER = "Lcom/instagram/ui/swipenavigation/container/SwipeNavigationContainer;"
@@ -135,22 +141,20 @@ internal class SwipeGate(
 
 /**
  * Finds the gate that decides, for an ordinary reel, whether a swipe may go on to the side panel.
- * The Reels viewer's check is the one instance method marked [SWIPE_ALLOWED], taking nothing and
- * answering a boolean. Its last gate asks one call taking just the user session and answering a
+ * The Reels viewer's check is the one instance method loading [REELS_MEGAPHONE] that takes nothing
+ * and answers a boolean. Its last gate asks one call taking just the user session and answering a
  * boolean, then branches on the answer with an if-nez to the "allowed" return. The check has to hold
  * exactly one such call, its move-result has to come straight after it and the branch straight after
  * that, on the same register, with nothing jumping between them.
  */
 internal fun BytecodePatchContext.findSwipeGate(): SwipeGate {
-    val holders = typesMarked(SWIPE_ALLOWED)
-    val checks = holders.flatMap { type ->
-        classDefBy(type).methods.filter { SWIPE_ALLOWED in it.markers() }
+    val checks = classesLoadingString(REELS_MEGAPHONE).sortedBy { it.type }.flatMap { it.methods }.filter {
+        it.isSwipeCheckShape() && loadsString(it, REELS_MEGAPHONE)
     }
-    val check = checks.singleOrNull() ?: refuse("expected one check marked $SWIPE_ALLOWED, found ${checks.size}")
+    val check = checks.singleOrNull() ?: refuse(
+        "expected one instance ()Z check loading \"$REELS_MEGAPHONE\", found ${checks.size}",
+    )
     val where = "${check.definingClass}->${check.name}"
-    if (AccessFlags.STATIC.isSet(check.accessFlags) || check.returnType != "Z" || check.parameterTypes.isNotEmpty()) {
-        refuse("$where isn't an instance method without parameters answering a boolean")
-    }
     val code = check.implementation!!.instructions.toList()
     val asks = code.indices.filter { code[it].isSessionGate() }
     val ask = asks.singleOrNull() ?: refuse("expected $where to make one call taking only the user session and answering a boolean, found ${asks.size}")
@@ -165,6 +169,10 @@ internal fun BytecodePatchContext.findSwipeGate(): SwipeGate {
     if (ask + 2 in check.jumpTargets()) refuse("something in $where jumps between the gate's answer and the branch on it")
     return SwipeGate(check.definingClass, check.name, ask + 1, result.registerA)
 }
+
+/** Whether this is an instance method with code, taking nothing and answering a boolean, as the swipe check is. */
+private fun Method.isSwipeCheckShape(): Boolean =
+    !AccessFlags.STATIC.isSet(accessFlags) && returnType == "Z" && parameterTypes.isEmpty() && implementation != null
 
 /** Whether this is an invoke-virtual of a method taking only the user session and answering a boolean. */
 private fun Instruction.isSessionGate(): Boolean {
@@ -181,7 +189,7 @@ private fun Instruction.isSessionGate(): Boolean {
  */
 internal fun BytecodePatchContext.hookSwipeGate(gate: SwipeGate) {
     val method: MutableMethod = mutableClassDefBy(gate.type).methods.single {
-        it.name == gate.name && SWIPE_ALLOWED in it.markers()
+        it.name == gate.name && it.isSwipeCheckShape() && loadsString(it, REELS_MEGAPHONE)
     }
     val register = "v${gate.register}"
     method.addInstructions(

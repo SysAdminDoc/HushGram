@@ -2853,10 +2853,11 @@ shared-call Lapp/hushgram/extension/instagram/reels/ReelScrolling;->pull(Ljava/l
 start-call Lapp/hushgram/extension/instagram/reels/ReelScrolling;->autoScroll(Ljava/lang/Object;)I in static (L*;)Z pooled holding android_purge_26_q2_ClipsAutoScroller_shouldScrollToNextReel
 once-call Lapp/hushgram/extension/instagram/reels/ReelScrolling;->autoScroll(Ljava/lang/Object;)I in static (L*;)Z pooled holding android_purge_26_q2_ClipsAutoScroller_shouldScrollToNextReel
 # Swipe left to open the profile hands the answer of the Reels viewer's last swipe gate to
-# SwipeToProfile.allow right after it is read, in the one method holding the marker below (05PF.A00
-# on 452). Left out, the switch does nothing; twice or elsewhere, it isn't the hook the patch wrote.
-# SwipeToProfileHookTest checks on the 452 fixture where it lands.
-once-call Lapp/hushgram/extension/instagram/reels/SwipeToProfile;->allow(I)Z in instance ()Z holding android_purge_26_q3_ClipsViewerSwipeNavigationDelegate_isSwipeFromReelsToActionAllowed
+# SwipeToProfile.allow right after it is read, in the one instance ()Z method loading the megaphone
+# name below (0A4B.A00 on 456, which dropped the check's purge marker). Left out, the switch does
+# nothing; twice or elsewhere, it isn't the hook the patch wrote. SwipeToProfileHookTest checks on
+# the 456 fixtures where it lands.
+once-call Lapp/hushgram/extension/instagram/reels/SwipeToProfile;->allow(I)Z in instance ()Z pooled holding reels_megaphone
 # The tab host's swipe setup (setUpSwipeNavigationController, 00M2.A0I on 452) hands its new tab bar
 # answer (07xk.A05) to SwipeToProfile.leaveOutRightPanel right after it is read, so the right panel
 # (the profile) gets built with the switch on, and calls SwipeToProfile.tabChanged right after it hands
