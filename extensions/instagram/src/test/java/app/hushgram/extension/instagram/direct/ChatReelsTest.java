@@ -24,6 +24,8 @@ import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.Config;
+import org.robolectric.annotation.Implementation;
+import org.robolectric.annotation.Implements;
 import org.robolectric.shadows.ShadowSystemClock;
 
 import java.util.Arrays;
@@ -186,6 +188,93 @@ public class ChatReelsTest {
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         SettingsContextRule.withoutContext(() -> assertTrue("no context", ChatReels.received(new Object(), new Object(), new Object())));
+    }
+
+    /**
+     * The copy of a reel you'd just sent, and of one that came in live while the chat was open, has no
+     * sent-by-you flag, so the flag alone took it for one you received and it joined the chain. Its
+     * sender is the signed-in account, which is how Instagram tells it too, so it's left out and its
+     * reel kept out of the server's pages (#738).
+     */
+    @Test
+    @Config(shadows = Messages.class)
+    public void aReelYouSentWithoutTheFlagIsToldByItsSender() {
+        Settings.ONLY_RECEIVED_CHAT_REELS.save(true);
+        assertFalse("yours, no flag", ChatReels.received(new Message("a1", "7", false), new Wrapper("7", "m1"), new Object()));
+        assertTrue("its reel is left out of the server's pages", ChatReels.isSent("m1"));
+        assertEquals("the next page leaves it out", Collections.singletonList("m0"), page(Source.DIRECT, "m0", "m1"));
+
+        assertTrue("theirs", ChatReels.received(new Message("b2", "8", false), new Wrapper("7", "m2"), new Object()));
+        assertFalse("their reel isn't remembered", ChatReels.isSent("m2"));
+        assertFalse("flagged, account unknown", ChatReels.received(new Message("c3", "7", true), new Wrapper(null, "m3"), new Object()));
+        assertTrue("no account to compare", ChatReels.received(new Message("d4", "7", false), new Wrapper(null, "m4"), new Object()));
+        assertTrue("no sender", ChatReels.received(new Message("e5", null, false), new Wrapper("7", "m5"), new Object()));
+        assertTrue("an empty sender", ChatReels.received(new Message("f6", "", false), new Wrapper("", "m6"), new Object()));
+        assertTrue("no wrapper", ChatReels.received(new Message("g7", "7", false), null, new Object()));
+        assertTrue(HookStatus.missing(FamilyNames.CHAT_REELS).toString(), HookStatus.missing(FamilyNames.CHAT_REELS).isEmpty());
+    }
+
+    /** A sender is the signed-in account only when both are read and match. */
+    @Test
+    public void aSenderIsTheAccountOnlyWhenBothMatch() {
+        assertTrue(ChatReels.sentBy("7", "7"));
+        assertFalse(ChatReels.sentBy("7", "8"));
+        assertFalse(ChatReels.sentBy("7", null));
+        assertFalse(ChatReels.sentBy(null, "7"));
+        assertFalse(ChatReels.sentBy(null, null));
+        assertFalse(ChatReels.sentBy("", ""));
+    }
+
+    /** One of Instagram's direct messages, as the bridges read it: its item id, sender and sent-by-you flag. */
+    static final class Message {
+        final String id;
+        final String sender;
+        final boolean flagged;
+
+        Message(String id, String sender, boolean flagged) {
+            this.id = id;
+            this.sender = sender;
+            this.flagged = flagged;
+        }
+    }
+
+    /** A message's wrapper, as the bridges read it: the account it was made for and its reel's media id. */
+    static final class Wrapper {
+        final String viewer;
+        final String media;
+
+        Wrapper(String viewer, String media) {
+            this.viewer = viewer;
+            this.media = media;
+        }
+    }
+
+    /** The bridges the patch writes, reading {@link Message} and {@link Wrapper}; the wrapper stands in for its reel too. */
+    @Implements(value = ChatReels.class, isInAndroidSdk = false)
+    public static class Messages {
+        @Implementation protected static boolean sentByViewer(Object message) {
+            return message instanceof Message && ((Message) message).flagged;
+        }
+
+        @Implementation protected static String senderId(Object message) {
+            return message instanceof Message ? ((Message) message).sender : null;
+        }
+
+        @Implementation protected static String itemId(Object message) {
+            return message instanceof Message ? ((Message) message).id : null;
+        }
+
+        @Implementation protected static String viewerId(Object wrapper) {
+            return wrapper instanceof Wrapper ? ((Wrapper) wrapper).viewer : null;
+        }
+
+        @Implementation protected static Object reel(Object wrapper) {
+            return wrapper;
+        }
+
+        @Implementation protected static String mediaId(Object reel) {
+            return reel instanceof Wrapper ? ((Wrapper) reel).media : null;
+        }
     }
 
     /** A page of a chat's reels from the server, read by media id: the item itself here. */

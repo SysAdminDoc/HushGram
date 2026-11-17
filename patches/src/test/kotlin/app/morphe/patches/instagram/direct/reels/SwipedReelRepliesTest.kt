@@ -356,6 +356,7 @@ class SwipedReelRepliesTest {
             fields,
             ImmutableMethodReference(wrapper, "reel", emptyList(), item),
             ImmutableFieldReference(itemType, "media", MEDIA),
+            ImmutableFieldReference(wrapper, "session", "Lcom/instagram/common/session/UserSession;"),
         )
     }
 

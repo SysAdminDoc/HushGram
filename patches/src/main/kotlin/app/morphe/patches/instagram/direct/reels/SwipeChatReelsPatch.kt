@@ -64,6 +64,9 @@ internal const val MEDIA = "Lcom/instagram/feed/media/Media;"
 private const val MEDIA_ID = "$MEDIA->getId()Ljava/lang/String;"
 
 private const val USER_SESSION = "Lcom/instagram/common/session/UserSession;"
+private const val STRING = "Ljava/lang/String;"
+/** The signed-in account's user id, which a message you sent names as its sender. Redex keeps the name. */
+internal const val USER_ID = "$USER_SESSION->userId:$STRING"
 
 /** What a chat's reel opener is handed: the chat and the message holding the reel. Redex keeps both names. */
 internal const val THREAD_KEY = "Lcom/instagram/model/direct/DirectThreadKey;"
@@ -249,7 +252,8 @@ private fun BytecodePatchContext.openersOf(read: FlagLoad) = methodsCalling(read
  * The method that registers one of a chat's messages for the chain (LX/02YM;->A01 on 453's 385914557,
  * handed the message wrapper LX/01RZ), the wrapper's field holding the message, the message fields
  * the extension's bridges read, the wrapper's method answering the message's reel item (LX/01RZ;->A0O,
- * LX/03n2 there) and the item's [MEDIA] field.
+ * LX/03n2 there), the item's [MEDIA] field and the wrapper's field holding the account it was made for
+ * (LX/05NJ;->A0z on 456's 386214574).
  */
 internal class ReelCollector(
     val collect: MutableMethod,
@@ -257,6 +261,7 @@ internal class ReelCollector(
     val fields: MessageFields,
     val reel: MethodReference,
     val media: FieldReference,
+    val session: FieldReference,
 )
 
 /** The names of the fields of [owner] that [method] touches with [opcode]. */
@@ -274,7 +279,9 @@ private fun fieldsTouched(method: Method, opcode: Opcode, owner: String): Set<St
  * returning nothing that reads such a flag. The object holds one field typed as a subclass of the
  * direct message class [fields] reads (the message itself), with three locals for the hook and nothing
  * jumping to the method's first instruction. The method asks the object, with nothing, for one reel
- * item: an object holding one [MEDIA], which has its `getId()`. Fails when any of it isn't so.
+ * item: an object holding one [MEDIA], which has its `getId()`. The object also holds one public
+ * [USER_SESSION], the account whose `userId` a message you sent names as its sender (#738). Fails when
+ * any of it isn't so.
  */
 internal fun BytecodePatchContext.findReelCollector(
     read: FlagLoad = findChatReels(),
@@ -296,11 +303,19 @@ internal fun BytecodePatchContext.findReelCollector(
     if (0 in collector.jumpTargets()) refuse("a jump or exception handler enters $where at its first instruction")
 
     val wrapper = collector.parameterTypes.single().toString()
-    val held = (classDefByOrNull(wrapper) ?: refuse("$wrapper isn't in this build")).fields.filter { field ->
+    val wrapperClass = classDefByOrNull(wrapper) ?: refuse("$wrapper isn't in this build")
+    val held = wrapperClass.fields.filter { field ->
         !AccessFlags.STATIC.isSet(field.accessFlags) &&
             generateSequence(field.type) { classDefByOrNull(it)?.superclass }.take(4).any { it == fields.owner }
     }
     val message = held.singleOrNull() ?: refuse("$wrapper holds ${held.size} ${fields.owner} messages, not one")
+    val sessions = wrapperClass.fields.filter { !AccessFlags.STATIC.isSet(it.accessFlags) && it.type == USER_SESSION }
+    val session = sessions.singleOrNull() ?: refuse("$wrapper holds ${sessions.size} accounts, not one")
+    if (!AccessFlags.PUBLIC.isSet(session.accessFlags)) refuse("$wrapper's account ${session.name} isn't public")
+    val account = classDefByOrNull(USER_SESSION) ?: refuse("there's no $USER_SESSION")
+    if (account.fields.none { !AccessFlags.STATIC.isSet(it.accessFlags) && it.name == "userId" && it.type == STRING }) {
+        refuse("$USER_SESSION has no userId")
+    }
 
     val reels = collector.implementation?.instructions?.toList().orEmpty().mapNotNull { instruction ->
         if (instruction.opcode != Opcode.INVOKE_VIRTUAL) return@mapNotNull null
@@ -318,7 +333,7 @@ internal fun BytecodePatchContext.findReelCollector(
     val mutable = mutableClassDefBy(collector.definingClass).methods.single { method ->
         method.name == collector.name && method.parameterTypes.map(CharSequence::toString) == takes
     }
-    return ReelCollector(mutable, message, fields, reel, media)
+    return ReelCollector(mutable, message, fields, reel, media, session)
 }
 
 /** The one instance [MEDIA] field of [type], or null when it has none or more than one. */
@@ -342,8 +357,11 @@ internal fun checkAddTakesReels(placeholders: Placeholders, collector: ReelColle
  * Has the collector ask the extension through [RECEIVED] first, handing it the message, its wrapper and
  * itself, one collector per chat (#658), and return on a no, so a message the extension turns away never
  * joins the chain. Also writes the
- * bodies of the extension's message bridges, `sentByViewer` and `itemId` from the fields the chat
- * history reads, `reel` from the wrapper's reel item and `mediaId` from an item's [MEDIA].
+ * bodies of the extension's message bridges, `sentByViewer`, `senderId` and `itemId` from the fields the
+ * chat history reads, `viewerId` from the wrapper's account, `reel` from the wrapper's reel item and
+ * `mediaId` from an item's [MEDIA]. The sent-by-you flag isn't set on every copy of a message, the one
+ * Instagram makes for a message you've just sent included, so the extension also compares the sender
+ * with the account, as Instagram does (#738).
  */
 internal fun BytecodePatchContext.skipSentReels(found: ReelCollector = findReelCollector()) {
     val collect = found.collect
@@ -372,6 +390,29 @@ internal fun BytecodePatchContext.skipSentReels(found: ReelCollector = findReelC
             check-cast p0, ${fields.owner}
             iget-boolean p0, p0, ${fields.sent.definingClass}->${fields.sent.name}:Z
             return p0
+        """.trimIndent(),
+    )
+    bridge("senderId", STRING).addInstructionsWithLabels(
+        0,
+        """
+            check-cast p0, ${fields.owner}
+            iget-object p0, p0, ${fields.sender.definingClass}->${fields.sender.name}:${fields.sender.type}
+            return-object p0
+        """.trimIndent(),
+    )
+    // No account goes back as a fresh null, so the return never merges a UserSession with a String.
+    val session = found.session
+    bridge("viewerId", STRING).addInstructionsWithLabels(
+        0,
+        """
+            check-cast p0, ${session.definingClass}
+            iget-object p0, p0, ${session.definingClass}->${session.name}:${session.type}
+            if-nez p0, :account
+            const/4 p0, 0x0
+            return-object p0
+            :account
+            iget-object p0, p0, $USER_ID
+            return-object p0
         """.trimIndent(),
     )
     bridge("itemId", "Ljava/lang/String;").addInstructionsWithLabels(

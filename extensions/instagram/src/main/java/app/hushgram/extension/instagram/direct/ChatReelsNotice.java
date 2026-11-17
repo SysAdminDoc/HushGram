@@ -158,7 +158,7 @@ public final class ChatReelsNotice {
         try {
             if (message == null || chat == null || !on()) return;
             Object reel = wrapper == null ? null : ChatReels.reel(wrapper);
-            remember(chat, ChatReels.itemId(message), ChatHistory.millis(timeOf(message)), ChatReels.sentByViewer(message),
+            remember(chat, ChatReels.itemId(message), ChatHistory.millis(timeOf(message)), ChatReels.isViewers(message, wrapper),
                     reel != null, reel == null ? null : ChatReels.mediaId(reel));
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.CHAT_REELS, FAILED, failure);

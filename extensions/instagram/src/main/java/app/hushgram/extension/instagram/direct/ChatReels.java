@@ -201,7 +201,8 @@ public final class ChatReels {
      * switch off, while HushGram is paused, before the settings are ready and on any failure. A sent
      * message's reel, read from [wrapper], the message's wrapper, is also remembered for
      * {@link #leaveOutSent(List, Object)}, or forgotten when it's the one tapped. [chat], the chat's
-     * collector, keeps the message's note for {@link ChatReelsNotice} with that chat's. Never throws.
+     * collector, keeps the message's note for {@link ChatReelsNotice} with that chat's. Who sent the
+     * message is read as {@link #isViewers(Object, Object)} reads it. Never throws.
      */
     public static boolean received(@Nullable Object message, @Nullable Object wrapper, @Nullable Object chat) {
         boolean sent;
@@ -211,14 +212,44 @@ public final class ChatReels {
             if (message == null || !Utils.settingsReady() || HushgramPause.isPaused()) return true;
             ChatReelsNotice.note(message, wrapper, chat);
             if (!Settings.ONLY_RECEIVED_CHAT_REELS.get()) return true;
-            sent = sentByViewer(message);
+            boolean flagged = sentByViewer(message);
+            sent = flagged || bySender(message, wrapper);
             id = sent ? itemId(message) : null;
+            if (sent && !flagged) toldBySender(id);
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.CHAT_REELS, "chat reels sender", failure);
             return true;
         }
         if (sent && wrapper != null) remember(wrapper, id);
         return received(sent, id);
+    }
+
+    /**
+     * Whether the viewer sent [message], held by [wrapper]: its sent-by-you flag says so, or its sender
+     * is the account [wrapper] was made for. Instagram itself tells a message you sent by its user_id
+     * matching the signed-in account, and sets the flag only on some of a message's copies. The one it
+     * makes for a reel you've just sent has none, so the flag alone took that reel for one you received
+     * until the chat was opened again (#738). A message whose sender or account can't be read goes by
+     * the flag alone.
+     */
+    static boolean isViewers(Object message, @Nullable Object wrapper) {
+        return sentByViewer(message) || bySender(message, wrapper);
+    }
+
+    /** Whether [message]'s sender is the account [wrapper], its wrapper, was made for. */
+    private static boolean bySender(Object message, @Nullable Object wrapper) {
+        return wrapper != null && sentBy(senderId(message), viewerId(wrapper));
+    }
+
+    /** Whether [sender], a message's user id, is [viewer], the signed-in account's. No when either is missing. */
+    static boolean sentBy(@Nullable String sender, @Nullable String viewer) {
+        return sender != null && !sender.isEmpty() && sender.equals(viewer);
+    }
+
+    /** Notes that the message with item [id] was told as one the viewer sent by its sender, without its flag. */
+    private static void toldBySender(@Nullable String id) {
+        HookStatus.counted(FamilyNames.CHAT_REELS, "sent reel told by its sender");
+        Logger.printDebug(() -> "Chat reels: message " + id + " has no sent-by-you flag, but you sent it");
     }
 
     /** The test behind {@link #received(Object, Object, Object)}, for a message the viewer sent or not and its item id. */
@@ -310,9 +341,21 @@ public final class ChatReels {
         return id != null && tapped != null && String.valueOf(tapped).contains(id);
     }
 
-    /** Stub: the patch writes this, answering whether the viewer sent [message]. */
+    /** Stub: the patch writes this, answering [message]'s sent-by-you flag (is_sent_by_viewer). */
     public static boolean sentByViewer(Object message) {
         return false;
+    }
+
+    /** Stub: the patch writes this, answering the user id of [message]'s sender (its user_id), or null. */
+    @Nullable
+    public static String senderId(Object message) {
+        return null;
+    }
+
+    /** Stub: the patch writes this, answering the user id of the account [wrapper], a message's wrapper, was made for, or null. */
+    @Nullable
+    public static String viewerId(Object wrapper) {
+        return null;
     }
 
     /** Stub: the patch writes this, answering [message]'s item id. */
