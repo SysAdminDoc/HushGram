@@ -2653,6 +2653,16 @@ once-call Lapp/hushgram/extension/instagram/reels/FriendLanePicks;->page(Ljava/u
 # HideLiveReelsHookTest finds on every build of 454.
 once-call Lapp/hushgram/extension/instagram/reels/LiveReels;->page(Ljava/util/List;Ljava/lang/String;)Ljava/util/List; in instance (L*;)V holding android_purge_26_q2_ClipsItemsNetworkCallback_onSuccess
 
+# Both also filter what the Reels viewer's data source takes in later, after the first page: its
+# addItems (List)V and insertItemsGranular (int, List)Z each hand the list they take to LiveReels.added
+# and FriendLanePicks.added first thing, once, with the source's module name and size, and use the
+# list answered in the parameter's place. One rule per method and filter, so a retarget that drops
+# the hook from either method, or puts it in twice, fails here.
+shared-call Lapp/hushgram/extension/instagram/reels/LiveReels;->added(Ljava/util/List;Ljava/lang/String;I)Ljava/util/List; in instance (Ljava/util/List;)V holding android_purge_26_q2_ClipsStandaloneAdapterDataSource_addItems
+shared-call Lapp/hushgram/extension/instagram/reels/LiveReels;->added(Ljava/util/List;Ljava/lang/String;I)Ljava/util/List; in instance (ILjava/util/List;)Z holding android_purge_26_q2_ClipsStandaloneAdapterDataSource_insertItemsGranular
+shared-call Lapp/hushgram/extension/instagram/reels/FriendLanePicks;->added(Ljava/util/List;Ljava/lang/String;I)Ljava/util/List; in instance (Ljava/util/List;)V holding android_purge_26_q2_ClipsStandaloneAdapterDataSource_addItems
+shared-call Lapp/hushgram/extension/instagram/reels/FriendLanePicks;->added(Ljava/util/List;Ljava/lang/String;I)Ljava/util/List; in instance (ILjava/util/List;)Z holding android_purge_26_q2_ClipsStandaloneAdapterDataSource_insertItemsGranular
+
 # Show a reel's exact time hands the Reels title and the list of its column's parts to
 # ReelPostTime.line just before the title makes that column (the one method loading the title's
 # render marker below), once, so the line with the time goes in after the name row and Instagram's
