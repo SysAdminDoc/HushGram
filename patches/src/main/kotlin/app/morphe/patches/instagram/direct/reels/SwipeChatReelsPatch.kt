@@ -16,6 +16,7 @@ import app.morphe.patches.instagram.direct.history.MessageFields
 import app.morphe.patches.instagram.direct.history.findMessageFields
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesAccessing
+import app.morphe.patches.instagram.misc.extension.classesCalling
 import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.freeLocalsAt
@@ -34,8 +35,9 @@ import app.morphe.patches.instagram.misc.flags.FlagLoad
 import app.morphe.patches.instagram.misc.flags.answerFlagLoads
 import app.morphe.patches.instagram.misc.flags.findFlagLoads
 import app.morphe.patches.instagram.misc.settings.settingsPatch
-import app.morphe.patches.instagram.reels.scrolling.PAGER_SETUP
 import app.morphe.patches.instagram.reels.scrolling.VIEW_PAGER
+import app.morphe.patches.instagram.reels.scrolling.reelsPager
+import app.morphe.patches.instagram.reels.scrolling.reelsPagerSetup
 import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.util.addInstructionsAtControlFlowLabel
 import app.morphe.util.extendsClass
@@ -86,8 +88,9 @@ internal const val CHAT_REELS_FLAG = 0x8114b00000723cL
 internal const val DUAL_PAGING = "AbstractPaginatingClipsItemsFetcher.makeDualPaginationRequest"
 
 /**
- * What the source of a chat's reels asks the server for to page the chat's own shared reels
- * (LX/0Mes;->BYn on 385914557, LX/0Mkk;->BYs on 385914556). Only that method loads it.
+ * What the source of a chat's reels asks the server for to page the chat's own shared reels. Up to
+ * 455 only that source's page loads it. 456 moved the request into a static builder of its own,
+ * which the page calls, and which the blend source calls too when a blend was opened from a chat.
  */
 internal const val CHAT_REELS_PATH = "clips/direct_thread_clips/"
 
@@ -512,7 +515,8 @@ private val INTERFACE_CALLS = setOf(Opcode.INVOKE_INTERFACE, Opcode.INVOKE_INTER
  * The request is the one method loading [DUAL_PAGING]: an instance method taking a source and three
  * flags, with a local for the hook's answer and nothing jumping to its first instruction. Its first
  * branch is an `if-eqz` on the last flag that goes to the source's page of the chat's own reels, the
- * one method loading [CHAT_REELS_PATH], in a class that is that source. Falling through asks for the
+ * one method loading [CHAT_REELS_PATH] or, where a static builder loads it, the page [chatReelsPage]
+ * finds calling that builder, in a class that is that source. Falling through asks for the
  * stock side, Instagram's suggested reels. Fails when any of it isn't so.
  */
 internal fun BytecodePatchContext.findChatReelsEnd(): ChatReelsEnd {
@@ -529,8 +533,15 @@ internal fun BytecodePatchContext.findChatReelsEnd(): ChatReelsEnd {
     if (0 in paging.jumpTargets()) refuse("a jump or exception handler enters $where at its first instruction")
     val source = takes[0]
 
-    val pages = classesLoadingString(CHAT_REELS_PATH).flatMap { holder -> holder.methods.filter { loadsString(it, CHAT_REELS_PATH) } }
-    val page = pages.singleOrNull() ?: refuse("expected one method asking for $CHAT_REELS_PATH, found ${pages.size}")
+    // A pool's own getter holds every string it pools, so it's left out.
+    val asks = classesLoadingString(CHAT_REELS_PATH).flatMap { holder ->
+        holder.methods.filter { method ->
+            !(method.parameterTypes.map(Any::toString) == listOf("I") && method.returnType == "Ljava/lang/String;") &&
+                loadsString(method, CHAT_REELS_PATH)
+        }
+    }
+    val ask = asks.singleOrNull() ?: refuse("expected one method asking for $CHAT_REELS_PATH, found ${asks.size}")
+    val page = if (AccessFlags.STATIC.isSet(ask.accessFlags)) chatReelsPage(ask, source) else ask
     val chat = page.definingClass
     if (source !in classDefBy(chat).interfaces) refuse("$chat asks for $CHAT_REELS_PATH but isn't a $source, what $where pages")
 
@@ -555,6 +566,33 @@ internal fun BytecodePatchContext.findChatReelsEnd(): ChatReelsEnd {
         method.name == paging.name && method.parameterTypes.map(CharSequence::toString) == takes
     }
     return ChatReelsEnd(mutable, chat)
+}
+
+/**
+ * The page of the source of a chat's reels where [builder], a static request builder, is what asks
+ * for [CHAT_REELS_PATH], as on 456. The page is the one method of a [source] that calls [builder]
+ * and no other static method answering what it answers. The blend source calls [builder] too, for a
+ * blend opened from a chat, but asks for blends otherwise, so it isn't the chat's own.
+ */
+private fun BytecodePatchContext.chatReelsPage(builder: Method, source: String): Method {
+    val takes = builder.parameterTypes.map(Any::toString)
+    fun requestAt(instruction: Instruction): MethodReference? {
+        if (instruction.opcode != Opcode.INVOKE_STATIC && instruction.opcode != Opcode.INVOKE_STATIC_RANGE) return null
+        return ((instruction as ReferenceInstruction).reference as? MethodReference)?.takeIf { it.returnType == builder.returnType }
+    }
+    val pages = classesCalling(builder.definingClass, builder.name, takes, builder.returnType)
+        .filter { source in it.interfaces }
+        .flatMap { it.methods }
+        .filter { method ->
+            val requests = method.implementation?.instructions?.mapNotNull(::requestAt).orEmpty()
+            requests.isNotEmpty() && requests.all { request ->
+                request.definingClass == builder.definingClass && request.name == builder.name &&
+                    request.parameterTypes.map(Any::toString) == takes
+            }
+        }
+    return pages.singleOrNull() ?: refuse(
+        "expected one $source asking only ${builder.definingClass}->${builder.name} for $CHAT_REELS_PATH, found ${pages.size}",
+    )
 }
 
 /**
@@ -1008,14 +1046,13 @@ internal class ChatViewers(
 )
 
 /**
- * Finds where the Reels viewer stores its pager before anything changes: the setup is the one method
- * loading [PAGER_SETUP], and it stores one [VIEW_PAGER] field, with nothing jumping to the store. The
+ * Finds where the Reels viewer stores its pager before anything changes: the setup is
+ * [reelsPagerSetup], and it stores one [VIEW_PAGER] field, with nothing jumping to the store. The
  * field's class holds one [VIEWER_CONFIG] field, and a local up to v15 is free at the store. Fails
  * when any of it isn't so.
  */
 internal fun BytecodePatchContext.findChatViewers(): ChatViewers {
-    val setups = classesLoadingString(PAGER_SETUP).flatMap { holder -> holder.methods.filter { loadsString(it, PAGER_SETUP) } }
-    val setup = setups.singleOrNull() ?: refuse("expected one method loading \"$PAGER_SETUP\", found ${setups.size}")
+    val setup = reelsPagerSetup(reelsPager(::refuse), ::refuse)
     val where = "${setup.definingClass}->${setup.name}"
     val code = setup.implementation!!.instructions.toList()
     val stores = code.indices.filter { at ->

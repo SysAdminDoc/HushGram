@@ -11,8 +11,10 @@ import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLa
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.FixtureDex
-import app.morphe.patches.instagram.reels.scrolling.PAGER_SETUP
+import app.morphe.patches.instagram.reels.scrolling.PAGER_VIEW_LOOKUP
+import app.morphe.patches.instagram.reels.scrolling.SET_USER_INPUT
 import app.morphe.patches.instagram.reels.scrolling.VIEW_PAGER
+import app.morphe.patches.instagram.reels.scrolling.reelsPagerHolders
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -27,7 +29,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.WideLiteralInstruction
-import com.android.tools.smali.dexlib2.iface.reference.FieldReference
+import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import com.android.tools.smali.dexlib2.immutable.ImmutableField
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
@@ -49,6 +51,9 @@ class SwipeChatReelsHookTest {
     private val chatSource = "Lfixture/ChatSource;"
     private val fetcher = "Lfixture/Fetcher;"
     private val items = "Lfixture/Items;"
+    private val blendSource = "Lfixture/BlendSource;"
+    private val builderOwner = "Lfixture/Requests;"
+    private val builtRequest = "Lfixture/Request;"
     private val viewer = "Lfixture/Viewer;"
     private val refresher = "Lfixture/Refresher;"
     private val puller = "Lfixture/Puller;"
@@ -89,6 +94,22 @@ class SwipeChatReelsHookTest {
         assertTrue("the chat's source was touched", chat.none { it.referenceText() == STOP })
     }
 
+    /**
+     * With the request for a chat's reels in a static builder (456), the chat's source is the one
+     * paging through that builder alone, never the blend source that asks it too.
+     */
+    @Test
+    fun aChatsSourceAskingThroughABuilderIsTheOneStopped() {
+        val context = PatchContexts.of(pagingClasses(built = true))
+        val found = context.findChatReelsEnd()
+        val before = found.paging.implementation!!.instructions.count()
+
+        context.stopAfterChatReels(found)
+
+        assertEquals(chatSource, found.chat)
+        assertStops("stand-in", context.mutableClassDefBy(fetcher).methods.single { it.name == "page" }, chatSource, before)
+    }
+
     /** A build the end finder can't read fails at patch time, saying what it found, before anything is written. */
     @Test
     fun aBuildTheEndFinderCantReadFailsBeforeAnythingChanges() {
@@ -105,6 +126,8 @@ class SwipeChatReelsHookTest {
             pagingClasses(pages = 0) to "expected one method asking for $CHAT_REELS_PATH, found 0",
             pagingClasses(pages = 2) to "expected one method asking for $CHAT_REELS_PATH, found 2",
             pagingClasses(chatIs = emptyList()) to "$chatSource asks for $CHAT_REELS_PATH but isn't a $source, what $paging pages",
+            pagingClasses(built = true, chatPages = 0) to "expected one $source asking only $builderOwner->chatReels for $CHAT_REELS_PATH, found 0",
+            pagingClasses(built = true, chatPages = 2) to "expected one $source asking only $builderOwner->chatReels for $CHAT_REELS_PATH, found 2",
             pagingClasses(flag = "p3") to branch,
             pagingClasses(test = "if-nez") to branch,
             pagingClasses(chatOnTheJump = false) to branch,
@@ -141,7 +164,8 @@ class SwipeChatReelsHookTest {
     private fun stops(bundle: File, label: String) {
         val loading = (FixtureDex.classesLoading(bundle, DUAL_PAGING) + FixtureDex.classesLoading(bundle, CHAT_REELS_PATH))
             .distinctBy { it.type }
-        val context = PatchContexts.of(FixtureDex.withStringPools(bundle, loading))
+        val pooled = FixtureDex.withStringPools(bundle, loading)
+        val context = PatchContexts.of((pooled + builderCallers(bundle, pooled)).distinctBy { it.type })
 
         val found = context.findChatReelsEnd()
         val before = found.paging.implementation!!.instructions.count()
@@ -155,6 +179,30 @@ class SwipeChatReelsHookTest {
             .count { method -> method.code().any { it.referenceText() == STOP } }
         assertEquals("${label}: methods hooked", 1, hooked)
     }
+
+    /**
+     * The classes asking a static method of [pooled] that loads [CHAT_REELS_PATH], the request
+     * builder 456 moved it into, so the slice holds the chat's source and the blend source too.
+     * Builds asking for it in the source itself have no such method and add nothing.
+     */
+    private fun builderCallers(bundle: File, pooled: List<ClassDef>): Collection<ClassDef> {
+        val byType = pooled.associateBy { it.type }
+        val builders = pooled.flatMap { it.methods }.filter { method ->
+            AccessFlags.STATIC.isSet(method.accessFlags) &&
+                !(method.parameterTypes.map(Any::toString) == listOf("I") && method.returnType == "Ljava/lang/String;") &&
+                FixtureDex.loads(method, CHAT_REELS_PATH, byType)
+        }.map { it.signature() }.toSet()
+        if (builders.isEmpty()) return emptyList()
+        fun asks(instruction: Instruction): Boolean =
+            ((instruction as? ReferenceInstruction)?.reference as? MethodReference)?.signature() in builders
+        val callers = FixtureDex.methodsWhere(bundle, { dex -> dex.methodSection.any { it.signature() in builders } }) { method ->
+            method.implementation?.instructions?.any(::asks) == true
+        }.map { it.definingClass }.toSet()
+        return FixtureDex.classes(bundle, callers).values
+    }
+
+    private fun MethodReference.signature(): String =
+        "$definingClass->$name(${parameterTypes.joinToString("") { it.toString() }})$returnType"
 
     /**
      * First thing: the last flag tested, the source checked against [chat], the hook asked, and a
@@ -202,7 +250,10 @@ class SwipeChatReelsHookTest {
         test: String = "if-eqz",
         chatOnTheJump: Boolean = true,
         sourceFields: Int = 1,
+        built: Boolean = false,
+        chatPages: Int = 1,
     ): List<ClassDef> {
+        if (built) return builtPagingClasses(chatPages)
         val (jump, fall) = if (chatOnTheJump) "chat" to "stock" else "stock" to "chat"
         val held = if (static) "p0" else "p1"
         val scratch = if (locals == 0) "p2" else "v${locals - 1}"
@@ -228,6 +279,35 @@ class SwipeChatReelsHookTest {
             ImmutableField(fetcher, "NONE", items, final or AccessFlags.STATIC.value, null, null, null) +
             ImmutableField(fetcher, "name", "Ljava/lang/String;", final, null, null, null)
         return listOf(classDef(fetcher, requests, fields = fields), classDef(chatSource, asks, chatIs), classDef(source, emptyList(), listOf(items)))
+    }
+
+    /**
+     * The same fetcher, with the request for [CHAT_REELS_PATH] moved into a static builder as 456
+     * has it. [chatPages] sources page a chat's reels through that builder alone (the first is
+     * [chatSource]), and a blend source asks it too, next to a builder of blends.
+     */
+    private fun builtPagingClasses(chatPages: Int): List<ClassDef> {
+        val stock = pagingClasses().filter { it.type != chatSource }
+        val static = AccessFlags.PUBLIC.value or AccessFlags.STATIC.value
+        val final = AccessFlags.PUBLIC.value or AccessFlags.FINAL.value
+        val builders = listOf(
+            method(builderOwner, "chatReels", emptyList(), builtRequest, 1, static, "const-string v0, \"$CHAT_REELS_PATH\"\nconst/4 v0, 0x0\nreturn-object v0"),
+            method(builderOwner, "blends", emptyList(), builtRequest, 1, static, "const/4 v0, 0x0\nreturn-object v0"),
+        )
+        val chats = List(chatPages) { at ->
+            val owner = if (at == 0) chatSource else "Lfixture/ChatSource$at;"
+            classDef(owner, listOf(method(owner, "chat", emptyList(), "V", 1, final, "invoke-static {}, $builderOwner->chatReels()$builtRequest\nreturn-void")), listOf(source))
+        }
+        val blend = classDef(
+            blendSource,
+            listOf(method(blendSource, "chat", emptyList(), "V", 1, final, """
+                invoke-static {}, $builderOwner->chatReels()$builtRequest
+                invoke-static {}, $builderOwner->blends()$builtRequest
+                return-void
+            """)),
+            listOf(source),
+        )
+        return stock + chats + blend + classDef(builderOwner, builders)
     }
 
     /** A viewer opened from a chat asks the extension first when it asks for more reels (#390). */
@@ -316,7 +396,7 @@ class SwipeChatReelsHookTest {
     private fun asksForMore(bundle: File, label: String) {
         val loading = (FixtureDex.classesLoading(bundle, MORE_REELS) + FixtureDex.classesLoading(bundle, DUAL_PAGING) +
             FixtureDex.classesLoading(bundle, CHAT_REELS_PATH)).distinctBy { it.type }
-        val pooled = FixtureDex.withStringPools(bundle, loading)
+        val pooled = FixtureDex.withStringPools(bundle, loading).let { (it + builderCallers(bundle, it)).distinctBy { c -> c.type } }
         // The source the dual paging request takes, whose interfaces the fetcher's source field may be typed as.
         val paged = PatchContexts.of(pooled).findChatReelsEnd().paging.parameterTypes.first().toString()
         val config = FixtureDex.classes(bundle, setOf(VIEWER_CONFIG, paged)).values
@@ -620,10 +700,12 @@ class SwipeChatReelsHookTest {
     @Test
     fun aBuildThePagerFinderCantReadFailsBeforeAnythingChanges() {
         val setup = "$setupOwner->setup"
+        val handed = "expected one method handed a Landroid/view/View; to store $holder->pager:$VIEW_PAGER, found"
         val cases = listOf(
-            pagerClasses(setups = 0) to "expected one method loading \"$PAGER_SETUP\", found 0",
-            pagerClasses(setups = 2) to "expected one method loading \"$PAGER_SETUP\", found 2",
-            pagerClasses(stores = 0) to "expected $setup to store one $VIEW_PAGER, found 0",
+            pagerClasses(lookups = 0) to "expected one method loading \"$PAGER_VIEW_LOOKUP\", found 0",
+            pagerClasses(setups = 0) to "$handed 0",
+            pagerClasses(setups = 2) to "$handed 2",
+            pagerClasses(stores = 0) to "$handed 0",
             pagerClasses(stores = 2) to "expected $setup to store one $VIEW_PAGER, found 2",
             pagerClasses(entered = true) to "something in $setup jumps to its store of the pager",
             pagerClasses(configs = 0) to "$holder holds 0 $VIEWER_CONFIG fields, not one",
@@ -660,12 +742,8 @@ class SwipeChatReelsHookTest {
     }
 
     private fun watches(bundle: File, label: String) {
-        val loading = FixtureDex.withStringPools(bundle, FixtureDex.classesLoading(bundle, PAGER_SETUP))
-        val holders = loading.flatMap { it.methods }.flatMap { it.code() }.mapNotNull { instruction ->
-            val field = (instruction as? ReferenceInstruction)?.reference as? FieldReference
-            field?.definingClass?.takeIf { instruction.opcode == Opcode.IPUT_OBJECT && field.type == VIEW_PAGER }
-        }.toSet()
-        val context = PatchContexts.of((loading + FixtureDex.classes(bundle, holders + VIEWER_CONFIG).values).distinctBy { it.type })
+        val loading = FixtureDex.classes(bundle, reelsPagerHolders(bundle)).values
+        val context = PatchContexts.of((loading + FixtureDex.classes(bundle, setOf(VIEWER_CONFIG)).values).distinctBy { it.type })
         val found = context.findChatViewers()
 
         context.watchChatViewers(found)
@@ -705,12 +783,13 @@ class SwipeChatReelsHookTest {
     }
 
     /**
-     * A pager setup shaped like Instagram 453's static 01WS.A0j: it loads [PAGER_SETUP], casts the
-     * pager it's handed to a [VIEW_PAGER] and stores it in the holder it's handed (048e), next to a
-     * store of something else. A holder with the viewer's [VIEWER_CONFIG] next to a static one, and a
-     * config with its source.
+     * A pager setup shaped like Instagram 456's static one: it casts the View it's handed to a
+     * [VIEW_PAGER] and stores it in the holder it's handed (048e), next to a store of something else.
+     * A holder with the viewer's [VIEWER_CONFIG] next to a static one, a method loading
+     * [PAGER_VIEW_LOOKUP] and a static switch turning the pager's input on, and a config with its source.
      */
     private fun pagerClasses(
+        lookups: Int = 1,
         setups: Int = 1,
         stores: Int = 1,
         entered: Boolean = false,
@@ -718,9 +797,8 @@ class SwipeChatReelsHookTest {
         locals: Int = 2,
     ): List<ClassDef> {
         val pager = "v${locals - 1}"
-        val name = if (setups == 0) "ClipsViewerFragment.setUpViewPager" else PAGER_SETUP
+        val handed = if (setups == 0) "Ljava/lang/Object;" else "Landroid/view/View;"
         val body = """
-            const-string $pager, "$name"
             move-object $pager, p0
             check-cast $pager, $VIEW_PAGER
             ${if (entered) "if-eqz $pager, :store\n:store" else ""}
@@ -731,8 +809,19 @@ class SwipeChatReelsHookTest {
         val static = AccessFlags.PUBLIC.value or AccessFlags.STATIC.value
         val final = AccessFlags.PUBLIC.value or AccessFlags.FINAL.value
         val setUps = List(maxOf(setups, 1)) {
-            method(setupOwner, if (it == 0) "setup" else "setup$it", listOf("Ljava/lang/Object;", holder), "V", locals, static, body)
+            method(setupOwner, if (it == 0) "setup" else "setup$it", listOf(handed, holder), "V", locals, static, body)
         }
+        val holderMethods = List(lookups) {
+            method(holder, if (it == 0) "getViewAtIndex" else "getViewAtIndex$it", listOf("I"), "V", 1, AccessFlags.PUBLIC.value, """
+                const-string v0, "$PAGER_VIEW_LOOKUP"
+                return-void
+            """)
+        } + method(holder, "enable", listOf(holder), "V", 2, static, """
+            iget-object v0, p0, $holder->pager:$VIEW_PAGER
+            const/4 v1, 0x1
+            invoke-virtual { v0, v1 }, $VIEW_PAGER->$SET_USER_INPUT(Z)V
+            return-void
+        """)
         val held = List(configs) { ImmutableField(holder, if (it == 0) "config" else "config$it", VIEWER_CONFIG, final, null, null, null) } +
             ImmutableField(holder, "DEFAULT", VIEWER_CONFIG, final or AccessFlags.STATIC.value, null, null, null) +
             ImmutableField(holder, "pager", VIEW_PAGER, final, null, null, null) +
@@ -741,7 +830,7 @@ class SwipeChatReelsHookTest {
             ImmutableField(VIEWER_CONFIG, "source", VIEWER_SOURCE, final, null, null, null),
             ImmutableField(VIEWER_CONFIG, "NONE", VIEWER_SOURCE, final or AccessFlags.STATIC.value, null, null, null),
         )
-        return listOf(classDef(setupOwner, setUps), classDef(holder, emptyList(), fields = held), classDef(VIEWER_CONFIG, emptyList(), fields = configFields))
+        return listOf(classDef(setupOwner, setUps), classDef(holder, holderMethods, fields = held), classDef(VIEWER_CONFIG, emptyList(), fields = configFields))
     }
 
     /** The insert of a cached reel asks the extension first, handing it the viewer's source (#390). */
