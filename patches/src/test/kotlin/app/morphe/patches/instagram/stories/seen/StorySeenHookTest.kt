@@ -149,6 +149,26 @@ class StorySeenHookTest {
         assertRefused(standIns(sendHandsBatchOut = true), "hands its batch to $ELSEWHERE->keep(Ljava/lang/Object;)V")
     }
 
+    /** 386214574 writes the batch's emptiness check out in the send: its fields read and asked isEmpty() is still only reading. */
+    @Test
+    fun aSendAskingItsBatchsFieldsIsHooked() {
+        val context = PatchContexts.of(standIns(sendInlinesCheck = SendCheck.ASKED))
+
+        context.holdBackStoryViews()
+
+        val send = context.mutableClassDefBy(STORE).methods.single { it.name == "A0O" }
+        assertSendHooked("the send", send, BATCH)
+        val check = send.code().drop(5).first { it.opcode != Opcode.NOP }
+        assertEquals("the send's own check", BATCH + "->stories:Ljava/util/HashMap;", check.referenceText())
+    }
+
+    /** A collection read off the batch and changed, or handed on, changes what goes out. */
+    @Test
+    fun aSendChangingItsBatchsFieldFails() {
+        assertRefused(standIns(sendInlinesCheck = SendCheck.CLEARED), "reads $BATCH->stories:Ljava/util/HashMap; off its batch at instruction 3")
+        assertRefused(standIns(sendInlinesCheck = SendCheck.KEPT), "does more with it than ask isEmpty() or size()")
+    }
+
     /** move-result-object, if-nez and check-cast name a register in a byte. */
     @Test
     fun aBatchPastV255Fails() = assertRefused(standIns(sendRegisters = 258), "keeps its batch in v257, past v255")
@@ -534,6 +554,7 @@ class StorySeenHookTest {
         sendOverwrites: Boolean = false,
         sendChangesBatch: Boolean = false,
         sendHandsBatchOut: Boolean = false,
+        sendInlinesCheck: SendCheck = SendCheck.CALLED,
         sendRegisters: Int = 3,
         reelsTwice: Boolean = false,
         storiesFromStatic: Boolean = false,
@@ -705,8 +726,7 @@ class StorySeenHookTest {
                 ${if (sendOverwrites) "const/4 p1, 0x0" else "nop"}
                 ${if (sendChangesBatch) "invoke-virtual { p1 }, $BATCH->A0B()V" else "nop"}
                 ${if (sendHandsBatchOut) "invoke-static { p1 }, $ELSEWHERE->keep(Ljava/lang/Object;)V" else "nop"}
-                invoke-virtual { p1 }, $BATCH->A0A()Z
-                move-result v0
+                ${sendCheck(sendInlinesCheck)}
                 if-nez v0, :done
                 invoke-virtual { p0 }, $STORE_BASE->A0H()$USER_SESSION
                 move-result-object v0
@@ -912,6 +932,32 @@ class StorySeenHookTest {
     private fun Instruction.referenceText(): String? = (this as? ReferenceInstruction)?.reference?.toString()
 
     private fun Instruction.string(): String? = ((this as? ReferenceInstruction)?.reference as? StringReference)?.string
+
+    /** How the stand-in send asks whether its batch is empty before the request. */
+    internal enum class SendCheck {
+        /** Through the batch's own A0A(), as most builds do. */
+        CALLED,
+
+        /** Written out, as 386214574 does: the stories map read off the batch and asked isEmpty(). */
+        ASKED,
+
+        /** The stories map read off the batch and cleared. */
+        CLEARED,
+
+        /** The stories map read off the batch and handed to another class. */
+        KEPT,
+    }
+
+    /** The send's check, leaving whether the batch is empty in v0. */
+    private fun sendCheck(check: SendCheck): String {
+        val read = "iget-object v0, p1, $BATCH->stories:Ljava/util/HashMap;"
+        return when (check) {
+            SendCheck.CALLED -> "invoke-virtual { p1 }, $BATCH->A0A()Z\nmove-result v0"
+            SendCheck.ASKED -> "$read\ninvoke-virtual { v0 }, Ljava/util/HashMap;->isEmpty()Z\nmove-result v0"
+            SendCheck.CLEARED -> "$read\ninvoke-virtual { v0 }, Ljava/util/HashMap;->clear()V\nconst/4 v0, 0x0"
+            SendCheck.KEPT -> "$read\ninvoke-static { v0 }, $ELSEWHERE->keep(Ljava/lang/Object;)V\nconst/4 v0, 0x0"
+        }
+    }
 
     private companion object {
         val kept = FixtureCache<List<ClassDef>>()
