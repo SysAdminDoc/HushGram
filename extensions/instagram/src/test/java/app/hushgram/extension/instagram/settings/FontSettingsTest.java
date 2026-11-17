@@ -607,4 +607,39 @@ public class FontSettingsTest {
         Utils.awaitBackgroundTasksForTests();
         ShadowLooper.idleMainLooper();
     }
+
+    /**
+     * A row's "i" description takes the picked font, as the page does (#166): it's a window of its
+     * own, which the page's watcher never sees, so it kept Android's font.
+     */
+    @Test public void descriptionsTakeThePickedFont() throws Exception {
+        Settings.FONT.save(FontChoice.FILE);
+        FontsForTests.loadEveryFile(Typeface.SERIF);
+        keep(TRUE_TYPE);
+        open(EnumSet.of(PatchFamily.FONT));
+        android.app.AlertDialog dialog = DescriptionInfo.show(controller.get(), "Change the font",
+                "Puts Instagram's text in the font you pick.");
+        try {
+            android.widget.TextView message = dialog.findViewById(android.R.id.message);
+            int titleId = dialog.getContext().getResources().getIdentifier("alertTitle", "id", "android");
+            android.widget.TextView title = dialog.findViewById(titleId);
+            // The picked font at the weight and slant each had, as the dialog painted them.
+            Typeface messageWas = message.getTypeface();
+            Typeface titleWas = title.getTypeface();
+            finish();
+            dialog.getWindow().getDecorView().getViewTreeObserver().dispatchOnPreDraw();
+            // Legacy graphics hands out a new Typeface for each create, equal to the last.
+            assertNotEquals(messageWas, message.getTypeface());
+            assertEquals(serifLike(messageWas), message.getTypeface());
+            assertNotEquals(titleWas, title.getTypeface());
+            assertEquals(serifLike(titleWas), title.getTypeface());
+        } finally {
+            dialog.dismiss();
+        }
+    }
+
+    private static Typeface serifLike(Typeface was) {
+        return was == null ? Typeface.create(Typeface.SERIF, 400, false)
+                : Typeface.create(Typeface.SERIF, was.getWeight(), was.isItalic());
+    }
 }

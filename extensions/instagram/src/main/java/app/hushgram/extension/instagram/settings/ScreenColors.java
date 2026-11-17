@@ -40,6 +40,10 @@ import android.widget.TextView;
 
 import androidx.annotation.Nullable;
 
+import java.util.Collections;
+import java.util.Set;
+import java.util.WeakHashMap;
+
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.settings.preference.ImmediateAction;
 
@@ -631,6 +635,21 @@ public final class ScreenColors {
         View field = dialog.findViewById(android.R.id.edit);
         if (field instanceof EditText) paintField((EditText) field);
         if (window != null) startTextAtTheStart(window.getDecorView());
+        if (window != null) followFont(window.getDecorView());
+    }
+
+    /** Dialog windows already following the picked font, so a repaint doesn't watch one twice. */
+    private static final Set<View> FONT_WATCHED = Collections.synchronizedSet(
+            Collections.newSetFromMap(new WeakHashMap<>()));
+
+    /**
+     * With the font patch in the build, a dialog's text follows the font picked for Instagram's,
+     * as the settings page's does (#166). The "i" descriptions, pickers and prompts are windows of
+     * their own, which the page's watcher never sees.
+     */
+    private static void followFont(View decor) {
+        if (!PatchFamily.FONT.inBuild() || !FONT_WATCHED.add(decor)) return;
+        decor.getViewTreeObserver().addOnPreDrawListener(new SettingsDialog.FontDraw(decor));
     }
 
     /**

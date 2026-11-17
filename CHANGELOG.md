@@ -23,7 +23,7 @@ Every HushGram release, newest first.
 * `Hide the pause icon on reels` under Reels keeps a paused reel clear of the big pause icon and its sound button, so the frame you stopped on stays in view. A tap still plays it. Asked for in #686.
 * `Hide the Like button on reels` and `Hide the Comment button on reels` under Reels, and `Hide the Like button` under Feed, take those buttons and their counts away. Double tap still likes. Asked for in #668.
 * `Ask before a refresh` also asks when you tap Home, Reels or Explore while you're already on it, since that tap scrolls back to the top and reloads too. Cancel leaves the list where it was. Asked for in #655.
-* HushGram's own settings screen uses the font you pick in `Change the font` too, headings and switch labels included. Asked for in #166.
+* HushGram's own settings screen uses the font you pick in `Change the font` too, headings and switch labels included. Its popups follow it as well, like the "i" descriptions, pickers and PIN prompts. Asked for in #166.
 * HushGram speaks Simplified Chinese. Phones set to Simplified Chinese, or to Chinese for China or Singapore, get it instead of English. It's built from the Traditional Chinese table and uses Instagram's own mainland names, like 快拍 and 帖子. Asked for in #659.
 * `Double-tap Messages for hidden chats` now shows your hidden chats right in your inbox after your screen lock or PIN, and two more quick taps on Messages hide them again. Long press a chat for Hide chat or Unhide chat. Asked for in #661.
 * A new switch, `Hide You may also like in search` under Explore, takes the You may also like posts and their title off the bottom of search results. Accounts and the posts you searched for stay. Asked for in #657.
