@@ -32,6 +32,7 @@ import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstructio
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction11x
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction21c
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction35c
+import com.android.tools.smali.dexlib2.immutable.reference.ImmutableFieldReference
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableMethodReference
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableStringReference
 import org.junit.Assert.assertEquals
@@ -57,28 +58,36 @@ class DontReportBlendVisitsHookTest {
         assertTrue(AccessFlags.PUBLIC.isSet(skips.accessFlags) && AccessFlags.STATIC.isSet(skips.accessFlags))
     }
 
-    /** The visit time's sender asks the extension first and returns on a yes, before its marker or its call (#474). */
+    /**
+     * The step building the visit time's request asks the extension right before it loads the
+     * request's name and answers that it's done on a yes, before the name or the call (#474).
+     */
     @Test
     fun theVisitTimeAsksBeforeItGoesOut() {
-        val context = PatchContexts.of(listOf(repository()))
-        val sender = context.findBlendVisitTime()
-        val before = sender.code().map(::text)
-        skipBlendVisitTime(sender)
-        assertSkips("stand-in", sender, before)
-        assertEquals("the call stays", SEND.toString(), (sender.code()[5] as ReferenceInstruction).reference.toString())
+        val context = PatchContexts.of(listOf(visit()))
+        val site = context.findBlendVisitTime()
+        assertEquals("the name's load", 1, site.at)
+        assertEquals("the name's register", 2, site.register)
+        assertEquals("what it answers when done", UNIT.toString(), site.done.toString())
+        val before = site.method.code().map(::text)
+        skipBlendVisitTime(site)
+        assertSkips("stand-in", site, before)
+        assertEquals("the call stays", SEND.toString(), (site.method.code()[7] as ReferenceInstruction).reference.toString())
     }
 
     @Test
     fun aMissingOrDoubledVisitTimeFailsThePatch() {
-        refuses("found 0", listOf(repository(marker = false))) { skipBlendVisitTime(findBlendVisitTime()) }
-        refuses("found 2", listOf(repository(), repository("Lfixture/OtherRepository;"))) { skipBlendVisitTime(findBlendVisitTime()) }
+        refuses("found 0", listOf(visit(name = false))) { skipBlendVisitTime(findBlendVisitTime()) }
+        refuses("found 2", listOf(visit(), visit("Lfixture/OtherVisit;"))) { skipBlendVisitTime(findBlendVisitTime()) }
     }
 
     @Test
     fun aVisitTimeOfAnotherShapeFailsThePatch() {
-        refuses("returns Z, not nothing", listOf(repository(answers = true))) { skipBlendVisitTime(findBlendVisitTime()) }
-        refuses("has 0 local register(s), needs 1", listOf(repository(locals = 0))) { skipBlendVisitTime(findBlendVisitTime()) }
-        refuses("jumps back", listOf(repository(loop = true))) { skipBlendVisitTime(findBlendVisitTime()) }
+        refuses("returns V, not an object", listOf(visit(answers = false))) { skipBlendVisitTime(findBlendVisitTime()) }
+        refuses("as a literal 2 times, not once", listOf(visit(loads = 2))) { skipBlendVisitTime(findBlendVisitTime()) }
+        refuses("jumps onto", listOf(visit(loop = true))) { skipBlendVisitTime(findBlendVisitTime()) }
+        refuses("answers 0 singletons", listOf(visit(done = 0))) { skipBlendVisitTime(findBlendVisitTime()) }
+        refuses("answers 2 singletons", listOf(visit(done = 2))) { skipBlendVisitTime(findBlendVisitTime()) }
     }
 
     @Test
@@ -144,10 +153,11 @@ class DontReportBlendVisitsHookTest {
         assertHooked(label, request.method, request.flag)
         assertEquals("$label: the rest stays", before.map(::text), request.method.code().drop(2).filter { it.opcode != Opcode.NOP }.map(::text))
 
-        val sender = PatchContexts.of(FixtureDex.classesLoading(bundle, BLEND_LAST_VISIT)).findBlendVisitTime()
-        val stock = sender.code().filter { it.opcode != Opcode.NOP }.map(::text)
-        skipBlendVisitTime(sender)
-        assertSkips(label, sender, stock)
+        val site = PatchContexts.of(FixtureDex.classesLoading(bundle, BLEND_LAST_VISIT)).findBlendVisitTime()
+        assertEquals("$label: what it answers when done", UNIT.toString(), site.done.toString())
+        val stock = site.method.code().filter { it.opcode != Opcode.NOP }.map(::text)
+        skipBlendVisitTime(site)
+        assertSkips(label, site, stock)
     }
 
     /** The patch refuses for the reason given, and nothing has changed. */
@@ -177,19 +187,27 @@ class DontReportBlendVisitsHookTest {
     }
 
     /**
-     * [method] starts with the extension's answer in v0, a no going on to the first stock
-     * instruction and a yes returning, and the stock code ([before], no padding) follows unchanged.
+     * Right before the load of the request's name: the extension's answer in the name's register, a
+     * no going on to that load and a yes answering what the step answers when it's done. The stock
+     * code ([before], no padding) is unchanged around it.
      */
-    private fun assertSkips(what: String, method: Method, before: List<String>) {
-        val code = method.code()
-        assertEquals("$what: the call", SKIP_VISIT_TIME, (code[0] as ReferenceInstruction).reference.toString())
-        assertEquals("$what: the answer", Opcode.MOVE_RESULT, code[1].opcode)
-        assertEquals("$what: the answer goes in v0", 0, (code[1] as OneRegisterInstruction).registerA)
-        assertEquals("$what: the test", Opcode.IF_EQZ, code[2].opcode)
-        assertEquals("$what: the test reads the answer", 0, (code[2] as OneRegisterInstruction).registerA)
-        assertEquals("$what: a no goes on to the stock code", 4, (code[2] as BuilderOffsetInstruction).target.location.index)
-        assertEquals("$what: a yes returns", Opcode.RETURN_VOID, code[3].opcode)
-        assertEquals("$what: the rest stays", before, code.drop(4).filter { it.opcode != Opcode.NOP }.map(::text))
+    private fun assertSkips(what: String, site: BlendVisitTime, before: List<String>) {
+        val code = site.method.code()
+        val at = code.indexOfFirst { (it as? ReferenceInstruction)?.reference?.toString() == SKIP_VISIT_TIME }
+        assertEquals("$what: the call", Opcode.INVOKE_STATIC, code[at].opcode)
+        assertEquals("$what: the answer", Opcode.MOVE_RESULT, code[at + 1].opcode)
+        assertEquals("$what: the answer goes in the name's register", site.register, (code[at + 1] as OneRegisterInstruction).registerA)
+        assertEquals("$what: the test", Opcode.IF_EQZ, code[at + 2].opcode)
+        assertEquals("$what: the test reads the answer", site.register, (code[at + 2] as OneRegisterInstruction).registerA)
+        assertEquals("$what: a no goes on to the name's load", at + 5, (code[at + 2] as BuilderOffsetInstruction).target.location.index)
+        assertEquals("$what: a yes reads what the step answers when done", Opcode.SGET_OBJECT, code[at + 3].opcode)
+        assertEquals("$what: into the name's register", site.register, (code[at + 3] as OneRegisterInstruction).registerA)
+        assertEquals("$what: the field", site.done.toString(), (code[at + 3] as ReferenceInstruction).reference.toString())
+        assertEquals("$what: and answers it", Opcode.RETURN_OBJECT, code[at + 4].opcode)
+        assertEquals("$what: from the name's register", site.register, (code[at + 4] as OneRegisterInstruction).registerA)
+        assertEquals("$what: the name's load", "\"$BLEND_LAST_VISIT\"", text(code[at + 5]))
+        val stock = code.filterIndexed { index, _ -> index !in at until at + 5 }.filter { it.opcode != Opcode.NOP }.map(::text)
+        assertEquals("$what: the rest stays", before, stock)
         assertEquals("$what: one call", 1, code.count { (it as? ReferenceInstruction)?.reference?.toString() == SKIP_VISIT_TIME })
     }
 
@@ -240,32 +258,47 @@ class DontReportBlendVisitsHookTest {
             return ImmutableClassDef(type, AccessFlags.PUBLIC.value, "Ljava/lang/Object;", null, null, null, null, listOf(request))
         }
 
-        const val REPOSITORY = "Lfixture/BlendRepository;"
-        val SEND = ImmutableMethodReference(REPOSITORY, "launch", listOf("Ljava/lang/String;", "Ljava/lang/String;"), "V")
+        const val VISIT = "Lfixture/BlendVisit;"
+        val SEND = ImmutableMethodReference(VISIT, "send", listOf("Ljava/lang/String;", "Ljava/lang/String;"), "V")
+        val UNIT = ImmutableFieldReference("Lkotlin/Unit;", "INSTANCE", "Lkotlin/Unit;")
+        val SUSPENDED = ImmutableFieldReference("Lfixture/Singletons;", "SUSPENDED", "Lfixture/Singletons;")
 
         /**
-         * Shaped like the Blend repository's visit time sender: an instance method of (thread, time)
-         * loading [BLEND_LAST_VISIT] into v0 first, then handing itself and both parameters on.
+         * Shaped like the coroutine step building the visit time's request: an instance (result)
+         * method with three locals loading the Blend's id key into v1 and [BLEND_LAST_VISIT] into
+         * v2 ([loads] times), handing both on and answering Kotlin's Unit ([done] singletons read
+         * right before a return; a null for none).
          */
-        fun repository(
-            type: String = REPOSITORY,
-            marker: Boolean = true,
-            answers: Boolean = false,
-            locals: Int = 2,
+        fun visit(
+            type: String = VISIT,
+            name: Boolean = true,
+            loads: Int = 1,
+            answers: Boolean = true,
             loop: Boolean = false,
+            done: Int = 1,
         ): ClassDef {
-            val self = locals
+            val self = 3
             val code = mutableListOf<ImmutableInstruction>()
-            if (marker) code += ImmutableInstruction21c(Opcode.CONST_STRING, 0, ImmutableStringReference(BLEND_LAST_VISIT))
-            code += ImmutableInstruction35c(Opcode.INVOKE_VIRTUAL, 3, self, self + 1, self + 2, 0, 0, SEND)
-            if (loop) code += ImmutableInstruction10t(Opcode.GOTO, -code.sumOf { it.codeUnits })
-            code += if (answers) ImmutableInstruction11x(Opcode.RETURN, 0) else ImmutableInstruction10x(Opcode.RETURN_VOID)
-            val sender = ImmutableMethod(
-                type, "updateLastVisit", SEND.parameterTypes.map { ImmutableMethodParameter(it.toString(), null, null) },
-                if (answers) "Z" else "V", AccessFlags.PUBLIC.value, null, null,
-                ImmutableMethodImplementation(locals + 3, code, null, null),
+            code += ImmutableInstruction21c(Opcode.CONST_STRING, 1, ImmutableStringReference("blend_id"))
+            repeat(if (name) loads else 0) { code += ImmutableInstruction21c(Opcode.CONST_STRING, 2, ImmutableStringReference(BLEND_LAST_VISIT)) }
+            code += ImmutableInstruction35c(Opcode.INVOKE_VIRTUAL, 3, self, 1, 2, 0, 0, SEND)
+            if (loop) code += ImmutableInstruction10t(Opcode.GOTO, -code.drop(1).sumOf { it.codeUnits })
+            if (!answers) {
+                code += ImmutableInstruction10x(Opcode.RETURN_VOID)
+            } else {
+                if (done == 2) {
+                    code += ImmutableInstruction21c(Opcode.SGET_OBJECT, 0, SUSPENDED)
+                    code += ImmutableInstruction11x(Opcode.RETURN_OBJECT, 0)
+                }
+                code += if (done == 0) ImmutableInstruction11n(Opcode.CONST_4, 0, 0) else ImmutableInstruction21c(Opcode.SGET_OBJECT, 0, UNIT)
+                code += ImmutableInstruction11x(Opcode.RETURN_OBJECT, 0)
+            }
+            val step = ImmutableMethod(
+                type, "invokeSuspend", listOf(ImmutableMethodParameter("Ljava/lang/Object;", null, null)),
+                if (answers) "Ljava/lang/Object;" else "V", AccessFlags.PUBLIC.value, null, null,
+                ImmutableMethodImplementation(self + 2, code, null, null),
             )
-            return ImmutableClassDef(type, AccessFlags.PUBLIC.value, "Ljava/lang/Object;", null, null, null, null, listOf(sender))
+            return ImmutableClassDef(type, AccessFlags.PUBLIC.value, "Ljava/lang/Object;", null, null, null, null, listOf(step))
         }
     }
 }
