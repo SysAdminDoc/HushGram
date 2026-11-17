@@ -153,6 +153,16 @@ internal const val PHOTO_TOUCH_ONLY = "$REEL_SEEK_BAR->photoTouchOnly(ILjava/lan
  */
 internal const val PHOTO_STRIP = "$REEL_SEEK_BAR->photoStrip(Ljava/lang/Object;Ljava/lang/String;)Z"
 
+/**
+ * Hide the seek bar on reels (#680) in the same two checks of the progress controller. Each asks [BARS_HIDDEN] first, ahead
+ * of the photo's hook. Yes, the strip check answers yes for every ordinary reel, since it goes by a length no reel reaches
+ * while the bars are hidden, and a reel with no strip had nothing for the drag along its bottom edge to land on. The
+ * touch-only check hands [HIDDEN_TOUCH_ONLY] its answer and whether the reel is an ad, so a short reel that keeps its strip
+ * still keeps its bar hidden until touched.
+ */
+internal const val BARS_HIDDEN = "$REEL_SEEK_BAR->barsHidden()Z"
+internal const val HIDDEN_TOUCH_ONLY = "$REEL_SEEK_BAR->hiddenTouchOnly(II)Z"
+
 /** What Instagram reports from the method that works out a post's kind of reel (on 454 LX/087h->A00), photo with music among them. */
 internal const val KIND_OF_REPORT = "MixedMediaTypeExt.toMixedMediaType unsupported carousel type"
 private const val MEDIA = "Lcom/instagram/feed/media/Media;"
@@ -265,8 +275,8 @@ internal class StripSite(
 
 /**
  * Where the check of whether the bar shows only while touched answers: [at] is its return of [answer], which a call put there, [current]
- * the static getter of the reel on screen it asks with the controller in [controller], and [scratch] three
- * registers free at that return.
+ * the static getter of the reel on screen it asks with the controller in [controller], [ad] the reel's field it reads
+ * as whether the reel is an ad, and [scratch] three registers free at that return.
  */
 internal class TouchOnlySite(
     val method: Method,
@@ -275,6 +285,7 @@ internal class TouchOnlySite(
     val current: String,
     val controller: Int,
     val scratch: List<Int>,
+    val ad: String,
 )
 
 /** Where [method] calls [SET_ON_TOUCH] on the strip: instruction [at], with the strip in [view] and the listener in [listener]. */
@@ -545,7 +556,11 @@ private fun findTouchOnlySite(method: Method, itemType: String): TouchOnlySite {
     if (code.any { it.writes(self) }) refuse("$where writes over its controller")
     val free = (0 until minOf(method.localRegisterCount(), 16)).filter { it != answer }
     if (free.size < 3) refuse("$where has no three registers free at its return")
-    return TouchOnlySite(method, at, answer, current, self, free.take(3))
+    // The length check takes whether the reel is an ad, the one boolean of the reel this check reads (on 456's 386214574 LX/04Dh->A19).
+    val ads = code.filter { it.opcode == Opcode.IGET_BOOLEAN }.mapNotNull { it.fieldReference() }
+        .filter { it.definingClass == itemType }.map { it.text() }.distinct()
+    val ad = ads.singleOrNull() ?: refuse("expected $where to read one boolean of the $itemType, whether it's an ad, found ${ads.size}")
+    return TouchOnlySite(method, at, answer, current, self, free.take(3), ad)
 }
 
 /**
@@ -790,6 +805,52 @@ internal fun BytecodePatchContext.applyReelSeekBar(sites: ReelSeekBarSites) {
             it.parameterTypes.map(CharSequence::toString) == touch.method.parameterTypes.map(CharSequence::toString)
     }.replaceInstruction(touch.at, "invoke-static { v${touch.view}, v${touch.listener} }, $LISTEN")
     applyPhotoHooks(sites.photo)
+    applyHiddenBarHooks(sites.photo)
+}
+
+/**
+ * Puts [BARS_HIDDEN]'s blocks in the progress controller's touch-only and strip checks, at the same places as the photo's
+ * hooks and ahead of them, so they run first and a photo with a song still gets its own answer after. Off, each lands on
+ * the photo's switch, the instruction that was there.
+ */
+private fun BytecodePatchContext.applyHiddenBarHooks(sites: PhotoSites) {
+    fun mutable(method: Method) = mutableClassDefBy(method.definingClass).methods.single {
+        it.name == method.name && it.returnType == method.returnType &&
+            it.parameterTypes.map(CharSequence::toString) == method.parameterTypes.map(CharSequence::toString)
+    }
+
+    val onTouch = sites.touchOnly
+    val touchOnly = mutable(onTouch.method)
+    val (flag, onScreen) = onTouch.scratch
+    touchOnly.addInstructionsWithLabels(
+        onTouch.at,
+        """
+            invoke-static {}, $BARS_HIDDEN
+            move-result v$flag
+            if-eqz v$flag, :photo_touch
+            invoke-static { v${onTouch.controller} }, ${onTouch.current}
+            move-result-object v$onScreen
+            if-eqz v$onScreen, :photo_touch
+            iget-boolean v$flag, v$onScreen, ${onTouch.ad}
+            invoke-static { v${onTouch.answer}, v$flag }, $HIDDEN_TOUCH_ONLY
+            move-result v${onTouch.answer}
+        """,
+        ExternalLabel("photo_touch", touchOnly.getInstruction(onTouch.at)),
+    )
+
+    val onStrip = sites.strip
+    val strip = mutable(onStrip.method)
+    val yes = onStrip.scratch.first
+    strip.addInstructionsWithLabels(
+        onStrip.at,
+        """
+            invoke-static {}, $BARS_HIDDEN
+            move-result v$yes
+            if-eqz v$yes, :photo_strip
+            return v$yes
+        """,
+        ExternalLabel("photo_strip", strip.getInstruction(onStrip.at)),
+    )
 }
 
 /**

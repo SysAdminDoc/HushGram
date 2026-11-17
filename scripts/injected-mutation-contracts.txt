@@ -2923,6 +2923,15 @@ once-call Lapp/hushgram/extension/instagram/reels/ReelSeekBar;->photoReel(ILjava
 once-call Lapp/hushgram/extension/instagram/reels/ReelSeekBar;->photoRow(Ljava/lang/Object;Ljava/lang/String;)V in static (Lcom/instagram/clips/intf/ClipsViewerConfig;L*;L*;Lcom/instagram/common/session/UserSession;Z)L*; holding const:0x8108b9001031f3
 once-call Lapp/hushgram/extension/instagram/reels/ReelSeekBar;->photoProgress(Ljava/lang/String;II)V in instance (L*;IIIZ)V pooled holding preview_end
 once-call Lapp/hushgram/extension/instagram/reels/ReelSeekBar;->photoTouchOnly(ILjava/lang/Object;Ljava/lang/String;)Z in static (LX/*;)Z class-holding ClipsScrubberExpandedTouchViewError
+# Hide the seek bar on reels (#680): the same controller's one instance (LX/*;)Z, 098b.A1B, decides
+# whether a reel keeps the strip along its bottom edge that the sideways drag lands on, by its length,
+# and with no reel long enough while hidden it took the strip off short reels. barsHidden goes ahead of
+# the photo's switch there and in 098b.A0O, which then asks hiddenTouchOnly with Instagram's answer and
+# the reel's ad flag. Left out, a drag along a short reel's bottom edge brings nothing back; twice or
+# elsewhere, it isn't the hook the patch wrote.
+once-call Lapp/hushgram/extension/instagram/reels/ReelSeekBar;->barsHidden()Z in static (LX/*;)Z class-holding ClipsScrubberExpandedTouchViewError
+once-call Lapp/hushgram/extension/instagram/reels/ReelSeekBar;->barsHidden()Z in instance (LX/*;)Z class-holding ClipsScrubberExpandedTouchViewError
+once-call Lapp/hushgram/extension/instagram/reels/ReelSeekBar;->hiddenTouchOnly(II)Z in static (LX/*;)Z class-holding ClipsScrubberExpandedTouchViewError
 # The same patch swaps the one setOnTouchListener call in the Reels progress controller's
 # prepareExpandedTouchView, which gives the invisible strip over the bottom of Reels its scrubbing
 # listener, for ReelSeekTouch.listen with the same strip and listener (#452). Left out, the strip

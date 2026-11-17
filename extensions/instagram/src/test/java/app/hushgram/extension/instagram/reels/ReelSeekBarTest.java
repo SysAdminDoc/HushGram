@@ -148,6 +148,36 @@ public class ReelSeekBarTest {
     }
 
     /**
+     * Hide the seek bar on reels keeps the strip along a reel's bottom edge on every ordinary reel, short ones too,
+     * since that strip is what the sideways drag lands on, and has the bar show only while touched there, except on
+     * ads, which keep Instagram's answer (#680). Off, a switch that keeps the bar, or paused, the controller's own
+     * checks stand.
+     */
+    @Test
+    public void hidingItKeepsTheStripTheDragLandsOn() {
+        assertFalse("off, Instagram's strip check stands", ReelSeekBar.barsHidden());
+        Settings.REEL_SEEK_BAR.save(false);
+        Settings.HIDE_REEL_SEEK_BAR.save(true);
+        try {
+            assertTrue(ReelSeekBar.barsHidden());
+            assertTrue("an ordinary short reel's bar shows only while touched", ReelSeekBar.hiddenTouchOnly(0, 0));
+            assertTrue(ReelSeekBar.hiddenTouchOnly(1, 0));
+            assertFalse("an ad keeps Instagram's no", ReelSeekBar.hiddenTouchOnly(0, 1));
+            assertTrue("and its yes", ReelSeekBar.hiddenTouchOnly(1, 1));
+
+            Settings.REEL_SEEK_BAR.save(true);
+            assertFalse("Keep a seek bar wins", ReelSeekBar.barsHidden());
+            Settings.REEL_SEEK_BAR.save(false);
+
+            BaseSettings.PAUSED.save(true);
+            PauseForTests.pause(HushgramPause.Reason.SWITCH);
+            assertFalse("paused, Instagram's checks stand", ReelSeekBar.barsHidden());
+        } finally {
+            Settings.HIDE_REEL_SEEK_BAR.resetToDefault();
+        }
+    }
+
+    /**
      * Always show seek bar in clear mode (#480) keeps the bar on short reels too, since clear mode
      * would otherwise leave them without one, but brings no time label with it.
      */
@@ -233,12 +263,16 @@ public class ReelSeekBarTest {
         assertFalse(ReelSeekBar.passThrough(0, () -> false, () -> {
             throw new IllegalStateException("settings went away");
         }));
+        assertFalse("Instagram's strip and touch checks stand", ReelSeekBar.barsHidden(() -> false, () -> {
+            throw new IllegalStateException("settings went away");
+        }));
 
         assertEquals(View.GONE, label.getVisibility());
         String missing = HookStatus.missing(FamilyNames.REEL_SEEK_BAR).toString();
         assertTrue(missing, missing.contains("'seek bar length'"));
         assertTrue(missing, missing.contains("'hidden seek bar'"));
         assertTrue(missing, missing.contains("'seek drag'"));
+        assertTrue(missing, missing.contains("'hidden seek bar strip'"));
         assertTrue(missing, missing.contains("'seek bar time'"));
     }
 
