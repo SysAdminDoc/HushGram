@@ -55,6 +55,10 @@ final class ProfilesCategory {
                 profiles.addPreference(toggle(context, Settings.ABOUT_ACCOUNT_BUTTON, L10n.t("About this account button"),
                         L10n.t("Puts an (i) next to the three dots on a profile that opens Instagram's About this account "
                                 + "for that account. Instagram took its own away.")));
+                profiles.addPreference(toggle(context, Settings.PROFILE_PICTURE_LONG_PRESS,
+                        L10n.t("Long press a profile picture to view it"),
+                        L10n.t("Long press the picture at the top of a profile to open the whole square picture at full "
+                                + "size, with Save under it, instead of Instagram's own preview. A tap works as before.")));
                 profiles.addPreference(toggle(context, Settings.PROFILE_HISTORY, L10n.t("Keep profile history"),
                         L10n.t("Remembers the username, bio and profile picture of each profile you open, on this phone "
                                 + "only, and tells you when one changed since your last visit. Pictures are copied from "

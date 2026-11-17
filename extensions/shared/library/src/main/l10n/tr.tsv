@@ -2521,3 +2521,7 @@ Matches: %1$d of the %2$d account that loaded. Instagram didn't send the rest.	E
 Matches: %1$d of the %2$d accounts that loaded. Instagram didn't send the rest.	Eşleşen: yüklenen %2$d hesaptan %1$d. Instagram geri kalanını göndermedi.
 Matches: %1$d of %2$d blocked account	Eşleşen: %2$d engellenen hesaptan %1$d
 Matches: %1$d of %2$d blocked accounts	Eşleşen: %2$d engellenen hesaptan %1$d
+# context: Profiles settings: switch that makes a long press on the picture at the top of a profile open HushGram's full size viewer with a Save button, in place of Instagram's own enlarged picture (#737)
+Long press a profile picture to view it	Görmek için profil fotoğrafına uzun bas
+# context: that switch summary (#737)
+Long press the picture at the top of a profile to open the whole square picture at full size, with Save under it, instead of Instagram's own preview. A tap works as before.	Bir profilin üstündeki fotoğrafa uzun basarak, Instagram'ın kendi önizlemesi yerine kare fotoğrafın tamamını tam boyutta, altında Kaydet ile aç. Dokunma eskisi gibi çalışır.

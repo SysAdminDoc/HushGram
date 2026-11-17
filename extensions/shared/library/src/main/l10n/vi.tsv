@@ -2436,3 +2436,7 @@ Matches: %1$d of the %2$d account that loaded. Instagram didn't send the rest.	K
 Matches: %1$d of the %2$d accounts that loaded. Instagram didn't send the rest.	Khớp: %1$d trên %2$d tài khoản đã tải. Instagram không gửi phần còn lại.
 Matches: %1$d of %2$d blocked account	Khớp: %1$d trên %2$d tài khoản đã chặn
 Matches: %1$d of %2$d blocked accounts	Khớp: %1$d trên %2$d tài khoản đã chặn
+# context: Profiles settings: switch that makes a long press on the picture at the top of a profile open HushGram's full size viewer with a Save button, in place of Instagram's own enlarged picture (#737)
+Long press a profile picture to view it	Nhấn giữ ảnh đại diện để xem
+# context: that switch summary (#737)
+Long press the picture at the top of a profile to open the whole square picture at full size, with Save under it, instead of Instagram's own preview. A tap works as before.	Nhấn giữ ảnh ở đầu trang cá nhân để mở toàn bộ ảnh vuông ở kích thước đầy đủ, có nút Lưu bên dưới, thay cho bản xem trước của Instagram. Nhấn bình thường vẫn như cũ.

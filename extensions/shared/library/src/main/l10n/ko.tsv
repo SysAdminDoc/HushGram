@@ -2520,3 +2520,7 @@ Matches: %1$d of the %2$d account that loaded. Instagram didn't send the rest.	�
 Matches: %1$d of the %2$d accounts that loaded. Instagram didn't send the rest.	일치: 불러온 계정 %2$d개 중 %1$d개. Instagram이 나머지를 보내지 않았습니다.
 Matches: %1$d of %2$d blocked account	일치: 차단된 계정 %2$d개 중 %1$d개
 Matches: %1$d of %2$d blocked accounts	일치: 차단된 계정 %2$d개 중 %1$d개
+# context: Profiles settings: switch that makes a long press on the picture at the top of a profile open HushGram's full size viewer with a Save button, in place of Instagram's own enlarged picture (#737)
+Long press a profile picture to view it	프로필 사진을 길게 눌러 보기
+# context: that switch summary (#737)
+Long press the picture at the top of a profile to open the whole square picture at full size, with Save under it, instead of Instagram's own preview. A tap works as before.	프로필 상단의 사진을 길게 누르면 Instagram 자체 미리보기 대신 정사각형 사진 전체가 원본 크기로 열리고 아래에 저장 버튼이 표시됩니다. 탭은 이전과 같이 작동합니다.

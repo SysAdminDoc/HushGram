@@ -2521,3 +2521,7 @@ Matches: %1$d of the %2$d account that loaded. Instagram didn't send the rest.	C
 Matches: %1$d of the %2$d accounts that loaded. Instagram didn't send the rest.	Cocok: %1$d dari %2$d akun yang dimuat. Instagram tidak mengirim sisanya.
 Matches: %1$d of %2$d blocked account	Cocok: %1$d dari %2$d akun yang diblokir
 Matches: %1$d of %2$d blocked accounts	Cocok: %1$d dari %2$d akun yang diblokir
+# context: Profiles settings: switch that makes a long press on the picture at the top of a profile open HushGram's full size viewer with a Save button, in place of Instagram's own enlarged picture (#737)
+Long press a profile picture to view it	Tekan lama foto profil untuk melihatnya
+# context: that switch summary (#737)
+Long press the picture at the top of a profile to open the whole square picture at full size, with Save under it, instead of Instagram's own preview. A tap works as before.	Tekan lama foto di bagian atas profil untuk membuka seluruh foto persegi dalam ukuran penuh, dengan Simpan di bawahnya, menggantikan pratinjau Instagram sendiri. Ketukan tetap berfungsi seperti biasa.

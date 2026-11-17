@@ -232,6 +232,40 @@ public final class ProfileExtras {
         stateOf(bar).user = user;
     }
 
+    /**
+     * The account of the profile [view] is on, for a long press on its picture ({@link ProfilePictureHold}):
+     * going up from [view], the first parent with a profile bar on screen under it, and that bar's
+     * account. Null when no bar is found, or when the bars there show different accounts or none yet.
+     */
+    @Nullable
+    static Object accountAround(View view) {
+        List<java.util.Map.Entry<View, State>> bars;
+        synchronized (BARS) {
+            bars = new java.util.ArrayList<>(BARS.entrySet());
+        }
+        for (android.view.ViewParent at = view.getParent(); at instanceof ViewGroup; at = at.getParent()) {
+            boolean found = false;
+            Object account = null;
+            for (java.util.Map.Entry<View, State> entry : bars) {
+                View bar = entry.getKey();
+                if (bar == null || !bar.isShown() || !holds((ViewGroup) at, bar)) continue;
+                Object shown = entry.getValue().user;
+                if (found && shown != account) return null;
+                found = true;
+                account = shown;
+            }
+            if (found) return account;
+        }
+        return null;
+    }
+
+    private static boolean holds(ViewGroup group, View view) {
+        for (android.view.ViewParent at = view.getParent(); at != null; at = at.getParent()) {
+            if (at == group) return true;
+        }
+        return false;
+    }
+
     /** The screen's one view model field, then the account that model holds; null when either is missing. */
     static Object accountOf(Object screen) {
         try {

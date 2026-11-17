@@ -39,6 +39,7 @@ import androidx.annotation.Nullable;
 
 import java.io.File;
 import java.util.List;
+import java.util.function.BooleanSupplier;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.ScreenColors;
@@ -107,10 +108,20 @@ final class ProfilePictureViewer {
      * Never throws.
      */
     static boolean open(Context context, List<MediaSave.Rendition> sizes, String owner, ProfilePicture.Save save) {
+        return open(context, sizes, owner, save, ProfilePicture::viewing);
+    }
+
+    /**
+     * [open], for a way in with its own switch: Save does nothing once [allowed] answers no, the way
+     * View profile picture's Save does once its switch is off. A long press on a profile's picture
+     * opens it this way ({@link ProfilePictureHold}).
+     */
+    static boolean open(Context context, List<MediaSave.Rendition> sizes, String owner, ProfilePicture.Save save,
+            BooleanSupplier allowed) {
         MediaSave.Rendition chosen = largest(sizes);
         if (chosen == null) return false;
         String url = chosen.url;
-        return open(context, activity -> new Screen(activity, sizes, owner, save),
+        return open(context, activity -> new Screen(activity, sizes, owner, save, allowed),
                 (application, watch) -> load(application, url, watch));
     }
 
@@ -300,9 +311,10 @@ final class ProfilePictureViewer {
         private final Activity activity;
         private final LinearLayout loading;
 
-        Screen(Activity activity, List<MediaSave.Rendition> sizes, String owner, ProfilePicture.Save save) {
-            // With View profile picture switched off since it opened, Save does nothing.
-            this(activity, at -> !ProfilePicture.viewing() || save.photo(at, sizes, PostDetails.profilePicture(owner)));
+        Screen(Activity activity, List<MediaSave.Rendition> sizes, String owner, ProfilePicture.Save save,
+                BooleanSupplier allowed) {
+            // With the switch it was opened by turned off since, Save does nothing.
+            this(activity, at -> !allowed.getAsBoolean() || save.photo(at, sizes, PostDetails.profilePicture(owner)));
         }
 
         Screen(Activity activity, Saver saver) {

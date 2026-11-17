@@ -56,7 +56,8 @@ public final class ProfilePicture {
         boolean photo(Context context, List<MediaSave.Rendition> sizes, PostDetails details);
     }
 
-    private static final Native NATIVE = new Native() {
+    /** Instagram's own reads, which a long press on a profile's picture uses too ({@link ProfilePictureHold}). */
+    static final Native NATIVE = new Native() {
         public boolean addRow(Object sheet, Context context, View.OnClickListener listener, String label) {
             return ProfilePicture.addRow(sheet, context, listener, label);
         }
@@ -77,7 +78,7 @@ public final class ProfilePicture {
         boolean open(Context context, List<MediaSave.Rendition> sizes, String owner, Save save);
     }
 
-    private static final Save SAVE = MediaSave::savePictureBySize;
+    static final Save SAVE = MediaSave::savePictureBySize;
     private static final Viewer VIEWER = ProfilePictureViewer::open;
 
     // What the diagnostic report counts when the menu opens. Fixed text: nothing read from the

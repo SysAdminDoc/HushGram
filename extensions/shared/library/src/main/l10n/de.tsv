@@ -2521,3 +2521,7 @@ Matches: %1$d of the %2$d account that loaded. Instagram didn't send the rest.	T
 Matches: %1$d of the %2$d accounts that loaded. Instagram didn't send the rest.	Treffer: %1$d von %2$d geladenen Konten. Instagram hat den Rest nicht geschickt.
 Matches: %1$d of %2$d blocked account	Treffer: %1$d von %2$d blockierten Konto
 Matches: %1$d of %2$d blocked accounts	Treffer: %1$d von %2$d blockierten Konten
+# context: Profiles settings: switch that makes a long press on the picture at the top of a profile open HushGram's full size viewer with a Save button, in place of Instagram's own enlarged picture (#737)
+Long press a profile picture to view it	Profilbild durch langes Drücken ansehen
+# context: that switch summary (#737)
+Long press the picture at the top of a profile to open the whole square picture at full size, with Save under it, instead of Instagram's own preview. A tap works as before.	Drücke lange auf das Bild oben in einem Profil, um das ganze quadratische Bild in voller Größe mit „Speichern“ darunter zu öffnen, statt Instagrams eigener Vorschau. Ein Tippen funktioniert wie bisher.

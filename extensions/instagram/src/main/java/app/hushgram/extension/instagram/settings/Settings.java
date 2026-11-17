@@ -2970,6 +2970,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_about_account_button", FALSE);
 
     /**
+     * A long press on the picture at the top of a profile opens the whole square picture full size,
+     * with Save, in place of Instagram's own preview (#737,
+     * {@link app.hushgram.extension.instagram.download.ProfilePictureHold}). A tap stays Instagram's.
+     * Off until enabled.
+     */
+    public static final BooleanSetting PROFILE_PICTURE_LONG_PRESS =
+            new BooleanSetting("hushgram_profile_picture_long_press", FALSE);
+
+    /**
      * A voice message's menu in a chat gets Save
      * ({@link app.hushgram.extension.instagram.download.VoiceMessage}). Off until enabled.
      */

@@ -2524,3 +2524,7 @@ Matches: %1$d of the %2$d account that loaded. Instagram didn't send the rest.	�
 Matches: %1$d of the %2$d accounts that loaded. Instagram didn't send the rest.	相符 %1$d 個，共載入 %2$d 個帳號。Instagram 未傳送其餘部分.
 Matches: %1$d of %2$d blocked account	相符 %1$d 個，共 %2$d 個已封鎖的帳號
 Matches: %1$d of %2$d blocked accounts	相符 %1$d 個，共 %2$d 個已封鎖的帳號
+# context: Profiles settings: switch that makes a long press on the picture at the top of a profile open HushGram's full size viewer with a Save button, in place of Instagram's own enlarged picture (#737)
+Long press a profile picture to view it	長按個人檔案相片即可檢視
+# context: that switch summary (#737)
+Long press the picture at the top of a profile to open the whole square picture at full size, with Save under it, instead of Instagram's own preview. A tap works as before.	長按個人檔案頂端的相片，即可開啟完整的正方形相片原尺寸檢視，下方附有「儲存」，取代 Instagram 本身的預覽。點一下的操作不變.

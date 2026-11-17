@@ -82,4 +82,27 @@ public class ProfileExtrasSettingsTest {
         PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.PROFILE_PICTURE);
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.PROFILE_EXTRAS_BUTTON.key));
     }
+
+    /** #737: Long press a profile picture to view it sits under Profiles with About this account, off to start. */
+    @Test public void theLongPressSwitchSitsUnderProfilesAndStartsOff() throws Exception {
+        open(true);
+        SwitchPreference hold = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.PROFILE_PICTURE_LONG_PRESS.key);
+        SwitchPreference about = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.ABOUT_ACCOUNT_BUTTON.key);
+        assertNotNull(hold);
+        assertEquals("Long press a profile picture to view it", hold.getTitle().toString());
+        assertEquals("Long press the picture at the top of a profile to open the whole square picture at full size, "
+                        + "with Save under it, instead of Instagram's own preview. A tap works as before.",
+                hold.getSummary().toString());
+        assertSame(about.getParent(), hold.getParent());
+        assertEquals("Profiles", hold.getParent().getTitle().toString());
+        assertFalse(hold.isChecked());
+        assertFalse(Settings.PROFILE_PICTURE_LONG_PRESS.get());
+        assertTrue(PatchFamily.PROFILE_PICTURE.switches.contains(Settings.PROFILE_PICTURE_LONG_PRESS));
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.PROFILE_PICTURE_LONG_PRESS.key));
+    }
+
+    @Test public void missingPatchHasNoLongPressSwitch() throws Exception {
+        open(false);
+        assertNull(page.getPreferenceScreen().findPreference(Settings.PROFILE_PICTURE_LONG_PRESS.key));
+    }
 }

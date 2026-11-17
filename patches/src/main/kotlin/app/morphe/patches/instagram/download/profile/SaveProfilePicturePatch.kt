@@ -102,9 +102,11 @@ val saveProfilePicturePatch = bytecodePatch(
         requireStatusMethod("profilePicture")
         val menus = findProfileMenus()
         val extras = findProfileExtras()
+        val hold = findProfilePictureHold()
         val bridges = profilePictureBridges(PROFILE_PICTURE_PATCH)
         applyProfileMenus(menus)
         applyProfileExtras(extras)
+        hold?.let { applyProfilePictureHold(it) }
         bridges()
         enableStatus("profilePicture")
     }

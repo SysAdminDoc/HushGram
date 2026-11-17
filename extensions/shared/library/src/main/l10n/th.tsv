@@ -2518,3 +2518,7 @@ Matches: %1$d of the %2$d account that loaded. Instagram didn't send the rest.	�
 Matches: %1$d of the %2$d accounts that loaded. Instagram didn't send the rest.	ตรงกัน %1$d จาก %2$d บัญชีที่โหลดมา Instagram ไม่ได้ส่งส่วนที่เหลือมา
 Matches: %1$d of %2$d blocked account	ตรงกัน %1$d จาก %2$d บัญชีที่ถูกบล็อก
 Matches: %1$d of %2$d blocked accounts	ตรงกัน %1$d จาก %2$d บัญชีที่ถูกบล็อก
+# context: Profiles settings: switch that makes a long press on the picture at the top of a profile open HushGram's full size viewer with a Save button, in place of Instagram's own enlarged picture (#737)
+Long press a profile picture to view it	กดค้างที่รูปโปรไฟล์เพื่อดู
+# context: that switch summary (#737)
+Long press the picture at the top of a profile to open the whole square picture at full size, with Save under it, instead of Instagram's own preview. A tap works as before.	กดค้างที่รูปด้านบนของโปรไฟล์เพื่อเปิดรูปสี่เหลี่ยมจัตุรัสทั้งรูปในขนาดเต็ม พร้อมปุ่มบันทึกด้านล่าง แทนตัวอย่างของ Instagram เอง การแตะยังทำงานเหมือนเดิม

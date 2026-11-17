@@ -175,7 +175,8 @@ public class ProfilePictureViewerTest {
     }
 
     @Test public void loadingKeepsCloseAvailableAndSaveDisabledUntilThePictureIsReady() {
-        ProfilePictureViewer.Screen screen = new ProfilePictureViewer.Screen(activity.get(), sizes(), "someone", save);
+        ProfilePictureViewer.Screen screen = new ProfilePictureViewer.Screen(activity.get(), sizes(), "someone", save,
+                ProfilePicture::viewing);
         screen.dialog.show();
         assertTrue(screen.close.isEnabled());
         assertFalse(screen.save.isEnabled());
@@ -214,7 +215,8 @@ public class ProfilePictureViewerTest {
     }
 
     @Test public void closingWhileLoadingNeverBringsThePictureOrSaveBack() {
-        ProfilePictureViewer.Screen screen = new ProfilePictureViewer.Screen(activity.get(), sizes(), "someone", save);
+        ProfilePictureViewer.Screen screen = new ProfilePictureViewer.Screen(activity.get(), sizes(), "someone", save,
+                ProfilePicture::viewing);
         screen.dialog.show();
         screen.close.performClick();
         screen.shown(new ProfilePictureViewer.Picture(Bitmap.createBitmap(120, 80, Bitmap.Config.ARGB_8888), 120));
@@ -227,7 +229,7 @@ public class ProfilePictureViewerTest {
 
     @Test public void failingToQueueASaveKeepsTheViewerOpenAndSaysWhy() {
         ProfilePictureViewer.Screen screen = new ProfilePictureViewer.Screen(activity.get(), sizes(), "someone",
-                (context, renditions, details) -> false);
+                (context, renditions, details) -> false, ProfilePicture::viewing);
         screen.dialog.show();
         screen.shown(new ProfilePictureViewer.Picture(Bitmap.createBitmap(120, 80, Bitmap.Config.ARGB_8888), 120));
         screen.save.performClick();
@@ -241,7 +243,8 @@ public class ProfilePictureViewerTest {
     @Test @SuppressWarnings("deprecation")
     public void viewerKeepsItsBlackSurfaceAndReadableSystemBarsOverALightHost() {
         activity.get().setTheme(android.R.style.Theme_Material_Light_NoActionBar);
-        ProfilePictureViewer.Screen screen = new ProfilePictureViewer.Screen(activity.get(), sizes(), "someone", save);
+        ProfilePictureViewer.Screen screen = new ProfilePictureViewer.Screen(activity.get(), sizes(), "someone", save,
+                ProfilePicture::viewing);
         screen.dialog.show();
         View root = (View) screen.picture.getParent().getParent();
         assertEquals("the surface behind transparent system bars stays black", Color.BLACK,
@@ -266,7 +269,8 @@ public class ProfilePictureViewerTest {
 
     @Test @SuppressWarnings("deprecation")
     public void navigationGestureAndKeyboardInsetsKeepTheToolbarAndPictureClear() throws Exception {
-        ProfilePictureViewer.Screen screen = new ProfilePictureViewer.Screen(activity.get(), sizes(), "someone", save);
+        ProfilePictureViewer.Screen screen = new ProfilePictureViewer.Screen(activity.get(), sizes(), "someone", save,
+                ProfilePicture::viewing);
         screen.dialog.show();
         ViewGroup root = (ViewGroup) screen.picture.getParent().getParent();
         WindowInsets insets = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
@@ -308,6 +312,23 @@ public class ProfilePictureViewerTest {
         Settings.VIEW_PROFILE_PICTURES.save(false);
         labeled(ShadowDialog.getLatestDialog().getWindow().getDecorView(), "Save").performClick();
         assertTrue(saved.isEmpty());
+    }
+
+    /** The long press's way in (#737) answers to its own switch, not View profile picture's. */
+    @Test public void aWayInWithItsOwnSwitchSavesWhileThatSwitchSaysSo() throws Exception {
+        Settings.VIEW_PROFILE_PICTURES.save(false);
+        boolean[] allowed = {true};
+        List<MediaSave.Rendition> sizes = sizes();
+        assertTrue(ProfilePictureViewer.open(activity.get(), sizes, "someone", save, () -> allowed[0]));
+        settle();
+        TextView saveButton = labeled(ShadowDialog.getLatestDialog().getWindow().getDecorView(), "Save");
+        saveButton.performClick();
+        assertEquals(1, saved.size());
+        assertSame(sizes, saved.get(0));
+        assertEquals("someone", named.get(0).owner);
+        allowed[0] = false;
+        saveButton.performClick();
+        assertEquals("nothing saved once its switch went off", 1, saved.size());
     }
 
     @Test public void aPictureThatCantBeFetchedClosesAndSaysSo() throws Exception {
