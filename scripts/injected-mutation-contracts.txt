@@ -608,11 +608,12 @@ start-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->built(Ljava/l
 once-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->built(Ljava/lang/Object;)V in instance (LX/*;)LX/*; holding const:0x7f08262e Landroid/graphics/drawable/shapes/OvalShape;-><init>()V
 once-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->quiet()Z in instance (LX/*;)LX/*; holding const:0x7f08262e Landroid/graphics/drawable/shapes/OvalShape;-><init>()V
 once-call Lapp/hushgram/extension/instagram/download/ReelMuteButton;->clearMode(Ljava/lang/Object;)V in instance (LX/*;)LX/*; holding const:0x7f08262e Landroid/graphics/drawable/shapes/OvalShape;-><init>()V
-# The reel holder's chrome alpha setter passes the alpha it was asked for through chrome() once, with
-# the one it holds, right after reading that (#233); left out, Instagram's reset of a page it binds at
-# rest brings back the buttons of a reel in clear mode. 456's setter clamps the alpha behind a
-# Function0 it asks first, which the rule holds.
-once-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->chrome(FF)F in instance (F)V holding Ljava/lang/Number;->floatValue()F Lkotlin/jvm/functions/Function0;->invoke()Ljava/lang/Object; Ljava/lang/Boolean;->booleanValue()Z Ljava/lang/Float;->valueOf(F)Ljava/lang/Float;
+# The reel holder's chrome alpha setter passes itself and the alpha it was asked for through chrome()
+# once, with the one it holds, right after reading that (#233, #740); left out, Instagram's reset of a
+# page it binds at rest brings back the buttons of a reel in clear mode, and the next reel shows its
+# buttons after a swipe. 456's setter clamps the alpha behind a Function0 it asks first, which the
+# rule holds.
+once-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->chrome(Ljava/lang/Object;FF)F in instance (F)V holding Ljava/lang/Number;->floatValue()F Lkotlin/jvm/functions/Function0;->invoke()Ljava/lang/Object; Ljava/lang/Boolean;->booleanValue()Z Ljava/lang/Float;->valueOf(F)Ljava/lang/Float;
 # The viewer's setup, the one method writing the handler's turn-on action, hands ready() the handler
 # once right after, and the extension wraps the action so entered() hears each turn-on after it runs.
 # The setup is the one reading these four of the viewer's Kotlin function fields (08PD.A07 on
@@ -623,11 +624,13 @@ once-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->ready(Ljava/la
 # clear mode keeps its seek bar there, the patch says so, and no host method calls scrubber() either.
 no-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->entered(Ljava/lang/Object;Ljava/lang/Object;)V outside Lapp/hushgram/extension/
 no-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->scrubber(II)Z outside Lapp/hushgram/extension/
-# The stubs: enter runs the handler's action with the reason, and reelId calls the reel's getId, so each
-# has to leave the extension before it returns. turnOnAction and setTurnOnAction read and write the
-# action field and call nothing, so no rule here can hold them; ClearModeHookTest checks their bodies.
+# The stubs: enter runs the handler's action with the reason, reelId calls the reel's getId, and
+# setChrome calls the reel holder's alpha setter, so each has to leave the extension before it
+# returns. turnOnAction and setTurnOnAction read and write the action field and call nothing, so no
+# rule here can hold them; ClearModeHookTest checks their bodies.
 first-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->enter(Ljava/lang/Object;Ljava/lang/Object;)V outside Lapp/hushgram/extension/
 first-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->reelId(Ljava/lang/Object;)Ljava/lang/String; outside Lapp/hushgram/extension/
+first-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->setChrome(Ljava/lang/Object;F)V outside Lapp/hushgram/extension/
 #
 # Sanitize sharing links passes the link the permalink parser for a post or reel reads through the
 # extension, once, before the parser stores it: the one instance parser holding its model's name.

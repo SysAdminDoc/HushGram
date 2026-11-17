@@ -183,6 +183,35 @@ public class ReelClearModeTest {
             posted.clear();
             for (Runnable each : work) each.run();
         }
+
+        /** Work put off, in order, with how long each was put off for. */
+        final List<Runnable> delayed = new ArrayList<>();
+        final List<Long> delays = new ArrayList<>();
+
+        @Override
+        public void later(Runnable work, long delay) {
+            delayed.add(work);
+            delays.add(delay);
+        }
+
+        void runDelayed() {
+            List<Runnable> work = new ArrayList<>(delayed);
+            delayed.clear();
+            delays.clear();
+            for (Runnable each : work) each.run();
+        }
+
+        /** The pages given their buttons back, in order, through the page's own setter. */
+        final List<Object> shownAgain = new ArrayList<>();
+        Object failsToShow;
+
+        @Override
+        public void showButtons(Object page) {
+            if (page == failsToShow) throw new IllegalStateException("the page went away");
+            shownAgain.add(page);
+            // The setter the hook sits in, asked to show the buttons.
+            ReelClearMode.chrome(page, 1f, 0f);
+        }
     }
 
     private FakeViewer viewer;
@@ -465,7 +494,7 @@ public class ReelClearModeTest {
         assertFalse(ReelClearMode.waiting());
         assertTrue(HookStatus.report().toString(), kept(1));
         assertFalse("it wasn't carried to another reel", HookStatus.report().toString().contains(ReelClearMode.CARRIED));
-        assertEquals("back in clear mode, a reset keeps its buttons hidden", 0f, ReelClearMode.chrome(1f, 0f), 0f);
+        assertEquals("back in clear mode, a reset keeps its buttons hidden", 0f, ReelClearMode.chrome(new Object(), 1f, 0f), 0f);
 
         swipe(first, second);
         assertEquals("second OVERFLOW_MENU", viewer.turnedOn.get(2));
@@ -1010,53 +1039,199 @@ public class ReelClearModeTest {
     }
 
     /**
-     * Every reel page shares one alpha for its buttons, and Instagram resets it to shown when it
-     * binds a page at rest. While a reel you put in clear mode is in it, that reset keeps the alpha
-     * as it is. The fade out, a raise short of shown, a reel waiting for its turn and your own way
-     * out all go through (#233).
+     * Each reel page writes the alpha its buttons share, and Instagram resets it to shown when it
+     * binds a page, the next one ahead of a swipe included. While clear mode is wanted, any page
+     * keeping or raising its alpha is hidden instead, so the next reel never shows its buttons before
+     * its turn-on lands, waiting for it included (#233, #740). Instagram's fade out goes through, and
+     * off, paused, unready or after your own way out, Instagram's writes stand.
      */
     @Test
-    public void aResetToShownKeepsTheButtonsOfAReelInClearModeHidden() {
+    public void whileClearModeIsWantedEveryReelPageKeepsItsButtonsHidden() {
+        Object onScreen = new Object();
+        Object ahead = new Object();
         Reel first = reel("first");
         Reel second = reel("second");
         Reel third = reel("third");
-        assertEquals("before any turn-on, Instagram's reset stands", 1f, ReelClearMode.chrome(1f, 0f), 0f);
+        assertEquals("before any turn-on, Instagram's reset stands", 1f, ReelClearMode.chrome(onScreen, 1f, 0f), 0f);
+        assertEquals("and nothing is remembered", 0, ReelClearMode.hiddenPages());
 
         viewer.page = first;
         tapClearMode();
-        assertEquals("the fade out goes through", 0.4f, ReelClearMode.chrome(0.4f, 0.5f), 0f);
-        assertEquals("to its end", 0f, ReelClearMode.chrome(0f, 0.1f), 0f);
-        assertEquals("a reset to shown keeps the buttons hidden", 0f, ReelClearMode.chrome(1f, 0f), 0f);
-        assertEquals("or as far as the fade got", 0.3f, ReelClearMode.chrome(1f, 0.3f), 0f);
-        assertEquals("a raise short of shown goes through", 0.6f, ReelClearMode.chrome(0.6f, 0f), 0f);
-        assertEquals("shown stays shown", 1f, ReelClearMode.chrome(1f, 1f), 0f);
+        assertEquals("the fade out goes through", 0.4f, ReelClearMode.chrome(onScreen, 0.4f, 0.5f), 0f);
+        assertEquals("to its end", 0f, ReelClearMode.chrome(onScreen, 0f, 0.1f), 0f);
+        assertEquals("a reset to shown keeps the buttons hidden", 0f, ReelClearMode.chrome(onScreen, 1f, 0f), 0f);
+        assertEquals("so does a raise short of shown", 0f, ReelClearMode.chrome(onScreen, 0.6f, 0f), 0f);
+        assertEquals("the next page, bound shown ahead of the swipe, is hidden too", 0f, ReelClearMode.chrome(ahead, 1f, 1f), 0f);
+        assertEquals("both are remembered once", 2, ReelClearMode.hiddenPages());
 
         swipe(first, second);
-        assertEquals("the reel clear mode is carried to keeps it too", 0f, ReelClearMode.chrome(1f, 0f), 0f);
+        assertEquals("the reel clear mode is carried to keeps it", 0f, ReelClearMode.chrome(ahead, 1f, 0f), 0f);
 
-        // The pager still names the reel that left, so it waits for the next page, and no reel is in clear mode until then.
+        // The pager still names the reel that left, so it waits for the next page.
         ReelClearMode.left(viewer.handler, second, Reason.REELS_VIEWER_SWIPE_OR_EXIT);
         assertTrue(ReelClearMode.waiting());
-        assertEquals("nothing is held while the next reel waits", 1f, ReelClearMode.chrome(1f, 0f), 0f);
+        assertEquals("the buttons stay hidden while the next reel waits", 0f, ReelClearMode.chrome(onScreen, 1f, 0f), 0f);
         viewer.page = third;
         ReelClearMode.paged();
         viewer.runPosted();
-        assertEquals("and the reel it lands on keeps it", 0f, ReelClearMode.chrome(1f, 0f), 0f);
+        assertEquals("and the reel it lands on keeps it", 0f, ReelClearMode.chrome(onScreen, 1f, 0f), 0f);
 
         Settings.KEEP_REEL_CLEAR_MODE.save(false);
-        assertEquals("off, Instagram's reset stands", 1f, ReelClearMode.chrome(1f, 0f), 0f);
+        assertEquals("off, Instagram's reset stands", 1f, ReelClearMode.chrome(onScreen, 1f, 0f), 0f);
         Settings.KEEP_REEL_CLEAR_MODE.save(true);
         BaseSettings.PAUSED.save(true);
         PauseForTests.pause(HushgramPause.Reason.SWITCH);
-        assertEquals("paused, it stands", 1f, ReelClearMode.chrome(1f, 0f), 0f);
+        assertEquals("paused, it stands", 1f, ReelClearMode.chrome(onScreen, 1f, 0f), 0f);
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
-        SettingsContextRule.withoutContext(() -> assertEquals("unready, it stands", 1f, ReelClearMode.chrome(1f, 0f), 0f));
-        assertEquals("and is held again once on, resumed and ready", 0f, ReelClearMode.chrome(1f, 0f), 0f);
+        SettingsContextRule.withoutContext(() -> assertEquals("unready, it stands", 1f, ReelClearMode.chrome(onScreen, 1f, 0f), 0f));
+        assertEquals("and is held again once on, resumed and ready", 0f, ReelClearMode.chrome(onScreen, 1f, 0f), 0f);
 
         ReelClearMode.left(viewer.handler, third, Reason.EXIT_BUTTON);
-        assertEquals("leaving clear mode yourself, Instagram's fade back in goes through", 1f, ReelClearMode.chrome(1f, 0.9f), 0f);
-        assertEquals("and so does a reset", 1f, ReelClearMode.chrome(1f, 0f), 0f);
+        assertEquals("leaving clear mode yourself, Instagram's fade back in goes through", 1f, ReelClearMode.chrome(onScreen, 1f, 0.9f), 0f);
+        assertEquals("and so does a reset", 1f, ReelClearMode.chrome(onScreen, 1f, 0f), 0f);
+    }
+
+    /**
+     * Leaving clear mode yourself gives the pages hidden for it their buttons back a moment later,
+     * through each page's own setter, except a page Instagram wrote since, like the one its fade back
+     * in runs on, or one it hid itself (#740).
+     */
+    @Test
+    public void leavingClearModeGivesTheHiddenPagesTheirButtonsBack() {
+        Object onScreen = new Object();
+        Object ahead = new Object();
+        Object behind = new Object();
+        Object inClearMode = new Object();
+        Reel first = reel("first");
+        viewer.page = first;
+        tapClearMode();
+        for (Object page : Arrays.asList(onScreen, ahead, behind, inClearMode)) {
+            assertEquals(0f, ReelClearMode.chrome(page, 1f, 1f), 0f);
+        }
+        assertEquals("Instagram's own clear mode on a page is Instagram's", 0f, ReelClearMode.chrome(inClearMode, 0f, 0f), 0f);
+        assertEquals(3, ReelClearMode.hiddenPages());
+        assertTrue("nothing is put off while it's wanted", viewer.delayed.isEmpty());
+
+        ReelClearMode.left(viewer.handler, first, Reason.EXIT_BUTTON);
+        assertEquals("put off once", 1, viewer.delayed.size());
+        assertEquals(Long.valueOf(ReelClearMode.SHOW_AGAIN_MS), viewer.delays.get(0));
+        assertTrue("not right away", viewer.shownAgain.isEmpty());
+        assertEquals("Instagram's fade back in goes through", 0.5f, ReelClearMode.chrome(onScreen, 0.5f, 0f), 0f);
+
+        viewer.runDelayed();
+        assertEquals("the pages Instagram didn't write get their buttons back", Arrays.asList(ahead, behind), viewer.shownAgain);
+        assertEquals(0, ReelClearMode.hiddenPages());
+        assertTrue("and nothing more is put off", viewer.delayed.isEmpty());
+    }
+
+    /** Clear mode wanted again before the buttons come back keeps the pages hidden, until it isn't. */
+    @Test
+    public void clearModeWantedAgainBeforeTheButtonsComeBackKeepsThemHidden() {
+        Object ahead = new Object();
+        Reel first = reel("first");
+        viewer.page = first;
+        tapClearMode();
+        assertEquals(0f, ReelClearMode.chrome(ahead, 1f, 1f), 0f);
+        ReelClearMode.left(viewer.handler, first, Reason.EXIT_BUTTON);
+        ReelClearMode.left(viewer.handler, first, Reason.EXIT_BUTTON);
+        assertEquals("put off once however many times it's left", 1, viewer.delayed.size());
+
+        tapClearMode();
+        viewer.runDelayed();
+        assertTrue("wanted again, nothing comes back", viewer.shownAgain.isEmpty());
+        assertEquals("and the page stays remembered", 1, ReelClearMode.hiddenPages());
+
+        ReelClearMode.left(viewer.handler, first, Reason.EXIT_BUTTON);
+        viewer.runDelayed();
+        assertEquals(Collections.singletonList(ahead), viewer.shownAgain);
+    }
+
+    /**
+     * A wait for the next reel that nothing ends, no page, rest or button after it ran out, ends on
+     * its own just past the window, and the pages hidden for it get their buttons back (#740). A wait
+     * that ended in time leaves clear mode as it is.
+     */
+    @Test
+    public void aWaitNothingEndsGivesTheNextReelsTheirButtonsBack() {
+        Object ahead = new Object();
+        Reel first = reel("first");
+        Reel second = reel("second");
+        viewer.page = first;
+        tapClearMode();
+        ReelClearMode.left(viewer.handler, first, Reason.REELS_VIEWER_SWIPE_OR_EXIT);
+        assertTrue(ReelClearMode.waiting());
+        assertEquals(0f, ReelClearMode.chrome(ahead, 1f, 1f), 0f);
+        assertEquals("the end of the wait is put off", 1, viewer.delayed.size());
+        assertEquals(Long.valueOf(ReelClearMode.RETRY_WINDOW_MS + 1), viewer.delays.get(0));
+
+        viewer.now += ReelClearMode.RETRY_WINDOW_MS + 1;
+        viewer.runDelayed();
+        assertFalse("it ran out", ReelClearMode.wanted());
+        assertFalse(ReelClearMode.waiting());
+        viewer.runDelayed();
+        assertEquals(Collections.singletonList(ahead), viewer.shownAgain);
+
+        // Wanted again, and this wait ends in time with the next reel in clear mode.
+        viewer.shownAgain.clear();
+        tapClearMode();
+        ReelClearMode.left(viewer.handler, first, Reason.REELS_VIEWER_SWIPE_OR_EXIT);
+        assertTrue(ReelClearMode.waiting());
+        viewer.page = second;
+        ReelClearMode.paged();
+        viewer.runPosted();
+        assertFalse(ReelClearMode.waiting());
+        viewer.now += ReelClearMode.RETRY_WINDOW_MS + 1;
+        viewer.runDelayed();
+        assertTrue("a wait that ended leaves it wanted", ReelClearMode.wanted());
+        assertTrue(viewer.shownAgain.isEmpty());
+    }
+
+    /**
+     * A Reels viewer set up while clear mode is wanted in another one shows its reels' buttons: the
+     * clear mode went with the viewer it was in (#740). The same viewer set up again keeps it.
+     */
+    @Test
+    public void anotherViewerWhileClearModeIsWantedShowsItsReelsButtons() {
+        Object ahead = new Object();
+        Reel first = reel("first");
+        viewer.page = first;
+        ReelClearMode.ready(viewer.handler);
+        tapClearMode();
+        assertEquals(0f, ReelClearMode.chrome(ahead, 1f, 1f), 0f);
+
+        ReelClearMode.ready(viewer.handler);
+        assertTrue("the same viewer keeps it", ReelClearMode.wanted());
+        assertTrue(viewer.delayed.isEmpty());
+
+        ReelClearMode.ready(new Object());
+        assertFalse("another viewer doesn't", ReelClearMode.wanted());
+        assertEquals(1f, ReelClearMode.chrome(new Object(), 1f, 1f), 0f);
+        viewer.runDelayed();
+        assertEquals(Collections.singletonList(ahead), viewer.shownAgain);
+    }
+
+    /** At most HIDDEN_PAGES pages are remembered, the oldest going first, and one that fails is skipped. */
+    @Test
+    public void hiddenPagesAreCappedAndOneThatFailsIsSkipped() {
+        Reel first = reel("first");
+        viewer.page = first;
+        tapClearMode();
+        List<Object> pages = new ArrayList<>();
+        for (int i = 0; i <= ReelClearMode.HIDDEN_PAGES; i++) {
+            Object page = new Object();
+            pages.add(page);
+            assertEquals(0f, ReelClearMode.chrome(page, 1f, 1f), 0f);
+        }
+        assertEquals(ReelClearMode.HIDDEN_PAGES, ReelClearMode.hiddenPages());
+
+        viewer.failsToShow = pages.get(1);
+        ReelClearMode.left(viewer.handler, first, Reason.EXIT_BUTTON);
+        viewer.runDelayed();
+        List<Object> expected = new ArrayList<>(pages.subList(2, pages.size()));
+        assertEquals("the oldest went, and the one that failed is skipped", expected, viewer.shownAgain);
+        assertTrue(reported("clear mode buttons back"));
+        assertEquals(0, ReelClearMode.hiddenPages());
     }
 
     private static boolean started(int times) {

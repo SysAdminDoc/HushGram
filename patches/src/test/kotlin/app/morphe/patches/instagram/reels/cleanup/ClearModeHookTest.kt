@@ -94,6 +94,7 @@ class ClearModeHookTest {
         val stubs = listOf(
             "$CLEAR_MODE_ENTER_STUB($anyType$anyType)V", "$CLEAR_MODE_ID_STUB($anyType)$stringType",
             "$CLEAR_MODE_ACTION_STUB($anyType)$anyType", "$CLEAR_MODE_SET_ACTION_STUB($anyType$anyType)V",
+            "${CLEAR_MODE_CHROME_STUB}(${anyType}F)V",
         )
         for (signature in hooks.map { it.substringAfter("->") } + stubs) {
             assertTrue("$signature is not in the extension: $declared", signature in declared)
@@ -263,14 +264,14 @@ class ClearModeHookTest {
         assertEquals("the scrubber isn't what a yes builds", scrubberChild, scrubberRow[asks + 3].type())
         assertEquals("the thumb's test was hooked", 1, scrubberRow.count { it.referenceText() == CLEAR_MODE_SCRUBBER })
 
-        // The chrome setter: the alpha asked for and the one it holds, right after reading that one,
-        // and the answer goes where the asked one was, ahead of Instagram's own compare and store.
+        // The chrome setter: the holder, the alpha asked for and the one it holds, right after reading
+        // that one, and the answer goes where the asked one was, ahead of Instagram's own compare and store.
         val chrome = context.method(holder, "updateChrome")
         val holds = chrome.indexOfFirst { it.referenceText() == CLEAR_MODE_CHROME_ALPHA }
         assertEquals("the held alpha isn't read just before", floatValue, chrome[holds - 2].referenceText())
         assertEquals(Opcode.MOVE_RESULT, chrome[holds - 1].opcode)
         // Three locals, then this and the alpha asked for.
-        assertCall("the chrome setter's hook", chrome[holds], CLEAR_MODE_CHROME_ALPHA, listOf(4, 1))
+        assertCall("the chrome setter's hook", chrome[holds], CLEAR_MODE_CHROME_ALPHA, listOf(3, 4, 1))
         assertEquals(Opcode.MOVE_RESULT, chrome[holds + 1].opcode)
         assertEquals("the answer goes where the asked alpha was", 4, (chrome[holds + 1] as OneRegisterInstruction).registerA)
         assertEquals("the lock isn't read next", "$holder->locked:$function0", chrome[holds + 2].referenceText())
@@ -301,6 +302,15 @@ class ClearModeHookTest {
         )
         assertEquals(item, reelId[0].type())
         assertEquals("$item->getId()$stringType", reelId[1].referenceText())
+        // The extension gives a holder its buttons back through the holder's own setter (#740).
+        val setChrome = context.method(CLEAR_MODE, CLEAR_MODE_CHROME_STUB)
+        assertEquals(
+            listOf(Opcode.CHECK_CAST, Opcode.INVOKE_VIRTUAL, Opcode.RETURN_VOID),
+            setChrome.take(3).map { it.opcode },
+        )
+        assertEquals(holder, setChrome[0].type())
+        assertEquals("$holder->updateChrome(F)V", setChrome[1].referenceText())
+        assertEquals("the holder and the alpha go in", listOf(0, 1), setChrome[1].registers())
         // With a turn-on to hook, the action stays as Instagram set it.
         for (stub in listOf(CLEAR_MODE_ACTION_STUB, CLEAR_MODE_SET_ACTION_STUB)) {
             assertTrue("$stub was filled", context.method(CLEAR_MODE, stub).none { it.opcode == Opcode.CHECK_CAST })
@@ -393,6 +403,9 @@ class ClearModeHookTest {
             Shape(jumpToHold = true) to "jumps past its read of the alpha it holds",
             Shape(alphaHigh = true) to "keeps the alphas in v18 and v1, which the hook's call can't name",
             Shape(askedOverwritten = true) to "ReelHolder;->updateChrome writes over parameter 0",
+            Shape(holderOverwritten = true) to "ReelHolder;->updateChrome writes over this",
+            Shape(chromePublic = false) to "isn't public, so the extension can't give a reel its buttons back",
+            Shape(holderPublic = false) to "isn't public, so the extension can't give a reel its buttons back",
             Shape(alphaStored = false) to "doesn't store the alpha it was asked for",
             Shape(scrollStates = 0) to "expected one method marked $REEL_SCROLL_STATE, found 0",
             Shape(scrollStates = 2) to "expected one method marked $REEL_SCROLL_STATE, found 2",
@@ -424,7 +437,7 @@ class ClearModeHookTest {
             val written = context.written(classes)
             assertTrue("$expected: something was written to $written", written.isEmpty())
             val stubs = context.classDefBy(CLEAR_MODE).methods.filter {
-                it.name in setOf(CLEAR_MODE_ENTER_STUB, CLEAR_MODE_ID_STUB, CLEAR_MODE_ACTION_STUB, CLEAR_MODE_SET_ACTION_STUB)
+                it.name in setOf(CLEAR_MODE_ENTER_STUB, CLEAR_MODE_ID_STUB, CLEAR_MODE_ACTION_STUB, CLEAR_MODE_SET_ACTION_STUB, CLEAR_MODE_CHROME_STUB)
             }
             assertTrue("$expected: a stub was filled", stubs.none { stub -> stub.code().any { it.opcode == Opcode.CHECK_CAST } })
         }
@@ -871,9 +884,19 @@ class ClearModeHookTest {
         assertEquals("$name: the held alpha is kept", Opcode.MOVE_RESULT, newChrome[holds - 1].opcode)
         val heldAlpha = (newChrome[holds - 1] as OneRegisterInstruction).registerA
         val askedAlpha = chrome.implementation!!.registerCount - 1
-        assertEquals("$name: the hook hands over the asked alpha and the held one", listOf(askedAlpha, heldAlpha), newChrome[holds].registers())
+        assertEquals(
+            "$name: the hook hands over the holder, the asked alpha and the held one",
+            listOf(askedAlpha - 1, askedAlpha, heldAlpha), newChrome[holds].registers(),
+        )
         assertEquals("$name: the answer is kept", Opcode.MOVE_RESULT, newChrome[holds + 1].opcode)
         assertEquals("$name: the answer goes where the asked alpha was", askedAlpha, (newChrome[holds + 1] as OneRegisterInstruction).registerA)
+        // The extension reaches that same setter to give a holder its buttons back (#740).
+        val setChrome = context.method(CLEAR_MODE, CLEAR_MODE_CHROME_STUB)
+        assertEquals("$name: the chrome stub casts to the holder", chrome.definingClass, setChrome[0].type())
+        assertEquals(
+            "$name: the chrome stub calls the holder's setter",
+            "${chrome.definingClass}->${chrome.name}(F)V", setChrome[1].referenceText(),
+        )
 
         // The scroll state change: the pager it just read and the state, right after the read.
         val newScrolled = after(scrolled)
@@ -985,6 +1008,9 @@ class ClearModeHookTest {
         val chromeTakesAlpha: Boolean = true,
         val chromeStatic: Boolean = false,
         val chromeReturns: String = "V",
+        val chromePublic: Boolean = true,
+        val holderPublic: Boolean = true,
+        val holderOverwritten: Boolean = false,
         val chromeEndsAtRead: Boolean = false,
         val alphaReads: Int = 1,
         val alphaKept: Boolean = true,
@@ -1400,6 +1426,7 @@ class ClearModeHookTest {
             invoke-static { v0 }, $purge
             ${if (shape.askedOverwritten) "const/4 p1, 0x0" else ""}
             iget-object v2, $holderSelf, $holder->alpha:$cell
+            ${if (shape.holderOverwritten) "move-object p0, v2" else ""}
             ${if (shape.jumpToHold) "if-eqz v2, :hold" else ""}
             ${alphaRead.repeat(shape.alphaReads)}
             ${if (shape.alphaReads == 0) "iget v1, v2, $cell->raw:F" else ""}
@@ -1430,7 +1457,8 @@ class ClearModeHookTest {
             shape.chromeEndsAtRead -> chromeMarked + "iget-object v2, p0, $holder->alpha:$cell\n" + alphaRead
             else -> fullChrome
         }
-        val chromeFlags = AccessFlags.PUBLIC.value or (if (shape.chromeStatic) AccessFlags.STATIC.value else AccessFlags.FINAL.value)
+        val chromeFlags = (if (shape.chromePublic) AccessFlags.PUBLIC.value else 0) or
+            (if (shape.chromeStatic) AccessFlags.STATIC.value else AccessFlags.FINAL.value)
         val chromes = (0 until maxOf(shape.chromes, 1)).map { copy ->
             method(
                 holder, if (copy == 0) "updateChrome" else "updateChromeAgain",
@@ -1438,7 +1466,12 @@ class ClearModeHookTest {
                 chromeFlags,
             )
         }
-        val holderClass = classDef(holder, chromes, fields = listOf(field(holder, "alpha", cell), field(holder, "locked", function0)))
+        val holderFields = listOf(field(holder, "alpha", cell), field(holder, "locked", function0))
+        val holderClass = if (shape.holderPublic) {
+            classDef(holder, chromes, fields = holderFields)
+        } else {
+            ImmutableClassDef(holder, AccessFlags.FINAL.value, "Ljava/lang/Object;", null, null, null, holderFields, chromes)
+        }
 
         val extension = if (shape.stubs) {
             ExtensionDex.classDef(CLEAR_MODE)

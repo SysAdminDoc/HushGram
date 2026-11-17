@@ -56,7 +56,7 @@ internal const val CLEAR_MODE_CURRENT = "$CLEAR_MODE->current(Ljava/lang/Object;
 internal const val CLEAR_MODE_PAGED = "$CLEAR_MODE->paged()V"
 internal const val CLEAR_MODE_BUILT = "$CLEAR_MODE->built(Ljava/lang/Object;)V"
 internal const val CLEAR_MODE_SCRUBBER = "$CLEAR_MODE->scrubber(II)Z"
-internal const val CLEAR_MODE_CHROME_ALPHA = "$CLEAR_MODE->chrome(FF)F"
+internal const val CLEAR_MODE_CHROME_ALPHA = "$CLEAR_MODE->chrome(Ljava/lang/Object;FF)F"
 internal const val CLEAR_MODE_SETTLED = "$CLEAR_MODE->settled(Ljava/lang/Object;Ljava/lang/Object;)V"
 internal const val CLEAR_MODE_READY = "$CLEAR_MODE->ready(Ljava/lang/Object;)V"
 internal const val CLEAR_MODE_QUIET = "$CLEAR_MODE->quiet()Z"
@@ -64,6 +64,7 @@ internal const val CLEAR_MODE_ENTER_STUB = "enter"
 internal const val CLEAR_MODE_ID_STUB = "reelId"
 internal const val CLEAR_MODE_ACTION_STUB = "turnOnAction"
 internal const val CLEAR_MODE_SET_ACTION_STUB = "setTurnOnAction"
+internal const val CLEAR_MODE_CHROME_STUB = "setChrome"
 
 /**
  * The markers, after Instagram's release prefix, of the methods Keep clear mode on changes.
@@ -348,7 +349,7 @@ private fun BytecodePatchContext.findClearModeByMarkers(holders: Set<String>): C
     val rowSite = ClearModeRow(row, scrubber, shown, borrowed, rowState.describe(), reelState.describe(), flag.describe())
 
     val chrome = single(CLEAR_MODE_CHROME)
-    val (hold, alpha) = chrome.chromeSetter("marked $CLEAR_MODE_CHROME")
+    val (hold, alpha) = chromeSetter(chrome, "marked $CLEAR_MODE_CHROME")
 
     val scrolled = single(REEL_SCROLL_STATE)
     val (settle, pager, scrollState) = scrollStateChange(scrolled, "marked $REEL_SCROLL_STATE")
@@ -420,7 +421,7 @@ private fun BytecodePatchContext.findClearModeByAnchors(): ClearModeHooks {
     }
     val chrome = setters.singleOrNull()
         ?: stop("${enabled.describe()} tells reel holders with ${setters.size} alpha setters by type, expected one")
-    val (hold, alpha) = chrome.chromeSetter("the holder ${enabled.describe()} tells by type")
+    val (hold, alpha) = chromeSetter(chrome, "the holder ${enabled.describe()} tells by type")
 
     val paged = traced(REEL_PAGE_SELECTED_TRACE)
     paged.requirePageReport("loading \"$REEL_PAGE_SELECTED_TRACE\"")
@@ -617,17 +618,21 @@ private fun BytecodePatchContext.reelStateNames(): Map<String, Method> =
     }.associateBy { it.definingClass }
 
 /**
- * The reel holder's chrome alpha setter, found [how]: an instance method taking the alpha, which
- * reads the alpha it holds once, compares and stores the asked one. The hook goes right after the
- * read, where both are in hand, and answers the alpha to store in the asked one's register. Answers
- * that index and the register the held alpha is in.
+ * The reel holder's chrome alpha setter, found [how]: a public instance method of a public class,
+ * taking the alpha, which reads the alpha it holds once, compares and stores the asked one. The hook
+ * goes right after the read, where the holder and both alphas are in hand, and answers the alpha to
+ * store in the asked one's register. The extension calls the setter itself to give a holder its
+ * buttons back (#740), so it has to reach it. Answers that index and the register the held alpha is in.
  */
-private fun Method.chromeSetter(how: String): Pair<Int, Int> {
-    val chrome = this
+private fun BytecodePatchContext.chromeSetter(chrome: Method, how: String): Pair<Int, Int> {
     if (chrome.isStatic() || chrome.returnType != "V" || chrome.parameterTypes.map(Any::toString) != listOf("F") ||
         chrome.implementation == null
     ) {
         stop("${chrome.describe()}, $how, isn't an instance method taking the alpha")
+    }
+    val holder = classDefByOrNull(chrome.definingClass) ?: stop("${chrome.describe()}, $how, isn't in the app")
+    if (!AccessFlags.PUBLIC.isSet(holder.accessFlags) || !AccessFlags.PUBLIC.isSet(chrome.accessFlags)) {
+        stop("${chrome.describe()}, $how, isn't public, so the extension can't give a reel its buttons back")
     }
     val chromeCode = chrome.body()
     val heldReads = chromeCode.indices.filter { at ->
@@ -645,6 +650,7 @@ private fun Method.chromeSetter(how: String): Pair<Int, Int> {
     val alpha = heldKept.registerA
     if (asked > 15 || alpha > 15) stop("${chrome.describe()} keeps the alphas in v$asked and v$alpha, which the hook's call can't name")
     chrome.requireParameterIntact(KEEP, 0, listOf(hold))
+    chrome.requireThisIntact(KEEP, listOf(hold))
     val stored = (hold until chromeCode.size).any { at ->
         val call = chromeCode[at].methodReference()
         call?.definingClass == FLOAT && call.name == "valueOf" && call.parameterTypes.map(Any::toString) == listOf("F") &&
@@ -950,11 +956,12 @@ internal fun BytecodePatchContext.applyClearMode(found: ClearModeHooks) {
             """,
         )
     }
-    // The alpha asked for and the one held go in, and what comes back is what Instagram compares and stores.
+    // The holder, the alpha asked for and the one held go in, and what comes back is what Instagram
+    // compares and stores.
     chrome.addInstructions(
         found.hold,
         """
-            invoke-static { p1, v${found.alpha} }, $CLEAR_MODE_CHROME_ALPHA
+            invoke-static { p0, p1, v${found.alpha} }, $CLEAR_MODE_CHROME_ALPHA
             move-result p1
         """,
     )
@@ -977,8 +984,20 @@ internal class ClearModeStubs(
     val reelId: MutableMethod,
     val action: MutableMethod,
     val setAction: MutableMethod,
+    val chrome: MutableMethod,
 ) {
     fun fill(found: ClearModeHooks) {
+        // The reel holder's own alpha setter, which the hook in it hears, so a holder hidden for clear
+        // mode gets its buttons back the way Instagram would show them (#740).
+        val setter = found.chrome
+        chrome.addInstructions(
+            0,
+            """
+                check-cast p0, ${setter.definingClass}
+                invoke-virtual { p0, p1 }, ${setter.definingClass}->${setter.name}(F)V
+                return-void
+            """,
+        )
         val enable = found.enable
         if (enable != null) {
             enter.addInstructions(
@@ -1044,6 +1063,7 @@ internal fun BytecodePatchContext.clearModeStubs(): ClearModeStubs {
         reelId = stub(CLEAR_MODE_ID_STUB, listOf(OBJECT), STRING),
         action = stub(CLEAR_MODE_ACTION_STUB, listOf(OBJECT), OBJECT),
         setAction = stub(CLEAR_MODE_SET_ACTION_STUB, listOf(OBJECT, OBJECT), "V"),
+        chrome = stub(CLEAR_MODE_CHROME_STUB, listOf(OBJECT, "F"), "V"),
     )
 }
 
