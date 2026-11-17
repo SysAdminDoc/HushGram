@@ -12,7 +12,6 @@ import app.morphe.patches.instagram.direct.seen.NativeThreadSeenTest.Companion.t
 import app.morphe.patches.instagram.direct.seen.NativeVisualSeenTest.Companion.fixtures
 import app.morphe.patches.instagram.direct.seen.NativeVisualSeenTest.Companion.otherBuilds
 import com.android.tools.smali.dexlib2.Opcode
-import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import org.junit.Assert.assertEquals
@@ -29,14 +28,11 @@ class NativeReplySeenTest {
 
     private fun check(bundle: File) {
         val classes = threadClasses(bundle).toMutableMap()
-        val composers = mutableMapOf<String, ClassDef>()
-        FixtureDex.forEach(bundle) { dex ->
-            for (candidate in dex.classes) {
-                if (candidate.methods.any { it.isComposerSend() }) composers[candidate.type] = ImmutableClassDef.of(candidate)
-            }
-        }
+        // Some builds ask a Redex pool for the send's name, so the slice takes the pool too.
+        val loading = FixtureDex.classesLoading(bundle, "direct_composer_send_text")
+        val composers = loading.filter { candidate -> candidate.methods.any { it.isComposerSend() } }.associateBy { it.type }
         assertEquals("one class has the composer's send", 1, composers.size)
-        classes += composers
+        classes += loading.associateBy { it.type }
         val send = composers.values.single().methods.single { it.isComposerSend() }
         // The static call reading the thread id, its class and the chat handle's.
         val needs = mutableSetOf<String>()
@@ -77,6 +73,6 @@ class NativeReplySeenTest {
     private companion object {
         fun com.android.tools.smali.dexlib2.iface.Method.isComposerSend() =
             returnType == "Z" && parameterTypes.map(Any::toString) == listOf("Landroid/text/Editable;", "Ljava/lang/Long;", "Ljava/lang/String;") &&
-                visualCode().any { it.visualString() == "direct_composer_send_text" }
+                visualCode().any { it.visualString() == "direct_schedule_message" }
     }
 }

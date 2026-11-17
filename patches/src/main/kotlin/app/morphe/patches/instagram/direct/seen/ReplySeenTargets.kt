@@ -4,13 +4,13 @@
  */
 package app.morphe.patches.instagram.direct.seen
 
-import app.morphe.patcher.Fingerprint
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.patch.BytecodePatchContext
-import app.morphe.patcher.string
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
+import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.freeLocalsAt
 import app.morphe.patches.instagram.misc.extension.loadsConstString
+import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
 import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
 import app.morphe.patches.instagram.misc.extension.requireThisIntact
@@ -37,16 +37,18 @@ private const val COMPOSER_SEND = "direct_composer_send_text"
 private const val COMPOSER_SCHEDULE = "direct_schedule_message"
 private const val OPEN_THREAD = "open_thread_id"
 
-/** The composer's send: takes the typed text, a time and a string, answers whether it went. */
-internal object ComposerSendFingerprint : Fingerprint(
-    returnType = "Z",
-    filters = listOf(string(COMPOSER_SEND)),
-    custom = { method, _ ->
-        !AccessFlags.STATIC.isSet(method.accessFlags) &&
+/**
+ * The composer's send: takes the typed text, a time and a string, answers whether it went. Redex
+ * pools the send's name on some 456 builds (386214562 asks `LX/0000;->A00(I)` for it), so the send
+ * is found among that string's loaders, pooled or not.
+ */
+private fun BytecodePatchContext.composerSends(): List<Method> = classesLoadingString(COMPOSER_SEND).flatMap { owner ->
+    owner.methods.filter { method ->
+        !AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "Z" &&
             method.parameterTypes.map(Any::toString) == listOf(EDITABLE, LONG_TYPE, STRING) &&
-            method.loadsConstString(COMPOSER_SCHEDULE)
-    },
-)
+            method.loadsConstString(COMPOSER_SCHEDULE) && loadsString(method, COMPOSER_SEND)
+    }
+}
 
 /** What Mark a chat seen when you reply needs from this build, resolved before any edit. */
 internal data class ReplySeenTargets(
@@ -77,14 +79,15 @@ private fun ClassDef.publicClass() = AccessFlags.PUBLIC.isSet(accessFlags)
  * Throws when two methods answer for the composer.
  */
 internal fun BytecodePatchContext.findReplySeen(seen: ThreadSeenTargets): ReplySeenTargets? {
-    val matches = ComposerSendFingerprint.matchAllOrNull().orEmpty()
+    val matches = composerSends()
     if (matches.isEmpty()) return null
     if (matches.size != 1) {
         throw app.morphe.patcher.patch.PatchException(
-            "$THREAD_SEEN_PATCH: expected one composer send, found ${matches.joinToString { it.originalMethod.definingClass }}",
+            "$THREAD_SEEN_PATCH: expected one composer send, found ${matches.joinToString { it.definingClass }}",
         )
     }
-    val send = matches.single().method
+    val found = matches.single()
+    val send = mutableClassDefBy(found.definingClass).methods.single { it.key() == found.key() }
     val classes = HashMap<String, ClassDef>()
     classDefForEach { classes[it.type] = it }
     val owner = classes[send.definingClass] ?: return null
