@@ -75,6 +75,23 @@ class LargerPhotosHookTest {
         assertEquals("the parts' register", 4, (report.code().single { it.referenceText() == SCREEN } as RegisterRangeInstruction).startRegister)
     }
 
+    /**
+     * A picker handing the sizes on to one taking functions is found by the cast back to its own
+     * answer, a size on 455 and the ImageUrl a size is on 456, and gets the same hook. One casting to
+     * anything else isn't the picker.
+     */
+    @Test
+    fun aPickerHandingTheSizesOnIsFoundByItsOwnAnswer() {
+        for (answers in listOf(EXTENDED_IMAGE_URL, IMAGE_URL)) {
+            val context = PatchContexts.of(listOf(classDef(pickerType, listOf(handingOn(answers, answers))), classDef(reportType, listOf(report()))))
+            askForLarger(context.findLargerSizes())
+            assertPickerHooked(answers, context.mutableClassDefBy(pickerType).methods.single())
+        }
+        val context = PatchContexts.of(listOf(classDef(pickerType, listOf(handingOn(IMAGE_URL, EXTENDED_IMAGE_URL))), classDef(reportType, listOf(report()))))
+        val failure = assertThrows(PatchException::class.java) { context.findLargerSizes() }
+        assertTrue(failure.message, failure.message!!.contains("expected exactly one size picker"))
+    }
+
     /** A build the patch can't read fails at patch time, saying what it found, before anything is written. */
     @Test
     fun aBuildThePatchCantReadFailsBeforeAnythingChanges() {
@@ -228,7 +245,7 @@ class LargerPhotosHookTest {
             for (classDef in dex.classes) {
                 val holds = classDef.type == IG_IMAGE_VIEW || classDef.methods.any { method ->
                     method.code().any { it.string() == SCREEN_FORMAT } ||
-                        (method.returnType == EXTENDED_IMAGE_URL && method.parameterTypes.map(CharSequence::toString) == pickerParameters)
+                        (method.returnType in PICKED_SIZE_TYPES && method.parameterTypes.map(CharSequence::toString) == pickerParameters)
                 }
                 if (holds) holders += ImmutableClassDef.of(classDef)
             }
@@ -320,6 +337,27 @@ class LargerPhotosHookTest {
             invoke-virtual { v1 }, $EXTENDED_IMAGE_URL->getWidth()I
             move-result v2
             return-object v1
+        """,
+    )
+
+    /**
+     * A size picker shaped like Instagram 455's and 456's: it hands the mode, the sizes, two
+     * functions and the width on to a picker taking functions, and casts that one's answer to
+     * [cast], answering [answers].
+     */
+    private fun handingOn(answers: String, cast: String): Method = method(
+        pickerType, "pick", pickerParameters, answers, locals = 6,
+        """
+            sget-object v0, Lfixture/FunctionPicker;->A00:Lfixture/FunctionPicker;
+            const/4 v3, 0x0
+            move-object v1, v6
+            move-object v2, v7
+            move-object v4, v3
+            move v5, v8
+            invoke-virtual/range { v0 .. v5 }, Lfixture/FunctionPicker;->pick(Ljava/lang/Integer;Ljava/util/List;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;I)Ljava/lang/Object;
+            move-result-object v0
+            check-cast v0, $cast
+            return-object v0
         """,
     )
 
