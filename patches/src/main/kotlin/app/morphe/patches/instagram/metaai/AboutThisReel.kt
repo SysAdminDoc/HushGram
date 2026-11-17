@@ -12,7 +12,7 @@ import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesCalling
 import app.morphe.patches.instagram.misc.extension.classesHolding
 import app.morphe.patches.instagram.misc.extension.classesLoading
-import app.morphe.patches.instagram.misc.extension.typesMarked
+import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
@@ -45,8 +45,11 @@ private const val VIEW = "Landroid/view/View;"
 private const val ADD_VIEW = "Landroid/view/ViewGroup;->addView(Landroid/view/View;)V"
 private val MOVES = setOf(Opcode.MOVE_OBJECT, Opcode.MOVE_OBJECT_FROM16, Opcode.MOVE_OBJECT_16)
 
-/** The purge marker only the Reels viewer's More menu (ClipsOrganicMediaItemViewMoreOptionsController) holds. */
-internal const val REELS_MENU_MARKER = "hasAiDiscoveryMenu"
+/**
+ * The name the Reels viewer's More menu logs itself under, which only its own class loads (`LX/09IW;`
+ * on 456's 386214574). 456 dropped the hasAiDiscoveryMenu purge marker the patch knew it by.
+ */
+internal const val REELS_MENU_NAME = "ClipsOrganicMediaItemViewMoreOptionsController"
 
 private const val USER_SESSION = "Lcom/instagram/common/session/UserSession;"
 private val FACTORY_PARAMETERS = listOf(USER_SESSION, "Ljava/lang/String;", "Z", "Z")
@@ -71,8 +74,8 @@ internal class AboutSummary(val factory: String, val calls: List<SummaryCall>)
  * menu that asks then leaves the whole block out.
  *
  * The factory is the one such method that loads [SUMMARY_FLAG]. Each call has to take its answer
- * with a move-result-object, and the Reels viewer's More menu (the class holding the
- * [REELS_MENU_MARKER] purge marker) has to be among the callers, or the patch fails.
+ * with a move-result-object, and the Reels viewer's More menu (the class loading
+ * [REELS_MENU_NAME]) has to be among the callers, or the patch fails.
  */
 internal fun BytecodePatchContext.findAboutSummaryCalls(): AboutSummary {
     val factories = classesLoading(SUMMARY_FLAG).flatMap { classDef ->
@@ -84,7 +87,7 @@ internal fun BytecodePatchContext.findAboutSummaryCalls(): AboutSummary {
     }
     val (type, factory) = factories.singleOrNull() ?: refuseAbout("${factories.size} About this reel summary factories, not one")
     val reference = "$type->${factory.name}(${FACTORY_PARAMETERS.joinToString("")})$type"
-    val reelsMenus = typesMarked(REELS_MENU_MARKER)
+    val reelsMenus = classesLoadingString(REELS_MENU_NAME).map { it.type }.toSet()
     var reelsMenuAsks = false
     val calls = classesCalling(type, factory.name).flatMap { classDef ->
         classDef.methods.flatMap { method ->
@@ -138,9 +141,10 @@ internal class AskBoxSite(val type: String, val name: String, val parameters: Li
 /**
  * The summary row's binder (the one method holding [SUMMARY_ROW_STRINGS] that creates a
  * [COMPOSER_LAMBDA]) inflates the Ask Meta AI box, hands it to that lambda as its first View, and
- * adds it to the row with the method's one `ViewGroup.addView(View)`. The box the lambda gets and
- * the view that call adds have to be the same register, with nothing written to it between the
- * copy the lambda took and the add, or the patch fails.
+ * adds it to the row with a `ViewGroup.addView(View)`, the one of the method's that hands on a
+ * register the lambda's copy came from (456 adds two other views that way, `LX/0XXj;->A04` on
+ * 386214574). The box the lambda gets and the view that call adds have to be the same register,
+ * with nothing written to it between the copy the lambda took and the add, or the patch fails.
  */
 internal fun BytecodePatchContext.findAskMetaAiBox(): AskBoxSite {
     val binders = classesHolding(*SUMMARY_ROW_STRINGS.toTypedArray()).flatMap { classDef ->
@@ -164,10 +168,14 @@ internal fun BytecodePatchContext.findAskMetaAiBox(): AskBoxSite {
     // The receiver takes the first register, and a long or double takes two.
     val slot = 1 + parameters.take(viewAt).sumOf { if (it == "J" || it == "D") 2 else 1 }
     val copies = copiesOf(code, constructor, code[constructor].arguments()[slot])
-    val adds = code.indices.filter { code[it].methodReference()?.toString() == ADD_VIEW }
-    val add = adds.singleOrNull() ?: refuseAbout("$where adds ${adds.size} views without layout params, not one")
-    val added = code[add].arguments().getOrNull(1).takeIf { code[add].opcode == Opcode.INVOKE_VIRTUAL }
-    val (box, copied) = copies.firstOrNull { it.first == added } ?: refuseAbout("$where adds some other view than the Ask Meta AI box")
+    val adds = code.indices.filter { code[it].methodReference()?.toString() == ADD_VIEW }.mapNotNull { add ->
+        val added = code[add].arguments().getOrNull(1).takeIf { code[add].opcode == Opcode.INVOKE_VIRTUAL }
+        copies.firstOrNull { it.first == added }?.let { add to it }
+    }
+    if (adds.isEmpty()) refuseAbout("$where adds some other view than the Ask Meta AI box")
+    val (add, held) = adds.singleOrNull()
+        ?: refuseAbout("$where adds ${adds.size} views without layout params from the Ask Meta AI box's registers, not one")
+    val (box, copied) = held
     if ((minOf(copied, add) + 1 until maxOf(copied, add)).any { code[it].writes(box) }) {
         refuseAbout("$where puts something else in the Ask Meta AI box's register before adding it")
     }

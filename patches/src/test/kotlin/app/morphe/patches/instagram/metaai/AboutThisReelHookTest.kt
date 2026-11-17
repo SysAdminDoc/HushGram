@@ -127,7 +127,18 @@ class AboutThisReelHookTest {
         assertBoxHeld(SUMMARY_ROW, context.mutableClassDefBy(SUMMARY_ROW).methods.single { it.name == "A04" }, BOX)
     }
 
-    /** A second addView means the patch can't tell which one adds the box. */
+    /** Other views the row adds without layout params, as 456's does, keep their addView. */
+    @Test
+    fun otherViewsTheRowAddsKeepTheirAdd() {
+        val context = PatchContexts.of(listOf(summaryRow(SUMMARY_ROW, adds = listOf(BOX + 1, BOX, BOX + 2))))
+
+        val site = context.findAskMetaAiBox()
+        context.holdAskMetaAiBox(site)
+
+        assertBoxHeld(SUMMARY_ROW, context.mutableClassDefBy(SUMMARY_ROW).methods.single { it.name == "A04" }, BOX, othersLeft = 2)
+    }
+
+    /** A second addView of the box means the patch can't tell which one adds it. */
     @Test
     fun twoAddViewsFailThePatch() {
         val context = PatchContexts.of(listOf(summaryRow(SUMMARY_ROW, adds = listOf(BOX, BOX))))
@@ -220,6 +231,7 @@ class AboutThisReelHookTest {
             it.name == site.name && it.parameterTypes.map(CharSequence::toString) == site.parameters
         }
         val box = (row.instructions()[site.addView] as FiveRegisterInstruction).registerD
+        val others = row.instructions().count { (it as? ReferenceInstruction)?.reference?.toString() == ADD_VIEW_REFERENCE } - 1
 
         context.dropAboutSummary(summary)
         context.holdAskMetaAiBox(site)
@@ -231,7 +243,7 @@ class AboutThisReelHookTest {
             val count = summary.calls.count { Triple(it.type, it.name, it.parameters) == call }
             assertPassedThrough("$label ${call.first}->${call.second}", method, count, summary.factory)
         }
-        assertBoxHeld("$label ${site.type}->${site.name}", row, box)
+        assertBoxHeld("$label ${site.type}->${site.name}", row, box, others)
     }
 
     /** Each ask's move-result is followed by the hook on its register, the answer back in it, and the cast to the factory's class. */
@@ -260,11 +272,11 @@ class AboutThisReelHookTest {
         assertTrue("refused for another reason: ${refusal.message}", refusal.message.orEmpty().contains(reason))
     }
 
-    /** No addView of the box is left, and the one hook call in its place takes the same row and the same box. */
-    private fun assertBoxHeld(what: String, method: Method, box: Int) {
+    /** Only the other views' addViews are left, and the one hook call in place of the box's takes the same row and the same box. */
+    private fun assertBoxHeld(what: String, method: Method, box: Int, othersLeft: Int = 0) {
         val code = method.instructions()
         val references = code.map { (it as? ReferenceInstruction)?.reference?.toString() }
-        assertEquals("$what: addViews left", 0, references.count { it == "Landroid/view/ViewGroup;->addView(Landroid/view/View;)V" })
+        assertEquals("$what: addViews left", othersLeft, references.count { it == ADD_VIEW_REFERENCE })
         val hooks = code.indices.filter { references[it] == ASK_META_AI_BOX }
         assertEquals("$what: hooks", 1, hooks.size)
         val hook = code[hooks.single()] as FiveRegisterInstruction
@@ -281,6 +293,7 @@ class AboutThisReelHookTest {
         const val SESSION = "Lcom/instagram/common/session/UserSession;"
         const val LAMBDA = "Lcom/instagram/metaai/aidiscovery/AiDiscoveryMenuHelper\$createComposerView\$5;"
         const val BOX = 10
+        const val ADD_VIEW_REFERENCE = "Landroid/view/ViewGroup;->addView(Landroid/view/View;)V"
         val FACTORY_SHAPE = listOf(SESSION, "Ljava/lang/String;", "Z", "Z")
         val STATIC = AccessFlags.PUBLIC.value or AccessFlags.STATIC.value or AccessFlags.FINAL.value
 
@@ -305,14 +318,14 @@ class AboutThisReelHookTest {
 
         /**
          * A menu asking [FACTORY] once for each of [results]: the register taking the answer, or
-         * null for an ask whose answer is dropped. [marked] puts the Reels viewer menu's purge marker in it.
+         * null for an ask whose answer is dropped. [marked] has it load the Reels viewer menu's name.
          */
         fun menu(type: String, marked: Boolean = false, results: List<Int?>): ClassDef {
             val code = mutableListOf<Instruction>()
             if (marked) {
                 code += ImmutableInstruction21c(
                     Opcode.CONST_STRING, 0,
-                    ImmutableStringReference("android_purge_26_q3_ClipsOrganicMediaItemViewMoreOptionsController_$REELS_MENU_MARKER"),
+                    ImmutableStringReference(REELS_MENU_NAME),
                 )
             }
             for (result in results) {

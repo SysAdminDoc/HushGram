@@ -1207,14 +1207,15 @@ once-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->followUpStub(Landroi
 once-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->summaryCard(Landroid/view/View;)Landroid/view/View; in instance (Landroid/view/LayoutInflater;Landroid/view/ViewGroup;)L*; holding const:0x7f0e0b2d
 once-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->summaryCard(Landroid/view/View;)Landroid/view/View; in instance (Landroid/view/LayoutInflater;Landroid/view/ViewGroup;)L*; holding const:0x7f0e101f
 # About this reel (#42): the Reels viewer's More menu asks the summary factory in two places and
-# passes each answer through aboutThisReel() once, in its AI discovery menu check (the method
-# holding the hasAiDiscoveryMenu marker) and in its header items (the getBottomSheetHeaderItems
-# marker). The feed's menus ask the same factory and hold no string, so no rule picks them;
+# passes each answer through aboutThisReel() once, in its menu builder (the instance method) and in
+# its header items (the static one), both loading the name the menu logs itself under. 456 dropped
+# the hasAiDiscoveryMenu and getBottomSheetHeaderItems markers (LX/09IW;->A0d and A0B on 386214574).
+# The feed's menus ask the same factory and hold no string, so no rule picks them;
 # AboutThisReelHookTest checks every ask on the fixture. The summary row's binder, the method
 # holding "overflow_open" and "defer_eligibility_enabled", adds the Ask Meta AI box with its one
 # addView(View), which calls askMetaAiBox() instead. Left out, the block or its box stays with its switch on.
-shared-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->aboutThisReel(Ljava/lang/Object;)Ljava/lang/Object; in instance (Landroid/view/View;L*;L*;)V holding android_purge_26_q3_ClipsOrganicMediaItemViewMoreOptionsController_hasAiDiscoveryMenu
-shared-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->aboutThisReel(Ljava/lang/Object;)Ljava/lang/Object; in static (Landroid/view/View;L*;L*;Lcom/instagram/feed/media/Media;L*;ZZZ)V holding android_purge_26_q3_ClipsOrganicMediaItemViewMoreOptionsController_getBottomSheetHeaderItems
+shared-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->aboutThisReel(Ljava/lang/Object;)Ljava/lang/Object; in instance (Landroid/view/View;L*;L*;)V holding ClipsOrganicMediaItemViewMoreOptionsController
+shared-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->aboutThisReel(Ljava/lang/Object;)Ljava/lang/Object; in static (Landroid/view/View;L*;L*;Lcom/instagram/feed/media/Media;L*;ZZZ)V holding ClipsOrganicMediaItemViewMoreOptionsController
 once-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->askMetaAiBox(Landroid/view/ViewGroup;Landroid/view/View;)V in instance ()V holding overflow_open defer_eligibility_enabled
 # The share sheet's target builder, the one static method holding these four target names (450
 # 0nuj.A00), passes the answer of its "hatch" case's name check through shareTarget(), once, between
