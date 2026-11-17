@@ -1856,7 +1856,7 @@ shared-call Lapp/hushgram/extension/instagram/media/StopLooping;->loop(Ljava/lan
 # "clips_pause" path, so the call isn't first. Two other methods load "clips_pause"; the tap is the
 # one carrying its togglePause marker.
 # 456 drops the marker; the tap is the one loading both events and its paused state (096g.A01 on 386214574).
-once-call Lapp/hushgram/extension/instagram/media/TapToPlay;->resumeOnTap(ILjava/lang/Object;)Z in instance (Landroid/view/View;*)V holding clips_pause clips_unpause single_tap_paused
+once-call Lapp/hushgram/extension/instagram/media/TapToPlay;->resumeOnTap(ILjava/lang/Object;)Z in instance (Landroid/view/View;*)V pooled holding clips_pause clips_unpause single_tap_paused
 # The story player's resume hands the flag it starts a story on to resumeHeldStory() between reading
 # it and branching on it. The resume holds no string, and every field it touches is its own class's
 # Redex name, so the rule picks it by its class's strings. On 450 "reel_video_player" is held by
@@ -2158,8 +2158,8 @@ start-call Lapp/hushgram/extension/instagram/reels/ReelSpeed;->speedSet(F)V in i
 once-call Lapp/hushgram/extension/instagram/reels/ReelSpeed;->speedSet(F)V in instance (Lkotlin/jvm/functions/Function1;F)V class-holding ClipsVideoPlayerController.maybeResumePlayer\splayVideoInZeroMode:\s
 once-call Lapp/hushgram/extension/instagram/reels/ReelSpeed;->lockedUp()V in (*)Ljava/lang/Object; holding key_lock_up_suggestion_label_impression_count locked
 once-call Lapp/hushgram/extension/instagram/reels/ReelSpeed;->holdEnded()V in (*)Ljava/lang/Object; holding key_lock_up_suggestion_label_impression_count ended
-once-call Lapp/hushgram/extension/instagram/reels/ReelSpeed;->lockUpEnded(Ljava/lang/String;)V in static (*)V holding cancel_lock_up swipe_down switch_tab scroll_away
-once-call Lapp/hushgram/extension/instagram/reels/ReelSpeed;->resetSpeed(F)F in static (*)V holding cancel_lock_up swipe_down switch_tab scroll_away
+once-call Lapp/hushgram/extension/instagram/reels/ReelSpeed;->lockUpEnded(Ljava/lang/String;)V in static (*)V pooled holding cancel_lock_up swipe_down switch_tab scroll_away
+once-call Lapp/hushgram/extension/instagram/reels/ReelSpeed;->resetSpeed(F)F in static (*)V pooled holding cancel_lock_up swipe_down switch_tab scroll_away
 once-call Lapp/hushgram/extension/instagram/reels/ReelSpeed;->item(Ljava/lang/Object;)V in instance (*)V holding ClipsVideoPlayerController.maybeResumePlayer\splayVideoInZeroMode:\s
 once-call Lapp/hushgram/extension/instagram/reels/ReelSpeed;->resuming(Ljava/lang/Object;)V in instance (*)V holding ClipsVideoPlayerController.maybeResumePlayer\splayVideoInZeroMode:\s
 #
@@ -3344,11 +3344,11 @@ once-call Lapp/hushgram/extension/instagram/misc/Heartbeat;->skipBackgroundFetch
 # nothing; twice or elsewhere, it isn't the hook the patch wrote. ReelTapAndVolumeHookTest checks on all seven 450
 # builds that it lands once, there.
 # On 456 the path is picked by its events instead (096g.A01 on 386214574).
-once-call Lapp/hushgram/extension/instagram/reels/ReelTapAndVolume;->muteInsteadOfPause()Z in instance (Landroid/view/View;L*;L*;)V holding clips_pause clips_unpause single_tap_paused
+once-call Lapp/hushgram/extension/instagram/reels/ReelTapAndVolume;->muteInsteadOfPause()Z in instance (Landroid/view/View;L*;L*;)V pooled holding clips_pause clips_unpause single_tap_paused
 # When the choice isn't mute or pause, the same path asks ReelTapAndVolume.keepPlaying next, and returns before the
 # pause when it says so (#554). Left out, Keep playing pauses like Instagram's own tap; twice or elsewhere, it isn't
 # the hook the patch wrote.
-once-call Lapp/hushgram/extension/instagram/reels/ReelTapAndVolume;->keepPlaying()Z in instance (Landroid/view/View;L*;L*;)V holding clips_pause clips_unpause single_tap_paused
+once-call Lapp/hushgram/extension/instagram/reels/ReelTapAndVolume;->keepPlaying()Z in instance (Landroid/view/View;L*;L*;)V pooled holding clips_pause clips_unpause single_tap_paused
 # IgFragmentActivity.dispatchTouchEvent hands ReelTapAndVolume.touch every touch, first or right after Tap to play's
 # TapClock, so Keep playing can tell a tap on the play icon over a reel, which then pauses it (#554). Left out, that tap
 # keeps the reel playing like any other; twice or elsewhere, it isn't the hook the patch wrote.
