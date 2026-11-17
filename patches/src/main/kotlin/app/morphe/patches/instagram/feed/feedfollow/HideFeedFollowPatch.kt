@@ -37,6 +37,7 @@ internal const val FEED_SUBSCRIBE = "$EXTENSION_PACKAGE/feed/FeedFollowButton;->
 internal const val FEED_HEADER_STATE = "null cannot be cast to non-null type instagram.features.feed.ui.rows.mediaheader.domain.uicontract.MediaHeaderUiState"
 private const val SUBSCRIBE_TAP = "ig_fan_club_subscribe_cta_tap"
 private const val SUBSCRIBE_IMPRESSION = "ig_fan_club_subscribe_cta_impression"
+private val ZERO_CONSTANTS = setOf(Opcode.CONST_4, Opcode.CONST_16, Opcode.CONST)
 
 /** The native eligibility answer immediately before the branch omitting just Subscribe. */
 internal class FeedSubscribeSite(val method: Method, val branch: Int, val answer: Int, val field: String)
@@ -105,6 +106,28 @@ internal fun BytecodePatchContext.findFeedSubscribe(): FeedSubscribeSite? {
             refuse("unreadable feed header control flow: ${failure.message}")
         }
     }
+    // A register the header writes only zero constants to, and never as a parameter, holds null.
+    fun alwaysNull(register: Int): Boolean {
+        val implementation = header.implementation ?: return false
+        val parameters = header.parameterTypes.sumOf { if (it[0] == 'J' || it[0] == 'D') 2L else 1L }.toInt() +
+            if (AccessFlags.STATIC.isSet(header.accessFlags)) 0 else 1
+        if (register >= implementation.registerCount - parameters) return false
+        val writes = code.filter { step ->
+            val target = (step as? OneRegisterInstruction)?.registerA ?: return@filter false
+            step.opcode.setsRegister() && (target == register || (step.opcode.setsWideRegister() && target + 1 == register))
+        }
+        return writes.isNotEmpty() && writes.all {
+            it.opcode in ZERO_CONSTANTS && (it as NarrowLiteralInstruction).narrowLiteral == 0
+        }
+    }
+    // The branch skipping Subscribe leaves its button null: a zero constant, or on 456's armeabi-v7a
+    // build (386214562's LX/01x5;->A0q) a copy of a register holding null.
+    fun leavesNull(step: Instruction, result: Int): Boolean = when (step.opcode) {
+        in ZERO_CONSTANTS -> (step as OneRegisterInstruction).registerA == result && (step as NarrowLiteralInstruction).narrowLiteral == 0
+        Opcode.MOVE_OBJECT, Opcode.MOVE_OBJECT_FROM16, Opcode.MOVE_OBJECT_16 ->
+            (step as TwoRegisterInstruction).registerA == result && alwaysNull(step.registerB)
+        else -> false
+    }
     // 453's 32-bit builds build the shared click twice, for Subscribe and another header button, so
     // each one is tried and only the one gated as Subscribe is gated counts.
     fun classicAt(create: Int): FeedSubscribeSite? {
@@ -132,9 +155,7 @@ internal fun BytecodePatchContext.findFeedSubscribe(): FeedSubscribeSite? {
             val stateClass = classDefByOrNull(field.definingClass) ?: return@filter false
             if (stateClass.fields.count { it.type == "Z" && !AccessFlags.STATIC.isSet(it.accessFlags) } != 2) return@filter false
             val skip = flow.normal[at + 1].singleOrNull { it != at + 2 } ?: return@filter false
-            val zero = code[skip]
-            zero.opcode in setOf(Opcode.CONST_4, Opcode.CONST_16, Opcode.CONST) &&
-                (zero as OneRegisterInstruction).registerA == result && (zero as NarrowLiteralInstruction).narrowLiteral == 0 &&
+            leavesNull(code[skip], result) &&
                 code.getOrNull(skip + 1)?.opcode in setOf(Opcode.GOTO, Opcode.GOTO_16, Opcode.GOTO_32) &&
                 flow.normal[skip + 1].singleOrNull() == constructor + 1
         }
