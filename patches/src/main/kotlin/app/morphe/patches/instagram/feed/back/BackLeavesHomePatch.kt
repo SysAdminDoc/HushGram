@@ -30,6 +30,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
@@ -223,9 +224,12 @@ internal fun enumConstantName(enum: ClassDef, field: FieldReference): String? {
     }
     val store = stores.singleOrNull() ?: return null
     val constant = (code[store] as OneRegisterInstruction).registerA
+    // Instagram 456 builds some constants in a high register and calls the constructor on a low copy of it.
     val construct = (store - 1 downTo 0).firstOrNull { index ->
         val called = code[index].methodReference()
-        called?.name == "<init>" && called.definingClass == enum.type && code[index].argumentRegisters().firstOrNull() == constant
+        val receiver = code[index].argumentRegisters().firstOrNull()
+        called?.name == "<init>" && called.definingClass == enum.type && receiver != null &&
+            (receiver == constant || code.copiedInto(index, receiver) == constant)
     } ?: return null
     if ((construct until store).any { code[it].opcode == Opcode.SPUT_OBJECT }) return null
     val arguments = code[construct].argumentRegisters()
@@ -236,6 +240,16 @@ internal fun enumConstantName(enum: ClassDef, field: FieldReference): String? {
         instruction.opcode.setsRegister() && (instruction as? OneRegisterInstruction)?.registerA == name
     } ?: return null
     return code[load].stringLoaded()
+}
+
+/** The register a move-object copied into [register], when that copy is its last write before [index]. */
+private fun List<Instruction>.copiedInto(index: Int, register: Int): Int? {
+    val write = (index - 1 downTo 0).firstOrNull { at ->
+        this[at].opcode.setsRegister() && (this[at] as? OneRegisterInstruction)?.registerA == register
+    } ?: return null
+    val move = this[write]
+    val copies = move.opcode == Opcode.MOVE_OBJECT || move.opcode == Opcode.MOVE_OBJECT_FROM16 || move.opcode == Opcode.MOVE_OBJECT_16
+    return if (copies) (move as TwoRegisterInstruction).registerB else null
 }
 
 private fun Method.instructions(): List<Instruction> = implementation?.instructions?.toList().orEmpty()
