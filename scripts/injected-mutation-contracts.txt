@@ -2863,6 +2863,11 @@ once-call Lapp/hushgram/extension/instagram/reels/ReelSeekBar;->minSeconds(J)J i
 once-call Lapp/hushgram/extension/instagram/reels/ReelSeekBar;->minSeconds(J)J in static (Lcom/instagram/common/session/UserSession;JZ)Z holding const:0x8208b900291365
 once-call Lapp/hushgram/extension/instagram/reels/ReelSeekBar;->minSeconds(J)J in static (LX/*;)Ljava/lang/Object; holding const:0x8208b900291365 const:0x8208b9000f1364
 once-call Lapp/hushgram/extension/instagram/reels/ReelSeekBar;->lazy(I)Z in static (Lcom/instagram/clips/intf/ClipsViewerConfig;L*;L*;Lcom/instagram/common/session/UserSession;Z)L*; holding const:0x8108b9001031f3
+# Hide the seek bar on reels (#680) needs the sideways drag that brings the hidden kind back, so the
+# scrubber config's builder (the merged 0JBj.A01 above) hands both of its reads of whether that drag is
+# on (the universal one and the attached one) to ReelSeekBar.passThrough, one call each, right after
+# the read. No other method of Instagram's loads either flag.
+once-call Lapp/hushgram/extension/instagram/reels/ReelSeekBar;->passThrough(I)Z in static (LX/*;)Ljava/lang/Object; sites 2 holding const:0x8108b9001431f6 const:0x8108b9001131f4
 start-call Lapp/hushgram/extension/instagram/reels/ReelSeekBar;->progress(Landroid/widget/SeekBar;I)V in instance (Landroid/widget/SeekBar;IZ)V holding Lcom/instagram/ui/mediaactions/VideoScrubberSeekBar;->A01:Landroid/widget/SeekBar$OnSeekBarChangeListener;
 once-call Lapp/hushgram/extension/instagram/reels/ReelSeekBar;->progress(Landroid/widget/SeekBar;I)V in instance (Landroid/widget/SeekBar;IZ)V holding Lcom/instagram/ui/mediaactions/VideoScrubberSeekBar;->A01:Landroid/widget/SeekBar$OnSeekBarChangeListener;
 once-call Lapp/hushgram/extension/instagram/reels/ReelSeekBar;->bind(Ljava/lang/Object;I)V in instance (Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; pooled holding clips_attached_scrubber_keyframe_chapters_text_preview_view_tag clips_in_stream_ad_scrubber_thumbnail_view_tag

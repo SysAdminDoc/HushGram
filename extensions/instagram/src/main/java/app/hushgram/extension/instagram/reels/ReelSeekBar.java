@@ -139,6 +139,27 @@ public final class ReelSeekBar {
     }
 
     /**
+     * Injected after Instagram's reads of whether a sideways drag across a reel scrubs it, one for reels
+     * with the hidden kind of bar and one for the rest, with Instagram's answer as an int (non-zero is yes).
+     * That drag is the only thing that brings the hidden kind back, so while Hide the seek bar on reels
+     * hides every bar (#680) it answers yes, and Instagram's answer otherwise. Instagram reads both once a
+     * session.
+     */
+    public static boolean passThrough(int enabled) {
+        return passThrough(enabled, ReelSeekBar::everyReel, ReelSeekBar::hidden);
+    }
+
+    static boolean passThrough(int enabled, BooleanSupplier on, BooleanSupplier hidden) {
+        try {
+            HookStatus.invoked(FamilyNames.REEL_SEEK_BAR);
+            return enabled != 0 || (!on.getAsBoolean() && hidden.getAsBoolean());
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.REEL_SEEK_BAR, "seek drag", failure);
+            return enabled != 0;
+        }
+    }
+
+    /**
      * Injected first thing in the reel seek bar's onProgressChanged, with the bar and its
      * position in milliseconds. Shows or updates the bar's time label, or hides it.
      */
@@ -186,7 +207,8 @@ public final class ReelSeekBar {
     }
 
     /**
-     * Whether Hide the seek bar on reels has every ordinary reel's bar stay hidden until the reel's held (#680).
+     * Whether Hide the seek bar on reels has every ordinary reel's bar stay hidden until a sideways drag across the
+     * reel (#680).
      * A switch that keeps the bar ({@link #everyReel}) wins.
      */
     static boolean hidden() {

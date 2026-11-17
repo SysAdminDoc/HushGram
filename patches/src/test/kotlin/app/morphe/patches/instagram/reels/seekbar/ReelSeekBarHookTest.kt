@@ -49,7 +49,7 @@ class ReelSeekBarHookTest {
     /** The hooks the patch writes are in the ReelSeekBar and ReelSeekTouch the bundle ships, public and static. */
     @Test
     fun theHooksAreInTheExtension() {
-        for (hook in listOf(MIN_SECONDS, LAZY, PROGRESS, BIND, BIND_REEL, LISTEN, PHOTO_BAR_ON, PHOTO_REEL, PHOTO_ROW, PHOTO_PROGRESS, PHOTO_TOUCH_ONLY, PHOTO_STRIP, SEEK_PREVIEW_ON, REMEMBER_REEL)) {
+        for (hook in listOf(MIN_SECONDS, LAZY, PASS_THROUGH, PROGRESS, BIND, BIND_REEL, LISTEN, PHOTO_BAR_ON, PHOTO_REEL, PHOTO_ROW, PHOTO_PROGRESS, PHOTO_TOUCH_ONLY, PHOTO_STRIP, SEEK_PREVIEW_ON, REMEMBER_REEL)) {
             val declared = ExtensionDex.classDef(hook.substringBefore("->")).methods
                 .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
                 .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
@@ -67,6 +67,7 @@ class ReelSeekBarHookTest {
         assertEquals(listOf(false, true, true), sites.lengths.map { it.shared }.sorted())
         assertEquals(ROW, sites.lazy.type)
         assertTrue("the hidden kind's read is the ads' too", sites.lazy.shared)
+        assertEquals(listOf(PROGRESS_STATE, PROGRESS_STATE), sites.passThroughs.map { it.type })
         assertEquals(SEEK_BAR, sites.progress.definingClass)
         assertEquals(BINDER, sites.bind.method.definingClass)
         assertEquals("the container", sites.bind.method.parameterRegisterNumber(1), sites.bind.view)
@@ -90,6 +91,7 @@ class ReelSeekBarHookTest {
         assertAnsweredOnItsOwn("A0M", context.method(UTIL, "A0M"), ORGANIC_MIN_SECONDS, AD_MIN_SECONDS, MIN_SECONDS)
         assertAnsweredOnItsOwn("progress state", context.method(PROGRESS_STATE, "A00"), ORGANIC_MIN_SECONDS, null, MIN_SECONDS)
         assertAnsweredOnItsOwn("scrubber row", context.method(ROW, "A00"), ORGANIC_LAZY, AD_LAZY, LAZY)
+        assertDragAnswered("stand-in", context.method(PROGRESS_STATE, "A00"))
         assertProgressHookedFirst("stand-in", context.method(SEEK_BAR, PROGRESS_CHANGED))
         assertBindHookedAfterTheAdRead("stand-in", context.method(BINDER, "invoke"), context.method(ROW, "A00"))
         assertReelIdAsked("stand-in", context, ITEM_TYPE)
@@ -372,6 +374,38 @@ class ReelSeekBarHookTest {
         }
     }
 
+    /**
+     * Hide the seek bar on reels (#680) needs the sideways drag, so a builder missing one of its reads, or a
+     * read of it outside the method reading the minimum, is an update the patch hasn't seen.
+     */
+    @Test
+    fun aDragReadThePatchHasntSeenFailsBeforeAnythingChanges() {
+        val elsewhere = classOf(
+            EXTRA,
+            method(
+                EXTRA, "A00", emptyList(), "Z", 4,
+                """
+                    invoke-static {}, $CONFIGS->A00()Ljava/lang/Object;
+                    move-result-object v2
+                    const-wide v0, 0x${ATTACHED_PASS_THROUGH.toString(16)}L
+                    invoke-static {v2, v0, v1}, $WRAPPER->A1H(Ljava/lang/Object;J)Z
+                    move-result v0
+                    return v0
+                """,
+            ),
+        )
+        val cases = listOf(
+            "missing" to standIns().map { if (it.type == PROGRESS_STATE) progressState(dragFlag = 0x81092d001033cbL) else it },
+            "moved" to standIns().map { if (it.type == PROGRESS_STATE) progressState(dragFlag = 0x81092d001033cbL) else it } + elsewhere,
+        )
+        for ((what, classes) in cases) {
+            val context = PatchContexts.of(classes)
+            val refusal = assertThrows(what, PatchException::class.java) { context.applyReelSeekBar(context.findReelSeekBarSites()) }
+            assertTrue("$what: ${refusal.message}", refusal.message!!.contains("sideways drag scrubs a reel"))
+            assertNothingWritten(what, context)
+        }
+    }
+
     /** No read of the hidden kind, or two, fails before anything changes. */
     @Test
     fun anotherCountOfHiddenKindReadsFailsBeforeAnythingChanges() {
@@ -587,6 +621,8 @@ class ReelSeekBarHookTest {
             "${label} ${sites.lazy.type}->${sites.lazy.name}", context.method(sites.lazy),
             ORGANIC_LAZY, AD_LAZY, LAZY,
         )
+        assertEquals("${label}: the drag's reads sit in one method", 1, sites.passThroughs.map { it.type to it.name }.distinct().size)
+        assertDragAnswered(label, context.method(sites.passThroughs.first()))
         assertProgressHookedFirst(label, context.method(SEEK_BAR, PROGRESS_CHANGED))
         assertBindHookedAfterTheAdRead(label, context.method(sites.bind.method), context.method(sites.lazy))
         assertReelIdAsked(label, context, itemType)
@@ -709,6 +745,27 @@ class ReelSeekBarHookTest {
 
     private fun BytecodePatchContext.method(load: FlagLoad): Method = mutableClassDefBy(load.type).methods.single {
         it.name == load.name && it.parameterTypes.map(CharSequence::toString) == load.parameters
+    }
+
+    /**
+     * Each read of whether a sideways drag scrubs is answered in place: the load, the read, its move-result, then
+     * the hook on that register and its answer back into it, and nothing else in [method] calls the hook.
+     */
+    private fun assertDragAnswered(what: String, method: Method) {
+        val code = method.implementation!!.instructions.toList()
+        assertEquals("$what: drag hooks", 2, code.count { it.calls(PASS_THROUGH) })
+        for (flag in listOf(UNIVERSAL_PASS_THROUGH, ATTACHED_PASS_THROUGH)) {
+            val name = "$what ${flag.toString(16)}"
+            var at = code.indices.single { code[it].isLoadOf(flag) } + 1
+            if (code[at].opcode == Opcode.CHECK_CAST) at++
+            assertEquals("$name: the read's answer", Opcode.MOVE_RESULT, code[at + 1].opcode)
+            val register = (code[at + 1] as OneRegisterInstruction).registerA
+            val call = code[at + 2]
+            assertTrue("$name: the hook follows the read", call.calls(PASS_THROUGH))
+            assertEquals("$name: the hook's register", listOf(register), call.arguments())
+            assertEquals("$name: the answer", Opcode.MOVE_RESULT, code[at + 3].opcode)
+            assertEquals("$name: the answer's register", register, (code[at + 3] as OneRegisterInstruction).registerA)
+        }
     }
 
     /**
@@ -1105,8 +1162,12 @@ class ReelSeekBarHookTest {
             ),
         )
 
-        /** Shaped like 449's progress controller limits: the minimum read on its own, through a static wrapper. */
-        fun progressState(): ClassDef = classOf(
+        /**
+         * Shaped like 449's progress controller limits: the minimum read on its own, through a static wrapper,
+         * then (456's scrubber config builder) the two reads of whether a sideways drag scrubs. [dragFlag] is
+         * the second of those.
+         */
+        fun progressState(dragFlag: Long = ATTACHED_PASS_THROUGH): ClassDef = classOf(
             PROGRESS_STATE,
             method(
                 PROGRESS_STATE, "A00", listOf("Ljava/lang/Object;"), "Ljava/lang/Object;", 8,
@@ -1116,6 +1177,12 @@ class ReelSeekBarHookTest {
                     const-wide v0, $ORGANIC_MIN_SECONDS_HEX
                     invoke-static {v3, v0, v1}, $WRAPPER->A08(Ljava/lang/Object;J)J
                     move-result-wide v5
+                    const-wide v0, 0x${UNIVERSAL_PASS_THROUGH.toString(16)}L
+                    invoke-static {v3, v0, v1}, $WRAPPER->A1H(Ljava/lang/Object;J)Z
+                    move-result v2
+                    const-wide v0, 0x${dragFlag.toString(16)}L
+                    invoke-static {v3, v0, v1}, $WRAPPER->A1H(Ljava/lang/Object;J)Z
+                    move-result v4
                     return-object v3
                 """,
             ),

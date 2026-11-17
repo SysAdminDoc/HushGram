@@ -108,16 +108,18 @@ public class ReelSeekBarTest {
         assertEquals(-1L, ReelSeekBar.minSeconds(-1L));
         assertFalse(ReelSeekBar.lazy(1));
         assertFalse(ReelSeekBar.lazy(0));
+        assertFalse("a bar that always shows needs no drag", ReelSeekBar.passThrough(0));
+        assertTrue(ReelSeekBar.passThrough(1));
         assertFalse("the hooks were counted", HookStatus.snapshot().isEmpty());
     }
 
     /**
      * Hide the seek bar on reels (#680): no reel is long enough for the bar that always shows, even counted in
-     * milliseconds, and every reel gets the kind a hold brings up. A switch that keeps the bar wins, and paused
-     * Instagram's answers stand.
+     * milliseconds, every reel gets the kind a sideways drag brings up, and that drag is on even where Instagram
+     * leaves it off. A switch that keeps the bar wins, and paused Instagram's answers stand.
      */
     @Test
-    public void hidingItLeavesEveryReelTheBarAHoldBringsUp() {
+    public void hidingItLeavesEveryReelTheBarADragBringsUp() {
         Settings.REEL_SEEK_BAR.save(false);
         Settings.HIDE_REEL_SEEK_BAR.save(true);
         try {
@@ -126,16 +128,20 @@ public class ReelSeekBarTest {
             assertTrue("longer than an hour-long reel", ReelSeekBar.NO_REEL_SECONDS > 3600L);
             assertTrue("a short reel the server gave no bar gets the hidden kind", ReelSeekBar.lazy(0));
             assertTrue(ReelSeekBar.lazy(1));
+            assertTrue("the drag that brings it back is on where Instagram has it off", ReelSeekBar.passThrough(0));
+            assertTrue(ReelSeekBar.passThrough(1));
 
             Settings.REEL_SEEK_BAR.save(true);
             assertEquals("Keep a seek bar wins", 1L, ReelSeekBar.minSeconds(30L));
             assertFalse(ReelSeekBar.lazy(1));
+            assertFalse("Keep a seek bar wins, Instagram's off stands", ReelSeekBar.passThrough(0));
             Settings.REEL_SEEK_BAR.save(false);
 
             BaseSettings.PAUSED.save(true);
             PauseForTests.pause(HushgramPause.Reason.SWITCH);
             assertEquals("paused, Instagram's length stands", 30L, ReelSeekBar.minSeconds(30L));
             assertFalse("paused, Instagram's no stands", ReelSeekBar.lazy(0));
+            assertFalse("paused, Instagram's off stands", ReelSeekBar.passThrough(0));
         } finally {
             Settings.HIDE_REEL_SEEK_BAR.resetToDefault();
         }
@@ -200,6 +206,8 @@ public class ReelSeekBarTest {
         assertEquals(what, 0L, ReelSeekBar.minSeconds(0L));
         assertTrue(what, ReelSeekBar.lazy(1));
         assertFalse(what, ReelSeekBar.lazy(0));
+        assertTrue(what, ReelSeekBar.passThrough(1));
+        assertFalse(what, ReelSeekBar.passThrough(0));
         ReelSeekBar.progress(bar, 12_000);
         assertEquals(what, View.GONE, label.getVisibility());
     }
@@ -222,11 +230,15 @@ public class ReelSeekBarTest {
         ReelTimeLabel.update(bar, 11_000, () -> {
             throw new IllegalStateException("settings went away");
         });
+        assertFalse(ReelSeekBar.passThrough(0, () -> false, () -> {
+            throw new IllegalStateException("settings went away");
+        }));
 
         assertEquals(View.GONE, label.getVisibility());
         String missing = HookStatus.missing(FamilyNames.REEL_SEEK_BAR).toString();
         assertTrue(missing, missing.contains("'seek bar length'"));
         assertTrue(missing, missing.contains("'hidden seek bar'"));
+        assertTrue(missing, missing.contains("'seek drag'"));
         assertTrue(missing, missing.contains("'seek bar time'"));
     }
 
