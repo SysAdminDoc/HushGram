@@ -34,6 +34,7 @@ import app.morphe.patches.instagram.misc.extension.requireLocals
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
+import app.morphe.util.ControlFlow
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
@@ -258,7 +259,7 @@ internal fun BytecodePatchContext.offerDownloadOnEveryReel() {
     }
     val helper = handler.definingClass
     val adder = reelRowAdder(PATCH)
-    val builders = loaders.filter { it.calls(eligible) && (it.definingClass == helper || it.uses(helper)) }
+    val builders = loaders.filter { it.calls(eligible) && it.buildsReelMenu(helper, eligible) }
     if (builders.isEmpty()) throw PatchException("$PATCH: no builder of the reel menu adds Download after the download check")
     val gates = builders.associateWith { it.downloadGates(eligible, handsToRows(it, adder)) }
     val reduced = reducedMenuList(PATCH)
@@ -607,12 +608,46 @@ private fun Instruction.calls(method: Method): Boolean {
 private fun Method.calls(method: Method): Boolean = code().any { it.calls(method) }
 
 /** Whether [this] reads or calls anything of [type]. */
-private fun Method.uses(type: String): Boolean = code().any { instruction ->
-    when (val reference = (instruction as? ReferenceInstruction)?.reference) {
-        is FieldReference -> reference.definingClass == type
-        is MethodReference -> reference.definingClass == type
-        else -> false
+private fun Instruction.touches(type: String): Boolean = when (val reference = (this as? ReferenceInstruction)?.reference) {
+    is FieldReference -> reference.definingClass == type
+    is MethodReference -> reference.definingClass == type
+    else -> false
+}
+
+/**
+ * Whether [this], a method calling [check], builds a menu of the reel menu's [helper]: it's one of
+ * the helper's own, or it reads or calls the helper on a path that runs the check. Redex merges
+ * lambdas into one method that switches on which lambda it is, and on 456's x86 build
+ * (`LX/0I3W;->invoke` on 386214575) the feed menu's builder shares one with a lambda of the reel
+ * menu, which touches the helper only in an arm the check is never on.
+ */
+internal fun Method.buildsReelMenu(helper: String, check: Method): Boolean {
+    if (definingClass == helper) return true
+    val code = code()
+    val uses = code.indices.filter { code[it].touches(helper) }
+    val at = code.indexOfFirst { it.calls(check) }
+    if (uses.isEmpty() || at < 0) return false
+    val flow = try {
+        ControlFlow.of(this)
+    } catch (unreadable: IllegalArgumentException) {
+        throw PatchException("$PATCH: unreadable control flow in $definingClass->$name: ${unreadable.message}")
     }
+    val before = Array(code.size) { mutableListOf<Int>() }
+    code.indices.forEach { from -> (flow.normal[from] + flow.exceptional[from]).forEach { before[it] += from } }
+    val after = reach(at) { flow.normal[it] + flow.exceptional[it] }
+    val leading = reach(at) { before[it] }
+    return uses.any { it in after || it in leading }
+}
+
+/** Every index [next] leads to from [start], [start] included. */
+private fun reach(start: Int, next: (Int) -> List<Int>): Set<Int> {
+    val seen = HashSet<Int>()
+    val pending = ArrayDeque(listOf(start))
+    while (pending.isNotEmpty()) {
+        val at = pending.removeFirst()
+        if (seen.add(at)) next(at).forEach { pending += it }
+    }
+    return seen
 }
 
 private fun Instruction.writes(register: Int): Boolean {

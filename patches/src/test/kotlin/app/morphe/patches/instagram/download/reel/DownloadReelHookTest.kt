@@ -484,8 +484,7 @@ class DownloadReelHookTest {
         val builders = all.filter { method ->
             val code = method.code()
             code.any { it.referenceText() == DOWNLOAD } && code.any { it.referenceText() == check } &&
-                (method.definingClass == handler.definingClass ||
-                    code.any { it.referenceText()?.startsWith("${handler.definingClass}->") == true })
+                method.buildsReelMenu(handler.definingClass, eligible)
         }
         assertTrue("$label: no reel menu builder", builders.isNotEmpty())
         var flags = 0
