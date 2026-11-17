@@ -63,6 +63,7 @@ public class ReelDownloadTest {
         Settings.DOWNLOAD_REELS.save(true);
         Settings.DOWNLOAD_REEL_COVER.resetToDefault();
         Settings.DOWNLOAD_REEL_AUDIO.resetToDefault();
+        Settings.DOWNLOAD_REEL_SONG.resetToDefault();
         Settings.POST_DETAILS.resetToDefault();
         Settings.SPEED_IN_REEL_MENU.resetToDefault();
         ReelSpeedButton.resetForTests();
@@ -221,7 +222,7 @@ public class ReelDownloadTest {
     /** The two options a photo with music gets, by the names the extension gives them. */
     private enum Ours {
         HUSHGRAM_DOWNLOAD_AS_VIDEO, HUSHGRAM_DOWNLOAD_AS_PHOTO, HUSHGRAM_DOWNLOAD_REEL, HUSHGRAM_DOWNLOAD_COVER, HUSHGRAM_DOWNLOAD_AUDIO,
-        HUSHGRAM_REEL_DETAILS, HUSHGRAM_REEL_SPEED, HUSHGRAM_VIDEO_LOOP
+        HUSHGRAM_DOWNLOAD_SONG, HUSHGRAM_REEL_DETAILS, HUSHGRAM_REEL_SPEED, HUSHGRAM_VIDEO_LOOP
     }
 
     /** A photo the Reels viewer shows with music that has a track to fetch. */
@@ -419,6 +420,70 @@ public class ReelDownloadTest {
         Shadows.shadowOf(Looper.getMainLooper()).idle();
         assertEquals("Download failed", String.valueOf(ShadowToast.getTextOfLatestToast()));
         assertFalse(String.valueOf(HookStatus.report()), String.valueOf(HookStatus.report()).contains("saved audio 2"));
+    }
+
+    /**
+     * With Download full song on, a reel playing a song from Instagram's music gets Download full
+     * song after Download audio, and a photo with music after its two rows (#735). Off, or with a
+     * song that has no file of its own, there's nothing whole to save.
+     */
+    @Test
+    @Config(shadows = Item.class)
+    public void aReelPlayingASongGetsDownloadFullSongWithItsSwitch() {
+        Item.manifest = WITH_SOUND;
+        Item.music = true;
+        Item.trackUrl = "https://scontent.cdninstagram.com/o1/v/t2/f2/m69/track.mp4";
+        assertFalse("Download full song starts off", Settings.DOWNLOAD_REEL_SONG.get());
+        assertFalse(ReelDownload.rows(null, new Object(), null, null, null));
+        assertTrue(Item.rows.isEmpty());
+
+        Settings.DOWNLOAD_REEL_SONG.save(true);
+        assertTrue(ReelDownload.rows(null, new Object(), null, null, null));
+        assertEquals(List.of("HUSHGRAM_DOWNLOAD_REEL=Download", "HUSHGRAM_DOWNLOAD_SONG=Download full song"), Item.rows);
+        assertTrue(String.valueOf(HookStatus.report()), String.valueOf(HookStatus.report()).contains("has full song 1"));
+
+        Item.rows.clear();
+        Settings.DOWNLOAD_REEL_AUDIO.save(true);
+        assertTrue(ReelDownload.rows(null, new Object(), null, null, null));
+        assertEquals(List.of("HUSHGRAM_DOWNLOAD_REEL=Download", "HUSHGRAM_DOWNLOAD_AUDIO=Download audio",
+                "HUSHGRAM_DOWNLOAD_SONG=Download full song"), Item.rows);
+
+        Item.rows.clear();
+        Settings.DOWNLOAD_REEL_AUDIO.save(false);
+        Item.trackUrl = null;
+        assertFalse("a song with no file", ReelDownload.rows(null, new Object(), null, null, null));
+        Item.music = false;
+        assertFalse("the reel's own sound", ReelDownload.rows(null, new Object(), null, null, null));
+        assertTrue(Item.rows.isEmpty());
+
+        Item.manifest = null;
+        photoWithMusic();
+        assertTrue(ReelDownload.rows(null, new Object(), null, null, null));
+        assertEquals(List.of("HUSHGRAM_DOWNLOAD_AS_VIDEO=Download as video", "HUSHGRAM_DOWNLOAD_AS_PHOTO=Download as photo",
+                "HUSHGRAM_DOWNLOAD_SONG=Download full song"), Item.rows);
+    }
+
+    /** Download full song saves the song's own file, and a reel whose song has none saves nothing and says so. */
+    @Test
+    @Config(shadows = Item.class)
+    public void downloadFullSongSavesTheSongsOwnFile() {
+        Item.manifest = WITH_SOUND;
+        Item.music = true;
+        Item.trackUrl = "https://scontent.cdninstagram.com/o1/v/t2/f2/m69/track.mp4";
+        refuseEveryFetch();
+        Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
+        HookStatus.clear();
+
+        assertTrue(ReelDownload.ours(Ours.HUSHGRAM_DOWNLOAD_SONG));
+        assertTrue(ReelDownload.save(Ours.HUSHGRAM_DOWNLOAD_SONG, new Object(), activity));
+        assertTrue(String.valueOf(HookStatus.report()), String.valueOf(HookStatus.report()).contains("saved full song 1"));
+
+        ShadowToast.reset();
+        Item.trackUrl = null;
+        assertTrue(ReelDownload.save(Ours.HUSHGRAM_DOWNLOAD_SONG, new Object(), activity));
+        Shadows.shadowOf(Looper.getMainLooper()).idle();
+        assertEquals("Download failed", String.valueOf(ShadowToast.getTextOfLatestToast()));
+        assertFalse(String.valueOf(HookStatus.report()), String.valueOf(HookStatus.report()).contains("saved full song 2"));
     }
 
     /** [WITH_SOUND] with its sound tracks swapped for [sounds], each "codecs bandwidth name". */

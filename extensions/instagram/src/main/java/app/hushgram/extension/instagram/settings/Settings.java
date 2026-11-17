@@ -3417,6 +3417,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_download_reel_audio", FALSE, parent(DOWNLOAD_REELS));
 
     /**
+     * A reel playing a song from Instagram's music gets Download full song under Download in its
+     * menu, saving the whole song from the song's own file, not only the part the reel plays
+     * (#735). Starts off, so the menu stays as it was.
+     */
+    public static final BooleanSetting DOWNLOAD_REEL_SONG =
+            new BooleanSetting("hushgram_download_reel_song", FALSE, parent(DOWNLOAD_REELS));
+
+    /**
      * A double tap on a post in the feed or on a reel doesn't like it, where the two switches under
      * it say so. Off to start. The posts and reels switches under it start on, so turning this one on
      * covers both until you pick.

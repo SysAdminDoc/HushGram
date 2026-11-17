@@ -155,6 +155,11 @@ public final class ReelDownloadButton {
             return false;
         }
 
+        /** Whether [media] plays a song from Instagram's music with a file of its own to save. */
+        default boolean song(Object media) {
+            return false;
+        }
+
         /** Shows [labels] by [anchor] and runs the one tapped, from [runs] at the same place. */
         default void pick(View anchor, List<CharSequence> labels, List<Runnable> runs) {
         }
@@ -200,6 +205,10 @@ public final class ReelDownloadButton {
         @Override public boolean audio(Object media) {
             String manifest = InstagramMedia.dashManifest(media);
             return manifest != null && DashManifest.bestAudio(DashManifest.parse(manifest)) != null;
+        }
+
+        @Override public boolean song(Object media) {
+            return ReelDownload.songUrl(media) != null;
         }
 
         @Override public void pick(View anchor, List<CharSequence> labels, List<Runnable> runs) {
@@ -495,15 +504,16 @@ public final class ReelDownloadButton {
     }
 
     /**
-     * With Ask what to save on (#524), offers the reel itself, its cover and its sound, whichever
-     * [media] has, the way Download, Download cover and Download audio sit in its menu, and answers
-     * whether it asked. A reel with only itself to save isn't asked about. Each row saves through the
-     * menu's own row, so the toasts and the file names are the menu's.
+     * With Ask what to save on (#524), offers the reel itself, its cover, its sound and its whole
+     * song (#735), whichever [media] has, the way Download, Download cover, Download audio and
+     * Download full song sit in its menu, and answers whether it asked. A reel with only itself to
+     * save isn't asked about. Each row saves through the menu's own row, so the toasts and the file
+     * names are the menu's.
      */
     private static boolean ask(View anchor, Object media, @Nullable Activity activity) {
         Context context = contextOf(anchor, activity);
-        List<CharSequence> labels = new ArrayList<>(3);
-        List<Runnable> runs = new ArrayList<>(3);
+        List<CharSequence> labels = new ArrayList<>(4);
+        List<Runnable> runs = new ArrayList<>(4);
         labels.add(StoryDownload.label(StoryDownload.Choice.STORY));
         runs.add(() -> save(anchor, null, media, activity));
         if (actions.cover(media)) {
@@ -513,6 +523,10 @@ public final class ReelDownloadButton {
         if (actions.audio(media)) {
             labels.add(L10n.t(context, "Download audio"));
             runs.add(() -> save(anchor, ReelDownload.AUDIO_OPTION, media, activity));
+        }
+        if (actions.song(media)) {
+            labels.add(L10n.t(context, "Download full song"));
+            runs.add(() -> save(anchor, ReelDownload.SONG_OPTION, media, activity));
         }
         if (labels.size() < 2) return false;
         actions.pick(anchor, labels, runs);

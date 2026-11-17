@@ -217,6 +217,9 @@ final class ReelsCategory {
                             + "plays, at its largest size.")));
             reels.add(toggle(context, Settings.DOWNLOAD_REEL_AUDIO, L10n.t("Download audio"),
                     L10n.t("Adds Download audio under Download. It saves the sound of the reel as an audio file.")));
+            reels.add(toggle(context, Settings.DOWNLOAD_REEL_SONG, L10n.t("Download full song"),
+                    L10n.t("Adds Download full song under Download on reels that use a song from Instagram's music. "
+                            + "It saves the whole song as an audio file, not only the part the reel plays.")));
         }
         if (build.contains(PatchFamily.DOUBLE_TAP_LIKE)) {
             reels.add(toggle(context, Settings.TURN_OFF_DOUBLE_TAP_LIKE, L10n.t("Turn off double tap to like"),

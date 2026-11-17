@@ -6,6 +6,7 @@ Every HushGram release, newest first.
 
 ### Features
 
+* `Download full song`, new under Reels right after `Download audio`, adds a row under Download on reels (and photos with music) that use a song from Instagram's music. It saves the whole song as an audio file instead of just the clip the reel plays. With `Ask what to save` on, the download button offers it too. It starts off. Asked for in #735.
 * `Hide the top bar on other reels`, new under Reels right below the Reels tab's switch, takes the back arrow and the title off the top of reels you open from Explore, a profile, a post, Saved or a chat. Your phone's back gesture or button still takes you back. It starts off. Asked for in #680.
 * `Search blocked accounts`, new under Ads and privacy, puts a search box above your blocked accounts in Instagram's settings. It finds them by username or name. While you type, the rest of your list loads page by page, so a long list gets searched all the way through, and a line under the box says how many matched out of how many loaded. It starts off. Asked for in #731.
 * `Hide the Messages badge`, new under Tab bar, takes the unread count off the Messages button in the bottom bar. Chats still show as unread in your inbox and notifications still come. It starts off and takes a restart. Asked for in #734.

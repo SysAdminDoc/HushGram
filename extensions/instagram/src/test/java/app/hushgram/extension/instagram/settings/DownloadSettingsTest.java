@@ -89,6 +89,7 @@ public class DownloadSettingsTest {
         Settings.DOWNLOAD_REELS.resetToDefault();
         Settings.DOWNLOAD_REEL_COVER.resetToDefault();
         Settings.DOWNLOAD_REEL_AUDIO.resetToDefault();
+        Settings.DOWNLOAD_REEL_SONG.resetToDefault();
         Settings.DOWNLOAD_VIDEOS.resetToDefault();
         Settings.DOWNLOAD_FEED_COVER.resetToDefault();
         Settings.DOWNLOAD_PHOTOS.resetToDefault();
@@ -491,6 +492,26 @@ public class DownloadSettingsTest {
             ShadowLooper.idleMainLooper();
             assertTrue(audio.isEnabled());
             assertTrue(ConfigurationBackup.eligible().containsKey(Settings.DOWNLOAD_REEL_AUDIO.key));
+
+            Preference song = reels.findPreference(Settings.DOWNLOAD_REEL_SONG.key);
+            assertTrue("Download full song isn't in Reels", song instanceof SwitchPreference);
+            assertEquals("Download full song", String.valueOf(song.getTitle()));
+            assertTrue(String.valueOf(song.getSummary()), String.valueOf(song.getSummary()).contains("not only the part the reel plays"));
+            int audioAt = -1;
+            int songAt = -1;
+            for (int i = 0; i < reels.getPreferenceCount(); i++) {
+                if (reels.getPreference(i) == audio) audioAt = i;
+                if (reels.getPreference(i) == song) songAt = i;
+            }
+            assertEquals("Download full song sits right after Download audio", audioAt + 1, songAt);
+            assertFalse("Download full song starts off", ((SwitchPreference) song).isChecked());
+            ((SwitchPreference) row).setChecked(false);
+            ShadowLooper.idleMainLooper();
+            assertFalse("Download full song waits for Download on reels", song.isEnabled());
+            ((SwitchPreference) row).setChecked(true);
+            ShadowLooper.idleMainLooper();
+            assertTrue(song.isEnabled());
+            assertTrue(ConfigurationBackup.eligible().containsKey(Settings.DOWNLOAD_REEL_SONG.key));
         }
 
         PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.HIDE_ADS);

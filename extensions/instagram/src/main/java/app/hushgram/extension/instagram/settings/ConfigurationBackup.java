@@ -300,6 +300,7 @@ public final class ConfigurationBackup {
         if (PatchFamily.REEL_DOWNLOAD.inBuild()) {
             settings.put(Settings.DOWNLOAD_REEL_COVER.key, Settings.DOWNLOAD_REEL_COVER);
             settings.put(Settings.DOWNLOAD_REEL_AUDIO.key, Settings.DOWNLOAD_REEL_AUDIO);
+            settings.put(Settings.DOWNLOAD_REEL_SONG.key, Settings.DOWNLOAD_REEL_SONG);
             settings.put(Settings.REEL_DOWNLOAD_BUTTON.key, Settings.REEL_DOWNLOAD_BUTTON);
             settings.put(Settings.REEL_DOWNLOAD_BUTTON_ASKS.key, Settings.REEL_DOWNLOAD_BUTTON_ASKS);
             settings.put(Settings.REEL_NOT_INTERESTED_BUTTON.key, Settings.REEL_NOT_INTERESTED_BUTTON);
