@@ -109,22 +109,26 @@ class FullScreenBarsHookTest {
             val found = PatchContexts.of(FixtureDex.classes(bundle, types).values).findBarHeights()
             val holder = found.barHeightStores().map { it.field.definingClass }.distinct().single()
             val call = found.heightsListenerCall()
+            val kept = FixtureDex.classes(bundle, setOf(holder)).getValue(holder).fields
+                .filter { AccessFlags.STATIC.isSet(it.accessFlags) }.map { it.type }.toSet()
             val context = PatchContexts.of(
-                FixtureDex.classes(bundle, types + holder + call.definingClass).values + ExtensionDex.classDef(FULL_SCREEN_BARS),
+                FixtureDex.classes(bundle, types + holder + call.definingClass + kept).values + ExtensionDex.classDef(FULL_SCREEN_BARS),
             )
+            val homes = context.heightListenerHomes(holder)
+            assertTrue("${bundle.name}: the holder is a home of its listeners", holder in homes)
 
             context.followHeightListeners(holder, call)
 
             val what = bundle.name
-            val held = context.mutableClassDefBy(holder)
             for ((parameters, hook) in listOf(
                 listOf(ACTIVITY_TYPE, call.definingClass, "Z") to HEIGHTS_ASKED,
                 listOf(ACTIVITY_TYPE, call.definingClass) to HEIGHTS_DROPPED,
             )) {
-                val method = held.methods.single {
-                    AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == "V" && it.parameterTypes.map(Any::toString) == parameters
+                val method = homes.flatMap { context.mutableClassDefBy(it).methods }.single {
+                    it.returnType == "V" && it.parameterTypes.map(Any::toString) == parameters
                 }
                 val code = method.code()
+                // The activity and the listener are the first two parameters, past this on an instance method.
                 val first = method.implementation!!.registerCount - parameters.size
                 assertEquals("$what: ${method.name} asks first", hook, code[0].referenceText())
                 assertEquals("$what: ${method.name}'s activity and listener", listOf(first, first + 1), code[0].arguments())
@@ -143,7 +147,7 @@ class FullScreenBarsHookTest {
 
     /**
      * A chat's tab bar stays hidden through a tell: the main activity's method that shows or hides
-     * the bar, the one private (I)V its layout for a new screen size calls on it, asks
+     * the bar, the one private (IZ)V its layout for a new screen size calls on it, asks
      * [TAB_BAR_KEPT_HOOK] first with the visibility and returns when told to, and is otherwise as it
      * was. It's the method that hands that visibility to the bar's view.
      */
@@ -159,7 +163,8 @@ class FullScreenBarsHookTest {
             val context = PatchContexts.of(FixtureDex.classes(bundle, types).values)
             val method = context.tabBarVisibilityMethod()
             val what = "$label: ${method.name}"
-            val visibility = method.implementation!!.registerCount - 1
+            val visibility = method.implementation!!.registerCount - method.parameterTypes.size
+            assertEquals("$what: the visibility first", TAB_BAR_VISIBILITY_PARAMETERS, method.parameterTypes.map(Any::toString))
             assertTrue("$what hands the visibility to a view", method.code().any {
                 it.opcode == Opcode.INVOKE_STATIC && (it.reference() as? MethodReference)?.parameterTypes?.map(Any::toString) ==
                     listOf("Landroid/view/View;", "I", "I") && it.arguments().getOrNull(1) == visibility

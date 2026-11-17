@@ -212,9 +212,23 @@ internal fun BytecodePatchContext.fillKeptHeights(stores: List<BarHeightStore>) 
 }
 
 /**
+ * Where a screen's bar heights listener is registered and removed: the class holding the heights,
+ * and each class of the app it keeps in a static field. On 455 the holder does it itself; on 456 its
+ * companion (08bA on 386214574, kept in 08bs.A0G) registers through an instance (Activity, listener,
+ * once) and removes through a static (Activity, listener).
+ */
+internal fun BytecodePatchContext.heightListenerHomes(holderType: String): List<String> {
+    val holder = classDefByOrNull(holderType) ?: refuse("$holderType isn't in the app")
+    val kept = holder.fields.filter { AccessFlags.STATIC.isSet(it.accessFlags) && it.type != holderType }
+        .map { it.type }.distinct().filter { classDefByOrNull(it) != null }
+    return listOf(holderType) + kept
+}
+
+/**
  * Lets FullScreenBars hear about each screen's bar heights listener and tell it a new pair (#200).
- * The class holding the heights registers a listener through a static (Activity, listener, once) and
- * removes one through (Activity, listener), which tell [HEIGHTS_ASKED] and [HEIGHTS_DROPPED] first.
+ * The holder or its companion ([heightListenerHomes]) registers a listener through an (Activity,
+ * listener, once) and removes one through (Activity, listener), which tell [HEIGHTS_ASKED] and
+ * [HEIGHTS_DROPPED] first, each the one method of its shape there.
  * The [TELL_HEIGHTS] stub calls the listener's own method, [call]. Instagram calls most listeners once
  * and lets them go, so the Reels viewer built before Full screen Reels hid the bars kept their old
  * heights as black strips until it resumed.
@@ -225,12 +239,21 @@ internal fun BytecodePatchContext.followHeightListeners(holderType: String, call
     if (!AccessFlags.PUBLIC.isSet(listener.accessFlags) || !AccessFlags.INTERFACE.isSet(listener.accessFlags)) {
         refuse("$type isn't a public interface the extension can call")
     }
-    val holder = classDefByOrNull(holderType)?.let { mutableClassDefBy(holderType) } ?: refuse("$holderType isn't in the app")
-    fun registration(parameters: List<String>) = holder.methods.filter {
-        AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == "V" && it.parameterTypes.map(Any::toString) == parameters
-    }.singleOrNull() ?: refuse("$holderType has no single static V (${parameters.joinToString("")})")
-    registration(listOf(ACTIVITY, type, "Z")).addInstructions(0, "invoke-static { p0, p1 }, $HEIGHTS_ASKED")
-    registration(listOf(ACTIVITY, type)).addInstructions(0, "invoke-static { p0, p1 }, $HEIGHTS_DROPPED")
+    val homes = heightListenerHomes(holderType)
+    fun registration(parameters: List<String>): Pair<MutableMethod, String> {
+        val found = homes.flatMap { home -> classDefBy(home).methods }.filter {
+            it.returnType == "V" && it.parameterTypes.map(Any::toString) == parameters
+        }
+        val stock = found.singleOrNull()
+            ?: refuse("expected one V (${parameters.joinToString("")}) in $homes, found ${found.size}")
+        val method = mutableClassDefBy(stock.definingClass).methods.single {
+            it.name == stock.name && it.returnType == "V" && it.parameterTypes.map(Any::toString) == parameters
+        }
+        // The activity and the listener come first: p0 and p1 on a static, p1 and p2 past an instance's this.
+        return method to if (AccessFlags.STATIC.isSet(method.accessFlags)) "p0, p1" else "p1, p2"
+    }
+    registration(listOf(ACTIVITY, type, "Z")).let { (method, args) -> method.addInstructions(0, "invoke-static { $args }, $HEIGHTS_ASKED") }
+    registration(listOf(ACTIVITY, type)).let { (method, args) -> method.addInstructions(0, "invoke-static { $args }, $HEIGHTS_DROPPED") }
 
     val bars = classDefByOrNull(FULL_SCREEN_BARS)?.let { mutableClassDefBy(FULL_SCREEN_BARS) }
         ?: refuse("$FULL_SCREEN_BARS isn't in the extension")
@@ -248,30 +271,35 @@ internal fun BytecodePatchContext.followHeightListeners(holderType: String, call
 }
 
 /**
- * The main activity's method that shows or hides its tab bar, like A0V(I)V on 454: the one private
- * (I)V the activity's static layout for a new screen size ([TAB_BAR_MIGRATION]) calls on it. That
- * layout runs from the activity's own bar heights listener, one of those FullScreenBars keeps and
- * tells, and shows the bar again.
+ * The main activity's method that shows or hides its tab bar, like A0X(IZ)V on 456's 386214574: the
+ * one private [TAB_BAR_VISIBILITY_PARAMETERS] V the activity's static layout for a new screen size
+ * ([TAB_BAR_MIGRATION]) calls on it, the visibility first. That layout runs from the activity's own
+ * bar heights listener, one of those FullScreenBars keeps and tells, and shows the bar again.
  */
 internal fun BytecodePatchContext.tabBarVisibilityMethod(): MutableMethod {
     val main = classDefByOrNull(MAIN_ACTIVITY) ?: refuse("$MAIN_ACTIVITY isn't in the app")
     val layout = main.methods.filter {
         AccessFlags.STATIC.isSet(it.accessFlags) && loadsString(it, TAB_BAR_MIGRATION)
     }.singleOrNull() ?: refuse("$MAIN_ACTIVITY has no single static method loading $TAB_BAR_MIGRATION")
+    val shape = "(${TAB_BAR_VISIBILITY_PARAMETERS.joinToString("")})V"
     val shown = layout.implementation?.instructions?.toList().orEmpty().mapNotNull { instruction ->
         val call = (instruction as? ReferenceInstruction)?.reference as? MethodReference
         call?.takeIf {
             instruction.opcode == Opcode.INVOKE_DIRECT && it.definingClass == MAIN_ACTIVITY && it.returnType == "V" &&
-                it.parameterTypes.map(Any::toString) == listOf("I")
+                it.parameterTypes.map(Any::toString) == TAB_BAR_VISIBILITY_PARAMETERS
         }?.name
-    }.distinct().singleOrNull() ?: refuse("the activity's layout for a new screen size calls no single private (I)V on it")
+    }.distinct().singleOrNull() ?: refuse("the activity's layout for a new screen size calls no single private $shape on it")
     val method = mutableClassDefBy(MAIN_ACTIVITY).methods.singleOrNull {
-        it.name == shown && it.returnType == "V" && it.parameterTypes.map(Any::toString) == listOf("I") &&
+        it.name == shown && it.returnType == "V" && it.parameterTypes.map(Any::toString) == TAB_BAR_VISIBILITY_PARAMETERS &&
             !AccessFlags.STATIC.isSet(it.accessFlags)
-    } ?: refuse("$MAIN_ACTIVITY has no instance V $shown(I)")
-    if ((method.implementation?.registerCount ?: 0) < 3) refuse("$MAIN_ACTIVITY->$shown(I)V has no register of its own")
+    } ?: refuse("$MAIN_ACTIVITY has no instance $shown$shape")
+    val ins = 1 + TAB_BAR_VISIBILITY_PARAMETERS.size
+    if ((method.implementation?.registerCount ?: 0) <= ins) refuse("$MAIN_ACTIVITY->$shown$shape has no register of its own")
     return method
 }
+
+/** The tab bar's show-or-hide method takes the visibility and, since 456, a boolean after it. */
+internal val TAB_BAR_VISIBILITY_PARAMETERS = listOf("I", "Z")
 
 /**
  * Has the tab bar's show-or-hide method ask [TAB_BAR_KEPT_HOOK] first and return when it says to.

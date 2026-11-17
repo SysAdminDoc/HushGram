@@ -3546,23 +3546,24 @@ once-call Lapp/hushgram/extension/instagram/stories/StoryUploadQuality;->photoTi
 once-call Lapp/hushgram/extension/instagram/reels/FullScreenBars;->barHeight(I)I in instance (Landroid/view/View;L*;)L*; holding Status\sbar\sheight:\sold=%d\snew=%d,\sActivity=%s\sRetryCount=%d\sisFullScreenFlagSet=%b\swindowFlags=0x%X Nab\sbar\sheight:\sold=%d\snew=%d,\sActivity=%s\sRetryCount=%d\sisFullScreenFlagSet=%b\swindowFlags=0x%X
 once-call Lapp/hushgram/extension/instagram/reels/FullScreenBars;->navBarHeight(I)I in instance (Landroid/view/View;L*;)L*; holding Status\sbar\sheight:\sold=%d\snew=%d,\sActivity=%s\sRetryCount=%d\sisFullScreenFlagSet=%b\swindowFlags=0x%X Nab\sbar\sheight:\sold=%d\snew=%d,\sActivity=%s\sRetryCount=%d\sisFullScreenFlagSet=%b\swindowFlags=0x%X
 # The bar heights listeners (#200, #203): Instagram's registration of a screen's heights listener
-# (07tu.A06 on 451, static, the activity, the listener and a boolean) hands it to
-# FullScreenBars.heightsAsked first, and its removal (07tu.A05) to heightsDropped first, so the
+# (08bA.A07 on 456's 386214574, an instance method of the heights holder's companion taking the
+# activity, the listener and a boolean) hands it to FullScreenBars.heightsAsked first, and its
+# removal (08bA.A04, static) to heightsDropped first, so the
 # listeners a full screen switch keeps hear each new pair of heights. Left out, a screen built while
 # the bars were hidden keeps 0 and runs under the status bar, or a screen built before keeps black
 # strips. Neither method loads a string, so each is picked by its fields and calls.
-start-call Lapp/hushgram/extension/instagram/reels/FullScreenBars;->heightsAsked(Landroid/app/Activity;Ljava/lang/Object;)V in static (Landroid/app/Activity;L*;Z)V calling static LX/*;->*(Landroid/app/Activity;)LX/*; holding LX/*;->*:Ljava/util/List; Ljava/util/List;->add(Ljava/lang/Object;)Z
-once-call Lapp/hushgram/extension/instagram/reels/FullScreenBars;->heightsAsked(Landroid/app/Activity;Ljava/lang/Object;)V in static (Landroid/app/Activity;L*;Z)V calling static LX/*;->*(Landroid/app/Activity;)LX/*; holding LX/*;->*:Ljava/util/List; Ljava/util/List;->add(Ljava/lang/Object;)Z
-start-call Lapp/hushgram/extension/instagram/reels/FullScreenBars;->heightsDropped(Landroid/app/Activity;Ljava/lang/Object;)V in static (Landroid/app/Activity;L*;)V holding LX/*;->*:Ljava/util/WeakHashMap; LX/*;->*:Ljava/util/List; Ljava/util/List;->remove(Ljava/lang/Object;)Z
-once-call Lapp/hushgram/extension/instagram/reels/FullScreenBars;->heightsDropped(Landroid/app/Activity;Ljava/lang/Object;)V in static (Landroid/app/Activity;L*;)V holding LX/*;->*:Ljava/util/WeakHashMap; LX/*;->*:Ljava/util/List; Ljava/util/List;->remove(Ljava/lang/Object;)Z
-# A chat's tab bar through a tell: the main activity's method that shows or hides its tab bar (A0V on
-# 454, private, the one (I)V its layout for a new screen size calls on it) asks
+start-call Lapp/hushgram/extension/instagram/reels/FullScreenBars;->heightsAsked(Landroid/app/Activity;Ljava/lang/Object;)V in instance (Landroid/app/Activity;L*;Z)V calling static LX/*;->*(Landroid/app/Activity;)LX/*; holding LX/*;->*:Ljava/util/List; Ljava/util/List;->add(Ljava/lang/Object;)Z
+once-call Lapp/hushgram/extension/instagram/reels/FullScreenBars;->heightsAsked(Landroid/app/Activity;Ljava/lang/Object;)V in instance (Landroid/app/Activity;L*;Z)V calling static LX/*;->*(Landroid/app/Activity;)LX/*; holding LX/*;->*:Ljava/util/List; Ljava/util/List;->add(Ljava/lang/Object;)Z
+start-call Lapp/hushgram/extension/instagram/reels/FullScreenBars;->heightsDropped(Landroid/app/Activity;Ljava/lang/Object;)V in static (Landroid/app/Activity;L*;)V holding LX/*;->*:Ljava/util/Map; LX/*;->*:Ljava/util/List; Ljava/util/List;->remove(Ljava/lang/Object;)Z
+once-call Lapp/hushgram/extension/instagram/reels/FullScreenBars;->heightsDropped(Landroid/app/Activity;Ljava/lang/Object;)V in static (Landroid/app/Activity;L*;)V holding LX/*;->*:Ljava/util/Map; LX/*;->*:Ljava/util/List; Ljava/util/List;->remove(Ljava/lang/Object;)Z
+# A chat's tab bar through a tell: the main activity's method that shows or hides its tab bar (A0X on
+# 456's 386214574, private, the one (IZ)V its layout for a new screen size calls on it) asks
 # FullScreenBars.keepsTabBarThroughATell first and returns on a yes. The activity's own heights
 # listener is a kept one, and being told a pair ran that layout, which showed the floating pill over
 # a chat's message box. Left out, the pill comes back over the box as the keyboard comes and goes.
-# The method loads no string, so it's the class's one instance (I)V handing a view a visibility.
-start-call Lapp/hushgram/extension/instagram/reels/FullScreenBars;->keepsTabBarThroughATell(I)Z in instance (I)V calling static LX/*;->*(Landroid/view/View;II)V pooled class-holding tab_bar_migration_remove
-once-call Lapp/hushgram/extension/instagram/reels/FullScreenBars;->keepsTabBarThroughATell(I)Z in instance (I)V calling static LX/*;->*(Landroid/view/View;II)V pooled class-holding tab_bar_migration_remove
+# The method loads no string, so it's the class's one instance (IZ)V handing a view a visibility.
+start-call Lapp/hushgram/extension/instagram/reels/FullScreenBars;->keepsTabBarThroughATell(I)Z in instance (IZ)V calling static LX/*;->*(Landroid/view/View;II)V pooled class-holding tab_bar_migration_remove
+once-call Lapp/hushgram/extension/instagram/reels/FullScreenBars;->keepsTabBarThroughATell(I)Z in instance (IZ)V calling static LX/*;->*(Landroid/view/View;II)V pooled class-holding tab_bar_migration_remove
 # The camera's navigation bar (#646), under Glass tab bar: the camera's 9:16 layout, built from a
 # Context, reads the navigation bar's height Instagram keeps once and asks
 # GlassTabBar.cameraNavBarHeight about it right before it builds itself from it. The camera opens in
