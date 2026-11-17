@@ -335,4 +335,53 @@ public class LiveReelsTest {
         String missing = HookStatus.missing(FamilyNames.LIVE_REELS).toString();
         assertTrue(missing, missing.contains("reels items added"));
     }
+
+    private int single(Object item, String module, int held) {
+        return LiveReels.single(item, module, held, preview, PLACEHOLDER, LiveReels::switchedOn);
+    }
+
+    /**
+     * A live the adapter inserts on its own into a viewer holding reels is left out, counted on its own
+     * route (#566); a reel, a card, null, the first item of an empty viewer and a viewer the user opened
+     * go in.
+     */
+    @Test
+    public void aLiveInsertedOnItsOwnIsLeftOut() {
+        assertEquals(1, single(live(), REELS_TAB, 12));
+        assertEquals(1, single(live(), "clips_viewer_explore_popular_major_unit", 3));
+        String report = FeedFilterCounters.report().toString();
+        assertTrue(report, report.contains("Lives inserted in Reels: 2 lists, 2 items, 2 removed"));
+
+        assertEquals(0, single(reel(), REELS_TAB, 12));
+        assertEquals(0, single("a suggestion card", REELS_TAB, 12));
+        assertEquals(0, single(null, REELS_TAB, 12));
+        assertEquals(0, single(placeholder(), REELS_TAB, 12));
+        assertEquals("a live as the first item stays, as a first list of lives does", 0, single(live(), REELS_TAB, 0));
+        assertEquals(0, single(live(), "clips_viewer_clips_profile", 12));
+        assertEquals(0, single(live(), null, 12));
+    }
+
+    /** Off, paused, unready or with a throwing reader, an inserted live goes in, and a throw names the insert. */
+    @Test
+    public void anInsertedLiveGoesInWhenOffPausedUnreadyOrBroken() {
+        Settings.HIDE_LIVE_REELS.save(false);
+        assertEquals(0, single(live(), REELS_TAB, 5));
+        Settings.HIDE_LIVE_REELS.save(true);
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertEquals(0, single(live(), REELS_TAB, 5));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+
+        SettingsContextRule.withoutContext(() -> assertEquals(0, single(live(), REELS_TAB, 5)));
+        assertEquals("an item was read while the switch was off", 0, reads.get());
+
+        assertEquals(0, LiveReels.single(live(), REELS_TAB, 5, item -> {
+            throw new IllegalStateException("broken item");
+        }, PLACEHOLDER, LiveReels::switchedOn));
+        String missing = HookStatus.missing(FamilyNames.LIVE_REELS).toString();
+        assertTrue(missing, missing.contains("reels item inserted"));
+        assertEquals("the hook the patch calls is public", 0, LiveReels.single(reel(), REELS_TAB, 5));
+    }
 }

@@ -5,9 +5,12 @@
 package app.morphe.patches.instagram.reels.live
 
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
+import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
+import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
+import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesAccessing
 import app.morphe.patches.instagram.misc.extension.classesCreating
@@ -44,6 +47,17 @@ private const val PATCH = "Hide lives in Reels"
 internal const val LIVE_REELS = "$EXTENSION_PACKAGE/reels/LiveReels;"
 internal const val LIVE_PAGE_FILTER = "$LIVE_REELS->page(Ljava/util/List;Ljava/lang/String;)Ljava/util/List;"
 internal const val LIVE_ADDED_FILTER = "$LIVE_REELS->added(Ljava/util/List;Ljava/lang/String;I)Ljava/util/List;"
+internal const val LIVE_SINGLE_FILTER = "$LIVE_REELS->single(Ljava/lang/Object;Ljava/lang/String;I)I"
+
+/**
+ * The trace names of Instagram's Reels adapter's two inserts of one item at a position, which put
+ * the item straight into the data source's items without its list add or insert. A live Instagram
+ * slips in this way after the Reels have run a while (#566).
+ */
+internal val REELS_SINGLE_INSERT_TRACES = listOf(
+    "ClipsStandaloneAdapterDataSource:insertItem",
+    "ClipsStandaloneAdapterDataSource:insertItemGranular",
+)
 
 /**
  * The Reels viewer's data source has two ways a list joins its items: added at the end (a page, an
@@ -586,6 +600,94 @@ internal fun BytecodePatchContext.filterReelsItemInserts(sites: ReelsItemInserts
     }
 }
 
+/**
+ * One of the Reels adapter's inserts of a single item: the method's [type] and [descriptor], and
+ * [dataSource], the adapter's field holding the data source the item goes into.
+ */
+internal class ReelsSingleInsert(val type: String, val descriptor: String, val dataSource: FieldReference)
+
+/**
+ * Finds the [ReelsSingleInsert]s: for each of [REELS_SINGLE_INSERT_TRACES], the one method loading
+ * it, an instance (item, int)Z with no switch (a Redex merge of several methods dispatches on one),
+ * three locals for the hook and nothing jumping to its first instruction. Its field is the one it
+ * reads off this and casts straight to [sites]' data source, read from Instagram's own code. The
+ * extension needs a static single(Object, String, int)int.
+ */
+internal fun BytecodePatchContext.findReelsSingleInserts(sites: ReelsItemInserts): List<ReelsSingleInsert> {
+    val found = REELS_SINGLE_INSERT_TRACES.map { trace ->
+        val traced = classesLoadingString(trace).flatMap { it.methods }.filter { loadsString(it, trace) }
+        val insert = traced.singleOrNull() ?: refuse("expected one method loading $trace, found ${traced.size}")
+        val parameters = insert.parameterTypes.map(Any::toString)
+        if (AccessFlags.STATIC.isSet(insert.accessFlags) || insert.implementation == null || parameters.size != 2 ||
+            !parameters[0].startsWith("L") || parameters[1] != "I" || insert.returnType != "Z"
+        ) refuse("expected ${insert.describe()} to be an instance method taking an item and an int and answering Z")
+        val code = insert.implementation?.instructions?.toList().orEmpty()
+        if (code.any { it.opcode == Opcode.PACKED_SWITCH || it.opcode == Opcode.SPARSE_SWITCH }) {
+            refuse("${insert.describe()} switches, so it may be several methods in one")
+        }
+        if (insert.localRegisterCount() < 3) refuse("${insert.describe()} has ${insert.localRegisterCount()} local register(s), needs 3")
+        if (0 in insert.jumpTargets()) refuse("${insert.describe()} jumps back to its first instruction")
+        val self = insert.localRegisterCount()
+        val fields = code.indices.mapNotNull { at ->
+            val read = code[at]
+            val field = (read as? ReferenceInstruction)?.reference as? FieldReference ?: return@mapNotNull null
+            if (read.opcode != Opcode.IGET_OBJECT || (read as TwoRegisterInstruction).registerB != self ||
+                field.definingClass != insert.definingClass
+            ) return@mapNotNull null
+            val cast = code.getOrNull(at + 1)
+            val type = (cast as? ReferenceInstruction)?.reference as? TypeReference
+            if (cast?.opcode != Opcode.CHECK_CAST || (cast as OneRegisterInstruction).registerA != read.registerA ||
+                type?.type != sites.dataSource
+            ) return@mapNotNull null
+            field
+        }.distinctBy { it.toString() }
+        val field = fields.singleOrNull()
+            ?: refuse("expected ${insert.describe()} to read one field of its own as ${sites.dataSource}, found ${fields.map { it.name }}")
+        ReelsSingleInsert(insert.definingClass, "${insert.name}(${parameters.joinToString("")})Z", field)
+    }
+    if (classDefByOrNull(LIVE_REELS)?.methods?.none { it.isStaticStub("single", listOf(OBJECT, STRING, "I"), "I") } != false) {
+        refuse("the extension has no static single(Object, String, int)int")
+    }
+    return found
+}
+
+/**
+ * Hands the item each of [inserts] takes to [LIVE_SINGLE_FILTER] first thing, with the module name
+ * and size of the data source it goes into, and answers false, as Instagram's insert does for a
+ * position it can't take, when the filter says the item is a live to leave out. An adapter whose
+ * field holds something else inserts as it would. The return is gated on the item, so the rest of
+ * the insert runs for anything that isn't a live. Nothing jumps to the first instruction and the
+ * locals hold nothing yet, so the hook borrows v0 to v2.
+ */
+internal fun BytecodePatchContext.filterReelsSingleInserts(sites: ReelsItemInserts, inserts: List<ReelsSingleInsert>) {
+    for (insert in inserts) {
+        val method = mutableClassDefBy(insert.type).methods.single {
+            "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" == insert.descriptor
+        }
+        val item = method.parameterRegister(0)
+        method.addInstructionsWithLabels(
+            0,
+            """
+                move-object/from16 v0, p0
+                iget-object v0, v0, ${insert.dataSource}
+                instance-of v1, v0, ${sites.dataSource}
+                if-eqz v1, :insert
+                check-cast v0, ${sites.dataSource}
+                invoke-virtual { v0 }, ${sites.size}
+                move-result v1
+                iget-object v0, v0, ${sites.moduleField}
+                move-object/from16 v2, $item
+                invoke-static { v2, v0, v1 }, $LIVE_SINGLE_FILTER
+                move-result v0
+                if-eqz v0, :insert
+                const/4 v0, 0x0
+                return v0
+            """,
+            ExternalLabel("insert", method.getInstruction(0)),
+        )
+    }
+}
+
 private fun Method.describe() = "$definingClass->$name(${parameterTypes.joinToString("")})$returnType"
 
 /** Whether this method invokes [target]. */
@@ -623,10 +725,12 @@ val hideLiveReelsPatch = bytecodePatch(
         val page = findReelsPage(PATCH)
         val live = findLivePreviewKey(page.itemType)
         val inserts = findReelsItemInserts()
+        val singles = findReelsSingleInserts(inserts)
         val placeholder = findReelsPlaceholder(page.itemType)
         hideLiveReels(page, live)
         fillReelsPlaceholder(page.itemType, placeholder)
         filterReelsItemInserts(inserts)
+        filterReelsSingleInserts(inserts, singles)
         enableStatus("liveReels")
     }
 }

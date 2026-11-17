@@ -20,6 +20,7 @@ import app.morphe.patches.instagram.reels.suggested.TO_CLIPS_ITEM
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.builder.BuilderOffsetInstruction
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
@@ -65,6 +66,7 @@ class HideLiveReelsHookTest {
     private val viewer = "Lfixture/ClipsViewer;"
     private val kindType = "Lfixture/ClipsItemKind;"
     private val adapter = "Lfixture/ClipsViewerAdapter;"
+    private val baseSource = "Lfixture/BaseDataSource;"
 
     /** The page filter and the stub the patch fills are in the LiveReels the bundle ships, public and static. */
     @Test
@@ -72,7 +74,7 @@ class HideLiveReelsHookTest {
         val declared = ExtensionDex.classDef(LIVE_REELS).methods
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
-        val hooks = listOf(LIVE_PAGE_FILTER, LIVE_ADDED_FILTER).map { it.substringAfter("->") }
+        val hooks = listOf(LIVE_PAGE_FILTER, LIVE_ADDED_FILTER, LIVE_SINGLE_FILTER).map { it.substringAfter("->") }
         for (wanted in hooks + "livePreview(Ljava/lang/Object;)Ljava/lang/Object;" + "placeholder(Ljava/lang/Object;)Z") {
             assertTrue("$wanted is not in the extension: $declared", wanted in declared)
         }
@@ -425,6 +427,134 @@ class HideLiveReelsHookTest {
     }
 
     /**
+     * The adapter's two inserts of one item hand it to the extension first thing, with the module name
+     * and size of the data source their own field holds, and answer false when the extension says it's
+     * a live; anything else, a field holding another type included, runs Instagram's insert (#566).
+     */
+    @Test
+    fun theAdaptersSingleInsertsAskAboutTheItemFirstThing() {
+        val stock = singleInsertClasses()
+        val context = PatchContexts.of(stock)
+
+        val sites = context.findReelsItemInserts()
+        val singles = context.findReelsSingleInserts(sites)
+        context.filterReelsSingleInserts(sites, singles)
+
+        assertEquals(listOf("insertItem($item" + "I)Z", "insertItemGranular($item" + "I)Z"), singles.map { it.descriptor })
+        assertEquals(listOf(adapter, adapter), singles.map { it.type })
+        assertEquals("$adapter->source:$baseSource", singles.map { it.dataSource.toString() }.distinct().single())
+        assertSingleInsertsFiltered("the stand-in", stock.single { it.type == adapter }, context, sites, singles)
+    }
+
+    /** An adapter the patch can't read fails at patch time, saying what it found, before anything is written. */
+    @Test
+    fun anAdapterInsertThePatchCantReadFailsBeforeAnythingChanges() {
+        val insertItem = "$adapter->insertItem($item" + "I)Z"
+        val cases = listOf(
+            singleInsertClasses(traces = 0) to "expected one method loading ${REELS_SINGLE_INSERT_TRACES[0]}, found 0",
+            singleInsertClasses(traces = 2) to "expected one method loading ${REELS_SINGLE_INSERT_TRACES[0]}, found 2",
+            singleInsertClasses(returnsVoid = true) to
+                "expected $adapter->insertItem($item" + "I)V to be an instance method taking an item and an int and answering Z",
+            singleInsertClasses(castsElsewhere = true) to "expected $insertItem to read one field of its own as $dataSource, found []",
+            singleInsertClasses(locals = 2) to "$insertItem has 2 local register(s), needs 3",
+            singleInsertClasses(loops = true) to "$insertItem jumps back to its first instruction",
+            singleInsertClasses(singleStub = false) to "the extension has no static single(Object, String, int)int",
+        )
+        for ((classes, expected) in cases) {
+            val context = PatchContexts.of(classes)
+            val sites = context.findReelsItemInserts()
+            val failure = assertThrows(expected, PatchException::class.java) { context.findReelsSingleInserts(sites) }
+            assertTrue("$expected: ${failure.message}", failure.message!!.contains(expected))
+        }
+    }
+
+    /**
+     * On the declared build and each other build of 456, both single inserts are on one adapter, read
+     * the data source the list hooks filter out of one field, take the hook first thing, and keep the
+     * rest of their code as Instagram's.
+     */
+    @Test
+    fun eachBuildFiltersTheAdaptersSingleInserts() {
+        val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
+        val bundles = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } } +
+            Fixtures.otherBuilds()
+        var checked = 0
+        for (bundle in bundles) {
+            val markers = listOf(REELS_INSERT_TRACE, REELS_ADD_ITEM) + REELS_SINGLE_INSERT_TRACES
+            val kept = markers.flatMap { FixtureDex.classesLoading(bundle, it) }.distinctBy { it.type }
+            val context = PatchContexts.of(kept + ExtensionDex.classDef(LIVE_REELS))
+
+            val sites = context.findReelsItemInserts()
+            val singles = context.findReelsSingleInserts(sites)
+            context.filterReelsSingleInserts(sites, singles)
+
+            assertEquals("${bundle.name}: one adapter", 1, singles.map { it.type }.distinct().size)
+            assertEquals("${bundle.name}: one field", 1, singles.map { it.dataSource.toString() }.distinct().size)
+            assertSingleInsertsFiltered(bundle.name, kept.single { it.type == singles[0].type }, context, sites, singles)
+            checked++
+        }
+        assertEquals("every build is read", Fixtures.BUILDS, checked)
+    }
+
+    /**
+     * Each of [singles] starts with the hook: this's data source field read and checked for the data
+     * source's type, the size and module name read off it, the item handed in with them, and a false
+     * answer when the filter says so. Both branches land on Instagram's first instruction, whose code
+     * follows unchanged.
+     */
+    private fun assertSingleInsertsFiltered(
+        what: String,
+        stock: ClassDef,
+        context: BytecodePatchContext,
+        sites: ReelsItemInserts,
+        singles: List<ReelsSingleInsert>,
+    ) {
+        fun Method.descriptor() = "$name(${parameterTypes.joinToString("")})$returnType"
+        for (single in singles) {
+            val before = stock.methods.single { it.descriptor() == single.descriptor }
+            val after = context.mutableClassDefBy(single.type).methods.single { it.descriptor() == single.descriptor }
+            val code = after.code()
+            assertEquals(
+                "$what: ${single.descriptor}'s hook",
+                listOf(
+                    Opcode.MOVE_OBJECT_FROM16 to null, Opcode.IGET_OBJECT to single.dataSource.toString(),
+                    Opcode.INSTANCE_OF to sites.dataSource, Opcode.IF_EQZ to null, Opcode.CHECK_CAST to sites.dataSource,
+                    Opcode.INVOKE_VIRTUAL to sites.size.toString(), Opcode.MOVE_RESULT to null,
+                    Opcode.IGET_OBJECT to sites.moduleField.toString(), Opcode.MOVE_OBJECT_FROM16 to null,
+                    Opcode.INVOKE_STATIC to LIVE_SINGLE_FILTER, Opcode.MOVE_RESULT to null, Opcode.IF_EQZ to null,
+                    Opcode.CONST_4 to null, Opcode.RETURN to null,
+                ),
+                code.take(14).map { it.opcode to it.referenceText() },
+            )
+            val self = code[0] as TwoRegisterInstruction
+            val held = code[1] as TwoRegisterInstruction
+            val module = code[7] as TwoRegisterInstruction
+            val handed = code[8] as TwoRegisterInstruction
+            val filter = code[9] as FiveRegisterInstruction
+            assertEquals("$what: ${single.descriptor} reads this", after.localRegisterCount(), self.registerB)
+            assertEquals("$what: ${single.descriptor} reads the field off this", self.registerA, held.registerB)
+            assertEquals("$what: ${single.descriptor} asks the data source its size", held.registerA, (code[5] as FiveRegisterInstruction).registerC)
+            assertEquals("$what: ${single.descriptor} reads the module name off the data source", held.registerA, module.registerB)
+            assertEquals("$what: ${single.descriptor} hands the item in", after.parameterRegisterNumber(0), handed.registerB)
+            assertEquals(
+                "$what: ${single.descriptor} hands the filter the item, the module name and the size",
+                listOf(handed.registerA, module.registerA, (code[6] as OneRegisterInstruction).registerA),
+                listOf(filter.registerC, filter.registerD, filter.registerE),
+            )
+            val answer = (code[10] as OneRegisterInstruction).registerA
+            assertEquals("$what: ${single.descriptor} tests the filter's answer", answer, (code[11] as OneRegisterInstruction).registerA)
+            assertEquals("$what: ${single.descriptor} answers false", 0, (code[12] as NarrowLiteralInstruction).narrowLiteral)
+            assertEquals("$what: ${single.descriptor} returns that false", (code[12] as OneRegisterInstruction).registerA,
+                (code[13] as OneRegisterInstruction).registerA)
+            for (branch in listOf(3, 11)) {
+                assertEquals("$what: ${single.descriptor}'s branch $branch lands on Instagram's insert", 14,
+                    (code[branch] as BuilderOffsetInstruction).target.location.index)
+            }
+            assertEquals("$what: ${single.descriptor}'s own code is kept", kinds(before.code()), kinds(code.drop(14)))
+        }
+    }
+
+    /**
      * Each of [sites]' inserts starts with the hook: this read for its size and module name, the list
      * handed to the filter with them, and the answer put back in the list's register. Instagram's own
      * code follows unchanged.
@@ -741,6 +871,51 @@ class HideLiveReelsHookTest {
             listOf(classDef(dataSource, methods + insert))
         }
         return classes + if (extension) listOf(ExtensionDex.classDef(LIVE_REELS)) else emptyList()
+    }
+
+    /**
+     * [dataSourceClasses] with the Reels adapter's two inserts of one item shaped like 456's: each
+     * reads its data source field, typed as the data source's parent, and casts it to the data
+     * source, after a cast of another field to another type, then loads its trace name. The extension
+     * is in it unless [singleStub] is false, when it's one without single.
+     */
+    private fun singleInsertClasses(
+        traces: Int = 1,
+        returnsVoid: Boolean = false,
+        castsElsewhere: Boolean = false,
+        locals: Int = 3,
+        loops: Boolean = false,
+        singleStub: Boolean = true,
+    ): List<ClassDef> {
+        fun insert(name: String, trace: String) = method(
+            adapter, name, listOf(item, "I"), if (returnsVoid && name == "insertItem") "V" else "Z", locals,
+            body = buildString {
+                if (loops && name == "insertItem") appendLine(":top")
+                appendLine("const/4 v0, 0x0")
+                appendLine("iget-object v1, p0, $adapter->other:$objectType")
+                appendLine("check-cast v1, $stringType")
+                appendLine("iget-object v1, p0, $adapter->source:$baseSource")
+                appendLine("check-cast v1, ${if (castsElsewhere) "Lfixture/OtherSource;" else dataSource}")
+                appendLine("const-string v1, \"${if (traces > 0 || name != "insertItem") trace else "insertItem()"}\"")
+                if (loops && name == "insertItem") appendLine("if-eqz p2, :top")
+                if (returnsVoid && name == "insertItem") appendLine("return-void") else appendLine("return v0")
+            },
+        )
+        val methods = REELS_SINGLE_INSERT_TRACES.map { trace -> insert(trace.substringAfter(':'), trace) }.toMutableList()
+        if (traces > 1) {
+            methods += method(adapter, "insertAgain", listOf(item, "I"), "Z", 2, body = """
+                const-string v0, "${REELS_SINGLE_INSERT_TRACES[0]}"
+                const/4 v0, 0x1
+                return v0
+            """)
+        }
+        val classes = dataSourceClasses(extension = false) + classDef(adapter, methods)
+        if (singleStub) return classes + ExtensionDex.classDef(LIVE_REELS)
+        val extension = ExtensionDex.classDef(LIVE_REELS)
+        return classes + ImmutableClassDef(
+            extension.type, extension.accessFlags, extension.superclass, extension.interfaces, extension.sourceFile,
+            extension.annotations, extension.fields, extension.methods.filter { it.name != "single" },
+        )
     }
 
     /**

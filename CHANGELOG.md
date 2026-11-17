@@ -111,7 +111,7 @@ Every HushGram release, newest first.
 * With `Page dots on a pill` and `Peek at the next carousel page` on, the pill stays at one height under a square or tall carousel's pages. It jumped up whenever you swiped to a video. Reported in #450.
 * With `Glass tab bar` on, tapping a reel's More button or audio square right above the seek bar opens it again instead of seeking. Only a press on the bar itself goes to the seek bar now.
 * With `Keep playing in the background` on, a video story that ends while Instagram is hidden plays the next story instead of stopping. Only one story plays at a time, and one you paused stays paused. Reported in #497.
-* `Hide lives in Reels` also catches the lives Instagram adds to the Reels tab after a page has loaded, so they stop turning up between reels. Reported in #566.
+* `Hide lives in Reels` also catches the lives Instagram adds to the Reels tab after a page has loaded, so they stop turning up between reels. That includes the ones it slips in one at a time after you've been scrolling for a while. Reported in #566.
 * Tapping Stop on the background playback notification lets the video's player go once. If Instagram let it go during Stop's pause, HushGram let it go a second time.
 * With `Keep playing in the background` on, a reel that hands over to the next one while Instagram is hidden lets go of the old player right away. The new one keeps playing.
 * The glass tab bar costs less on Reels. It stopped asking for frames of its own between the reel's, and on Android 14 and newer copying the reel behind the pill no longer holds up the screen. Reported in #672.

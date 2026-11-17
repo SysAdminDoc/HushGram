@@ -2713,6 +2713,13 @@ shared-call Lapp/hushgram/extension/instagram/reels/LiveReels;->added(Ljava/util
 shared-call Lapp/hushgram/extension/instagram/reels/FriendLanePicks;->added(Ljava/util/List;Ljava/lang/String;I)Ljava/util/List; in instance (Ljava/util/List;)V calling instance LX/*;->*(Lcom/instagram/common/session/UserSession;)Z class-holding ClipsStandaloneAdapterDataSource:insertItemsGranular addItemInternal()
 shared-call Lapp/hushgram/extension/instagram/reels/FriendLanePicks;->added(Ljava/util/List;Ljava/lang/String;I)Ljava/util/List; in instance (ILjava/util/List;)Z holding ClipsStandaloneAdapterDataSource:insertItemsGranular
 
+# Hide lives in Reels also asks about each item the Reels adapter inserts on its own (#566): its
+# insertItem and insertItemGranular (item, int)Z each hand the item to LiveReels.single first thing,
+# once, with the module name and size of the data source their field holds, and answer false for a
+# live. One rule per method, so a retarget that drops the hook from either fails here.
+once-call Lapp/hushgram/extension/instagram/reels/LiveReels;->single(Ljava/lang/Object;Ljava/lang/String;I)I in instance (L*;I)Z holding ClipsStandaloneAdapterDataSource:insertItem
+once-call Lapp/hushgram/extension/instagram/reels/LiveReels;->single(Ljava/lang/Object;Ljava/lang/String;I)I in instance (L*;I)Z holding ClipsStandaloneAdapterDataSource:insertItemGranular
+
 # Show a reel's exact time hands the Reels title and the list of its column's parts to
 # ReelPostTime.line just before the title makes that column (the one method loading the title's
 # render marker below), once, so the line with the time goes in after the name row and Instagram's

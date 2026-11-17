@@ -5,6 +5,7 @@
 package app.hushgram.extension.instagram.reels;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.function.BooleanSupplier;
 import java.util.function.Function;
@@ -37,10 +38,11 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * too, go to {@link #added} with the viewer's module name and how many items the viewer already holds.
  * There a list of only lives stays whole too while the viewer holds nothing yet. Instagram puts
  * a placeholder at the end of a list while the next page loads (see {@link #placeholder}), and a list of
- * lives and placeholders counts as a list of only lives in both places. A single item the data source
- * takes on its own, and a list a short drama's viewer inserts, come in other ways and stay as they
- * came. Off, paused, before the settings are read, or when anything throws, a list comes back as it
- * came, the same list.
+ * lives and placeholders counts as a list of only lives in both places. A single item the adapter
+ * inserts at a position goes to {@link #single}, which leaves a live out the way {@link #added} would
+ * leave it out of a list of one (#566). A list a short drama's viewer inserts comes in another way
+ * and stays as it came. Off, paused, before the settings are read, or when anything throws, a list
+ * comes back as it came, the same list, and a single item goes in.
  */
 public final class LiveReels {
     /** The diagnostic counter route: the pages seen, and the lives taken out of them. */
@@ -48,6 +50,9 @@ public final class LiveReels {
 
     /** The diagnostic counter route for the lists the viewer's data source adds to its items. */
     static final String ADDED_ROUTE = "Lives added to Reels";
+
+    /** The diagnostic counter route for the single items the Reels adapter inserts among the reels. */
+    static final String INSERTED_ROUTE = "Lives inserted in Reels";
 
     /** The kind counted for a live taken out. */
     static final String LIVE = "live";
@@ -92,6 +97,25 @@ public final class LiveReels {
     static List<?> added(List<?> items, String module, int held, Function<Object, Object> preview, Predicate<Object> placeholder,
             BooleanSupplier on) {
         return without(items, module, held > 0, ADDED_ROUTE, FIRST_KEPT, "reels items added", preview, placeholder, on);
+    }
+
+    /**
+     * Injected first thing where Instagram's Reels adapter inserts one item among the reels, with the
+     * module name of the data source it goes into and [held], how many items that holds already (#566).
+     * Answers 1 when the item is a live {@link #added} would take out of a list of one, so the insert
+     * answers false as it does for a position it can't take, and 0 to let the item in: off, paused, a
+     * viewer {@link #page} doesn't filter, a viewer holding nothing yet, or anything going wrong.
+     */
+    public static int single(Object item, String module, int held) {
+        return single(item, module, held, LiveReels::livePreview, LiveReels::placeholder, LiveReels::switchedOn);
+    }
+
+    static int single(Object item, String module, int held, Function<Object, Object> preview, Predicate<Object> placeholder,
+            BooleanSupplier on) {
+        if (item == null) return 0;
+        List<?> kept = without(Collections.singletonList(item), module, held > 0, INSERTED_ROUTE, FIRST_KEPT,
+                "reels item inserted", preview, placeholder, on);
+        return kept.isEmpty() ? 1 : 0;
     }
 
     /**
