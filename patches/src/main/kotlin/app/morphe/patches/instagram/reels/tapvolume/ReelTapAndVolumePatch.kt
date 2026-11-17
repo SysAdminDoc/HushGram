@@ -16,7 +16,8 @@ import app.morphe.patches.instagram.download.reel.rewriteStub
 import app.morphe.patches.instagram.media.taptoplay.CLIPS_PAUSE
 import app.morphe.patches.instagram.media.taptoplay.FRAGMENT_ACTIVITY
 import app.morphe.patches.instagram.media.taptoplay.FUNCTION0
-import app.morphe.patches.instagram.media.taptoplay.TOGGLE_PAUSE
+import app.morphe.patches.instagram.media.taptoplay.reelsPlayerPause
+import app.morphe.patches.instagram.media.taptoplay.reelsTap
 import app.morphe.patches.instagram.media.taptoplay.TOUCH as TAP_CLOCK
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.enableStatus
@@ -24,13 +25,14 @@ import app.morphe.patches.instagram.misc.extension.freeLocalsAt
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
-import app.morphe.patches.instagram.misc.extension.markers
+import app.morphe.patches.instagram.misc.extension.classesLoadingString
+import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.patchLog
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.extension.requireThisIntact
-import app.morphe.patches.instagram.misc.extension.typesMarked
 import app.morphe.patches.instagram.misc.settings.settingsPatch
-import app.morphe.patches.instagram.reels.speed.MAYBE_RESUME_PLAYER
+import app.morphe.patches.instagram.reels.speed.RESUME_PLAYER_TRACE
+import app.morphe.patches.instagram.reels.speed.reelsResumePlayers
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -64,11 +66,46 @@ internal const val SPEAKER_REFRESH = "$EXTENSION_PACKAGE/download/ReelMuteButton
 internal const val TOGGLE_AUDIO_STUB = "toggleAudio"
 internal const val AUDIO_ON_STUB = "audioOn"
 
-/** The purge marker, less its release, of the Reels controller's volume runnable: where it unmutes after a key press. */
-internal const val VOLUME_ADJUSTED = "ClipsVideoPlayerController_onVolumeAdjustedByUser"
+/**
+ * What the Reels controller's volume runnable logs when AudioManager refuses the key's adjustment,
+ * which only that runnable loads. Instagram 456 dropped its onVolumeAdjustedByUser purge marker.
+ */
+internal const val VOLUME_FAILED = "Failed to set the volume"
 
-/** The purge marker, less its release, of the Reels controller's audio toggle: the method the audio button calls. */
-internal const val TOGGLE_AUDIO = "ClipsVideoPlayerController_toggleAudio"
+/**
+ * The Reels audio toggle, the method the audio button calls: the one method of the controller (the
+ * class of [reelsPlayerPause]) that flips the session's sound, a static taking the session and
+ * returning its audio state, a no-argument boolean asked of that state, an xor with 1, then a boolean
+ * setter on it. Instagram 456 dropped the toggle's purge marker, so its shape names it. [refuse] stops
+ * the patch.
+ */
+internal fun BytecodePatchContext.reelsAudioToggle(refuse: (String) -> Nothing): Method {
+    val pause = reelsPlayerPause { refuse("the Reels audio toggle: $it") }
+    val toggles = classDefBy(pause.definingClass).methods.filter { method ->
+        val code = method.code()
+        code.indices.any { flipsSessionSound(code, it) }
+    }
+    return toggles.singleOrNull()
+        ?: refuse("the Reels audio toggle: expected one method of ${pause.definingClass} flipping the session's sound, found ${toggles.size}")
+}
+
+/** Whether [code] flips the session's sound state starting at [at]: factory, ask, xor 1 with the answer, set. */
+private fun flipsSessionSound(code: List<Instruction>, at: Int): Boolean {
+    val factory = code[at].methodReference() ?: return false
+    if (code[at].opcode != Opcode.INVOKE_STATIC || factory.parameterTypes.map(Any::toString) != listOf(USER_SESSION)) return false
+    val stateType = factory.returnType
+    val asks = code.getOrNull(at + 2)?.methodReference()
+    val answer = code.getOrNull(at + 3) as? OneRegisterInstruction
+    val flip = code.getOrNull(at + 4)
+    val sets = code.getOrNull(at + 5)?.methodReference()
+    return code.getOrNull(at + 1)?.opcode == Opcode.MOVE_RESULT_OBJECT && code[at + 2].opcode == Opcode.INVOKE_VIRTUAL &&
+        asks?.definingClass == stateType && asks.returnType == "Z" && asks.parameterTypes.isEmpty() &&
+        answer != null && code[at + 3].opcode == Opcode.MOVE_RESULT &&
+        flip?.opcode == Opcode.XOR_INT_LIT8 && (flip as NarrowLiteralInstruction).narrowLiteral == 1 &&
+        (flip as TwoRegisterInstruction).registerB == answer.registerA &&
+        code[at + 5].opcode == Opcode.INVOKE_VIRTUAL && sets?.definingClass == stateType && sets.returnType == "V" &&
+        sets.parameterTypes.map(Any::toString).let { it == listOf("Z") || it == listOf("Z", "Z") }
+}
 
 /** The reason the audio button hands the toggle, which the tap hands it too. */
 private const val BUTTON_REASON = -3
@@ -83,9 +120,9 @@ private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $det
  * Lets you choose what a tap on a reel does, and keeps a reel muted on the volume keys.
  *
  * Instagram 450 sends a single tap on a reel to its pause and mute navigator's tap method
- * ([TOGGLE_PAUSE]), which resumes a reel you paused and otherwise takes its [CLIPS_PAUSE] path and
+ * ([reelsTap]), which resumes a reel you paused and otherwise takes its [CLIPS_PAUSE] path and
  * pauses the one that is playing. The patch asks the extension at the start of that pause path
- * whether to mute instead. A yes calls the Reels controller's audio toggle ([TOGGLE_AUDIO]), the
+ * whether to mute instead. A yes calls the Reels controller's audio toggle ([reelsAudioToggle]), the
  * one the audio button calls, and returns, so the reel keeps playing with its sound turned off or on.
  * A no goes on to the pause as before, so Instagram's default and Pause are Instagram's own tap.
  * Keep playing still lets a tap on the play icon over a reel pause it: every touch on
@@ -135,7 +172,7 @@ internal class ReelTapSite(
 )
 
 /**
- * The volume runnable, the index right after its [VOLUME_ADJUSTED] marker call, the field holding the
+ * The volume runnable, the index where its unmute starts, the field holding the
  * direction it gave AudioManager, and the local the hook may borrow there.
  */
 internal class VolumeSite(
@@ -185,26 +222,15 @@ internal class PlayerAudio(
 private const val USER_SESSION = "Lcom/instagram/common/session/UserSession;"
 
 /**
- * The tap is the one method marked [TOGGLE_PAUSE], and the audio toggle the one marked [TOGGLE_AUDIO],
- * an instance `(I)V` the tap's code can call. The tap loads [CLIPS_PAUSE] once, as the target of one
+ * The tap is [reelsTap], and the audio toggle [reelsAudioToggle], an instance `(I)V` or `(IZ)V` the
+ * tap's code can call. The tap loads [CLIPS_PAUSE] once, as the target of one
  * branch, and the hook goes in the straight line right after that load, where nothing jumps. The tap
  * reaches the controller through one Function0 field of its own, whose answer it casts to the
  * toggle's class, and still holds `this` there.
  */
 internal fun BytecodePatchContext.findReelTapSite(): ReelTapSite {
-    val taps = mutableListOf<Method>()
-    val toggles = mutableListOf<Method>()
-    val marked = typesMarked(TOGGLE_PAUSE, TOGGLE_AUDIO)
-    classDefForEach { classDef ->
-        if (classDef.type !in marked) return@classDefForEach
-        classDef.methods.forEach { method ->
-            val markers = method.markers()
-            if (TOGGLE_PAUSE in markers) taps += method
-            if (TOGGLE_AUDIO in markers) toggles += method
-        }
-    }
-    val tap = taps.singleOrNull() ?: refuse("the Reels tap: expected one method marked $TOGGLE_PAUSE, found ${taps.size}")
-    val toggle = toggles.singleOrNull() ?: refuse("the Reels audio toggle: expected one method marked $TOGGLE_AUDIO, found ${toggles.size}")
+    val tap = reelsTap(reelsPlayerPause { refuse("the Reels tap: $it") }) { refuse("the Reels tap: $it") }
+    val toggle = reelsAudioToggle(::refuse)
     val where = "${tap.definingClass}->${tap.name}"
     if (AccessFlags.STATIC.isSet(tap.accessFlags) || tap.returnType != "V") refuse("$where isn't an instance method returning nothing")
     val controller = toggle.definingClass
@@ -288,19 +314,15 @@ internal fun BytecodePatchContext.applyReelTap(site: ReelTapSite) {
 }
 
 /**
- * The volume runnable is the one `run()V` marked [VOLUME_ADJUSTED]. It adjusts the stream volume first,
- * giving AudioManager an int it reads from one field of its own class, then runs the controller's
- * unmute under the marker. The hook goes right after the marker's call, past the adjustment, where
- * nothing jumps, so the key still does its work and only the unmute can be skipped.
+ * The volume runnable is the one method loading [VOLUME_FAILED], a `run()V`. It adjusts the stream
+ * volume first, giving AudioManager an int it reads from one field of its own class, then runs the
+ * controller's unmute (onVolumeAdjustedByUser), which starts with a static of the controller taking
+ * only the controller. The hook goes right before that call, past the adjustment, where nothing jumps,
+ * so the key still does its work and only the unmute can be skipped.
  */
 internal fun BytecodePatchContext.findVolumeSite(): VolumeSite {
-    val runs = mutableListOf<Method>()
-    val marked = typesMarked(VOLUME_ADJUSTED)
-    classDefForEach { classDef ->
-        if (classDef.type !in marked) return@classDefForEach
-        classDef.methods.forEach { method -> if (VOLUME_ADJUSTED in method.markers()) runs += method }
-    }
-    val run = runs.singleOrNull() ?: refuse("the volume runnable: expected one method marked $VOLUME_ADJUSTED, found ${runs.size}")
+    val runs = classesLoadingString(VOLUME_FAILED).sortedBy { it.type }.flatMap { it.methods }.filter { loadsString(it, VOLUME_FAILED) }
+    val run = runs.singleOrNull() ?: refuse("the volume runnable: expected one method loading \"$VOLUME_FAILED\", found ${runs.size}")
     val where = "${run.definingClass}->${run.name}"
     if (run.name != "run" || run.returnType != "V" || run.parameterTypes.isNotEmpty() || AccessFlags.STATIC.isSet(run.accessFlags)) {
         refuse("$where isn't an instance run()V")
@@ -319,14 +341,16 @@ internal fun BytecodePatchContext.findVolumeSite(): VolumeSite {
     if (code[load].opcode != Opcode.IGET || direction == null || direction.definingClass != run.definingClass || direction.type != "I") {
         refuse("$where doesn't take the direction from an int field of its own")
     }
-    val markerAt = code.indices.filter { code[it].stringLoaded() == markerString(VOLUME_ADJUSTED) }.singleOrNull()
-        ?: refuse("$where doesn't load the $VOLUME_ADJUSTED marker once")
-    if (adjust > markerAt) refuse("$where adjusts the volume after the $VOLUME_ADJUSTED marker")
-    val index = markerAt + 2
-    if (code.getOrNull(markerAt + 1)?.opcode != Opcode.INVOKE_STATIC || index !in code.indices) {
-        refuse("$where doesn't report the $VOLUME_ADJUSTED marker with a static call")
+    // The unmute starts with the first static of the controller taking only the controller.
+    val controller = reelsAudioToggle(::refuse).definingClass
+    val starts = code.indices.filter { at ->
+        code[at].opcode == Opcode.INVOKE_STATIC && code[at].methodReference()?.let {
+            it.definingClass == controller && it.returnType == "V" && it.parameterTypes.map(Any::toString) == listOf(controller)
+        } == true
     }
-    if (index in run.jumpTargets()) refuse("something in $where jumps to just past the $VOLUME_ADJUSTED marker")
+    val index = starts.firstOrNull() ?: refuse("$where never starts the unmute with a static of $controller taking it")
+    if (adjust > index) refuse("$where adjusts the volume after it starts the unmute")
+    if (index in run.jumpTargets()) refuse("something in $where jumps to the start of the unmute")
     run.requireThisIntact(PATCH, listOf(index))
     // 453's runnable keeps this at v17, so the hook copies it into a low local before reading fields.
     val scratch = run.freeLocalsAt(PATCH, index, 3)
@@ -335,7 +359,7 @@ internal fun BytecodePatchContext.findVolumeSite(): VolumeSite {
 }
 
 /**
- * The audio toggle ([TOGGLE_AUDIO]) flips the reels' sound by taking the user session's audio state
+ * The audio toggle ([reelsAudioToggle]) flips the reels' sound by taking the user session's audio state
  * object, asking it whether sound is on, and setting its opposite: a static taking the session and
  * returning the state, a no-argument boolean on the state, an xor with 1, then a boolean setter on the
  * state. The volume runnable's unmute sets that same state to on. The controller reaches the session
@@ -344,13 +368,7 @@ internal fun BytecodePatchContext.findVolumeSite(): VolumeSite {
  */
 private fun BytecodePatchContext.findAudioState(run: Method, runCode: List<Instruction>): AudioState {
     val where = "${run.definingClass}->${run.name}"
-    val toggles = mutableListOf<Method>()
-    val marked = typesMarked(TOGGLE_AUDIO)
-    classDefForEach { classDef ->
-        if (classDef.type !in marked) return@classDefForEach
-        classDef.methods.forEach { method -> if (TOGGLE_AUDIO in method.markers()) toggles += method }
-    }
-    val toggle = toggles.singleOrNull() ?: refuse("the Reels audio toggle: expected one method marked $TOGGLE_AUDIO, found ${toggles.size}")
+    val toggle = reelsAudioToggle(::refuse)
     val controller = toggle.definingClass
     val code = toggle.code()
     val found = mutableListOf<AudioState>()
@@ -612,7 +630,7 @@ internal class SpeakerSite(
 )
 
 /**
- * The controller starts each reel through the one method marked [MAYBE_RESUME_PLAYER], an instance
+ * The controller starts each reel through maybeResumePlayer ([reelsResumePlayers]), an instance
  * method of its own, so a hook first thing there hands the extension the controller of the reel on
  * screen. The icon's tap calls the controller's audio toggle from the extension, so the controller
  * must be public (the toggle already is), and the icon reads the sound state the way the volume key's
@@ -625,13 +643,8 @@ internal fun BytecodePatchContext.findSpeakerSite(tap: ReelTapSite, volume: Volu
         return null
     }
     val controller = tap.controller
-    val resumes = mutableListOf<Method>()
-    val marked = typesMarked(MAYBE_RESUME_PLAYER)
-    classDefForEach { classDef ->
-        if (classDef.type !in marked) return@classDefForEach
-        classDef.methods.forEach { method -> if (MAYBE_RESUME_PLAYER in method.markers()) resumes += method }
-    }
-    val resume = resumes.singleOrNull() ?: return leftOut("expected one method marked $MAYBE_RESUME_PLAYER, found ${resumes.size}")
+    val resumes = reelsResumePlayers()
+    val resume = resumes.singleOrNull() ?: return leftOut("expected one method loading \"$RESUME_PLAYER_TRACE\", found ${resumes.size}")
     val where = "${resume.definingClass}->${resume.name}"
     if (resume.definingClass != controller) return leftOut("$where isn't in $controller")
     if (AccessFlags.STATIC.isSet(resume.accessFlags) || resume.implementation == null) return leftOut("$where isn't an instance method with a body")
@@ -770,9 +783,6 @@ internal fun BytecodePatchContext.applyPlayIconTouch(touch: Method) {
 }
 
 private const val AUDIO_MANAGER = "Landroid/media/AudioManager;"
-
-/** The const-string a purge marker loads: the release prefix and the marker. */
-private fun markerString(marker: String) = "android_purge_26_q3_$marker"
 
 private fun BytecodePatchContext.mutable(method: Method): MutableMethod =
     mutableClassDefBy(method.definingClass).methods.single {
