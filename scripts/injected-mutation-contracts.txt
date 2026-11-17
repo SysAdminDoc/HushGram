@@ -79,8 +79,9 @@ once-call Lapp/hushgram/extension/instagram/direct/NotesRow;->sections([Ljava/la
 # The same patch asks NotesRow whether the row keeps its Map bubble, right before the method turning
 # your notes into the row's items tests that. Left out, the bubble stays with the switch on; twice or
 # elsewhere, it isn't the hook the patch wrote. NativeNotesMapTest checks where it lands.
-# On 455 the tray's label names line 331.
-once-call Lapp/hushgram/extension/instagram/direct/NotesRow;->mapShown(I)I in static (LX/*;LX/*;IZZZ)LX/*; pooled holding instagram.features.direct.inbox.notes.tray.compose.ui.toNotesTrayUiState\s(NotesTrayComposeItem.kt:331)
+# 456 dropped the tray's trace name; the method is the one of that shape loading its Compose trace
+# key 0xc1b4a3f7 (LX/0P93;->A01 on 386214574), the key 455 had too.
+once-call Lapp/hushgram/extension/instagram/direct/NotesRow;->mapShown(I)I in static (LX/*;LX/*;IZZZ)LX/*; holding const:0xc1b4a3f7
 # The row built from views asks the same thing, and so does the first-run tip pointing at the bubble.
 # The tip's collector holds no string of its own and sits in a coroutine emit Redex merges with other
 # collectors: 453's held musicRowView from a merged neighbor, which 454 moved to another emit. On 454
@@ -97,7 +98,8 @@ once-call Lapp/hushgram/extension/instagram/direct/NotesRow;->mapShown(I)I in st
 # lookup too, so the rule drops it: every merged neighbor reading the same fields (0E6c, 0S9K
 # and 0QF8 on 386113969, 0I3H and 0H9H on 386113970) unboxes a Boolean, and the tip reads its
 # answer as a plain boolean field and never does.
-once-call Lapp/hushgram/extension/instagram/direct/NotesRow;->mapShown(I)I in instance (Lcom/instagram/common/session/UserSession;LX/*;LX/*;)LX/*; pooled holding FriendMapEntryPoint
+# On 456 the views' list is a Redex-merged instance method taking two objects (LX/02Hm;->A0h on 386214574).
+once-call Lapp/hushgram/extension/instagram/direct/NotesRow;->mapShown(I)I in instance (LX/*;LX/*;)V pooled holding FriendMapEntryPoint
 once-call Lapp/hushgram/extension/instagram/direct/NotesRow;->mapShown(I)I in (*LX/*;)Ljava/lang/Object; lacking Ljava/lang/Boolean;->booleanValue()Z holding LX/*;->A0H:Z LX/*;->A06:LX/*; LX/*;->A02:LX/*; LX/*;->A00:I LX/*;->A01:Ljava/lang/String; Lredex/$StoreFenceHelper;->DUMMY_VOLATILE:I LX/*;->emit(Ljava/lang/Object;LX/*;)Ljava/lang/Object; Ljava/lang/Object;-><init>()V LX/*;-><init>(Ljava/lang/Object;)V LX/*;->A01(Ljava/lang/Object;)V LX/*;->$t:I LX/*;-><init>(LX/*;LX/*;I)V LX/*;->A01:Ljava/lang/Object; LX/*;->A00:LX/*;
 # Hide the search bar in Messages asks at the same place, right after or right before NotesRow
 # (whichever patch went in first asks first), and InboxSearchBar drops SEARCH_BAR by name. Same

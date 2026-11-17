@@ -70,7 +70,7 @@ class NativeNotesMapTest {
     /** A build without the bubble's content refuses under the patch's name before anything changes. */
     @Test fun aBuildWithoutTheBubblesContentRefuses() {
         val bundle = bundles().first()
-        val classes = FixtureDex.withStringPools(bundle, FixtureDex.classesLoading(bundle, NOTES_TRAY_ITEMS))
+        val classes = loadingKeys(bundle, NOTES_TRAY_KEY)
         val refused = assertThrows(PatchException::class.java) { PatchContexts.of(classes).findNotesMap() }
         assertTrue(refused.message, refused.message!!.startsWith("Hide the notes row: "))
     }
@@ -79,7 +79,7 @@ class NativeNotesMapTest {
         val BUILDS = listOf(386214574, 386214534, 386214562, 386214575)
 
         fun slice(bundle: File): List<ClassDef> {
-            val markers = listOf(NOTES_TRAY_ITEMS, NOTES_MAP_CONTENT, NOTES_MAP_ROW).flatMap { FixtureDex.classesLoading(bundle, it) }.distinctBy { it.type }
+            val markers = (loadingKeys(bundle, NOTES_TRAY_KEY, NOTES_MAP_KEY) + FixtureDex.classesLoading(bundle, NOTES_MAP_ROW)).distinctBy { it.type }
             val answer = PatchContexts.of(FixtureDex.withStringPools(bundle, markers)).findNotesMap().answer
             val readers = FixtureDex.methodsWhere(bundle, { true }) { method ->
                 method.implementation?.instructions?.any {
@@ -88,6 +88,12 @@ class NativeNotesMapTest {
                 } == true
             }.map { it.definingClass }.toSet()
             return FixtureDex.withStringPools(bundle, (markers + FixtureDex.classes(bundle, readers).values).distinctBy { it.type })
+        }
+
+        /** The classes with a method loading one of [keys] as a narrow constant, as the patch's trace key lookup reads them. */
+        fun loadingKeys(bundle: File, vararg keys: Int): List<ClassDef> {
+            val types = FixtureDex.methodsWhere(bundle, { true }) { method -> keys.any { method.loadsKey(it) } }.map { it.definingClass }.toSet()
+            return FixtureDex.classes(bundle, types).values.toList()
         }
 
         fun bundles(): List<File> {

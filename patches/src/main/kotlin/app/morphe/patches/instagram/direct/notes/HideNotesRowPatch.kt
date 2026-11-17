@@ -13,7 +13,7 @@ import app.morphe.patcher.string
 import app.morphe.patches.instagram.metaai.INBOX_SECTION_MARKER
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesAccessing
-import app.morphe.patches.instagram.misc.extension.classesLoadingString
+import app.morphe.patches.instagram.misc.extension.classesLoading
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.jumpTargets
@@ -31,6 +31,7 @@ import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
@@ -56,13 +57,15 @@ private const val BIT_SET = "Ljava/util/BitSet;"
 /** The hook answering whether the row of notes has a Map bubble to add. */
 internal const val MAP_SHOWN = "$NOTES_ROW->mapShown(I)I"
 
-/** The trace name of the method turning your notes into the row's items, the one place the Map bubble is added. */
-internal const val NOTES_TRAY_ITEMS =
-    "instagram.features.direct.inbox.notes.tray.compose.ui.toNotesTrayUiState (NotesTrayComposeItem.kt:331)"
+/**
+ * The Compose trace key of the method turning your notes into the row's items, the one place the Map
+ * bubble is added (toNotesTrayUiState in NotesTrayComposeItem.kt, `LX/0P93;->A01` on 386214574). 456
+ * dropped the trace names this patch knew both methods by; their keys are the ones 455 had.
+ */
+internal const val NOTES_TRAY_KEY = 0xc1b4a3f7.toInt()
 
-/** The trace name of the Map bubble's own content, which takes the bubble's item. */
-internal const val NOTES_MAP_CONTENT =
-    "instagram.features.direct.inbox.notes.tray.compose.ui.NotesFriendMapPogContent (NotesFriendMapPogContent.kt:9)"
+/** The Compose trace key of the Map bubble's own content (NotesFriendMapPogContent), which takes the bubble's item. */
+internal const val NOTES_MAP_KEY = 0x12e38b54
 
 /** What the row built from views loads for the Map bubble, right after finding it has one to add. */
 internal const val NOTES_MAP_ROW = "FriendMapEntryPoint"
@@ -253,20 +256,22 @@ internal fun BytecodePatchContext.findNotesMapSites(): List<NotesMapSite> {
 
 /**
  * Finds the row's question of whether it has a Map bubble to add, failing before anything changes
- * when an update moved it: in the one method loading [NOTES_TRAY_ITEMS], the one object it makes of
- * the type the one method loading [NOTES_MAP_CONTENT] takes is the bubble's item. The nearest boolean
+ * when an update moved it: in the one method loading [NOTES_TRAY_KEY], the one object it makes of
+ * the type the one method loading [NOTES_MAP_KEY] takes is the bubble's item. The nearest boolean
  * read before that has to be a field of the data the item's constructor takes first, tested right
  * after by a branch landing past the item's add, with nothing jumping onto that test and nothing
  * after it reading the answer, since the hook hands the test an int.
  */
 internal fun BytecodePatchContext.findNotesMap(): NotesMapSite {
     fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $detail")
-    fun loading(marker: String) = classesLoadingString(marker).flatMap { it.methods }.filter { loadsString(it, marker) }
+    fun loading(key: Int) = classesLoading(key.toLong()).flatMap { it.methods }.filter { it.loadsKey(key) }
 
-    val builders = loading(NOTES_TRAY_ITEMS)
-    val builder = builders.singleOrNull() ?: refuse("expected one method loading \"$NOTES_TRAY_ITEMS\", found ${builders.size}")
-    val contents = loading(NOTES_MAP_CONTENT)
-    val content = contents.singleOrNull() ?: refuse("expected one method loading \"$NOTES_MAP_CONTENT\", found ${contents.size}")
+    val builders = loading(NOTES_TRAY_KEY)
+    val builder = builders.singleOrNull()
+        ?: refuse("expected one method loading the notes tray's trace key 0x${Integer.toHexString(NOTES_TRAY_KEY)}, found ${builders.size}")
+    val contents = loading(NOTES_MAP_KEY)
+    val content = contents.singleOrNull()
+        ?: refuse("expected one method loading the Map bubble content's trace key 0x${Integer.toHexString(NOTES_MAP_KEY)}, found ${contents.size}")
 
     val where = "${builder.definingClass}->${builder.name}"
     val code = builder.instructions()
@@ -370,6 +375,11 @@ internal fun BytecodePatchContext.hideNotesMap(site: NotesMapSite) {
 private fun Method.instructions(): List<Instruction> = implementation?.instructions?.toList().orEmpty()
 
 private fun Method.holdsString(value: String) = instructions().any { it.stringLoaded() == value }
+
+/** Whether this loads [key] as a narrow constant, the way a composable hands its trace key on. */
+internal fun Method.loadsKey(key: Int) = instructions().any {
+    !it.opcode.setsWideRegister() && (it as? NarrowLiteralInstruction)?.narrowLiteral == key
+}
 
 private fun Instruction.typeMade(): String? = ((this as? ReferenceInstruction)?.reference as? TypeReference)?.type
 
