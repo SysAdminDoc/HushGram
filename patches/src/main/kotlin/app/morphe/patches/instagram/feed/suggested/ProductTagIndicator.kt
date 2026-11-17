@@ -65,12 +65,14 @@ internal class ProductTagIndicator(
 /**
  * Finds where Instagram picks the products indicator for a post. The indicator enum is the one
  * enum naming both [PRODUCTS] and [SHOPPING_ADS], its products constant is the field its static
- * initializer writes right after loading that name, and in the whole app exactly one method hands
- * that constant back: an instance method taking a post and answering the enum, which reads it
- * straight after a static check's yes. On 450's 385611438 that's LX/04pB->A06 answering LX/04rH.A0I
- * after LX/04rE->A00. Anything else is an update this patch hasn't seen, and it stops.
+ * initializer writes right after loading that name, and every method handing that constant back is
+ * an instance method answering the enum, which reads it straight after a static check's yes, once.
+ * One of them takes a post. On 450's 385611438 that's LX/04pB->A06 answering LX/04rH.A0I after
+ * LX/04rE->A00. 456 adds a second picker for its newer feed model, taking that model's parts in place
+ * of a post (`LX/00gI;->A0A` beside `A09` on 386214574), with the same static check, so both are
+ * hooked. Anything else is an update this patch hasn't seen, and it stops.
  */
-internal fun BytecodePatchContext.findProductTagIndicator(): ProductTagIndicator {
+internal fun BytecodePatchContext.findProductTagIndicators(): List<ProductTagIndicator> {
     val enums = classesHolding(PRODUCTS, SHOPPING_ADS).filter { it.superclass == "Ljava/lang/Enum;" }
     val enum = enums.singleOrNull() ?: refuse("expected one enum naming $PRODUCTS and $SHOPPING_ADS, found ${enums.map { it.type }}")
     val clinit = enum.methods.singleOrNull { it.name == "<clinit>" } ?: refuse("${enum.type} has no static initializer")
@@ -91,13 +93,20 @@ internal fun BytecodePatchContext.findProductTagIndicator(): ProductTagIndicator
             code.indices.filter { code.returnsConstant(it, products) }.map { method to it }
         }
     }
-    val (method, readAt) = sites.singleOrNull()
-        ?: refuse("expected one method answering ${enum.type}.${products.name} ($PRODUCTS), found ${sites.size}")
+    if (sites.isEmpty()) refuse("expected a method answering ${enum.type}.${products.name} ($PRODUCTS), found none")
+    val twice = sites.groupBy { (method, _) -> method }.filterValues { it.size > 1 }.keys
+    if (twice.isNotEmpty()) refuse("${twice.joinToString { "${it.definingClass}->${it.name}" }} answers $PRODUCTS more than once")
+    if (sites.none { (method, _) -> method.parameterTypes.any { it.toString() == MEDIA } }) {
+        refuse("none of the ${sites.size} methods answering ${enum.type}.${products.name} ($PRODUCTS) takes a post")
+    }
+    return sites.map { (method, readAt) -> productTagSite(method, readAt, enum.type) }
+}
+
+/** Checks one method answering the products constant at [readAt] and says where its check's answer goes. */
+private fun productTagSite(method: Method, readAt: Int, enumType: String): ProductTagIndicator {
     val where = "${method.definingClass}->${method.name}"
-    if (AccessFlags.STATIC.isSet(method.accessFlags) || method.returnType != enum.type ||
-        method.parameterTypes.none { it.toString() == MEDIA }
-    ) {
-        refuse("$where isn't an instance method taking a post and answering ${enum.type}")
+    if (AccessFlags.STATIC.isSet(method.accessFlags) || method.returnType != enumType) {
+        refuse("$where isn't an instance method answering $enumType")
     }
 
     val code = method.implementation!!.instructions.toList()
@@ -115,7 +124,11 @@ internal fun BytecodePatchContext.findProductTagIndicator(): ProductTagIndicator
     if ((answer as OneRegisterInstruction).registerA != register) refuse("$where branches on something other than its check")
     if (register > 15) refuse("$where keeps its check's answer in v$register, past v15")
     val addresses = code.runningFold(0) { at, instruction -> at + instruction.codeUnits }
-    if (addresses[branchAt] + (branch as OffsetInstruction).codeOffset != addresses[readAt + 2]) {
+    // A no goes on to the next indicator: right after the return on 450, or a block Redex moved
+    // elsewhere on 456 (LX/00gI;->A09 jumps from 173 to 221 on 386214574). It may not land on the
+    // products answer itself.
+    val noTarget = addresses[branchAt] + (branch as OffsetInstruction).codeOffset
+    if (noTarget == addresses[readAt] || noTarget == addresses[readAt + 1] || noTarget !in addresses) {
         refuse("$where doesn't go on to its next indicator after a no")
     }
     // The hook turns the register into an int it passes on, so nothing but the check's answer may reach

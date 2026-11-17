@@ -56,7 +56,7 @@ class ProductTagIndicatorTest {
 
     @Test
     fun theCheckIsFound() {
-        val found = PatchContexts.of(classes()).findProductTagIndicator()
+        val found = PatchContexts.of(classes()).findProductTagIndicators().single()
 
         assertEquals(DECIDER, found.type)
         assertEquals("A06", found.name)
@@ -70,11 +70,22 @@ class ProductTagIndicatorTest {
     @Test
     fun theAnswerGoesPastTheExtension() {
         val context = PatchContexts.of(classes())
-        val found = context.findProductTagIndicator()
+        val found = context.findProductTagIndicators().single()
 
         found.write(context)
 
         assertHooked("stand-in", context, found)
+    }
+
+    /** 456 picks the indicator in a second method for its newer feed model, which takes no post; both get the hook. */
+    @Test
+    fun aSecondPickerIsHookedToo() {
+        val context = PatchContexts.of(classes(secondPicker = true))
+        val found = context.findProductTagIndicators()
+
+        assertEquals(listOf(DECIDER to "A06", OTHER_DECIDER to "A07"), found.map { it.type to it.name })
+        found.forEach { it.write(context) }
+        found.forEach { assertHooked("${it.type}->${it.name}", context, it) }
     }
 
     @Test
@@ -83,20 +94,29 @@ class ProductTagIndicatorTest {
     @Test
     fun twoIndicatorEnumsFailThePatch() = refused(OTHER_INDICATOR, classes(secondEnum = true))
 
+    /** A second method answering the constant must be a picker of the same shape. */
     @Test
-    fun theProductsConstantReturnedTwiceFailsThePatch() = refused("found 2", classes(secondSite = true))
+    fun aSecondAnswerThatIsntAPickerFailsThePatch() = refused("isn't an instance method", classes(secondSite = true))
 
     @Test
     fun aStaticDeciderFailsThePatch() = refused("isn't an instance method", classes(deciderFlags = PUBLIC or AccessFlags.STATIC.value))
 
     @Test
-    fun aDeciderWithoutAPostFailsThePatch() = refused("isn't an instance method", classes(parameters = listOf(SESSION, "Ljava/lang/Object;")))
+    fun aDeciderWithoutAPostFailsThePatch() = refused("takes a post", classes(parameters = listOf(SESSION, "Ljava/lang/Object;")))
 
     @Test
     fun aCheckThatIsntStaticFailsThePatch() = refused("static check", classes(checkOpcode = Opcode.INVOKE_VIRTUAL))
 
+    /** A no landing on the products answer would still hand it back. */
     @Test
-    fun aNoThatGoesElsewhereFailsThePatch() = refused("next indicator", classes(branchOffset = 8))
+    fun aNoThatStillReachesTheProductsFailsThePatch() = refused("next indicator", classes(branchOffset = 2))
+
+    /** A no may go on to an indicator further down, as 456's A09 jumps to a block Redex moved. */
+    @Test
+    fun aNoThatGoesFurtherOnIsFine() {
+        val found = PatchContexts.of(classes(branchOffset = 8)).findProductTagIndicators().single()
+        assertEquals(3, found.branchAt)
+    }
 
     @Test
     fun anAnswerPastV15FailsThePatch() = refused("past v15", classes(answerRegister = 16))
@@ -111,14 +131,14 @@ class ProductTagIndicatorTest {
     /** The same jumps, aimed anywhere else in the method, leave the branch alone. */
     @Test
     fun aJumpPastTheBranchIsFine() {
-        val found = PatchContexts.of(classes(entry = Entry.ELSEWHERE)).findProductTagIndicator()
+        val found = PatchContexts.of(classes(entry = Entry.ELSEWHERE)).findProductTagIndicators().single()
         assertEquals("the if-eqz, behind the jump that came first", 4, found.branchAt)
     }
 
     /**
-     * In each declared build one method answers the products indicator, after a static check's
-     * yes, and after the patch that yes goes past the extension. On 450's 385611438 that's
-     * LX/04pB->A06.
+     * In each declared build the methods answering the products indicator do so after a static
+     * check's yes, and after the patch that yes goes past the extension. On 450's 385611438 that's
+     * LX/04pB->A06; on 456's 386214574 it's LX/00gI;->A09 for a post and A0A for the newer feed model.
      */
     @Test
     fun eachDeclaredBuildHooksTheProductsIndicator() {
@@ -175,17 +195,23 @@ class ProductTagIndicatorTest {
         }
         val context = PatchContexts.of(FixtureDex.withStringPools(bundle, holders + readers))
 
-        val found = context.findProductTagIndicator()
-        found.write(context)
+        val found = context.findProductTagIndicators()
+        found.forEach { it.write(context) }
 
-        assertEquals("$label: answers the indicator enum", enum.single().type, found.returnType)
-        assertHooked("$label ${found.type}->${found.name}", context, found)
+        if (label == "instagram-456.0.0.53.78-386214574.apks") {
+            // Read off the dex by hand: the post's picker and the newer feed model's, one class.
+            assertEquals(label, listOf("LX/00gI;->A09", "LX/00gI;->A0A"), found.map { "${it.type}->${it.name}" }.sorted())
+        }
+        for (site in found) {
+            assertEquals("$label: answers the indicator enum", enum.single().type, site.returnType)
+            assertHooked("$label ${site.type}->${site.name}", context, site)
+        }
     }
 
     /**
      * Right before the branch on the check's yes: the answer goes to the extension and its answer
      * takes the register's place, once in the method. A yes still reads the products constant, and a
-     * no still goes on to the instruction after its return.
+     * no doesn't reach that answer.
      */
     private fun assertHooked(what: String, context: BytecodePatchContext, found: ProductTagIndicator) {
         val code = context.mutableClassDefBy(found.type).methods.single {
@@ -207,13 +233,14 @@ class ProductTagIndicatorTest {
         assertEquals("$what: a yes reads the products constant", Opcode.SGET_OBJECT, code[at + 3].opcode)
         assertEquals("$what: and answers it", Opcode.RETURN_OBJECT, code[at + 4].opcode)
         val addresses = code.runningFold(0) { address, instruction -> address + instruction.codeUnits }
-        assertEquals("$what: a no goes on past it", addresses[at + 5], addresses[at + 2] + (branch as OffsetInstruction).codeOffset)
+        val no = addresses[at + 2] + (branch as OffsetInstruction).codeOffset
+        assertTrue("$what: a no goes on past it", no in addresses && no != addresses[at + 3] && no != addresses[at + 4])
     }
 
     private fun Instruction.reference() = (this as? ReferenceInstruction)?.reference
 
     private fun refused(why: String, classes: List<ClassDef>) {
-        val failure = assertThrows(PatchException::class.java) { PatchContexts.of(classes).findProductTagIndicator() }
+        val failure = assertThrows(PatchException::class.java) { PatchContexts.of(classes).findProductTagIndicators() }
         assertTrue(failure.message!!, failure.message!!.contains(why))
     }
 
@@ -270,6 +297,7 @@ class ProductTagIndicatorTest {
             names: List<String> = listOf("NONE", "PEOPLE", PRODUCTS, SHOPPING_ADS),
             secondEnum: Boolean = false,
             secondSite: Boolean = false,
+            secondPicker: Boolean = false,
             deciderFlags: Int = PUBLIC,
             parameters: List<String> = listOf(SESSION, MEDIA_TYPE, MEDIA_TYPE),
             checkOpcode: Opcode = Opcode.INVOKE_STATIC,
@@ -303,9 +331,15 @@ class ProductTagIndicatorTest {
                 OTHER_DECIDER, PUBLIC, "Ljava/lang/Object;", null, null, null, null,
                 listOf(method(OTHER_DECIDER, "A00", emptyList(), INDICATOR, PUBLIC or AccessFlags.STATIC.value, 1, read(PRODUCTS))),
             )
+            // The newer feed model's picker: the same code, taking the model's parts in place of a post.
+            val picker = ImmutableClassDef(
+                OTHER_DECIDER, PUBLIC, "Ljava/lang/Object;", null, null, null, null,
+                listOf(method(OTHER_DECIDER, "A07", listOf(SESSION, "Lfixture/FeedModel;"), INDICATOR, PUBLIC, 21, code)),
+            )
             return listOf(enum(INDICATOR, names), decider) +
                 (if (secondEnum) listOf(enum(OTHER_INDICATOR, listOf(PRODUCTS, SHOPPING_ADS))) else emptyList()) +
-                (if (secondSite) listOf(other) else emptyList())
+                (if (secondSite) listOf(other) else emptyList()) +
+                (if (secondPicker) listOf(picker) else emptyList())
         }
     }
 }

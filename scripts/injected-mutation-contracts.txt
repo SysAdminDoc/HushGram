@@ -1350,11 +1350,13 @@ single-call Lapp/hushgram/extension/instagram/explore/ExploreMenu;->reloaded()V 
 # layout (#393); the page's own list holds only top-level sections.
 once-call Lapp/hushgram/extension/instagram/explore/ExploreShopping;->page(Ljava/util/List;)Ljava/util/List; in instance (LX/*;)Ljava/lang/Object; calling static LX/*;->*(LX/*;LX/*;Ljava/lang/String;)V class-holding sectional_items session_paging_token
 #
-# It also asks ProductTags once in the method picking a post's corner indicator, between the static
-# check of the post's products and the branch to the PRODUCTS constant, the only place in the app
-# that answers it. That method is the one instance method taking a session and two posts that holds
-# both schema names.
-once-call Lapp/hushgram/extension/instagram/feed/ProductTags;->indicator(I)I in instance (Lcom/instagram/common/session/UserSession;Lcom/instagram/feed/media/Media;Lcom/instagram/feed/media/Media;)LX/*; holding itas-android ig4a-instagram-schema
+# It also asks ProductTags once in each method picking a corner indicator, between the static check
+# of the products and the branch to the PRODUCTS constant, the only places in the app that answer it.
+# On 456 there are two in one class: the post's, the one instance method taking a session and two
+# posts that holds the itas-android schema name, and the newer feed model's, taking a session and
+# four of the model's parts, which holds it too.
+once-call Lapp/hushgram/extension/instagram/feed/ProductTags;->indicator(I)I in instance (Lcom/instagram/common/session/UserSession;Lcom/instagram/feed/media/Media;Lcom/instagram/feed/media/Media;)LX/*; holding itas-android
+once-call Lapp/hushgram/extension/instagram/feed/ProductTags;->indicator(I)I in instance (Lcom/instagram/common/session/UserSession;LX/*;LX/*;LX/*;LX/*;)LX/*; holding itas-android
 #
 # Hide 'Are you interested?' bubbles asks FeedInterest once in Home's row builder, where its two
 # module checks meet and the question's row is about to be added, and a yes goes on to the builder's

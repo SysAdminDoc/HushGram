@@ -87,7 +87,7 @@ val hideSuggestedPostsPatch = bytecodePatch(
         // Found before anything changes, so a build where Explore's sections or the products
         // indicator moved stops the patch with Home's filter not yet written.
         val exploreShops = findExploreShopSections()
-        val productTags = findProductTagIndicator()
+        val productTags = findProductTagIndicators()
         // Where Home's row builder adds the "Are you interested in this post?" row, found with the rest.
         val interest = findInterestQuestion()
         // And where the feed item binder group adds the same row, which Home can be built with too (#131).
@@ -116,7 +116,7 @@ val hideSuggestedPostsPatch = bytecodePatch(
         caughtUpCard?.write(this)
         channelJoinBar?.write(this)
         exploreShops.write(this)
-        productTags.write(this)
+        productTags.forEach { it.write(this) }
         interest.write(this)
         groupedInterest.write(this)
         reelsInterest?.write(this)
