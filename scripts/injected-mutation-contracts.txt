@@ -1382,8 +1382,10 @@ once-call Lapp/hushgram/extension/instagram/feed/FeedInterest;->hide()Z in insta
 # FeedInterest.reelsControl once, right before the footer's use case stores it in the row's component.
 # That use case is the one instance method taking two Redex objects and answering one that holds the
 # getOnImpressionControl marker (07NV.A02 on 452, storing into 0E93.A0A). On 453 it's 08YR.A02,
-# holding the footer component's getRankingControls marker instead.
-once-call Lapp/hushgram/extension/instagram/feed/FeedInterest;->reelsControl(Ljava/lang/Object;)Ljava/lang/Object; in instance (LX/*;LX/*;)LX/*; holding android_purge_26_q3_ClipsFullWidthFooterComponent_getRankingControls
+# holding the footer component's getRankingControls marker instead. 456 dropped that marker: the use
+# case is the one method of that shape in the footer, the class loading its component key
+# (0DwQ.A02 on 386214574, storing into 0ER1.A0A).
+once-call Lapp/hushgram/extension/instagram/feed/FeedInterest;->reelsControl(Ljava/lang/Object;)Ljava/lang/Object; in instance (LX/*;LX/*;)LX/*; class-holding clips_full_width_footer_component
 #
 # Start Home on Following passes every read of the two flags behind Instagram's For you and
 # Following picker through flag(), and the saved feed's getter passes the name it read through

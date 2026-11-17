@@ -6,6 +6,8 @@ package app.morphe.patches.instagram.feed.suggested
 
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
+import app.morphe.patches.instagram.misc.extension.classesLoadingString
+import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.markers
 import app.morphe.patches.instagram.misc.extension.patchLog
 import app.morphe.patches.instagram.misc.extension.typesMarked
@@ -23,6 +25,12 @@ private const val PATCH = "Hide suggested posts"
 internal const val REELS_CONTROL_MARKER = "ClipsFullWidthFooterComponent_getRankingControls"
 
 internal const val REELS_CONTROL = "$FEED_INTEREST->reelsControl(Ljava/lang/Object;)Ljava/lang/Object;"
+
+/** The Reels footer's component key, which its render loads (456 dropped the footer's purge markers). */
+internal const val REELS_FOOTER_KEY = "clips_full_width_footer_component"
+
+/** What the ranking controls component's render loads for its layout of two buttons. */
+internal const val REELS_CONTROLS_LAYOUT = "two_buttons"
 
 /**
  * Where the Reels footer hands its "Are you interested?" row its control, found: the use case
@@ -64,15 +72,20 @@ internal class ReelsInterestControl(
  * (ClipsRankingControlsComponent) draws an empty box when that field is null. On 453's 385914557
  * that's LX/08YW;->A02(LX/09Wo;LX/06CH;)LX/0D5R; storing v13 into LX/0D5R;->A0A at instruction 57,
  * and on 455's 386113969 LX/0Ciy;->A02 storing v14 into LX/0F5b;->A0A; the place and the register move
- * between builds. Anything else is an update this patch hasn't seen, and it stops.
+ * between builds. A build without the marker (456 dropped it) is read through [controlByFooter]
+ * instead. Anything else is an update this patch hasn't seen, and it stops.
  */
 internal fun BytecodePatchContext.findReelsInterestControl(): ReelsInterestControl {
     val found = mutableListOf<Method>()
     typesMarked(REELS_CONTROL_MARKER).forEach { type ->
         classDefByOrNull(type)?.methods?.forEach { method -> if (REELS_CONTROL_MARKER in method.markers()) found += method }
     }
-    val method = found.distinctBy { "${it.definingClass}->${it.name}${it.parameterTypes}${it.returnType}" }.singleOrNull()
-        ?: refuse("expected one method holding the $REELS_CONTROL_MARKER marker, found ${found.size}")
+    val marked = found.distinctBy { "${it.definingClass}->${it.name}${it.parameterTypes}${it.returnType}" }
+    val method = when (marked.size) {
+        0 -> controlByFooter()
+        1 -> marked.single()
+        else -> refuse("expected one method holding the $REELS_CONTROL_MARKER marker, found ${marked.size}")
+    }
     val where = "${method.definingClass}->${method.name}"
     val parameters = method.parameterTypes.map(CharSequence::toString)
     val component = method.returnType
@@ -91,6 +104,27 @@ internal fun BytecodePatchContext.findReelsInterestControl(): ReelsInterestContr
         ?: refuse("expected one store of a $controlType into $component in $where, found ${stores.size}")
     val register = (code[storeAt] as TwoRegisterInstruction).registerA
     return ReelsInterestControl(method.definingClass, method.name, parameters, component, storeAt, register, controlType)
+}
+
+/**
+ * The footer's control method on a build without [REELS_CONTROL_MARKER]: in a class loading
+ * [REELS_FOOTER_KEY], the one instance method taking two objects and answering a class whose code
+ * loads [REELS_CONTROLS_LAYOUT], the ranking controls component. On 456's 386214574 that's
+ * LX/0DwQ;->A02(LX/0Eo0;LX/0Enp;)LX/0ER1;, storing v14 into LX/0ER1;->A0A at instruction 57.
+ */
+private fun BytecodePatchContext.controlByFooter(): Method {
+    val components = HashMap<String, Boolean>()
+    fun drawsControls(type: String): Boolean = components.getOrPut(type) {
+        classDefByOrNull(type)?.methods?.any { loadsString(it, REELS_CONTROLS_LAYOUT) } == true
+    }
+    val found = classesLoadingString(REELS_FOOTER_KEY).flatMap { footer ->
+        footer.methods.filter { method ->
+            !AccessFlags.STATIC.isSet(method.accessFlags) && method.parameterTypes.size == 2 &&
+                method.parameterTypes.all { it.startsWith("L") } && method.returnType.startsWith("L") && drawsControls(method.returnType)
+        }
+    }
+    return found.singleOrNull()
+        ?: refuse("expected one method holding the $REELS_CONTROL_MARKER marker, or one of the footer loading \"$REELS_FOOTER_KEY\" answering the component loading \"$REELS_CONTROLS_LAYOUT\", found ${found.size}")
 }
 
 /** [findReelsInterestControl], or null with a warning: Reels keeps its question and Home is still hooked. */
