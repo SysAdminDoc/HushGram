@@ -82,7 +82,7 @@ Every HushGram release, newest first.
 * With `Hide the reply box on stories` or the Like, Comment and Share ones on, a story you open from its ring no longer shows those for a split second before they go. Reported in #618.
 * `Ambient light` glows above and below a reel on the Reels tab and in reels opened from the feed again. Instagram 454 nests the reel deeper than the light was looking. Reported in #722.
 * With `Rounded corners on Reels` on, `Ambient light` fills a reel's rounded corners too, so they show the glow instead of black. Reported in #722.
-* A video's sound in your feed goes quiet while the HushGram settings are open and comes back when you close them. Reported in #725.
+* A video's sound in your feed goes quiet while the HushGram settings are open, also when the restart button brings them back, and comes back when you close them. Reported in #725.
 * `Story rings in the accent color` now reaches the rings on profiles, posts, chats and the newer Instagram screens, not just the few that read the theme. They kept Instagram's gradient before. Reported in #528.
 * A color picked in `Ring color` now shows on the story rings of Instagram's newer screens too, which kept the stock gradient. A ring color you pick still wins over `Story rings in the accent color`. Reported in #528.
 * `Take a scroll break` remembers a running break and the minutes you've already used when Instagram is closed and opened again, or Android ends it in the background. Both used to start over. Reported in #297.

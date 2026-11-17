@@ -21,6 +21,7 @@ import android.view.WindowInsets;
 import android.widget.TextView;
 
 import java.util.EnumSet;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.After;
 import org.junit.Before;
@@ -37,6 +38,7 @@ import org.robolectric.annotation.Implementation;
 import org.robolectric.annotation.Implements;
 import org.robolectric.annotation.RealObject;
 import org.robolectric.shadow.api.Shadow;
+import org.robolectric.util.ReflectionHelpers;
 import org.robolectric.util.ReflectionHelpers.ClassParameter;
 import org.robolectric.shadows.ShadowLooper;
 import org.robolectric.shadows.ShadowAlertDialog;
@@ -151,6 +153,72 @@ public class SettingsDialogBoundaryTest {
         assertSame("closing the page gives the sound back", asked.audioFocusRequest,
                 shadowAudio.getLastAbandonedAudioFocusRequest());
         dialog = null;
+    }
+
+    /**
+     * Opened through an intent (the restart button lands back on the page), Instagram's activity
+     * pauses and resumes under it and the feed starts its video again about 1.5 s later, taking the
+     * focus back with sound on (#725, seen on 455). The page takes it back again, twice at most.
+     */
+    @Test @Config(sdk = 37)
+    public void theFeedStaysQuietWhenItTakesTheFocusBack() {
+        ShadowAudioManager shadowAudio = Shadow.extract(
+                RuntimeEnvironment.getApplication().getSystemService(AudioManager.class));
+        ShadowAudioManager.AudioFocusRequest asked = openQuietPage(shadowAudio);
+        AudioManager.OnAudioFocusChangeListener listener = listenerOf(asked);
+
+        for (int retake = 1; retake <= SettingsDialog.QUIET_RETAKES; retake++) {
+            ReflectionHelpers.setField(shadowAudio, "lastAudioFocusRequest", null);
+            listener.onAudioFocusChange(AudioManager.AUDIOFOCUS_LOSS_TRANSIENT);
+            ShadowLooper.idleMainLooper();
+            assertNull("not before the player has started", shadowAudio.getLastAudioFocusRequest());
+            ShadowLooper.idleMainLooper(SettingsDialog.QUIET_RETAKE_DELAY_MS, TimeUnit.MILLISECONDS);
+            ShadowAudioManager.AudioFocusRequest again = shadowAudio.getLastAudioFocusRequest();
+            if (again == null) throw new AssertionError("the page didn't take the focus back, loss " + retake);
+            assertSame(asked.audioFocusRequest, again.audioFocusRequest);
+        }
+
+        ReflectionHelpers.setField(shadowAudio, "lastAudioFocusRequest", null);
+        listener.onAudioFocusChange(AudioManager.AUDIOFOCUS_LOSS_TRANSIENT);
+        ShadowLooper.idleMainLooper(SettingsDialog.QUIET_RETAKE_DELAY_MS, TimeUnit.MILLISECONDS);
+        assertNull("no third time", shadowAudio.getLastAudioFocusRequest());
+    }
+
+    /** A music app started from the shade once the page has been open a while keeps playing. */
+    @Test @Config(sdk = 37)
+    public void aLaterFocusLossIsLeftAlone() {
+        ShadowAudioManager shadowAudio = Shadow.extract(
+                RuntimeEnvironment.getApplication().getSystemService(AudioManager.class));
+        ShadowAudioManager.AudioFocusRequest asked = openQuietPage(shadowAudio);
+        ShadowLooper.idleMainLooper(SettingsDialog.QUIET_RETAKE_WINDOW_MS + 1, TimeUnit.MILLISECONDS);
+        ReflectionHelpers.setField(shadowAudio, "lastAudioFocusRequest", null);
+        listenerOf(asked).onAudioFocusChange(AudioManager.AUDIOFOCUS_LOSS);
+        ShadowLooper.idleMainLooper(SettingsDialog.QUIET_RETAKE_DELAY_MS, TimeUnit.MILLISECONDS);
+        assertNull("a later loss isn't fought", shadowAudio.getLastAudioFocusRequest());
+
+        assertTrue(SettingsDialog.retakesQuiet(0, 0));
+        assertTrue(SettingsDialog.retakesQuiet(SettingsDialog.QUIET_RETAKE_WINDOW_MS, SettingsDialog.QUIET_RETAKES - 1));
+        assertFalse(SettingsDialog.retakesQuiet(SettingsDialog.QUIET_RETAKE_WINDOW_MS + 1, 0));
+        assertFalse(SettingsDialog.retakesQuiet(100, SettingsDialog.QUIET_RETAKES));
+        assertFalse(SettingsDialog.retakesQuiet(-1, 0));
+    }
+
+    private ShadowAudioManager.AudioFocusRequest openQuietPage(ShadowAudioManager shadowAudio) {
+        controller = Robolectric.buildActivity(Activity.class).setup().visible();
+        dialog = new SettingsDialog();
+        dialog.show(controller.get().getFragmentManager(), "boundary_settings");
+        controller.get().getFragmentManager().executePendingTransactions();
+        ShadowLooper.idleMainLooper();
+        ShadowAudioManager.AudioFocusRequest asked = shadowAudio.getLastAudioFocusRequest();
+        if (asked == null || asked.audioFocusRequest == null) throw new AssertionError("the open page asked for no audio focus");
+        return asked;
+    }
+
+    private static AudioManager.OnAudioFocusChangeListener listenerOf(ShadowAudioManager.AudioFocusRequest asked) {
+        AudioManager.OnAudioFocusChangeListener listener = asked.listener != null ? asked.listener
+                : ReflectionHelpers.callInstanceMethod(asked.audioFocusRequest, "getOnAudioFocusChangeListener");
+        if (listener == null) throw new AssertionError("the page's focus request has no listener");
+        return listener;
     }
 
     @Test @Config(sdk = 28, qualifiers = "ar-rEG-ldrtl-w320dp-h640dp-xhdpi")
