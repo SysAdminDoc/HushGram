@@ -12,8 +12,7 @@ import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.FixtureDex
-import app.morphe.patches.instagram.misc.extension.markers
-import app.morphe.patches.instagram.reels.autoscroll.SCROLLER_SHOULD_SCROLL
+import app.morphe.patches.instagram.reels.autoscroll.SCROLLER_SHOULD_SCROLL_FLAG
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -26,6 +25,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstructio
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.WideLiteralInstruction
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import com.android.tools.smali.dexlib2.immutable.ImmutableField
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
@@ -43,7 +43,7 @@ import java.io.File
  */
 class AutoScrollCheckHookTest {
     private val scroller = "Lfixture/Scroller;"
-    private val marker = "android_purge_26_q2_$SCROLLER_SHOULD_SCROLL"
+    private val flag = "0x${SCROLLER_SHOULD_SCROLL_FLAG.toString(16)}"
 
     /** The hook the patch writes is in the ReelScrolling the bundle ships, public and static. */
     @Test
@@ -72,7 +72,7 @@ class AutoScrollCheckHookTest {
     /** Anything off about the scroller stops the patch before it writes, saying what. */
     @Test
     fun aScrollerThatIsntWhatTheHookExpectsFails() {
-        val one = "expected one method marked $SCROLLER_SHOULD_SCROLL"
+        val one = "expected one method loading the scroll check's flag $flag"
         val shape = "isn't a static method taking its own class and answering a boolean"
         val cases = listOf(
             listOf(scrollerClass(marked = 0)) to "$one, found 0",
@@ -81,7 +81,6 @@ class AutoScrollCheckHookTest {
             listOf(scrollerClass(returns = "I")) to shape,
             listOf(scrollerClass(takes = listOf(scroller, "Z"))) to shape,
             listOf(scrollerClass(loopsToStart = true)) to "jumps back to its start",
-            listOf(scrollerClass(noLocals = true)) to "has no local register to borrow",
             listOf(scrollerClass(sources = 0)) to "expected one $VIEWER_SOURCE field in $scroller, found 0",
             listOf(scrollerClass(sources = 2)) to "expected one $VIEWER_SOURCE field in $scroller, found 2",
             listOf(scrollerClass(staticSource = true)) to "expected one $VIEWER_SOURCE field in $scroller, found 0",
@@ -120,13 +119,12 @@ class AutoScrollCheckHookTest {
     private fun builds(bundle: File, label: String) {
         val found = mutableMapOf<String, ClassDef>()
         FixtureDex.forEach(bundle) { dex ->
-            if (dex.stringSection.none { it.endsWith("_$SCROLLER_SHOULD_SCROLL") }) return@forEach
             for (classDef in dex.classes) {
-                if (classDef.methods.any { SCROLLER_SHOULD_SCROLL in it.markers() }) found[classDef.type] = ImmutableClassDef.of(classDef)
+                if (classDef.methods.any { it.loadsFlag() }) found[classDef.type] = ImmutableClassDef.of(classDef)
             }
         }
-        assertEquals("$label: the classes holding $SCROLLER_SHOULD_SCROLL", 1, found.size)
-        val context = PatchContexts.of(FixtureDex.withStringPools(bundle, found.values))
+        assertEquals("$label: the classes loading $flag", 1, found.size)
+        val context = PatchContexts.of(found.values.toList())
         val check = context.findAutoScrollCheck()
         assertEquals("$label: the scroller", found.keys.single(), check.scroller)
         assertTrue("$label: ${check.source}", check.source.startsWith("${check.scroller}->") && check.source.endsWith(":$VIEWER_SOURCE"))
@@ -172,9 +170,14 @@ class AutoScrollCheckHookTest {
             it.name == found.name && it.parameterTypes.map(CharSequence::toString) == listOf(found.scroller)
         }
 
+    private fun Method.loadsFlag(): Boolean = code().any {
+        it.opcode == Opcode.CONST_WIDE && (it as WideLiteralInstruction).wideLiteral == SCROLLER_SHOULD_SCROLL_FLAG
+    }
+
     /**
-     * A scroller like Instagram's: a static check marked [SCROLLER_SHOULD_SCROLL] that takes the
-     * scroller and answers whether to move on, and a constructor keeping the viewer's source.
+     * A scroller like Instagram's: a static check loading [SCROLLER_SHOULD_SCROLL_FLAG] that takes the
+     * scroller and answers whether to move on, and a constructor keeping the viewer's source. The flag
+     * is a wide constant, so the check always has a local to borrow: its only parameter is one register.
      */
     private fun scrollerClass(
         marked: Int = 1,
@@ -182,7 +185,6 @@ class AutoScrollCheckHookTest {
         returns: String = "Z",
         takes: List<String> = listOf(scroller),
         loopsToStart: Boolean = false,
-        noLocals: Boolean = false,
         sources: Int = 1,
         staticSource: Boolean = false,
         stored: Boolean = true,
@@ -190,26 +192,21 @@ class AutoScrollCheckHookTest {
     ): ClassDef {
         val methods = mutableListOf<Method>()
         val body = when {
-            noLocals -> """
-                const-string p0, "$marker"
-                const/4 p0, 0x0
-                return p0
-            """
             loopsToStart -> """
                 :start
-                const-string v0, "$marker"
+                const-wide v0, ${flag}L
                 iget-boolean v1, p0, $scroller->moving:Z
                 if-eqz v1, :start
                 return v1
             """
             else -> """
-                const-string v0, "$marker"
+                const-wide v0, ${flag}L
                 iget-boolean v1, p0, $scroller->moving:Z
                 return v1
             """
         }
-        val markedBody = if (marked == 0) body.replace(marker, "not a marker") else body
-        methods += method("shouldScroll", takes, returns, if (noLocals) 0 else 2, static, markedBody)
+        val markedBody = if (marked == 0) body.replace("${flag}L", "0x810d8c00a24cbaL") else body
+        methods += method("shouldScroll", takes, returns, 2, static, markedBody)
         if (marked == 2) methods += method("shouldScrollToo", listOf(scroller), "Z", 2, true, body)
         if (namesake) methods += method("shouldScroll", listOf(scroller), "V", 0, true, "return-void")
         methods += method("<init>", listOf(VIEWER_SOURCE), "V", 0, false, """

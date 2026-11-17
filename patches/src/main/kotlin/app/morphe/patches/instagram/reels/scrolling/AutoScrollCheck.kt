@@ -11,9 +11,8 @@ import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
-import app.morphe.patches.instagram.misc.extension.markers
-import app.morphe.patches.instagram.misc.extension.typesMarked
-import app.morphe.patches.instagram.reels.autoscroll.SCROLLER_SHOULD_SCROLL
+import app.morphe.patches.instagram.reels.autoscroll.SCROLLER_SHOULD_SCROLL_FLAG
+import app.morphe.patches.instagram.reels.autoscroll.methodsLoadingScrollFlag
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
@@ -36,27 +35,23 @@ private fun refuseCheck(detail: String): Nothing = throw PatchException("Stop Re
  * Where Play only the reel you opened stops auto scroll (#656).
  *
  * Every move the Reels auto scroller makes on its own, once a reel ends, a little before it ends or
- * when its timer runs out, asks one check first, the method marked [SCROLLER_SHOULD_SCROLL]: a static
- * taking the scroller and answering whether to move on. Move on when a reel ends uses the same
- * scroller, so it asks the same check. The scroller is built for one viewer, with that viewer's
+ * when its timer runs out, asks one check first, the one method loading [SCROLLER_SHOULD_SCROLL_FLAG]:
+ * a static taking the scroller and answering whether to move on. Move on when a reel ends uses the
+ * same scroller, so it asks the same check. The scroller is built for one viewer, with that viewer's
  * source, and keeps it in its one instance field of [VIEWER_SOURCE] type, stored by its constructor.
  *
  * The hook goes in front of the check's first instruction, which nothing jumps back to, borrowing
  * one local, which holds nothing before the method's own code runs.
  */
 internal fun BytecodePatchContext.findAutoScrollCheck(): AutoScrollCheck {
-    val holders = typesMarked(SCROLLER_SHOULD_SCROLL)
-    val marked = mutableListOf<Method>()
-    classDefForEach { type ->
-        if (type.type !in holders) return@classDefForEach
-        type.methods.filterTo(marked) { SCROLLER_SHOULD_SCROLL in it.markers() }
-    }
-    val check = marked.singleOrNull()
-        ?: refuseCheck("expected one method marked $SCROLLER_SHOULD_SCROLL, found ${marked.size}")
+    val flag = "0x${SCROLLER_SHOULD_SCROLL_FLAG.toString(16)}"
+    val loading = methodsLoadingScrollFlag()
+    val check = loading.singleOrNull()
+        ?: refuseCheck("expected one method loading the scroll check's flag $flag, found ${loading.size}")
     val scroller = check.definingClass
     val text = "$scroller->${check.name}(${check.checkParameters().joinToString("")})${check.returnType}"
     if (!AccessFlags.STATIC.isSet(check.accessFlags) || check.returnType != "Z" || check.checkParameters() != listOf(scroller)) {
-        refuseCheck("$text, marked $SCROLLER_SHOULD_SCROLL, isn't a static method taking its own class and answering a boolean")
+        refuseCheck("$text, loading $flag, isn't a static method taking its own class and answering a boolean")
     }
     if (0 in check.jumpTargets()) refuseCheck("something in $text jumps back to its start")
     if (check.localRegisterCount() < 1) refuseCheck("$text has no local register to borrow")

@@ -8,6 +8,7 @@ import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patches.instagram.misc.extension.PURGE_MARKER
 import app.morphe.patches.instagram.misc.extension.classesCreating
+import app.morphe.patches.instagram.misc.extension.classesLoading
 import app.morphe.patches.instagram.misc.extension.classesTouching
 import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
@@ -23,6 +24,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.WideLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
@@ -43,6 +45,20 @@ internal const val OPT_IN_AUTOSCROLL = "ClipsViewerExperimentUtil_isOptInAutoscr
 internal const val SCROLLER_ON_LOOP = "ClipsAutoScroller_onVideoLoop"
 internal const val SCROLLER_SHOULD_SCROLL = "ClipsAutoScroller_shouldScrollToNextReel"
 internal const val SCROLLER_SCROLL = "ClipsAutoScroller_scrollToNextReel"
+
+/**
+ * The MobileConfig flag the scroller's check of whether to move on reads as it decides (0AMZ.A07 on
+ * 456's 386214574), loaded as a wide constant. No other method in the app loads it.
+ */
+internal const val SCROLLER_SHOULD_SCROLL_FLAG = 0x810d8c00a24cb9L
+
+/** Every method loading [SCROLLER_SHOULD_SCROLL_FLAG] as a wide constant, the scroller's check of whether to move on. */
+internal fun BytecodePatchContext.methodsLoadingScrollFlag(): List<Method> =
+    classesLoading(SCROLLER_SHOULD_SCROLL_FLAG).flatMap { it.methods }.filter { method ->
+        method.implementation?.instructions?.any {
+            it.opcode == Opcode.CONST_WIDE && (it as WideLiteralInstruction).wideLiteral == SCROLLER_SHOULD_SCROLL_FLAG
+        } == true
+    }
 
 /**
  * The marker, after Instagram's release prefix, of the scroller's look at each progress report of
