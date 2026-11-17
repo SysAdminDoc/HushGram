@@ -10,14 +10,15 @@ import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesAccessing
+import app.morphe.patches.instagram.misc.extension.classesCreating
+import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.jumpTargets
+import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
-import app.morphe.patches.instagram.misc.extension.markers
 import app.morphe.patches.instagram.misc.extension.parameterRegister
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
-import app.morphe.patches.instagram.misc.extension.typesMarked
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.instagram.reels.partnership.ReelsPageSites
 import app.morphe.patches.instagram.reels.partnership.fillStub
@@ -45,25 +46,35 @@ internal const val LIVE_PAGE_FILTER = "$LIVE_REELS->page(Ljava/util/List;Ljava/l
 internal const val LIVE_ADDED_FILTER = "$LIVE_REELS->added(Ljava/util/List;Ljava/lang/String;I)Ljava/util/List;"
 
 /**
- * The markers of the Reels viewer's data source's two ways a list joins its items: added at the end
- * (a page, an ad fetch, a refresh) or inserted at a position (a chain, items the server places).
+ * The Reels viewer's data source has two ways a list joins its items: added at the end (a page, an
+ * ad fetch, a refresh) or inserted at a position (a chain, items the server places). The insert loads
+ * this trace name, and the add runs the helper loading [REELS_ADD_ITEM] for each item. 456 dropped
+ * the purge markers 455 named both methods by.
  */
-internal const val REELS_ADD_ITEMS = "ClipsStandaloneAdapterDataSource_addItems"
-internal const val REELS_INSERT_ITEMS = "ClipsStandaloneAdapterDataSource_insertItemsGranular"
+internal const val REELS_INSERT_TRACE = "ClipsStandaloneAdapterDataSource:insertItemsGranular"
+
+/** The log label of the data source's helper that adds one item at the end. */
+internal const val REELS_ADD_ITEM = "addItemInternal()"
 
 private const val GET_MODULE_NAME = "getModuleName"
 
 /**
- * The marker Instagram's Reels adapter loads where it may put a placeholder at the end of a list it
- * adds, for the next page to show in once it's loaded, and checks whether its last item already is one.
+ * The trace name of Instagram's Reels adapter's add, which may put a placeholder at the end of a list
+ * it adds, for the next page to show in once it's loaded, and checks whether its last item already is
+ * one. 455 marked that check ClipsViewerAdapter_maybeReturnGhostClipsItem; 456 dropped the marker.
  */
-internal const val REELS_PLACEHOLDER = "ClipsViewerAdapter_maybeReturnGhostClipsItem"
+internal const val REELS_PLACEHOLDER = "ClipsViewerAdapter.addClipsItems"
 
 /**
- * The marker of the method that works out what a live preview in Reels shows. It asks the Reels
- * item for its live preview part first, by that part's key, and stops when there isn't one.
+ * The image a live preview in Reels shows, which the method working out what the preview shows
+ * makes from the reel's broadcast ([BROADCAST]). That method asks the Reels item for its live preview
+ * part first, by that part's key, and stops when there isn't one. 455 marked it
+ * ClipsLivePreviewUseCase_getUiState; 456 dropped the marker, and it loads no string of its own.
  */
-internal const val LIVE_PREVIEW_STATE = "ClipsLivePreviewUseCase_getUiState"
+internal const val LIVE_PREVIEW_IMAGE = "Lcom/instagram/common/typedurl/SimpleImageUrl;"
+
+/** The broadcast a live reel carries, which the live preview's code reads off the reel's media. */
+internal const val BROADCAST = "Lcom/instagram/api/schemas/BroadcastIntf;"
 
 private const val OBJECT = "Ljava/lang/Object;"
 private const val STRING = "Ljava/lang/String;"
@@ -81,9 +92,11 @@ internal class LivePreviewKey(val key: FieldReference, val lookup: MethodReferen
 /**
  * How the live preview code tells a live part from an empty one. Instagram hands back a part for
  * every reel, so a part alone means nothing (#566). The code casts it to [part], reads its [tree],
- * and asks the tree through [read] for the value under [id], passing a [fallback] built from the part
- * and [fallbackCase] that works the value out when the tree doesn't hold it. A live part answers a
- * String there, and the code stops on anything else.
+ * and asks the tree through [read] for the value under [id], passing a [fallback] built from
+ * [fallbackCase] that works the value out when the tree doesn't hold it. A live part answers a
+ * String there, and the code stops on anything else. Up to 455 [read] is the tree's own (int,
+ * Function0) read and the fallback a Function0 holding the part too; from 456 it's a static helper
+ * handed the tree, a Function1 fallback holding the case alone, and the id.
  */
 internal class LiveCheck(
     val part: String,
@@ -92,27 +105,38 @@ internal class LiveCheck(
     val id: Int,
     val fallback: MethodReference,
     val fallbackCase: Int,
-)
+) {
+    /** Whether [read] is 456's static helper rather than the tree's own read. */
+    val throughHelper: Boolean get() = read.parameterTypes.size == 3
+}
 
 /** How far past the lookup the check is looked for. In 454 it ends 14 instructions on. */
 private const val LIVE_CHECK_REACH = 32
 
 private const val FUNCTION0 = "Lkotlin/jvm/functions/Function0;"
+private const val FUNCTION1 = "Lkotlin/jvm/functions/Function1;"
 
 private val LITERALS = setOf(Opcode.CONST_4, Opcode.CONST_16, Opcode.CONST, Opcode.CONST_HIGH16)
 
 /**
- * Finds [LivePreviewKey] in the one method marked [LIVE_PREVIEW_STATE]: a static field read straight
- * into a call of the Reels item's ([itemType]) one-argument method answering an Object, with that
- * field as the argument, and the [LiveCheck] that follows it. Every such read there has to agree. The
- * field, its class, the method, the item and everything the check touches all have to be public so the
+ * Finds [LivePreviewKey] in the live preview's state, the one method taking only a Reels item
+ * ([itemType]) that makes a [LIVE_PREVIEW_IMAGE] and asks for a [BROADCAST]: a static field read
+ * straight into a call of the item's one-argument method answering an Object, with that field as the
+ * argument, and the [LiveCheck] that follows it. Every such read there has to agree. The field, its
+ * class, the method, the item and everything the check touches all have to be public so the
  * extension's stub can reach them, and the field's type has to be the key type the method takes.
  */
 internal fun BytecodePatchContext.findLivePreviewKey(itemType: String): LivePreviewKey {
-    val marked = typesMarked(LIVE_PREVIEW_STATE).sorted()
-        .flatMap { type -> classDefBy(type).methods.filter { LIVE_PREVIEW_STATE in it.markers() } }
-    val state = marked.singleOrNull()
-        ?: refuse("expected one method marked $LIVE_PREVIEW_STATE, found ${marked.size}")
+    val states = classesCreating(LIVE_PREVIEW_IMAGE).sortedBy { it.type }.flatMap { it.methods }.filter { method ->
+        val code = method.implementation?.instructions ?: return@filter false
+        method.parameterTypes.map(Any::toString) == listOf(itemType) &&
+            code.any { it.opcode == Opcode.NEW_INSTANCE && ((it as ReferenceInstruction).reference as TypeReference).type == LIVE_PREVIEW_IMAGE } &&
+            code.any { ((it as? ReferenceInstruction)?.reference as? MethodReference)?.returnType == BROADCAST }
+    }
+    val state = states.singleOrNull() ?: refuse(
+        "expected one method taking a Reels item ($itemType) that makes a $LIVE_PREVIEW_IMAGE from a $BROADCAST, " +
+            "found ${states.map { it.describe() }}",
+    )
     val code = state.implementation?.instructions?.toList().orEmpty()
     val targets = state.jumpTargets()
     val found = LinkedHashMap<String, Pair<FieldReference, MethodReference>>()
@@ -215,24 +239,35 @@ private fun liveCheck(code: List<Instruction>, targets: Set<Int>, call: Int): Li
             Opcode.INVOKE_DIRECT -> {
                 val method = (instruction as ReferenceInstruction).reference as? MethodReference ?: continue
                 val passed = instruction.registers()
-                if (method.definingClass == made && method.name == "<init>" &&
-                    method.parameterTypes.map(Any::toString) == listOf(OBJECT, "I") &&
-                    passed.size == 3 && passed[0] == madeAt && passed[1] == part
-                ) {
+                if (method.definingClass != made || method.name != "<init>" || passed.firstOrNull() != madeAt) continue
+                val parameters = method.parameterTypes.map(Any::toString)
+                if (parameters == listOf(OBJECT, "I") && passed.size == 3 && passed[1] == part) {
                     fallback = method
                     fallbackCase = literals[passed[2]]
+                } else if (parameters == listOf("I") && passed.size == 2) {
+                    // 456's fallback holds the case alone.
+                    fallback = method
+                    fallbackCase = literals[passed[1]]
                 }
             }
-            Opcode.INVOKE_INTERFACE, Opcode.INVOKE_INTERFACE_RANGE -> {
+            Opcode.INVOKE_INTERFACE, Opcode.INVOKE_INTERFACE_RANGE, Opcode.INVOKE_STATIC, Opcode.INVOKE_STATIC_RANGE -> {
                 val method = (instruction as ReferenceInstruction).reference as? MethodReference ?: continue
                 val passed = instruction.registers()
                 val treeRead = tree ?: continue
                 val made0 = fallback ?: continue
-                if (passed.size != 3 || passed[0] != treeAt || passed[2] != madeAt) continue
-                if (method.definingClass != treeRead.type || method.returnType != OBJECT ||
-                    method.parameterTypes.map(Any::toString) != listOf("I", FUNCTION0)
-                ) continue
-                val id = literals[passed[1]] ?: return null
+                val parameters = method.parameterTypes.map(Any::toString)
+                val held = made0.parameterTypes.map(Any::toString)
+                val idAt = if (opcode == Opcode.INVOKE_STATIC || opcode == Opcode.INVOKE_STATIC_RANGE) {
+                    // 456 reads the tree through a static helper handed the tree, the fallback and the id.
+                    if (passed.size != 3 || passed[0] != treeAt || passed[1] != madeAt || held != listOf("I")) continue
+                    if (method.returnType != OBJECT || parameters != listOf(treeRead.type, FUNCTION1, "I")) continue
+                    passed[2]
+                } else {
+                    if (passed.size != 3 || passed[0] != treeAt || passed[2] != madeAt || held != listOf(OBJECT, "I")) continue
+                    if (method.definingClass != treeRead.type || method.returnType != OBJECT || parameters != listOf("I", FUNCTION0)) continue
+                    passed[1]
+                }
+                val id = literals[idAt] ?: return null
                 val answer = code.getOrNull(at + 1)?.takeIf { it.opcode == Opcode.MOVE_RESULT_OBJECT } ?: return null
                 val string = code.getOrNull(at + 2)?.takeIf { it.opcode == Opcode.CHECK_CAST } ?: return null
                 if ((string as OneRegisterInstruction).registerA != (answer as OneRegisterInstruction).registerA) return null
@@ -270,21 +305,34 @@ private fun BytecodePatchContext.requireReachable(check: LiveCheck) {
     if (!AccessFlags.PUBLIC.isSet(part.accessFlags) || !AccessFlags.PUBLIC.isSet(tree.accessFlags) ||
         AccessFlags.STATIC.isSet(tree.accessFlags)
     ) refuse("${check.tree} isn't a public field the extension can read")
-    val treeType = classDefByOrNull(check.tree.type) ?: refuse("${check.tree.type} isn't a class of the app")
-    val read = treeType.methods.firstOrNull {
-        it.name == check.read.name && it.returnType == OBJECT && it.parameterTypes.map(Any::toString) == listOf("I", FUNCTION0)
-    } ?: refuse("${check.read} isn't declared by ${check.tree.type}")
-    if (!AccessFlags.PUBLIC.isSet(treeType.accessFlags) || !AccessFlags.INTERFACE.isSet(treeType.accessFlags) ||
-        !AccessFlags.PUBLIC.isSet(read.accessFlags)
-    ) refuse("${check.read} isn't a public interface method the extension can call")
+    val readParameters = check.read.parameterTypes.map(Any::toString)
+    if (check.throughHelper) {
+        val helper = classDefByOrNull(check.read.definingClass) ?: refuse("${check.read.definingClass} isn't a class of the app")
+        val read = helper.methods.firstOrNull {
+            it.name == check.read.name && it.returnType == OBJECT && it.parameterTypes.map(Any::toString) == readParameters
+        } ?: refuse("${check.read} isn't declared by ${helper.type}")
+        if (!AccessFlags.PUBLIC.isSet(helper.accessFlags) || !AccessFlags.PUBLIC.isSet(read.accessFlags) ||
+            !AccessFlags.STATIC.isSet(read.accessFlags)
+        ) refuse("${check.read} isn't a public static method the extension can call")
+    } else {
+        val treeType = classDefByOrNull(check.tree.type) ?: refuse("${check.tree.type} isn't a class of the app")
+        val read = treeType.methods.firstOrNull {
+            it.name == check.read.name && it.returnType == OBJECT && it.parameterTypes.map(Any::toString) == listOf("I", FUNCTION0)
+        } ?: refuse("${check.read} isn't declared by ${check.tree.type}")
+        if (!AccessFlags.PUBLIC.isSet(treeType.accessFlags) || !AccessFlags.INTERFACE.isSet(treeType.accessFlags) ||
+            !AccessFlags.PUBLIC.isSet(read.accessFlags)
+        ) refuse("${check.read} isn't a public interface method the extension can call")
+    }
+    val fallbackParameters = check.fallback.parameterTypes.map(Any::toString)
     val made = classDefByOrNull(check.fallback.definingClass) ?: refuse("${check.fallback.definingClass} isn't a class of the app")
     val made0 = made.methods.firstOrNull {
-        it.name == "<init>" && it.parameterTypes.map(Any::toString) == listOf(OBJECT, "I")
+        it.name == "<init>" && it.parameterTypes.map(Any::toString) == fallbackParameters
     } ?: refuse("${check.fallback} isn't declared by ${made.type}")
     if (!AccessFlags.PUBLIC.isSet(made.accessFlags) || !AccessFlags.PUBLIC.isSet(made0.accessFlags) ||
         AccessFlags.ABSTRACT.isSet(made.accessFlags)
     ) refuse("${check.fallback} isn't a public constructor the extension can call")
-    if (FUNCTION0 !in made.interfaces) refuse("${made.type} isn't a $FUNCTION0")
+    val function = if (check.throughHelper) FUNCTION1 else FUNCTION0
+    if (function !in made.interfaces) refuse("${made.type} isn't a $function")
 }
 
 private fun LiveCheck.describe() = "$part $tree $read $id $fallback $fallbackCase"
@@ -326,9 +374,9 @@ internal fun BytecodePatchContext.fillLivePreview(itemType: String, live: LivePr
             if-eqz v1, :none
             new-instance v2, ${check.fallback.definingClass}
             const v3, ${check.fallbackCase}
-            invoke-direct { v2, v0, v3 }, ${check.fallback}
+            ${if (check.throughHelper) "invoke-direct { v2, v3 }, ${check.fallback}" else "invoke-direct { v2, v0, v3 }, ${check.fallback}"}
             const v3, ${check.id}
-            invoke-interface { v1, v3, v2 }, ${check.read}
+            ${if (check.throughHelper) "invoke-static { v1, v2, v3 }, ${check.read}" else "invoke-interface { v1, v3, v2 }, ${check.read}"}
             move-result-object v1
             instance-of v1, v1, $STRING
             if-eqz v1, :none
@@ -344,16 +392,16 @@ internal fun BytecodePatchContext.fillLivePreview(itemType: String, live: LivePr
 internal class ReelsPlaceholder(val kind: FieldReference, val placeholder: FieldReference)
 
 /**
- * Finds [ReelsPlaceholder] in the methods marked [REELS_PLACEHOLDER], where the adapter checks
+ * Finds [ReelsPlaceholder] in the methods loading [REELS_PLACEHOLDER], where the adapter checks
  * whether its last item is the placeholder already: a field of the Reels item ([itemType]) read,
  * straight followed by a static of that field's type read off that type, the two compared at once,
  * with nothing jumping in between. Every such compare there has to agree, and the fields and the
  * classes holding them have to be public so the extension's stub can reach them.
  */
 internal fun BytecodePatchContext.findReelsPlaceholder(itemType: String): ReelsPlaceholder {
-    val marked = typesMarked(REELS_PLACEHOLDER).sorted()
-        .flatMap { type -> classDefBy(type).methods.filter { REELS_PLACEHOLDER in it.markers() } }
-    if (marked.isEmpty()) refuse("expected a method marked $REELS_PLACEHOLDER, found none")
+    val marked = classesLoadingString(REELS_PLACEHOLDER).sortedBy { it.type }
+        .flatMap { it.methods }.filter { loadsString(it, REELS_PLACEHOLDER) }
+    if (marked.isEmpty()) refuse("expected a method loading $REELS_PLACEHOLDER, found none")
     val found = LinkedHashMap<String, ReelsPlaceholder>()
     for (method in marked) {
         val code = method.implementation?.instructions?.toList().orEmpty()
@@ -375,7 +423,7 @@ internal fun BytecodePatchContext.findReelsPlaceholder(itemType: String): ReelsP
     }
     val check = found.values.singleOrNull() ?: refuse(
         if (found.isEmpty()) "${marked.map { it.describe() }} don't compare a Reels item's ($itemType) kind with a placeholder's"
-        else "the methods marked $REELS_PLACEHOLDER tell the placeholder in more than one way: ${found.keys}",
+        else "the methods loading $REELS_PLACEHOLDER tell the placeholder in more than one way: ${found.keys}",
     )
 
     val item = classDefBy(itemType)
@@ -432,20 +480,30 @@ internal class ReelsItemInserts(
 )
 
 /**
- * Finds [ReelsItemInserts]: the one method marked [REELS_ADD_ITEMS], an instance (List)V, and the one
- * marked [REELS_INSERT_ITEMS], an instance (int, List)Z, on the same class. That class keeps what its
- * viewer's getModuleName answered in one String field in its constructor, which nothing else writes,
- * and answers its own size()I. Each method needs three locals for the hook and nothing jumping to its
- * first instruction, and [extension] a static added(List, String, int)List. A failure names [patch].
+ * Finds [ReelsItemInserts]: the one method loading [REELS_INSERT_TRACE], an instance (int, List)Z, and
+ * on its class the instance (List)V that runs the one helper loading [REELS_ADD_ITEM]. The add may hand
+ * its list to a sibling (List)V running the helper too, so it's the one no other such sibling calls.
+ * That class keeps what its viewer's getModuleName answered in one String field in its constructor,
+ * which nothing else writes, and answers its own size()I. Each method needs three locals for the hook
+ * and nothing jumping to its first instruction, and [extension] a static added(List, String, int)List.
+ * A failure names [patch].
  */
 internal fun BytecodePatchContext.findReelsItemInserts(patch: String = PATCH, extension: String = LIVE_REELS): ReelsItemInserts {
     fun refuse(detail: String): Nothing = throw PatchException("$patch: $detail")
-    fun marked(name: String): Method {
-        val found = typesMarked(name).sorted().flatMap { type -> classDefBy(type).methods.filter { name in it.markers() } }
-        return found.singleOrNull() ?: refuse("expected one method marked $name, found ${found.size}")
+    val traced = classesLoadingString(REELS_INSERT_TRACE).flatMap { it.methods }.filter { loadsString(it, REELS_INSERT_TRACE) }
+    val insert = traced.singleOrNull() ?: refuse("expected one method loading $REELS_INSERT_TRACE, found ${traced.size}")
+    val dataSource = insert.definingClass
+    val source = classDefBy(dataSource)
+    val helpers = source.methods.filter { loadsString(it, REELS_ADD_ITEM) }
+    val helper = helpers.singleOrNull()
+        ?: refuse("expected one method of $dataSource loading $REELS_ADD_ITEM, found ${helpers.map { it.describe() }}")
+    val adding = source.methods.filter { method ->
+        !AccessFlags.STATIC.isSet(method.accessFlags) && method.parameterTypes.map(Any::toString) == listOf(LIST) &&
+            method.returnType == "V" && method.calls(helper)
     }
-    val add = marked(REELS_ADD_ITEMS)
-    val insert = marked(REELS_INSERT_ITEMS)
+    val outer = adding.filter { method -> adding.none { other -> other !== method && other.calls(method) } }
+    val add = outer.singleOrNull()
+        ?: refuse("expected one (List)V of $dataSource adding its items through ${helper.describe()}, found ${outer.map { it.describe() }}")
     val shapes = listOf(add to (listOf(LIST) to "V"), insert to (listOf("I", LIST) to "Z"))
     for ((method, shape) in shapes) {
         val (parameters, returns) = shape
@@ -453,9 +511,6 @@ internal fun BytecodePatchContext.findReelsItemInserts(patch: String = PATCH, ex
             method.parameterTypes.map(Any::toString) != parameters || method.returnType != returns
         ) refuse("expected ${method.describe()} to be an instance method taking $parameters and answering $returns")
     }
-    val dataSource = add.definingClass
-    if (insert.definingClass != dataSource) refuse("${add.describe()} and ${insert.describe()} aren't on one class")
-    val source = classDefBy(dataSource)
 
     val kept = source.methods.filter { it.name == "<init>" }.flatMap { constructor ->
         val code = constructor.implementation?.instructions?.toList().orEmpty()
@@ -532,6 +587,14 @@ internal fun BytecodePatchContext.filterReelsItemInserts(sites: ReelsItemInserts
 }
 
 private fun Method.describe() = "$definingClass->$name(${parameterTypes.joinToString("")})$returnType"
+
+/** Whether this method invokes [target]. */
+private fun Method.calls(target: Method): Boolean = implementation?.instructions?.any { instruction ->
+    val called = (instruction as? ReferenceInstruction)?.reference as? MethodReference ?: return@any false
+    called.definingClass == target.definingClass && called.name == target.name &&
+        called.returnType == target.returnType &&
+        called.parameterTypes.map(Any::toString) == target.parameterTypes.map(Any::toString)
+} == true
 
 /** The registers an invoke passes, the receiver first. */
 private fun Instruction.registers(): List<Int> = when (this) {

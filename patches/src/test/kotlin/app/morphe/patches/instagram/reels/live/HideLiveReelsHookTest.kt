@@ -13,7 +13,6 @@ import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
-import app.morphe.patches.instagram.misc.extension.markers
 import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
 import app.morphe.patches.instagram.reels.cleanup.FRIEND_LANE_PICKS
 import app.morphe.patches.instagram.reels.cleanup.FRIEND_PICKS_ADDED
@@ -50,10 +49,15 @@ class HideLiveReelsHookTest {
     private val holder = "Lfixture/LivePreview;"
     private val other = "Lfixture/OtherPart;"
     private val useCase = "Lfixture/LivePreviewUseCase;"
+    private val otherUseCase = "Lfixture/OtherUseCase;"
     private val part = "Lfixture/LivePart;"
     private val tree = "Lfixture/Tree;"
     private val fallback = "Lfixture/Fallback;"
+    private val fallback1 = "Lfixture/Fallback1;"
+    private val reads = "Lfixture/TreeReads;"
+    private val broadcasts = "Lfixture/BroadcastHolder;"
     private val function0 = "Lkotlin/jvm/functions/Function0;"
+    private val function1 = "Lkotlin/jvm/functions/Function1;"
     private val objectType = "Ljava/lang/Object;"
     private val stringType = "Ljava/lang/String;"
     private val listType = "Ljava/util/List;"
@@ -75,7 +79,7 @@ class HideLiveReelsHookTest {
     }
 
     /**
-     * The key is the static field the marked method reads straight into the item's part lookup (a
+     * The key is the static field the live preview's state reads straight into the item's part lookup (a
      * part read through another register doesn't count), the check is the one the method runs on the
      * part it gets back, and the stub asks an item for that part, runs the same check, and answers
      * null for anything else.
@@ -111,12 +115,35 @@ class HideLiveReelsHookTest {
         assertStubFilled("the case-first stand-in", context, item, live)
     }
 
+    /**
+     * 456's shape: the tree is read through a static helper handed the tree, a Function1 fallback
+     * holding the case alone, and the id, and the stub reads it the same way.
+     */
+    @Test
+    fun aReadThroughAStaticHelperIsFollowed() {
+        val context = PatchContexts.of(classes(helperRead = true))
+
+        val live = context.findLivePreviewKey(item)
+        context.fillLivePreview(item, live)
+
+        assertEquals("$holder->KEY:$keyType", live.key.toString())
+        assertEquals("$part->tree:$tree", live.check.tree.toString())
+        assertEquals("$reads->read($tree${function1}I)$objectType", live.check.read.toString())
+        assertTrue("the read goes through the helper", live.check.throughHelper)
+        assertEquals(0xeae4559, live.check.id)
+        assertEquals("$fallback1-><init>(I)V", live.check.fallback.toString())
+        assertEquals(8, live.check.fallbackCase)
+        assertStubFilled("the helper stand-in", context, item, live)
+    }
+
     /** A build the patch can't read fails at patch time, saying what it found, before anything is written. */
     @Test
     fun aBuildThePatchCantReadFailsBeforeAnythingChanges() {
+        val shape = "expected one method taking a Reels item ($item) that makes a $LIVE_PREVIEW_IMAGE from a $BROADCAST"
         val cases = listOf(
-            classes(marks = 0) to "expected one method marked $LIVE_PREVIEW_STATE, found 0",
-            classes(marks = 2) to "expected one method marked $LIVE_PREVIEW_STATE, found 2",
+            classes(states = 0) to "$shape, found []",
+            classes(states = 2) to "$shape, found [$useCase->state($item)$objectType, $otherUseCase->state($item)$objectType]",
+            classes(stateTakes = objectType) to "$shape, found []",
             classes(asks = false) to "doesn't ask a Reels item ($item) for a part by a key",
             classes(twoKeys = true) to "asks a Reels item for more than one part",
             classes(keyPublic = false) to "$holder->KEY:$keyType isn't a public static field the extension can read",
@@ -126,6 +153,11 @@ class HideLiveReelsHookTest {
             classes(caseMerged = true) to "doesn't check the part part answers for a String it reads with a fallback",
             classes(treePublic = false) to "$part->tree:$tree isn't a public field the extension can read",
             classes(fallbackPublic = false) to "$fallback-><init>(${objectType}I)V isn't a public constructor the extension can call",
+            classes(fallbackImplements = false) to "$fallback isn't a $function0",
+            classes(helperRead = true, fallbackPublic = false) to "$fallback1-><init>(I)V isn't a public constructor the extension can call",
+            classes(helperRead = true, fallbackImplements = false) to "$fallback1 isn't a $function1",
+            classes(helperRead = true, helperStatic = false) to
+                "$reads->read($tree${function1}I)$objectType isn't a public static method the extension can call",
             classes(extension = false) to "the extension has no $LIVE_REELS",
         )
         for ((classes, expected) in cases) {
@@ -138,9 +170,10 @@ class HideLiveReelsHookTest {
     }
 
     /**
-     * On the declared build and each other build of 454, the key is the one static field the method
-     * marked [LIVE_PREVIEW_STATE] reads straight into a lookup on the item the Reels converter
-     * answers, read right before that lookup, and its type is the key type the lookup takes.
+     * On the declared build and each other build, the key is the one static field the live preview's
+     * state (the one method taking the item the Reels converter answers that makes a
+     * [LIVE_PREVIEW_IMAGE] from a [BROADCAST]) reads straight into a lookup on that item, read right
+     * before that lookup, and its type is the key type the lookup takes.
      */
     @Test
     fun eachBuildFindsTheLivePreviewKey() {
@@ -152,21 +185,22 @@ class HideLiveReelsHookTest {
             val converter = FixtureDex.classesHolding(bundle, TO_CLIPS_ITEM).flatMap { it.methods }
                 .single { method -> method.code().any { it.string() == TO_CLIPS_ITEM } }
             val itemType = converter.returnType
-            val marked = mutableListOf<ClassDef>()
-            FixtureDex.forEach(bundle) { dex ->
-                if (dex.stringSection.none { it.endsWith("_$LIVE_PREVIEW_STATE") }) return@forEach
-                for (classDef in dex.classes) {
-                    if (classDef.methods.any { LIVE_PREVIEW_STATE in it.markers() }) marked += ImmutableClassDef.of(classDef)
-                }
+            val creating = FixtureDex.classesCreating(bundle, setOf(LIVE_PREVIEW_IMAGE))
+            val states = creating.flatMap { it.methods }.filter { method ->
+                method.parameterTypes.map(Any::toString) == listOf(itemType) &&
+                    method.code().any { it.opcode == Opcode.NEW_INSTANCE && it.referenceText() == LIVE_PREVIEW_IMAGE } &&
+                    method.code().any { (it.reference() as? MethodReference)?.returnType == BROADCAST }
             }
-            val state = marked.flatMap { it.methods }.single { LIVE_PREVIEW_STATE in it.markers() }
+            assertEquals("${bundle.name}: the methods making the live preview's image from a Reels item", 1, states.size)
+            val state = states.single()
             val read = state.code().filter { it.opcode == Opcode.SGET_OBJECT || it.opcode == Opcode.IGET_OBJECT }
                 .map { it.reference() as FieldReference }
-            // The check's part, its fallback and the tree it reads, so the stub's targets are there to check.
+            // The check's part, its fallback, the tree it reads and the read, so the stub's targets are there to check.
             val made = state.code().filter { it.opcode == Opcode.CHECK_CAST || it.opcode == Opcode.NEW_INSTANCE }
                 .map { (it.reference() as TypeReference).type }
-            val types = read.map { it.definingClass } + read.map { it.type } + made + itemType
-            val kept = (marked + FixtureDex.classes(bundle, types.toSet()).values).distinctBy { it.type } +
+            val called = state.code().mapNotNull { (it.reference() as? MethodReference)?.definingClass }
+            val types = read.map { it.definingClass } + read.map { it.type } + made + called + itemType
+            val kept = (creating + FixtureDex.classes(bundle, types.toSet()).values).distinctBy { it.type } +
                 ExtensionDex.classDef(LIVE_REELS)
             val context = PatchContexts.of(kept)
 
@@ -181,7 +215,7 @@ class HideLiveReelsHookTest {
                 live.key.type == taken || taken in keyClass.interfaces,
             )
             val at = state.code().indexOfFirst { (it.reference() as? FieldReference)?.toString() == live.key.toString() }
-            assertTrue("${bundle.name}: the marked method reads ${live.key}", at >= 0)
+            assertTrue("${bundle.name}: the live preview's state reads ${live.key}", at >= 0)
             assertEquals("${bundle.name}: the lookup right after the key", live.lookup.toString(), state.code()[at + 1].referenceText())
             assertEquals("${bundle.name}: the part's cast right after the lookup", live.check.part, state.code()[at + 3].referenceText())
             assertEquals("${bundle.name}: the read the check makes", stringType, run {
@@ -215,7 +249,7 @@ class HideLiveReelsHookTest {
     @Test
     fun anAdapterThePatchCantReadFailsBeforeAnythingChanges() {
         val cases = listOf(
-            placeholderClasses(marked = false) to "expected a method marked $REELS_PLACEHOLDER, found none",
+            placeholderClasses(marked = false) to "expected a method loading $REELS_PLACEHOLDER, found none",
             placeholderClasses(compares = false) to "don't compare a Reels item's ($item) kind with a placeholder's",
             placeholderClasses(twoWays = true) to "tell the placeholder in more than one way",
             placeholderClasses(kindPublic = false) to "$item->kind:$kindType isn't a public field the extension can read",
@@ -243,14 +277,10 @@ class HideLiveReelsHookTest {
             val converter = FixtureDex.classesHolding(bundle, TO_CLIPS_ITEM).flatMap { it.methods }
                 .single { method -> method.code().any { it.string() == TO_CLIPS_ITEM } }
             val itemType = converter.returnType
-            val marked = mutableListOf<ClassDef>()
-            FixtureDex.forEach(bundle) { dex ->
-                if (dex.stringSection.none { it.endsWith("_$REELS_PLACEHOLDER") }) return@forEach
-                for (classDef in dex.classes) {
-                    if (classDef.methods.any { REELS_PLACEHOLDER in it.markers() }) marked += ImmutableClassDef.of(classDef)
-                }
-            }
-            val read = marked.flatMap { it.methods }.filter { REELS_PLACEHOLDER in it.markers() }
+            val marked = FixtureDex.classesLoading(bundle, REELS_PLACEHOLDER)
+            val byType = marked.associateBy { it.type }
+            val read = marked.flatMap { it.methods }
+                .filter { it.parameterTypes.map(Any::toString) != listOf("I") && FixtureDex.loads(it, REELS_PLACEHOLDER, byType) }
                 .flatMap { it.code() }.mapNotNull { it.reference() as? FieldReference }
             val types = read.map { it.definingClass } + read.map { it.type } + itemType
             val kept = (marked + FixtureDex.classes(bundle, types.toSet()).values).distinctBy { it.type } +
@@ -300,6 +330,21 @@ class HideLiveReelsHookTest {
         assertInsertsFiltered("the stand-in", stock.single { it.type == dataSource }, context, sites)
     }
 
+    /** 456's add hands its list on to a sibling running the same helper; the hook goes on the add, not the sibling. */
+    @Test
+    fun anAddHandingItsListOnIsHookedWhereTheListComesIn() {
+        val stock = dataSourceClasses(addSplit = true)
+        val context = PatchContexts.of(stock)
+
+        val sites = context.findReelsItemInserts()
+        context.filterReelsItemInserts(sites)
+
+        assertEquals(listOf("add($listType)V" to 0, "insert(I$listType)Z" to 1), sites.inserts)
+        assertInsertsFiltered("the split add", stock.single { it.type == dataSource }, context, sites)
+        val sibling = context.mutableClassDefBy(dataSource).methods.single { it.name == "addAll" }
+        assertTrue("the sibling stays Instagram's", sibling.code().none { it.referenceText() == LIVE_ADDED_FILTER })
+    }
+
     /**
      * Clean up Reels hooks the same add and insert for the Friends tab picks (#503). Its hook lands
      * ahead of this patch's, both read the list from the parameter, and a build whose extension lacks
@@ -331,9 +376,14 @@ class HideLiveReelsHookTest {
     @Test
     fun aDataSourceThePatchCantReadFailsBeforeAnythingChanges() {
         val cases = listOf(
-            dataSourceClasses(addMarks = 0) to "expected one method marked $REELS_ADD_ITEMS, found 0",
-            dataSourceClasses(addMarks = 2) to "expected one method marked $REELS_ADD_ITEMS, found 2",
-            dataSourceClasses(insertElsewhere = true) to "aren't on one class",
+            dataSourceClasses(insertTraces = 0) to "expected one method loading $REELS_INSERT_TRACE, found 0",
+            dataSourceClasses(insertTraces = 2) to "expected one method loading $REELS_INSERT_TRACE, found 2",
+            dataSourceClasses(addLabels = 0) to "expected one method of $dataSource loading $REELS_ADD_ITEM, found []",
+            dataSourceClasses(addLabels = 2) to
+                "expected one method of $dataSource loading $REELS_ADD_ITEM, found [$dataSource->addItem($objectType)V, $dataSource->clear()V]",
+            dataSourceClasses(twoAdds = true) to
+                "expected one (List)V of $dataSource adding its items through $dataSource->addItem($objectType)V, found [",
+            dataSourceClasses(insertElsewhere = true) to "expected one method of Lfixture/OtherSource; loading $REELS_ADD_ITEM, found []",
             dataSourceClasses(keepsModule = false) to "constructor to keep one module name from getModuleName, found []",
             dataSourceClasses(moduleWrittenLater = true) to "$dataSource->module:$stringType is written by [$dataSource->reset()V]",
             dataSourceClasses(sizeDeclared = false) to "$dataSource doesn't answer its own size()I",
@@ -358,17 +408,9 @@ class HideLiveReelsHookTest {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
         val bundles = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } } +
             Fixtures.otherBuilds()
-        val names = setOf(REELS_ADD_ITEMS, REELS_INSERT_ITEMS)
         var checked = 0
         for (bundle in bundles) {
-            val marked = mutableListOf<ClassDef>()
-            FixtureDex.forEach(bundle) { dex ->
-                if (dex.stringSection.none { string -> names.any { string.endsWith("_$it") } }) return@forEach
-                for (classDef in dex.classes) {
-                    if (classDef.methods.any { method -> method.markers().any { it in names } }) marked += ImmutableClassDef.of(classDef)
-                }
-            }
-            val kept = marked.distinctBy { it.type }
+            val kept = listOf(REELS_INSERT_TRACE, REELS_ADD_ITEM).flatMap { FixtureDex.classesLoading(bundle, it) }.distinctBy { it.type }
             val context = PatchContexts.of(kept + ExtensionDex.classDef(LIVE_REELS))
 
             val sites = context.findReelsItemInserts()
@@ -443,13 +485,33 @@ class HideLiveReelsHookTest {
                 Opcode.IGET_OBJECT to check.tree.toString(), Opcode.IF_EQZ to null,
                 Opcode.NEW_INSTANCE to check.fallback.definingClass, Opcode.CONST to null,
                 Opcode.INVOKE_DIRECT to check.fallback.toString(), Opcode.CONST to null,
-                Opcode.INVOKE_INTERFACE to check.read.toString(), Opcode.MOVE_RESULT_OBJECT to null,
+                (if (check.throughHelper) Opcode.INVOKE_STATIC else Opcode.INVOKE_INTERFACE) to check.read.toString(),
+                Opcode.MOVE_RESULT_OBJECT to null,
                 Opcode.INSTANCE_OF to stringType, Opcode.IF_EQZ to null, Opcode.RETURN_OBJECT to null,
             ),
             stub.code().map { it.opcode to it.referenceText() },
         )
-        val literals = stub.code().filter { it.opcode == Opcode.CONST }.map { (it as NarrowLiteralInstruction).narrowLiteral }
+        val consts = stub.code().filter { it.opcode == Opcode.CONST }
+        val literals = consts.map { (it as NarrowLiteralInstruction).narrowLiteral }
         assertEquals("$what: the fallback's case, then the id", listOf(check.fallbackCase, check.id), literals)
+        val (case, id) = consts.map { (it as OneRegisterInstruction).registerA }
+        val partAt = (stub.code().single { it.opcode == Opcode.CHECK_CAST && it.referenceText() == check.part } as OneRegisterInstruction).registerA
+        val treeAt = (stub.code().single { it.opcode == Opcode.IGET_OBJECT } as TwoRegisterInstruction).registerA
+        val madeAt = (stub.code().single { it.opcode == Opcode.NEW_INSTANCE } as OneRegisterInstruction).registerA
+        val built = stub.code().single { it.opcode == Opcode.INVOKE_DIRECT }.registersPassed()
+        val asked = stub.code().single { it.referenceText() == check.read.toString() }.registersPassed()
+        if (check.throughHelper) {
+            assertEquals("$what: the fallback holds the case alone", listOf(madeAt, case), built)
+            assertEquals("$what: the helper is handed the tree, the fallback and the id", listOf(treeAt, madeAt, id), asked)
+        } else {
+            assertEquals("$what: the fallback holds the part and the case", listOf(madeAt, partAt, case), built)
+            assertEquals("$what: the tree is asked for the id with the fallback", listOf(treeAt, id, madeAt), asked)
+        }
+    }
+
+    private fun Instruction.registersPassed(): List<Int> {
+        val call = this as FiveRegisterInstruction
+        return listOf(call.registerC, call.registerD, call.registerE, call.registerF, call.registerG).take(call.registerCount)
     }
 
     // ---- stand-ins shaped like Instagram 454's --------------------------------------------------
@@ -457,11 +519,13 @@ class HideLiveReelsHookTest {
     /**
      * The item with its part lookup; the key's interface, its type and the class holding it; another
      * part's key; the live part with its tree, the tree's read and the fallback the read is handed;
-     * the use case whose marked method asks the item for the live part first, checks it the way 454
-     * does, and asks for another part later; and the extension.
+     * the use case whose state, taking the item, asks it for the live part first, checks it the way
+     * 454 does (or 456 with [helperRead]), asks for another part later and makes the preview's image
+     * from a broadcast; and the extension.
      */
     private fun classes(
-        marks: Int = 1,
+        states: Int = 1,
+        stateTakes: String = item,
         asks: Boolean = true,
         twoKeys: Boolean = false,
         keyPublic: Boolean = true,
@@ -470,9 +534,12 @@ class HideLiveReelsHookTest {
         checks: Boolean = true,
         treePublic: Boolean = true,
         fallbackPublic: Boolean = true,
+        fallbackImplements: Boolean = true,
         extension: Boolean = true,
         caseFirst: Boolean = false,
         caseMerged: Boolean = false,
+        helperRead: Boolean = false,
+        helperStatic: Boolean = true,
     ): List<ClassDef> {
         val partClass = ImmutableClassDef(
             part, AccessFlags.PUBLIC.value or AccessFlags.ABSTRACT.value, objectType, null, null, null,
@@ -492,8 +559,20 @@ class HideLiveReelsHookTest {
         val fallbackClass = classDef(
             fallback,
             listOf(method(fallback, "<init>", listOf(objectType, "I"), "V", 0, public = fallbackPublic, body = "return-void")),
-            interfaces = listOf(function0),
+            interfaces = if (fallbackImplements) listOf(function0) else emptyList(),
         )
+        // 456's fallback holds the case alone, and a static helper reads the tree with it.
+        val fallback1Class = classDef(
+            fallback1,
+            listOf(method(fallback1, "<init>", listOf("I"), "V", 0, public = fallbackPublic, body = "return-void")),
+            interfaces = if (fallbackImplements) listOf(function1) else emptyList(),
+        )
+        val readsClass = classDef(reads, listOf(
+            ImmutableMethod(
+                reads, "read", listOf(tree, function1, "I").map { ImmutableMethodParameter(it, null, null) }, objectType,
+                AccessFlags.PUBLIC.value or (if (helperStatic) AccessFlags.STATIC.value else 0), null, null, null,
+            ),
+        ))
         val itemClass = classDef(item, listOf(
             method(item, "part", listOf(keyInterface), objectType, 1, public = lookupPublic, body = """
                 const/4 v0, 0x0
@@ -507,7 +586,7 @@ class HideLiveReelsHookTest {
         val keyClass = classDef(keyType, emptyList(), interfaces = if (keyImplements) listOf(keyInterface) else emptyList())
         val holderClass = classDef(holder, emptyList(), staticFields = listOf("KEY" to keyType), staticPublic = keyPublic)
         val otherClass = classDef(other, emptyList(), staticFields = listOf("KEY" to keyType))
-        fun useCaseClass(type: String) = classDef(type, listOf(method(type, "state", listOf(item), objectType, 5, body = buildString {
+        fun useCaseClass(type: String) = classDef(type, listOf(method(type, "state", listOf(stateTakes), objectType, 5, body = buildString {
             if (caseFirst || caseMerged) {
                 // 386014759's shape: the fallback's case is loaded at the top, long before the lookup.
                 appendLine("const/4 v4, 0x0")
@@ -518,13 +597,26 @@ class HideLiveReelsHookTest {
                 appendLine("const/4 v4, 0x1")
                 appendLine(":merged")
             }
-            appendLine("const-string v0, \"android_purge_26_q3_$LIVE_PREVIEW_STATE\"")
             if (asks) {
                 appendLine("sget-object v0, $holder->KEY:$keyType")
                 appendLine("invoke-virtual { p1, v0 }, $item->part($keyInterface)$objectType")
                 appendLine("move-result-object v1")
             }
-            if (asks && checks) {
+            if (asks && checks && helperRead) {
+                // 456's shape: the part is cast and its tree read, and a static helper is handed the
+                // tree, a fallback built from the case alone and the broadcast's id, the answer cast to a String.
+                appendLine("check-cast v1, $part")
+                appendLine("if-eqz v1, :none")
+                appendLine("iget-object v2, v1, $part->tree:$tree")
+                appendLine("const/16 v0, 0x8")
+                appendLine("new-instance v3, $fallback1")
+                appendLine("invoke-direct { v3, v0 }, $fallback1-><init>(I)V")
+                appendLine("const v0, 0xeae4559")
+                appendLine("invoke-static { v2, v3, v0 }, $reads->read($tree${function1}I)$objectType")
+                appendLine("move-result-object v0")
+                appendLine("check-cast v0, $stringType")
+                appendLine(":none")
+            } else if (asks && checks) {
                 // 454's shape: the part is cast, its tree read, and the tree asked for the broadcast's id
                 // with a fallback built from the part, the answer cast to a String.
                 appendLine("check-cast v1, $part")
@@ -549,20 +641,28 @@ class HideLiveReelsHookTest {
                 appendLine("invoke-virtual { p1, v0 }, $item->part($keyInterface)$objectType")
             }
             appendLine("move-result-object v1")
-            appendLine("return-object v1")
+            // The preview's image, made from the broadcast the part holds.
+            appendLine("invoke-interface { v1 }, $broadcasts->broadcast()$BROADCAST")
+            appendLine("move-result-object v2")
+            appendLine("new-instance v3, $LIVE_PREVIEW_IMAGE")
+            appendLine("return-object v3")
         })))
-        val useCaseClasses = listOf(useCase, "Lfixture/OtherUseCase;").take(marks).map(::useCaseClass)
-        return listOf(itemClass, keyInterfaceClass, keyClass, holderClass, otherClass, partClass, treeClass, fallbackClass) + useCaseClasses +
-            if (extension) listOf(ExtensionDex.classDef(LIVE_REELS)) else emptyList()
+        val useCaseClasses = listOf(useCase, otherUseCase).take(states).map(::useCaseClass)
+        return listOf(itemClass, keyInterfaceClass, keyClass, holderClass, otherClass, partClass, treeClass, fallbackClass, fallback1Class, readsClass) +
+            useCaseClasses + if (extension) listOf(ExtensionDex.classDef(LIVE_REELS)) else emptyList()
     }
 
     /**
      * The Reels viewer's data source shaped like 454's: a constructor keeping what the viewer's
      * getModuleName answers in a String field (and a label from elsewhere in another), its own
-     * size(), the marked add (List)V and insert (int, List)Z; and the extension.
+     * size(), the add (List)V running the helper loading [REELS_ADD_ITEM] and the insert (int, List)Z
+     * loading [REELS_INSERT_TRACE]; and the extension.
      */
     private fun dataSourceClasses(
-        addMarks: Int = 1,
+        addLabels: Int = 1,
+        addSplit: Boolean = false,
+        twoAdds: Boolean = false,
+        insertTraces: Int = 1,
         insertElsewhere: Boolean = false,
         keepsModule: Boolean = true,
         moduleWrittenLater: Boolean = false,
@@ -589,16 +689,29 @@ class HideLiveReelsHookTest {
             """),
             method(dataSource, "add", listOf(listType), "V", addLocals, body = buildString {
                 if (addLoops) appendLine(":top")
-                // 454's add loads a constant first, then its marker.
+                // 454's add loads a constant first.
                 appendLine("const/4 v1, 0x0")
-                if (addMarks > 0) appendLine("const-string v0, \"android_purge_26_q2_$REELS_ADD_ITEMS\"")
+                appendLine("invoke-virtual { p0, v1 }, $dataSource->addItem($objectType)V")
+                // 456's add hands the list on to a sibling running the same helper.
+                if (addSplit) appendLine("invoke-virtual { p0, p1 }, $dataSource->addAll($listType)V")
                 if (addLoops) appendLine("if-eqz p1, :top")
                 appendLine("return-void")
             }),
+            method(dataSource, "addItem", listOf(objectType), "V", 1, body = buildString {
+                appendLine("const-string v0, \"${if (addLabels > 0) REELS_ADD_ITEM else "addItem()"}\"")
+                appendLine("return-void")
+            }),
         )
-        if (addMarks > 1) {
+        if (addSplit || twoAdds) {
+            methods += method(dataSource, if (addSplit) "addAll" else "append", listOf(listType), "V", 1, body = """
+                const/4 v0, 0x0
+                invoke-virtual { p0, v0 }, $dataSource->addItem($objectType)V
+                return-void
+            """)
+        }
+        if (addLabels > 1) {
             methods += method(dataSource, "clear", emptyList(), "V", 1, body = """
-                const-string v0, "android_purge_26_q2_$REELS_ADD_ITEMS"
+                const-string v0, "$REELS_ADD_ITEM"
                 return-void
             """)
         }
@@ -611,10 +724,17 @@ class HideLiveReelsHookTest {
         }
         val insertOwner = if (insertElsewhere) "Lfixture/OtherSource;" else dataSource
         val insert = method(insertOwner, "insert", listOf("I", listType), "Z", 3, body = """
-            const-string v0, "android_purge_26_q2_$REELS_INSERT_ITEMS"
+            const-string v0, "${if (insertTraces > 0) REELS_INSERT_TRACE else "insertItems"}"
             const/4 v0, 0x1
             return v0
         """)
+        if (insertTraces > 1) {
+            methods += method(dataSource, "move", listOf("I", listType), "Z", 1, body = """
+                const-string v0, "$REELS_INSERT_TRACE"
+                const/4 v0, 0x1
+                return v0
+            """)
+        }
         val classes = if (insertElsewhere) {
             listOf(classDef(dataSource, methods), classDef(insertOwner, listOf(insert)))
         } else {
@@ -655,7 +775,7 @@ class HideLiveReelsHookTest {
             null,
         )
         val adds = method(adapter, "addClipsItems", listOf(item), "V", 3, body = buildString {
-            if (marked) appendLine("const-string v0, \"android_purge_26_q2_$REELS_PLACEHOLDER\"")
+            if (marked) appendLine("const-string v0, \"$REELS_PLACEHOLDER\"")
             // Another field's compare with a static of its own type isn't the kind's.
             appendLine("iget-object v1, p1, $item->label:$stringType")
             appendLine("sget-object v0, $adapter->LABEL:$stringType")
