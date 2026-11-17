@@ -197,13 +197,25 @@ public class GlassReachTest {
         assertTrue("fading under it: " + halfway + " of " + middle, halfway > middle / 4 && halfway < middle * 3 / 4);
         assertEquals("gone where the fade ends", 0, Color.alpha(drawn.getPixel(WIDE / 2, STATUS + fade())));
 
+        // Instagram 456 stops its slide with the header's one pixel divider still below the clock.
         header.setTranslationY(-HEADER + 1f);
         frame();
-        assertFalse("one row still below the clock keeps the whole band", GlassTopBar.hollow(header));
+        assertTrue("its divider alone below the clock leaves only the strip", GlassTopBar.hollow(header));
+        Bitmap stopped = drawn(-HEADER + 1);
+        assertEquals("no line where the clock ends", middle, Color.alpha(stopped.getPixel(WIDE / 2, STATUS - 1)));
+        assertEquals("the strip fades out the same", 0, Color.alpha(stopped.getPixel(WIDE / 2, STATUS + fade())));
+
+        header.setTranslationY(-HEADER + slack() + 1f);
+        frame();
+        assertFalse("more than a hairline below the clock keeps the whole band", GlassTopBar.hollow(header));
     }
 
     private int fade() {
         return Math.round(GlassTopBar.STRIP_FADE * header.getResources().getDisplayMetrics().density);
+    }
+
+    private int slack() {
+        return Math.max(1, Math.round(GlassTopBar.SLID_SLACK * header.getResources().getDisplayMetrics().density));
     }
 
     @Test
