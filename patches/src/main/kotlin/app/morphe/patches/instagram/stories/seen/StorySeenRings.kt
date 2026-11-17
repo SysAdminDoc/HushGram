@@ -89,11 +89,23 @@ internal fun BytecodePatchContext.findStoryRings(): StoryRingTargets {
     val stateWrite = stateWrites.singleOrNull()
         ?: refuseRings("expected $state to have one static write of a reel's seen time, found ${stateWrites.size}")
 
-    val reelWrites = classesCalling(state, stateWrite.name)
-        .filter { it.type != store.definingClass && it.type != state }
-        .flatMap { classDef -> classDef.methods.filter { method -> method.body().any { it.calledMethod()?.sameCall(stateWrite) == true } } }
+    // 456 moved the reel's write into the store, as a write of a reel's time that only moves it
+    // forward (02nv.A02 on 386214574), and the reel's write calls that. The story viewer's controller
+    // calls it too, for another reel than the one it shows, so only a write shaped like the reel's counts.
+    val storeWrites = (classDefByOrNull(store.definingClass) ?: refuseRings("${store.definingClass}, the store of the stories seen, isn't in this build"))
+        .methods.filter { method ->
+            !AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "V" &&
+                method.parameterTypes.map(Any::toString) == listOf(STRING, "J") && method.body().any { it.calledMethod()?.sameCall(stateWrite) == true }
+        }
+    val reelWrites = (listOf(stateWrite) + storeWrites).flatMap { write ->
+        classesCalling(write.definingClass, write.name)
+            .filter { it.type != store.definingClass && it.type != state }
+            .flatMap { classDef -> classDef.methods.filter { method -> method.body().any { it.calledMethod()?.sameCall(write) == true } } }
+    }.distinctBy { it.descriptor() }.filter { method ->
+        !AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "V" && method.parameterTypes.map(Any::toString) == listOf(USER_SESSION, "J")
+    }
     val reelWrite = reelWrites.singleOrNull()
-        ?: refuseRings("expected one write of a reel's seen time calling $state->${stateWrite.name}, found ${reelWrites.size}")
+        ?: refuseRings("expected one write of a reel's seen time for an account calling $state->${stateWrite.name}, found ${reelWrites.size}")
     if (AccessFlags.STATIC.isSet(reelWrite.accessFlags) || reelWrite.returnType != "V" ||
         reelWrite.parameterTypes.map(Any::toString) != listOf(USER_SESSION, "J")
     ) {

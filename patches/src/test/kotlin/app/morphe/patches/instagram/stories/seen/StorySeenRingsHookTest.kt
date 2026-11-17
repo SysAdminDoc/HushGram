@@ -100,6 +100,13 @@ class StorySeenRingsHookTest {
     @Test
     fun anotherWriterOfTheStateFails() = assertRefused(standIns(otherStateWriter = true), "calling $STATE->A00, found 2")
 
+    /** A writer of another reel's time by its id, as 456's story viewer controller is, isn't the reel's write. */
+    @Test
+    fun aWriterOfAnotherShapeIsLeftAlone() {
+        val context = PatchContexts.of(standIns(strayStateWriter = true))
+        assertEquals(WRITE, context.findStoryRings().write)
+    }
+
     @Test
     fun aWriteTheExtensionCantCallFails() = assertRefused(standIns(writePublic = false), "isn't public for the extension to call")
 
@@ -249,10 +256,18 @@ class StorySeenRingsHookTest {
         val stateWrite = stateClass.methods.single {
             AccessFlags.STATIC.isSet(it.accessFlags) && it.parameterTypes.map(Any::toString) == listOf(state, STRING, "J")
         }.key()
+        // 456's reel write calls the store's own write of a reel's time, which calls the state's.
         val stateWriters = callersOf(bundle, stateWrite)
-        val reelWrite = stateWriters.single { it.definingClass != state && stores.none { store -> store.type == it.definingClass } }.key()
+        val storeWrites = stateWriters.filter { method ->
+            stores.any { it.type == method.definingClass } && method.parameterTypes.map(Any::toString) == listOf(STRING, "J")
+        }
+        val writers = stateWriters + storeWrites.flatMap { callersOf(bundle, it.key()) }
+        val reelWrite = writers.single {
+            it.definingClass != state && stores.none { store -> store.type == it.definingClass } &&
+                it.parameterTypes.map(Any::toString) == listOf(USER_SESSION, "J")
+        }.key()
         val reelWriters = callersOf(bundle, reelWrite)
-        val types = (stores.map { it.type } + state + stateWriters.map { it.definingClass } + reelWriters.map { it.definingClass } + STORY_VIEWER).toSet()
+        val types = (stores.map { it.type } + state + writers.map { it.definingClass } + reelWriters.map { it.definingClass } + STORY_VIEWER).toSet()
         return (FixtureDex.withStringPools(bundle, FixtureDex.classes(bundle, types).values) + ExtensionDex.classDef(STORY_SEEN_RINGS))
             .map { ImmutableClassDef.of(it) }.distinctBy { it.type }
     }
@@ -273,6 +288,7 @@ class StorySeenRingsHookTest {
         store: Boolean = true,
         stateWrites: Int = 1,
         otherStateWriter: Boolean = false,
+        strayStateWriter: Boolean = false,
         writePublic: Boolean = true,
         viewers: Int = 1,
         storyIn: Int? = null,
@@ -347,22 +363,34 @@ class StorySeenRingsHookTest {
                 ),
             ),
         )
-        val elsewhere = if (otherStateWriter) {
-            classOf(
-                ELSEWHERE, emptyList(),
-                listOf(
-                    method(
-                        ELSEWHERE, "write", listOf(STATE, STRING), "V", 4, """
-                            const-wide/16 v0, 0x1
-                            invoke-static { p0, p1, v0, v1 }, $STATE_WRITE
-                            return-void
-                        """,
-                    ),
-                ),
-            )
-        } else {
-            null
-        }
+        val elsewhereWrites = listOfNotNull(
+            // Shaped like the reel's write, an account and a time, so only the count tells them apart.
+            if (otherStateWriter) {
+                method(
+                    ELSEWHERE, "write", listOf(USER_SESSION, "J"), "V", 6, """
+                        const/4 v0, 0x0
+                        const-string v1, "elsewhere"
+                        invoke-static { v0, v1, p2, p3 }, $STATE_WRITE
+                        return-void
+                    """, static = false,
+                )
+            } else {
+                null
+            },
+            // Shaped like 456's story viewer controller, writing another reel's time by its id.
+            if (strayStateWriter) {
+                method(
+                    ELSEWHERE, "stray", listOf(STATE, STRING), "V", 4, """
+                        const-wide/16 v0, 0x1
+                        invoke-static { p0, p1, v0, v1 }, $STATE_WRITE
+                        return-void
+                    """,
+                )
+            } else {
+                null
+            },
+        )
+        val elsewhere = if (elsewhereWrites.isEmpty()) null else classOf(ELSEWHERE, emptyList(), elsewhereWrites)
         val story = if (storyIn == null) "p1" else "v$storyIn"
         val viewerBody = when {
             rangeWrite -> """
