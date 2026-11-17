@@ -108,7 +108,7 @@ class ShowReelTimeHookTest {
         assertEquals("the column's constructor", 12, sites.columnAt)
         assertEquals("the column's parts", 5, sites.list)
         assertEquals("the first local nothing reads after the column is made", 0, sites.scratch)
-        assertEquals("the maker's marker, its read of the state and the register it fills", listOf(0, 3, 3), listOf(sites.markerAt, sites.stateAt, sites.stateRegister))
+        assertEquals("the maker's read of the state and the register it fills", listOf(1, 3), listOf(sites.stateAt, sites.stateRegister))
         assertEquals(state, sites.state)
         assertEquals(subtitle, sites.subtitle)
         assertEquals(listOf("config", "session"), listOf(sites.config.name, sites.session.name))
@@ -137,36 +137,36 @@ class ShowReelTimeHookTest {
     fun aBuildThePatchCantReadFailsBeforeAnythingChanges() {
         val shown = "$title->render($scope)$component"
         val cases = listOf(
-            classes(renderMarks = 0) to "expected one method holding the $TITLE_RENDER marker, found none",
-            classes(renderMarks = 2) to "expected one method holding the $TITLE_RENDER marker, found Lfixture/",
+            classes(renderLoads = 0) to "expected one method loading \"$TITLE_COMPONENT\", found none",
+            classes(renderLoads = 2) to "expected one method loading \"$TITLE_COMPONENT\", found Lfixture/",
             classes(returnsTwice = true) to "expected $shown to answer its column in one place, found 2",
             classes(columnTakesList = false) to "expected the column $shown makes to take one list of parts, found [Z]",
             classes(base = 15) to "$shown keeps the column's parts in v16, past what the hook's call can name",
             classes(jumpToColumn = true) to "a jump enters $shown where it makes its column",
             classes(thisReused = true) to "the Reels title: $title->render writes over this",
-            classes(makerFlag = "I") to "expected $title->maker(I)$subtitle to be an instance method taking one flag",
+            classes(makerFlag = "I") to "expected $shown to make its subtitle through one instance method of $title taking one flag, found []",
+            classes(twoMakers = true) to
+                "expected $shown to make its subtitle through one instance method of $title taking one flag, found [$title->maker(Z)$subtitle, $title->maker2(Z)$subtitle]",
             classes(makerBranches = true) to "$title->maker(Z)$subtitle branches, so a copy of it can't be made a line at a time",
             classes(hasTimeLine = true) to "$title already has a $TIME_LINE_MAKER",
-            classes(renderMakes = false) to "$shown doesn't make a subtitle",
-            classes(makerMarks = 2) to "$title->maker(Z)$subtitle doesn't load its marker exactly once",
-            classes(tracked = false) to "doesn't hand its marker to the tracker and leave it at that",
+            classes(renderMakes = false) to "expected $shown to make its subtitle through one instance method of $title taking one flag, found []",
             classes(readsThroughReel = 2) to "to read one object through the title's reel, found 2",
             classes(reelFields = listOf("reel", "next")) to "expected $title to keep one reel of type $reel, found [next, reel]",
             classes(stateMethod = true) to "expected the subtitle's state $state to be a public interface with nothing to implement",
             classes(stateHanded = false) to "doesn't hand the state it read to the $subtitle it makes",
-            classes(otherReader = true) to "to read the subtitle's state, found [",
-            classes(pickFlag = state) to "to take the state $state once",
-            classes(renderPicks = false) to "doesn't pick what it draws through $subtitle->pick(",
+            classes(otherReader = true) to "to read its state, found [",
+            classes(pickFlag = state) to "taking the state $state, found []",
+            classes(renderPicks = false) to "to pick what it draws through one instance method of the subtitle $subtitle taking the state $state, found []",
             classes(pickLoops = true) to "a jump or exception handler enters $subtitle->pick(",
             classes(pickLocals = 9) to "has 9 local register(s), and the hook needs 10",
-            classes(constructors = 2) to "expected $iconText to have one constructor, found 2",
+            classes(constructors = 2) to "an object, an icon and a flag, found []",
             classes(iconTextTakes = iconTextShape.dropLast(2) + listOf("Z", "I")) to "an object, an icon and a flag, found [",
             classes(iconTextPublic = false) to "$iconText or its constructor isn't public, so the subtitle can't make one",
             classes(pickColors = scope) to "to take the colors $colors once",
-            classes(pickMakes = false) to "doesn't make $iconText itself",
+            classes(pickMakes = false) to "an object, an icon and a flag, found []",
             classes(iconTextExtends = OBJECT) to "$iconText isn't a $component, which",
             classes(intFields = listOf("icon", "width")) to "expected $iconText to keep one icon of type I, found [icon, width]",
-            classes(iconBranches = false) to "doesn't leave the icon out when it is zero",
+            classes(iconBranches = false) to "$iconText doesn't leave the icon out when it is zero",
             classes(sessionFields = listOf("session", "viewer")) to "expected $subtitle to keep one session of type $SESSION, found [session, viewer]",
             classes(converters = 0) to "Reels item converter holding \"$TO_CLIPS_ITEM\" in this Instagram build, found none",
             classes(itemFields = listOf("item", "next")) to "expected $reel to keep one Reels item of type $item, found [item, next]",
@@ -204,7 +204,7 @@ class ShowReelTimeHookTest {
      * text the pick makes; the converter answering the Reels item; and the extension.
      */
     private fun classes(
-        renderMarks: Int = 1,
+        renderLoads: Int = 1,
         returnsTwice: Boolean = false,
         columnTakesList: Boolean = true,
         base: Int = 4,
@@ -214,8 +214,7 @@ class ShowReelTimeHookTest {
         makerBranches: Boolean = false,
         hasTimeLine: Boolean = false,
         renderMakes: Boolean = true,
-        makerMarks: Int = 1,
-        tracked: Boolean = true,
+        twoMakers: Boolean = false,
         readsThroughReel: Int = 1,
         reelFields: List<String> = listOf("reel"),
         stateMethod: Boolean = false,
@@ -246,8 +245,8 @@ class ShowReelTimeHookTest {
         // The title's render: v3 is the list of parts, v2 the title, and the column is made in
         // v[base] from the list in v[base + 1] and a flag in v[base + 2].
         val renderBody = buildString {
-            if (renderMarks > 0) {
-                appendLine("const-string v0, \"${marker(TITLE_RENDER)}\"")
+            if (renderLoads > 0) {
+                appendLine("const-string v0, \"$TITLE_COMPONENT\"")
                 appendLine("invoke-static { v0 }, $mark")
             }
             appendLine("move-object/from16 v2, p0")
@@ -265,6 +264,7 @@ class ShowReelTimeHookTest {
                 appendLine("invoke-direct { v2, v1 }, $title->maker($makerFlag)$subtitle")
                 appendLine("move-result-object v0")
                 appendLine("invoke-virtual { v3, v0 }, $arrayList->add($OBJECT)Z")
+                if (twoMakers) appendLine("invoke-direct { v2, v1 }, $title->maker2($makerFlag)$subtitle")
             } else {
                 appendLine("const/4 v0, 0x0")
                 appendLine("const/4 v0, 0x0")
@@ -286,11 +286,9 @@ class ShowReelTimeHookTest {
             }
             appendLine("return-object v$base")
         }
-        // The maker: its marker goes to the tracker, the state is read off the title's reel into v3,
-        // and the subtitle is made from the title's config and session, the state and the flag.
+        // The maker: the state is read off the title's reel into v3, and the subtitle is made from
+        // the title's config and session, the state and the flag.
         val makerBody = buildString {
-            repeat(makerMarks) { appendLine("const-string v0, \"${marker(SUBTITLE_MAKER)}\"") }
-            if (tracked) appendLine("invoke-static { v0 }, $mark")
             appendLine("iget-object v0, p0, $title->reel:$reel")
             appendLine("iget-object v3, v0, $reel->state:$state")
             if (readsThroughReel > 1) appendLine("iget-object v4, v0, $reel->item:$item")
@@ -308,14 +306,14 @@ class ShowReelTimeHookTest {
         val titleMethods = listOf(
             method(title, "render", listOf(scope), component, base + 3, body = renderBody),
             method(title, "maker", listOf(makerFlag), subtitle, 6, public = false, body = makerBody),
-        ) + if (hasTimeLine) listOf(method(title, TIME_LINE_MAKER, emptyList(), "V", 0, body = "return-void")) else emptyList()
+        ) + (if (twoMakers) listOf(method(title, "maker2", listOf(makerFlag), subtitle, 6, public = false, body = makerBody)) else emptyList()) + if (hasTimeLine) listOf(method(title, TIME_LINE_MAKER, emptyList(), "V", 0, body = "return-void")) else emptyList()
         val titleClass = classDef(
             title, titleMethods, superclass = component, fieldsPublic = reelPublic,
             fields = reelFields.map { it to reel } + listOf("config" to CONFIG, "session" to SESSION),
         )
-        val otherTitle = if (renderMarks > 1) listOf(classDef("Lfixture/OtherTitle;", listOf(
+        val otherTitle = if (renderLoads > 1) listOf(classDef("Lfixture/OtherTitle;", listOf(
             method("Lfixture/OtherTitle;", "render", listOf(scope), component, 1, body = """
-                const-string v0, "${marker(TITLE_RENDER)}"
+                const-string v0, "$TITLE_COMPONENT"
                 const/4 v0, 0x0
                 return-object v0
             """),
@@ -334,8 +332,6 @@ class ShowReelTimeHookTest {
         val pick = "$subtitle->pick(${pickTakes.joinToString("")})$component"
         val made = "$iconText-><init>(${iconTextTakes.joinToString("")})V"
         val subtitleRenderBody = buildString {
-            appendLine("const-string v0, \"${marker(SUBTITLE_RENDER)}\"")
-            appendLine("invoke-static { v0 }, $mark")
             appendLine("new-instance v1, $colors")
             appendLine("invoke-direct { v1 }, $colors-><init>()V")
             appendLine("iget-object v0, p0, $subtitle->state:$state")
@@ -350,8 +346,6 @@ class ShowReelTimeHookTest {
         // subtitle's config and session, the colors it was handed, the words and an icon.
         val pickBody = buildString {
             if (pickLoops) appendLine(":again")
-            appendLine("const-string v0, \"${marker(SUBTITLE_PICK)}\"")
-            appendLine("invoke-static { v0 }, $mark")
             appendLine("const/4 v1, 0x0")
             if (pickLoops) appendLine("if-nez v1, :again")
             if (pickMakes) {
@@ -387,8 +381,6 @@ class ShowReelTimeHookTest {
         ))) else emptyList()
 
         val iconRenderBody = buildString {
-            appendLine("const-string v0, \"${marker(ICON_TEXT_RENDER)}\"")
-            appendLine("invoke-static { v0 }, $mark")
             appendLine("iget v0, p0, $iconText->icon:I")
             appendLine("const/4 v1, 0x0")
             if (iconBranches) {
@@ -421,8 +413,6 @@ class ShowReelTimeHookTest {
             (if (extension) listOf(ExtensionDex.classDef(REEL_POST_TIME)) else emptyList()) +
             (if (line) listOf(ExtensionDex.classDef(REEL_TIME_LINE)) else emptyList())
     }
-
-    private fun marker(name: String) = "android_purge_26_q3_$name"
 
     private fun List<ClassDef>.methodNamed(type: String, name: String): Method = single { it.type == type }.methods.single { it.name == name }
 
@@ -526,8 +516,8 @@ class ShowReelTimeHookTest {
 
         /**
          * The one maker the patch adds to the title: public, taking the flag and the state, in one
-         * more register than Instagram's [maker], with that maker's code less its marker and the
-         * state moved in from the new parameter where the maker read it off the reel.
+         * more register than Instagram's [maker], with that maker's code and the state moved in from
+         * the new parameter where the maker read it off the reel.
          */
         internal fun assertTimeLineMaker(what: String, added: List<Method>, maker: Method, sites: ReelTimeSites) {
             assertEquals("$what: one maker is added", 1, added.size)
@@ -537,10 +527,10 @@ class ShowReelTimeHookTest {
             assertEquals("$what: it answers the subtitle", sites.subtitle, method.returnType)
             val registers = maker.implementation!!.registerCount
             assertEquals("$what: one more register, where the state lands", registers + 1, method.implementation!!.registerCount)
-            val kept = maker.code().filterIndexed { at, _ -> at != sites.markerAt && at != sites.markerAt + 1 }
-            val read = sites.stateAt - if (sites.stateAt > sites.markerAt) 2 else 0
+            val kept = maker.code()
+            val read = sites.stateAt
             val code = method.code()
-            assertEquals("$what: the maker's code without its marker and the tracker's call", kept.size, code.size)
+            assertEquals("$what: the maker's code, as long", kept.size, code.size)
             assertEquals("$what: the copy holds no marker", emptyList<String>(), method.markers())
             assertEquals("$what: the state is moved in", Opcode.MOVE_OBJECT_FROM16, code[read].opcode)
             assertEquals("$what: from the new parameter into the register the read filled", listOf(sites.stateRegister, registers), code[read].namedRegisters())

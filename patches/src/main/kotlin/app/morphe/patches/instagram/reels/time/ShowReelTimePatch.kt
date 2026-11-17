@@ -17,24 +17,21 @@ import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.instagram.download.MEDIA
 import app.morphe.patches.instagram.download.pandoGetter
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
-import app.morphe.patches.instagram.misc.extension.PURGE_MARKER
 import app.morphe.patches.instagram.misc.extension.classesAccessing
+import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.freeLocalsAt
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.jumpTargets
+import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
-import app.morphe.patches.instagram.misc.extension.markers
 import app.morphe.patches.instagram.misc.extension.parameterRegister
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.extension.requireThisIntact
-import app.morphe.patches.instagram.misc.extension.typesMarked
-import app.morphe.patches.instagram.misc.extension.uniqueMethod
 import app.morphe.patches.instagram.misc.settings.settingsPatch
-import app.morphe.patches.instagram.reels.suggested.ClipsItemConverterFingerprint
 import app.morphe.patches.instagram.reels.suggested.TO_CLIPS_ITEM
+import app.morphe.patches.instagram.reels.suggested.reelsItemConverter
 import app.morphe.patches.shared.compat.AppCompatibilities
-import app.morphe.util.RegisterLiveness
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
@@ -49,7 +46,6 @@ import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstructio
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
-import com.android.tools.smali.dexlib2.iface.reference.StringReference
 import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
@@ -71,18 +67,12 @@ internal const val TIME_LINE_MAKER = "hushgramTimeLine"
 internal const val TAKEN_AT_FIELD = "taken_at"
 
 /**
- * The purge markers of what the patch reads and changes: the Reels viewer's title drawing its name
- * row and subtitle, the title making a subtitle, the subtitle drawing itself, the subtitle picking
- * what to draw for its state, and the plain subtitle text with an optional icon.
+ * The name the Reels viewer's title gives the row it draws its author's name in, which only the
+ * title's render loads. 456 dropped the render's purge marker and the subtitle maker's.
  */
-internal const val TITLE_RENDER = "ClipsTitleAndSubtitleComponent_render"
-internal const val SUBTITLE_MAKER = "ClipsTitleAndSubtitleComponent_getClipsAuthorSubtitleComponent"
-internal const val SUBTITLE_RENDER = "ClipsAuthorSubtitleComponent_render"
-internal const val SUBTITLE_PICK = "ClipsAuthorSubtitleComponent_getComponentFromClipsAuthorSubtitleType"
-internal const val ICON_TEXT_RENDER = "CyclicSubtitleWithIconComponent_render"
+internal const val TITLE_COMPONENT = "clips_author_info_title_component"
 
 private const val OBJECT = "Ljava/lang/Object;"
-private const val STRING = "Ljava/lang/String;"
 private const val LIST = "Ljava/util/List;"
 private const val LONG = "Ljava/lang/Long;"
 private const val CHAR_SEQUENCE = "Ljava/lang/CharSequence;"
@@ -123,8 +113,8 @@ private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $det
  * What the patch changes and what it fills the extension's stubs from.
  *
  * The title's [render] makes its column at instruction [columnAt], with the column's list of parts
- * in register [list] and the local [scratch] free for the hook. The title's subtitle [maker] loads
- * its marker at [markerAt] and reads the state to show at [stateAt], into [stateRegister]. The
+ * in register [list] and the local [scratch] free for the hook. The title's subtitle [maker] reads
+ * the state to show at [stateAt], into [stateRegister]. The
  * [subtitle] it makes keeps the viewer's config in [config] and the session in [session], and its
  * [pick] takes the [state] as parameter [stateParameter] and the colors as [colorsParameter].
  * [iconText] is the plain subtitle text, made by a constructor taking [iconTextTakes]. The reel's
@@ -138,7 +128,6 @@ internal class ReelTimeSites(
     val list: Int,
     val scratch: Int,
     val maker: Method,
-    val markerAt: Int,
     val stateAt: Int,
     val stateRegister: Int,
     val state: String,
@@ -160,17 +149,19 @@ internal class ReelTimeSites(
  * Finds where the Reels viewer builds the lines under a reel's author, and proves what the line
  * with the time relies on, before anything changes.
  *
- * The title ([TITLE_RENDER]) answers a column it has just made from one list of parts: the name
- * row and, for a reel that has one, the subtitle its maker ([SUBTITLE_MAKER]) answers. The maker
- * runs straight through, reads the state to show from the title's reel and hands it to the
+ * The title's render, the one method loading [TITLE_COMPONENT], answers a column it has just made
+ * from one list of parts: the name row and, for a reel that has one, the subtitle its maker answers,
+ * the one instance method of the title taking a flag that the render calls. The maker runs straight
+ * through, reads the state to show from the title's reel and hands it to the
  * subtitle it makes. That state is an interface with nothing to implement, so the extension's line
  * can be one. The subtitle keeps the state in one field, which only its own render
- * ([SUBTITLE_RENDER]) reads, to hand it to the pick ([SUBTITLE_PICK]) that decides what to draw.
+ * reads, to hand it to the pick, the one instance method taking the state that it calls, which
+ * decides what to draw.
  * So a state Instagram doesn't know is seen nowhere but in that pick, where the hook answers it
  * first.
  *
- * What the pick draws for the line is Instagram's own subtitle text ([ICON_TEXT_RENDER]), which
- * the pick makes itself for other states: a public class with one public constructor, taking a
+ * What the pick draws for the line is Instagram's own subtitle text, which the pick makes itself
+ * for other states: a public class with one public constructor, taking a
  * listener, the viewer's config, the session, the colors the pick was handed, the text, a width,
  * one more object, an icon and a flag. It leaves the icon out when the icon is zero, and it is
  * what the pick answers. The time comes from the reel the title belongs to: the title's one field
@@ -182,16 +173,12 @@ internal class ReelTimeSites(
  * update this patch hasn't seen.
  */
 internal fun BytecodePatchContext.findReelTime(): ReelTimeSites {
-    val held = marked(TITLE_RENDER, SUBTITLE_MAKER, SUBTITLE_RENDER, SUBTITLE_PICK, ICON_TEXT_RENDER)
-    fun one(marker: String): Method {
-        val found = held[marker].orEmpty()
-        return found.singleOrNull() ?: refuse(
-            "expected one method holding the $marker marker, found " +
-                if (found.isEmpty()) "none" else found.joinToString { it.describe() },
-        )
-    }
-
-    val render = one(TITLE_RENDER)
+    val renders = classesLoadingString(TITLE_COMPONENT).sortedBy { it.type }.flatMap { it.methods }
+        .filter { loadsString(it, TITLE_COMPONENT) }
+    val render = renders.singleOrNull() ?: refuse(
+        "expected one method loading \"$TITLE_COMPONENT\", found " +
+            if (renders.isEmpty()) "none" else renders.joinToString { it.describe() },
+    )
     val title = render.definingClass
     val titleClass = classDefBy(title)
     if (AccessFlags.STATIC.isSet(render.accessFlags)) refuse("${render.describe()} is static")
@@ -199,30 +186,20 @@ internal fun BytecodePatchContext.findReelTime(): ReelTimeSites {
     render.requireThisIntact("$PATCH: the Reels title", listOf(columnAt))
     val scratch = render.freeLocalsAt("$PATCH: the Reels title", columnAt, 1, except = listOf(list)).single()
 
-    val maker = one(SUBTITLE_MAKER)
-    if (maker.definingClass != title) refuse("the $SUBTITLE_MAKER marker is in ${maker.definingClass}, not the Reels title $title")
-    if (AccessFlags.STATIC.isSet(maker.accessFlags) || maker.parameters() != listOf("Z")) {
-        refuse("expected ${maker.describe()} to be an instance method taking one flag")
+    val renderCode = render.code()
+    val makers = titleClass.methods.filter { method ->
+        !AccessFlags.STATIC.isSet(method.accessFlags) && method.parameters() == listOf("Z") && method.returnType.startsWith("L") &&
+            renderCode.any { it.call()?.matches(method) == true }
     }
+    val maker = makers.singleOrNull() ?: refuse(
+        "expected ${render.describe()} to make its subtitle through one instance method of $title taking one flag, found " +
+            makers.map { it.describe() },
+    )
     val makerCode = maker.code()
     if (maker.jumpTargets().isNotEmpty() || maker.implementation!!.tryBlocks.isNotEmpty() || makerCode.any { it is OffsetInstruction }) {
         refuse("${maker.describe()} branches, so a copy of it can't be made a line at a time")
     }
     if (titleClass.methods.any { it.name == TIME_LINE_MAKER }) refuse("$title already has a $TIME_LINE_MAKER")
-    if (render.code().none { it.call()?.matches(maker) == true }) refuse("${render.describe()} doesn't make a subtitle")
-
-    val markerAt = makerCode.indices.singleOrNull { at ->
-        makerCode[at].string()?.let { PURGE_MARKER.find(it)?.groupValues?.get(1) } == SUBTITLE_MAKER
-    } ?: refuse("${maker.describe()} doesn't load its marker exactly once")
-    val markerRegister = (makerCode[markerAt] as OneRegisterInstruction).registerA
-    val tracked = makerCode.getOrNull(markerAt + 1)
-    val tracker = tracked?.call()
-    if (tracked == null || tracked.opcode != Opcode.INVOKE_STATIC || tracker == null || tracker.returnType != "V" ||
-        tracker.parameterTypes.map(Any::toString) != listOf(STRING) || tracked.registers() != listOf(markerRegister) ||
-        markerRegister in RegisterLiveness.of(maker).liveInto(markerAt + 2)
-    ) {
-        refuse("${maker.describe()} doesn't hand its marker to the tracker and leave it at that")
-    }
 
     val reads = makerCode.indices.filter { at ->
         makerCode[at].opcode == Opcode.IGET_OBJECT && makerCode[at].field()?.definingClass != title
@@ -260,10 +237,6 @@ internal fun BytecodePatchContext.findReelTime(): ReelTimeSites {
         refuse("${maker.describe()} doesn't hand the state it read to the $subtitle it makes")
     }
 
-    val subtitleRender = one(SUBTITLE_RENDER)
-    if (subtitleRender.definingClass != subtitle) {
-        refuse("the $SUBTITLE_RENDER marker is in ${subtitleRender.definingClass}, not the subtitle $subtitle the title makes")
-    }
     val kept = subtitleClass.only(state, "state")
     val readers = classesAccessing(subtitle, kept.name, Opcode.IGET_OBJECT).flatMap { reader ->
         reader.methods.filter { method ->
@@ -272,58 +245,56 @@ internal fun BytecodePatchContext.findReelTime(): ReelTimeSites {
                     instruction.field()?.let { it.definingClass == subtitle && it.name == kept.name } == true
             } == true
         }
-    }.map { it.describe() }
-    if (readers != listOf(subtitleRender.describe())) {
-        refuse("expected only ${subtitleRender.describe()} to read the subtitle's state, found $readers")
     }
+    val subtitleRender = readers.singleOrNull()?.takeIf { it.definingClass == subtitle && !AccessFlags.STATIC.isSet(it.accessFlags) }
+        ?: refuse("expected only an instance method of the subtitle $subtitle to read its state, found ${readers.map { it.describe() }}")
 
-    val pick = one(SUBTITLE_PICK)
-    if (pick.definingClass != subtitle || AccessFlags.STATIC.isSet(pick.accessFlags)) {
-        refuse("expected ${pick.describe()} to be an instance method of the subtitle $subtitle")
+    val subtitleCode = subtitleRender.code()
+    val picks = subtitleClass.methods.filter { method ->
+        !AccessFlags.STATIC.isSet(method.accessFlags) && method.parameters().count { it == state } == 1 &&
+            subtitleCode.any { it.call()?.matches(method) == true }
     }
+    val pick = picks.singleOrNull() ?: refuse(
+        "expected ${subtitleRender.describe()} to pick what it draws through one instance method of the subtitle $subtitle " +
+            "taking the state $state, found ${picks.map { it.describe() }}",
+    )
     val handed = pick.parameters()
-    val stateParameter = handed.indices.singleOrNull { handed[it] == state }
-        ?: refuse("expected ${pick.describe()} to take the state $state once")
-    if (subtitleRender.code().none { it.call()?.matches(pick) == true }) {
-        refuse("${subtitleRender.describe()} doesn't pick what it draws through ${pick.describe()}")
-    }
+    val stateParameter = handed.indexOf(state)
     if (pick.code().isEmpty() || 0 in pick.jumpTargets()) refuse("a jump or exception handler enters ${pick.describe()} at its first instruction")
     if (pick.localRegisterCount() < PICK_REGISTERS) {
         refuse("${pick.describe()} has ${pick.localRegisterCount()} local register(s), and the hook needs $PICK_REGISTERS")
     }
 
-    val iconRender = one(ICON_TEXT_RENDER)
-    val iconText = iconRender.definingClass
-    val iconClass = classDefBy(iconText)
-    val constructors = iconClass.methods.filter { it.name == "<init>" }
-    val constructor = constructors.singleOrNull() ?: refuse("expected $iconText to have one constructor, found ${constructors.size}")
-    val iconTextTakes = constructor.parameters()
-    val shaped = iconTextTakes.size == 9 && iconTextTakes[0] == ON_CLICK && iconTextTakes[1] == VIEWER_CONFIG &&
-        iconTextTakes[2] == USER_SESSION && iconTextTakes[4] == CHAR_SEQUENCE && iconTextTakes[5] == INTEGER &&
-        iconTextTakes[6].startsWith("L") && iconTextTakes[7] == "I" && iconTextTakes[8] == "Z"
-    if (!shaped) {
-        refuse(
-            "expected $iconText to be made from a listener, the viewer's config, the session, colors, the text, a width, " +
-                "an object, an icon and a flag, found $iconTextTakes",
-        )
+    // The subtitle text is the one class the pick makes from a listener, the viewer's config, the
+    // session, colors, the text, a width, one more object, an icon and a flag.
+    fun textShaped(takes: List<String>) = takes.size == 9 && takes[0] == ON_CLICK && takes[1] == VIEWER_CONFIG &&
+        takes[2] == USER_SESSION && takes[4] == CHAR_SEQUENCE && takes[5] == INTEGER && takes[6].startsWith("L") &&
+        takes[7] == "I" && takes[8] == "Z"
+    val pickMade = pick.code().filter { it.opcode == Opcode.NEW_INSTANCE }.mapNotNull { it.type() }.distinct()
+    val iconTexts = pickMade.filter { type ->
+        classDefByOrNull(type)?.methods?.filter { it.name == "<init>" }?.singleOrNull()?.let { textShaped(it.parameters()) } == true
     }
+    val iconText = iconTexts.singleOrNull() ?: refuse(
+        "expected ${pick.describe()} to make one subtitle text from a listener, the viewer's config, the session, colors, the " +
+            "text, a width, an object, an icon and a flag, found $iconTexts",
+    )
+    val iconClass = classDefBy(iconText)
+    val constructor = iconClass.methods.single { it.name == "<init>" }
+    val iconTextTakes = constructor.parameters()
     if (!AccessFlags.PUBLIC.isSet(iconClass.accessFlags) || !AccessFlags.PUBLIC.isSet(constructor.accessFlags)) {
         refuse("$iconText or its constructor isn't public, so the subtitle can't make one")
     }
     val colorsParameter = handed.indices.singleOrNull { handed[it] == iconTextTakes[3] }
         ?: refuse("expected ${pick.describe()} to take the colors ${iconTextTakes[3]} once")
-    if (pick.code().none { it.opcode == Opcode.NEW_INSTANCE && it.type() == iconText }) {
-        refuse("${pick.describe()} doesn't make $iconText itself")
-    }
     if (pick.returnType !in ancestors(iconText)) refuse("$iconText isn't a ${pick.returnType}, which ${pick.describe()} answers")
     val icon = iconClass.only("I", "icon")
-    if (!iconRender.branchesOnZero(iconText, icon.name)) {
-        refuse("${iconRender.describe()} doesn't leave the icon out when it is zero")
+    if (iconClass.methods.none { it.implementation != null && it.branchesOnZero(iconText, icon.name) }) {
+        refuse("$iconText doesn't leave the icon out when it is zero")
     }
     val config = subtitleClass.only(VIEWER_CONFIG, "viewer config")
     val session = subtitleClass.only(USER_SESSION, "session")
 
-    val converter = uniqueMethod(PATCH, "Reels item converter holding \"$TO_CLIPS_ITEM\"", ClipsItemConverterFingerprint)
+    val converter = reelsItemConverter(PATCH)
     val itemClass = classDefByOrNull(converter.returnType)
         ?: refuse("the Reels item converter answers ${converter.returnType}, which isn't a class of the app")
     val holderClass = classDefByOrNull(holder) ?: refuse("the title's reel $holder isn't a class of the app")
@@ -354,7 +325,7 @@ internal fun BytecodePatchContext.findReelTime(): ReelTimeSites {
     }
 
     return ReelTimeSites(
-        title, render, columnAt, list, scratch, maker, markerAt, stateAt, stateRegister, state, subtitle, config, session,
+        title, render, columnAt, list, scratch, maker, stateAt, stateRegister, state, subtitle, config, session,
         pick, stateParameter, colorsParameter, iconText, iconTextTakes, reel, item, media, takenAt,
     )
 }
@@ -399,8 +370,8 @@ private fun column(render: Method): Pair<Int, Int> {
  * Makes the extension's line a subtitle state, fills the extension's three stubs, adds the
  * subtitle maker that takes its state, and puts in the two hooks.
  *
- * The added maker is the title's own with its marker left out, so that marker still names one
- * method, and with the read of the reel's state replaced by a move of the new last parameter into
+ * The added maker is a copy of the title's own with the read of the reel's state replaced by a move
+ * of the new last parameter into
  * the same register. It has one more register than the original, which is where that parameter
  * lands, so every other register keeps its number.
  *
@@ -472,8 +443,8 @@ internal fun BytecodePatchContext.showReelTime(sites: ReelTimeSites) {
     )
 
     val maker = sites.maker
-    val copied = maker.code().filterIndexed { at, _ -> at != sites.markerAt && at != sites.markerAt + 1 }
-    val stateAt = sites.stateAt - if (sites.stateAt > sites.markerAt) 2 else 0
+    val copied = maker.code()
+    val stateAt = sites.stateAt
     mutableClassDefBy(title).methods.add(
         ImmutableMethod(
             title, TIME_LINE_MAKER,
@@ -516,19 +487,6 @@ internal fun BytecodePatchContext.showReelTime(sites: ReelTimeSites) {
             invoke-static { v${sites.scratch}, v${sites.list} }, $ADD_TIME_LINE
         """,
     )
-}
-
-/** The methods holding each of [names] as a marker, read from the classes the index says hold one. */
-private fun BytecodePatchContext.marked(vararg names: String): Map<String, List<Method>> {
-    val wanted = names.toSet()
-    val found = mutableMapOf<String, MutableList<Method>>()
-    for (type in typesMarked(*names).sorted()) {
-        val classDef = classDefByOrNull(type) ?: continue
-        classDef.methods.forEach { method ->
-            method.markers().filter { it in wanted }.distinct().forEach { found.getOrPut(it) { mutableListOf() } += method }
-        }
-    }
-    return found
 }
 
 /** [type], its superclasses as far as this APK defines them, and the interfaces of each. */
@@ -591,8 +549,6 @@ private fun MethodReference.matches(method: Method) = definingClass == method.de
 private fun Instruction.call() = (this as? ReferenceInstruction)?.reference as? MethodReference
 
 private fun Instruction.field() = (this as? ReferenceInstruction)?.reference as? FieldReference
-
-private fun Instruction.string() = ((this as? ReferenceInstruction)?.reference as? StringReference)?.string
 
 private fun Instruction.type() = ((this as? ReferenceInstruction)?.reference as? TypeReference)?.type
 
