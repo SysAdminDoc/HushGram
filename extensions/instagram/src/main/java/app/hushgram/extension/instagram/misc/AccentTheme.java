@@ -170,6 +170,15 @@ public final class AccentTheme {
     /** What's counted each time a color of Meta's own menus, the account switcher's among them, takes an accent shade (#187). */
     static final String DSP = "Meta menu colors given the accent";
 
+    /** What's counted each time a gray secondary button, Edit profile and Share profile among them, takes an accent background's shade (#187). */
+    static final String SECONDARY_BUTTONS = "Secondary buttons given accent backgrounds";
+
+    /** The theme attribute Instagram's other secondary buttons read their fill from, the first of the patch's SECONDARY_BUTTONS. */
+    static final String SECONDARY_BUTTON_ATTRIBUTE = "igds_color_secondary_button_panavision";
+
+    /** The start of the names of the colors the patch adds, the backgrounds' shades among them. */
+    static final String OWN_COLORS = "hushgram_";
+
     /** The theme attributes holding the page, raised and top background shades, the patch's BACKGROUND_ATTRIBUTES steps. */
     private static final String[] SURFACE_ATTRIBUTES = {
             BACKGROUND_ATTRIBUTE, "igds_color_elevated_background", "igds_color_secondary_background",
@@ -639,6 +648,34 @@ public final class AccentTheme {
             HookStatus.counted(FamilyNames.ACCENT_COLOR, HEADER_ICONS);
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.ACCENT_COLOR, "header icon", failure);
+        }
+    }
+
+    /**
+     * Injected where Instagram's button styles answer the fill of its default secondary button, [fill],
+     * a color resource's number (#187). That fill is a color of Instagram's own rather than a theme
+     * attribute, so Edit profile and Share profile kept Prism's gray over the backgrounds in the accent
+     * color. Answers the color [context]'s theme points {@link #SECONDARY_BUTTON_ATTRIBUTE} at once
+     * Backgrounds in the accent color or Classic colors have pointed it at one of the patch's shades, the
+     * top step the other secondary buttons already take. Answers [fill] while the theme holds
+     * Instagram's own color there, with no context or anything thrown.
+     */
+    public static int secondaryButtonFill(Context context, int fill) {
+        try {
+            if (context == null) return fill;
+            Resources resources = context.getResources();
+            int attr = id(resources, SECONDARY_BUTTON_ATTRIBUTE, "attr", Utils.resourcePackage(context));
+            TypedValue value = new TypedValue();
+            if (attr == 0 || !context.getTheme().resolveAttribute(attr, value, false)
+                    || value.type != TypedValue.TYPE_REFERENCE || value.data == 0 || value.data == fill
+                    || !resources.getResourceEntryName(value.data).startsWith(OWN_COLORS)) {
+                return fill;
+            }
+            HookStatus.counted(FamilyNames.ACCENT_COLOR, SECONDARY_BUTTONS);
+            return value.data;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.ACCENT_COLOR, "secondary buttons", failure);
+            return fill;
         }
     }
 

@@ -749,6 +749,63 @@ public class AccentThemeTest {
         }
     }
 
+    /**
+     * The default secondary button, Edit profile's and Share profile's, takes the color its theme points
+     * the other secondary buttons at once that's one of the patch's (#187), and keeps its own fill while
+     * the theme holds Instagram's, with no context or no attribute.
+     */
+    @Test
+    public void theDefaultSecondaryButtonTakesTheThemesShadeOnceItsThePatchs() {
+        Context ours = new ContextThemeWrapper(named(THEMED + ".buttons", "hushgram_accent_teal_background_dark_top"),
+                android.R.style.Theme_Material);
+        TypedValue held = new TypedValue();
+        assertTrue(ours.getTheme().resolveAttribute(android.R.attr.colorBackground, held, false));
+        assertEquals("the theme points at a color", TypedValue.TYPE_REFERENCE, held.type);
+        int fill = 0x7f060355;
+
+        assertEquals(held.data, AccentTheme.secondaryButtonFill(ours, fill));
+        assertEquals("already that color, not counted", held.data, AccentTheme.secondaryButtonFill(ours, held.data));
+        Context instagrams = new ContextThemeWrapper(named(THEMED + ".buttons.stock", "igds_prism_secondary_button_background"),
+                android.R.style.Theme_Material);
+        assertEquals("Instagram's own color", fill, AccentTheme.secondaryButtonFill(instagrams, fill));
+        assertEquals("no context", fill, AccentTheme.secondaryButtonFill(null, fill));
+        Context bare = new ContextThemeWrapper(themed(THEMED + ".buttons.bare", (name, type) -> 0), android.R.style.Theme_Material);
+        assertEquals("no attribute", fill, AccentTheme.secondaryButtonFill(bare, fill));
+        String report = HookStatus.report().toString();
+        assertTrue(report, report.contains(AccentTheme.SECONDARY_BUTTONS + " 1"));
+    }
+
+    /**
+     * The app's context under [pkg], whose resources answer {@code android:colorBackground} for
+     * {@link AccentTheme#SECONDARY_BUTTON_ATTRIBUTE} and name every resource [entry].
+     */
+    private static Context named(String pkg, String entry) {
+        Context app = RuntimeEnvironment.getApplication();
+        Resources resources = new Resources(app.getAssets(), app.getResources().getDisplayMetrics(), app.getResources().getConfiguration()) {
+            @Override
+            public int getIdentifier(String name, String type, String defPackage) {
+                return pkg.equals(defPackage) && type.equals("attr") && name.equals(AccentTheme.SECONDARY_BUTTON_ATTRIBUTE)
+                        ? android.R.attr.colorBackground : 0;
+            }
+
+            @Override
+            public String getResourceEntryName(int resid) {
+                return entry;
+            }
+        };
+        return new ContextWrapper(app) {
+            @Override
+            public Resources getResources() {
+                return resources;
+            }
+
+            @Override
+            public String getPackageName() {
+                return pkg;
+            }
+        };
+    }
+
     /** Answers a resource's number by name and type for {@link #themed}. */
     private interface Ids {
         int of(String name, String type);

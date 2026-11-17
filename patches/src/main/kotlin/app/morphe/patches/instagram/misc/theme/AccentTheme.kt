@@ -323,9 +323,10 @@ internal const val BACKGROUND_ATTRIBUTE = "igds_color_primary_background"
 
 /**
  * The fills of Instagram's secondary buttons, read by its button component and its Compose screens: the
- * plain one, and the one a button raised on a card or a profile's header takes, as Edit profile and
- * Share profile do. They held Prism's grays over the backgrounds in the accent color (#187). Declared
- * before [BACKGROUND_ATTRIBUTES], which is built from it.
+ * plain one, and the one a button raised on a card takes. They held Prism's grays over the backgrounds
+ * in the accent color (#187). The default secondary button, Edit profile's and Share profile's, reads a
+ * color of its own instead, which [fillSecondaryButtons] swaps for the first of these. Declared before
+ * [BACKGROUND_ATTRIBUTES], which is built from it.
  */
 internal val SECONDARY_BUTTONS = listOf(
     "igds_color_secondary_button_panavision",
