@@ -184,7 +184,9 @@ internal fun BytecodePatchContext.findHiddenChatMenu(): HiddenChatMenuTargets {
 
 /**
  * Refuses unless the menu enum builds a [DETAILS_ROW] row and doesn't keep it in a field: a row the
- * app can't name is one it never offers, so the patch can have it.
+ * app can't name is one it never offers, so the patch can have it. Up to 455 the enum builds each
+ * row with its constructor; 456 builds them through a static factory on the enum that takes the
+ * row's name and ordinal and answers the row.
  */
 private fun requireUnofferedRow(init: Method, menu: String) {
     val code = init.visualCode()
@@ -192,10 +194,19 @@ private fun requireUnofferedRow(init: Method, menu: String) {
     if (named < 0) refuseMenu("the chat menu enum has no $DETAILS_ROW row")
     val built = (named + 1 until code.size).firstOrNull { at ->
         val call = code[at].visualReference() as? MethodReference
-        (code[at].opcode == Opcode.INVOKE_DIRECT || code[at].opcode == Opcode.INVOKE_DIRECT_RANGE) &&
-            call?.definingClass == menu && call.name == "<init>"
+        call?.definingClass == menu && (
+            (code[at].opcode == Opcode.INVOKE_DIRECT || code[at].opcode == Opcode.INVOKE_DIRECT_RANGE) && call.name == "<init>" ||
+                (code[at].opcode == Opcode.INVOKE_STATIC || code[at].opcode == Opcode.INVOKE_STATIC_RANGE) &&
+                call.returnType == menu && call.parameterTypes.map { it.toString() } == listOf(STRING, "I")
+            )
     } ?: refuseMenu("the chat menu enum never builds its $DETAILS_ROW row")
-    if (code.getOrNull(built + 1)?.opcode == Opcode.SPUT_OBJECT) {
+    val kept = if (code[built].opcode == Opcode.INVOKE_STATIC || code[built].opcode == Opcode.INVOKE_STATIC_RANGE) {
+        if (code.getOrNull(built + 1)?.opcode != Opcode.MOVE_RESULT_OBJECT) refuseMenu("the chat menu enum drops its $DETAILS_ROW row")
+        built + 2
+    } else {
+        built + 1
+    }
+    if (code.getOrNull(kept)?.opcode == Opcode.SPUT_OBJECT) {
         refuseMenu("the chat menu enum keeps its $DETAILS_ROW row in a field, so Instagram may offer it")
     }
 }
