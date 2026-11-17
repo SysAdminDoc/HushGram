@@ -19,8 +19,6 @@ import app.morphe.patches.instagram.feed.zoom.LONG_PRESS_ZOOM
 import app.morphe.patches.instagram.feed.zoom.ZOOM_TOUCH
 import app.morphe.patches.instagram.feed.zoom.applyLongPressZoom
 import app.morphe.patches.instagram.feed.zoom.findLongPressZoomSite
-import app.morphe.patches.instagram.misc.extension.PURGE_MARKER
-import app.morphe.patches.instagram.misc.extension.markers
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -31,6 +29,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
+import com.android.tools.smali.dexlib2.iface.reference.StringReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import com.android.tools.smali.dexlib2.immutable.ImmutableField
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
@@ -53,7 +52,7 @@ class HoldToDownloadHookTest {
     private val feedState = "Lfixture/FeedState;"
     private val detector = "Lfixture/ClipsGestures;"
     private val item = "Lfixture/ClipsItem;"
-    private val marker = "android_purge_26_q3_$REEL_TOUCH_MARKER"
+    private val touchString = REEL_TOUCH_STRING
 
     /** The hooks are in the HoldDownload the bundle ships, and the four reads in HoldTargets, public and static. */
     @Test
@@ -164,9 +163,9 @@ class HoldToDownloadHookTest {
             Shape.PRIVATE_MEDIA to "isn't public",
             Shape.PRIVATE_HOLDER to "isn't public",
             Shape.FEED_LOOPS to "jumps back to its start",
-            Shape.NO_MARKER to "marker, found 0",
-            Shape.TWO_MARKED to "marker, found 2",
-            Shape.REEL_SHAPE to "doesn't take a View and a MotionEvent",
+            Shape.NO_MARKER to "\"$REEL_TOUCH_STRING\", found 0",
+            Shape.TWO_MARKED to "\"$REEL_TOUCH_STRING\", found 2",
+            Shape.REEL_SHAPE to "\"$REEL_TOUCH_STRING\", found 0",
             Shape.NO_ITEM to "reel item holding a Media, found 0",
             Shape.PRIVATE_ITEM to "isn't public",
             Shape.TWO_MAKES to "to have one constructor, found 2",
@@ -213,9 +212,9 @@ class HoldToDownloadHookTest {
                         detecting += c.type
                     }
                 }
-                if (dex.stringSection.any { PURGE_MARKER.find(it)?.groupValues?.get(1) == REEL_TOUCH_MARKER }) {
+                if (dex.stringSection.any { it.toString() == REEL_TOUCH_STRING }) {
                     for (c in dex.classes) {
-                        if (c.methods.any { REEL_TOUCH_MARKER in it.markers() }) {
+                        if (c.methods.any { it.isReelTouch() }) {
                             reels[c.type] = c.fields.filter { !AccessFlags.STATIC.isSet(it.accessFlags) }.map { it.type }
                         }
                     }
@@ -226,7 +225,7 @@ class HoldToDownloadHookTest {
                     }
                 }
             }
-            assertEquals("$name: classes holding the reel detector's marker", 1, reels.size)
+            assertEquals("$name: classes whose touch method loads the reel detector's string", 1, reels.size)
             assertEquals("$name: classes keeping a media frame and a Media that make a GestureDetector", 1, detecting.size)
             val states = keeping.getValue(detecting.single()).filter { it in pageTypes }.toSet()
             assertEquals("$name: the touch holder's feed state, the type a carousel page is read from", 1, states.size)
@@ -316,7 +315,7 @@ class HoldToDownloadHookTest {
     /**
      * A small app shaped like 450's: a touch holder keeping a media frame, a Media and the feed state,
      * making a GestureDetector, with one touch method; a reel gesture detector whose touch method loads
-     * the marker, keeping a reel item that keeps a Media.
+     * the string it logs an end scene swipe by, keeping a reel item that keeps a Media.
      */
     private fun classes(shape: Shape = Shape.PLAIN): List<ClassDef> {
         val open = AccessFlags.PUBLIC.value or AccessFlags.FINAL.value
@@ -356,7 +355,7 @@ class HoldToDownloadHookTest {
             return ImmutableClassDef(type, flags, "Ljava/lang/Object;", null, null, null, fields, methods)
         }
         fun detectorClass(type: String): ClassDef {
-            val loads = if (shape == Shape.NO_MARKER) "android_purge_26_q3_ClipsItemGestureDetector_onScroll" else marker
+            val loads = if (shape == Shape.NO_MARKER) "end_scene_seen" else touchString
             val parameters = if (shape == Shape.REEL_SHAPE) listOf("Landroid/view/MotionEvent;") else listOf("Landroid/view/View;", "Landroid/view/MotionEvent;")
             val event = if (shape == Shape.REEL_SHAPE) "p1" else "p2"
             val touch = method(type, "onTouch", parameters, "Z", 1, body = """
@@ -414,6 +413,15 @@ class HoldToDownloadHookTest {
         }
 
     private fun Method.code(): List<Instruction> = implementation?.instructions?.toList().orEmpty()
+
+    /** An instance (View, MotionEvent) boolean method loading [REEL_TOUCH_STRING] itself, as the reel detector's touch method does. */
+    private fun Method.isReelTouch(): Boolean =
+        !AccessFlags.STATIC.isSet(accessFlags) && returnType == "Z" &&
+            parameterTypes.map(CharSequence::toString) == listOf("Landroid/view/View;", "Landroid/view/MotionEvent;") &&
+            code().any {
+                (it.opcode == Opcode.CONST_STRING || it.opcode == Opcode.CONST_STRING_JUMBO) &&
+                    ((it as ReferenceInstruction).reference as StringReference).string == REEL_TOUCH_STRING
+            }
 
     private fun Instruction.referenceText(): String? = (this as? ReferenceInstruction)?.reference?.let {
         if (it is FieldReference) it.text() else it.toString()

@@ -12,9 +12,9 @@ import app.morphe.patches.instagram.download.MEDIA
 import app.morphe.patches.instagram.feed.zoom.ZOOM_TOUCH
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesCalling
+import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.jumpTargets
-import app.morphe.patches.instagram.misc.extension.markers
-import app.morphe.patches.instagram.misc.extension.typesMarked
+import app.morphe.patches.instagram.misc.extension.loadsString
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
@@ -34,8 +34,13 @@ internal const val HOLD_FEED_MADE = "$HOLD_DOWNLOAD->feedMade(Ljava/lang/Object;
 internal const val HOLD_REEL_TOUCH = "$HOLD_DOWNLOAD->reelTouch(Ljava/lang/Object;Landroid/view/View;Landroid/view/MotionEvent;)V"
 internal const val HOLD_TARGETS = "$EXTENSION_PACKAGE/download/HoldTargets;"
 
-/** The marker a reel's gesture detector loads in the method its touch listener hands every touch to. */
-internal const val REEL_TOUCH_MARKER = "ClipsItemGestureDetector_onTouch"
+/**
+ * A string a reel's gesture detector loads in the method its touch listener hands every touch to, the
+ * name it logs a swipe off an ad's end scene by (0DCL.A04 on 456's 386214574). 455 also traced
+ * ClipsItemGestureDetector_onTouch there, which 456 dropped. A Litho part and a string pool load it
+ * too, but no other instance (View, MotionEvent) boolean method.
+ */
+internal const val REEL_TOUCH_STRING = "end_scene_dismissal"
 
 private const val GESTURE_DETECTOR = "Landroid/view/GestureDetector;"
 private const val MEDIA_FRAME = "Lcom/instagram/ui/widget/framelayout/MediaFrameLayout;"
@@ -75,7 +80,7 @@ private fun Method.takes(vararg types: String) = parameterTypes.map(Any::toStrin
  * a Media in instance fields (Long press to zoom finds it the same way), and its touch method is its one
  * instance method taking a MotionEvent and answering a boolean. The feed state is the holder's one field
  * of [stateType], the type the carousel page is read from. The reel detector is the class whose method
- * holds the [REEL_TOUCH_MARKER] marker, taking a View and a MotionEvent and answering a boolean, and its
+ * loads [REEL_TOUCH_STRING], taking a View and a MotionEvent and answering a boolean, and its
  * reel item is its one field of a class keeping exactly one Media. Each class and field the extension
  * reads has to be public, since it reads them from its own package, and nothing may jump back to the
  * start of either touch method, where the calls go. The touch holder has one constructor, which is
@@ -97,14 +102,15 @@ internal fun BytecodePatchContext.findHoldSites(stateType: String): HoldSites {
     requirePublic(holder)
     val feedMake = findFeedMake(holder)
 
-    val marked = typesMarked(REEL_TOUCH_MARKER).mapNotNull { classDefByOrNull(it) }
-    val reelTouches = marked.flatMap { classDef -> classDef.methods.filter { REEL_TOUCH_MARKER in it.markers() } }
-    val reelTouch = reelTouches.singleOrNull()
-        ?: refuse("expected one method holding the $REEL_TOUCH_MARKER marker, found ${reelTouches.size}")
-    val where = "${reelTouch.definingClass}->${reelTouch.name}"
-    if (AccessFlags.STATIC.isSet(reelTouch.accessFlags) || reelTouch.returnType != "Z" || !reelTouch.takes(VIEW, MOTION_EVENT)) {
-        refuse("$where doesn't take a View and a MotionEvent and answer a boolean")
+    val reelTouches = classesLoadingString(REEL_TOUCH_STRING).sortedBy { it.type }.flatMap { it.methods }.filter { method ->
+        !AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "Z" && method.takes(VIEW, MOTION_EVENT) &&
+            loadsString(method, REEL_TOUCH_STRING)
     }
+    val reelTouch = reelTouches.singleOrNull() ?: refuse(
+        "expected one instance method taking a View and a MotionEvent and answering a boolean that loads " +
+            "\"$REEL_TOUCH_STRING\", found ${reelTouches.size}",
+    )
+    val where = "${reelTouch.definingClass}->${reelTouch.name}"
     if (0 in reelTouch.jumpTargets()) refuse("something in $where jumps back to its start")
     val detector = classDefBy(reelTouch.definingClass)
     requirePublic(detector)

@@ -3396,10 +3396,11 @@ once-call Lapp/hushgram/extension/instagram/feed/RoundedCorners;->made(Ljava/lan
 start-call Lapp/hushgram/extension/instagram/feed/CarouselPeek;->buffer(Ljava/lang/Object;I)I in instance (Ljava/lang/Boolean;IZ)V calling static Lcom/instagram/common/ui/widget/reboundviewpager/ReboundViewPager;->*(Lcom/instagram/common/ui/widget/reboundviewpager/ReboundViewPager;ZZ)V holding Ljava/lang/Math;->max(II)I
 once-call Lapp/hushgram/extension/instagram/feed/CarouselPeek;->buffer(Ljava/lang/Object;I)I in instance (Ljava/lang/Boolean;IZ)V calling static Lcom/instagram/common/ui/widget/reboundviewpager/ReboundViewPager;->*(Lcom/instagram/common/ui/widget/reboundviewpager/ReboundViewPager;ZZ)V holding Ljava/lang/Math;->max(II)I
 # A reel's gesture detector hands itself, the view and every touch to HoldDownload.reelTouch first, in
-# its one instance (View, MotionEvent) boolean method holding the detector's touch marker. Left out,
-# a hold on a reel never saves; twice or elsewhere, it isn't the call the patch wrote.
-start-call Lapp/hushgram/extension/instagram/download/HoldDownload;->reelTouch(Ljava/lang/Object;Landroid/view/View;Landroid/view/MotionEvent;)V in instance (Landroid/view/View;Landroid/view/MotionEvent;)Z holding android_purge_26_q3_ClipsItemGestureDetector_onTouch
-once-call Lapp/hushgram/extension/instagram/download/HoldDownload;->reelTouch(Ljava/lang/Object;Landroid/view/View;Landroid/view/MotionEvent;)V in instance (Landroid/view/View;Landroid/view/MotionEvent;)Z holding android_purge_26_q3_ClipsItemGestureDetector_onTouch
+# its one instance (View, MotionEvent) boolean method loading end_scene_dismissal, the name it logs a swipe off an
+# ad's end scene by (0DCL.A04 on 456's 386214574). Left out, a hold on a reel never saves; twice or elsewhere, it
+# isn't the call the patch wrote.
+start-call Lapp/hushgram/extension/instagram/download/HoldDownload;->reelTouch(Ljava/lang/Object;Landroid/view/View;Landroid/view/MotionEvent;)V in instance (Landroid/view/View;Landroid/view/MotionEvent;)Z holding end_scene_dismissal
+once-call Lapp/hushgram/extension/instagram/download/HoldDownload;->reelTouch(Ljava/lang/Object;Landroid/view/View;Landroid/view/MotionEvent;)V in instance (Landroid/view/View;Landroid/view/MotionEvent;)Z holding end_scene_dismissal
 # Ask for VP9 instead of AV1 (#546). The device status builder, the one static method returning a
 # map that loads hw_av1_dec and 10bit_hw_av1_dec, hands each of those two answers to
 # Vp9Video.hardwareAv1 right before it goes in the map. Left out, the server still sends AV1-only
