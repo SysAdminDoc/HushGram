@@ -76,6 +76,7 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
+* Two photos saved in the same second now both end up in your gallery. They used to get the same file name, so the second one wrote over the first. `Save changed pictures to the gallery` saves the old and the new picture together, which is how it showed up. Found while checking #715.
 * With `Only received reels` on, a reel you just sent stays out when you swipe through a chat's reels. Instagram doesn't mark every copy of a message as yours, so a reel you'd just sent passed for one you received until you left the chat and came back. HushGram now checks who sent it, the way Instagram does. Your own new messages no longer set off the `Messages after a reel` banner either. Reported in #738.
 * With `Glass in chats` on, the messages now run all the way down behind the message bar and the strip under it, so the bar is see-through from top to bottom. Before, they stopped halfway down the bar and left black below. A bigger `Text size` also keeps the camera and + buttons inside the bar's round ends now, where they used to poke out at the corners. Reported in #729.
 * Long press a chat in your messages and its menu now opens right at that chat, under your finger when there's room and above it when there isn't. Before, it always dropped to the bottom of the screen over the tab bar, and with a bigger font its last rows were cut off. Reported in #728.

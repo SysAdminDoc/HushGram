@@ -17,6 +17,7 @@ import android.database.Cursor;
 import android.media.MediaScannerConnection;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
 
@@ -70,6 +71,12 @@ final class MediaStoreWriter implements Downloader.Sink {
 
     /** Final names belong to the first completed save, including saves finishing together. */
     private static final Object LEGACY_COMMIT_LOCK = new Object();
+
+    /**
+     * Held while a save picks its gallery name and makes its pending entry, so two saves starting
+     * together see each other's entry (#715). It guards no state of its own: the entries are MediaStore's.
+     */
+    private static final Object NAME_LOCK = new Object();
 
     private final Context context;
     private final boolean video;
@@ -198,14 +205,23 @@ final class MediaStoreWriter implements Downloader.Sink {
             : MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
 
         ContentValues values = new ContentValues();
-        values.put(MediaStore.MediaColumns.DISPLAY_NAME, name(mime, collection));
+        String wanted = name(mime, collection);
         values.put(MediaStore.MediaColumns.MIME_TYPE, mime);
         // No leading slash. MediaStore checks this against its own directory names.
         values.put(MediaStore.MediaColumns.RELATIVE_PATH, location);
         values.put(MediaStore.MediaColumns.IS_PENDING, 1);
 
         ContentResolver resolver = context.getContentResolver();
-        item = resolver.insert(collection, values);
+        synchronized (NAME_LOCK) {
+            // MediaStore gives two pending entries of one name, made in the same second, one file,
+            // so the second save wrote over the first: the old and the new profile picture Keep
+            // profile history saves together, two photos named by the second (#715). An entry of
+            // this app's still being written under the name moves this one to the next number,
+            // the one MediaStore would give it when both are published.
+            values.put(MediaStore.MediaColumns.DISPLAY_NAME,
+                    unused(wanted, candidate -> pendingInSaveFolder(collection, candidate)));
+            item = resolver.insert(collection, values);
+        }
         if (item == null) throw new IOException("the gallery refused a new entry");
         // Written down before any byte, so a process ended during the copy leaves a row the next
         // save can find and remove. See SaveLeftovers. A row the list couldn't hold goes again
@@ -536,6 +552,42 @@ final class MediaStoreWriter implements Downloader.Sink {
                     () -> "could not look for the file name in the save folder (" + kind + ")");
             return false;
         }
+    }
+
+    /** What {@link #pendingInSaveFolder} asks MediaStore: {@link #SAME_NAME_IN_FOLDER} among entries still being written. */
+    private static final String PENDING_SAME_NAME_IN_FOLDER = SAME_NAME_IN_FOLDER + " AND "
+            + MediaStore.MediaColumns.IS_PENDING + " = 1";
+
+    /**
+     * Whether an entry of this app's that's still being written has [displayName] in the save folder
+     * of [collection]. A lookup MediaStore refuses counts as none, and the report gets the kind of
+     * failure only, never the name.
+     */
+    private boolean pendingInSaveFolder(Uri collection, String displayName) {
+        String[] args = { displayName, location + "/", location };
+        try (Cursor cursor = pendingLookup(collection, args)) {
+            return cursor != null && cursor.moveToFirst();
+        } catch (Throwable t) {
+            String kind = t.getClass().getSimpleName();
+            Logger.diagnosticInfo(DiagnosticCategory.DOWNLOADS, SOURCE,
+                    () -> "could not check the unfinished saves for the file name (" + kind + ")");
+            return false;
+        }
+    }
+
+    /** MediaStore leaves pending entries out unless asked: from Android 11 by a query argument, on 10 by the address. */
+    @SuppressWarnings("deprecation")
+    private Cursor pendingLookup(Uri collection, String[] args) {
+        String[] id = { MediaStore.MediaColumns._ID };
+        ContentResolver resolver = context.getContentResolver();
+        if (Build.VERSION.SDK_INT >= 30) {
+            Bundle query = new Bundle();
+            query.putString(ContentResolver.QUERY_ARG_SQL_SELECTION, PENDING_SAME_NAME_IN_FOLDER);
+            query.putStringArray(ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS, args);
+            query.putInt(MediaStore.QUERY_ARG_MATCH_PENDING, MediaStore.MATCH_INCLUDE);
+            return resolver.query(collection, id, query, null);
+        }
+        return resolver.query(MediaStore.setIncludePending(collection), id, PENDING_SAME_NAME_IN_FOLDER, args, null);
     }
 
     /**

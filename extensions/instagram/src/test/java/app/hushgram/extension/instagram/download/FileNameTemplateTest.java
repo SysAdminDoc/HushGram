@@ -761,23 +761,58 @@ public class FileNameTemplateTest {
         assertTrue(second, second.matches("HF_" + ID + "_\\d{6}\\.mp4"));
     }
 
-    /**
-     * Only a published video of that name in the same folder takes it. Not one in another folder,
-     * not one still pending, whose file has another name until it's published, and not a picture.
-     */
+    /** Only a published video of that name in the same folder takes it. Not one in another folder, and not a picture. */
     @Test
     public void onlyAPublishedVideoInTheSameFolderTakesAName() throws Exception {
         Settings.FILENAME_TEMPLATE.save("{owner}_{posted}");
         FolderGallery gallery = folderGallery();
         String name = "Stevi Ous_" + DAY + ".mp4";
         gallery.put(VIDEOS, "Movies/Other", name, false);
-        gallery.put(VIDEOS, "Movies/Instagram", name, true);
         gallery.put(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, "Movies/Instagram", name, false);
-        writableVideos(4);
+        writableVideos(3);
         save(new MediaStoreWriter(context, true, full()));
 
-        assertEquals(name, nameOf(gallery.rows.get(4L)));
+        assertEquals(name, nameOf(gallery.rows.get(3L)));
         assertEquals(Collections.singletonList(name), gallery.lookedUp);
+        assertFalse(LogBufferManager.buildExportText().contains(TIME_WENT_ON));
+    }
+
+    /**
+     * #715: two saves of one name started together. MediaStore gives two pending entries of one
+     * name made in the same second one file, so the second save wrote over the first. The second
+     * now takes the next number while the first is still being written, the number MediaStore
+     * gives it on publish, and no time goes on since nothing of that name is published. An
+     * abandoned save gives its number back, and a pending one in another folder or a pending
+     * picture moves nothing.
+     */
+    @Test
+    public void aSaveStartedWhileOneOfItsNameIsPendingTakesTheNextNumber() throws Exception {
+        Settings.FILENAME_TEMPLATE.save("{owner}_{posted}");
+        FolderGallery gallery = folderGallery();
+        String name = "Stevi Ous_" + DAY + ".mp4";
+        String numbered = "Stevi Ous_" + DAY + " (1).mp4";
+        gallery.put(VIDEOS, "Movies/Other", name, true);
+        gallery.put(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, "Movies/Instagram", name, true);
+        writableVideos(3, 4, 5);
+        byte[] start = {0, 0, 0, 0x18};
+
+        MediaStoreWriter first = new MediaStoreWriter(context, true, full());
+        first.open("video/mp4").write(start);
+        MediaStoreWriter second = new MediaStoreWriter(context, true, full());
+        second.open("video/mp4").write(start);
+        assertEquals(name, nameOf(gallery.rows.get(3L)));
+        assertEquals(numbered, nameOf(gallery.rows.get(4L)));
+
+        second.abandon();
+        MediaStoreWriter third = new MediaStoreWriter(context, true, full());
+        third.open("video/mp4").write(start);
+        assertEquals(numbered, nameOf(gallery.rows.get(5L)));
+
+        first.commit();
+        third.commit();
+        assertEquals(name, nameOf(gallery.rows.get(3L)));
+        assertEquals(numbered, nameOf(gallery.rows.get(5L)));
+        assertEquals(Arrays.asList(name, name, name), gallery.lookedUp);
         assertFalse(LogBufferManager.buildExportText().contains(TIME_WENT_ON));
     }
 
@@ -876,17 +911,26 @@ public class FileNameTemplateTest {
         }
 
         private boolean published(Uri table, String folder, String name) {
+            return has(table, folder, name, false);
+        }
+
+        /** A row of [table] in [folder] named [name], still pending or published. */
+        private boolean has(Uri table, String folder, String name, boolean pending) {
             for (Map.Entry<Long, ContentValues> entry : rows.entrySet()) {
                 ContentValues row = entry.getValue();
                 if (table.equals(tables.get(entry.getKey()))
                         && folder.equals(row.getAsString(MediaStore.MediaColumns.RELATIVE_PATH))
                         && name.equals(row.getAsString(MediaStore.MediaColumns.DISPLAY_NAME))
-                        && !Integer.valueOf(1).equals(row.getAsInteger(MediaStore.MediaColumns.IS_PENDING))) {
+                        && pending == Integer.valueOf(1).equals(row.getAsInteger(MediaStore.MediaColumns.IS_PENDING))) {
                     return true;
                 }
             }
             return false;
         }
+
+        /** The writer's lookup among its own unfinished entries, which MediaStore answers only when asked to include them. */
+        private static final String PENDING_LOOKUP = MediaStoreWriter.SAME_NAME_IN_FOLDER + " AND "
+                + MediaStore.MediaColumns.IS_PENDING + " = 1";
 
         @Override public boolean onCreate() {
             return true;
@@ -911,6 +955,12 @@ public class FileNameTemplateTest {
         @Override public Cursor query(Uri uri, String[] projection, String selection,
                 String[] selectionArgs, String sortOrder) {
             MatrixCursor cursor = new MatrixCursor(projection == null ? new String[0] : projection);
+            if (PENDING_LOOKUP.equals(selection)) {
+                if (has(uri, selectionArgs[1], selectionArgs[0], true) || has(uri, selectionArgs[2], selectionArgs[0], true)) {
+                    cursor.addRow(new Object[] {1L});
+                }
+                return cursor;
+            }
             if (!MediaStoreWriter.SAME_NAME_IN_FOLDER.equals(selection)) return cursor;
             if (refuseLookups) throw new IllegalArgumentException("Invalid token");
             lookedUp.add(selectionArgs[0]);
