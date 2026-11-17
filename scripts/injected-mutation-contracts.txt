@@ -1734,11 +1734,12 @@ once-call Lapp/hushgram/extension/instagram/feed/WatchAgain;->inFeed(I)Z in inst
 once-call Lapp/hushgram/extension/instagram/feed/WatchAgain;->moreReels(Landroid/view/View;)V in instance ()V calling static L*;->*(Landroid/view/View$OnClickListener;Landroid/view/View;)V pooled class-holding continue_watching
 #
 # Keep the tab bar on a reel's profile (#385) asks ReelProfileTabBar.open before the launcher of
-# the profile's own screen, on both routes a reel opens one by (09Ts's A02 and 044g's A0D on 454's
-# 386014758). Left out, the profile keeps opening with no tab bar. Twice or elsewhere, it isn't
-# the hook the patch wrote.
-once-call Lapp/hushgram/extension/instagram/reels/ReelProfileTabBar;->open(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Z pooled holding android_purge_26_q3_AuthorInfoNavigator_navigateToNormalProfile
-once-call Lapp/hushgram/extension/instagram/reels/ReelProfileTabBar;->open(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Z pooled holding android_purge_26_q3_ClipsViewerUtils_launchProfile
+# the profile's own screen, on both routes a reel opens one by: the author row's opener, the one
+# method loading both strings below, and the viewer's launcher, the one method of its shape loading
+# "profile" (0CBz's A02 and 06ZR's A0C on 456's 386214574). Left out, the profile keeps opening with
+# no tab bar. Twice or elsewhere, it isn't the hook the patch wrote.
+once-call Lapp/hushgram/extension/instagram/reels/ReelProfileTabBar;->open(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Z in instance (LX/*;)Z pooled holding open_profile_page profile_short_drama
+once-call Lapp/hushgram/extension/instagram/reels/ReelProfileTabBar;->open(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Z in (Landroidx/fragment/app/FragmentActivity;LX/*;Lcom/instagram/common/session/UserSession;Ljava/lang/String;Ljava/lang/String;[I)V pooled holding profile
 # And both tab hosts let ReelProfileTabBar.keepTabRoot answer their root check, in the method that decides
 # on the tab bar (03ja's A02 and 02lW's A03 on 454). The check itself stays as it is for its other callers.
 once-call Lapp/hushgram/extension/instagram/reels/ReelProfileTabBar;->keepTabRoot(ILjava/lang/Object;)I in static (L*;)V calling instance Landroidx/fragment/app/Fragment;->getChildFragmentManager()L*; pooled class-holding IgTabHostFragment.loadFragment

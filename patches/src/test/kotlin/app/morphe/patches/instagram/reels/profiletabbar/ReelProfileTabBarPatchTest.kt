@@ -36,7 +36,7 @@ import java.io.File
  */
 class ReelProfileTabBarPatchTest {
     private val PROFILE_SCREEN = "Lcom/instagram/profile/fragment/UserDetailFragment;"
-    private val markers = listOf(AUTHOR_PROFILE, VIEWER_PROFILE)
+    private val routes = listOf(AUTHOR_PROFILE, VIEWER_PROFILE)
 
     private fun bundles(): List<File> {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
@@ -44,7 +44,7 @@ class ReelProfileTabBarPatchTest {
     }
 
     private fun context(bundle: File, extra: List<ClassDef> = emptyList()): BytecodePatchContext =
-        PatchContexts.of((markers + FOLLOW_PROMPT + FEED_TAG).flatMap { FixtureDex.classesLoading(bundle, it) }.distinctBy { it.type } + extra)
+        PatchContexts.of(listOf(SHORT_DRAMA_PROFILE, PROFILE_TAG, FOLLOW_PROMPT, FEED_TAG).flatMap { FixtureDex.classesLoading(bundle, it) }.distinctBy { it.type } + extra)
 
     @Test
     fun theHookAndTheStubAreInTheExtension() {
@@ -122,8 +122,8 @@ class ReelProfileTabBarPatchTest {
         var checked = 0
         for (bundle in bundles()) {
             val context = context(bundle)
-            for (marker in markers) {
-                val route = context.findProfileRoute(marker)
+            for (name in routes) {
+                val route = context.findProfileRoute(name)
                 context.keepProfileOnTab(route)
 
                 val owner = context.mutableClassDefBy(route.method.definingClass)
@@ -151,7 +151,7 @@ class ReelProfileTabBarPatchTest {
                 checked++
             }
         }
-        assertEquals("both routes in every build of 454", Fixtures.BUILDS * markers.size, checked)
+        assertEquals("both routes in every build of 454", Fixtures.BUILDS * routes.size, checked)
     }
 
     @Test

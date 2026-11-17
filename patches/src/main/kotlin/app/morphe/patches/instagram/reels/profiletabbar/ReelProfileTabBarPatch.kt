@@ -39,9 +39,17 @@ internal const val REEL_PROFILE_HOOK = "$EXTENSION_PACKAGE/reels/ReelProfileTabB
 internal const val REEL_PROFILE_TARGETS = "$EXTENSION_PACKAGE/reels/ReelProfileTabBarTargets;"
 internal const val TAB_ROOT_HOOK = "$EXTENSION_PACKAGE/reels/ReelProfileTabBar;->keepTabRoot(I$ANY)I"
 
-/** The markers of the two methods that open a reel author's profile in its own screen. */
-internal const val AUTHOR_PROFILE = "android_purge_26_q3_AuthorInfoNavigator_navigateToNormalProfile"
-internal const val VIEWER_PROFILE = "android_purge_26_q3_ClipsViewerUtils_launchProfile"
+/**
+ * The two routes that open a reel author's profile in its own screen. 456 dropped the purge markers
+ * they were found by. The author row's opener is the one method loading both [OPEN_PROFILE_PAGE],
+ * its tap's log, and [SHORT_DRAMA_PROFILE]; the viewer's launcher is the one method taking
+ * [VIEWER_PARAMETERS] that loads [PROFILE_TAG], the screen's name.
+ */
+internal const val AUTHOR_PROFILE = "the author row's profile opener"
+internal const val VIEWER_PROFILE = "the Reels viewer's profile launcher"
+internal const val OPEN_PROFILE_PAGE = "open_profile_page"
+internal const val SHORT_DRAMA_PROFILE = "profile_short_drama"
+internal const val PROFILE_TAG = "profile"
 
 /** The Reels viewer's follow prompt, which puts a profile on the current tab, loads this. */
 internal const val FOLLOW_PROMPT = "clips_follow_prompt"
@@ -57,6 +65,10 @@ internal const val ACTIVITY = "Landroidx/fragment/app/FragmentActivity;"
 private const val BUNDLE = "Landroid/os/Bundle;"
 private const val CONTEXT = "Landroid/content/Context;"
 private const val LIST = "Ljava/util/List;"
+private const val STRING = "Ljava/lang/String;"
+
+/** What the viewer's launcher takes, null where Redex renamed the type: the activity, a module, the session, two strings, an int array. */
+private val VIEWER_PARAMETERS = listOf(ACTIVITY, null, SESSION, STRING, STRING, "[I")
 
 private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $detail")
 
@@ -92,34 +104,58 @@ internal class TabRootCheck(val method: Method, val store: FieldReference?, val 
  */
 internal class TabHost(val method: Method, val hookAt: Int, val answer: Int, val host: Int, val manager: MethodReference)
 
-internal fun BytecodePatchContext.findProfileRoute(marker: String): ProfileRoute {
-    val marked = classesLoadingString(marker).flatMap { owner -> owner.methods.filter { loadsString(it, marker) } }
-    val method = marked.singleOrNull() ?: refuse("expected one method marked $marker, found ${marked.size}")
+/**
+ * The reel author row's profile opener, which Find the reel you came from hooks too: every method
+ * loading both of its strings, past the Redex pool of shared strings that holds them both.
+ */
+internal fun BytecodePatchContext.authorProfileOpeners(): List<Method> =
+    classesLoadingString(SHORT_DRAMA_PROFILE).flatMap { it.methods }
+        .filter { !it.isStringPool() && loadsString(it, SHORT_DRAMA_PROFILE) && loadsString(it, OPEN_PROFILE_PAGE) }
+
+/** A static `(I)String` method: the shape of Redex's pools of shared strings. */
+private fun Method.isStringPool() = AccessFlags.STATIC.isSet(accessFlags) && returnType == STRING &&
+    parameterTypes.map(Any::toString) == listOf("I")
+
+private fun BytecodePatchContext.viewerProfileLaunchers(): List<Method> =
+    classesLoadingString(PROFILE_TAG).flatMap { it.methods }.filter { method ->
+        val parameters = method.parameterTypes.map(Any::toString)
+        method.returnType == "V" && parameters.size == VIEWER_PARAMETERS.size &&
+            VIEWER_PARAMETERS.zip(parameters).all { (wanted, taken) -> wanted == null || wanted == taken } &&
+            loadsString(method, PROFILE_TAG)
+    }
+
+internal fun BytecodePatchContext.findProfileRoute(route: String): ProfileRoute {
+    val found = when (route) {
+        AUTHOR_PROFILE -> authorProfileOpeners()
+        VIEWER_PROFILE -> viewerProfileLaunchers()
+        else -> refuse("no route called $route")
+    }
+    val method = found.singleOrNull() ?: refuse("expected one method for $route, found ${found.size}")
     val code = method.code()
     val modal = code.indices.singleOrNull { code[it].opcode == Opcode.CONST_CLASS && code[it].type() == MODAL_ACTIVITY }
-        ?: refuse("$marker doesn't name $MODAL_ACTIVITY once")
+        ?: refuse("$route doesn't name $MODAL_ACTIVITY once")
     val bundle = (modal until code.size).firstOrNull { code[it].called()?.takes(BUNDLE, SESSION, LAUNCH_CONFIG) == true }
-        ?: refuse("$marker builds no profile arguments after $MODAL_ACTIVITY")
+        ?: refuse("$route builds no profile arguments after $MODAL_ACTIVITY")
     val hookAt = (bundle until code.size).firstOrNull { code[it].opcode == Opcode.NEW_INSTANCE }
-        ?: refuse("$marker makes no launcher")
+        ?: refuse("$route makes no launcher")
     val launcher = code[hookAt].type()
     val launch = (hookAt until code.size).firstOrNull {
         val call = code[it].called()
         code[it].opcode == Opcode.INVOKE_VIRTUAL && call?.definingClass == launcher && call.takes("V", CONTEXT)
-    } ?: refuse("$marker never launches $launcher")
-    if (launch + 1 >= code.size) refuse("nothing follows the launch in $marker")
-    if (hookAt in method.jumpTargets()) refuse("something in $marker jumps to the launcher")
+    } ?: refuse("$route never launches $launcher")
+    if (launch + 1 >= code.size) refuse("nothing follows the launch in $route")
+    if (hookAt in method.jumpTargets()) refuse("something in $route jumps to the launcher")
 
     val arguments = code[bundle].registers()
-    if (arguments.size != 3) refuse("the profile arguments in $marker take ${arguments.size} registers")
+    if (arguments.size != 3) refuse("the profile arguments in $route take ${arguments.size} registers")
     val (factory, session, config) = arguments
     val activity = code[launch].registers()[1]
     val answer = (code[hookAt] as OneRegisterInstruction).registerA
     for (register in arguments) {
-        if ((bundle + 1 until hookAt).any { code[it].writes(register) }) refuse("$marker overwrites v$register before the launcher")
+        if ((bundle + 1 until hookAt).any { code[it].writes(register) }) refuse("$route overwrites v$register before the launcher")
     }
-    if ((hookAt until launch).any { code[it].writes(activity) }) refuse("$marker overwrites the activity after the launcher")
-    if (listOf(activity, factory, session, config).any { it > 15 }) refuse("a register in $marker is out of the hook's reach")
+    if ((hookAt until launch).any { code[it].writes(activity) }) refuse("$route overwrites the activity after the launcher")
+    if (listOf(activity, factory, session, config).any { it > 15 }) refuse("a register in $route is out of the hook's reach")
     return ProfileRoute(method, hookAt, launch + 1, answer, activity, factory, session, config, code[bundle].called()!!.definingClass)
 }
 
