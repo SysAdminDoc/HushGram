@@ -219,7 +219,7 @@ public class SavedProfilesSettingsTest {
             SavedProfilesPage.fill(menu);
             assertEquals(3, menu.size());
             assertEquals("Copy username", String.valueOf(menu.getItem(0).getTitle()));
-            assertEquals("Move to folder", String.valueOf(menu.getItem(1).getTitle()));
+            assertEquals("Choose folders", String.valueOf(menu.getItem(1).getTitle()));
             assertEquals("Remove from saved", String.valueOf(menu.getItem(2).getTitle()));
 
             SavedProfiles.Profile amy = (SavedProfiles.Profile) page.list.getAdapter().getItem(1);
@@ -243,8 +243,9 @@ public class SavedProfilesSettingsTest {
     }
 
     /**
-     * Folders (#629): Move to folder on a long press, a chip for each folder under the search box that
-     * shows just its accounts, and a chip's own menu that renames the folder or takes it away.
+     * Folders (#629, #687): Choose folders on a long press puts an account in any number of them, a
+     * chip for each folder under the search box shows just its accounts, and a chip's own menu
+     * renames the folder or takes it away.
      */
     @Test public void foldersSortThePageAndAChipRenamesOrRemovesOne() throws Exception {
         Context context = RuntimeEnvironment.getApplication();
@@ -261,28 +262,27 @@ public class SavedProfilesSettingsTest {
             assertEquals("no folders, no chips", View.GONE, page.chips.getVisibility());
 
             SavedProfiles.Profile amy = (SavedProfiles.Profile) page.list.getAdapter().getItem(2);
-            assertTrue(page.pick(SavedProfilesPage.MOVE, amy));
-            ShadowLooper.idleMainLooper();
-            AlertDialog choose = (AlertDialog) ShadowDialog.getLatestDialog();
-            assertEquals(Arrays.asList("No folder", "New folder"), items(choose));
-            assertEquals("where amy is now is marked", 0, choose.getListView().getCheckedItemPosition());
-            choose.getListView().performItemClick(null, 1, 1);
+            assertTrue(page.pick(SavedProfilesPage.FOLDERS, amy));
             ShadowLooper.idleMainLooper();
             AlertDialog name = (AlertDialog) ShadowDialog.getLatestDialog();
+            assertNotNull("no folders yet, so it asks the first one's name", SavedProfilesRows.field(name.getWindow().getDecorView()));
             assertEquals(android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE,
                     name.getWindow().getAttributes().softInputMode & android.view.WindowManager.LayoutParams.SOFT_INPUT_MASK_ADJUST);
             SavedProfilesRows.field(name.getWindow().getDecorView()).setText("  My   pals ");
             name.getButton(DialogInterface.BUTTON_POSITIVE).performClick();
             ShadowLooper.idleMainLooper();
-            assertEquals("Moved @amy to My pals", ShadowToast.getTextOfLatestToast());
+            assertEquals("@amy is in My pals now", ShadowToast.getTextOfLatestToast());
             assertEquals(View.VISIBLE, page.chips.getVisibility());
             assertEquals(Arrays.asList("All", "My pals"), chips(page));
             assertTrue("All is shown", page.chipRow.getChildAt(0).isSelected());
 
-            page.move((SavedProfiles.Profile) page.list.getAdapter().getItem(1), "my PALS");
+            page.putIn((SavedProfiles.Profile) page.list.getAdapter().getItem(1), Arrays.asList("my PALS", "Work"));
             ShadowLooper.idleMainLooper();
-            assertEquals("a name in another case is that folder", "Moved @zed to My pals",
+            assertEquals("a name in another case is that folder", "@zed is in 2 folders now",
                     ShadowToast.getTextOfLatestToast());
+            assertEquals(Arrays.asList("All", "My pals", "Work"), chips(page));
+            page.chipRow.getChildAt(2).performClick();
+            assertEquals("an account shows in each of its folders", Arrays.asList("zed"), shown(page));
             page.chipRow.getChildAt(1).performClick();
             assertTrue(page.chipRow.getChildAt(1).isSelected());
             assertFalse(page.chipRow.getChildAt(0).isSelected());
@@ -307,24 +307,37 @@ public class SavedProfilesSettingsTest {
             rename.getButton(DialogInterface.BUTTON_POSITIVE).performClick();
             ShadowLooper.idleMainLooper();
             assertEquals("Renamed the folder to Besties", ShadowToast.getTextOfLatestToast());
-            assertEquals(Arrays.asList("All", "Besties"), chips(page));
+            assertEquals(Arrays.asList("All", "Besties", "Work"), chips(page));
             assertTrue("the renamed folder is still the one shown", page.chipRow.getChildAt(1).isSelected());
             assertEquals(Arrays.asList("zed", "amy"), shown(page));
 
             amy = (SavedProfiles.Profile) page.list.getAdapter().getItem(1);
-            page.pick(SavedProfilesPage.MOVE, amy);
+            page.pick(SavedProfilesPage.FOLDERS, amy);
             ShadowLooper.idleMainLooper();
-            choose = (AlertDialog) ShadowDialog.getLatestDialog();
-            assertEquals(Arrays.asList("No folder", "Besties", "New folder"), items(choose));
-            assertEquals(1, choose.getListView().getCheckedItemPosition());
+            AlertDialog choose = (AlertDialog) ShadowDialog.getLatestDialog();
+            assertEquals(Arrays.asList("Besties", "Work"), items(choose));
+            assertTrue("the folders amy is in are ticked", choose.getListView().isItemChecked(0));
+            assertFalse(choose.getListView().isItemChecked(1));
             choose.getListView().performItemClick(null, 0, 0);
+            choose.getListView().performItemClick(null, 1, 1);
+            choose.getButton(DialogInterface.BUTTON_POSITIVE).performClick();
             ShadowLooper.idleMainLooper();
-            assertEquals("Moved @amy out of its folder", ShadowToast.getTextOfLatestToast());
+            assertEquals("@amy is in Work now", ShadowToast.getTextOfLatestToast());
             assertEquals(Arrays.asList("zed"), shown(page));
+
+            page.chipRow.getChildAt(0).performClick();
+            amy = (SavedProfiles.Profile) page.list.getAdapter().getItem(2);
+            page.putIn(amy, Collections.emptyList());
+            ShadowLooper.idleMainLooper();
+            assertEquals("@amy is in no folder now", ShadowToast.getTextOfLatestToast());
+            page.chipRow.getChildAt(1).performClick();
 
             assertTrue(page.pickForFolder(SavedProfilesPage.REMOVE_FOLDER, "Besties"));
             ShadowLooper.idleMainLooper();
             assertEquals("Removed the folder Besties", ShadowToast.getTextOfLatestToast());
+            assertEquals("zed keeps its other folder", Arrays.asList("All", "Work"), chips(page));
+            assertTrue(page.pickForFolder(SavedProfilesPage.REMOVE_FOLDER, "Work"));
+            ShadowLooper.idleMainLooper();
             assertEquals("no folders left, no chips", View.GONE, page.chips.getVisibility());
             assertEquals("and every account shows again", Arrays.asList("kim", "zed", "amy"), shown(page));
         }
@@ -409,14 +422,15 @@ public class SavedProfilesSettingsTest {
 
     /**
      * The settings file carries the list, and an import puts back the accounts missing, newest first,
-     * each in the folder it was in (#629).
+     * each in the folders it was in (#629, #687).
      */
     @Test public void theExportCarriesTheListAndAnImportPutsItBack() throws Exception {
         Context context = RuntimeEnvironment.getApplication();
         PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.PROFILE_PICTURE);
         SavedProfilesRows.save(context, "11", "amy", "Amy Pond", PICTURE, 1_000L);
         SavedProfilesRows.save(context, "", "zed", "", "", 2_000L);
-        assertEquals("Close friends", SavedProfiles.move(context, "11", "amy", "Close friends").folder);
+        assertEquals(Arrays.asList("Close friends", "Work"),
+                SavedProfiles.putIn(context, "11", "amy", Arrays.asList("Work", "Close friends")).folders);
         Settings.SAVED_PROFILES.save(true);
         byte[] exported = ConfigurationBackup.export();
         JSONObject root = new JSONObject(new String(exported, StandardCharsets.UTF_8));
@@ -431,8 +445,11 @@ public class SavedProfilesSettingsTest {
         assertEquals("Amy Pond", amy.getString("name"));
         assertEquals(PICTURE, amy.getString("url"));
         assertEquals(1_000L, amy.getLong("time"));
-        assertEquals("Close friends", amy.getString("folder"));
+        assertEquals("what a HushGram from before #687 reads", "Close friends", amy.getString("folder"));
+        assertEquals(2, amy.getJSONArray("folders").length());
+        assertEquals("Work", amy.getJSONArray("folders").getString(1));
         assertFalse("no folder, no field", listed.getJSONObject(0).has("folder"));
+        assertFalse(listed.getJSONObject(0).has("folders"));
 
         // Another phone, with an account of its own saved since.
         Utils.awaitBackgroundTasksForTests();
@@ -447,9 +464,9 @@ public class SavedProfilesSettingsTest {
         assertEquals(PICTURE, all.get(2).url);
         assertEquals("Amy Pond", all.get(2).name);
         assertEquals(1_000L, all.get(2).time);
-        assertEquals("back in its folder", "Close friends", all.get(2).folder);
-        assertEquals("", all.get(1).folder);
-        assertEquals(Collections.singletonList("Close friends"), SavedProfiles.folders(all));
+        assertEquals("back in its folders", Arrays.asList("Close friends", "Work"), all.get(2).folders);
+        assertTrue(all.get(1).folders.isEmpty());
+        assertEquals(Arrays.asList("Close friends", "Work"), SavedProfiles.folders(all));
 
         assertTrue("an import of accounts alone still offers Undo", ConfigurationBackup.canUndo());
         assertEquals(2, ConfigurationBackup.undo().profiles);
@@ -463,40 +480,50 @@ public class SavedProfilesSettingsTest {
     }
 
     /**
-     * An account saved here in no folder goes into the file's folder on an import, and Undo puts it
-     * back in none unless it was moved since (#629).
+     * An account saved here goes into the file's folders on an import as well as its own, and Undo
+     * takes those back off unless its folders were changed since (#629, #687).
      */
-    @Test public void anImportFilesAnAccountInNoFolderAndUndoTakesItOut() throws Exception {
+    @Test public void anImportFilesAnAccountInTheFilesFoldersAndUndoTakesThemOff() throws Exception {
         Context context = RuntimeEnvironment.getApplication();
         PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.PROFILE_PICTURE);
         SavedProfilesRows.save(context, "11", "amy", "", "", 1_000L);
         SavedProfilesRows.save(context, "22", "zed", "", "", 2_000L);
-        assertEquals("Work", SavedProfiles.move(context, "22", "zed", "Work").folder);
+        SavedProfilesRows.save(context, "33", "kim", "", "", 3_000L);
+        assertEquals(Arrays.asList("Work"), SavedProfiles.putIn(context, "22", "zed", Arrays.asList("Work")).folders);
+        SavedProfiles.putIn(context, "33", "kim", Arrays.asList("Gym"));
         byte[] exported = file(new JSONArray()
                 .put(account("11", "amy", "").put("folder", "work").put("time", 1_000L))
-                .put(account("22", "zed", "").put("folder", "Brands").put("time", 2_000L)));
+                .put(account("22", "zed", "").put("folder", "Brands").put("time", 2_000L))
+                .put(account("33", "kim", "").put("folder", "gym").put("folders", new JSONArray().put("gym"))
+                        .put("time", 3_000L)));
 
         assertEquals("nobody new", 0, ConfigurationBackup.restore(exported).profiles);
-        Map<String, String> filed = folders(SavedProfiles.all(context));
-        assertEquals("spelled as the folder here is", "Work", filed.get("amy"));
-        assertEquals("one already in a folder stays there", "Work", filed.get("zed"));
+        Map<String, List<String>> filed = folders(SavedProfiles.all(context));
+        assertEquals("spelled as the folder here is", Arrays.asList("Work"), filed.get("amy"));
+        assertEquals("one already in a folder joins the file's too", Arrays.asList("Brands", "Work"), filed.get("zed"));
+        assertEquals("already in it, nothing changes", Arrays.asList("Gym"), filed.get("kim"));
 
         assertTrue("filing alone still offers Undo", ConfigurationBackup.canUndo());
         ConfigurationBackup.undo();
-        assertEquals("", folders(SavedProfiles.all(context)).get("amy"));
+        filed = folders(SavedProfiles.all(context));
+        assertTrue(filed.get("amy").isEmpty());
+        assertEquals("back in just its own", Arrays.asList("Work"), filed.get("zed"));
+        assertEquals(Arrays.asList("Gym"), filed.get("kim"));
 
         ConfigurationBackup.restore(exported);
-        SavedProfiles.move(context, "11", "amy", "Later");
+        SavedProfiles.putIn(context, "11", "amy", Arrays.asList("Later"));
         ConfigurationBackup.undo();
-        assertEquals("moved since, so Undo leaves it", "Later", folders(SavedProfiles.all(context)).get("amy"));
+        filed = folders(SavedProfiles.all(context));
+        assertEquals("changed since, so Undo leaves it", Arrays.asList("Later"), filed.get("amy"));
+        assertEquals(Arrays.asList("Work"), filed.get("zed"));
         Utils.awaitBackgroundTasksForTests();
         SavedProfilesRows.forget();
-        assertEquals("and the list's file has it", "Later", folders(SavedProfiles.all(context)).get("amy"));
+        assertEquals("and the list's file has it", Arrays.asList("Later"), folders(SavedProfiles.all(context)).get("amy"));
     }
 
-    private static Map<String, String> folders(List<SavedProfiles.Profile> profiles) {
-        Map<String, String> folders = new LinkedHashMap<>();
-        for (SavedProfiles.Profile profile : profiles) folders.put(profile.username, profile.folder);
+    private static Map<String, List<String>> folders(List<SavedProfiles.Profile> profiles) {
+        Map<String, List<String>> folders = new LinkedHashMap<>();
+        for (SavedProfiles.Profile profile : profiles) folders.put(profile.username, profile.folders);
         return folders;
     }
 

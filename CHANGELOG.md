@@ -6,6 +6,7 @@ Every HushGram release, newest first.
 
 ### Features
 
+* A saved profile can sit in more than one folder now. Save profile shows your folders with tick boxes, and `Choose folders` replaces Move to folder when you long press an account in `Your saved profiles`. Tick as many as you like, or make a new one right there with New folder. Settings exports carry every folder, and an older HushGram reading the file still gets the first one. Asked for in #687.
 * `Long press a profile picture to view it`, new under Profiles right below `About this account button`, opens the whole square picture at full size when you long press the picture at the top of a profile, with Save under it. It replaces Instagram's own enlarged preview only while it's on, and a tap still does what it always did. Starts off. Asked for in #737.
 * `Download full song`, new under Reels right after `Download audio`, adds a row under Download on reels (and photos with music) that use a song from Instagram's music. It saves the whole song as an audio file instead of just the clip the reel plays. With `Ask what to save` on, the download button offers it too. It starts off. Asked for in #735.
 * `Hide the top bar on other reels`, new under Reels right below the Reels tab's switch, takes the back arrow and the title off the top of reels you open from Explore, a profile, a post, Saved or a chat. Your phone's back gesture or button still takes you back. It starts off. Asked for in #680.

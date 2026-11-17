@@ -280,12 +280,12 @@ public final class SavedProfilesPage {
 
     static final int COPY_USERNAME = 1;
     static final int REMOVE = 2;
-    static final int MOVE = 3;
+    static final int FOLDERS = 3;
 
-    /** What a long press on a row offers: copying the username, a folder for it, and taking the account off the list. */
+    /** What a long press on a row offers: copying the username, its folders, and taking the account off the list. */
     static void fill(Menu menu) {
         menu.add(Menu.NONE, COPY_USERNAME, Menu.NONE, L10n.t("Copy username"));
-        menu.add(Menu.NONE, MOVE, Menu.NONE, L10n.t("Move to folder"));
+        menu.add(Menu.NONE, FOLDERS, Menu.NONE, L10n.t("Choose folders"));
         menu.add(Menu.NONE, REMOVE, Menu.NONE, L10n.t("Remove from saved"));
     }
 
@@ -304,9 +304,9 @@ public final class SavedProfilesPage {
                 Utils.setClipboard(dialog.getContext(), "Instagram", profile.username);
                 Utils.showToastShort(L10n.t("Copied"));
                 return true;
-            case MOVE:
-                chooseFolder(dialog.getContext(), L10n.t("Move to folder"), SavedProfiles.folders(all), profile.folder,
-                        chosen -> move(profile, chosen));
+            case FOLDERS:
+                chooseFolders(dialog.getContext(), L10n.t("Choose folders"), SavedProfiles.folders(all), profile.folders,
+                        L10n.t("Save"), chosen -> putIn(profile, chosen));
                 return true;
             case REMOVE:
                 remove(profile);
@@ -316,18 +316,23 @@ public final class SavedProfilesPage {
         }
     }
 
-    /** Puts [profile] in folder [chosen], or in none when it's empty, on the page at once, and says where. */
-    void move(SavedProfiles.Profile profile, String chosen) {
+    /** Puts [profile] in folders [chosen] and no others, on the page at once, and says where it is now. */
+    void putIn(SavedProfiles.Profile profile, List<String> chosen) {
         if (origin != null && !HushgramPreferenceFragment.savedProfilesChangeAllowed(origin)) return;
-        SavedProfiles.Profile moved = SavedProfiles.move(dialog.getContext(), profile.id, profile.username, chosen);
+        SavedProfiles.Profile moved = SavedProfiles.putIn(dialog.getContext(), profile.id, profile.username, chosen);
         if (moved == null) return;
         List<SavedProfiles.Profile> changed = new ArrayList<>(all);
         int at = changed.indexOf(profile);
         if (at >= 0) changed.set(at, moved);
         all = changed;
         show();
-        Utils.showToastShort(moved.folder.isEmpty() ? L10n.f("Moved @%s out of its folder", moved.username)
-                : L10n.f("Moved @%1$s to %2$s", moved.username, moved.folder));
+        if (moved.folders.isEmpty()) {
+            Utils.showToastShort(L10n.f("@%s is in no folder now", moved.username));
+        } else if (moved.folders.size() == 1) {
+            Utils.showToastShort(L10n.f("@%1$s is in %2$s now", moved.username, moved.folders.get(0)));
+        } else {
+            Utils.showToastShort(L10n.f("@%1$s is in %2$d folders now", moved.username, moved.folders.size()));
+        }
     }
 
     static final int RENAME_FOLDER = 1;
@@ -362,53 +367,72 @@ public final class SavedProfilesPage {
     }
 
     /**
-     * Puts the accounts in folder [from] in [to], or in none when it's empty, and shows the folder
-     * they're in now. They stay saved either way.
+     * Puts the accounts in folder [from] in [to], or takes them out of it when [to] is empty, and
+     * shows the folder they're in now. They stay saved, in their other folders too, either way.
      */
     void renameFolder(String from, String to) {
         if (origin != null && !HushgramPreferenceFragment.savedProfilesChangeAllowed(origin)) return;
         String now = SavedProfiles.renameFolder(dialog.getContext(), from, to);
         List<SavedProfiles.Profile> changed = new ArrayList<>(all.size());
-        for (SavedProfiles.Profile profile : all) {
-            changed.add(!profile.folder.isEmpty() && profile.folder.equalsIgnoreCase(from) ? profile.in(now) : profile);
-        }
+        for (SavedProfiles.Profile profile : all) changed.add(profile.renamed(from, now));
         all = changed;
         folder = now.isEmpty() ? null : now;
         show();
         Utils.showToastShort(now.isEmpty() ? L10n.f("Removed the folder %s", from) : L10n.f("Renamed the folder to %s", now));
     }
 
-    /** What a folder question does with the answer: a folder's name, or empty for none. */
+    /** What a folder name question does with the answer: a folder's name, or empty for none. */
     public interface FolderPick {
         void picked(String folder);
     }
 
+    /** What a folders question does with the answer: the folders ticked, none for none. */
+    public interface FoldersPick {
+        void picked(List<String> folders);
+    }
+
     /**
-     * Asks which folder under [title]: No folder, each of [folders], then New folder, which asks for
-     * a name. The one [current] names is marked, none for null. The answer goes to [pick].
+     * Asks which folders under [title] (#687): each of [folders] with a tick box, those [current]
+     * names ticked, [button] to take them, and New folder, which asks for a name and takes the ticked
+     * ones with it. With no folders yet, it asks for the new one's name straight away. The answer goes
+     * to [pick].
      */
-    public static AlertDialog chooseFolder(Context context, String title, List<String> folders, @Nullable String current,
-                                           FolderPick pick) {
-        List<String> names = new ArrayList<>();
-        names.add(L10n.t(context, "No folder"));
-        names.addAll(folders);
-        names.add(L10n.t(context, "New folder"));
-        int marked = current != null && current.isEmpty() ? 0 : -1;
-        for (int at = 0; at < folders.size() && current != null; at++) {
-            if (folders.get(at).equalsIgnoreCase(current)) marked = at + 1;
+    public static AlertDialog chooseFolders(Context context, String title, List<String> folders, List<String> current,
+                                            String button, FoldersPick pick) {
+        if (folders.isEmpty()) {
+            return askName(context, L10n.t(context, "New folder"), "", L10n.t(context, "Create"),
+                    typed -> pick.picked(Collections.singletonList(typed)));
+        }
+        boolean[] ticked = new boolean[folders.size()];
+        for (int at = 0; at < folders.size(); at++) {
+            for (String own : current) {
+                if (own.equalsIgnoreCase(folders.get(at))) ticked[at] = true;
+            }
         }
         AlertDialog question = new AlertDialog.Builder(HushgramPreferenceFragment.themed(context))
                 .setTitle(title)
-                .setSingleChoiceItems(names.toArray(new CharSequence[0]), marked, (shown, which) -> {
-                    shown.dismiss();
-                    if (which == 0) pick.picked("");
-                    else if (which <= folders.size()) pick.picked(folders.get(which - 1));
-                    else askName(context, L10n.t(context, "New folder"), "", L10n.t(context, "Create"), pick);
-                })
+                .setMultiChoiceItems(folders.toArray(new CharSequence[0]), ticked, (shown, which, on) -> ticked[which] = on)
+                .setPositiveButton(button, (shown, which) -> pick.picked(tickedOf(folders, ticked)))
+                .setNeutralButton(L10n.t(context, "New folder"), (shown, which) ->
+                        askName(context, L10n.t(context, "New folder"), "", L10n.t(context, "Create"), typed -> {
+                            List<String> chosen = new ArrayList<>(tickedOf(folders, ticked));
+                            chosen.add(typed);
+                            pick.picked(chosen);
+                        }))
                 .setNegativeButton(L10n.t(context, "Cancel"), null)
                 .create();
         question.show();
+        // The list marks a ticked row only once it draws it, and a tap before that would read it as unticked.
+        for (int at = 0; at < ticked.length; at++) question.getListView().setItemChecked(at, ticked[at]);
         return question;
+    }
+
+    private static List<String> tickedOf(List<String> folders, boolean[] ticked) {
+        List<String> chosen = new ArrayList<>();
+        for (int at = 0; at < folders.size(); at++) {
+            if (ticked[at]) chosen.add(folders.get(at));
+        }
+        return chosen;
     }
 
     /**

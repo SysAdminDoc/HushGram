@@ -49,8 +49,10 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * file carries it and an import adds it back ({@link #backup}, {@link #merge}), as its reporter asked;
  * the diagnostic report never holds it.
  *
- * <p>An account can sit in one folder, named by the user. A folder is only a name its accounts
- * share, so it's there while something is in it ({@link #folders}).
+ * <p>An account can sit in any number of folders, up to {@link #MAX_FOLDERS}, named by the user
+ * (#687). A folder is only a name its accounts share, so it's there while something is in it
+ * ({@link #folders}). The file and a settings file keep an account's folders under "folders" and
+ * its first one under "folder" too, which is all a HushGram from before #687 reads.
  */
 public final class SavedProfiles {
     /** One saved account. */
@@ -62,27 +64,52 @@ public final class SavedProfiles {
         public final String name;
         /** Its picture's address when it was last seen, or empty. */
         public final String url;
-        /** The folder it's in, or empty for none. */
-        public final String folder;
+        /** The folders it's in, as {@link #folderSet} keeps them, empty for none. Never changes. */
+        public final List<String> folders;
         /** When it was saved. */
         public final long time;
 
         Profile(String id, String username, String name, String url, long time) {
-            this(id, username, name, url, "", time);
+            this(id, username, name, url, Collections.emptyList(), time);
         }
 
         Profile(String id, String username, String name, String url, String folder, long time) {
+            this(id, username, name, url, Collections.singletonList(folder), time);
+        }
+
+        Profile(String id, String username, String name, String url, List<String> folders, long time) {
             this.id = id;
             this.username = username;
             this.name = name;
             this.url = url;
-            this.folder = folder;
+            this.folders = folderSet(folders);
             this.time = time;
         }
 
-        /** This account in [other] folder. */
-        public Profile in(String other) {
-            return new Profile(id, username, name, url, other, time);
+        /** This account in [others] folders instead of its own. */
+        public Profile in(List<String> others) {
+            return new Profile(id, username, name, url, others, time);
+        }
+
+        /** Whether it's in folder [folder], whatever its case. */
+        public boolean isIn(@Nullable String folder) {
+            if (folder == null || folder.isEmpty()) return false;
+            for (String own : folders) {
+                if (own.equalsIgnoreCase(folder)) return true;
+            }
+            return false;
+        }
+
+        /** This account with folder [from] called [to] instead, or taken out of it when [to] is empty. */
+        public Profile renamed(String from, String to) {
+            if (!isIn(from)) return this;
+            List<String> kept = new ArrayList<>();
+            for (String own : folders) {
+                if (!own.equalsIgnoreCase(from)) kept.add(own);
+            }
+            kept.add(to);
+            Profile renamed = in(kept);
+            return renamed.folders.equals(folders) ? this : renamed;
         }
 
         /** Whether this is the account with [otherId], or with [otherUsername] when either id is unknown. */
@@ -138,6 +165,8 @@ public final class SavedProfiles {
     static final int MAX_URL = 2048;
     /** The longest folder name, which a chip on the page shows whole. */
     public static final int MAX_FOLDER = 30;
+    /** The most folders one account sits in, so a settings file can't give one thousands. */
+    static final int MAX_FOLDERS = 30;
 
     private static final String DIRECTORY = "hushgram-saved";
     private static final String FILE = "profiles.json";
@@ -214,33 +243,36 @@ public final class SavedProfiles {
                     Utils.showToastShort(L10n.f(context, "Removed @%s from saved", profile.username));
                     return;
                 }
-                // Once there are folders, Save asks which one, so each account goes where it's wanted.
+                // Once there are folders, Save asks which ones, so each account goes where it's wanted.
                 List<String> folders = folders(all(context));
                 Activity activity = folders.isEmpty() ? null : ProfilePictureViewer.activityOf(context);
                 if (activity == null || activity.isFinishing()) {
-                    saveIn("");
+                    saveIn(Collections.emptyList());
                 } else {
-                    SavedProfilesPage.chooseFolder(activity, L10n.t(context, "Save to folder"), folders, null, this::saveIn);
+                    SavedProfilesPage.chooseFolders(activity, L10n.t(context, "Save to folder"), folders,
+                            Collections.emptyList(), L10n.t(context, "Save"), this::saveIn);
                 }
             } catch (Throwable failure) {
                 HookStatus.threw(FAMILY, saved ? "remove saved profile" : "save profile", failure);
             }
         }
 
-        /** Saves the account in [folder], or in none when it's empty, and says which. */
-        void saveIn(String folder) {
+        /** Saves the account in [folders], or in none when there are none, and says where. */
+        void saveIn(List<String> folders) {
             try {
-                if (!save(context, profile.in(folder), System.currentTimeMillis())) {
+                if (!save(context, profile.in(folders), System.currentTimeMillis())) {
                     Utils.showToastShort(L10n.t(context, "Saved profiles is full."));
                     return;
                 }
-                // The folder as the list spells it, which a name typed in another case joins.
+                // The folders as the list spells them, which a name typed in another case joins.
                 Profile kept = find(context, profile.id, profile.username);
-                String in = kept == null ? folder : kept.folder;
+                List<String> in = kept == null ? folderSet(folders) : kept.folders;
                 if (in.isEmpty()) {
                     Utils.showToastShort(L10n.f(context, "Saved @%s", profile.username));
+                } else if (in.size() == 1) {
+                    Utils.showToastShort(L10n.f(context, "Saved @%1$s to %2$s", profile.username, in.get(0)));
                 } else {
-                    Utils.showToastShort(L10n.f(context, "Saved @%1$s to %2$s", profile.username, in));
+                    Utils.showToastShort(L10n.f(context, "Saved @%1$s to %2$d folders", profile.username, in.size()));
                 }
             } catch (Throwable failure) {
                 HookStatus.threw(FAMILY, "save profile", failure);
@@ -327,7 +359,7 @@ public final class SavedProfiles {
             if (at < 0) return false;
             before = PROFILES.get(at);
             after = new Profile(id.isEmpty() ? before.id : id, username, name.isEmpty() ? before.name : name,
-                    url.isEmpty() ? before.url : url, before.folder, before.time);
+                    url.isEmpty() ? before.url : url, before.folders, before.time);
             PROFILES.set(at, after);
         }
         boolean changed = !after.id.equals(before.id) || !after.username.equals(before.username)
@@ -340,7 +372,7 @@ public final class SavedProfiles {
     }
 
     /**
-     * Puts [profile] first on the list, in its folder and saved at [now], unless it's on the list
+     * Puts [profile] first on the list, in its folders and saved at [now], unless it's on the list
      * already, then writes the file and copies the picture off the main thread. Answers false only
      * when the list is full.
      */
@@ -351,8 +383,7 @@ public final class SavedProfiles {
             load(application);
             if (indexOf(profile.id, profile.username) >= 0) return true;
             if (PROFILES.size() >= MAX_PROFILES) return false;
-            kept = new Profile(profile.id, profile.username, profile.name, profile.url,
-                    existing(folderName(profile.folder), null), now);
+            kept = new Profile(profile.id, profile.username, profile.name, profile.url, spelled(profile.folders), now);
             PROFILES.add(0, kept);
         }
         persist(application, () -> {
@@ -445,12 +476,25 @@ public final class SavedProfiles {
         return name.toString();
     }
 
+    /**
+     * [names] as one account's folders: each cleaned by {@link #folderName}, the empty ones left out,
+     * each once whatever its case (spelled as it first comes), alphabetically, and no more than
+     * {@link #MAX_FOLDERS} of them. Never changes.
+     */
+    public static List<String> folderSet(@Nullable List<? extends CharSequence> names) {
+        if (names == null || names.isEmpty()) return Collections.emptyList();
+        TreeSet<String> kept = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+        for (CharSequence typed : names) {
+            String name = folderName(typed);
+            if (!name.isEmpty() && kept.size() < MAX_FOLDERS) kept.add(name);
+        }
+        return kept.isEmpty() ? Collections.emptyList() : Collections.unmodifiableList(new ArrayList<>(kept));
+    }
+
     /** The folders [profiles] are in, each once whatever its case, alphabetically. */
     public static List<String> folders(List<Profile> profiles) {
         TreeSet<String> names = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
-        for (Profile profile : profiles) {
-            if (!profile.folder.isEmpty()) names.add(profile.folder);
-        }
+        for (Profile profile : profiles) names.addAll(profile.folders);
         return new ArrayList<>(names);
     }
 
@@ -459,27 +503,27 @@ public final class SavedProfiles {
         if (folder == null) return profiles;
         List<Profile> kept = new ArrayList<>();
         for (Profile profile : profiles) {
-            if (!profile.folder.isEmpty() && profile.folder.equalsIgnoreCase(folder)) kept.add(profile);
+            if (profile.isIn(folder)) kept.add(profile);
         }
         return kept;
     }
 
     /**
-     * Puts the saved account that is [id] or [username] in [folder], cleaned by {@link #folderName},
-     * or in none when that's empty. A name that differs only in case from a folder in use is that
-     * folder. Answers the account as it's saved now, or null when it isn't saved.
+     * Puts the saved account that is [id] or [username] in [folders] and no others, each cleaned by
+     * {@link #folderName}, or in none when there are none. A name that differs only in case from a
+     * folder in use is that folder. Answers the account as it's saved now, or null when it isn't saved.
      */
     @Nullable
-    public static Profile move(Context context, String id, String username, String folder) {
+    public static Profile putIn(Context context, String id, String username, List<String> folders) {
         Context application = application(context);
         Profile moved;
         synchronized (LOCK) {
             load(application);
             int at = indexOf(id, username);
             if (at < 0) return null;
-            String name = existing(folderName(folder), null);
-            if (PROFILES.get(at).folder.equals(name)) return PROFILES.get(at);
-            moved = PROFILES.get(at).in(name);
+            List<String> names = spelled(folders);
+            if (PROFILES.get(at).folders.equals(names)) return PROFILES.get(at);
+            moved = PROFILES.get(at).in(names);
             PROFILES.set(at, moved);
         }
         persist(application, () -> { });
@@ -489,7 +533,8 @@ public final class SavedProfiles {
     /**
      * Puts every account in folder [from] in [to] instead, cleaned by {@link #folderName}: a rename,
      * or with [to] empty, the folder taken away and its accounts kept. Renamed onto another folder's
-     * name, the two become that one. Answers the folder they're in now, empty for none.
+     * name, the two become that one. An account's other folders stay as they are. Answers the folder
+     * they're in now, empty for none.
      */
     public static String renameFolder(Context context, String from, String to) {
         Context application = application(context);
@@ -500,8 +545,9 @@ public final class SavedProfiles {
             name = existing(folderName(to), from);
             for (int at = 0; at < PROFILES.size(); at++) {
                 Profile profile = PROFILES.get(at);
-                if (profile.folder.isEmpty() || !profile.folder.equalsIgnoreCase(from) || profile.folder.equals(name)) continue;
-                PROFILES.set(at, profile.in(name));
+                Profile renamed = profile.renamed(from, name);
+                if (renamed == profile) continue;
+                PROFILES.set(at, renamed);
                 moved = true;
             }
         }
@@ -509,19 +555,26 @@ public final class SavedProfiles {
         return name;
     }
 
+    /** Must hold LOCK. [names] as {@link #folderSet} keeps them, each spelled as a folder on the list is. */
+    private static List<String> spelled(List<String> names) {
+        List<String> spelled = new ArrayList<>();
+        for (String name : folderSet(names)) spelled.add(existing(name, null));
+        return folderSet(spelled);
+    }
+
     /** Must hold LOCK. How folder [name] is spelled on the list, other than folder [except], or [name] when none is. */
     private static String existing(String name, @Nullable String except) {
         if (name.isEmpty()) return name;
         for (Profile profile : PROFILES) {
-            if (profile.folder.equalsIgnoreCase(name) && (except == null || !profile.folder.equalsIgnoreCase(except))) {
-                return profile.folder;
+            for (String folder : profile.folders) {
+                if (folder.equalsIgnoreCase(name) && (except == null || !folder.equalsIgnoreCase(except))) return folder;
             }
         }
         return name;
     }
 
     /**
-     * The list for a settings file (#629), newest first: each account's id, username, name, folder
+     * The list for a settings file (#629), newest first: each account's id, username, name, folders
      * and when it was saved, and with [pictures] its picture's address, which Instagram's servers
      * keep answering for a few days. Empty when nothing is saved.
      */
@@ -530,11 +583,33 @@ public final class SavedProfiles {
         for (Profile profile : all(context)) {
             JSONObject entry = new JSONObject().put("id", profile.id).put("username", profile.username)
                     .put("name", profile.name).put("time", profile.time);
-            if (!profile.folder.isEmpty()) entry.put("folder", profile.folder);
+            putFolders(entry, profile);
             if (pictures && !profile.url.isEmpty()) entry.put("url", profile.url);
             profiles.put(entry);
         }
         return profiles;
+    }
+
+    /** Writes [profile]'s folders into [entry]: all under "folders", the first under "folder" for an older HushGram. */
+    private static void putFolders(JSONObject entry, Profile profile) throws JSONException {
+        if (profile.folders.isEmpty()) return;
+        entry.put("folder", profile.folders.get(0)).put("folders", new JSONArray(profile.folders));
+    }
+
+    /**
+     * The folders [entry] names: the text ones under "folders" and the one under "folder", as
+     * {@link #folderSet} keeps them. Anything else in either place is left out.
+     */
+    private static List<String> foldersOf(JSONObject entry) {
+        List<String> names = new ArrayList<>();
+        JSONArray listed = entry.optJSONArray("folders");
+        for (int at = 0; listed != null && at < listed.length() && names.size() < MAX_FOLDERS * 2; at++) {
+            Object name = listed.opt(at);
+            if (name instanceof String) names.add((String) name);
+        }
+        Object first = entry.opt("folder");
+        if (first instanceof String) names.add((String) first);
+        return folderSet(names);
     }
 
     /**
@@ -542,8 +617,9 @@ public final class SavedProfiles {
      * a username Instagram wouldn't give, an id or a time of another shape, or a name over
      * {@link #MAX_NAME} characters or with control characters in it. A picture address that isn't
      * Meta's media servers, or a folder that isn't text, is dropped and the account kept, and a
-     * folder name is cleaned as a typed one is. Fields this build doesn't know are left alone, so a
-     * file from a newer HushGram still brings its accounts.
+     * folder name is cleaned as a typed one is. A file from before #687 names one folder, and a
+     * newer one names them all. Fields this build doesn't know are left alone, so a file from a
+     * newer HushGram still brings its accounts.
      */
     @Nullable
     public static Profile fromBackup(JSONObject entry) {
@@ -552,7 +628,7 @@ public final class SavedProfiles {
         String id = text(entry, "id");
         String name = text(entry, "name");
         String url = text(entry, "url");
-        String folder = folderName(text(entry, "folder"));
+        List<String> folders = foldersOf(entry);
         if (id == null || !id.matches("[A-Za-z0-9_]{0,64}") || name == null || name.length() > MAX_NAME
                 || url == null) return null;
         for (int at = 0; at < name.length(); at++) {
@@ -563,7 +639,7 @@ public final class SavedProfiles {
         long saved = time == null ? 0 : ((Number) time).longValue();
         if (saved < 0) return null;
         if (url.length() > MAX_URL || MediaUrlPolicy.shapeRefusal(url) != null) url = "";
-        return new Profile(id, (String) username, name, url, folder, saved);
+        return new Profile(id, (String) username, name, url, folders, saved);
     }
 
     /** [entry]'s text under [key], empty when it has none, or null when it's something else. */
@@ -574,11 +650,13 @@ public final class SavedProfiles {
         return value instanceof String ? (String) value : null;
     }
 
-    /** What {@link #merge} changed, for Undo: the accounts it added and the ones here it put in a folder. */
+    /** What {@link #merge} changed, for Undo: the accounts it added and the ones here it put in more folders. */
     public static final class Merged {
         public final List<Profile> added = new ArrayList<>();
         /** Each as {@link #merge} left it. */
         public final List<Profile> filed = new ArrayList<>();
+        /** The folders each of {@link #filed} was in before, in the same order. */
+        final List<List<String>> filedFrom = new ArrayList<>();
 
         public boolean isEmpty() {
             return added.isEmpty() && filed.isEmpty();
@@ -587,10 +665,10 @@ public final class SavedProfiles {
 
     /**
      * Puts the accounts of [profiles], read from a settings file, on the list where they aren't on it
-     * already, while there's room, each with the time it was first saved and its folder, and keeps
-     * the list newest first. An account already here stays in its own folder, and one in no folder
-     * goes into the file's (#629). Their pictures are fetched when the list shows them. Undo takes
-     * back what it changed ({@link #takeBack}).
+     * already, while there's room, each with the time it was first saved and its folders, and keeps
+     * the list newest first. An account already here keeps its own folders and goes into the file's
+     * too (#629, #687). Their pictures are fetched when the list shows them. Undo takes back what it
+     * changed ({@link #takeBack}).
      */
     public static Merged merge(Context context, List<Profile> profiles) {
         Context application = application(context);
@@ -599,17 +677,21 @@ public final class SavedProfiles {
             load(application);
             for (Profile profile : profiles) {
                 // Spelled as the folder on this phone is, so "Friends" and "friends" stay one folder.
-                String folder = existing(profile.folder, null);
+                List<String> folders = spelled(profile.folders);
                 int here = indexOf(profile.id, profile.username);
                 if (here >= 0) {
-                    if (!PROFILES.get(here).folder.isEmpty() || folder.isEmpty()) continue;
-                    Profile filed = PROFILES.get(here).in(folder);
+                    Profile before = PROFILES.get(here);
+                    List<String> both = new ArrayList<>(before.folders);
+                    both.addAll(folders);
+                    Profile filed = before.in(both);
+                    if (filed.folders.equals(before.folders)) continue;
                     PROFILES.set(here, filed);
                     merged.filed.add(filed);
+                    merged.filedFrom.add(before.folders);
                     continue;
                 }
                 if (PROFILES.size() >= MAX_PROFILES) continue;
-                Profile kept = profile.in(folder);
+                Profile kept = profile.in(folders);
                 PROFILES.add(kept);
                 merged.added.add(kept);
             }
@@ -623,8 +705,8 @@ public final class SavedProfiles {
 
     /**
      * Takes what [merged] changed back, each account only while it's still as {@link #merge} left
-     * it: the ones added go off the list and the ones filed go back to no folder. Undo after an
-     * import. Answers how many went off.
+     * it: the ones added go off the list and the ones filed go back to the folders they were in.
+     * Undo after an import. Answers how many went off.
      */
     public static int takeBack(Context context, Merged merged) {
         Context application = application(context);
@@ -636,10 +718,11 @@ public final class SavedProfiles {
                 int at = indexOf(profile.id, profile.username);
                 if (at >= 0 && PROFILES.get(at).time == profile.time) gone.add(PROFILES.remove(at));
             }
-            for (Profile profile : merged.filed) {
+            for (int filed = 0; filed < merged.filed.size(); filed++) {
+                Profile profile = merged.filed.get(filed);
                 int at = indexOf(profile.id, profile.username);
-                if (at < 0 || PROFILES.get(at).time != profile.time || !PROFILES.get(at).folder.equals(profile.folder)) continue;
-                PROFILES.set(at, PROFILES.get(at).in(""));
+                if (at < 0 || PROFILES.get(at).time != profile.time || !PROFILES.get(at).folders.equals(profile.folders)) continue;
+                PROFILES.set(at, PROFILES.get(at).in(merged.filedFrom.get(filed)));
                 unfiled = true;
             }
         }
@@ -751,7 +834,7 @@ public final class SavedProfiles {
                 String username = profile.optString("username").trim();
                 if (username.isEmpty()) continue;
                 PROFILES.add(new Profile(profile.optString("id").trim(), username, profile.optString("name"),
-                        profile.optString("url"), folderName(profile.optString("folder")), profile.optLong("time")));
+                        profile.optString("url"), foldersOf(profile), profile.optLong("time")));
             }
         } catch (IOException | JSONException | RuntimeException failure) {
             HookStatus.threw(FAMILY, "saved profiles read", failure);
@@ -768,7 +851,7 @@ public final class SavedProfiles {
                 for (Profile profile : PROFILES) {
                     JSONObject entry = new JSONObject().put("id", profile.id).put("username", profile.username)
                             .put("name", profile.name).put("url", profile.url).put("time", profile.time);
-                    if (!profile.folder.isEmpty()) entry.put("folder", profile.folder);
+                    putFolders(entry, profile);
                     profiles.put(entry);
                 }
                 File work = new File(folder, FILE + ".tmp");
