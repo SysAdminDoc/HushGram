@@ -17,10 +17,12 @@ import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
+import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
@@ -123,9 +125,15 @@ class CameraButtonFixtureTest {
         else -> instruction.opcode
     }
 
-    /** The classes asking for the button, and the classes of their fields, where the setup is. */
+    /** The classes loading the button's id, and the classes of their fields, where the setup is. */
     private fun barClasses(bundle: File): List<ClassDef> {
-        val loading = FixtureDex.classesLoading(bundle, SHOW_CAMERA_BUTTON)
+        val loading = mutableListOf<ClassDef>()
+        FixtureDex.forEach(bundle) { dex ->
+            for (classDef in dex.classes) {
+                if (classDef.methods.any { it.loadsButtonId() }) loading += ImmutableClassDef.of(classDef)
+            }
+        }
+        assertTrue("no class loads the button's id", loading.isNotEmpty())
         val fieldTypes = loading.flatMap { it.fields }.map { it.type }.filter { it.startsWith("L") }.toSet()
         return (loading + FixtureDex.classes(bundle, fieldTypes).values).associateBy { it.type }.values.toList()
     }
@@ -133,6 +141,10 @@ class CameraButtonFixtureTest {
     private fun Instruction.field(): FieldReference = (this as ReferenceInstruction).reference as FieldReference
 
     private fun Method.code(): List<Instruction> = implementation?.instructions?.toList().orEmpty()
+
+    private fun Method.loadsButtonId() = code().any {
+        it.opcode == Opcode.CONST && (it as NarrowLiteralInstruction).narrowLiteral == CAMERA_BUTTON_ID
+    }
 
     private companion object {
         const val TOP_BAR = "Lapp/hushgram/extension/instagram/reels/ReelsTopBar;"

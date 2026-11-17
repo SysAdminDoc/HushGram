@@ -10,21 +10,26 @@ import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
-import app.morphe.patches.instagram.misc.extension.classesLoadingString
+import app.morphe.patches.instagram.misc.extension.classesLoading
 import app.morphe.patches.instagram.misc.extension.jumpTargets
-import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.requireLocals
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 
 private const val PATCH = "Clean up Reels"
 
-/** What Instagram logs in the method of the screen's own top bar over a reel that sets up its Create button. */
-internal const val SHOW_CAMERA_BUTTON = "android_purge_26_q2_Builder_setShowCameraButton"
+/**
+ * The view id Instagram gives the Create button on the screen's own top bar over a reel
+ * (`clips_viewer_camera_button`, the same in all four 456 builds; 0x7f0b0c7c in 455). Only the
+ * method building the button loads it. 455 also logged a purge marker where the bar updated the
+ * button, which 456 dropped.
+ */
+internal const val CAMERA_BUTTON_ID = 0x7f0b0c77
 
 internal const val CAMERA_BUTTON_HOOK = "$EXTENSION_PACKAGE/reels/ReelsTopBar;->keepsCameraButton(Ljava/lang/Object;)Z"
 
@@ -43,15 +48,14 @@ internal class CameraButtonSite(
 
 /**
  * Finds the one place Instagram adds Create to the bar a reel opened from Saved, a profile or a post
- * gets on 454, failing before anything changes when it isn't there. The bar's class asks
- * [SHOW_CAMERA_BUTTON] when it updates the button, and an instance `()V` method of the same class
- * builds the button and stores it in the class's own View field. The class holds the viewer's setup
- * in one field, whose class carries the viewer's source.
+ * gets, failing before anything changes when it isn't there. An instance `()V` method of the bar's
+ * class loads the button's id, [CAMERA_BUTTON_ID], builds the button and stores it in the class's
+ * own View field. The class holds the viewer's setup in one field, whose class carries the viewer's
+ * source.
  */
 internal fun BytecodePatchContext.findCameraButton(): CameraButtonSite {
-    val sites = classesLoadingString(SHOW_CAMERA_BUTTON).flatMap { classDef ->
-        if (classDef.methods.none { loadsString(it, SHOW_CAMERA_BUTTON) }) return@flatMap emptyList()
-        val builders = classDef.methods.filter { it.buildsOwnView(classDef.type) }
+    val sites = classesLoading(CAMERA_BUTTON_ID.toLong()).flatMap { classDef ->
+        val builders = classDef.methods.filter { it.loadsCameraButtonId() && it.buildsOwnView(classDef.type) }
         if (builders.isEmpty()) return@flatMap emptyList()
         val holders = classDef.fields.filter { !AccessFlags.STATIC.isSet(it.accessFlags) }.mapNotNull { field ->
             val holder = classDefByOrNull(field.type)?.takeIf { !AccessFlags.INTERFACE.isSet(it.accessFlags) } ?: return@mapNotNull null
@@ -67,6 +71,10 @@ internal fun BytecodePatchContext.findCameraButton(): CameraButtonSite {
 }
 
 private fun ClassDef.sourceFields() = fields.filter { it.type == CLIPS_VIEWER_SOURCE && !AccessFlags.STATIC.isSet(it.accessFlags) }
+
+private fun Method.loadsCameraButtonId() = implementation?.instructions?.any {
+    it.opcode == Opcode.CONST && (it as NarrowLiteralInstruction).narrowLiteral == CAMERA_BUTTON_ID
+} ?: false
 
 private fun Method.buildsOwnView(owner: String): Boolean {
     if (AccessFlags.STATIC.isSet(accessFlags) || returnType != "V" || parameterTypes.isNotEmpty()) return false
