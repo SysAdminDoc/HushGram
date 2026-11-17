@@ -24,6 +24,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.WideLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import org.junit.Assert.assertEquals
@@ -65,8 +66,15 @@ class OpenReelLinksHookTest {
     fun eachDeclaredBuildHoldsTheConfigCheck() {
         for (apk in bundles()) {
             val name = if (apk.extension == "apk") apk.parentFile.name else apk.name
-            val loading = FixtureDex.classesLoading(apk, FLASH_UI_STATE).map { it.type }
-            assertTrue("$name: classes loading \"$FLASH_UI_STATE\"", loading.isNotEmpty())
+            val loading = mutableListOf<String>()
+            FixtureDex.forEach(apk) { dex ->
+                for (classDef in dex.classes) if (classDef.methods.any { m ->
+                        m.implementation?.instructions?.any {
+                            it.opcode == Opcode.CONST_WIDE && (it as WideLiteralInstruction).wideLiteral == FLASH_SYNC_FLAG
+                        } == true
+                    }) loading += classDef.type
+            }
+            assertTrue("$name: classes loading flag ${FLASH_SYNC_FLAG.toString(16)}", loading.isNotEmpty())
             val wanted = loading.toSet() + VIEWER_CONFIG
             for ((read, classesOf) in listOf("copied" to FixtureDex::classes, "as read" to FixtureDex::classesAsRead)) {
                 val what = "$name ($read)"

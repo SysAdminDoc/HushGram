@@ -2101,10 +2101,10 @@ once-call Lapp/hushgram/extension/instagram/reels/ReelSpeed;->resuming(Ljava/lan
 #
 # Open reel links on that reel (#606) asks the extension with the viewer's source right before the
 # config's check that skips the Reels viewer's kept-reels controller, in the one method building it,
-# which holds the controller's flag name and the sync flow's. Left out, a reel link opens on a reel
-# Instagram kept; twice or elsewhere, it isn't the hook the patch wrote. OpenReelLinksHookTest checks
-# where it lands on every declared build.
-once-call Lapp/hushgram/extension/instagram/reels/ReelLinks;->skipsCachedReels(Ljava/lang/Object;)I in instance (*)V pooled holding android_purge_26_q3_ClipsFlashMediaUseCase_getUiState android_purge_26_q2_ClipsFlashCacheExperimentUtil_shouldDisableFlashCacheCompletelyForSyncFlow
+# which reads the sync flow's flag (0x81033800080c49) a few instructions before that check (07NO.A1K
+# on 456's 386214574). Left out, a reel link opens on a reel Instagram kept; twice or elsewhere, it
+# isn't the hook the patch wrote. OpenReelLinksHookTest checks where it lands on every declared build.
+once-call Lapp/hushgram/extension/instagram/reels/ReelLinks;->skipsCachedReels(Ljava/lang/Object;)I in instance (LX/*;LX/*;Lkotlin/jvm/functions/Function0;)V holding const:0x81033800080c49
 #
 # The same patch asks the extension whether to hold each chunk of reels from the network right before
 # the viewer adds it, in the one static method logging the chunk and its add to the UI, and tells the
@@ -2112,7 +2112,7 @@ once-call Lapp/hushgram/extension/instagram/reels/ReelLinks;->skipsCachedReels(L
 # for that insert. Left out, a warm reel link plays a prefetched reel ahead of the linked one; twice or
 # elsewhere, it isn't the hook the patch wrote. OpenReelLinksHookTest checks both on every declared build.
 once-call Lapp/hushgram/extension/instagram/reels/ReelLinks;->holdsReels(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;IIIII)I in static (LX/*;LX/*;)V pooled holding Network\sChunk\sReceived Add\sto\sUI
-once-call Lapp/hushgram/extension/instagram/reels/ReelLinks;->linkedReelIn(Ljava/lang/Object;)V in instance (Ljava/util/List;I)V pooled holding android_purge_26_q2_ClipsViewerAdapter_insertClipsItemsAtPosition
+once-call Lapp/hushgram/extension/instagram/reels/ReelLinks;->linkedReelIn(Ljava/lang/Object;)V in instance (Ljava/util/List;I)V pooled holding insertItems()
 #
 # A comment shared in a chat is a link too (#662): the same patch tells the extension what a tapped
 # shared comment was on, right after the tap reads it from the comment's link, in the one method

@@ -13,6 +13,7 @@ import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.instagram.misc.extension.classesLoading
 import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.freeLocalsAt
@@ -33,6 +34,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.WideLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableFieldReference
@@ -55,10 +57,15 @@ internal const val COMMENT_ON_REEL = "clips"
 private const val QUERY_PARAMETER = "Landroid/net/Uri;->getQueryParameter(Ljava/lang/String;)Ljava/lang/String;"
 
 /**
- * The flag name Instagram's Reels viewer loads as it builds the controller playing reels it kept on
- * the phone, right past the config's check for turning that off. The build keeps it.
+ * The MobileConfig flag Instagram's Reels viewer reads as it builds the controller playing reels it
+ * kept on the phone, whether the kept reels are off for the sync flow, a few instructions before the
+ * config's check for turning the controller off (07NO.A1K on 456's 386214574). 456 dropped the
+ * controller's getUiState trace the check was found by, and the method loads no string at all.
  */
-internal const val FLASH_UI_STATE = "android_purge_26_q3_ClipsFlashMediaUseCase_getUiState"
+internal const val FLASH_SYNC_FLAG = 0x81033800080c49L
+
+/** How far before the config's flag read the sync flow's flag is loaded: its load, a cast, the read, its result and check. */
+private const val FLASH_SYNC_REACH = 6
 
 /**
  * The line Instagram logs as a chunk of reels from the network goes into a viewer, a little before
@@ -67,10 +74,11 @@ internal const val FLASH_UI_STATE = "android_purge_26_q3_ClipsFlashMediaUseCase_
 internal const val CHUNK_ADDED = "Add to UI"
 
 /**
- * The flag name the viewer's adapter loads first as it inserts reels at a position, which is how a
- * link's viewer puts the linked reel in. The build keeps it.
+ * The name the viewer's adapter logs as it inserts reels at a position, which is how a link's viewer
+ * puts the linked reel in (08YO.A0S on 456's 386214574). 456 dropped the insertClipsItemsAtPosition
+ * trace it was found by.
  */
-internal const val ITEMS_INSERTED = "android_purge_26_q2_ClipsViewerAdapter_insertClipsItemsAtPosition"
+internal const val ITEMS_INSERTED = "insertItems()"
 
 /** The call adding a chunk: the head item, the reels and five flags (first page, refreshing, loading, more pages, forward). */
 private val CHUNK_PARAMETERS = listOf("Ljava/util/List;", "Z", "Z", "Z", "Z", "Z")
@@ -145,21 +153,22 @@ internal class ReelLinksSite(
 )
 
 internal fun BytecodePatchContext.findReelLinksSite(): ReelLinksSite {
-    val methods = classesLoadingString(FLASH_UI_STATE).flatMap { it.methods }.filter { loadsString(it, FLASH_UI_STATE) }
-    // The config's boolean flag, checked by an if-nez that falls through to the controller's flag name.
+    val methods = classesLoading(FLASH_SYNC_FLAG).flatMap { it.methods }.filter { it.syncFlagLoads().isNotEmpty() }
+    // The config's boolean flag, checked by an if-nez right after the sync flow flag's own if-nez.
     val sites = methods.flatMap { method ->
         val code = method.code()
+        val loads = method.syncFlagLoads()
         code.indices.filter { at ->
             val read = code[at]
             val field = (read as? ReferenceInstruction)?.reference as? FieldReference
             val check = code.getOrNull(at + 1)
             read.opcode == Opcode.IGET_BOOLEAN && field?.definingClass == VIEWER_CONFIG && field.type == "Z" &&
                 check?.opcode == Opcode.IF_NEZ && (check as OneRegisterInstruction).registerA == (read as TwoRegisterInstruction).registerA &&
-                (at + 2..at + 3).any { it in code.indices && stringLoadedAt(code, it) == FLASH_UI_STATE }
+                code.getOrNull(at - 1)?.opcode == Opcode.IF_NEZ && loads.any { it in at - FLASH_SYNC_REACH until at }
         }.map { method to it }
     }
     val (method, read) = sites.singleOrNull()
-        ?: refuse("expected one $VIEWER_CONFIG flag checked right before \"$FLASH_UI_STATE\", found ${sites.size}")
+        ?: refuse("expected one $VIEWER_CONFIG flag checked right after flag ${FLASH_SYNC_FLAG.toString(16)}, found ${sites.size}")
     val where = "${method.definingClass}->${method.name}"
     val index = read + 1
     if (index in method.jumpTargets()) refuse("something in $where jumps to the config's check")
@@ -317,3 +326,11 @@ private fun BytecodePatchContext.mutable(method: Method): MutableMethod =
     }
 
 private fun Method.code(): List<Instruction> = implementation?.instructions?.toList().orEmpty()
+
+/** Where this method loads [FLASH_SYNC_FLAG]. */
+private fun Method.syncFlagLoads(): List<Int> {
+    val code = code()
+    return code.indices.filter {
+        code[it].opcode == Opcode.CONST_WIDE && (code[it] as WideLiteralInstruction).wideLiteral == FLASH_SYNC_FLAG
+    }
+}
