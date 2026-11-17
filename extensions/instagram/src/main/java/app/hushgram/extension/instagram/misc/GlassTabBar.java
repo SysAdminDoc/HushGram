@@ -297,8 +297,21 @@ public final class GlassTabBar {
      * pill, which a viewer that stops at the slot otherwise put right on top of it (#187).
      */
     static int reelsBandLift(boolean keep, boolean behind, int slot, int nav, int gap) {
+        return reelsBandLift(keep, behind, slot, nav, gap, 0f);
+    }
+
+    /**
+     * The same lift with the pill [away] that share of its way off the bottom (Hide the tab bar on Reels,
+     * {@link GlassScrollHide#awayShare}). Behind the pill the band follows it down, and with the pill all the
+     * way off it rests just over the navigation bar, clearing [nav], so no empty strip of video is left
+     * where the pill was (#736). It only moves, so the reel itself keeps its one size (#466, #467).
+     */
+    static int reelsBandLift(boolean keep, boolean behind, int slot, int nav, int gap, float away) {
         if (!keep) return Math.max(0, nav);
-        return (behind ? Math.max(0, slot) : 0) + Math.max(0, gap);
+        int shown = (behind ? Math.max(0, slot) : 0) + Math.max(0, gap);
+        if (!behind || !(away > 0f)) return shown;
+        int gone = Math.max(0, nav);
+        return Math.round(shown + (gone - shown) * Math.min(1f, away));
     }
 
     /**
@@ -2549,6 +2562,7 @@ public final class GlassTabBar {
             int info = id(context, REEL_INFO), scrubber = id(context, SCRUBBER);
             int footers = id(context, REEL_FOOTERS), media = id(context, REEL_MEDIA);
             raisedNow.clear();
+            float away = scrollHide == null ? 0f : scrollHide.awayShare();
             for (View viewer : viewers) {
                 if (viewer == null || !viewer.isAttachedToWindow()) continue;
                 anchors.clear();
@@ -2556,7 +2570,8 @@ public final class GlassTabBar {
                 reelAnchors(viewer, info, scrubber, footers, anchors, footerViews, 0);
                 int footer = 0;
                 for (View view : footerViews) footer += overlapFooter(view);
-                footer += reelsBandLift(reelsKept, reelsBehind, reelsSlot, reelsKept ? 0 : navUnder(viewer), dp(REELS_GAP_DP));
+                footer += reelsBandLift(reelsKept, reelsBehind, reelsSlot, reelsKept && !(away > 0f) ? 0 : navUnder(viewer),
+                        dp(REELS_GAP_DP), away);
                 for (View anchor : anchors) {
                     View band = bands.get(anchor);
                     if (band == null || !holds(band, anchor)) {

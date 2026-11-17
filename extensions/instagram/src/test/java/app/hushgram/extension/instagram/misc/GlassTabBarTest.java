@@ -3807,6 +3807,28 @@ public class GlassTabBarTest {
     }
 
     /**
+     * #736: with Hide the tab bar on Reels the reel runs behind the pill, and once the pill slides away the
+     * caption, buttons and seek bar follow it down to just over the navigation bar, so no empty strip of
+     * video is left where the pill was. Mid slide they sit in step with it, and back in place they are
+     * raised by the slot again.
+     */
+    @Test
+    public void reelsControlsFollowThePillDownWhenItSlidesAway() {
+        assertEquals("the pill in place", 134, GlassTabBar.reelsBandLift(true, true, 126, 48, 8, 0f));
+        assertEquals("the pill all the way off: only the navigation bar", 48,
+                GlassTabBar.reelsBandLift(true, true, 126, 48, 8, 1f));
+        assertEquals("half way", 91, GlassTabBar.reelsBandLift(true, true, 126, 48, 8, 0.5f));
+        assertEquals("never past all the way", 48, GlassTabBar.reelsBandLift(true, true, 126, 48, 8, 3f));
+        assertEquals("Instagram pads for the navigation bar itself", 0,
+                GlassTabBar.reelsBandLift(true, true, 126, 0, 8, 1f));
+        assertEquals("a viewer that stops at the slot keeps its gap", 8,
+                GlassTabBar.reelsBandLift(true, false, 126, 48, 8, 1f));
+        assertEquals("no slot kept, the same as before", 48, GlassTabBar.reelsBandLift(false, true, 126, 48, 8, 1f));
+        assertEquals(134, GlassTabBar.reelsBandLift(true, true, 126, 48, 8, Float.NaN));
+        assertEquals(134, GlassTabBar.reelsBandLift(true, true, 126, 48, 8, -1f));
+    }
+
+    /**
      * #450: a 1920 pixel reel centred in a 2260 pixel viewer that runs behind a 250 pixel slot sat 125
      * pixels lower than in the 2010 pixel viewer stopped at the slot. A 250 margin puts it back. A reel
      * with only 100 pixels to spare rises by those and no further, a reel filling the viewer or laid

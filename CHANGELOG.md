@@ -81,6 +81,7 @@ Every HushGram release, newest first.
 * Picking friends on the Friends tab in Reels now leaves the other reels out. Before, one reel from each page without your picks still showed between theirs, so the tab barely looked filtered. Reported in #503.
 * `Accent color` reads Instagram's button colors a second way now, for phones whose Android stores them a little differently, like ColorOS 17 on Oppo. There, Follow and other buttons kept Instagram's blue. Reported in #727.
 * Reels opened from Explore or search now fit their button column under the top bar too. Only the Reels tab got the fit before, so with several HushGram icons on, Like ran off the top of the screen there. Reported in #516.
+* With `Glass tab bar` and `Hide the tab bar on Reels`, a reel's caption, buttons and seek bar now follow the pill down when it slides away. They used to stay up where the pill had been and leave an empty strip under them. Reported in #736.
 * Holding the Friends tab no longer says there are no friends to pick when the tab already shows reels from friends. The list fills from whatever the tab shows, even before you've picked anyone or when Instagram reopens the tab from its own copy, and it keeps those friends after you close Instagram. Reported in #503.
 * In Turkish, German, Spanish and Portuguese, the seek bar rows called it a search bar. They now use the same word as `Keep a seek bar` in each language. Reported in #10.
 * In Simplified Chinese, `Clear saved copies now` says it freed the space instead of saying it published it.

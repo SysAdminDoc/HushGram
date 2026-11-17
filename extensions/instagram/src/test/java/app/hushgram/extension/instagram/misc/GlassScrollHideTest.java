@@ -553,15 +553,21 @@ public class GlassScrollHideTest {
         tap(500, 900);
         idle(2900);
         assertFalse(hide.isHidden());
+        assertEquals(0f, hide.awayShare(), 0f);
         idle(200);
         assertTrue(hide.isHidden());
         settle();
         assertTrue(bar.getTranslationY() > 100f);
         assertTrue(hide.isOffScreen());
+        // #736: all the way off, so the reel's caption and seek bar can drop to where the bar was.
+        assertEquals(1f, hide.awayShare(), 0f);
         // Only moved, as a scroll moves it: its size and place in the layout are untouched.
         assertEquals(150, bar.getHeight());
         assertEquals(1770, bar.getTop());
         assertEquals(View.VISIBLE, bar.getVisibility());
+        hide.show();
+        settle();
+        assertEquals("back where it belongs", 0f, hide.awayShare(), 0f);
     }
 
     @Test public void theWaitHidesNothingOffReels() {
