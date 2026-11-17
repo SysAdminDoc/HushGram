@@ -137,7 +137,7 @@ class AskBeforeLikeHookTest {
     @Test
     fun aReelLikeButtonThatIsntTheOneFailsUnchanged() {
         val others = listOf(reelClass(ITEM), reelClass(STATE), reelClass(SOURCE), extension())
-        refusesReel("no handler filing the tap", listOf(reelHandler(body = "return-void")) + others)
+        refusesReel("no class logging as the handler", listOf(reelHandler(body = "return-void")) + others)
         refusesReel("a static handler", listOf(reelHandler(static = true)) + others)
         refusesReel("two handlers", listOf(reelHandler(twice = true)) + others)
         refusesReel("a handler class that isn't public", listOf(reelHandler(classFlags = AccessFlags.FINAL.value)) + others)
@@ -145,9 +145,9 @@ class AskBeforeLikeHookTest {
         refusesReel("no callback", listOf(reelHandler(parameters = REEL_PARAMETERS.take(8) + OBJECT_TYPE + REEL_PARAMETERS.drop(9))) + others)
         refusesReel("an item that isn't in the app", listOf(reelHandler(), reelClass(STATE), reelClass(SOURCE), extension()))
         refusesReel("a source that isn't public", listOf(reelHandler(), reelClass(ITEM), reelClass(STATE), reelClass(SOURCE, 0), extension()))
-        refusesReel("no register of its own", listOf(reelHandler(registers = 12, body = "const-string p5, \"$REEL_LIKE_TAP\"\nreturn-void")) + others)
+        refusesReel("no register of its own", listOf(reelHandler(registers = 12, body = "const-string p5, \"$REEL_LIKE_HANDLER\"\nreturn-void")) + others)
         refusesReel("a jump onto its first instruction",
-            listOf(reelHandler(body = ":top\nconst-string v0, \"$REEL_LIKE_TAP\"\nif-eqz p10, :top\nreturn-void")) + others)
+            listOf(reelHandler(body = ":top\nconst-string v0, \"$REEL_LIKE_HANDLER\"\nif-eqz p10, :top\nreturn-void")) + others)
         refusesReel("no extension", listOf(reelHandler(), reelClass(ITEM), reelClass(STATE), reelClass(SOURCE)))
     }
 
@@ -172,7 +172,7 @@ class AskBeforeLikeHookTest {
     /**
      * On every declared build's fixture: the one Like button handler filing like_media takes the
      * hold first and once, and the stubs reach its fragment and call it again. The same for the
-     * reel's handler filing the tap marker.
+     * reel's handler in the class logging as LikeActionHandler.
      */
     @Test
     fun eachDeclaredBuildAsksBeforeALike() {
@@ -221,7 +221,7 @@ class AskBeforeLikeHookTest {
     }
 
     private fun reelBuilds(bundle: File, label: String) {
-        val loading = FixtureDex.withStringPools(bundle, FixtureDex.classesLoading(bundle, REEL_LIKE_TAP))
+        val loading = FixtureDex.withStringPools(bundle, FixtureDex.classesLoading(bundle, REEL_LIKE_HANDLER))
         val shaped = loading.flatMap { it.methods }.filter { it.reelShaped() }
         assertTrue("$label: a reel Like handler's shape", shaped.isNotEmpty())
         val taken = FixtureDex.classes(bundle, shaped.flatMap { it.parameterTypes.subList(1, 4).map(Any::toString) }.toSet()).values
@@ -389,11 +389,11 @@ class AskBeforeLikeHookTest {
 
         /**
          * The Like button's handler on a reel as 454 has it: an instance method taking the button,
-         * three of Instagram's classes, four strings, a callback and two booleans, filing the tap
-         * marker. v0 and v1 are its locals.
+         * three of Instagram's classes, four strings, a callback and two booleans, in a class logging
+         * as LikeActionHandler. v0 and v1 are its locals.
          */
         fun reelHandler(
-            body: String = "const-string v0, \"$REEL_LIKE_TAP\"\ninvoke-static { v0 }, Lfixture/Log;->file(Ljava/lang/String;)V\nreturn-void",
+            body: String = "const-string v0, \"$REEL_LIKE_HANDLER\"\ninvoke-static { v0 }, Lfixture/Log;->file(Ljava/lang/String;)V\nreturn-void",
             static: Boolean = false,
             twice: Boolean = false,
             classFlags: Int = PUBLIC_FINAL,

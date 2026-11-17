@@ -18,7 +18,6 @@ import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.jumpTargets
-import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.extension.uniqueMethod
@@ -51,8 +50,11 @@ internal const val LIKE_COMMENT_AGAIN_STUB = "likeCommentAgain"
 /** The comment list's store, which the class holding the list's like entry keeps (#614). */
 internal const val COMMENT_LIST_REPOSITORY = "Lcom/instagram/comments/mvvm/data/MediaCommentListRepository;"
 
-/** The marker the Like button's handler on a reel files as it starts, which nothing else loads (#603). */
-internal const val REEL_LIKE_TAP = "android_purge_26_q3_LikeActionHandler_handleLikeButtonTap"
+/**
+ * The tag the reel's Like handler (LikeActionHandler) logs under, which only its class loads (#603).
+ * Instagram 456 dropped the handler's purge marker.
+ */
+internal const val REEL_LIKE_HANDLER = "LikeActionHandler"
 
 internal const val MEDIA = "Lcom/instagram/feed/media/Media;"
 internal const val FRAGMENT = "Landroidx/fragment/app/Fragment;"
@@ -204,23 +206,21 @@ internal class ReelLikeTargets(val handler: MutableMethod, val likeAgain: Mutabl
 
 /**
  * Finds the Like button's handler on a reel and checks it before anything changes: the one method
- * filing [REEL_LIKE_TAP], public in a public class, taking the button, three of Instagram's public
- * classes, four strings, a callback and two booleans, with a local for the hook's answer and nothing
- * jumping to its first instruction.
+ * in a class logging as [REEL_LIKE_HANDLER] that takes the button, three of Instagram's public
+ * classes, four strings, a callback and two booleans and returns nothing, an instance method public
+ * in a public class, with a local for the hook's answer and nothing jumping to its first instruction.
  */
 internal fun BytecodePatchContext.findReelLikeButton(): ReelLikeTargets {
-    val found = classesLoadingString(REEL_LIKE_TAP).flatMap { it.methods }.filter { loadsString(it, REEL_LIKE_TAP) }
-    val tap = found.singleOrNull() ?: refuse("expected one method loading \"$REEL_LIKE_TAP\", found ${found.size}")
+    val found = classesLoadingString(REEL_LIKE_HANDLER).sortedBy { it.type }.flatMap { it.methods }.filter { it.reelLikeShaped() }
+    val tap = found.singleOrNull() ?: refuse(
+        "expected one (button, three objects, four strings, callback, two booleans) method in a class loading " +
+            "\"$REEL_LIKE_HANDLER\", found ${found.size}",
+    )
     val owner = classDefByOrNull(tap.definingClass) ?: refuse("${tap.definingClass} isn't in the app")
     val where = "${owner.type}->${tap.name}"
     if (AccessFlags.STATIC.isSet(tap.accessFlags)) refuse("$where is static")
     if (!AccessFlags.PUBLIC.isSet(owner.accessFlags) || !AccessFlags.PUBLIC.isSet(tap.accessFlags)) refuse("$where isn't public")
     val types = tap.parameterTypes.map(CharSequence::toString)
-    if (tap.returnType != "V" || types.size != 11 || types[0] != VIEW || types.subList(4, 8).any { it != STRING } ||
-        types[8] != FUNCTION1 || types[9] != "Z" || types[10] != "Z"
-    ) {
-        refuse("$where doesn't take the button, three objects, four strings, a callback and two booleans")
-    }
     for (type in types.subList(1, 4)) {
         val classDef = classDefByOrNull(type)
         if (classDef == null || !AccessFlags.PUBLIC.isSet(classDef.accessFlags)) refuse("$where takes $type, which isn't a public class in the app")
@@ -237,6 +237,12 @@ internal fun BytecodePatchContext.findReelLikeButton(): ReelLikeTargets {
         LIKE_REEL_AGAIN_STUB, List(5) { OBJECT } + List(4) { STRING } + listOf(OBJECT, "Z", "Z"), "V", 12,
     ) ?: refuse("$LIKE_CONFIRM has no static void $LIKE_REEL_AGAIN_STUB taking what the reel handler takes")
     return ReelLikeTargets(handler, stub)
+}
+
+/** The reel Like handler's shape: (button, three objects, four strings, a callback, two booleans) returning nothing. */
+private fun Method.reelLikeShaped(): Boolean = returnType == "V" && parameterTypes.map(CharSequence::toString).let { types ->
+    types.size == 11 && types[0] == VIEW && types.subList(4, 8).all { it == STRING } && types[8] == FUNCTION1 &&
+        types[9] == "Z" && types[10] == "Z"
 }
 
 /**
