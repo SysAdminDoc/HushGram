@@ -252,7 +252,10 @@ public final class GlassTopBar {
         return new int[] {glass.above, glass.below};
     }
 
-    /** Whether [header] has nothing showing in it, so its glass is only the strip behind the status bar. */
+    /**
+     * Whether [header]'s glass is only the strip behind the status bar: nothing shows in it, or it slid up
+     * behind the status bar whole.
+     */
     static boolean hollow(View header) {
         Drawable background = header.getBackground();
         return background instanceof Frost && ((Frost) background).glass.hollow;
@@ -432,7 +435,8 @@ public final class GlassTopBar {
         int above;
         int below;
         /**
-         * Whether Home's header has nothing showing, where the status bar is measured from its top edge, and how far
+         * Whether Home's header shows nothing or sits behind the status bar whole, where the status bar is measured
+         * from its top edge, and how far
          * the strip behind it fades out below it (#450).
          */
         boolean hollow;
@@ -606,7 +610,9 @@ public final class GlassTopBar {
             above = Math.max(0, top);
             below = Math.max(0, gap - top - header.getHeight());
             // An empty frosted band across the feed helps nobody: only the strip behind the clock stays (#513).
-            hollow = showsNothing(header);
+            // Instagram 456 slides the header itself up behind the status bar, not its views out of it, so a
+            // header whose bottom edge sits at or above the status bar's leaves only that strip too (#450).
+            hollow = showsNothing(header) || top + header.getHeight() <= gap;
             stripTop = -top;
             stripBottom = gap - top;
             fade = Math.round(STRIP_FADE * header.getResources().getDisplayMetrics().density);
@@ -614,7 +620,7 @@ public final class GlassTopBar {
             if (hollow) below = Math.max(below, stripBottom + fade - header.getHeight());
             if (hollow && !describedHollow) {
                 describedHollow = true;
-                Logger.printDebug(() -> "Top bar glass: the header shows nothing, at " + top + ", holding " + children(header));
+                Logger.printDebug(() -> "Top bar glass: only the strip behind the status bar, header at " + top + ", holding " + children(header));
             }
         }
 
