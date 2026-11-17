@@ -2251,9 +2251,10 @@ once-call Lapp/hushgram/extension/instagram/feed/CommentReply;->hidden()Z in (LX
 # cover Save's mount binder (the view-interaction tracker) and its selected state.
 # Hide the Share button passes the same state's Share button flag and share count flag through
 # ShareButton.feedState the same way, with no rule for the same reason. Its Reels guard is first in
-# the check that decides whether a reel shows the Share button, and in no other method.
-start-call Lapp/hushgram/extension/instagram/share/ShareButton;->hideInReels()Z in static (Lcom/instagram/clips/intf/ClipsViewerConfig;LX/*;LX/*;LX/*;)Z holding android_purge_26_q3_UfiUseCase_shouldShowShareButton
-once-call Lapp/hushgram/extension/instagram/share/ShareButton;->hideInReels()Z in static (Lcom/instagram/clips/intf/ClipsViewerConfig;LX/*;LX/*;LX/*;)Z holding android_purge_26_q3_UfiUseCase_shouldShowShareButton
+# the check that decides whether a reel shows the Share button, and in no other method. 456 dropped
+# that check's purge marker, so the rules name the reel's Share flag id it loads (07Xo.A01 on 456).
+start-call Lapp/hushgram/extension/instagram/share/ShareButton;->hideInReels()Z in static (Lcom/instagram/clips/intf/ClipsViewerConfig;LX/*;LX/*;LX/*;)Z holding const:0xe24407c8
+once-call Lapp/hushgram/extension/instagram/share/ShareButton;->hideInReels()Z in static (Lcom/instagram/clips/intf/ClipsViewerConfig;LX/*;LX/*;LX/*;)Z holding const:0xe24407c8
 # Remove the empty space at the bottom passes the navigation bar height Instagram's window insets
 # listener guesses, when the phone reports none, through BottomSpace.navigationBarHeight right after
 # the listener reads it (00OO.Exr on 449, the one method loading both strings below). Left out, the

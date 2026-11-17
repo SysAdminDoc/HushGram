@@ -16,7 +16,6 @@ import app.morphe.patches.instagram.feed.comments.COMMENTS_FEED_STATE
 import app.morphe.patches.instagram.feed.comments.COMMENT_COUNT_LABEL
 import app.morphe.patches.instagram.feed.comments.findFeedCommentState
 import app.morphe.patches.instagram.feed.comments.prepareFeedComments
-import app.morphe.patches.instagram.misc.extension.markers
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -30,7 +29,6 @@ import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
-import com.android.tools.smali.dexlib2.iface.reference.StringReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import com.android.tools.smali.dexlib2.immutable.ImmutableField
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
@@ -46,8 +44,8 @@ import java.io.File
 /**
  * Feed's action-row state: the flags its toString prints after "isShareEnabled=" and
  * "shouldShowShareCountInUfi=" go through ShareButton right before the state's constructor stores
- * them. Reels: the check holding the shouldShowShareButton marker asks ShareButton first and
- * answers no when it says to hide.
+ * them. Reels: the check taking the viewer's config that loads the reel's Share flag id asks
+ * ShareButton first and answers no when it says to hide.
  */
 class HideShareButtonHookTest {
     @Test
@@ -126,15 +124,16 @@ class HideShareButtonHookTest {
 
         val code = context.reelsCheck().implementation!!.instructions.toList()
         assertGuardFirst("fixture", code)
-        val marker = code[5]
-        assertEquals("the check's own code follows the guard", Opcode.CONST_STRING, marker.opcode)
+        val flag = code[5]
+        assertEquals("the check's own code follows the guard", Opcode.CONST, flag.opcode)
+        assertEquals(REELS_SHARE_OFF, (flag as NarrowLiteralInstruction).narrowLiteral)
         assertEquals(1, code.count { it.calls(HIDE_SHARE_IN_REELS) })
     }
 
     @Test
     fun aReelsCheckThatIsntTheOneFailsThePatch() {
         for ((case, classes) in listOf(
-            "no marker" to listOf(reels(marker = "android_purge_26_q3_UfiUseCase_shouldShowSaveButton")),
+            "another flag id" to listOf(reels(flag = 0x1773ef7c)),
             "two holders" to listOf(reels(), reels(type = OTHER_REELS)),
             "an instance method" to listOf(reels(flags = AccessFlags.PUBLIC.value)),
             "a check answering an object" to listOf(reels(result = "Ljava/lang/Boolean;")),
@@ -156,7 +155,8 @@ class HideShareButtonHookTest {
     /**
      * On each declared build the Feed state is found by its label, both Share flags are hooked right
      * before their one write each beside Hide comments' and Hide the Repost button's hooks, and the
-     * Reels check is the one static check holding the marker, guarded first.
+     * Reels check is the one static check taking the viewer's config that loads the Share flag id,
+     * guarded first.
      */
     @Test
     fun eachDeclaredBuildTakesTheShareButtonOff() {
@@ -177,10 +177,11 @@ class HideShareButtonHookTest {
     }
 
     private fun builds(bundle: File, label: String) {
-        val marked = FixtureDex.methodsWhere(bundle, { dex -> dex.stringSection.any { it.endsWith("_$REELS_SHOULD_SHOW_SHARE") } }) {
-            REELS_SHOULD_SHOW_SHARE in it.markers()
+        val marked = FixtureDex.methodsWhere(bundle, { dex -> dex.typeSection.any { it == VIEWER_CONFIG } }) { method ->
+            method.parameterTypes.any { it.toString() == VIEWER_CONFIG } &&
+                method.implementation?.instructions?.any { (it as? NarrowLiteralInstruction)?.narrowLiteral == REELS_SHARE_OFF } == true
         }.mapTo(HashSet()) { it.definingClass }
-        assertEquals("${label}: one class holds the Reels marker", 1, marked.size)
+        assertEquals("${label}: one class loads the Reels Share flag id", 1, marked.size)
         val classes = withBuilders(bundle, FixtureDex.classesHolding(bundle, SHARE_ENABLED_LABEL)) + FixtureDex.classes(bundle, marked).values
         val context = PatchContexts.of(classes)
 
@@ -189,6 +190,7 @@ class HideShareButtonHookTest {
         assertEquals("${label}: each set once", 2, found.writes.size)
         assertTrue("${label}: in place", found.writes.all { it.answer == it.value })
         val reels = context.findReelsShareCheck()
+        val first = reels.implementation!!.instructions.first()
         context.prepareFeedShare(found)()
         context.guardReelsShareCheck(reels)
         val comments = context.findFeedCommentState()
@@ -215,8 +217,7 @@ class HideShareButtonHookTest {
         }.implementation!!.instructions.toList()
         assertGuardFirst(label, guarded)
         assertEquals(label, 1, guarded.count { it.calls(HIDE_SHARE_IN_REELS) })
-        val marker = (guarded[5] as? ReferenceInstruction)?.reference as? StringReference
-        assertTrue("${label}: the marker follows the guard", marker?.string?.endsWith("_$REELS_SHOULD_SHOW_SHARE") == true)
+        assertEquals("${label}: the check's own first instruction follows the guard", first.opcode, guarded[5].opcode)
     }
 
     /** The guard asks the hook, and on yes answers 0, before the check's first instruction, where a no goes. */
@@ -291,7 +292,6 @@ class HideShareButtonHookTest {
         const val REELS = "Lfixture/ReelsUfi;"
         const val OTHER_REELS = "Lfixture/OtherReelsUfi;"
         const val VIEWER_CONFIG = "Lcom/instagram/clips/intf/ClipsViewerConfig;"
-        const val MARKER = "android_purge_26_q3_UfiUseCase_shouldShowShareButton"
         const val APPEND_STRING = "Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;"
         const val APPEND_BOOLEAN = "Ljava/lang/StringBuilder;->append(Z)Ljava/lang/StringBuilder;"
         val FINAL = AccessFlags.PUBLIC.value or AccessFlags.FINAL.value
@@ -382,12 +382,13 @@ class HideShareButtonHookTest {
         }
 
         /**
-         * The Reels check as 450 has it: static, taking the viewer's config among its parameters,
-         * loading its marker first and answering a boolean. [registers] counts its two parameters.
+         * The Reels check as 456 has it: static, taking the viewer's config among its parameters,
+         * loading [flag], the reel's Share flag id, first and answering a boolean. [registers] counts
+         * its two parameters.
          */
         fun reels(
             type: String = REELS,
-            marker: String = MARKER,
+            flag: Int = REELS_SHARE_OFF,
             flags: Int = STATIC,
             result: String = "Z",
             config: String = VIEWER_CONFIG,
@@ -396,15 +397,15 @@ class HideShareButtonHookTest {
             val static = AccessFlags.STATIC.isSet(flags)
             val first = if (static) "p0" else "p1"
             val answer = if (result == "Z") "return v0" else "return-object v0"
-            // With no local, the marker goes into a parameter's register, which the check no longer needs.
+            // With no local, the flag id goes into a parameter's register, which the check no longer needs.
             val body = if (registers <= 2) """
-                const-string p0, "$marker"
-                invoke-static { p0 }, Lfixture/Purge;->mark(Ljava/lang/String;)V
+                const p0, $flag
+                invoke-static { p0 }, Lfixture/Flags;->read(I)V
                 const/4 p0, 0x0
                 return p0
             """ else """
-                const-string v0, "$marker"
-                invoke-static { v0 }, Lfixture/Purge;->mark(Ljava/lang/String;)V
+                const v0, $flag
+                invoke-static { v0 }, Lfixture/Flags;->read(I)V
                 if-eqz $first, :no
                 const/4 v0, 0x1
                 $answer

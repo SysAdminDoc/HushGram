@@ -18,16 +18,17 @@ import app.morphe.patches.instagram.feed.prepareFlagWrites
 import app.morphe.patches.instagram.feed.printedFlag
 import app.morphe.patches.instagram.feed.sameAs
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.instagram.misc.extension.classesLoading
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
-import app.morphe.patches.instagram.misc.extension.markers
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
-import app.morphe.patches.instagram.misc.extension.typesMarked
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 
 private const val PATCH = "Hide the Share button"
@@ -43,11 +44,14 @@ internal const val SHARE_ENABLED_LABEL = ", isShareEnabled="
 internal const val SHARE_COUNT_LABEL = ", shouldShowShareCountInUfi="
 
 /**
- * The marker of the check that decides whether a reel's action column has a Share button. Both of
- * the column's readers on 450 ask it, the one that builds the button with its count and the one
- * that only needs a yes or no, and a no draws the column without the button.
+ * The id of the reel's own flag the check that decides whether a reel's action column has a Share
+ * button reads to leave the button out (`DTq(0xe24407c8)` on 386214574), a narrow constant. Both of
+ * the column's readers on 450 ask that check, the one that builds the button with its count and the
+ * one that only needs a yes or no, and a no draws the column without the button. Instagram 456
+ * dropped the check's UfiUseCase_shouldShowShareButton purge marker; it is the one method taking
+ * the Reels viewer's config that loads this id.
  */
-internal const val REELS_SHOULD_SHOW_SHARE = "UfiUseCase_shouldShowShareButton"
+internal const val REELS_SHARE_OFF = 0xe24407c8.toInt()
 private const val REELS_VIEWER_CONFIG = "Lcom/instagram/clips/intf/ClipsViewerConfig;"
 
 /**
@@ -117,30 +121,30 @@ internal fun BytecodePatchContext.prepareFeedShare(found: FeedShareState) =
     prepareFlagWrites(PATCH, found.type, "Share", found.writes, SHARE_FEED_STATE)
 
 /**
- * The one method holding the [REELS_SHOULD_SHOW_SHARE] marker: a static check taking the Reels
- * viewer's config and answering a boolean, with a local register for the guard to borrow. Fails
- * when none holds the marker, more than one does, or the one that does has another shape.
+ * The one method taking the Reels viewer's config that loads [REELS_SHARE_OFF]: a static check
+ * answering a boolean (`LX/07Xo;->A01` on 386214574), with a local register for the guard to
+ * borrow. Fails when none loads the id, more than one does, or the one that does has another shape.
  */
 internal fun BytecodePatchContext.findReelsShareCheck(): Method {
-    val marked = typesMarked(REELS_SHOULD_SHOW_SHARE)
-    val holders = mutableListOf<Method>()
-    classDefForEach { classDef ->
-        if (classDef.type in marked) classDef.methods.filterTo(holders) { REELS_SHOULD_SHOW_SHARE in it.markers() }
+    val holders = classesLoading(REELS_SHARE_OFF.toLong()).sortedBy { it.type }.flatMap { it.methods }.filter { method ->
+        method.parameterTypes.any { it.toString() == REELS_VIEWER_CONFIG } &&
+            method.implementation?.instructions?.any { it.loadsShareOff() } == true
     }
     val check = holders.singleOrNull() ?: refuse(
-        "expected one method holding the $REELS_SHOULD_SHOW_SHARE marker, found " +
+        "expected one method taking the Reels viewer's config and loading the reel's Share flag id, found " +
             if (holders.isEmpty()) "none" else holders.joinToString { "${it.definingClass}->${it.name}" },
     )
     val where = "${check.definingClass}->${check.name}"
     if (!AccessFlags.STATIC.isSet(check.accessFlags) || check.returnType != "Z" || check.implementation == null) {
-        refuse("$where, holding the $REELS_SHOULD_SHOW_SHARE marker, isn't a static check answering a boolean")
-    }
-    if (check.parameterTypes.none { it.toString() == REELS_VIEWER_CONFIG }) {
-        refuse("$where, holding the $REELS_SHOULD_SHOW_SHARE marker, doesn't take the Reels viewer's config")
+        refuse("$where, loading the reel's Share flag id, isn't a static check answering a boolean")
     }
     if (check.localRegisterCount() < 1) refuse("$where has no local register for the guard")
     return check
 }
+
+/** A narrow constant load of [REELS_SHARE_OFF]. */
+private fun Instruction.loadsShareOff(): Boolean =
+    !opcode.setsWideRegister() && (this as? NarrowLiteralInstruction)?.narrowLiteral == REELS_SHARE_OFF
 
 /**
  * Asks [HIDE_SHARE_IN_REELS] first thing in the Reels Share check, and answers no when it says to
