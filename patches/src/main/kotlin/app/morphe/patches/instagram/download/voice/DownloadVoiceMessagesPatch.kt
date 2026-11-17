@@ -25,6 +25,7 @@ import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
 import app.morphe.patches.instagram.misc.extension.parameterRegister
+import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
@@ -130,8 +131,9 @@ internal class VoiceSaver(
 
 /**
  * The reads the bridges make off a [message]: its [voice] media, that media's [media], the two
- * static [steps] turning it into its audio, the audio's [source], the recording's [address], and
- * the voice media's [viewMode].
+ * [steps] turning it into its audio, the audio's [source], the recording's [address], and the
+ * voice media's [viewMode]. The first step is static, or on 456 the media's own reading of itself
+ * as the model [tree] names.
  */
 internal class VoiceReads(
     val message: String,
@@ -141,7 +143,14 @@ internal class VoiceReads(
     val source: FieldReference,
     val address: Instruction,
     val viewMode: FieldReference,
+    val tree: TreeRead? = null,
 )
+
+/**
+ * What 456's player hands the media's reading of itself as a model: the [schema]'s name and the
+ * model's [type] id, and the media's own virtual read the bridge makes with them, [call].
+ */
+internal class TreeRead(val schema: String, val type: Int, val call: MethodReference)
 
 internal class VoiceMessages(val offer: VoiceOffer, val saver: VoiceSaver, val reads: VoiceReads)
 
@@ -318,7 +327,11 @@ private fun Method.storedParameter(store: Int): Int {
  * voice media's [MEDIA], turns that into its audio in two static steps, and reads the audio's
  * source and the source's address, each off the one before. 454's Redex moved that second path
  * out of the voice media's getter (05B6.A00 on 453's 385914557) into the player
- * (StellaDirectMessagingService's binder GxB on 386014758). The bridge takes the second path
+ * (StellaDirectMessagingService's binder GxB on 386014758). 456 inlines the first step: the media
+ * reads itself as the audio model (`Media.AUC("itas-android", 0x1ce524e1)` in the binder's HBI on
+ * 386214574), so its schema and type id are read off the constants loaded before it. x86_64's
+ * 386214575 makes that read in a static helper handed the media and the type id
+ * (`LX/0066;->A0R`), and the schema is read off the helper. The bridge takes the second path
  * only: a pending clip's path is a file on the sender's phone, which the saver can't fetch.
  * The voice media's view mode is what its parser, the one method making the voice media while
  * holding [VIEW_MODE_KEY] and [WAVEFORM_KEY], stores the string read for [VIEW_MODE_KEY] in.
@@ -345,12 +358,19 @@ internal fun BytecodePatchContext.findVoiceReads(message: String): VoiceReads {
 
     fun step(after: Int, from: Int, what: String): Int {
         val at = next(after, what) {
-            it.opcode == Opcode.INVOKE_STATIC && it.arguments() == listOf(from) && it.call()!!.returnType.startsWith("L")
+            it.opcode == Opcode.INVOKE_STATIC && it.arguments() == listOf(from) && it.call()!!.returnType.startsWith("L") ||
+                what == TREE_STEP && (it.readsTree(from) || it.readsTreeThroughHelper(from))
         }
         if (code.getOrNull(at + 1)?.opcode != Opcode.MOVE_RESULT_OBJECT) refuse("the player doesn't keep $what")
         return at
     }
-    val treeAt = step(mediaAt, (code[mediaAt] as TwoRegisterInstruction).registerA, "the media's audio model")
+    val mediaHeld = (code[mediaAt] as TwoRegisterInstruction).registerA
+    val treeAt = step(mediaAt, mediaHeld, TREE_STEP)
+    val tree = when {
+        code[treeAt].readsTree(mediaHeld) -> treeRead(code, mediaAt, treeAt)
+        code[treeAt].readsTreeThroughHelper(mediaHeld) -> helperTreeRead(code, mediaAt, treeAt)
+        else -> null
+    }
     val audioAt = step(treeAt + 1, (code[treeAt + 1] as OneRegisterInstruction).registerA, "the media's audio")
     val audio = code[audioAt].call()!!.returnType
     val audioHeld = (code[audioAt + 1] as OneRegisterInstruction).registerA
@@ -379,9 +399,77 @@ internal fun BytecodePatchContext.findVoiceReads(message: String): VoiceReads {
             it.field()?.let { field -> field.definingClass == voice.type && field.type == STRING } == true
     }
     val viewMode = kept.singleOrNull()?.field() ?: refuse("expected the view mode kept in one field of ${voice.type}, found ${kept.size}")
-    val steps = listOf(code[treeAt].call()!!, code[audioAt].call()!!)
-    return VoiceReads(message, voice, code[mediaAt].field()!!, steps, source, code[addressAt], viewMode)
+    val steps = listOf(tree?.call ?: code[treeAt].call()!!, code[audioAt].call()!!)
+    return VoiceReads(message, voice, code[mediaAt].field()!!, steps, source, code[addressAt], viewMode, tree)
 }
+
+private const val TREE_STEP = "the media's audio model"
+
+/** A model's schema name as the bridge loads it again: plain enough to write into smali as is. */
+private val SCHEMA_NAME = Regex("[A-Za-z0-9_.-]+")
+
+/** 456's first step: a virtual (String, int) call on the media [from] holds, answering an object. */
+private fun Instruction.readsTree(from: Int): Boolean {
+    val call = call() ?: return false
+    return opcode == Opcode.INVOKE_VIRTUAL && call.definingClass == MEDIA && call.parameters() == listOf(STRING, "I") &&
+        call.returnType.startsWith("L") && arguments().firstOrNull() == from
+}
+
+/**
+ * 386214575's first step: a static helper handed the media [from] holds first, then the type id and a
+ * zero, answering an object (`LX/0066;->A0R(Media;II)LX/0C4S;` on x86_64).
+ */
+private fun Instruction.readsTreeThroughHelper(from: Int): Boolean {
+    val call = call() ?: return false
+    return opcode == Opcode.INVOKE_STATIC && call.parameters() == listOf(MEDIA, "I", "I") &&
+        call.returnType.startsWith("L") && arguments().firstOrNull() == from
+}
+
+/** The schema name and type id the media's reading at [at] is handed, each the last constant written to its register since [after]. */
+private fun treeRead(code: List<Instruction>, after: Int, at: Int): TreeRead {
+    val (_, schemaHeld, typeHeld) = code[at].arguments()
+    val schema = (code.lastWrite(after, at, schemaHeld)?.reference() as? StringReference)?.string?.takeIf { it.matches(SCHEMA_NAME) }
+        ?: refuse("the player doesn't load the schema it reads the media's audio model in right before")
+    val type = (code.lastWrite(after, at, typeHeld) as? NarrowLiteralInstruction)?.narrowLiteral
+        ?: refuse("the player doesn't load the type id it reads the media's audio model as right before")
+    return TreeRead(schema, type, code[at].call()!!)
+}
+
+/**
+ * The same as [treeRead] for the helper at [at]: the helper loads the schema and makes the media's
+ * read with the type id the player loaded, then throws on a null answer. The bridge makes that read
+ * itself, so its own null check answers instead.
+ */
+private fun BytecodePatchContext.helperTreeRead(code: List<Instruction>, after: Int, at: Int): TreeRead {
+    val called = code[at].call()!!
+    val where = "the player's model helper ${called.definingClass}->${called.name}"
+    val helper = classDefByOrNull(called.definingClass)?.methods?.singleOrNull {
+        it.name == called.name && it.parameters() == called.parameters() && it.returnType == called.returnType
+    } ?: refuse("$where isn't in the app")
+    val body = helper.code()
+    val media = helper.parameterRegisterNumber(0)
+    val typeHeld = helper.parameterRegisterNumber(1)
+    val reads = body.indices.filter { body[it].readsTree(media) && body[it].arguments()[2] == typeHeld }
+    val read = reads.singleOrNull() ?: refuse("$where reads the media's audio model ${reads.size} times, not once")
+    val overwritten = (0 until read).any { index ->
+        val written = body[index]
+        written is OneRegisterInstruction && (written.registerA == media || written.registerA == typeHeld) && written.opcode.setsRegister()
+    }
+    if (overwritten) {
+        refuse("$where writes over the media or the type id before reading the model")
+    }
+    val schema = (body.lastWrite(-1, read, body[read].arguments()[1])?.reference() as? StringReference)?.string?.takeIf { it.matches(SCHEMA_NAME) }
+        ?: refuse("$where doesn't load the schema it reads the media's audio model in right before")
+    val type = (code.lastWrite(after, at, code[at].arguments()[1]) as? NarrowLiteralInstruction)?.narrowLiteral
+        ?: refuse("the player doesn't load the type id it hands $where right before")
+    return TreeRead(schema, type, body[read].call()!!)
+}
+
+/** The last instruction between [after] and [at] (both left out) writing [register], if any. */
+private fun List<Instruction>.lastWrite(after: Int, at: Int, register: Int): Instruction? = (after + 1 until at).lastOrNull { index ->
+    val written = this[index]
+    written is OneRegisterInstruction && written.registerA == register && written.opcode.setsRegister()
+}?.let(this::get)
 
 /**
  * The saver's entry: in the class keeping [MEDIA_SAVER] as its name, the static method that checks a
@@ -443,8 +531,14 @@ internal fun BytecodePatchContext.applyVoiceMessages(found: VoiceMessages) {
 
     val reads = found.reads
     val address = reads.address.call()!!
+    val tree = reads.tree
+    val toTree = if (tree == null) "invoke-static { v1 }, ${reads.steps[0]}" else """
+        const-string v2, "${tree.schema}"
+        const v3, ${tree.type}
+        invoke-virtual { v1, v2, v3 }, ${reads.steps[0]}
+    """.trimIndent()
     replace(
-        AUDIO_BRIDGE, 2,
+        AUDIO_BRIDGE, if (tree == null) 2 else 4,
         """
             const/4 v0, 0x0
             if-eqz p0, :none
@@ -455,8 +549,9 @@ internal fun BytecodePatchContext.applyVoiceMessages(found: VoiceMessages) {
             if-eqz v1, :none
             iget-object v1, v1, ${reads.media}
             if-eqz v1, :none
-            invoke-static { v1 }, ${reads.steps[0]}
+            $toTree
             move-result-object v1
+            if-eqz v1, :none
             invoke-static { v1 }, ${reads.steps[1]}
             move-result-object v1
             if-eqz v1, :none

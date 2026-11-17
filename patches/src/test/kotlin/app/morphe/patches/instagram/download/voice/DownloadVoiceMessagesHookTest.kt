@@ -19,10 +19,13 @@ import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
+import com.android.tools.smali.dexlib2.iface.reference.MethodReference
+import com.android.tools.smali.dexlib2.iface.reference.StringReference
 import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import com.android.tools.smali.dexlib2.immutable.ImmutableField
@@ -110,6 +113,75 @@ class DownloadVoiceMessagesHookTest {
     }
 
     /**
+     * 456's player has the media read itself as the audio model, handed a schema name and a type
+     * id, then checks the answer before the second step. The bridge loads the same two constants.
+     */
+    @Test
+    fun aMediaReadingItselfAsTheModelIsReadTheSameWay() {
+        val context = context(player = player(tree = true))
+        val found = context.findVoiceMessages()
+        assertEquals("the schema", "itas-android", found.reads.tree!!.schema)
+        assertEquals("the type id", 0x1ce524e1, found.reads.tree!!.type)
+        context.applyVoiceMessages(found)
+
+        val audio = context.method(VOICE_MESSAGE, AUDIO_BRIDGE).instructions()
+        assertEquals(
+            listOf(
+                "$MESSAGE->voice:$VOICE", "$VOICE->media:$FEED_MEDIA", "$FEED_MEDIA->tree(Ljava/lang/String;I)$TREE",
+                "$VOICE_MEDIA->of($TREE)$VOICE_MEDIA", "$VOICE_MEDIA->source:$SOURCE", "$SOURCE->url()Ljava/lang/String;",
+            ),
+            audio.filter { it.opcode in READS }.map { it.referenceText() },
+        )
+        val read = audio.indexOfFirst { it.referenceText() == "$FEED_MEDIA->tree(Ljava/lang/String;I)$TREE" }
+        val (media, schema, type) = (audio[read] as FiveRegisterInstruction).let { listOf(it.registerC, it.registerD, it.registerE) }
+        assertEquals("the schema's load", "itas-android", (audio.last { audio.indexOf(it) < read && (it as? OneRegisterInstruction)?.registerA == schema }.reference() as StringReference).string)
+        assertEquals("the type's load", 0x1ce524e1, (audio.last { audio.indexOf(it) < read && (it as? OneRegisterInstruction)?.registerA == type } as NarrowLiteralInstruction).narrowLiteral)
+        assertEquals("the media's register", (audio[read - 3] as OneRegisterInstruction).registerA, media)
+    }
+
+    @Test
+    fun aModelReadWithoutItsSchemaFailsThePatch() = refuses("doesn't load the schema") {
+        context(player = player(tree = true, schema = false)).findVoiceMessages()
+    }
+
+    /**
+     * x86_64's 386214575 hands the media and the type id to a static helper, which loads the schema,
+     * makes the same read and throws on a null answer. The bridge makes the media's read itself, with
+     * the helper's schema and the player's type id, so a null answer reads as no address.
+     */
+    @Test
+    fun aModelReadThroughAHelperIsReadTheSameWay() {
+        val context = context(player = player(helper = true), extra = listOf(modelHelper()))
+        val found = context.findVoiceMessages()
+        assertEquals("the schema", "itas-android", found.reads.tree!!.schema)
+        assertEquals("the type id", 0x1ce524e1, found.reads.tree!!.type)
+        context.applyVoiceMessages(found)
+
+        val audio = context.method(VOICE_MESSAGE, AUDIO_BRIDGE).instructions()
+        assertEquals(
+            listOf(
+                "$MESSAGE->voice:$VOICE", "$VOICE->media:$FEED_MEDIA", "$FEED_MEDIA->tree(Ljava/lang/String;I)$TREE",
+                "$VOICE_MEDIA->of($TREE)$VOICE_MEDIA", "$VOICE_MEDIA->source:$SOURCE", "$SOURCE->url()Ljava/lang/String;",
+            ),
+            audio.filter { it.opcode in READS }.map { it.referenceText() },
+        )
+        val read = audio.indexOfFirst { it.referenceText() == "$FEED_MEDIA->tree(Ljava/lang/String;I)$TREE" }
+        val (schema, type) = (audio[read] as FiveRegisterInstruction).let { listOf(it.registerD, it.registerE) }
+        assertEquals("the schema's load", "itas-android", (audio.last { audio.indexOf(it) < read && (it as? OneRegisterInstruction)?.registerA == schema }.reference() as StringReference).string)
+        assertEquals("the type's load", 0x1ce524e1, (audio.last { audio.indexOf(it) < read && (it as? OneRegisterInstruction)?.registerA == type } as NarrowLiteralInstruction).narrowLiteral)
+    }
+
+    @Test
+    fun aHelperWithoutTheSchemaFailsThePatch() = refuses("doesn't load the schema") {
+        context(player = player(helper = true), extra = listOf(modelHelper(schema = false))).findVoiceMessages()
+    }
+
+    @Test
+    fun aHelperReadingTheModelTwiceFailsThePatch() = refuses("reads the media's audio model 2 times") {
+        context(player = player(helper = true), extra = listOf(modelHelper(twice = true))).findVoiceMessages()
+    }
+
+    /**
      * The x86_64 build 385611440 looks the message up through a static copy of the lookup taking
      * one more argument, copied into place between loading the name and the call.
      */
@@ -191,7 +263,7 @@ class DownloadVoiceMessagesHookTest {
                     it.name == found.saver.method.name && it.parameterTypes == found.saver.method.parameterTypes
                 }
                 if (bundle.name == "instagram-456.0.0.53.78-386214574.apks") {
-                    // Where it lands on 455's declared build, read off the dex by hand.
+                    // Where it lands on 456's declared build, read off the dex by hand.
                     val at = builder.instructions().indexOfFirst { it.referenceText() == OFFER_VOICE }
                     assertEquals(
                         DECLARED_SITES,
@@ -227,7 +299,11 @@ class DownloadVoiceMessagesHookTest {
         }.map { it.definingClass }
         val entryTypes = held.filter { it.methods.any { method -> method.loads(MEDIA_SAVER) } }
             .flatMap { it.methods }.flatMap { it.parameterTypes.map(Any::toString) }.filter { it.startsWith("L") }
-        val extra = FixtureDex.classes(bundle, (builders + entryTypes + model).toSet()).values
+        // x86_64's 386214575 reads the media's audio model in a static helper the player hands the media.
+        val helpers = held.flatMap { it.methods }.filter { it.loads(AUDIO_SOURCE) }.flatMap { it.instructions() }
+            .filter { it.opcode == Opcode.INVOKE_STATIC }.mapNotNull { it.reference() as? MethodReference }
+            .filter { it.parameterTypes.firstOrNull()?.toString() == FEED_MEDIA }.map { it.definingClass }
+        val extra = FixtureDex.classes(bundle, (builders + entryTypes + model + helpers).toSet()).values
         val context = PatchContexts.of((held + extra).distinctBy { it.type } + extension)
 
         val found = context.findVoiceMessages()
@@ -265,21 +341,20 @@ class DownloadVoiceMessagesHookTest {
 
     private companion object {
         /**
-         * On 455.0.0.51.72's 386113969: the builder and the ask before the offer, the saver's entry and its
+         * On 456.0.0.53.78's 386214574: the builder and the ask before the offer, the saver's entry and its
          * first two reads, then the audio bridge's reads and the view mode bridge's. The builder is the
-         * merged lambda 09o1's invoke, asking 0KdP.Aa0 about the message 03eU at 680 before it sets the
-         * register it hands the model's 04Jp.A10 at 690. The saver's entry is 0bik.A03, whose request
-         * 0XvU holds the message. The audio reads are the player H3h's own at 3614 to 3618, then 3608
-         * and 3610: 03Rr's media, 0gl8.A00 and 00XT.A01 to its audio 00cE, then 00cE.A08 and its BYC.
-         * The parser 05Xg keeps the view mode in 03Rr.A0D.
+         * merged lambda 09Vf's invoke, asking 0Lbr.AZj about the message 05rc at 609. The saver's entry
+         * is 0aXi.A03, whose request 0Xox holds the message. The audio reads are 06Gj's media, the
+         * media's own AUC tree read (456 inlined 455's 0gl8.A00 lookup), 00uY.A01 to its audio 00xN,
+         * then 00xN.A08 and its BYj. The view mode stays in 06Gj.A0D.
          */
         val DECLARED_SITES = listOf(
-            "LX/09o1;->invoke", "LX/0KdP;->Aa0(Lcom/instagram/common/session/UserSession;LX/03eU;)Z",
-            "LX/0bik;->A03", "LX/0XvU;->A00:LX/03eU;", "LX/0bik;->A00:Landroid/app/Activity;",
-            "LX/03eU;->A0L:LX/03Rr;", "LX/03Rr;->A02:Lcom/instagram/feed/media/Media;",
-            "LX/0gl8;->A00(Lcom/instagram/feed/media/Media;)LX/0YYv;", "LX/00XT;->A01(LX/0YYv;)LX/00cE;",
-            "LX/00cE;->A08:LX/0nih;", "LX/0nih;->BYC()Ljava/lang/String;",
-            "LX/03eU;->A0L:LX/03Rr;", "LX/03Rr;->A0D:Ljava/lang/String;",
+            "LX/09Vf;->invoke", "LX/0Lbr;->AZj(Lcom/instagram/common/session/UserSession;LX/05rc;)Z",
+            "LX/0aXi;->A03", "LX/0Xox;->A00:LX/05rc;", "LX/0aXi;->A00:Landroid/app/Activity;",
+            "LX/05rc;->A0L:LX/06Gj;", "LX/06Gj;->A02:Lcom/instagram/feed/media/Media;",
+            "Lcom/instagram/feed/media/Media;->AUC(Ljava/lang/String;I)LX/0BVH;", "LX/00uY;->A01(LX/0BVH;)LX/00xN;",
+            "LX/00xN;->A08:LX/05GR;", "LX/05GR;->BYj()Ljava/lang/String;",
+            "LX/05rc;->A0L:LX/06Gj;", "LX/06Gj;->A0D:Ljava/lang/String;",
         )
 
         const val MENU = "Lfixture/ThreadFragment;"
@@ -294,6 +369,7 @@ class DownloadVoiceMessagesHookTest {
         const val VOICE_MEDIA = "Lfixture/VoiceMedia;"
         const val SOURCE = "Lfixture/AudioSource;"
         const val TREE = "Lfixture/AudioTree;"
+        const val MODEL_HELPER = "Lfixture/ModelHelper;"
         const val FEED_MEDIA = "Lcom/instagram/feed/media/Media;"
         const val PARSER = "Lfixture/VoiceParser;"
         const val JSON = "Lfixture/Json;"
@@ -312,7 +388,8 @@ class DownloadVoiceMessagesHookTest {
             player: ClassDef = player(),
             parser: ClassDef = parser(),
             saver: ClassDef = saver(),
-        ) = PatchContexts.of(listOf(menu, action(ACTION), action(OTHER_ACTION), model, builder, player, parser, saver, request(), ExtensionDex.classDef(VOICE_MESSAGE)))
+            extra: List<ClassDef> = emptyList(),
+        ) = PatchContexts.of(listOf(menu, action(ACTION), action(OTHER_ACTION), model, builder, player, parser, saver, request(), ExtensionDex.classDef(VOICE_MESSAGE)) + extra)
 
         /** 438's lookup, called right after the name is loaded into v1. */
         const val DIRECT_LOOKUP = "invoke-virtual { v2, v1 }, Lfixture/Cache;->find(Ljava/lang/String;)$MESSAGE"
@@ -406,7 +483,21 @@ class DownloadVoiceMessagesHookTest {
          * a pending clip's path first, otherwise the voice media's media turned into its audio, both
          * paths meeting at the read of the audio's source.
          */
-        fun player(address: String = "Ljava/lang/String;"): ClassDef {
+        fun player(address: String = "Ljava/lang/String;", tree: Boolean = false, schema: Boolean = true, helper: Boolean = false): ClassDef {
+            val toTree = when {
+                helper -> listOf(
+                    "const v2, 0x1ce524e1",
+                    "const/4 v3, 0x0",
+                    "invoke-static { v0, v2, v3 }, $MODEL_HELPER->read(${FEED_MEDIA}II)$TREE",
+                ).joinToString("\n")
+                !tree -> "invoke-static { v0 }, $TREE->of($FEED_MEDIA)$TREE"
+                else -> listOfNotNull(
+                    "const v2, 0x1ce524e1",
+                    "const-string v3, \"itas-android\"".takeIf { schema },
+                    "invoke-virtual { v0, v3, v2 }, $FEED_MEDIA->tree(Ljava/lang/String;I)$TREE",
+                ).joinToString("\n")
+            }
+            val check = if (tree) "invoke-static { v0, v2 }, Lfixture/Checks;->notNull(Ljava/lang/Object;I)V" else ""
             val body = """
                 const-string v0, "$AUDIO_SOURCE"
                 invoke-static { v0 }, Lfixture/Trace;->step(Ljava/lang/String;)V
@@ -428,15 +519,36 @@ class DownloadVoiceMessagesHookTest {
                 :media
                 iget-object v0, v1, $VOICE->media:$FEED_MEDIA
                 if-eqz v0, :none
-                invoke-static { v0 }, $TREE->of($FEED_MEDIA)$TREE
+                $toTree
                 move-result-object v0
+                $check
                 invoke-static { v0 }, $VOICE_MEDIA->of($TREE)$VOICE_MEDIA
                 move-result-object v0
                 goto :read
             """
             return ImmutableClassDef(
                 PLAYER, PUBLIC_FINAL, "Ljava/lang/Object;", null, null, null, null,
-                listOf(method(PLAYER, "link", listOf(MESSAGE), 4, body, PUBLIC_FINAL, "Ljava/lang/String;")),
+                listOf(method(PLAYER, "link", listOf(MESSAGE), if (tree || helper) 6 else 4, body, PUBLIC_FINAL, "Ljava/lang/String;")),
+            )
+        }
+
+        /**
+         * Shaped like x86_64 386214575's LX/0066;->A0R: loads the schema, has the media read itself
+         * as the model with the type id it was handed, and throws on a null answer.
+         */
+        fun modelHelper(schema: Boolean = true, twice: Boolean = false): ClassDef {
+            val read = "invoke-virtual { p0, v0, p1 }, $FEED_MEDIA->tree(Ljava/lang/String;I)$TREE"
+            val body = listOfNotNull(
+                "const-string v0, \"itas-android\"".takeIf { schema },
+                read.takeIf { twice },
+                read,
+                "move-result-object v0",
+                "invoke-static { v0, p2 }, Lfixture/Checks;->notNull(Ljava/lang/Object;I)V",
+                "return-object v0",
+            ).joinToString("\n")
+            return ImmutableClassDef(
+                MODEL_HELPER, PUBLIC_FINAL, "Ljava/lang/Object;", null, null, null, null,
+                listOf(method(MODEL_HELPER, "read", listOf(FEED_MEDIA, "I", "I"), 4, body, PUBLIC_STATIC, TREE)),
             )
         }
 
