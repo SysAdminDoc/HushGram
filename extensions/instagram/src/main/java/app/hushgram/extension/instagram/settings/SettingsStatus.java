@@ -152,6 +152,11 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Rewritten by the Search blocked accounts patch. */
+    public static boolean blockedSearch() {
+        return false;
+    }
+
     public static boolean threadSeen() {
         return false;
     }

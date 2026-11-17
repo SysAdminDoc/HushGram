@@ -2510,3 +2510,13 @@ Stops telling Instagram which posts in Home you looked at and for how long. Inst
 # context: Tab bar: switch under Hide the Messages tab that takes the unread count off the Messages button on the bottom tab bar (#734)
 Hide the Messages badge	隱藏私訊徽章
 Takes the unread count off the Messages button on the tab bar. Chats still show as unread in your inbox, and notifications still come. Restart Instagram to see the change.	移除分頁列私訊按鈕上的未讀數。收件匣中的聊天仍顯示為未讀，通知也照常送達。請重新啟動 Instagram 以套用變更.
+# context: Ads and privacy settings: switch that adds a search box above Instagram's Blocked accounts list (Settings > Blocked), filtering it by username or full name; the same title is the box's hint text (#731)
+Search blocked accounts	搜尋已封鎖的帳號
+Adds a search box above your blocked accounts in Instagram's settings. It finds them by username or name, and loads the rest of your list as you type.	在 Instagram 設定中已封鎖的帳號上方加入搜尋框。可依使用者名稱或名稱尋找，並在你輸入時載入清單的其餘部分.
+# context: the line under that search box. %1$d is how many blocked accounts match, %2$d how many have loaded. First while more pages are loading, then when Instagram stopped sending pages, then when the whole list is in (#731)
+Matches: %1$d of %2$d account loaded so far. Loading the rest of your list.	相符 %1$d 個，目前已載入 %2$d 個帳號。正在載入清單的其餘部分.
+Matches: %1$d of %2$d accounts loaded so far. Loading the rest of your list.	相符 %1$d 個，目前已載入 %2$d 個帳號。正在載入清單的其餘部分.
+Matches: %1$d of the %2$d account that loaded. Instagram didn't send the rest.	相符 %1$d 個，共載入 %2$d 個帳號。Instagram 未傳送其餘部分.
+Matches: %1$d of the %2$d accounts that loaded. Instagram didn't send the rest.	相符 %1$d 個，共載入 %2$d 個帳號。Instagram 未傳送其餘部分.
+Matches: %1$d of %2$d blocked account	相符 %1$d 個，共 %2$d 個已封鎖的帳號
+Matches: %1$d of %2$d blocked accounts	相符 %1$d 個，共 %2$d 個已封鎖的帳號

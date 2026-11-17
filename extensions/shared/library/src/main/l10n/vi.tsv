@@ -2422,3 +2422,13 @@ Stops telling Instagram which posts in Home you looked at and for how long. Inst
 # context: Tab bar: switch under Hide the Messages tab that takes the unread count off the Messages button on the bottom tab bar (#734)
 Hide the Messages badge	Ẩn huy hiệu Tin nhắn
 Takes the unread count off the Messages button on the tab bar. Chats still show as unread in your inbox, and notifications still come. Restart Instagram to see the change.	Gỡ số tin chưa đọc khỏi nút Tin nhắn trên thanh tab. Cuộc trò chuyện vẫn hiện là chưa đọc trong hộp thư, và thông báo vẫn đến. Hãy khởi động lại Instagram để thấy thay đổi.
+# context: Ads and privacy settings: switch that adds a search box above Instagram's Blocked accounts list (Settings > Blocked), filtering it by username or full name; the same title is the box's hint text (#731)
+Search blocked accounts	Tìm tài khoản đã chặn
+Adds a search box above your blocked accounts in Instagram's settings. It finds them by username or name, and loads the rest of your list as you type.	Thêm ô tìm kiếm phía trên các tài khoản bạn đã chặn trong phần cài đặt của Instagram. Ô này tìm theo tên người dùng hoặc tên, và tải phần còn lại của danh sách khi bạn gõ.
+# context: the line under that search box. %1$d is how many blocked accounts match, %2$d how many have loaded. First while more pages are loading, then when Instagram stopped sending pages, then when the whole list is in (#731)
+Matches: %1$d of %2$d account loaded so far. Loading the rest of your list.	Khớp: %1$d trên %2$d tài khoản đã tải đến giờ. Đang tải phần còn lại của danh sách.
+Matches: %1$d of %2$d accounts loaded so far. Loading the rest of your list.	Khớp: %1$d trên %2$d tài khoản đã tải đến giờ. Đang tải phần còn lại của danh sách.
+Matches: %1$d of the %2$d account that loaded. Instagram didn't send the rest.	Khớp: %1$d trên %2$d tài khoản đã tải. Instagram không gửi phần còn lại.
+Matches: %1$d of the %2$d accounts that loaded. Instagram didn't send the rest.	Khớp: %1$d trên %2$d tài khoản đã tải. Instagram không gửi phần còn lại.
+Matches: %1$d of %2$d blocked account	Khớp: %1$d trên %2$d tài khoản đã chặn
+Matches: %1$d of %2$d blocked accounts	Khớp: %1$d trên %2$d tài khoản đã chặn

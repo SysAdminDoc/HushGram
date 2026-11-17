@@ -2504,3 +2504,13 @@ Stops telling Instagram which posts in Home you looked at and for how long. Inst
 # context: Tab bar: switch under Hide the Messages tab that takes the unread count off the Messages button on the bottom tab bar (#734)
 Hide the Messages badge	ซ่อนป้ายตัวเลขบนปุ่มข้อความ
 Takes the unread count off the Messages button on the tab bar. Chats still show as unread in your inbox, and notifications still come. Restart Instagram to see the change.	นำตัวเลขข้อความที่ยังไม่ได้อ่านออกจากปุ่มข้อความบนแถบแท็บ แชทในกล่องข้อความยังแสดงว่ายังไม่ได้อ่าน และการแจ้งเตือนยังเข้ามาตามปกติ โปรดรีสตาร์ท Instagram เพื่อดูการเปลี่ยนแปลง
+# context: Ads and privacy settings: switch that adds a search box above Instagram's Blocked accounts list (Settings > Blocked), filtering it by username or full name; the same title is the box's hint text (#731)
+Search blocked accounts	ค้นหาบัญชีที่ถูกบล็อก
+Adds a search box above your blocked accounts in Instagram's settings. It finds them by username or name, and loads the rest of your list as you type.	เพิ่มช่องค้นหาไว้เหนือบัญชีที่คุณบล็อกในการตั้งค่าของ Instagram ค้นหาได้จากชื่อผู้ใช้หรือชื่อ และโหลดรายชื่อที่เหลือขณะที่คุณพิมพ์
+# context: the line under that search box. %1$d is how many blocked accounts match, %2$d how many have loaded. First while more pages are loading, then when Instagram stopped sending pages, then when the whole list is in (#731)
+Matches: %1$d of %2$d account loaded so far. Loading the rest of your list.	ตรงกัน %1$d จาก %2$d บัญชีที่โหลดแล้ว กำลังโหลดรายชื่อที่เหลือ
+Matches: %1$d of %2$d accounts loaded so far. Loading the rest of your list.	ตรงกัน %1$d จาก %2$d บัญชีที่โหลดแล้ว กำลังโหลดรายชื่อที่เหลือ
+Matches: %1$d of the %2$d account that loaded. Instagram didn't send the rest.	ตรงกัน %1$d จาก %2$d บัญชีที่โหลดมา Instagram ไม่ได้ส่งส่วนที่เหลือมา
+Matches: %1$d of the %2$d accounts that loaded. Instagram didn't send the rest.	ตรงกัน %1$d จาก %2$d บัญชีที่โหลดมา Instagram ไม่ได้ส่งส่วนที่เหลือมา
+Matches: %1$d of %2$d blocked account	ตรงกัน %1$d จาก %2$d บัญชีที่ถูกบล็อก
+Matches: %1$d of %2$d blocked accounts	ตรงกัน %1$d จาก %2$d บัญชีที่ถูกบล็อก

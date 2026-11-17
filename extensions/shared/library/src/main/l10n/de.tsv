@@ -2507,3 +2507,13 @@ Stops telling Instagram which posts in Home you looked at and for how long. Inst
 # context: Tab bar: switch under Hide the Messages tab that takes the unread count off the Messages button on the bottom tab bar (#734)
 Hide the Messages badge	Nachrichten-Badge ausblenden
 Takes the unread count off the Messages button on the tab bar. Chats still show as unread in your inbox, and notifications still come. Restart Instagram to see the change.	Entfernt die Zahl ungelesener Nachrichten von der Nachrichten-Taste in der Tab-Leiste. Chats bleiben in deinem Posteingang als ungelesen markiert, und Benachrichtigungen kommen weiter. Starte Instagram neu, um die Änderung zu sehen.
+# context: Ads and privacy settings: switch that adds a search box above Instagram's Blocked accounts list (Settings > Blocked), filtering it by username or full name; the same title is the box's hint text (#731)
+Search blocked accounts	Blockierte Konten durchsuchen
+Adds a search box above your blocked accounts in Instagram's settings. It finds them by username or name, and loads the rest of your list as you type.	Fügt über deinen blockierten Konten in den Instagram-Einstellungen ein Suchfeld hinzu. Es findet sie nach Benutzername oder Name und lädt beim Tippen den Rest deiner Liste.
+# context: the line under that search box. %1$d is how many blocked accounts match, %2$d how many have loaded. First while more pages are loading, then when Instagram stopped sending pages, then when the whole list is in (#731)
+Matches: %1$d of %2$d account loaded so far. Loading the rest of your list.	Treffer: %1$d von %2$d bisher geladenen Konto. Der Rest deiner Liste wird geladen.
+Matches: %1$d of %2$d accounts loaded so far. Loading the rest of your list.	Treffer: %1$d von %2$d bisher geladenen Konten. Der Rest deiner Liste wird geladen.
+Matches: %1$d of the %2$d account that loaded. Instagram didn't send the rest.	Treffer: %1$d von %2$d geladenen Konto. Instagram hat den Rest nicht geschickt.
+Matches: %1$d of the %2$d accounts that loaded. Instagram didn't send the rest.	Treffer: %1$d von %2$d geladenen Konten. Instagram hat den Rest nicht geschickt.
+Matches: %1$d of %2$d blocked account	Treffer: %1$d von %2$d blockierten Konto
+Matches: %1$d of %2$d blocked accounts	Treffer: %1$d von %2$d blockierten Konten

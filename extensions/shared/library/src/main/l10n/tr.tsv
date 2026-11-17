@@ -2507,3 +2507,13 @@ Stops telling Instagram which posts in Home you looked at and for how long. Inst
 # context: Tab bar: switch under Hide the Messages tab that takes the unread count off the Messages button on the bottom tab bar (#734)
 Hide the Messages badge	Mesajlar rozetini gizle
 Takes the unread count off the Messages button on the tab bar. Chats still show as unread in your inbox, and notifications still come. Restart Instagram to see the change.	Sekme çubuğundaki Mesajlar düğmesinden okunmamış sayısını kaldırır. Sohbetler gelen kutunda okunmamış görünmeye devam eder, bildirimler de gelir. Değişikliği görmek için Instagram'ı yeniden başlat.
+# context: Ads and privacy settings: switch that adds a search box above Instagram's Blocked accounts list (Settings > Blocked), filtering it by username or full name; the same title is the box's hint text (#731)
+Search blocked accounts	Engellenen hesaplarda ara
+Adds a search box above your blocked accounts in Instagram's settings. It finds them by username or name, and loads the rest of your list as you type.	Instagram ayarlarındaki engellenen hesaplarının üstüne bir arama kutusu ekler. Hesapları kullanıcı adına veya ada göre bulur ve sen yazarken listenin geri kalanını yükler.
+# context: the line under that search box. %1$d is how many blocked accounts match, %2$d how many have loaded. First while more pages are loading, then when Instagram stopped sending pages, then when the whole list is in (#731)
+Matches: %1$d of %2$d account loaded so far. Loading the rest of your list.	Eşleşen: şimdiye kadar yüklenen %2$d hesaptan %1$d. Listenin geri kalanı yükleniyor.
+Matches: %1$d of %2$d accounts loaded so far. Loading the rest of your list.	Eşleşen: şimdiye kadar yüklenen %2$d hesaptan %1$d. Listenin geri kalanı yükleniyor.
+Matches: %1$d of the %2$d account that loaded. Instagram didn't send the rest.	Eşleşen: yüklenen %2$d hesaptan %1$d. Instagram geri kalanını göndermedi.
+Matches: %1$d of the %2$d accounts that loaded. Instagram didn't send the rest.	Eşleşen: yüklenen %2$d hesaptan %1$d. Instagram geri kalanını göndermedi.
+Matches: %1$d of %2$d blocked account	Eşleşen: %2$d engellenen hesaptan %1$d
+Matches: %1$d of %2$d blocked accounts	Eşleşen: %2$d engellenen hesaptan %1$d

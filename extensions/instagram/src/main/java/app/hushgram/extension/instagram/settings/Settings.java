@@ -794,6 +794,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_keep_photo_locations", FALSE);
 
     /**
+     * A search box above the blocked accounts in Instagram's settings, which finds them by user name
+     * or name and loads the rest of the list while there are words in it (#731,
+     * {@link app.hushgram.extension.instagram.misc.BlockedSearch}). Read each time. Off to start.
+     */
+    public static final BooleanSetting BLOCKED_SEARCH =
+            new BooleanSetting("hushgram_blocked_search", FALSE);
+
+    /**
      * The seen receipt a chat sends when you open it, the one that puts Seen under the other
      * person's message ({@link app.hushgram.extension.instagram.direct.ThreadSeen}). Read each time
      * Instagram goes to send one, so a change applies to the next receipt. Off to start.

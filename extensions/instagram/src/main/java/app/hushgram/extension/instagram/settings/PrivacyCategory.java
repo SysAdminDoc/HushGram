@@ -88,6 +88,11 @@ final class PrivacyCategory {
             privacy.add(toggle(context, Settings.KEEP_PHOTO_LOCATIONS, L10n.t("Keep photo locations from Instagram"),
                     L10n.t("Instagram can't read where the photos and videos in your gallery were taken.")));
         }
+        if (build.contains(PatchFamily.BLOCKED_SEARCH)) {
+            privacy.add(toggle(context, Settings.BLOCKED_SEARCH, L10n.t("Search blocked accounts"),
+                    L10n.t("Adds a search box above your blocked accounts in Instagram's settings. It finds them "
+                            + "by username or name, and loads the rest of your list as you type.")));
+        }
         if (!privacy.isEmpty()) {
             PreferenceCategory section = category(screen, L10n.t("Ads and privacy"), SettingsIcons.PRIVACY,
                     L10n.t("Hide ads and share less with Instagram."));

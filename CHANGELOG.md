@@ -6,6 +6,7 @@ Every HushGram release, newest first.
 
 ### Features
 
+* `Search blocked accounts`, new under Ads and privacy, puts a search box above your blocked accounts in Instagram's settings. It finds them by username or name. While you type, the rest of your list loads page by page, so a long list gets searched all the way through, and a line under the box says how many matched out of how many loaded. It starts off. Asked for in #731.
 * `Hide the Messages badge`, new under Tab bar, takes the unread count off the Messages button in the bottom bar. Chats still show as unread in your inbox and notifications still come. It starts off and takes a restart. Asked for in #734.
 * `Don't send feed view history`, new under Feed, stops Instagram from learning which posts in Home you looked at and for how long, the way `Don't send reel watch history` does for Reels. Posts you've already seen may come back. It starts off, and Ghost mode turns it with its other switches. Asked for in #664.
 * `Ask for VP9 instead of AV1`, new under Downloads, tells Instagram your phone has no AV1 decoder, so reels and stories come as VP9 or H.264. It helps when AV1 saves won't play in your gallery. Asked for in #546.

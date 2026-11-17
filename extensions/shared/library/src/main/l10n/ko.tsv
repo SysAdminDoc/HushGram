@@ -2506,3 +2506,13 @@ Stops telling Instagram which posts in Home you looked at and for how long. Inst
 # context: Tab bar: switch under Hide the Messages tab that takes the unread count off the Messages button on the bottom tab bar (#734)
 Hide the Messages badge	메시지 배지 숨기기
 Takes the unread count off the Messages button on the tab bar. Chats still show as unread in your inbox, and notifications still come. Restart Instagram to see the change.	하단바의 메시지 버튼에서 읽지 않은 메시지 수를 없앱니다. 받은 메시지함의 채팅은 계속 읽지 않음으로 표시되고 알림도 그대로 옵니다. 변경 사항을 보려면 Instagram을 다시 시작하세요.
+# context: Ads and privacy settings: switch that adds a search box above Instagram's Blocked accounts list (Settings > Blocked), filtering it by username or full name; the same title is the box's hint text (#731)
+Search blocked accounts	차단된 계정 검색
+Adds a search box above your blocked accounts in Instagram's settings. It finds them by username or name, and loads the rest of your list as you type.	Instagram 설정의 차단된 계정 위에 검색창을 추가합니다. 사용자 이름이나 이름으로 찾고, 입력하는 동안 나머지 목록을 불러옵니다.
+# context: the line under that search box. %1$d is how many blocked accounts match, %2$d how many have loaded. First while more pages are loading, then when Instagram stopped sending pages, then when the whole list is in (#731)
+Matches: %1$d of %2$d account loaded so far. Loading the rest of your list.	일치: 지금까지 불러온 계정 %2$d개 중 %1$d개. 나머지 목록을 불러오는 중입니다.
+Matches: %1$d of %2$d accounts loaded so far. Loading the rest of your list.	일치: 지금까지 불러온 계정 %2$d개 중 %1$d개. 나머지 목록을 불러오는 중입니다.
+Matches: %1$d of the %2$d account that loaded. Instagram didn't send the rest.	일치: 불러온 계정 %2$d개 중 %1$d개. Instagram이 나머지를 보내지 않았습니다.
+Matches: %1$d of the %2$d accounts that loaded. Instagram didn't send the rest.	일치: 불러온 계정 %2$d개 중 %1$d개. Instagram이 나머지를 보내지 않았습니다.
+Matches: %1$d of %2$d blocked account	일치: 차단된 계정 %2$d개 중 %1$d개
+Matches: %1$d of %2$d blocked accounts	일치: 차단된 계정 %2$d개 중 %1$d개

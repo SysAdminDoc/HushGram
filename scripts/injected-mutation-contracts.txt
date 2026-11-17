@@ -757,6 +757,18 @@ start-call Lapp/hushgram/extension/instagram/misc/PhotoLocations;->galleryItem()
 once-call Lapp/hushgram/extension/instagram/misc/PhotoLocations;->galleryItem()Z in instance (Landroid/content/ContentResolver;)[D pooled holding Could\snot\sextract\smedia\slocation.
 start-call Lapp/hushgram/extension/instagram/misc/PhotoLocations;->exifTags()Z in static (L*;)[D pooled holding GPSLatitude
 once-call Lapp/hushgram/extension/instagram/misc/PhotoLocations;->exifTags()Z in static (L*;)[D pooled holding GPSLatitude
+# Search blocked accounts (#731) hands BlockedSearch.filter the accounts where the blocked list's
+# model build starts walking them (0NZL.A00 on 456's 386214574, the one (state, List) method of the
+# class naming itself GlobalBlocksViewModelFactory), and the screen, its view and its list to attach
+# right after the screen's onViewCreated keeps its RecyclerView (0GOX, the class naming itself
+# GlobalBlocksFragment). The redraw bridge, which the patch fills with the page loader's own build
+# of the model from its factory, state and a copy of its store's accounts, and the load more bridge,
+# which calls the loader, each have to leave the extension. The pages and name bridges only read
+# fields, so they get no rule. Left out, the box filters nothing or never shows.
+once-call Lapp/hushgram/extension/instagram/misc/BlockedSearch;->filter(Ljava/util/List;)Ljava/util/List; in instance (LX/*;Ljava/util/List;)LX/*; pooled class-holding GlobalBlocksViewModelFactory
+once-call Lapp/hushgram/extension/instagram/misc/BlockedSearch;->attach(Ljava/lang/Object;Landroid/view/View;Landroid/view/View;)V in instance (Landroid/view/View;Landroid/os/Bundle;)V pooled class-holding GlobalBlocksFragment blocked_accounts_list
+first-call Lapp/hushgram/extension/instagram/misc/BlockedSearch;->redraw(Ljava/lang/Object;)V outside Lapp/hushgram/extension/
+first-call Lapp/hushgram/extension/instagram/misc/BlockedSearch;->loadMore(Ljava/lang/Object;)V outside Lapp/hushgram/extension/
 # Don't save recent searches asks RecentSearches.keep first in the call that tells Instagram's
 # servers about a search result you opened, and in the recent searches cache's add, picked from its
 # remove by the add at the top of its list. Each is skipped on a false. Left out, what you open
