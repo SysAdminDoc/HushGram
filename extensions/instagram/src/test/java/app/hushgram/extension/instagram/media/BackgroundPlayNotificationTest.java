@@ -7,6 +7,7 @@ package app.hushgram.extension.instagram.media;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.robolectric.Shadows.shadowOf;
 
@@ -14,6 +15,9 @@ import android.app.Activity;
 import android.app.Application;
 import android.app.Notification;
 import android.app.NotificationManager;
+import android.content.ComponentName;
+import android.content.Context;
+import android.content.ContextWrapper;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.content.pm.ResolveInfo;
@@ -85,6 +89,7 @@ public class BackgroundPlayNotificationTest {
     @After
     public void restore() {
         if (service != null) service.destroy();
+        BackgroundPlayService.finish();
         BackgroundPlay.resetForTests();
         Settings.KEEP_PLAYING_IN_BACKGROUND.resetToDefault();
         BaseSettings.PAUSED.save(false);
@@ -190,6 +195,58 @@ public class BackgroundPlayNotificationTest {
         service = null;
         assertFalse(BackgroundPlay.active());
         assertEquals(List.of("pause", "pause"), calls);
+    }
+
+    /**
+     * A Root Mount install keeps Meta's manifest, so the service's start comes back null: the app shows
+     * the notification itself, swipeable, and its buttons still pause, play and stop (#349).
+     */
+    @Test
+    public void withoutTheServiceTheAppShowsIt() {
+        Application app = RuntimeEnvironment.getApplication();
+        Context noService = new ContextWrapper(app) {
+            @Override
+            public ComponentName startForegroundService(Intent intent) {
+                return null;
+            }
+        };
+        background();
+
+        BackgroundPlayService.start(noService);
+
+        Notification shown = posted();
+        assertEquals("Playing in the background", text(shown));
+        assertEquals(List.of("Pause", "Stop"), titles(shown));
+        assertTrue(shadowOf(shown.actions[0].actionIntent).isBroadcastIntent());
+        assertFalse("it can be swiped away while it plays", (shown.flags & Notification.FLAG_ONGOING_EVENT) != 0);
+        assertEquals(BackgroundPlayService.ACTION_STOP, shadowOf(shown.deleteIntent).getSavedIntent().getAction());
+
+        press(shown, 0);
+        assertEquals(List.of("pause"), calls);
+        Notification paused = posted();
+        assertEquals("Paused in the background", text(paused));
+        assertEquals(List.of("Play", "Stop"), titles(paused));
+
+        press(paused, 0);
+        assertEquals(List.of("pause", "play"), calls);
+        Notification again = posted();
+        assertEquals(List.of("Pause", "Stop"), titles(again));
+
+        press(again, 1);
+        assertEquals(List.of("pause", "play", "pause"), calls);
+        assertFalse(BackgroundPlay.active());
+        NotificationManager manager = app.getSystemService(NotificationManager.class);
+        assertNull("Stop takes it down", shadowOf(manager).getNotification(BackgroundPlayService.NOTIFICATION_ID));
+
+        app.sendBroadcast(shadowOf(again.deleteIntent).getSavedIntent());
+        shadowOf(Looper.getMainLooper()).idle();
+        assertNull("nothing listens once it's down", shadowOf(manager).getNotification(BackgroundPlayService.NOTIFICATION_ID));
+    }
+
+    private static void press(Notification notification, int button) {
+        Intent sent = shadowOf(notification.actions[button].actionIntent).getSavedIntent();
+        RuntimeEnvironment.getApplication().sendBroadcast(sent);
+        shadowOf(Looper.getMainLooper()).idle();
     }
 
     private void background() {

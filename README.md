@@ -316,6 +316,8 @@ If Instagram crashes within a minute of starting three times in a row, HushGram 
   cmd package compile -m speed-profile -f com.instagram.android
   ```
 
+- **Background play stops early after a Root Mount install.** A mount can't add the service that keeps Instagram running in the background, so `Keep playing in the background` shows its notification from Instagram itself. Android may still stop the video once you've moved on to a few other apps. A regular install doesn't have this limit.
+
 ### Two Instagrams on one phone
 
 `Install next to Instagram` builds a second Instagram that installs beside the one you have, say for a second account. Switch Manager to Expert mode, open **Choose patches** and tick it under Updates. Its options hold the package name (`com.instagram.android.hush` unless you change it), the name under its icon (`Instagram Clone`) and **Mark the icon**, which puts a small HushGram badge on the copy's icon. Keep the package name you picked, because patching again with another one makes a third app instead of updating the second.
