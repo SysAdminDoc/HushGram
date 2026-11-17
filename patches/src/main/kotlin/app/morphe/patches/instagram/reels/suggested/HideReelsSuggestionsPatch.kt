@@ -103,8 +103,11 @@ private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $det
  * changes.
  */
 internal fun BytecodePatchContext.reelsItemConverter(patch: String): MutableMethod {
-    val found = classesLoadingString(TO_CLIPS_ITEM).sortedBy { it.type }.flatMap { it.methods }
-        .filter { loadsString(it, TO_CLIPS_ITEM) }
+    // A pool's own getter holds every string it pools, so it's left out.
+    val found = classesLoadingString(TO_CLIPS_ITEM).sortedBy { it.type }.flatMap { it.methods }.filter { method ->
+        !(method.parameterTypes.map(Any::toString) == listOf("I") && method.returnType == "Ljava/lang/String;") &&
+            loadsString(method, TO_CLIPS_ITEM)
+    }
     val converter = found.singleOrNull() ?: throw PatchException(
         "$patch: expected exactly one Reels item converter holding \"$TO_CLIPS_ITEM\" in this Instagram build, found " +
             if (found.isEmpty()) "none" else found.joinToString { "${it.definingClass}->${it.name}" },
