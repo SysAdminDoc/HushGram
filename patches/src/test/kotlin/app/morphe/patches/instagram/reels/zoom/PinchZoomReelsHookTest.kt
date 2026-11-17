@@ -21,7 +21,8 @@ import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.WideLiteralInstruction
-import com.android.tools.smali.dexlib2.iface.reference.StringReference
+import com.android.tools.smali.dexlib2.iface.reference.FieldReference
+import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
@@ -39,7 +40,6 @@ class PinchZoomReelsHookTest {
     private val util = "Lfixture/ZoomUtil;"
     private val zoomable = ZOOMABLE_FLAG.toString(16)
     private val gesture = ZOOM_GESTURE_FLAG.toString(16)
-    private val marker = "android_purge_26_q3_$CREATE_ZOOM_CONFIG"
 
     /** The hook the patch writes is in the ReelZoom the bundle ships, public and static. */
     @Test
@@ -83,18 +83,18 @@ class PinchZoomReelsHookTest {
     fun aBuildThePatchCantReadFailsBeforeAnythingChanges() {
         val made = "$factory->make"
         val unstored = "isn't stored straight into a field of the zoom settings $settings"
+        val asking = "expected one method asking for the zoom settings $settings by class and reading them"
         val cases = listOf(
-            classes(makers = 0) to "expected one method marked $CREATE_ZOOM_CONFIG, found 0",
-            classes(makers = 2) to "expected one method marked $CREATE_ZOOM_CONFIG, found 2",
-            classes(askedClasses = listOf(settings, "Lfixture/Other;")) to "$util->create asks for 2 classes, not the zoom settings alone",
-            classes(askedClasses = emptyList()) to "$util->create asks for 0 classes, not the zoom settings alone",
+            classes(makers = 0) to "$asking, found 0",
+            classes(makers = 2) to "$asking, found 2",
+            classes(askedClasses = listOf("Lfixture/Other;")) to "$asking, found 0",
             classes(zoomableReads = 2) to "expected one read of the zoom flag $zoomable, found 2",
             classes(zoomableReads = 0) to "expected one read of the zoom flag $zoomable, found 0",
             classes(gestureReads = 0) to "expected one read of the zoom flag $gesture, found 0",
             classes(sharedRead = true) to "the read of $zoomable in $made is shared with another flag",
             classes(gestureElsewhere = true) to "the zoom flags are read in $made and $factory->other, not in one method",
             classes(storedIn = "Lfixture/Other;") to "the read of $zoomable $unstored",
-            classes(storedLater = true) to "the read of $gesture $unstored",
+            classes(storedLater = true) to "the read of $gesture isn't stored straight into a field of the zoom settings",
             classes(makerReads = listOf("zoomable")) to "$util->create doesn't read gesture, where $gesture goes",
         )
         for ((classes, expected) in cases) {
@@ -130,7 +130,7 @@ class PinchZoomReelsHookTest {
         val holders = mutableListOf<ClassDef>()
         FixtureDex.forEach(bundle) { dex ->
             for (classDef in dex.classes) {
-                if (classDef.methods.any { it.loadsAFlag() || it.marked() }) holders += ImmutableClassDef.of(classDef)
+                if (classDef.methods.any { it.loadsAFlag() || it.asksForSettings() }) holders += ImmutableClassDef.of(classDef)
             }
         }
         val context = PatchContexts.of(holders)
@@ -168,10 +168,9 @@ class PinchZoomReelsHookTest {
     }
 
     /**
-     * A factory shaped like Instagram 453's 0SXH.A0A: it makes the zoom settings and reads both
+     * A factory shaped like Instagram 456's 0PGO.A02: it makes the zoom settings and reads both
      * flags through a cast config, storing each answer straight into one of their booleans. A
-     * maker shaped like 0FeQ.A05 holds [CREATE_ZOOM_CONFIG]'s marker, asks for the settings by
-     * class and reads both booleans.
+     * maker shaped like 0JBZ.A0K's case asks for the settings by class and reads both booleans.
      */
     private fun classes(
         makers: Int = 1,
@@ -232,16 +231,14 @@ class PinchZoomReelsHookTest {
         )
         val makerBody = """
             ${askedClasses.joinToString("\n") { "const-class v0, $it" }}
-            const-string v1, "$marker"
             check-cast p0, $settings
             ${makerReads.joinToString("\n") { "iget-boolean v0, p0, $settings->$it:Z" }}
             return-object p0
         """
-        val makerMethods = List(maxOf(makers, 1)) {
-            val body = if (makers == 0) makerBody.replace(marker, "ClipsZoomUtil.createZoomConfig") else makerBody
-            method(util, if (it == 0) "create" else "create$it", takes, "Ljava/lang/Object;", 2, static, body)
+        val makerMethods = List(makers) {
+            method(util, if (it == 0) "create" else "create$it", takes, "Ljava/lang/Object;", 2, static, makerBody)
         }
-        return listOf(classDef(factory, factories + warmUps), classDef(util, makerMethods))
+        return listOf(classDef(factory, factories + warmUps)) + if (makerMethods.isEmpty()) emptyList() else listOf(classDef(util, makerMethods))
     }
 
     private fun method(owner: String, name: String, parameters: List<String>, returns: String, registers: Int, flags: Int, body: String): Method {
@@ -263,9 +260,13 @@ class PinchZoomReelsHookTest {
         it.opcode == Opcode.CONST_WIDE && (it as WideLiteralInstruction).wideLiteral in setOf(ZOOMABLE_FLAG, ZOOM_GESTURE_FLAG)
     }
 
-    private fun Method.marked(): Boolean = code().any {
-        (it.opcode == Opcode.CONST_STRING || it.opcode == Opcode.CONST_STRING_JUMBO) &&
-            ((it as ReferenceInstruction).reference as StringReference).string.endsWith("_$CREATE_ZOOM_CONFIG")
+    /** Whether this method asks for a class by its type and reads a boolean of that class, as the zoom config maker does. */
+    private fun Method.asksForSettings(): Boolean {
+        val code = code()
+        val asked = code.filter { it.opcode == Opcode.CONST_CLASS }.map { ((it as ReferenceInstruction).reference as TypeReference).type }.toSet()
+        return asked.isNotEmpty() && code.any {
+            it.opcode == Opcode.IGET_BOOLEAN && ((it as ReferenceInstruction).reference as FieldReference).definingClass in asked
+        }
     }
 
     private fun Method.code(): List<Instruction> = implementation?.instructions?.toList().orEmpty()

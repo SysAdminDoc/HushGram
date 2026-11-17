@@ -8,18 +8,16 @@ import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.instagram.misc.extension.classesAccessing
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
-import app.morphe.patches.instagram.misc.extension.markers
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
-import app.morphe.patches.instagram.misc.extension.typesMarked
 import app.morphe.patches.instagram.misc.flags.FlagLoad
 import app.morphe.patches.instagram.misc.flags.answerFlagLoads
 import app.morphe.patches.instagram.misc.flags.findFlagLoads
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.Opcode
-import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
@@ -28,12 +26,6 @@ import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 private const val PATCH = "Pinch to zoom on Reels"
 internal const val REEL_ZOOM = "$EXTENSION_PACKAGE/reels/ReelZoom;"
 internal const val ZOOM = "$REEL_ZOOM->zoom(I)Z"
-
-/**
- * The marker of the method that turns the Reels zoom settings into the ZoomConfigurationInfo the
- * Reels viewer and its gesture detector read. It asks the session for the settings by their class.
- */
-internal const val CREATE_ZOOM_CONFIG = "ClipsZoomUtil_createZoomConfig"
 
 /**
  * isLithoZoomableComponentEnabled: a reel's video sits in Instagram's zoomable component, and the
@@ -80,59 +72,69 @@ private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $det
 
 /**
  * Finds the one read of [ZOOMABLE_FLAG] and of [ZOOM_GESTURE_FLAG]. Both have to be the flag's own
- * read, in one method, each stored straight into a boolean of the settings class the method marked
- * [CREATE_ZOOM_CONFIG] asks the session for, and that method has to read both fields. Where a flag is
- * read more than once, the read is the one stored into those settings: 455 also reads
- * [ZOOMABLE_FLAG] in a startup task that only warms the zoom classes up when it's on
- * (`LX/07wO;->A01` at 348 on 386113969, beside `LX/0RU8;->A02`, the settings' factory), which stays
+ * read, in one method, the zoom settings' factory, each stored straight into a boolean of the
+ * settings, the class the gesture flag's read is stored into. One method outside the factory has to
+ * ask the session for those settings by their class and read both booleans: the one building the
+ * ZoomConfigurationInfo the Reels viewer and its gesture detector read (455 traced it as
+ * ClipsZoomUtil_createZoomConfig, which 456 dropped; 0JBZ.A0K on 456's 386214574 folds it into a
+ * merged lambda). Where the zoomable flag is read more than once, the read is the one stored into
+ * the settings: 456 also reads it in a startup task that only warms the zoom classes up when it's
+ * on (`LX/08rV;->A00` on 386214574, beside `LX/0PGO;->A02`, the settings' factory), which stays
  * Instagram's. Fails before anything changes when any of it isn't so, since that's an update this
  * patch hasn't seen.
  */
 internal fun BytecodePatchContext.findReelZoom(): List<FlagLoad> {
-    val settings = zoomSettingsType()
-    val reads = listOf(ZOOMABLE_FLAG, ZOOM_GESTURE_FLAG).map { flag ->
-        val id = flag.toString(16)
-        val loads = findFlagLoads(PATCH, flag, "Z")
-        val kept = if (loads.size > 1) loads.filter { storedField(it)?.definingClass == settings.first } else loads
-        val read = kept.singleOrNull() ?: refuse(
-            "expected one read of the zoom flag $id, found ${loads.size}" +
-                if (loads.size > 1) ", ${kept.size} of them stored into the zoom settings ${settings.first}" else "",
-        )
-        if (read.shared) refuse("the read of $id in ${read.type}->${read.name} is shared with another flag")
-        read
-    }
+    val gesture = ownRead(ZOOM_GESTURE_FLAG) { true }
+    val gestureId = ZOOM_GESTURE_FLAG.toString(16)
+    val settings = storedField(gesture)?.definingClass
+        ?: refuse("the read of $gestureId isn't stored straight into a field of the zoom settings")
+    val zoomable = ownRead(ZOOMABLE_FLAG) { storedField(it)?.definingClass == settings }
+    val reads = listOf(zoomable, gesture)
     if (reads.map { Triple(it.type, it.name, it.parameters) }.distinct().size != 1) {
         refuse("the zoom flags are read in ${reads.joinToString(" and ") { "${it.type}->${it.name}" }}, not in one method")
     }
     val stored = reads.map { read -> storedField(read) }
     stored.forEachIndexed { index, field ->
         val id = reads[index].flag.toString(16)
-        if (field == null || field.definingClass != settings.first) {
-            refuse("the read of $id isn't stored straight into a field of the zoom settings ${settings.first}")
+        if (field == null || field.definingClass != settings) {
+            refuse("the read of $id isn't stored straight into a field of the zoom settings $settings")
         }
     }
-    val asked = settings.second.implementation!!.instructions.mapNotNull {
+    val fields = stored.map { it!!.name }
+    val askers = fields.flatMap { classesAccessing(settings, it, Opcode.IGET_BOOLEAN) }.distinctBy { it.type }
+        .sortedBy { it.type }.flatMap { it.methods }.filter { method ->
+            method.implementation?.instructions?.any {
+                it.opcode == Opcode.CONST_CLASS && ((it as ReferenceInstruction).reference as TypeReference).type == settings
+            } == true
+        }
+    val asker = askers.singleOrNull() ?: refuse(
+        "expected one method asking for the zoom settings $settings by class and reading them, found ${askers.size}",
+    )
+    val asked = asker.implementation!!.instructions.mapNotNull {
         if (it.opcode != Opcode.IGET_BOOLEAN) null else (it as ReferenceInstruction).reference as FieldReference
-    }.map { it.name }
-    stored.forEachIndexed { index, field ->
-        if (field!!.name !in asked) {
-            refuse("${settings.second.definingClass}->${settings.second.name} doesn't read ${field.name}, where ${reads[index].flag.toString(16)} goes")
+    }.filter { it.definingClass == settings }.map { it.name }
+    fields.forEachIndexed { index, field ->
+        if (field !in asked) {
+            refuse("${asker.definingClass}->${asker.name} doesn't read $field, where ${reads[index].flag.toString(16)} goes")
         }
     }
     return reads
 }
 
-/** The settings class the [CREATE_ZOOM_CONFIG] method asks for, and that method. */
-private fun BytecodePatchContext.zoomSettingsType(): Pair<String, Method> {
-    val makers = typesMarked(CREATE_ZOOM_CONFIG).sorted().flatMap { type ->
-        classDefBy(type).methods.filter { CREATE_ZOOM_CONFIG in it.markers() }
-    }
-    val maker = makers.singleOrNull() ?: refuse("expected one method marked $CREATE_ZOOM_CONFIG, found ${makers.size}")
-    val classes = maker.implementation!!.instructions.filter { it.opcode == Opcode.CONST_CLASS }
-        .map { ((it as ReferenceInstruction).reference as TypeReference).type }.distinct()
-    val type = classes.singleOrNull()
-        ?: refuse("${maker.definingClass}->${maker.name} asks for ${classes.size} classes, not the zoom settings alone")
-    return type to maker
+/**
+ * The one read of [flag] of its own, the one [keep] answers yes for where there are several. Fails
+ * with the counts it found otherwise, or when the read is shared with another flag's.
+ */
+private fun BytecodePatchContext.ownRead(flag: Long, keep: (FlagLoad) -> Boolean): FlagLoad {
+    val id = flag.toString(16)
+    val loads = findFlagLoads(PATCH, flag, "Z")
+    val kept = if (loads.size > 1) loads.filter(keep) else loads
+    val read = kept.singleOrNull() ?: refuse(
+        "expected one read of the zoom flag $id, found ${loads.size}" +
+            if (loads.size > 1) ", ${kept.size} of them stored into the zoom settings" else "",
+    )
+    if (read.shared) refuse("the read of $id in ${read.type}->${read.name} is shared with another flag")
+    return read
 }
 
 /** The field [read]'s answer goes into when the instruction after its move-result is an iput-boolean of it. */
