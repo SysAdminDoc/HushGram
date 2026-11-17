@@ -20,10 +20,11 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Adds a plain text row to Instagram's newer pop-up list, the one next to a profile's three dots.
- * Its entries are all one class with a single constructor of 27 arguments (26 on Instagram 454, 24
- * before), whose fifth is the row's click callback, an interface of one boolean method and one void
- * method, and whose first String is the label, with the subtitle right after it (the nineteenth
- * and twentieth on 455, the eighteenth and nineteenth on 454, a place earlier before). The names
+ * Its entries are all one class with a single constructor of 28 arguments (27 on Instagram 455, 26
+ * on 454, 24 before), whose fifth is the row's click callback, an interface of one boolean method
+ * and one void method, and whose first String is the label, with the subtitle right after it (the
+ * twentieth and twenty-first on 456, the nineteenth and twentieth on 455, the eighteenth and
+ * nineteenth on 454, a place earlier before). The names
  * are Instagram's own and change with every build, so the
  * class is never named here: a row Instagram already built in the same list is the template, and
  * the new one is made with that row's constructor and the same values, bar its icon, its label and
@@ -35,8 +36,9 @@ import java.util.concurrent.ConcurrentHashMap;
  * boolean one answers true.
  */
 final class PopupRows {
-    /** The constructor's argument counts, 455's, 454's and the older one, and the places of the ones that change. */
-    static final int ARGUMENTS = 27;
+    /** The constructor's argument counts, 456's, 455's, 454's and the older one, and the places of the ones that change. */
+    static final int ARGUMENTS = 28;
+    static final int ARGUMENTS_455 = 27;
     static final int ARGUMENTS_454 = 26;
     static final int OLDER_ARGUMENTS = 24;
     static final int ICON = 0;
@@ -154,7 +156,10 @@ final class PopupRows {
         Constructor<?>[] constructors = type.getDeclaredConstructors();
         if (constructors.length != 1) return null;
         Class<?>[] parameters = constructors[0].getParameterTypes();
-        if (parameters.length != ARGUMENTS && parameters.length != ARGUMENTS_454 && parameters.length != OLDER_ARGUMENTS) return null;
+        if (parameters.length != ARGUMENTS && parameters.length != ARGUMENTS_455 && parameters.length != ARGUMENTS_454
+                && parameters.length != OLDER_ARGUMENTS) {
+            return null;
+        }
         int label = labelAt(parameters);
         int color = colorAt(parameters);
         if (!parameters[CLICK].isInterface() || label < 0 || label + 1 >= parameters.length || parameters[label + 1] != String.class

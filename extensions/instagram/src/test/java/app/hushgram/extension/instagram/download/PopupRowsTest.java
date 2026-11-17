@@ -130,6 +130,33 @@ public class PopupRowsTest {
         }
     }
 
+    /** What the patch writes for {@link Item456}, read off its constructor as for 456's X.0fkR. */
+    static final String ITEM_456_LAYOUT = Item456.class.getName()
+            + "|A00,A01,A02,A03,A04,A05,A06,A07,A08,A09,A0A,A0B,A0F,A0E,A0I,A0D,A0G,A0H,A0C,A0J,A0K,A0L,A0P,A0Q,A0R,A0O,A0N,A0M";
+
+    /**
+     * Shaped like 456's X.0fkR: one more object ahead of 455's Boolean (the tenth argument), so the
+     * color is the twelfth argument, the highlight the thirteenth, the label the twentieth and the
+     * subtitle the twenty-first.
+     */
+    static final class Item456 {
+        final Object A00, A01, A02, A03;
+        final Callback A04, A05, A06;
+        final Object A07, A08, A09;
+        final Boolean A0A;
+        final Integer A0B, A0C, A0D, A0E, A0F, A0G, A0H, A0I;
+        final String A0J, A0K, A0L;
+        final boolean A0M, A0N, A0O, A0P, A0Q, A0R;
+
+        Item456(Object a0, Object a1, Object a2, Object a3, Callback a4, Callback a5, Callback a6, Object a7, Object a8, Object a9,
+                Boolean a10, Integer a11, Integer a12, Integer a13, Integer a14, Integer a15, Integer a16, Integer a17, Integer a18,
+                String a19, String a20, String a21, boolean a22, boolean a23, boolean a24, boolean a25, boolean a26, boolean a27) {
+            A00 = a0; A01 = a1; A02 = a2; A03 = a3; A04 = a4; A05 = a5; A06 = a6; A07 = a7; A08 = a8; A09 = a9;
+            A0A = a10; A0B = a11; A0F = a12; A0E = a13; A0I = a14; A0D = a15; A0G = a16; A0H = a17; A0C = a18;
+            A0J = a19; A0K = a20; A0L = a21; A0P = a22; A0Q = a23; A0R = a24; A0O = a25; A0N = a26; A0M = a27;
+        }
+    }
+
     /** A 450 row as its menu builds it: color in the tenth argument, highlight in the eleventh, a number in the sixteenth. */
     static Scrambled scrambled(String label, Integer color, Integer highlight) {
         return new Scrambled(null, null, null, null, null, null, null, null, null, color, highlight, 21, 22, 23, 24, 25,
@@ -299,6 +326,34 @@ public class PopupRowsTest {
         assertEquals("the plain color", Integer.valueOf(-1), added.A0A);
         assertEquals("no highlight", null, added.A0E);
         for (String name : new String[] {"A09", "A0B", "A0C", "A0D", "A0F", "A0G", "A0H", "A0K", "A0L", "A0M", "A0N", "A0O", "A0P", "A0Q"}) {
+            assertEquals(name, field(plain, name), field(added, name));
+        }
+        added.A04.run();
+        assertTrue("the list closes after a tap", added.A04.closes());
+        assertEquals(1, taps[0]);
+    }
+
+    /** 456's item takes 28 arguments, an object ahead of the Boolean, and the copy still finds the plain row and lands each one back. */
+    @Test public void a456ItemFindsItsColorAfterTheNewObject() {
+        PopupRows.layout = () -> ITEM_456_LAYOUT;
+        List<Object> items = new ArrayList<>();
+        Object extra = new Object();
+        Item456 report = new Item456(null, null, null, null, null, null, null, null, null, extra, Boolean.TRUE, 7, 7, 21, 22, 23, 24, 26, 25,
+                "Report", "why", null, true, false, false, true, true, false);
+        Item456 plain = new Item456(null, null, null, null, null, null, null, null, null, extra, Boolean.FALSE, -1, null, 21, 22, 23, 24, 26, 25,
+                "About this account", "about", null, true, false, false, true, true, false);
+        items.add(report);
+        items.add(plain);
+        int[] taps = {0};
+        assertTrue(PopupRows.add(items, view -> taps[0]++, "Save profile picture"));
+        assertEquals(3, items.size());
+        Item456 added = (Item456) items.get(2);
+        assertEquals("Save profile picture", added.A0J);
+        assertEquals("no subtitle", null, added.A0K);
+        assertEquals("no icon", null, added.A00);
+        assertEquals("the plain color", Integer.valueOf(-1), added.A0B);
+        assertEquals("no highlight", null, added.A0F);
+        for (String name : new String[] {"A09", "A0A", "A0C", "A0D", "A0E", "A0G", "A0H", "A0I", "A0L", "A0M", "A0N", "A0O", "A0P", "A0Q", "A0R"}) {
             assertEquals(name, field(plain, name), field(added, name));
         }
         added.A04.run();

@@ -11,6 +11,7 @@ import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod.Companion.toMutable
+import app.morphe.patches.instagram.direct.seen.requireOrigin
 import app.morphe.patches.instagram.download.USER
 import app.morphe.patches.instagram.download.profilePictureBridges
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
@@ -58,8 +59,11 @@ private const val CLICK = "Landroid/view/View\$OnClickListener;"
 private const val LIST = "Ljava/util/List;"
 private const val POPUP_WINDOW = "Landroid/widget/PopupWindow;"
 
-/** How many arguments the constructor of one of the pop-up list's items takes: 24 on 450 to 453, 26 on 454, 27 on 455. */
-internal const val POPUP_ITEM_ARGUMENTS = 27
+/**
+ * How many arguments the constructor of one of the pop-up list's items takes: 24 on 450 to 453, 26
+ * on 454, 27 on 455, and 28 on 456, which adds an object ahead of 455's Boolean (`LX/0fkR;` on 386214574).
+ */
+internal const val POPUP_ITEM_ARGUMENTS = 28
 
 /** The parameters of the stub [ADD_ROW_STUB], and of the sheet's adder of a plain row after them. */
 internal val ADD_ROW_PARAMETERS = listOf(OBJECT, CONTEXT, CLICK, STRING)
@@ -334,13 +338,14 @@ private fun BytecodePatchContext.findProfilePopup(
             code[at].field()?.toString() == newer.context.toString()
     } ?: refuse("the pop-up list's context isn't read off the newer helper")
     val owner = (code[read] as TwoRegisterInstruction).registerB
-    if (owner > 15 || owner == list || owner == popup) refuse("the newer helper's register is over v15 or reused at the pop-up list")
-    val overwritten = (read + 1 until index).filter { at ->
-        val written = (code[at] as? OneRegisterInstruction)?.registerA
-        at in reachesList && code[at].opcode.setsRegister() && written != null &&
-            (written == owner || written == context || (code[at].opcode.setsWideRegister() && (written + 1 == owner || written + 1 == context)))
+    if (owner > 15 || owner == list || owner == popup || owner == context) {
+        refuse("the newer helper's register is over v15 or reused at the pop-up list")
     }
-    if (overwritten.isNotEmpty()) refuse("the newer helper or the popup's context is overwritten before the pop-up list gets its items")
+    // Every path to the hand-over passes the read, and neither register is written after it on
+    // the way. On 456 blocks laid out after the read run before it (they jump back above it), so
+    // a check in index order would count their writes.
+    requireOrigin(PROFILE_PICTURE_PATCH, method, index, context, read, "the popup's context before the pop-up list gets its items")
+    requireOrigin(PROFILE_PICTURE_PATCH, method, index, owner, read, "the newer helper before the pop-up list gets its items")
     val free = method.freeLocalsAt(PROFILE_PICTURE_PATCH, index, 1, except = listOf(context, owner, popup, list)).single()
     return ProfilePopupSite(index, list, context, owner, newer.user, free, item.type, fields)
 }

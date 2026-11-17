@@ -152,7 +152,7 @@ class SaveProfilePictureHookTest {
     }
 
     @Test
-    fun aPopupItemOfAnotherSizeFailsThePatch() = refuses("expected one item class built with 27 arguments") {
+    fun aPopupItemOfAnotherSizeFailsThePatch() = refuses("expected one item class built with $POPUP_ITEM_ARGUMENTS arguments") {
         context(popupItemArguments = 24).findProfileMenus()
     }
 
@@ -169,6 +169,17 @@ class SaveProfilePictureHookTest {
     @Test
     fun aPopupWhoseContextIsNotTheHelpersFailsThePatch() = refuses("context isn't read off the newer helper") {
         context(host = host(popupContextFromElsewhere = true)).findProfileMenus()
+    }
+
+    @Test
+    fun aBlockLaidOutAfterTheReadThatRunsBeforeItIsFine() {
+        val menus = context(host = host(earlyTail = true)).findProfileMenus()
+        assertEquals(8, menus.popup.context)
+    }
+
+    @Test
+    fun aContextRewrittenOnTheWayToThePopupFailsThePatch() = refuses("the popup's context before the pop-up list gets its items can be replaced") {
+        context(host = host(contextRewritten = true)).findProfileMenus()
     }
 
     @Test
@@ -436,7 +447,13 @@ class SaveProfilePictureHookTest {
             twoPopups: Boolean = false,
             popupGap: Boolean = false,
             popupContextFromElsewhere: Boolean = false,
+            earlyTail: Boolean = false,
+            contextRewritten: Boolean = false,
         ): ClassDef {
+            // A block laid out after the context read that writes the context's register and jumps
+            // back above the read, the way 456 lays its tail blocks out.
+            val tail = if (earlyTail) "goto :build\n :early\n const/4 v8, 0x0\n goto :popup\n :build" else ""
+            val rewrite = if (contextRewritten) "if-eqz v5, :keep\n const/4 v8, 0x0\n :keep" else ""
             val popupContext = "iget-object v8, v0, " + (if (popupContextFromElsewhere) BOTTOM else NEWER) + "->context:$CONTEXT"
             val handOver = if (popupGap) "move-object v7, v6\n invoke-virtual { v7, v6 }, $POPUP->take(Ljava/util/List;)V"
                 else "invoke-virtual { v2, v6 }, $POPUP->take(Ljava/util/List;)V"
@@ -471,7 +488,7 @@ class SaveProfilePictureHookTest {
                 invoke-virtual { v1, v0 }, $SHOWER->show($CONTEXT)V
                 return-void
                 :newer
-                if-nez v5, :popup
+                if-nez v5, ${if (earlyTail) ":early" else ":popup"}
                 new-instance v0, $NEWER
                 invoke-direct { v0 }, $NEWER-><init>()V
                 const-string v1, "$newerName"
@@ -487,6 +504,8 @@ class SaveProfilePictureHookTest {
                 new-instance v0, $NEWER
                 invoke-direct { v0 }, $NEWER-><init>()V
                 $popupContext
+                $tail
+                $rewrite
                 new-instance v6, Ljava/util/ArrayList;
                 invoke-direct { v6 }, Ljava/util/ArrayList;-><init>()V
                 const/4 v3, 0x0
