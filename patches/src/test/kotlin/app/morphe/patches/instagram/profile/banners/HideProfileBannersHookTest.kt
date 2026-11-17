@@ -316,7 +316,9 @@ class HideProfileBannersHookTest {
             }.filter { it.startsWith("L") && it !in found }.toSet()
             if (wanted.isNotEmpty()) found += FixtureDex.classes(bundle, wanted)
         }
-        return found.values
+        // What those classes keep: 386214562's holder is told apart by its field's type (07Nl.A01).
+        val kept = found.values.flatMap { classDef -> classDef.fields.map { it.type } }.filter { it.startsWith("L") && it !in found }.toSet()
+        return found.values + FixtureDex.classes(bundle, kept).values
     }
 
     /** The header moved into a free local, the filter over the links and the header, its answer cast back, then the question. */

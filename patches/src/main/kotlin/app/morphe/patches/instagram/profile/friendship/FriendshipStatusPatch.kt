@@ -34,6 +34,7 @@ import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
@@ -200,13 +201,28 @@ internal fun BytecodePatchContext.findProfileUser(refuse: (String) -> Nothing): 
             setValue?.parameterTypes?.map(CharSequence::toString) == listOf(OBJECT) && setValue.returnType == "Z"
         }
     }.singleOrNull() ?: refuse("$VIEW_MODEL's user setter doesn't keep the user in live data")
-    val holderField = setterCode.mapNotNull { instruction ->
+    // [receiver] limits the reads to fields of that register, the getter's own holder.
+    fun holderReads(code: List<Instruction>, receiver: Int?) = code.mapNotNull { instruction ->
         instruction.fieldReference()?.takeIf { field ->
             instruction.opcode == Opcode.IGET_OBJECT && field.definingClass != VIEW_MODEL &&
+                (receiver == null || (instruction as TwoRegisterInstruction).registerB == receiver) &&
                 classDefByOrNull(field.definingClass)?.let { holder ->
                     holder.fields.any { it.type == USER || it.type.startsWith("L") && classDefByOrNull(it.type) != null && USER != it.type }
                 } == true
         }
+    }
+    // 456's armv7 build (386214562) reads the holder's field in a getter the setter calls on the holder
+    // it just made (047L.A0B()String, reading 07Nl.A01) instead of in the setter itself.
+    val made = setterCode.filter { it.opcode == Opcode.NEW_INSTANCE }.map { (it as ReferenceInstruction).reference.toString() }.toSet()
+    val getters = setterCode.mapNotNull { instruction ->
+        instruction.methodReference()?.takeIf { instruction.opcode == Opcode.INVOKE_VIRTUAL && it.definingClass in made && it.parameterTypes.isEmpty() }
+    }.mapNotNull { called ->
+        classDefByOrNull(called.definingClass)?.methods?.singleOrNull {
+            it.name == called.name && it.parameterTypes.isEmpty() && it.returnType == called.returnType && it.implementation != null
+        }
+    }
+    val holderField = holderReads(setterCode, null).ifEmpty {
+        getters.flatMap { getter -> holderReads(getter.implementation!!.instructions.toList(), getter.localRegisterCount()) }
     }.singleOrNull() ?: refuse("$VIEW_MODEL's user setter doesn't read the user's holder")
     val getValue = findLiveValue(live.type) ?: refuse("${live.type} has no getValue()Object")
     return ProfileUser(null, live, getValue, holderField.definingClass, holderField)

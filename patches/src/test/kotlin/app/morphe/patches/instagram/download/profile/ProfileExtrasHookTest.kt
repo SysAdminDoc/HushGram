@@ -158,6 +158,8 @@ class ProfileExtrasHookTest {
         val wanted = model.fields.map { it.type }.filter { it.startsWith("L") }.toMutableSet()
         model.methods.flatMap { it.implementation?.instructions?.toList().orEmpty() }.forEach { step ->
             ((step as? ReferenceInstruction)?.reference as? FieldReference)?.let { wanted += it.definingClass }
+            // The holders it makes: 386214562's user setter reads its holder's field in the holder's own getter.
+            if (step.opcode == Opcode.NEW_INSTANCE) wanted += (step as ReferenceInstruction).reference.toString()
         }
         wanted += "Lcom/instagram/user/model/User;"
         val found = FixtureDex.classes(bundle, wanted).values
