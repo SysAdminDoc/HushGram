@@ -71,7 +71,10 @@ import kotlin.jvm.functions.Function1;
  * <p>The top bar belongs to the viewer, not the page, and the same fade writes it only on the steps
  * of its spring. A turn-on in the same moment as the turn-off leaves that spring where it was, so
  * nothing hides the bar a page change just showed. A reel that left clear mode therefore lets the
- * fade run for {@link #FADE_MOVES_MS} before the first try for the next reel.
+ * fade run for {@link #FADE_MOVES_MS} before the first try for the next reel. In between the bar
+ * faded in during the swipe and back out once it landed, so a reel that leaves clear mode by a swipe
+ * has {@link ReelsTopBar#holdForClearMode} hide the bars on screen before that fade's first frame,
+ * and keep them hidden for as long as clear mode is wanted (#740).
  *
  * <p>Instagram's turn-on acts on whatever reel the pager is on, so {@link #current} looks at that
  * reel first and holds the turn-on back when it would be the wrong one: the reel that just left
@@ -478,6 +481,8 @@ public final class ReelClearMode {
             clearRetry();
             WeakReference<Object> held = new WeakReference<>(handler);
             leaving = held;
+            // Instagram's turn-off just set the viewer's top bar fading in; it stays hidden instead (#740).
+            ReelsTopBar.holdForClearMode();
             access.afterFadeMoved(() -> firstTry(held, id));
         } catch (Throwable failure) {
             drop();
@@ -1141,6 +1146,7 @@ public final class ReelClearMode {
         leaving = null;
         clearRetry();
         showLater();
+        ReelsTopBar.clearModeEnded();
     }
 
     /** Clear mode is wanted through [handler]'s viewer. */
@@ -1168,6 +1174,14 @@ public final class ReelClearMode {
     /** Whether clear mode is wanted for the next reels. For tests. */
     static boolean wanted() {
         return wanted;
+    }
+
+    /**
+     * Whether the top bars {@link ReelsTopBar#holdForClearMode} hid stay hidden: clear mode is wanted
+     * for the next reels, Keep clear mode on is on and HushGram isn't paused (#740).
+     */
+    static boolean holdsBars() {
+        return wanted && on() && !HushgramPause.isPaused();
     }
 
     /** Whether a reel that left clear mode waits for the pager's next page. For tests. */
