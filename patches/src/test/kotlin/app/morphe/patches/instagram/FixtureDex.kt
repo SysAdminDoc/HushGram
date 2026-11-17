@@ -186,6 +186,38 @@ internal object FixtureDex {
         return found.values.toList()
     }
 
+    /**
+     * [classesLoading] for many [strings] at once, in two walks of the bundle: every class [wanted]
+     * picks or holding one of the strings, every class asking a static `(int)String` pool for one,
+     * and the pools. [wanted] sees every class of the bundle.
+     */
+    fun classesLoadingAny(bundle: File, strings: Set<String>, wanted: (ClassDef) -> Boolean = { false }): List<ClassDef> {
+        val found = LinkedHashMap<String, ClassDef>()
+        val pools = HashMap<String, Set<Int>>()
+        forEachDex(bundle) { dex ->
+            val holds = dex.stringSection.any { it in strings }
+            for (classDef in dex.classes) {
+                if (classDef.type in found) continue
+                val holder = holds && classDef.methods.any { method ->
+                    method.implementation?.instructions?.any { ((it as? ReferenceInstruction)?.reference as? StringReference)?.string in strings } == true
+                }
+                if (holder || wanted(classDef)) found[classDef.type] = ImmutableClassDef.of(classDef)
+                if (!holder) continue
+                for (method in classDef.methods) {
+                    val numbers = strings.flatMapTo(HashSet()) { poolNumbers(method, it) }
+                    if (numbers.isNotEmpty()) pools["${classDef.type}->${method.name}"] = numbers
+                }
+            }
+        }
+        if (pools.isEmpty()) return found.values.toList()
+        forEachDex(bundle) { dex ->
+            for (classDef in dex.classes) {
+                if (classDef.type !in found && classDef.methods.any { asksPool(it, pools) }) found[classDef.type] = ImmutableClassDef.of(classDef)
+            }
+        }
+        return found.values.toList()
+    }
+
     /** Whether [method] calls one of [pools] (by "type->name") with a number it answers, loaded right before the call. */
     private fun asksPool(method: Method, pools: Map<String, Set<Int>>): Boolean {
         val code = method.implementation?.instructions?.toList() ?: return false

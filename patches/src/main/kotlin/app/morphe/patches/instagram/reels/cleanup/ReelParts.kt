@@ -184,11 +184,13 @@ internal const val HIDE_SOCIAL_CONTEXT = "$DECLUTTER->hideSocialContext(Ljava/la
 internal const val FLOATING_BUBBLES = "FloatingBubblesUseCase_getUiState"
 
 /**
- * Instagram's check for leaving out a reel's social context line, the faces with Liked by or
- * Followed by beside them. The line under the author and the one at a reel's end are only shown
- * once this answers no. It's handed the line, whose type is an enum naming what it says.
+ * Where Instagram decides on a reel's social context line, the faces with Liked by or Followed by
+ * beside them: the line under the author and the one at a reel's end are only shown once this
+ * answers yes. On 456 the check that used to leave the line out, shouldHideSocialContextForClips,
+ * is merged into the method holding this marker, which makes the line, reads its type, an enum
+ * naming what it says, and answers whether to show it.
  */
-internal const val SOCIAL_CONTEXT_CHECK = "MediaSocialContextViewUtil_shouldHideSocialContextForClips"
+internal const val SOCIAL_CONTEXT_CHECK = "MediaSocialContextViewUtil_isCoexistenceWithBubblesEnabled"
 
 /** Types the social context's enum has to name, so the check is known to be handed that line. */
 internal val SOCIAL_CONTEXT_TYPES = listOf("FOLLOWED_BY", "LIKED_BY")
@@ -229,4 +231,4 @@ internal const val CLIPS_VIEWER_SOURCE = "Lcom/instagram/clips/intf/ClipsViewerS
 internal val CLEANUP_MARKERS = REEL_PARTS.map { it.marker } + SAVE_PARTS.map { it.marker } + LIKE_PARTS.map { it.marker } +
     PAUSE_PARTS.map { it.marker } + COMMENT_BUTTON_RENDER + SHARE_COUNT_MARKER + PRODUCT_CTA.marker + FLOATING_BUBBLES + SOCIAL_CONTEXT_CHECK +
     COMMENT_BAR_SHOW + COMMENT_BAR_HIDE + COMMENT_BAR_CREATED + COMMENT_BAR_UNVANISH +
-    DIRECT_REPLY_BAR_SHOW + DIRECT_REPLY_BAR_HIDE + DIRECT_REPLY_BAR_CREATED
+    DIRECT_REPLY_BAR_SHOW + DIRECT_REPLY_BAR_HIDE + DIRECT_REPLY_BAR_CREATED + SPOTLIGHT_REPLY_BAR_SHOW + SPOTLIGHT_REPLY_BAR_HIDE

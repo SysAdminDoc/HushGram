@@ -21,11 +21,13 @@ import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.WideLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
@@ -42,6 +44,7 @@ import com.android.tools.smali.dexlib2.immutable.reference.ImmutableStringRefere
 import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -98,7 +101,7 @@ class CleanUpReelsHookTest {
         val legacy =context.mutableClassDefBy(owner("ClipsFollowButtonComponentLegacy_render")).methods.single()
         assertEquals("the Legacy Follow button was touched", 3, legacy.instructions().size)
         assertBubblesGuarded("stand-in", context.mutableClassDefBy(BUBBLES).methods.single(), "$NO_BUBBLES->A00:$NO_BUBBLES")
-        assertLineGuarded("stand-in", context.mutableClassDefBy(VIEW_UTIL).methods.single(), 4, "$LINE->type:$LINE_TYPE")
+        assertLineGuarded("stand-in", context.mutableClassDefBy(VIEW_UTIL).methods.single(), 3, 2)
         val bar = context.mutableClassDefBy(BAR)
         assertCommentBarGuarded("stand-in", bar.methods.single { it.name == "A0t" }, bar.methods.single { it.name == "onViewCreated" },
             "$BAR->source:$CLIPS_VIEWER_SOURCE", "$BAR->A0r()V", "$BAR->bar:$VIEW", 0)
@@ -135,6 +138,27 @@ class CleanUpReelsHookTest {
         val show = context.mutableClassDefBy(REPLY_BASE).methods.single { it.name == "A0u" }
         val created = context.mutableClassDefBy(REPLY).methods.single { it.name == "onViewCreated" }
         assertReplyBarGuarded("hide in the controller", show, created, "$REPLY->hidden:Z", "$REPLY->source:$CLIPS_VIEWER_SOURCE", "A0t")
+    }
+
+    /**
+     * On 456 the show reads the hidden flag over the controller it cast. The controller is copied
+     * into a local nothing reads there first, and the guard reads the viewer's source off the copy.
+     */
+    @Test
+    fun aShowReadingTheFlagOverTheControllerKeepsTheController() {
+        val context = PatchContexts.of(classes(replyBar = "kept over the controller"))
+
+        context.hideReelParts()
+
+        val show = context.mutableClassDefBy(REPLY_BASE).methods.single { it.name == "A0u" }
+        val created = context.mutableClassDefBy(REPLY).methods.single { it.name == "onViewCreated" }
+        assertReplyBarGuarded("over the controller", show, created, "$REPLY->hidden:Z", "$REPLY->source:$CLIPS_VIEWER_SOURCE", "A0t")
+        val code = show.instructions()
+        val read = code.indexOfFirst { it.opcode == Opcode.IGET_BOOLEAN }
+        assertEquals("the controller is kept in the one free local", 3, (code[read - 1] as TwoRegisterInstruction).registerA)
+        val before = classes(replyBar = "kept over the controller").flatMap { it.methods }
+            .single { DIRECT_REPLY_BAR_SHOW in it.markers() }.instructions().size
+        assertEquals("the show grows by the copy and the guard", before + 5, code.size)
     }
 
     /**
@@ -202,7 +226,7 @@ class CleanUpReelsHookTest {
         assertTrue(failure.message!!, failure.message!!.contains("FOLLOWED_BY"))
     }
 
-    /** The hook reads the line before the check runs, so the check must read the parameter itself. */
+    /** The hook goes in after the type is read off the line just made, so the read has to come straight after the call. */
     @Test
     fun aCheckReadingAnotherLineFailsThePatch() {
         val context = PatchContexts.of(classes(overwritesLine = true))
@@ -344,34 +368,60 @@ class CleanUpReelsHookTest {
 
     private fun hidesEveryPart(bundle: File, label: String) {
         val markers = CLEANUP_MARKERS.toSet()
-        val classes = mutableListOf<ClassDef>()
-        FixtureDex.forEach(bundle) { dex ->
-            val holds = dex.stringSection.any { string ->
-                string.startsWith("android_purge_") && PURGE_MARKER.find(string)?.groupValues?.get(1) in markers
-            }
-            if (!holds) return@forEach
-            for (classDef in dex.classes) {
-                if (classDef.methods.any { method -> method.markers().any { it in markers } }) {
-                    classes += ImmutableClassDef.of(classDef)
-                }
+        // The classes holding a marker or loading what a part's anchor looks for, with the string
+        // pools they ask; most markers are gone on 456, where the anchors find the parts.
+        val sliced = FixtureDex.classesLoadingAny(bundle, ANCHOR_STRINGS) { classDef ->
+            classDef.methods.any { method ->
+                method.implementation?.instructions?.any { instruction ->
+                    val string = ((instruction as? ReferenceInstruction)?.reference as? StringReference)?.string
+                    if (string != null) {
+                        string.startsWith("android_purge_") && PURGE_MARKER.find(string)?.groupValues?.get(1) in markers
+                    } else {
+                        instruction.opcode in LITERAL_LOADS && (instruction as WideLiteralInstruction).wideLiteral in ANCHOR_LITERALS
+                    }
+                } == true
             }
         }
-        val check = classes.flatMap { it.methods }.single { SOCIAL_CONTEXT_CHECK in it.markers() }
-        val typeRead = check.instructions().zipWithNext().single { (read, asked) ->
-            read.opcode == Opcode.IGET_OBJECT &&
-                ((asked as? ReferenceInstruction)?.reference as? MethodReference)?.name == "ordinal"
-        }.first
-        val typeField = (typeRead as ReferenceInstruction).reference as FieldReference
-        classes += FixtureDex.classes(bundle, setOf(typeField.type, CLIPS_VIEWER_SOURCE)).values.map { ImmutableClassDef.of(it) }
-        val context = PatchContexts.of(classes.distinctBy { it.type })
+        val slicedTypes = sliced.associateBy { it.type }
+        fun classesLoading(string: String) = sliced.filter { classDef -> classDef.methods.any { FixtureDex.loads(it, string, slicedTypes) } }
+        // A string pool loads the markers it shares too, and holds no part.
+        fun Method.holds(marker: String) = marker in markers() && !isStringPool()
+        val lineHolder = sliced.flatMap { it.methods }.single { it.holds(SOCIAL_CONTEXT_CHECK) }
+        // And the classes the anchors and checks read off those: the viewer's source, the types the
+        // social context's method reads, the components the author info builds, the Subscribe
+        // button's among them, and the classes the info overlay's render calls, the floating bubbles
+        // check's among them.
+        val more = mutableSetOf(CLIPS_VIEWER_SOURCE)
+        more += lineHolder.instructions().filter { it.opcode == Opcode.IGET_OBJECT }.map { ((it as ReferenceInstruction).reference as FieldReference).type }
+        more += classesLoading(AUTHOR_INFO).flatMap { it.methods }.map { it.returnType }.filter { it.startsWith("L") }
+        more += classesLoading(INFO_OVERLAY).flatMap { it.methods }.flatMap { it.instructions() }
+            .filter { it.opcode == Opcode.INVOKE_STATIC || it.opcode == Opcode.INVOKE_STATIC_RANGE }
+            .map { ((it as ReferenceInstruction).reference as MethodReference).definingClass }
+        val classes = FixtureDex.withStringPools(
+            bundle, sliced + FixtureDex.classes(bundle, more - slicedTypes.keys).values.map { ImmutableClassDef.of(it) },
+        ).distinctBy { it.type }
+        val byType = classes.associateBy { it.type }
+        val context = PatchContexts.of(classes)
 
-        context.hideReelParts()
+        val sites = context.findReelParts()
+        context.hideReelParts(sites)
 
         fun after(before: Method) = context.mutableClassDefBy(before.definingClass).methods.single {
             it.name == before.name && it.parameterTypes.map(Any::toString) == before.parameterTypes.map(Any::toString)
         }
+        fun signature(method: Method) = "${method.definingClass}->${method.name}(${method.parameterTypes.joinToString("")})${method.returnType}"
+        fun holders(marker: String) = classes.flatMap { it.methods }.filter { it.holds(marker) }
+        // A part whose marker is still held is the method holding it.
+        fun assertHolder(marker: String, found: Method) = holders(marker).forEach {
+            assertEquals("$label: $marker's holder", signature(it), signature(found))
+        }
+        // The components whose render, a one-scope instance method, loads [name].
+        fun componentsLoading(name: String) = classes.flatMap { it.methods }.filter { method ->
+            !AccessFlags.STATIC.isSet(method.accessFlags) && method.parameterTypes.size == 1 && FixtureDex.loads(method, name, byType)
+        }.map { it.definingClass }.toSet()
         REEL_PARTS.forEach { part ->
-            val before = classes.flatMap { it.methods }.single { part.marker in it.markers() }
+            val before = sites.renders.getValue(part)
+            assertHolder(part.marker, before)
             val after = after(before)
             assertEquals("$label: ${part.marker} size", before.instructions().size + 5, after.instructions().size)
             assertGuardFirst("$label: ${part.marker}", part, after)
@@ -379,7 +429,8 @@ class CleanUpReelsHookTest {
         // The Save button and the save count: one method each, an instance builder of a scope and two
         // longs, guarded first. No other method of the build asks either hook, a feed post's included.
         SAVE_PARTS.forEach { part ->
-            val before = classes.flatMap { it.methods }.single { part.marker in it.markers() }
+            val before = sites.saves.getValue(part)
+            assertHolder(part.marker, before)
             assertFalse("$label: ${part.marker} is static", AccessFlags.STATIC.isSet(before.accessFlags))
             assertEquals("$label: ${part.marker} parameters", listOf("J", "J"), before.parameterTypes.drop(1).map { it.toString() })
             val after = after(before)
@@ -390,12 +441,16 @@ class CleanUpReelsHookTest {
             assertEquals("$label: who asks ${part.hook}", listOf("${before.definingClass}->${before.name}"),
                 askers.map { (type, method) -> "$type->${method.name}" })
         }
+        assertTrue("$label: the Save button's builder answers the Save button",
+            sites.saves.getValue(SAVE_PARTS[0]).returnType in componentsLoading(SAVE_BUTTON))
+        assertTrue("$label: the save count's builder loads $SAVE_COUNT",
+            FixtureDex.loads(sites.saves.getValue(SAVE_PARTS[1]), SAVE_COUNT, byType))
         // The Like button, the like count, the Comment button and the comment count (#668): each hook
         // is asked by one instance method of the clips UFI, first thing, and by nothing else. The Like
-        // builders are the ones holding their markers, the Comment button's answers the component
-        // holding its render's marker, and the count's takes the same parameters and loads ufi_count.
-        val ufiType = classes.flatMap { it.methods }.single { LIKE_PARTS[0].marker in it.markers() }.definingClass
-        val commentType = classes.flatMap { it.methods }.single { COMMENT_BUTTON_RENDER in it.markers() }.definingClass
+        // button's builder answers the component whose render loads like_button, the like count's
+        // loads ufi_count, the Comment button's answers the component whose render loads
+        // comment_button, and the comment count's takes the same parameters and loads ufi_count.
+        val ufiType = sites.ufiParts.getValue(LIKE_PARTS[0]).definingClass
         val hooked = (LIKE_PARTS + COMMENT_BUTTON + COMMENT_COUNT + REPOST_COUNT).associateWith { part ->
             val askers = classes.flatMap { context.mutableClassDefBy(it.type).methods.toList() }
                 .filter { method -> method.instructions().any { (it as? ReferenceInstruction)?.reference?.toString() == part.hook } }
@@ -409,8 +464,12 @@ class CleanUpReelsHookTest {
             assertGuardFirst("$label: ${part.hook}", part, after)
             before
         }
-        LIKE_PARTS.forEach { part -> assertTrue("$label: ${part.hook} guards ${part.marker}", part.marker in hooked.getValue(part).markers()) }
-        assertEquals("$label: the Comment button's builder", commentType, hooked.getValue(COMMENT_BUTTON).returnType)
+        LIKE_PARTS.forEach { part -> assertHolder(part.marker, hooked.getValue(part)) }
+        assertTrue("$label: the Like button's builder answers the Like button",
+            hooked.getValue(LIKE_PARTS[0]).returnType in componentsLoading(LIKE_BUTTON))
+        assertTrue("$label: the like count loads $UFI_COUNT", FixtureDex.loads(hooked.getValue(LIKE_PARTS[1]), UFI_COUNT, byType))
+        assertTrue("$label: the Comment button's builder answers the Comment button",
+            hooked.getValue(COMMENT_BUTTON).returnType in componentsLoading(COMMENT_BUTTON_NAME))
         val commentCount = hooked.getValue(COMMENT_COUNT)
         assertEquals("$label: the comment count's parameters", hooked.getValue(COMMENT_BUTTON).parameterTypes.map(Any::toString),
             commentCount.parameterTypes.map(Any::toString))
@@ -427,7 +486,8 @@ class CleanUpReelsHookTest {
         })
         // The share count (#719): the UFI's render builds it with the UFI's text builder and hands it to
         // the hook right before the add, where the branches that went to the add now land.
-        val shareBefore = classes.flatMap { it.methods }.single { SHARE_COUNT_MARKER in it.markers() }
+        val shareBefore = sites.shareCount.render
+        assertHolder(SHARE_COUNT_MARKER, shareBefore)
         assertEquals("$label: the share count's render", ufiType, shareBefore.definingClass)
         val shareAfter = after(shareBefore)
         val hook = shareAfter.instructions().indexOfFirst { (it as? ReferenceInstruction)?.reference?.toString() == SHARE_COUNT }
@@ -441,13 +501,14 @@ class CleanUpReelsHookTest {
         assertEquals("$label: the render grows by the hook", stock.count { it.opcode != Opcode.NOP } + 3,
             shareAfter.instructions().count { it.opcode != Opcode.NOP })
         // The reel CTA's product button: the one builder, guarded first and growing by the guard alone.
-        val productBefore = classes.flatMap { it.methods }.single { PRODUCT_CTA.marker in it.markers() }
+        val productBefore = sites.productCta
+        assertHolder(PRODUCT_CTA.marker, productBefore)
         val productAfter = after(productBefore)
         assertEquals("$label: ${PRODUCT_CTA.marker} size", productBefore.instructions().size + 5, productAfter.instructions().size)
         assertGuardFirst("$label: ${PRODUCT_CTA.marker}", PRODUCT_CTA, productAfter)
         // A paused reel's big pause icon and sound button (#686): one instance builder each in one
         // component, guarded first, growing by the guard alone, and asked by nothing else.
-        val pauseBuilders = PAUSE_PARTS.map { part -> classes.flatMap { it.methods }.single { part.marker in it.markers() } }
+        val pauseBuilders = PAUSE_PARTS.map { part -> sites.pauses.getValue(part).also { assertHolder(part.marker, it) } }
         assertEquals("$label: the paused reel builders' component", 1, pauseBuilders.map { it.definingClass }.toSet().size)
         PAUSE_PARTS.zip(pauseBuilders).forEach { (part, before) ->
             assertFalse("$label: ${part.marker} is static", AccessFlags.STATIC.isSet(before.accessFlags))
@@ -460,23 +521,40 @@ class CleanUpReelsHookTest {
                 askers.map { "${it.definingClass}->${it.name}" })
         }
         // The in-viewer comment bar's render is guarded by the switch for all reels, nothing else.
-        val inViewer = after(classes.flatMap { it.methods }.single { COMMENT_BAR_PARTS.single().marker in it.markers() })
+        val inViewer = after(sites.renders.getValue(COMMENT_BAR_PARTS.single()))
         assertEquals("$label: the in-viewer bar's hook", HIDE_EVERY_COMMENT_BAR, (inViewer.instructions()[0] as ReferenceInstruction).reference.toString())
         assertEquals("$label: the in-viewer bar asks once", 1, inViewer.instructions().count {
             (it as? ReferenceInstruction)?.reference?.toString()?.startsWith(HIDE_EVERY_COMMENT_BAR.substringBefore("->")) == true
         })
-        val bubbles = classes.flatMap { it.methods }.single { FLOATING_BUBBLES in it.markers() }
+        val bubbles = sites.bubbles
+        assertHolder(FLOATING_BUBBLES, bubbles)
+        assertTrue("$label: the bubbles use case names itself", FixtureDex.loads(
+            classes.single { it.type == bubbles.definingClass }.methods.single { it.name == "toString" }, BUBBLES_NAME, byType,
+        ))
         val none = bubbles.instructions().zipWithNext().first { (read, answer) ->
             read.opcode == Opcode.SGET_OBJECT && answer.opcode == Opcode.RETURN_OBJECT
         }.first
         assertEquals("$label: bubbles size", bubbles.instructions().size + 5, after(bubbles).instructions().size)
         assertBubblesGuarded("$label: bubbles", after(bubbles), (none as ReferenceInstruction).reference.toString())
-        assertEquals("$label: line check size", check.instructions().size + 7, after(check).instructions().size)
-        assertLineGuarded("$label: line check", after(check), (typeRead as TwoRegisterInstruction).registerB, typeField.toString())
+        // The social context line: the hook goes in right after the method holding the marker reads
+        // the line's type, an enum naming Followed by and Liked by.
+        val check = sites.line.method
+        assertEquals("$label: the social context's method", signature(lineHolder), signature(check))
+        val read = sites.line.at - 1
+        val typeRead = check.instructions()[read]
+        val typeField = (typeRead as ReferenceInstruction).reference as FieldReference
+        val named = byType.getValue(typeField.type).methods.single { it.name == "<clinit>" }.instructions()
+            .mapNotNull { ((it as? ReferenceInstruction)?.reference as? StringReference)?.string }
+        assertTrue("$label: the line's type ${typeField.type} names $SOCIAL_CONTEXT_TYPES", named.containsAll(SOCIAL_CONTEXT_TYPES))
+        assertEquals("$label: line check size", check.instructions().size + 5, after(check).instructions().size)
+        assertLineGuarded("$label: line check", after(check), read, (typeRead as TwoRegisterInstruction).registerA)
         // The comment bar: guarded where it's shown and right after onViewCreated keeps it.
-        val show = classes.flatMap { it.methods }.single { COMMENT_BAR_SHOW in it.markers() }
-        val hide = classes.flatMap { it.methods }.single { COMMENT_BAR_HIDE in it.markers() }
-        val created = classes.flatMap { it.methods }.single { COMMENT_BAR_CREATED in it.markers() }
+        val show = sites.bar.show
+        val hide = sites.bar.hide
+        val created = sites.bar.created
+        assertHolder(COMMENT_BAR_SHOW, show)
+        assertHolder(COMMENT_BAR_HIDE, hide)
+        assertHolder(COMMENT_BAR_CREATED, created)
         val source = classes.single { it.type == show.definingClass }.fields.single { it.type == CLIPS_VIEWER_SOURCE }
         val bar = hide.instructions().mapNotNull { ((it as? ReferenceInstruction)?.reference as? FieldReference) }
             .single { it.type == VIEW }
@@ -491,7 +569,8 @@ class CleanUpReelsHookTest {
         assertSpaceKept("$label: hide", after(hide), "${bar.definingClass}->${bar.name}:${bar.type}",
             "${source.definingClass}->${source.name}:${source.type}", returns)
         // And in unVanish, right after the marker's trace, on the register the hide is called on.
-        val unVanish = classes.flatMap { it.methods }.single { COMMENT_BAR_UNVANISH in it.markers() }
+        val unVanish = sites.bar.unVanish.method
+        assertHolder(COMMENT_BAR_UNVANISH, unVanish)
         val unVanishCode = unVanish.instructions()
         val traced = unVanishCode.indexOfFirst {
             ((it as? ReferenceInstruction)?.reference as? StringReference)?.string?.endsWith(COMMENT_BAR_UNVANISH) == true
@@ -505,15 +584,21 @@ class CleanUpReelsHookTest {
         // The reply bar of a reel from a chat (#177): the controller its onViewCreated names keeps the
         // viewer's source in one field, its show reads one flag of it, and that flag gets the hook's
         // answer where the show and onViewCreated read it. Nothing else in the build asks the hook.
-        val replyShow = classes.flatMap { it.methods }.single { DIRECT_REPLY_BAR_SHOW in it.markers() }
-        val replyHide = classes.flatMap { it.methods }.single { DIRECT_REPLY_BAR_HIDE in it.markers() }
-        val replyCreated = classes.flatMap { it.methods }.single { DIRECT_REPLY_BAR_CREATED in it.markers() }
+        // On 456 the show and the hide keep only the Spotlight reply bar's markers, being shared.
+        val replyShow = sites.replyBar.show
+        val replyCreated = sites.replyBar.created
+        val replyHide = holders(DIRECT_REPLY_BAR_HIDE).ifEmpty { holders(SPOTLIGHT_REPLY_BAR_HIDE) }.single()
+        assertHolder(DIRECT_REPLY_BAR_SHOW, replyShow)
+        assertHolder(DIRECT_REPLY_BAR_CREATED, replyCreated)
+        if (holders(DIRECT_REPLY_BAR_SHOW).isEmpty()) assertHolder(SPOTLIGHT_REPLY_BAR_SHOW, replyShow)
         val controller = classes.single { it.type == replyCreated.definingClass }
         val replySource = controller.fields.single { it.type == CLIPS_VIEWER_SOURCE }
         val hidden = replyShow.instructions().filter { it.opcode == Opcode.IGET_BOOLEAN }
             .map { (it as ReferenceInstruction).reference as FieldReference }.single { it.definingClass == controller.type }
-        assertEquals("$label: the reply bar's show size", replyShow.instructions().size + 4, after(replyShow).instructions().size)
-        assertEquals("$label: the reply bar's onViewCreated size", replyCreated.instructions().size + 4, after(replyCreated).instructions().size)
+        // A read putting the flag over the controller keeps the controller in a free local first.
+        fun kept(read: FlagRead) = if (read.kept == null) 4 else 5
+        assertEquals("$label: the reply bar's show size", replyShow.instructions().size + kept(sites.replyBar.shown), after(replyShow).instructions().size)
+        assertEquals("$label: the reply bar's onViewCreated size", replyCreated.instructions().size + kept(sites.replyBar.made), after(replyCreated).instructions().size)
         assertReplyBarGuarded("$label: reply bar", after(replyShow), after(replyCreated), hidden.toString(),
             "${replySource.definingClass}->${replySource.name}:${replySource.type}", replyHide.name)
         val askers = classes.flatMap { classDef -> context.mutableClassDefBy(classDef.type).methods.map { classDef.type to it } }
@@ -566,7 +651,16 @@ class CleanUpReelsHookTest {
                 guard.map { it.opcode },
             )
             assertEquals("$what: the $where checks the flag", registers.registerA, (guard[0] as OneRegisterInstruction).registerA)
-            assertEquals("$what: the $where reads the source off the controller", registers.registerB, (guard[1] as TwoRegisterInstruction).registerB)
+            // Read over the controller, the flag's read is right after a copy of the controller into a
+            // local of its own, which the guard reads the source off.
+            val controller = if (registers.registerA != registers.registerB) registers.registerB else {
+                val copy = code[read - 1]
+                assertEquals("$what: the $where keeps the controller", Opcode.MOVE_OBJECT_FROM16, copy.opcode)
+                assertEquals("$what: the $where copies the controller", registers.registerB, (copy as TwoRegisterInstruction).registerB)
+                assertNotEquals("$what: the $where keeps it apart from the flag", registers.registerA, copy.registerA)
+                copy.registerA
+            }
+            assertEquals("$what: the $where reads the source off the controller", controller, (guard[1] as TwoRegisterInstruction).registerB)
             assertEquals("$what: the $where reads the source over the flag", registers.registerA, (guard[1] as TwoRegisterInstruction).registerA)
             assertEquals("$what: the $where's source", source, (guard[1] as ReferenceInstruction).reference.toString())
             assertEquals("$what: the $where's hook", HIDE_DIRECT_REPLY_BAR, (guard[2] as ReferenceInstruction).reference.toString())
@@ -605,25 +699,30 @@ class CleanUpReelsHookTest {
     }
 
     /**
-     * The line's type read off the parameter the check reads it from, handed to the hook before any
-     * branch, and yes answered when the hook says so. The branch lands on the check's own first
-     * instruction.
+     * Right after the method reads the line's type into v[type] at instruction [read], the type is
+     * handed to the hook and no, don't show, answered when the hook says so. The branch lands on the
+     * method's own next instruction.
      */
-    private fun assertLineGuarded(what: String, method: Method, line: Int, type: String) {
+    private fun assertLineGuarded(what: String, method: Method, read: Int, type: Int) {
         val code = method.instructions()
+        assertEquals("$what: the type read", Opcode.IGET_OBJECT, code[read].opcode)
+        assertEquals("$what: the type's register", type, (code[read] as TwoRegisterInstruction).registerA)
         assertEquals(
             "$what: the guard's opcodes",
-            listOf(
-                Opcode.MOVE_OBJECT_FROM16, Opcode.IGET_OBJECT, Opcode.INVOKE_STATIC,
-                Opcode.MOVE_RESULT, Opcode.IF_EQZ, Opcode.CONST_4, Opcode.RETURN,
-            ),
-            code.take(7).map { it.opcode },
+            listOf(Opcode.INVOKE_STATIC_RANGE, Opcode.MOVE_RESULT, Opcode.IF_EQZ, Opcode.CONST_4, Opcode.RETURN),
+            code.subList(read + 1, read + 6).map { it.opcode },
         )
-        assertEquals("$what: the line moved in", line, (code[0] as TwoRegisterInstruction).registerB)
-        assertEquals("$what: the type read", type, (code[1] as ReferenceInstruction).reference.toString())
-        assertEquals("$what: the hook called", HIDE_SOCIAL_CONTEXT, (code[2] as ReferenceInstruction).reference.toString())
+        val call = code[read + 1] as RegisterRangeInstruction
+        assertEquals("$what: the type handed over", type to 1, call.startRegister to call.registerCount)
+        assertEquals("$what: the hook called", HIDE_SOCIAL_CONTEXT, (call as ReferenceInstruction).reference.toString())
+        val answer = (code[read + 2] as OneRegisterInstruction).registerA
+        assertTrue("$what: the answer goes over the type", answer != type)
+        assertEquals("$what: the answer checked", answer, (code[read + 3] as OneRegisterInstruction).registerA)
+        assertEquals("$what: no answered", answer to 0, (code[read + 4] as OneRegisterInstruction).registerA to (code[read + 4] as NarrowLiteralInstruction).narrowLiteral)
+        assertEquals("$what: no returned", answer, (code[read + 5] as OneRegisterInstruction).registerA)
         val addresses = code.runningFold(0) { address, instruction -> address + instruction.codeUnits }
-        assertEquals("$what: the branch lands on the check's own code", addresses[7], addresses[4] + (code[4] as OffsetInstruction).codeOffset)
+        assertEquals("$what: the branch lands on the method's own next instruction", addresses[read + 6],
+            addresses[read + 3] + (code[read + 3] as OffsetInstruction).codeOffset)
     }
 
     /**
@@ -813,18 +912,25 @@ class CleanUpReelsHookTest {
                 static = false,
             ),
         )
-        val overwrite = if (overwritesLine) "move-object/from16 p2, p1" else ""
+        // Shaped like 456's, where the check is merged into the method that makes the line and
+        // answers whether to show it.
+        val overwrite = if (overwritesLine) "const/4 v0, 0x0" else ""
         val lineCheck = classOf(
             VIEW_UTIL, "Ljava/lang/Object;",
             method(
-                VIEW_UTIL, "A06", listOf("Lfixture/Item;", LINE, "Ljava/lang/String;"), "Z", 6,
+                VIEW_UTIL, "A06", listOf("Lfixture/Item;", "Ljava/lang/String;"), "Z", 6,
                 """
                     const-string v0, "android_purge_26_q3_$SOCIAL_CONTEXT_CHECK"
+                    invoke-virtual { p0, p1 }, $VIEW_UTIL->A05(Lfixture/Item;)$LINE
+                    move-result-object v1
                     $overwrite
-                    iget-object v1, p2, $LINE->type:$LINE_TYPE
-                    invoke-virtual { v1 }, Ljava/lang/Enum;->ordinal()I
+                    iget-object v2, v1, $LINE->type:$LINE_TYPE
+                    sget-object v0, $LINE_TYPE->A00:$LINE_TYPE
+                    if-ne v2, v0, :show
+                    invoke-virtual { v2 }, Ljava/lang/Enum;->ordinal()I
                     move-result v0
                     if-eqz v0, :keep
+                    :show
                     const/4 v0, 0x1
                     return v0
                     :keep
@@ -896,9 +1002,12 @@ class CleanUpReelsHookTest {
         )
         val jump = if (shape == "jumped") "if-eqz v0, :visibility" else ""
         val landing = if (shape == "jumped") ":visibility" else ""
-        val read = if (shape == "over the controller") "iget-boolean v1, v1, $REPLY->hidden:Z" else "iget-boolean v0, v1, $REPLY->hidden:Z"
+        // Over the controller, with every local read later, nothing can keep the controller; with a
+        // fifth register, v3 is free to.
+        val over = shape == "over the controller" || shape == "kept over the controller"
+        val read = if (over) "iget-boolean v1, v1, $REPLY->hidden:Z" else "iget-boolean v0, v1, $REPLY->hidden:Z"
         val other = if (shape == "two flags") "iget-boolean v2, v1, $REPLY->typing:Z" else ""
-        val show = method(REPLY_BASE, "A0u", emptyList(), "V", 4, """
+        val show = method(REPLY_BASE, "A0u", emptyList(), "V", if (shape == "kept over the controller") 5 else 4, """
             instance-of v0, p0, $REPLY
             if-eqz v0, :spotlight
             move-object v1, p0
