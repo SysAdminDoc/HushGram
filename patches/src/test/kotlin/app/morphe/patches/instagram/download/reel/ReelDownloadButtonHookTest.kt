@@ -9,9 +9,10 @@ import app.morphe.Fixtures
 import app.morphe.PatchContexts
 import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.instagram.download.MEDIA
-import app.morphe.patches.instagram.misc.extension.PURGE_MARKER
-import app.morphe.patches.instagram.misc.extension.markers
-import app.morphe.patches.instagram.reels.cleanup.CLEAR_MODE_DISMISS
+import app.morphe.patches.instagram.reels.cleanup.SAVE_BUTTON
+import app.morphe.patches.instagram.reels.cleanup.SAVE_COUNT
+import app.morphe.patches.instagram.reels.cleanup.UFI_ID
+import app.morphe.patches.instagram.reels.cleanup.loadsLiteral
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -66,28 +67,21 @@ class ReelDownloadButtonHookTest {
     }
 
     private fun check(bundle: File, name: String) {
-        val markers = setOf(COLUMN_MARKER, SAVE_MARKER, SAVE_COUNT_MARKER, TINT_MARKER, SAVE_ICON_MARKER, SHARE_MARKER, MORE_MARKER)
-        val classes = LinkedHashMap<String, ClassDef>()
-        // What clear mode's dismiss takes first, its reel: the Full screen icon (#480) hands it the column's item.
-        val clearModeReels = mutableSetOf<String>()
-        FixtureDex.forEach(bundle) { dex ->
-            val found = dex.stringSection.mapNotNull { string ->
-                if (string.startsWith("android_purge_")) PURGE_MARKER.find(string)?.groupValues?.get(1) else null
-            }.toSet()
-            if (CLEAR_MODE_DISMISS in found) {
-                dex.classes.flatMap { it.methods }.filter { CLEAR_MODE_DISMISS in it.markers() }
-                    .forEach { clearModeReels += it.parameterTypes.first().toString() }
-            }
-            if (found.none { it in markers }) return@forEach
-            for (classDef in dex.classes) {
-                if (classDef.methods.any { method -> method.markers().any { it in markers } }) classes[classDef.type] = ImmutableClassDef.of(classDef)
-            }
+        // Every class of the build loading the column's id or a name its parts load, with the string
+        // pools they ask, so the hook's one-of checks see the whole app.
+        val sliced = FixtureDex.classesLoadingAny(bundle, setOf(SAVE_BUTTON, SAVE_COUNT, SHARE_BUTTON, MORE_BUTTON)) { classDef ->
+            classDef.methods.any { it.loadsLiteral(UFI_ID) }
         }
-        // What the hook reads around the marked methods: what their code names, the column's fields,
-        // then a few steps out by superclass, interface, field and getter, which reaches the reel's
-        // item, its kind's enum and the icon's superclasses.
-        val marked = classes.values.flatMap { it.methods }.filter { method -> method.markers().any { it in markers } }
-        var wanted = marked.flatMap { codeTypes(it) }.toSet() + classes.values.flatMap { it.fields.map { field -> field.type } }
+        val classes = LinkedHashMap<String, ClassDef>()
+        sliced.forEach { classes[it.type] = it }
+        // What the hook reads around the column and its parts' components: what their code names and
+        // what the column's methods answer, the column's fields, then a few steps out by superclass,
+        // interface, field and getter, which reaches the reel's item, its kind's enum and the icon's
+        // superclasses.
+        val columns = sliced.filter { classDef -> classDef.methods.any { it.parameterTypes.size == 1 && it.loadsLiteral(UFI_ID) } }
+        val components = columns.flatMap { column -> column.methods.mapNotNull { classes[it.returnType] } }
+        var wanted = (columns + components).flatMap { classDef -> classDef.methods.flatMap { codeTypes(it) + it.returnType } }.toSet() +
+            columns.flatMap { it.fields.map { field -> field.type } }
         repeat(4) {
             val missing = wanted.filter { it.startsWith("L") && it !in classes }.toSet()
             FixtureDex.classes(bundle, missing).forEach { (type, classDef) -> classes[type] = ImmutableClassDef.of(classDef) }
@@ -100,7 +94,6 @@ class ReelDownloadButtonHookTest {
         assertEquals("$name: Save is added in two places", 2, site.sites.size)
         assertEquals("$name: the item's Media", MEDIA, site.media.type)
         assertEquals("$name: the item is what the getter answers", site.itemType, site.item.returnType)
-        assertEquals("$name: the item is the reel clear mode's dismiss takes", setOf(site.itemType), clearModeReels)
         assertTrue("$name: the column's filter is its own", site.tint.definingClass == site.column && site.tintPrivate)
 
         // Where the gap under the icon comes from. Save sets one margin of nine, its bottom, to the
@@ -115,11 +108,12 @@ class ReelDownloadButtonHookTest {
         assertEquals("$name: the first Save goes over Share, the second over More", listOf(false, true),
             site.sites.sortedBy { it.at }.map { it.aboveMore })
 
-        val before = context.mutableClassDefBy(site.column).methods.single { it.name == site.render.name && it.markers().contains(COLUMN_MARKER) }
-            .instructions()
+        fun render() = context.mutableClassDefBy(site.column).methods.single {
+            it.name == site.render.name && it.parameterTypes.map(Any::toString) == site.render.parameterTypes.map(Any::toString)
+        }.instructions()
+        val before = render()
         context.addReelDownloadButton(site)
-        val code = context.mutableClassDefBy(site.column).methods.single { it.name == site.render.name && it.markers().contains(COLUMN_MARKER) }
-            .instructions()
+        val code = render()
         assertEquals("$name: fourteen instructions at each place", before.size + 28, code.size)
         val asks = code.indices.filter { code[it].names(REEL_BUTTON_ON) }
         val makes = code.indices.filter { code[it].names(REEL_BUTTON_LITHO) || code[it].names(REEL_BUTTON_LITHO_ABOVE_MORE) }

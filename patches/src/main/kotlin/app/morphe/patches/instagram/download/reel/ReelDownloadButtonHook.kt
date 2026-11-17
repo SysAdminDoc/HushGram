@@ -12,12 +12,16 @@ import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.instagram.download.MEDIA
 import app.morphe.patches.instagram.feed.requireOneKindField
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.instagram.misc.extension.classesLoading
 import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.liveAcrossInjection
+import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
-import app.morphe.patches.instagram.misc.extension.markers
 import app.morphe.patches.instagram.misc.extension.patchLog
-import app.morphe.patches.instagram.misc.extension.typesMarked
+import app.morphe.patches.instagram.reels.cleanup.SAVE_BUTTON
+import app.morphe.patches.instagram.reels.cleanup.SAVE_COUNT
+import app.morphe.patches.instagram.reels.cleanup.UFI_ID
+import app.morphe.patches.instagram.reels.cleanup.loadsLiteral
 import app.morphe.util.ControlFlow
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -44,25 +48,19 @@ internal const val REEL_BUTTON_LITHO = "$REEL_BUTTON_TYPE->litho(Ljava/lang/Obje
 internal const val REEL_BUTTON_LITHO_ABOVE_MORE =
     "$REEL_BUTTON_TYPE->lithoAboveMore(Ljava/lang/Object;Ljava/lang/Object;JJ)Ljava/lang/Object;"
 
-/** The render of the column beside a reel, which collects its buttons in a list. */
-internal const val COLUMN_MARKER = "ClipsUfiComponent_render"
-
-/** The column's builders of Save and of its count, which the render calls one after the other. */
-internal const val SAVE_MARKER = "ClipsUfiComponent_maybeCreateSaveButtonComponent"
-internal const val SAVE_COUNT_MARKER = "ClipsUfiComponent_maybeCreateSaveCountComponent"
-
-/**
- * The column's builders of Share and of More. Save goes either over Share or, past the share count,
- * over More, and More pulls itself up into the margin of what's over it unless the share count shows.
+/*
+ * Instagram 456 dropped the column's purge markers, so the column is found by what it still loads:
+ * its render ([UFI_ID]), Save's count's builder ([SAVE_COUNT]) and More's ([MORE_BUTTON]), and the
+ * renders of the components Save's builder and Share's answer ([SAVE_BUTTON], [SHARE_BUTTON]).
+ * Save goes either over Share or, past the share count, over More, and More pulls itself up into
+ * the margin of what's over it unless the share count shows.
  */
-internal const val SHARE_MARKER = "ClipsUfiComponent_createShareButtonComponent"
-internal const val MORE_MARKER = "ClipsUfiComponent_getMoreButton"
 
-/** The column's color filter for its icons, set only where Instagram skips dark mode there. */
-internal const val TINT_MARKER = "ClipsUfiComponent_maybeGetBypassDarkModeColorFilter"
+/** Share's component, whose render names it with this. */
+internal const val SHARE_BUTTON = "direct_share_button"
 
-/** Save's own render, whose styles the Download icon is made with. */
-internal const val SAVE_ICON_MARKER = "ClipsSaveButtonComponent_render"
+/** More's builder, which names More with this. */
+internal const val MORE_BUTTON = "more_button"
 
 /** The kind of an ordinary reel, which the extension compares the reel's item with. */
 private const val ORGANIC = "ORGANIC"
@@ -177,33 +175,46 @@ internal fun BytecodePatchContext.addReelDownloadButtonWhereItFits() {
 }
 
 /**
- * Finds what [addReelDownloadButton] needs: the column's render and builders by their markers, the
+ * Finds what [addReelDownloadButton] needs: the column's render and builders by what they load, the
  * places Save and its count join the column, six registers free at each and the button each goes
  * over, the reel's item and Media, Save's styles in Save's own render and the margin More takes over
  * itself. Fails naming what it didn't find exactly once, before anything changes.
  */
 internal fun BytecodePatchContext.findReelButtonSite(): ReelButtonSite {
-    val names = listOf(COLUMN_MARKER, SAVE_MARKER, SAVE_COUNT_MARKER, TINT_MARKER, SAVE_ICON_MARKER, SHARE_MARKER, MORE_MARKER)
-    val found = names.associateWith { mutableListOf<Method>() }
-    typesMarked(*names.toTypedArray()).forEach { type ->
-        classDefByOrNull(type)?.methods?.forEach { method -> method.markers().forEach { found[it]?.add(method) } }
-    }
-    fun one(name: String): Method = found.getValue(name).distinctBy { "${it.definingClass}->${it.name}${it.types()}" }.singleOrNull()
-        ?: refuse("expected one method holding the $name marker, found ${found.getValue(name).size}")
-    val render = one(COLUMN_MARKER)
-    val save = one(SAVE_MARKER)
-    val count = one(SAVE_COUNT_MARKER)
-    val tint = one(TINT_MARKER)
-    val saveIcon = one(SAVE_ICON_MARKER)
-    val share = one(SHARE_MARKER)
-    val more = one(MORE_MARKER)
+    fun one(what: String, methods: List<Method>): Method = methods.distinctBy { "${it.definingClass}->${it.name}${it.types()}" }
+        .singleOrNull() ?: refuse("expected one $what, found ${methods.joinToString { "${it.definingClass}->${it.name}" }.ifEmpty { "none" }}")
+    val render = one("render loading the column's id", classesLoading(UFI_ID).flatMap { classDef ->
+        classDef.methods.filter { method ->
+            !AccessFlags.STATIC.isSet(method.accessFlags) && method.parameterTypes.size == 1 && method.returnType.startsWith("L") &&
+                method.loadsLiteral(UFI_ID)
+        }
+    })
     val column = render.definingClass
     val columnClass = classDefBy(column)
     if (!AccessFlags.PUBLIC.isSet(columnClass.accessFlags)) refuse("the column $column isn't public")
-    if (share.definingClass != column || more.definingClass != column) refuse("Share's or More's builder isn't the column's")
-    if (AccessFlags.STATIC.isSet(render.accessFlags) || render.parameterTypes.size != 1 || !render.returnType.startsWith("L")) {
-        refuse("$column->${render.name}, the column's render, isn't an instance method of one parameter")
+    /** The render of the component [type]: its one method of the column render's shape. */
+    fun renderOf(type: String): Method? = classDefByOrNull(type)?.methods?.singleOrNull { method ->
+        !AccessFlags.STATIC.isSet(method.accessFlags) && method.implementation != null && method.types() == render.types() &&
+            method.returnType == render.returnType
     }
+    val own = columnClass.methods.filter { it.implementation != null && !(it.name == render.name && it.types() == render.types()) }
+    val builders = own.filter { method ->
+        val takes = method.types()
+        !AccessFlags.STATIC.isSet(method.accessFlags) && takes.size == 3 && takes[1] == "J" && takes[2] == "J" &&
+            method.returnType.startsWith("L")
+    }
+    val save = one("builder of Save in the column", builders.filter { builder ->
+        renderOf(builder.returnType)?.let { loadsString(it, SAVE_BUTTON) } == true
+    })
+    val saveIcon = renderOf(save.returnType)!!
+    val count = one("builder of Save's count in the column", builders.filter { loadsString(it, SAVE_COUNT) })
+    val tint = one("color filter of the column", own.filter { method ->
+        !AccessFlags.STATIC.isSet(method.accessFlags) && method.parameterTypes.size == 1 && method.returnType == COLOR_FILTER
+    })
+    // Share has a builder for each look of the column; any of them is Share.
+    val shares = own.filter { method -> method.returnType.startsWith("L") && renderOf(method.returnType)?.let { loadsString(it, SHARE_BUTTON) } == true }
+    if (shares.isEmpty()) refuse("no builder of Share in the column")
+    val more = one("builder of More in the column", own.filter { loadsString(it, MORE_BUTTON) })
     val builder = save.types()
     for (method in listOf(save, count)) {
         if (method.definingClass != column || AccessFlags.STATIC.isSet(method.accessFlags) || method.types() != builder ||
@@ -234,7 +245,7 @@ internal fun BytecodePatchContext.findReelButtonSite(): ReelButtonSite {
     /** Whether the first of Share's builder and More's that the render reaches past [from] is More's. */
     fun aboveMore(from: Int): Boolean = (from until code.size).firstNotNullOfOrNull { index ->
         when {
-            code[index].calls(share) -> false
+            shares.any { code[index].calls(it) } -> false
             code[index].called()?.let { it.toString() in makesMore } == true -> true
             else -> null
         }

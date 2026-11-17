@@ -14,15 +14,15 @@ import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod.Companion.toMutable
 import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.instagram.misc.extension.classesAccessing
 import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
-import app.morphe.patches.instagram.misc.extension.markers
 import app.morphe.patches.instagram.misc.extension.patchLog
-import app.morphe.patches.instagram.misc.extension.typesMarked
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
@@ -38,9 +38,11 @@ internal const val NOT_INTERESTED_LITHO_ABOVE_MORE =
     "$NOT_INTERESTED_TYPE->lithoAboveMore(Ljava/lang/Object;Ljava/lang/Object;JJ)Ljava/lang/Object;"
 internal const val NOT_INTERESTED_REMEMBER = "$NOT_INTERESTED_TYPE->remember(Ljava/lang/Object;Ljava/lang/Object;)Z"
 
-/** Instagram's own Not interested on the object that binds the Reels viewer's items, and that object's constructor. */
-internal const val NOT_INTERESTED_MARKER = "ClipsMediaItemViewBinderDelegate_handleNotInterested"
-internal const val BINDER_INIT_MARKER = "ClipsMediaItemViewBinderDelegate_init"
+/**
+ * The option Instagram's own Not interested sends for a reel. Instagram 456 dropped the delegate's
+ * purge markers, so Not interested is the one public method of a reel's item and state reading it.
+ */
+internal const val SEE_FEWER = "SEE_FEWER"
 
 /** The Reels viewer's config, a type of Instagram's own library that keeps its name. */
 internal const val VIEWER_CONFIG = "Lcom/instagram/clips/intf/ClipsViewerConfig;"
@@ -74,6 +76,11 @@ internal class NotInterestedSite(
 
 private fun refuseNotInterested(detail: String): Nothing = throw PatchException("$NI_PATCH, the Not interested button beside a reel: $detail")
 
+internal fun Method.readsSeeFewer() = implementation?.instructions?.any { instruction ->
+    instruction.opcode == Opcode.SGET_OBJECT && ((instruction as ReferenceInstruction).reference as? FieldReference)
+        ?.let { it.definingClass == OPTION && it.name == SEE_FEWER } == true
+} == true
+
 internal fun Method.parameterNames() = parameterTypes.map(CharSequence::toString)
 
 private fun methodReference(method: Method) =
@@ -101,22 +108,26 @@ internal fun BytecodePatchContext.addNotInterestedButtonWhereItFits(site: ReelBu
 }
 
 /**
- * Finds what [addNotInterestedButton] needs: the method holding the Not interested marker and the
- * constructor holding the delegate's marker, each exactly once, the column state's getters of the
- * reel's state and of the viewer's config, and the one place the constructor ends. Fails naming what
- * it didn't find exactly once, before anything changes.
+ * Finds what [addNotInterestedButton] needs: Not interested, the one instance method of the reel's
+ * item and one more object that reads [SEE_FEWER] in a class whose one constructor takes the viewer's
+ * config, that constructor, the column state's getters of the reel's state and of the viewer's
+ * config, and the one place the constructor ends. Fails naming what it didn't find exactly once,
+ * before anything changes.
  */
 internal fun BytecodePatchContext.findNotInterestedSite(site: ReelButtonSite): NotInterestedSite {
-    val names = listOf(NOT_INTERESTED_MARKER, BINDER_INIT_MARKER)
-    val found = names.associateWith { mutableListOf<Method>() }
-    typesMarked(*names.toTypedArray()).forEach { type ->
-        classDefByOrNull(type)?.methods?.forEach { method -> method.markers().forEach { found[it]?.add(method) } }
-    }
-    fun one(name: String): Method = found.getValue(name)
-        .distinctBy { "${it.definingClass}->${it.name}${it.parameterNames()}" }.singleOrNull()
-        ?: refuseNotInterested("expected one method holding the $name marker, found ${found.getValue(name).size}")
-    val run = one(NOT_INTERESTED_MARKER)
-    val init = one(BINDER_INIT_MARKER)
+    fun configConstructors(type: String) =
+        classDefByOrNull(type)?.methods?.filter { it.name == "<init>" && VIEWER_CONFIG in it.parameterNames() }.orEmpty()
+    val runs = classesAccessing(OPTION, SEE_FEWER, Opcode.SGET_OBJECT).flatMap { classDef ->
+        classDef.methods.filter { method ->
+            !AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "V" && method.parameterNames().size == 2 &&
+                method.parameterNames()[0] == site.itemType && method.parameterNames()[1].startsWith("L") &&
+                method.readsSeeFewer()
+        }
+    }.distinctBy { "${it.definingClass}->${it.name}${it.parameterNames()}" }.filter { configConstructors(it.definingClass).isNotEmpty() }
+    val run = runs.singleOrNull()
+        ?: refuseNotInterested("expected one method of the reel's item reading $SEE_FEWER beside the viewer's config, found ${runs.size}")
+    val init = configConstructors(run.definingClass).singleOrNull()
+        ?: refuseNotInterested("expected one constructor of ${run.definingClass} taking $VIEWER_CONFIG")
     val delegate = run.definingClass
     val delegateClass = classDefByOrNull(delegate) ?: refuseNotInterested("the delegate $delegate is missing")
     val arguments = run.parameterNames()
@@ -125,12 +136,6 @@ internal fun BytecodePatchContext.findNotInterestedSite(site: ReelButtonSite): N
         arguments.any { !it.startsWith("L") }
     ) {
         refuseNotInterested("$delegate->${run.name} isn't a public method of a reel's item and state")
-    }
-    if (arguments[0] != site.itemType) {
-        refuseNotInterested("$delegate->${run.name} takes ${arguments[0]}, not the column's reel item ${site.itemType}")
-    }
-    if (init.definingClass != delegate || init.name != "<init>") {
-        refuseNotInterested("${init.definingClass}->${init.name} holding the delegate's marker isn't the constructor of $delegate")
     }
 
     val state = classDefByOrNull(site.state.type) ?: refuseNotInterested("the column's state ${site.state.type} is missing")
