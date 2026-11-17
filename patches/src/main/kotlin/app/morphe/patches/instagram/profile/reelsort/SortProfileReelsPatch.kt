@@ -12,9 +12,9 @@ import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.jumpTargets
-import app.morphe.patches.instagram.misc.extension.markers
+import app.morphe.patches.instagram.misc.extension.classesLoadingString
+import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
-import app.morphe.patches.instagram.misc.extension.typesMarked
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
@@ -34,9 +34,13 @@ internal const val REEL_SORT_PATCH = "Sort reels on profiles"
 internal const val REEL_SORT = "$EXTENSION_PACKAGE/profile/ReelSort;"
 internal const val SORTABLE_HOOK = "$REEL_SORT->sortable(I)Z"
 
-/** The purge markers of the profile Reels tab's provider: the tab coming up, and a tap on its title. */
-internal const val TAB_SELECTED = "ClipsProfileTabProvider_onTabSelected"
-internal const val TAB_CLICKED = "ClipsProfileTabProvider_onTabClicked"
+/**
+ * What the profile Reels tab's provider logs as the tab comes up and on a tap on its title, the sort
+ * menu's impression and tap (GdC and Gd0 of 0HlZ on 456's 386214574). 455 also traced
+ * ClipsProfileTabProvider_onTabSelected and ClipsProfileTabProvider_onTabClicked there, which 456 dropped.
+ */
+internal const val TAB_SELECTED = "impression_reels_sort_dropdown"
+internal const val TAB_CLICKED = "tap_reels_sort_dropdown"
 
 private const val BOOLEAN = "Ljava/lang/Boolean;"
 private const val BOOLEAN_VALUE = "Ljava/lang/Boolean;->booleanValue()Z"
@@ -49,6 +53,13 @@ internal class ReelSortRead(val method: Method, val call: Int, val after: Int, v
 internal class ReelSortSite(val provider: String, val gate: FieldReference, val reads: List<ReelSortRead>)
 
 private fun refuse(why: String): Nothing = throw PatchException("$REEL_SORT_PATCH: $why")
+
+/** The one instance method of Instagram's loading [string], directly or through a string pool. */
+private fun BytecodePatchContext.loading(string: String): Method {
+    val found = classesLoadingString(string).flatMap { it.methods }
+        .filter { !AccessFlags.STATIC.isSet(it.accessFlags) && loadsString(it, string) }
+    return found.singleOrNull() ?: refuse("expected one method loading \"$string\", found ${found.size}")
+}
 
 /**
  * Keeps the Latest and Most viewed sort on every profile's Reels tab (#679).
@@ -77,10 +88,10 @@ val sortProfileReelsPatch = bytecodePatch(
 }
 
 /**
- * Finds the provider by its two markers, and in both methods every `getValue()` of the class's one
+ * Finds the provider by the two strings its methods log, and in both methods every `getValue()` of the class's one
  * field of the lazy's type, unboxed at once with `booleanValue`, or every call of the provider's
  * static method that does only that, on builds where Redex moved it there. Fails before anything changes when
- * the extension lacks its hook, a marker is missing or held twice, the reads come off more than one
+ * the extension lacks its hook, a string is missing or loaded twice, the reads come off more than one
  * field, a read of that field isn't unboxed where it's made (it would keep Instagram's answer), or
  * something jumps to where a hook would go.
  */
@@ -92,18 +103,9 @@ internal fun BytecodePatchContext.findReelSort(): ReelSortSite {
         }
     ) refuse("the extension has no public static $SORTABLE_HOOK")
 
-    val marked = mutableMapOf<String, MutableList<Method>>()
-    for (type in typesMarked(TAB_SELECTED, TAB_CLICKED).sorted()) {
-        val classDef = classDefByOrNull(type) ?: continue
-        for (method in classDef.methods) {
-            method.markers().filter { it == TAB_SELECTED || it == TAB_CLICKED }.distinct().forEach { marked.getOrPut(it) { mutableListOf() } += method }
-        }
-    }
-    val selected = marked[TAB_SELECTED].orEmpty().singleOrNull()
-        ?: refuse("expected one method marked $TAB_SELECTED, found ${marked[TAB_SELECTED].orEmpty().size}")
-    val clicked = marked[TAB_CLICKED].orEmpty().singleOrNull()
-        ?: refuse("expected one method marked $TAB_CLICKED, found ${marked[TAB_CLICKED].orEmpty().size}")
-    if (selected.definingClass != clicked.definingClass) refuse("the two markers are in ${selected.definingClass} and ${clicked.definingClass}")
+    val selected = loading(TAB_SELECTED)
+    val clicked = loading(TAB_CLICKED)
+    if (selected.definingClass != clicked.definingClass) refuse("the two strings are in ${selected.definingClass} and ${clicked.definingClass}")
     val provider = classDefByOrNull(selected.definingClass) ?: refuse("this Instagram build has no ${selected.definingClass}")
 
     val found = listOf(selected, clicked).map { method -> method to gateReads(method, provider) }

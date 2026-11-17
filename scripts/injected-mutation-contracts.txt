@@ -3162,10 +3162,11 @@ once-call Lapp/hushgram/extension/instagram/profile/GridJump;->restPath(Ljava/la
 # impression log) and four times in a tap on its title (whether the menu opens, its label, the Most
 # viewed row and the tap's log). Left out, a profile Instagram held the sort back from keeps no arrow;
 # more or fewer, a read keeps Instagram's answer. Where Redex moved the read into a static method of
-# the provider (386014759), each call of that method is hooked instead, with the same counts.
-# SortProfileReelsHookTest checks where they land.
-once-call Lapp/hushgram/extension/instagram/profile/ReelSort;->sortable(I)Z in instance ()V sites 2 pooled holding android_purge_26_q2_ClipsProfileTabProvider_onTabSelected
-once-call Lapp/hushgram/extension/instagram/profile/ReelSort;->sortable(I)Z in instance (Z)V sites 4 pooled holding android_purge_26_q2_ClipsProfileTabProvider_onTabClicked
+# the provider (every 456 build), each call of that method is hooked instead, with the same counts.
+# The two methods are the ones logging impression_reels_sort_dropdown and tap_reels_sort_dropdown
+# (GdC and Gd0 of 0HlZ on 456's 386214574). SortProfileReelsHookTest checks where they land.
+once-call Lapp/hushgram/extension/instagram/profile/ReelSort;->sortable(I)Z in instance ()V sites 2 pooled holding impression_reels_sort_dropdown
+once-call Lapp/hushgram/extension/instagram/profile/ReelSort;->sortable(I)Z in instance (Z)V sites 4 pooled holding tap_reels_sort_dropdown
 # Sent follow requests (#690) hands SentRequests.seen the session, the account and the follow status
 # right before each return of the follow button helper's status read (04gP.A03 on 454, the one
 # instance (session, account) method of the helper FollowButtonBase.getHelper() answers that answers

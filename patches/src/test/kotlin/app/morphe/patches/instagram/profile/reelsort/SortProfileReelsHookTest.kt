@@ -10,8 +10,6 @@ import app.morphe.PatchContexts
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.instagram.NeutralNativePath
-import app.morphe.patches.instagram.misc.extension.PURGE_MARKER
-import app.morphe.patches.instagram.misc.extension.markers
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -22,7 +20,6 @@ import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
-import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
@@ -142,19 +139,12 @@ class SortProfileReelsHookTest {
         assertEquals("$label: no other method of the provider is touched", 0, elsewhere)
     }
 
-    /** The classes holding the provider's two markers, read from the dex files whose strings hold one. */
+    /** The classes loading the provider's two strings, directly or through a pool, and the pools. */
     private fun load(bundle: File): List<ClassDef> {
-        val wanted = setOf(TAB_SELECTED, TAB_CLICKED)
-        val classes = LinkedHashMap<String, ClassDef>()
-        FixtureDex.forEach(bundle) { dex ->
-            val holds = dex.stringSection.any { string -> string.startsWith("android_purge_") && PURGE_MARKER.find(string)?.groupValues?.get(1) in wanted }
-            if (!holds) return@forEach
-            for (classDef in dex.classes) {
-                if (classDef.methods.any { method -> method.markers().any { it in wanted } }) classes[classDef.type] = ImmutableClassDef.of(classDef)
-            }
-        }
-        assertTrue("${bundle.name}: a class holds the Reels tab's markers", classes.isNotEmpty())
-        return classes.values.toList()
+        val classes = (FixtureDex.classesLoading(bundle, TAB_SELECTED) + FixtureDex.classesLoading(bundle, TAB_CLICKED))
+            .distinctBy { it.type }
+        assertTrue("${bundle.name}: a class loads the Reels tab's strings", classes.isNotEmpty())
+        return classes
     }
 
     private fun Method.code(): List<Instruction> = implementation?.instructions?.toList().orEmpty()
