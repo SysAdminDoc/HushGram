@@ -315,6 +315,57 @@ public class ReelColumnFitTest {
                 column.getScaleY() > fittingScale(COLUMN_TALL));
     }
 
+    /**
+     * Puts a second reel viewer, the way the Reels tab stays built behind Explore, ahead of the one
+     * from setup in the window, with a top bar [barTall] high. Answers its column.
+     */
+    private View keptViewer(int barTall, int visibility) {
+        FrameLayout tab = new FrameLayout(activity);
+        FrameLayout pager = new FrameLayout(activity);
+        pager.setId(((View) page.getParent().getParent()).getId());
+        FrameLayout list = new FrameLayout(activity);
+        FrameLayout keptPage = new FrameLayout(activity);
+        View keptColumn = columnView(column.getId());
+        keptPage.addView(keptColumn, columnParams(COLUMN_TALL));
+        list.addView(keptPage, new FrameLayout.LayoutParams(WIDE, TALL));
+        pager.addView(list, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        tab.addView(pager, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        View keptBar = new View(activity);
+        keptBar.setId(bar.getId());
+        tab.addView(keptBar, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, barTall, Gravity.TOP));
+        tab.setVisibility(visibility);
+        root.addView(tab, 0, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        layout();
+        return keptColumn;
+    }
+
+    @Test
+    public void aViewerOpenedOverAKeptReelsTabIsFitted() {
+        Settings.FULL_SCREEN_BUTTON_ON_REELS.save(true);
+        View keptColumn = keptViewer(BAR, View.GONE);
+        ReelColumnFit.watch(activity);
+
+        frame();
+
+        assertEquals("the viewer on screen is fitted", fittingScale(COLUMN_TALL), column.getScaleY(), EPSILON);
+        assertEquals("the hidden tab is left as it is", 1f, keptColumn.getScaleY(), 0f);
+    }
+
+    @Test
+    public void eachViewerIsFittedUnderItsOwnTopBar() {
+        Settings.FULL_SCREEN_BUTTON_ON_REELS.save(true);
+        int shortBar = BAR / 2;
+        View keptColumn = keptViewer(shortBar, View.VISIBLE);
+        ReelColumnFit.watch(activity);
+
+        frame();
+
+        assertEquals("the viewer from setup keeps under its taller bar", fittingScale(COLUMN_TALL), column.getScaleY(), EPSILON);
+        int gap = Math.round(ReelColumnFit.GAP_DP * activity.getResources().getDisplayMetrics().density);
+        float keptWanted = (TALL - SEEK_ROOM - (shortBar + gap)) / (float) COLUMN_TALL;
+        assertEquals("the other viewer goes by its own shorter bar", keptWanted, keptColumn.getScaleY(), EPSILON);
+    }
+
     @Test
     public void scaledKeepsEachKindOfSize() {
         assertEquals(px(75), ReelColumnFit.scaled(px(100), 0.75f));

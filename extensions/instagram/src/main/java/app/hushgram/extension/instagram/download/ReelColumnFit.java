@@ -12,10 +12,12 @@ import android.graphics.drawable.Drawable;
 import android.util.DisplayMetrics;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewParent;
 import android.view.WindowInsets;
 
 import androidx.annotation.Nullable;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -71,6 +73,8 @@ public final class ReelColumnFit {
     static final float SMALLEST = 0.5f;
     /** The most views looked at for columns in one pass. */
     private static final int MAX_PAGES = 12;
+    /** The most reel viewers fitted in one pass. */
+    private static final int MAX_VIEWERS = 4;
     /** The least share of their own size HushGram's icons are laid out at in a column too tall. */
     static final float LEAST_SHARE = 0.6f;
     /** Extra room taken off with each share learned, in dp, so a column lands inside the limit. */
@@ -298,7 +302,13 @@ public final class ReelColumnFit {
         return changed;
     }
 
-    /** Fits every reel's column in [owner]'s window. Answers whether one changed size. */
+    /**
+     * Fits every reel's column in [owner]'s window. Answers whether one changed size.
+     *
+     * <p>Instagram keeps the Reels tab built while Explore or search shows a reel viewer of its own,
+     * with the same ids, so the first pager in the window is often the hidden tab's. Every viewer on
+     * screen is fitted, each under its own top bar.
+     */
     static boolean fit(Activity owner) {
         View decor = owner.getWindow().getDecorView();
         int pagerId = id(owner, PAGER);
@@ -309,14 +319,66 @@ public final class ReelColumnFit {
             if (columnId == 0) HookStatus.missingViewId(FamilyNames.REEL_DOWNLOAD, COLUMN);
             return false;
         }
-        View pager = decor.findViewById(pagerId);
-        if (!(pager instanceof ViewGroup) || !pager.isShown()) return false;
-        ViewGroup pages = pagesOf((ViewGroup) pager);
+        List<View> pagers = new ArrayList<>();
+        shownWithId(decor, pagerId, null, pagers, MAX_VIEWERS);
+        boolean changed = false;
+        for (View pager : pagers) {
+            if (pager instanceof ViewGroup && pager.isShown()) changed |= fitViewer(owner, decor, (ViewGroup) pager, columnId, barId);
+        }
+        return changed;
+    }
+
+    /**
+     * Adds to [found] each view under [root] with [id] that is shown, until there are [most]. Hidden
+     * branches, [skip] and whatever is under a view found are passed over.
+     */
+    static void shownWithId(View root, int id, @Nullable View skip, List<View> found, int most) {
+        if (found.size() >= most || root == skip || root.getVisibility() != View.VISIBLE) return;
+        if (root.getId() == id) {
+            found.add(root);
+            return;
+        }
+        if (!(root instanceof ViewGroup)) return;
+        ViewGroup group = (ViewGroup) root;
+        for (int i = 0; i < group.getChildCount(); i++) shownWithId(group.getChildAt(i), id, skip, found, most);
+    }
+
+    /**
+     * The top bar shown nearest [pager]: the shallowest one under the closest of its parents that
+     * holds one, so a viewer never reads a bar from another screen. Each view is looked at once at
+     * most.
+     */
+    @Nullable
+    static View barFor(View pager, int barId) {
+        if (barId == 0) return null;
+        ArrayDeque<View> queue = new ArrayDeque<>();
+        View below = pager;
+        ViewParent parent = pager.getParent();
+        while (parent instanceof ViewGroup) {
+            queue.clear();
+            queue.add((View) parent);
+            while (!queue.isEmpty()) {
+                View view = queue.poll();
+                if (view == below || view.getVisibility() != View.VISIBLE) continue;
+                if (view.getId() == barId) return view;
+                if (!(view instanceof ViewGroup)) continue;
+                ViewGroup group = (ViewGroup) view;
+                for (int i = 0; i < group.getChildCount(); i++) queue.add(group.getChildAt(i));
+            }
+            below = (View) parent;
+            parent = parent.getParent();
+        }
+        return null;
+    }
+
+    /** Fits the columns in one reel viewer's [pager]. Answers whether one changed size. */
+    private static boolean fitViewer(Activity owner, View decor, ViewGroup pager, int columnId, int barId) {
+        ViewGroup pages = pagesOf(pager);
         int[] at = new int[2];
         pages.getLocationOnScreen(at);
         int pagesTop = at[1];
         int limit = Math.max(pagesTop, topInset(decor));
-        View bar = barId == 0 ? null : decor.findViewById(barId);
+        View bar = barFor(pager, barId);
         if (bar != null && bar.isShown() && bar.getAlpha() > 0f && bar.getHeight() > 0) {
             bar.getLocationOnScreen(at);
             limit = Math.max(limit, at[1] + bar.getHeight());
