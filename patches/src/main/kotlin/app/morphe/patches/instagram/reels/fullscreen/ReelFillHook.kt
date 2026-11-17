@@ -9,13 +9,13 @@ import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLa
 import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
-import app.morphe.patcher.string
+import app.morphe.patcher.literal
 import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.instagram.misc.extension.classesLoading
 import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.freeLocalsAt
 import app.morphe.patches.instagram.misc.extension.jumpTargets
-import app.morphe.patches.instagram.misc.extension.loadsConstString
 import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
 import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
@@ -36,6 +36,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ThreeRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.WideLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
@@ -59,8 +60,11 @@ internal const val REEL_PRODUCT_TYPE = "Lcom/instagram/model/mediatype/ProductTy
 /** The name ProductType gives a reel, which a sticker sharing one carries. */
 private const val CLIPS = "CLIPS"
 
-/** The purge flag Instagram's reel item layout, which keeps a reel 9:16 on a wider screen, names first. */
-internal const val REEL_INSETS = "android_purge_26_q2_ClipsItemInsetsComponent_render"
+/**
+ * The server flag Instagram's reel item layout, which keeps a reel 9:16 on a wider screen, reads first
+ * (0A78.A0p on 456's 386214574). Nothing else loads it.
+ */
+internal const val REEL_INSETS_FLAG = 0x81120b001a64feL
 
 /** 9:16 as a float's bits, the shape that layout compares the screen's and the item's with. */
 private const val NINE_SIXTEENTHS = 0x3f100000
@@ -68,42 +72,51 @@ private const val NINE_SIXTEENTHS = 0x3f100000
 /** The trace section Instagram's story viewer opens while it fits a story to the screen's shape. */
 internal const val STORY_ASPECT_RATIO = "ReelViewerMediaAspectRatioUtil.maybeAdjustLayoutBasedOnAspectRatio"
 
-/** The purge flag Instagram's reel crop decision names first thing. */
-internal const val SHOULD_CROP = "android_purge_26_q2_ClipsMediaResizingUtils_shouldCropDynamic"
-
-/** The one it names where it works out how far the viewer's shape is from the reel's. */
-internal const val CROP_PERCENTAGE = "android_purge_26_q2_ClipsMediaResizingUtils_getCropPercentage"
+/** The server flag Instagram's reel crop decision reads, which nothing else loads. */
+internal const val REEL_CROP_FLAG = 0x8413b7000d04e9L
 
 /** Where the viewer was opened from, which the decision takes as a parameter. */
 internal const val REEL_VIEWER_SOURCE = "Lcom/instagram/clips/intf/ClipsViewerSource;"
 
+/** 100 as a float's bits, what the decision multiplies its shape difference by to make a percentage. */
+private const val HUNDRED = 0x42c80000
+
 /**
  * The method that decides whether a reel's video fills the viewer (true) or fits inside it with bars
- * (false), 08JU.A02 on 452. It's the one method naming both purge flags.
+ * (false), 0Fc2.A02 on 456's 386214574: the boolean taking the viewer's source that loads
+ * [REEL_CROP_FLAG].
  */
 internal object ReelCropDecisionFingerprint : Fingerprint(
     returnType = "Z",
-    filters = listOf(string(SHOULD_CROP)),
-    custom = { method, _ -> method.loadsConstString(CROP_PERCENTAGE) },
+    filters = listOf(literal(REEL_CROP_FLAG)),
+    custom = { method, _ -> method.parameterTypes.any { it.toString() == REEL_VIEWER_SOURCE } },
 )
 
 /**
- * Fill the screen (#288). After the crop percentage name, the decision divides the difference
- * between the viewer's aspect ratio and the reel's by the reel's and multiplies it by 100, then
- * crops only below thresholds Instagram's server sends. With Full screen Reels on the viewer is
- * taller, so a 9:16 reel often lands past them and shows bars, and hiding the comment bar does the
- * same (#371). Right after that multiply the decision asks [FILL_HOOK] with the viewer's source, since
- * one comment bar switch only covers reposts, and the percentage, and returns true (fill) when it
- * says so. Otherwise Instagram's own checks run as before.
+ * Where the decision turns its shape difference into a percentage: the one mul-float/2addr whose
+ * second register a const/high16 of 100 right before it just wrote. Null when there isn't one.
+ */
+internal fun findCropPercentage(code: List<Instruction>): Int? = code.indices.filter { at ->
+    val hundred = code.getOrNull(at - 1)
+    code[at].opcode == Opcode.MUL_FLOAT_2ADDR && hundred?.opcode == Opcode.CONST_HIGH16 &&
+        (hundred as NarrowLiteralInstruction).narrowLiteral == HUNDRED &&
+        (hundred as OneRegisterInstruction).registerA == (code[at] as TwoRegisterInstruction).registerB
+}.singleOrNull()
+
+/**
+ * Fill the screen (#288). The decision divides the difference between the viewer's aspect ratio and
+ * the reel's by the reel's and multiplies it by 100 ([findCropPercentage]), then crops only below
+ * thresholds Instagram's server sends. With Full screen Reels on the viewer is taller, so a 9:16 reel
+ * often lands past them and shows bars, and hiding the comment bar does the same (#371). Right after
+ * that multiply the decision asks [FILL_HOOK] with the viewer's source, since one comment bar switch
+ * only covers reposts, and the percentage, and returns true (fill) when it says so. Otherwise
+ * Instagram's own checks run as before.
  */
 internal fun BytecodePatchContext.fillReelScreen() {
     val decision = uniqueMethod(FULL_SCREEN_BARS_PATCH, "reel crop decision", ReelCropDecisionFingerprint)
     val code = decision.implementation?.instructions?.toList().orEmpty()
-    val named = code.indexOfFirst {
-        ((it as? ReferenceInstruction)?.reference as? StringReference)?.string == CROP_PERCENTAGE
-    }
-    val multiply = (named + 1 until code.size).firstOrNull { code[it].opcode == Opcode.MUL_FLOAT_2ADDR }
-        ?: throw PatchException("$FULL_SCREEN_BARS_PATCH: the reel crop decision multiplies no float after $CROP_PERCENTAGE")
+    val multiply = findCropPercentage(code)
+        ?: throw PatchException("$FULL_SCREEN_BARS_PATCH: the reel crop decision doesn't multiply a float by 100 once")
     val percent = (code[multiply] as TwoRegisterInstruction).registerA
     if (percent > 15) {
         throw PatchException("$FULL_SCREEN_BARS_PATCH: the reel crop decision keeps its percentage in v$percent, past what an invoke names")
@@ -153,11 +166,8 @@ internal fun BytecodePatchContext.fitReelScreen() {
     )
 }
 
-/** The purge flag Instagram's reel video binder names where it sets the video view's width. */
-internal const val REEL_VIEW_WIDTH = "android_purge_26_q3_SimpleVideoLayoutClipsComponent_setViewWidth"
-
-/** The one it names next, where it sets the cover's and the video's gravity in the viewer. */
-internal const val REEL_MEDIA_GRAVITY = "android_purge_26_q3_SimpleVideoLayoutClipsComponent_setMediaGravity"
+/** The trace section Instagram's reel video binder opens while it binds a reel's video. */
+internal const val REEL_BIND_TRACE = "SimpleVideoLayoutClipsComponent.onBind"
 
 /** The purge flag Instagram's reel sizing names where it reads a post's shape, its width over its height. */
 internal const val POST_WIDTH = "original_width"
@@ -170,45 +180,42 @@ internal const val FIT_BOX_HOOK = "$REEL_FILL->fitBox([Landroid/view/View;Ljava/
 private const val POST = "Lcom/instagram/feed/media/Media;"
 private const val VIEW_ARRAY = "[Landroid/view/View;"
 private const val LAYOUT_WIDTH = "Landroid/view/ViewGroup\$LayoutParams;->width:I"
+private const val FRAME_GRAVITY = "Landroid/widget/FrameLayout\$LayoutParams;->gravity:I"
 
 /**
- * Where the reel video binder sets its views' gravity: the [gravity] const-string naming
- * [REEL_MEDIA_GRAVITY], the register holding the [views] array (the cover and the video) it sets it
- * on, the register holding the viewer's [width] that it gave the video view, and the binder's [post]
- * field.
+ * Where the reel video binder sets its views' gravity: [gravity], the instruction right after it
+ * keeps the [views] array (the cover and the video) it sets it on, the register holding the viewer's
+ * [width] that it gave the video view, and the binder's [post] field.
  */
 internal data class ReelVideoBox(val gravity: Int, val views: Int, val width: Int, val post: FieldReference)
 
 /**
- * Finds the pieces of [ReelVideoBox] in the reel video binder [bind] (0Bni.invoke on 454). The views
- * are the array a filled-new-array of [VIEW_ARRAY] makes right before the gravity's name. The width
- * is what the one `LayoutParams.width` store after [REEL_VIEW_WIDTH] writes, copied there from a
- * register written once, before it, and never again.
+ * Finds the pieces of [ReelVideoBox] in the reel video binder [bind] (0FOl.invoke on 456's
+ * 386214574). The width is what its one `LayoutParams.width` store writes, copied there from a
+ * register written once, before it, and never again. The views are the array the first
+ * filled-new-array of [VIEW_ARRAY] after that store makes, ahead of a `FrameLayout.LayoutParams`
+ * gravity store.
  */
 internal fun findReelVideoBox(bind: Method): ReelVideoBox {
     val code = bind.implementation?.instructions?.toList().orEmpty()
-    fun named(string: String): Int {
-        val at = code.indices.filter { ((code[it] as? ReferenceInstruction)?.reference as? StringReference)?.string == string }
-        return at.singleOrNull()
-            ?: throw PatchException("$FULL_SCREEN_BARS_PATCH: the reel video binder names \"$string\" ${at.size} times, not once")
+    fun refers(at: Int, to: String) = (code[at] as? ReferenceInstruction)?.reference?.toString() == to
+    val stores = code.indices.filter { code[it].opcode == Opcode.IPUT && refers(it, LAYOUT_WIDTH) }
+    val store = stores.singleOrNull()
+        ?: throw PatchException("$FULL_SCREEN_BARS_PATCH: the reel video binder stores ${stores.size} widths, not one")
+    val made = (store + 1 until code.size).firstOrNull {
+        (code[it].opcode == Opcode.FILLED_NEW_ARRAY || code[it].opcode == Opcode.FILLED_NEW_ARRAY_RANGE) && refers(it, VIEW_ARRAY)
     }
-    val gravity = named(REEL_MEDIA_GRAVITY)
-    val widthNamed = named(REEL_VIEW_WIDTH)
-    val made = code.getOrNull(gravity - 2)
-    val result = code.getOrNull(gravity - 1)
-    if ((made?.opcode != Opcode.FILLED_NEW_ARRAY && made?.opcode != Opcode.FILLED_NEW_ARRAY_RANGE) ||
-        (made as ReferenceInstruction).reference.toString() != VIEW_ARRAY || result?.opcode != Opcode.MOVE_RESULT_OBJECT
-    ) {
-        throw PatchException("$FULL_SCREEN_BARS_PATCH: the reel video binder makes no array of views right before naming its gravity")
+    val result = made?.let { code.getOrNull(it + 1) }
+    if (made == null || result?.opcode != Opcode.MOVE_RESULT_OBJECT) {
+        throw PatchException("$FULL_SCREEN_BARS_PATCH: the reel video binder keeps no array of views after it sizes the video")
+    }
+    val gravity = made + 2
+    if ((gravity until code.size).none { code[it].opcode == Opcode.IPUT && refers(it, FRAME_GRAVITY) }) {
+        throw PatchException("$FULL_SCREEN_BARS_PATCH: the reel video binder sets no gravity after it keeps its views")
     }
     val views = (result as OneRegisterInstruction).registerA
-    val stores = (widthNamed until gravity).filter {
-        code[it].opcode == Opcode.IPUT && (code[it] as ReferenceInstruction).reference.toString() == LAYOUT_WIDTH
-    }
-    val store = stores.singleOrNull()
-        ?: throw PatchException("$FULL_SCREEN_BARS_PATCH: the reel video binder stores ${stores.size} widths after \"$REEL_VIEW_WIDTH\", not one")
     val value = (code[store] as TwoRegisterInstruction).registerA
-    val copy = (store - 1 downTo widthNamed).firstOrNull { (code[it] as? OneRegisterInstruction)?.registerA == value && code[it].opcode.setsRegister() }
+    val copy = (store - 1 downTo 0).firstOrNull { (code[it] as? OneRegisterInstruction)?.registerA == value && code[it].opcode.setsRegister() }
         ?.takeIf { code[it].opcode == Opcode.MOVE || code[it].opcode == Opcode.MOVE_FROM16 || code[it].opcode == Opcode.MOVE_16 }
         ?: throw PatchException("$FULL_SCREEN_BARS_PATCH: the reel video binder's width doesn't come from a move")
     val width = (code[copy] as TwoRegisterInstruction).registerB
@@ -254,15 +261,13 @@ internal fun BytecodePatchContext.findPostSize(size: String): MethodReference {
  * once it has sized them, it asks [FIT_VIDEO_HOOK], and a yes hands the views, the post's width and
  * height ([findPostSize]) and the viewer's width to [FIT_BOX_HOOK], which narrows a view wider than
  * the post at its height. The gravity then centers it. `this` still holds the binder there, three
- * locals up to v15 are free (four when the array sits past v15), and nothing jumps to the gravity's
- * name.
+ * locals up to v15 are free (four when the array sits past v15), and nothing jumps to where the
+ * gravity starts.
  */
 internal fun BytecodePatchContext.fitReelVideo() {
-    val binds = classesLoadingString(REEL_MEDIA_GRAVITY).flatMap { it.methods }.filter { method ->
-        loadsString(method, REEL_MEDIA_GRAVITY) && loadsString(method, REEL_VIEW_WIDTH)
-    }
+    val binds = classesLoadingString(REEL_BIND_TRACE).flatMap { it.methods }.filter { loadsString(it, REEL_BIND_TRACE) }
     val found = binds.singleOrNull()
-        ?: throw PatchException("$FULL_SCREEN_BARS_PATCH: expected one method naming \"$REEL_MEDIA_GRAVITY\" and \"$REEL_VIEW_WIDTH\", found ${binds.size}")
+        ?: throw PatchException("$FULL_SCREEN_BARS_PATCH: expected one method opening \"$REEL_BIND_TRACE\", found ${binds.size}")
     val types = found.parameterTypes.map(CharSequence::toString)
     val bind = mutableClassDefBy(found.definingClass).methods.single {
         it.name == found.name && it.returnType == found.returnType && it.parameterTypes.map(CharSequence::toString) == types
@@ -274,7 +279,7 @@ internal fun BytecodePatchContext.fitReelVideo() {
     val postWidth = findPostSize(POST_WIDTH)
     val postHeight = findPostSize(POST_HEIGHT)
     if (box.gravity in bind.jumpTargets()) {
-        throw PatchException("$FULL_SCREEN_BARS_PATCH: something jumps to the reel video binder's \"$REEL_MEDIA_GRAVITY\"")
+        throw PatchException("$FULL_SCREEN_BARS_PATCH: something jumps to where the reel video binder starts its gravity")
     }
     bind.requireThisIntact(FULL_SCREEN_BARS_PATCH, listOf(box.gravity))
     val wide = box.views > 15
@@ -309,7 +314,7 @@ internal fun BytecodePatchContext.fitReelVideo() {
 
 /**
  * Fill the screen on a screen wider than 9:16 (#491). On a foldable or a large screen, Instagram's
- * reel item layout (the render opening [REEL_INSETS], 05DP.A0o on 453) first checks the screen is
+ * reel item layout (the render reading [REEL_INSETS_FLAG], 0A78.A0p on 456's 386214574) first checks the screen is
  * wider than 9:16, then compares the item's own shape with a constant a bit over 9:16 and lays the
  * reel out in a 9:16 column with insets at the sides (or a 9:16 box on a narrower item), so the crop
  * decision sees a 9:16 viewer and [fillReelScreen] has nothing to fill. The ask goes in front of that
@@ -318,9 +323,13 @@ internal fun BytecodePatchContext.fitReelVideo() {
  * writes its register, so nothing reads that register's old value, and nothing jumps to it.
  */
 internal fun BytecodePatchContext.fillWideReelScreen() {
-    val renders = classesLoadingString(REEL_INSETS).flatMap { it.methods }.filter { loadsString(it, REEL_INSETS) }
+    val renders = classesLoading(REEL_INSETS_FLAG).flatMap { it.methods }.filter { method ->
+        method.implementation?.instructions?.any {
+            it.opcode == Opcode.CONST_WIDE && (it as WideLiteralInstruction).wideLiteral == REEL_INSETS_FLAG
+        } == true
+    }
     val found = renders.singleOrNull()
-        ?: throw PatchException("$FULL_SCREEN_BARS_PATCH: expected one method opening \"$REEL_INSETS\", found ${renders.size}")
+        ?: throw PatchException("$FULL_SCREEN_BARS_PATCH: expected one method reading the reel item layout's flag, found ${renders.size}")
     val types = found.parameterTypes.map(CharSequence::toString)
     val render = mutableClassDefBy(found.definingClass).methods.single {
         it.name == found.name && it.returnType == found.returnType && it.parameterTypes.map(CharSequence::toString) == types

@@ -24,6 +24,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.WideLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
@@ -96,21 +97,24 @@ class ReelFillHookTest {
     fun eachDeclaredBuildNarrowsAReelToItsShape() = eachDeclaredBundle(::narrowsTheReel)
 
     private fun narrowsTheReel(bundle: File, label: String) {
-        val loading = FixtureDex.classesLoading(bundle, REEL_MEDIA_GRAVITY)
+        val loading = FixtureDex.classesLoading(bundle, REEL_BIND_TRACE)
         val posts = FixtureDex.classes(bundle, setOf(POST_TYPE)).values
         val context = PatchContexts.of(FixtureDex.withStringPools(bundle, (loading + posts).distinctBy { it.type }))
         val bind = loading.map { it.type }.toSet().flatMap { context.mutableClassDefBy(it).methods }.single {
-            context.loadsString(it, REEL_MEDIA_GRAVITY) && context.loadsString(it, REEL_VIEW_WIDTH)
+            context.loadsString(it, REEL_BIND_TRACE)
         }
         val before = bind.code()
-        val gravity = before.indices.single { before[it].string() == REEL_MEDIA_GRAVITY }
-        assertEquals("$label: the views made right before", "[Landroid/view/View;", before[gravity - 2].referenceText())
-        assertEquals("$label: into a register", Opcode.MOVE_RESULT_OBJECT, before[gravity - 1].opcode)
-        val views = (before[gravity - 1] as OneRegisterInstruction).registerA
-        val named = before.indices.single { before[it].string() == REEL_VIEW_WIDTH }
-        val store = (named until gravity).single { before[it].referenceText() == "Landroid/view/ViewGroup\$LayoutParams;->width:I" }
+        val store = before.indices.single { before[it].referenceText() == "Landroid/view/ViewGroup\$LayoutParams;->width:I" }
+        val made = (store + 1 until before.size).first { before[it].referenceText() == "[Landroid/view/View;" }
+        assertTrue("$label: the views made after the width", before[made].opcode in setOf(Opcode.FILLED_NEW_ARRAY, Opcode.FILLED_NEW_ARRAY_RANGE))
+        assertEquals("$label: into a register", Opcode.MOVE_RESULT_OBJECT, before[made + 1].opcode)
+        val views = (before[made + 1] as OneRegisterInstruction).registerA
+        val gravity = made + 2
+        assertTrue("$label: then their gravity", (gravity until before.size).any {
+            before[it].referenceText() == "Landroid/widget/FrameLayout\$LayoutParams;->gravity:I"
+        })
         val stored = (before[store] as TwoRegisterInstruction).registerA
-        val copied = (store - 1 downTo named).first { (before[it] as? OneRegisterInstruction)?.registerA == stored }
+        val copied = (store - 1 downTo 0).first { (before[it] as? OneRegisterInstruction)?.registerA == stored }
         assertEquals("$label: the video's width copied in", Opcode.MOVE_FROM16, before[copied].opcode)
         val width = (before[copied] as TwoRegisterInstruction).registerB
         fun getter(size: String) = posts.single().methods.single {
@@ -180,7 +184,9 @@ class ReelFillHookTest {
         assertEquals("$label: with the views, the post's width and height and the video's width", listOf(arrayIn, across, held, widthCopy),
             (code[hand] as FiveRegisterInstruction).let { listOf(it.registerC, it.registerD, it.registerE, it.registerF).take(it.registerCount) })
         if (wide) assertTrue("$label: the views in a fourth local", arrayIn <= 15 && arrayIn !in setOf(held, across, widthCopy))
-        assertEquals("$label: then Instagram's gravity", REEL_MEDIA_GRAVITY, code[hand + 1].string())
+        assertEquals("$label: then Instagram's gravity", before[gravity].opcode, code[hand + 1].opcode)
+        assertEquals("$label: as it was", (before[gravity] as? OneRegisterInstruction)?.registerA,
+            (code[hand + 1] as? OneRegisterInstruction)?.registerA)
         val flow = ControlFlow.of(bind)
         assertEquals("$label: a no reaches the gravity", hand + 1, flow.normal[gravity + 2].first())
         assertEquals("$label: and no post", hand + 1, flow.normal[gravity + 5].first())
@@ -188,10 +194,9 @@ class ReelFillHookTest {
     }
 
     private fun fillsWideScreens(bundle: File, label: String) {
-        val loading = FixtureDex.classesLoading(bundle, REEL_INSETS)
-        val context = PatchContexts.of(FixtureDex.withStringPools(bundle, loading))
-        val render = loading.map { it.type }.toSet().flatMap { context.mutableClassDefBy(it).methods }
-            .single { context.loadsString(it, REEL_INSETS) }
+        val types = typesLoading(bundle, REEL_INSETS_FLAG)
+        val context = PatchContexts.of(FixtureDex.classes(bundle, types).values)
+        val render = types.flatMap { context.mutableClassDefBy(it).methods }.single { it.loads(REEL_INSETS_FLAG) }
         val before = render.code()
         val check = findWideReelCheck(before) ?: throw AssertionError("$label: no 9:16 checks")
         assertEquals("$label: the screen is compared with 9:16", 0.5625f,
@@ -474,15 +479,13 @@ class ReelFillHookTest {
     }
 
     private fun fitsFirst(bundle: File, label: String) {
-        val types = FixtureDex.classesHolding(bundle, SHOULD_CROP).map { it.type }.toSet()
+        val types = typesLoading(bundle, REEL_CROP_FLAG)
         for ((read, classesOf) in listOf("copied" to FixtureDex::classes, "as read" to FixtureDex::classesAsRead)) {
             val what = "$label ($read)"
             val context = PatchContexts.of(classesOf(bundle, types).values)
-            val decision = types.flatMap { context.mutableClassDefBy(it).methods }.single { it.loadsBoth() }
+            val decision = types.flatMap { context.mutableClassDefBy(it).methods }.single { it.isCropDecision() }
             val before = decision.code()
-            val multiply = before.indices.first { at ->
-                before[at].opcode == Opcode.MUL_FLOAT_2ADDR && before.take(at).any { it.string() == CROP_PERCENTAGE }
-            }
+            val multiply = before.timesHundred(what)
             val native = NeutralNativePath(decision)
 
             // In the patch's order: Fill after the multiply, then Fit at the start.
@@ -513,15 +516,13 @@ class ReelFillHookTest {
     }
 
     private fun asks(bundle: File, label: String) {
-        val types = FixtureDex.classesHolding(bundle, SHOULD_CROP).map { it.type }.toSet()
+        val types = typesLoading(bundle, REEL_CROP_FLAG)
         for ((read, classesOf) in listOf("copied" to FixtureDex::classes, "as read" to FixtureDex::classesAsRead)) {
             val what = "$label ($read)"
             val context = PatchContexts.of(classesOf(bundle, types).values)
-            val decision = types.flatMap { context.mutableClassDefBy(it).methods }.single { it.loadsBoth() }
+            val decision = types.flatMap { context.mutableClassDefBy(it).methods }.single { it.isCropDecision() }
             val before = decision.code()
-            val multiply = before.indices.first { at ->
-                before[at].opcode == Opcode.MUL_FLOAT_2ADDR && before.take(at).any { it.string() == CROP_PERCENTAGE }
-            }
+            val multiply = before.timesHundred(what)
             val percent = (before[multiply] as TwoRegisterInstruction).registerA
             val source = decision.parameterRegisterNumber(decision.parameterTypes.indexOfFirst { it.toString() == REEL_VIEWER_SOURCE })
             val native = NeutralNativePath(decision)
@@ -555,9 +556,30 @@ class ReelFillHookTest {
         }
     }
 
-    private fun Method.loadsBoth(): Boolean {
-        val strings = code().mapNotNull { it.string() }
-        return returnType == "Z" && SHOULD_CROP in strings && CROP_PERCENTAGE in strings
+    private fun Method.isCropDecision(): Boolean =
+        returnType == "Z" && loads(REEL_CROP_FLAG) && parameterTypes.any { it.toString() == REEL_VIEWER_SOURCE }
+
+    private fun Method.loads(flag: Long): Boolean = code().any {
+        it.opcode == Opcode.CONST_WIDE && (it as WideLiteralInstruction).wideLiteral == flag
+    }
+
+    /** The types of the classes in [bundle] with a method loading [flag] as a wide constant. */
+    private fun typesLoading(bundle: File, flag: Long): Set<String> {
+        val types = mutableSetOf<String>()
+        FixtureDex.forEach(bundle) { dex -> for (classDef in dex.classes) if (classDef.methods.any { it.loads(flag) }) types += classDef.type }
+        return types
+    }
+
+    /** The one place the decision multiplies by a 100f it just loaded, read straight off the stock code. */
+    private fun List<Instruction>.timesHundred(what: String): Int {
+        val found = indices.filter { at ->
+            val hundred = getOrNull(at - 1)
+            this[at].opcode == Opcode.MUL_FLOAT_2ADDR && hundred?.opcode == Opcode.CONST_HIGH16 &&
+                java.lang.Float.intBitsToFloat((hundred as NarrowLiteralInstruction).narrowLiteral) == 100f &&
+                (hundred as OneRegisterInstruction).registerA == (this[at] as TwoRegisterInstruction).registerB
+        }
+        assertEquals("$what: multiplies by 100 once", 1, found.size)
+        return found.single()
     }
 
     private fun Method.code(): List<Instruction> = implementation?.instructions?.toList().orEmpty()
