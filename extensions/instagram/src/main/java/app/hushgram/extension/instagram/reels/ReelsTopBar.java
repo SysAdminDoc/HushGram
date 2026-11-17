@@ -119,6 +119,7 @@ public final class ReelsTopBar {
     static final int UNKNOWN_TRIES = 20;
 
     static final String COUNT_HID = "Reels tab top bar hidden";
+    static final String COUNT_OTHER_HID = "Other reels' top bar hidden";
     static final String COUNT_HID_AGAIN = "Reels tab top bar hidden again after Instagram showed it";
     static final String COUNT_PUT_BACK = "Reels tab top bar put back";
     static final String COUNT_CREATE_HID = "Reels top bar Create button hidden";
@@ -268,7 +269,7 @@ public final class ReelsTopBar {
     /** Whether anything in a top bar is hidden now: one of the switches on, HushGram not paused, the settings read. */
     static boolean wanted() {
         return Utils.settingsReady() && !HushgramPause.isPaused() && (Settings.HIDE_REELS_TOP_BAR.get()
-                || Settings.HIDE_REELS_CREATE_BUTTON.get() || Settings.HIDE_SAVED_REELS_CREATE_BUTTON.get()
+                || Settings.HIDE_OTHER_REELS_TOP_BAR.get() || Settings.HIDE_REELS_CREATE_BUTTON.get() || Settings.HIDE_SAVED_REELS_CREATE_BUTTON.get()
                 || Settings.HIDE_REELS_YOUR_ALGORITHM.get() || Settings.HIDE_REELS_FRIENDS_TAB.get());
     }
 
@@ -328,7 +329,7 @@ public final class ReelsTopBar {
             String name = ((Enum<?>) value).name();
             if (LOGGED.add(name)) {
                 boolean tab = REELS_TAB.contains(name);
-                Logger.printDebug(() -> "Reels top bar: " + (tab ? "hides" : "keeps") + " the bar of a " + name + " viewer");
+                Logger.printDebug(() -> "Reels top bar: a " + name + " viewer, " + (tab ? "the Reels tab" : "not the Reels tab"));
             }
             if (SAVED.contains(name)) return Viewer.SAVED;
             if (!REELS_TAB.contains(name)) elsewhere = true;
@@ -674,14 +675,15 @@ public final class ReelsTopBar {
         }
 
         /**
-         * Walks [root], past what's gone, for bars. Hides each one of the Reels tab's that shows while
-         * its switch is on, and otherwise the buttons in it whose switches are on. A hidden bar's
-         * buttons go too, since Instagram can show it again with no layout to search after. A Friends
-         * tab outside any bar Instagram keeps the names of goes as well.
+         * Walks [root], past what's gone, for bars. Hides each one that shows while its switch is on,
+         * the Reels tab's or any other viewer's (#680), and otherwise the buttons in it whose switches
+         * are on. A hidden bar's buttons go too, since Instagram can show it again with no layout to
+         * search after. A Friends tab outside any bar Instagram keeps the names of goes as well.
          */
         private void search(View root) {
             int barId = id(root.getContext(), BAR_ID);
             boolean wholeBar = Settings.HIDE_REELS_TOP_BAR.get();
+            boolean otherBars = Settings.HIDE_OTHER_REELS_TOP_BAR.get();
             boolean friends = Settings.HIDE_REELS_FRIENDS_TAB.get();
             boolean savedCreate = Settings.HIDE_SAVED_REELS_CREATE_BUTTON.get();
             ArrayDeque<View> pending = new ArrayDeque<>();
@@ -699,14 +701,17 @@ public final class ReelsTopBar {
                 boolean byClass = isBarClass(view);
                 if (byClass || (barId != 0 && view.getId() == barId)) {
                     Viewer viewer = viewerOf(view);
-                    if (viewer == Viewer.REELS_TAB && wholeBar) {
+                    boolean tabBar = viewer == Viewer.REELS_TAB && wholeBar;
+                    boolean otherBar = otherBars && (viewer == Viewer.ELSEWHERE || viewer == Viewer.SAVED);
+                    if (tabBar || otherBar) {
                         if (view.getVisibility() == View.VISIBLE) {
-                            hide(view, Settings.HIDE_REELS_TOP_BAR, View.INVISIBLE, COUNT_HID);
+                            if (tabBar) hide(view, Settings.HIDE_REELS_TOP_BAR, View.INVISIBLE, COUNT_HID);
+                            else hide(view, Settings.HIDE_OTHER_REELS_TOP_BAR, View.INVISIBLE, COUNT_OTHER_HID);
                         }
                         continue;
                     }
                     if (byClass || viewer != Viewer.UNKNOWN) hideButtons(view, viewer);
-                    if (viewer == Viewer.UNKNOWN && byClass && (wholeBar || savedCreate)) waitFor(view);
+                    if (viewer == Viewer.UNKNOWN && byClass && (wholeBar || otherBars || savedCreate)) waitFor(view);
                     // The bar's own buttons hold no other bar; something else wearing its id might.
                     if (byClass || viewer != Viewer.UNKNOWN) continue;
                 }

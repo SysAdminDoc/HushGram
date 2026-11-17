@@ -128,6 +128,9 @@ final class ReelsCategory {
                     L10n.t("Takes away the row at the top of the Reels tab, with the Reels title, the camera button and "
                             + "anything else Instagram puts there. Reels you open from a profile, a post or a chat keep "
                             + "theirs. The camera still opens from Home.")));
+            reels.add(toggle(context, Settings.HIDE_OTHER_REELS_TOP_BAR, L10n.t("Hide the top bar on other reels"),
+                    L10n.t("Takes the back arrow and the title off the top of reels you open from Explore, a profile, "
+                            + "a post, Saved or a chat. Your phone's back button or gesture still goes back.")));
             reels.add(toggle(context, Settings.HIDE_REELS_CREATE_BUTTON, L10n.t("Hide the Create button on reels"),
                     L10n.t("Takes the plus button that opens the camera off the top of reels, on the Reels tab and "
                             + "everywhere else, and closes up the gap. The rest of the bar stays.")));

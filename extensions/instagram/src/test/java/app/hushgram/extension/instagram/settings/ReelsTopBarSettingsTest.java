@@ -84,6 +84,19 @@ public class ReelsTopBarSettingsTest {
         assertFalse(Settings.HIDE_REELS_TOP_BAR.get());
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.HIDE_REELS_TOP_BAR.key));
     }
+    /** #680: the switch for every other viewer's bar, the one with Explore's back arrow, starts off. */
+    @Test public void theOtherReelsBarSwitchIsThereAndStartsOff() throws Exception {
+        open(EnumSet.of(PatchFamily.REEL_DECLUTTER));
+        Preference row = page.getPreferenceScreen().findPreference(Settings.HIDE_OTHER_REELS_TOP_BAR.key);
+        assertNotNull(row);
+        assertEquals("Hide the top bar on other reels", row.getTitle().toString());
+        assertTrue(row.getSummary().toString(), row.getSummary().toString().contains("from Explore"));
+        assertEquals(Boolean.FALSE, Settings.HIDE_OTHER_REELS_TOP_BAR.defaultValue);
+        assertFalse("checked each search, no restart", Settings.HIDE_OTHER_REELS_TOP_BAR.rebootApp);
+        assertFalse(Settings.HIDE_OTHER_REELS_TOP_BAR.get());
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.HIDE_OTHER_REELS_TOP_BAR.key));
+        assertTrue(PatchFamily.REEL_DECLUTTER.switches.contains(Settings.HIDE_OTHER_REELS_TOP_BAR));
+    }
     private static int indexIn(PreferenceGroup group, Preference wanted) {
         for (int i = 0; i < group.getPreferenceCount(); i++) if (group.getPreference(i) == wanted) return i;
         return -1;
@@ -100,6 +113,7 @@ public class ReelsTopBarSettingsTest {
     @Test public void withoutCleanUpReelsThereIsNoSwitch() throws Exception {
         open(EnumSet.noneOf(PatchFamily.class));
         assertNull(page.getPreferenceScreen().findPreference(Settings.HIDE_REELS_TOP_BAR.key));
+        assertNull(page.getPreferenceScreen().findPreference(Settings.HIDE_OTHER_REELS_TOP_BAR.key));
         assertNull(page.getPreferenceScreen().findPreference(Settings.HIDE_REELS_CREATE_BUTTON.key));
         assertNull(page.getPreferenceScreen().findPreference(Settings.HIDE_SAVED_REELS_CREATE_BUTTON.key));
         assertNull(page.getPreferenceScreen().findPreference(Settings.HIDE_REELS_YOUR_ALGORITHM.key));
@@ -125,7 +139,9 @@ public class ReelsTopBarSettingsTest {
                 + "up the gap. The Reels tab and other reels keep theirs.", saved.getSummary().toString());
         assertEquals("Hide Your algorithm on reels", algorithm.getTitle().toString());
         PreferenceGroup reels = (PreferenceGroup) bar.getParent();
-        assertEquals(indexIn(reels, bar) + 1, indexIn(reels, create));
+        Preference other = page.getPreferenceScreen().findPreference(Settings.HIDE_OTHER_REELS_TOP_BAR.key);
+        assertEquals("the other reels' bar switch sits right under the Reels tab's", indexIn(reels, bar) + 1, indexIn(reels, other));
+        assertEquals(indexIn(reels, other) + 1, indexIn(reels, create));
         assertEquals(indexIn(reels, create) + 1, indexIn(reels, saved));
         assertEquals(indexIn(reels, saved) + 1, indexIn(reels, algorithm));
         assertEquals(Boolean.FALSE, Settings.HIDE_SAVED_REELS_CREATE_BUTTON.defaultValue);

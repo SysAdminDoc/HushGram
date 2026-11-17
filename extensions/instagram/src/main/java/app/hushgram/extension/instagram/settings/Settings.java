@@ -3211,6 +3211,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_reels_top_bar", FALSE);
 
     /**
+     * The top bar of every other reel viewer, with its back arrow and its title: Explore's, a
+     * profile's, a post's, Saved's and a chat's (#680). The Reels tab's answers to
+     * {@link #HIDE_REELS_TOP_BAR} ({@link app.hushgram.extension.instagram.reels.ReelsTopBar}). Off to start.
+     */
+    public static final BooleanSetting HIDE_OTHER_REELS_TOP_BAR =
+            new BooleanSetting("hushgram_hide_other_reels_top_bar", FALSE);
+
+    /**
      * The Create (+) button in the top bar of every reel viewer, the Reels tab's and the others,
      * which opens the camera (#177). The rest of the bar stays
      * ({@link app.hushgram.extension.instagram.reels.ReelsTopBar}). Off to start.

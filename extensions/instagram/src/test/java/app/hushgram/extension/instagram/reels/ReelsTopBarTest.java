@@ -76,6 +76,7 @@ public class ReelsTopBarTest {
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         Settings.HIDE_REELS_TOP_BAR.resetToDefault();
+        Settings.HIDE_OTHER_REELS_TOP_BAR.resetToDefault();
         Settings.HIDE_REELS_CREATE_BUTTON.resetToDefault();
         Settings.HIDE_SAVED_REELS_CREATE_BUTTON.resetToDefault();
         Settings.HIDE_REELS_YOUR_ALGORITHM.resetToDefault();
@@ -107,6 +108,7 @@ public class ReelsTopBarTest {
         ReelsTopBar.forget(activity);
         controller.pause().stop().destroy();
         Settings.HIDE_REELS_TOP_BAR.resetToDefault();
+        Settings.HIDE_OTHER_REELS_TOP_BAR.resetToDefault();
         Settings.HIDE_REELS_CREATE_BUTTON.resetToDefault();
         Settings.HIDE_SAVED_REELS_CREATE_BUTTON.resetToDefault();
         Settings.HIDE_REELS_YOUR_ALGORITHM.resetToDefault();
@@ -276,6 +278,64 @@ public class ReelsTopBarTest {
         assertEquals(View.INVISIBLE, tab.getVisibility());
         assertFalse(tab.findViewById(CAMERA_ID).isShown());
         assertEquals(1, session.hiddenCount());
+    }
+
+    /** #680: the other switch takes the bar, back arrow and title, off every viewer but the Reels tab's. */
+    @Test public void theOtherSwitchHidesEveryOtherViewersBarAndLeavesTheReelsTab() {
+        assertFalse("starts off", Settings.HIDE_OTHER_REELS_TOP_BAR.get());
+        Settings.HIDE_OTHER_REELS_TOP_BAR.save(true);
+        ClipsViewerSource[] elsewhere = {ClipsViewerSource.PROFILE_CLIPS, ClipsViewerSource.FEED_TIMELINE,
+                ClipsViewerSource.DIRECT_THREAD, ClipsViewerSource.CLIPS_FRIEND_LANE, ClipsViewerSource.CLIPS_SAVED_TAB};
+        List<ClipsViewerActionBar> others = new ArrayList<>();
+        for (ClipsViewerSource source : elsewhere) others.add(show(source));
+        ClipsViewerActionBar tab = show(ClipsViewerSource.CLIPS_TAB);
+        ClipsViewerActionBar homecoming = show(ClipsViewerSource.CLIPS_TAB_HOMECOMING);
+        ReelsTopBar.Session session = track();
+        for (int i = 0; i < others.size(); i++) {
+            ClipsViewerActionBar bar = others.get(i);
+            assertEquals("bar " + i + " is hidden, not gone", View.INVISIBLE, bar.getVisibility());
+            assertFalse("bar " + i + "'s buttons aren't shown", bar.findViewById(CAMERA_ID).isShown());
+        }
+        assertEquals("the Reels tab keeps its bar", View.VISIBLE, tab.getVisibility());
+        assertEquals(View.VISIBLE, homecoming.getVisibility());
+        assertTrue(tab.findViewById(CAMERA_ID).isShown());
+        assertEquals(others.size(), session.hiddenCount());
+        assertTrue(session.isWatching());
+        assertTrue(HookStatus.report().toString(), counted(ReelsTopBar.COUNT_OTHER_HID, others.size()));
+        assertFalse(HookStatus.report().toString(), HookStatus.report().toString().contains(ReelsTopBar.COUNT_HID + " "));
+    }
+
+    @Test public void bothSwitchesHideEveryBar() {
+        Settings.HIDE_REELS_TOP_BAR.save(true);
+        Settings.HIDE_OTHER_REELS_TOP_BAR.save(true);
+        ClipsViewerActionBar profile = show(ClipsViewerSource.PROFILE_CLIPS);
+        ClipsViewerActionBar tab = show(ClipsViewerSource.CLIPS_TAB);
+        track();
+        assertEquals(View.INVISIBLE, profile.getVisibility());
+        assertEquals(View.INVISIBLE, tab.getVisibility());
+        assertTrue(HookStatus.report().toString(), counted(ReelsTopBar.COUNT_HID, 1));
+        assertTrue(HookStatus.report().toString(), counted(ReelsTopBar.COUNT_OTHER_HID, 1));
+    }
+
+    @Test public void turningTheOtherSwitchOffPutsTheirBarsBackAndKeepsTheReelsTabsHidden() {
+        Settings.HIDE_REELS_TOP_BAR.save(true);
+        Settings.HIDE_OTHER_REELS_TOP_BAR.save(true);
+        ClipsViewerActionBar profile = show(ClipsViewerSource.PROFILE_CLIPS);
+        ClipsViewerActionBar tab = show(ClipsViewerSource.CLIPS_TAB);
+        ReelsTopBar.Session session = track();
+        assertEquals(2, session.hiddenCount());
+        profile.setVisibility(View.VISIBLE);
+        frame();
+        assertEquals("Instagram showing it again doesn't win", View.INVISIBLE, profile.getVisibility());
+
+        Settings.HIDE_OTHER_REELS_TOP_BAR.save(false);
+        focusBack();
+        frame();
+        assertEquals("off, the profile reel's bar is back", View.VISIBLE, profile.getVisibility());
+        assertTrue(profile.findViewById(CAMERA_ID).isShown());
+        assertEquals("the Reels tab's switch is still on", View.INVISIBLE, tab.getVisibility());
+        assertEquals(1, session.hiddenCount());
+        assertTrue(session.isWatching());
     }
 
     @Test public void pausedIsStockWithNoListener() {
