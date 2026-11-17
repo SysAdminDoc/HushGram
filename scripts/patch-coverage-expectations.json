@@ -3,8 +3,8 @@
   "fixtures": [
     {
       "package": "com.instagram.android",
-      "versionName": "455.0.0.51.72",
-      "versionCode": "386113969",
+      "versionName": "456.0.0.53.78",
+      "versionCode": "386214574",
       "families": [
         {
           "family": "sanitizeSharingLinks",
@@ -22,8 +22,8 @@
     },
     {
       "package": "com.instagram.android",
-      "versionName": "455.0.0.51.72",
-      "versionCode": "386113968",
+      "versionName": "456.0.0.53.78",
+      "versionCode": "386214562",
       "families": [
         {
           "family": "sanitizeSharingLinks",
@@ -41,27 +41,8 @@
     },
     {
       "package": "com.instagram.android",
-      "versionName": "455.0.0.51.72",
-      "versionCode": "386113970",
-      "families": [
-        {
-          "family": "sanitizeSharingLinks",
-          "patch": "Sanitize sharing links",
-          "targets": ["permalink parser", "clipboard copies", "share sheets", "direct shares", "in-app browser menu"],
-          "optional": []
-        },
-        {
-          "family": "translatedStart",
-          "patch": "Start on x86 devices",
-          "targets": ["code protection call 1", "code protection call 2"],
-          "optional": []
-        }
-      ]
-    },
-    {
-      "package": "com.instagram.android",
-      "versionName": "455.0.0.51.72",
-      "versionCode": "386113971",
+      "versionName": "456.0.0.53.78",
+      "versionCode": "386214575",
       "families": [
         {
           "family": "sanitizeSharingLinks",

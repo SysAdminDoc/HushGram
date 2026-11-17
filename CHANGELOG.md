@@ -64,6 +64,7 @@ Every HushGram release, newest first.
 ### Improvements
 
 * HushGram now patches Instagram 455.0.0.51.72 instead of 454.0.0.54.77. Get APKMirror's (arm64-v8a) (480-640dpi) (Android 9.0+) bundle, build 386113969. Its armeabi-v7a (386113968), x86 (386113970) and x86_64 (386113971) builds are declared too.
+* HushGram now patches Instagram 456.0.0.53.78 instead of 455.0.0.51.72. Get APKMirror's (arm64-v8a) (480dpi) (Android 9.0+) bundle, build 386214574. Its armeabi-v7a (386214562) and x86 (386214575) builds are declared too. Meta published no x86_64 build this time.
 * HushGram now builds on Morphe patcher 2.4.0, so patching needs Morphe Manager 2.6.0 or newer. On a computer, use morphe-desktop 2.2.0 or newer.
 
 ### Bug Fixes

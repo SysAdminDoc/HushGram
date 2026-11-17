@@ -34,28 +34,29 @@ internal const val FIXED_STRIP = "$FEED_HOLD->fixedStrip(I)Z"
 internal const val STRIP = "$FEED_HOLD->strip(D)D"
 
 /**
- * The feature as a whole, read by a static (UserSession) helper (03c3.A00 on 455's 386113969). The
+ * The feature as a whole, read by a static (UserSession) helper (02c4.A00 on 456's 386214574). The
  * press entry calls that helper once, and a dozen other places in the feed call it too; the patch
  * answers the press entry's call alone, so the rest of the feed stays Instagram's.
  */
-// 455 renumbered the whole config from 454's 0x810ec4 (config index -23, slot -33).
-internal const val HOLD_FLAG = 0x810ead000251d5L
+// 456 renumbered the whole config from 455's 0x810ead (config index -29, slot -43), as 455 did from
+// 454's 0x810ec4 (config index -23, slot -33).
+internal const val HOLD_FLAG = 0x810e90000251aaL
 
 /**
  * One for each kind of post the press entry tells apart. It picks one in a branch and reads
  * whichever it picked in one place.
  */
-internal val KIND_FLAGS = listOf(0x810ead000451d7L, 0x810ead000551d8L, 0x810ead000351d6L)
+internal val KIND_FLAGS = listOf(0x810e90000451acL, 0x810e90000551adL, 0x810e90000351abL)
 
 /** The speed-up itself, and a carousel's, which skips the other. */
-internal const val FAST_FLAG = 0x810ead000151d4L
-internal const val CAROUSEL_FLAG = 0x810ead000051d3L
+internal const val FAST_FLAG = 0x810e90000151a9L
+internal const val CAROUSEL_FLAG = 0x810e90000051a8L
 
 /** Whether the strip along each side where a hold counts is a fixed width, about 50dp. */
-internal const val FIXED_STRIP_FLAG = 0x20810ead000651d9L
+internal const val FIXED_STRIP_FLAG = 0x20810e90000651aeL
 
-/** The strip as a share of the video's width, when it isn't fixed. Read as a double on every 455 build. */
-internal const val STRIP_FLAG = 0x840ead00070389L
+/** The strip as a share of the video's width, when it isn't fixed. Read as a double on every 456 build. */
+internal const val STRIP_FLAG = 0x840e900007038dL
 
 /**
  * Turns on Instagram's own hold for 2x on feed videos, which it keeps behind server flags in the

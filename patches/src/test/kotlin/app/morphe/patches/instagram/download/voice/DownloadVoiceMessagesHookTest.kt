@@ -190,7 +190,7 @@ class DownloadVoiceMessagesHookTest {
                 val saver = context.mutableClassDefBy(found.saver.method.definingClass).methods.single {
                     it.name == found.saver.method.name && it.parameterTypes == found.saver.method.parameterTypes
                 }
-                if (bundle.name == "instagram-455.0.0.51.72-386113969.apks") {
+                if (bundle.name == "instagram-456.0.0.53.78-386214574.apks") {
                     // Where it lands on 455's declared build, read off the dex by hand.
                     val at = builder.instructions().indexOfFirst { it.referenceText() == OFFER_VOICE }
                     assertEquals(

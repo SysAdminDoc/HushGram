@@ -44,8 +44,8 @@ private const val PATCH = "Download any video"
 internal const val FEED_BUTTON =
     "$EXTENSION_PACKAGE/download/FeedDownloadButton;->bind(Landroid/view/View;Ljava/lang/Object;Ljava/lang/Object;Landroid/app/Activity;)V"
 
-/** Feed's inflated Save button in Instagram 455 (`row_feed_button_save`; 0x7f0b36e5 in 454), the same id in all twelve 455 builds. */
-internal const val SAVE_BUTTON_ID = 0x7f0b3727
+/** Feed's inflated Save button in Instagram 456 (`row_feed_button_save`; 0x7f0b3727 in 455, 0x7f0b36e5 in 454), the same id in all four 456 builds. */
+internal const val SAVE_BUTTON_ID = 0x7f0b3732
 
 private const val BOUNCY = "Lcom/instagram/ui/widget/bouncyufibutton/IgBouncyUfiButtonImageView;"
 private const val ACTIVITY = "Landroid/app/Activity;"
@@ -171,8 +171,8 @@ internal const val LITHO_BUTTON =
     "$EXTENSION_PACKAGE/download/FeedDownloadButton;->litho(Ljava/util/List;Ljava/lang/Object;Ljava/lang/Object;)V"
 private const val FEED_BUTTON_CLASS = "$EXTENSION_PACKAGE/download/FeedDownloadButton;"
 
-/** The Feed action row's own id (`row_feed_view_group_buttons`, 455, the same in all twelve builds; 0x7f0b3728 in 454), set on the host that holds the buttons. */
-internal const val ROW_BUTTONS_ID = 0x7f0b3765
+/** The Feed action row's own id (`row_feed_view_group_buttons`, 456, the same in all four builds; 0x7f0b3765 in 455, 0x7f0b3728 in 454), set on the host that holds the buttons. */
+internal const val ROW_BUTTONS_ID = 0x7f0b3770
 
 private const val OBJECT = "Ljava/lang/Object;"
 private const val CHAR_SEQUENCE_TYPE = "Ljava/lang/CharSequence;"

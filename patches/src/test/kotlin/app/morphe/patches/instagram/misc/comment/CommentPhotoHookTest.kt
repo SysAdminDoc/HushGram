@@ -680,6 +680,6 @@ class CommentPhotoHookTest {
 
     private companion object {
         /** Instagram's GIF icon and its GIF label on the quick reply bar, read from the declared build's resources. */
-        val GIF_BUTTONS = mapOf("455.0.0.51.72" to (0x7f082632 to 0x7f1370eb))
+        val GIF_BUTTONS = mapOf("456.0.0.53.78" to (0x7f082660 to 0x7f1370eb))
     }
 }

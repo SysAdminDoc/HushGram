@@ -87,7 +87,7 @@ class SeekShapeSitesTest {
         val patched = context.mutableClassDefBy(SEGMENTED_PROGRESS_BAR)
         val draws = stock.methods.associate { it.name to it.code().count { i -> i.called() == DRAW_ROUND_RECT } }.filterValues { it > 0 }
         assertTrue("$label: the bar draws a rounded rectangle", draws.values.sum() > 0)
-        if (label.contains("386113969")) {
+        if (label.contains("386214574")) {
             assertEquals("$label: the bar's rounded rectangles", mapOf("onDraw" to 4, "A0A" to 3, "A0B" to 2, "A00" to 1), draws)
         }
         for (method in stock.methods) {
@@ -125,7 +125,7 @@ class SeekShapeSitesTest {
         assertEquals("$label: right after it keeps its seek bar", CHAT_VIDEO_HOOK, hooked[kept + 1].called())
         assertEquals("$label: the seek bar it kept", listOf((viewer[kept] as TwoRegisterInstruction).registerA), hooked[kept + 1].registers())
         assertEquals("$label: and nothing else moves", viewer[kept + 1].opcode, hooked[kept + 2].opcode)
-        if (label.contains("386113969")) assertEquals("$label: the chat media viewer", "LX/0be3;", chat.method.definingClass)
+        if (label.contains("386214574")) assertEquals("$label: the chat media viewer", "LX/0be3;", chat.method.definingClass)
     }
 
     /** The progress bar, the classes loading the chat viewer's key and the string pools they ask. */

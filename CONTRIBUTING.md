@@ -4,7 +4,7 @@ Bug reports, fixes for a new Instagram build, new patches and pull requests are 
 
 If you open an issue, include:
 
-- the Instagram version and build number you patched (APKMirror shows both, for example 455.0.0.51.72, build 386113969)
+- the Instagram version and build number you patched (APKMirror shows both, for example 456.0.0.53.78, build 386214574)
 - the Morphe Manager version and the HushGram version
 - the patches you selected
 - what you expected and what happened, with steps to get there

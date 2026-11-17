@@ -111,7 +111,7 @@ class HideFeedFollowPatchTest {
             }
             val before = header.code().filter { it.opcode != Opcode.NOP }
             val field = "${native.eligibility}->A00:Z"
-            // 453's header read the state twice and 454's and 455's read it once (386113969's LX/02Xg;->A0p);
+            // 453's header read the state twice and 454's to 456's read it once (386214574's LX/018f;->A0p);
             // Subscribe's read is the one its label follows.
             val read = before.indices.single { at ->
                 before[at].opcode == Opcode.IGET_BOOLEAN && before[at].referenceText() == field &&
@@ -197,22 +197,14 @@ class HideFeedFollowPatchTest {
     }
 
     /**
-     * 455.0.0.51.72's twelve builds, found with SubscribeNames: each header has one candidate read, followed
+     * 456.0.0.53.78's four builds, found with SubscribeNames: each header has one candidate read, followed
      * by Subscribe's label and the click that casts to the header and calls the logger's A07.
      */
     private val subscribeBuilds = mapOf(
-        "386113915" to NativeSubscribe("LX/03Hd;", "A0p", "LX/02v5;", "LX/08eS;", "LX/07ZX;", 0x7f13846a),
-        "386113916" to NativeSubscribe("LX/02Xg;", "A0p", "LX/02Jm;", "LX/0BR4;", "LX/06DT;", 0x7f138468),
-        "386113918" to NativeSubscribe("LX/02Xh;", "A0p", "LX/02Jm;", "LX/0Yyo;", "LX/06DT;", 0x7f138468),
-        "386113922" to NativeSubscribe("LX/03Gm;", "A0p", "LX/02v1;", "LX/0I7G;", "LX/07h5;", 0x7f13846a),
-        "386113923" to NativeSubscribe("LX/02Xe;", "A0p", "LX/02Jk;", "LX/0BM3;", "LX/06DS;", 0x7f138468),
-        "386113928" to NativeSubscribe("LX/03Hd;", "A0p", "LX/02v5;", "LX/08eS;", "LX/07ZX;", 0x7f13846a),
-        "386113929" to NativeSubscribe("LX/02Xg;", "A0p", "LX/02Jm;", "LX/0BR4;", "LX/06DT;", 0x7f138468),
-        "386113958" to NativeSubscribe("LX/02Xg;", "A0p", "LX/02Jm;", "LX/0BR4;", "LX/06DT;", 0x7f138468),
-        "386113968" to NativeSubscribe("LX/03Hd;", "A0p", "LX/02v5;", "LX/08eS;", "LX/07ZX;", 0x7f13846a),
-        "386113969" to NativeSubscribe("LX/02Xg;", "A0p", "LX/02Jm;", "LX/0BR4;", "LX/06DT;", 0x7f138468),
-        "386113970" to NativeSubscribe("LX/02Yl;", "A0p", "LX/02Ld;", "LX/0DRh;", "LX/06Gu;", 0x7f13846a),
-        "386113971" to NativeSubscribe("LX/02Xh;", "A0p", "LX/02Jm;", "LX/0Yyo;", "LX/06DT;", 0x7f138468),
+        "386214534" to NativeSubscribe("LX/018f;", "A0p", "LX/00z0;", "LX/0Vjj;", "LX/0Blz;", 0x7f1385a2),
+        "386214562" to NativeSubscribe("LX/01x5;", "A0q", "LX/01k7;", "LX/0R81;", "LX/0DbE;", 0x7f1385a4),
+        "386214574" to NativeSubscribe("LX/018f;", "A0p", "LX/00z0;", "LX/0Vjj;", "LX/0Blz;", 0x7f1385a2),
+        "386214575" to NativeSubscribe("LX/01B5;", "A0p", "LX/011b;", "LX/0LF1;", "LX/0BqL;", 0x7f1385a4),
     )
 
     private val FEED_BUTTON = "$EXTENSION_PACKAGE/feed/FeedFollowButton;"

@@ -69,8 +69,8 @@ internal const val LISTEN = "$EXTENSION_PACKAGE/reels/ReelSeekTouch;->listen(Lan
  * place, picked in a branch.
  */
 // 451: 0x82091900291476. 452 moved it to 0x82090f00291471, 453 to 0x8208fe00291415 (config index -10, slot -5),
-// 454 to 0x8208d0002913a8 and 455 to 0x8208c200291371; same three readers.
-internal const val ORGANIC_MIN_SECONDS = 0x8208c200291371L
+// 454 to 0x8208d0002913a8, 455 to 0x8208c200291371 and 456 to 0x8208b900291365; same three readers.
+internal const val ORGANIC_MIN_SECONDS = 0x8208b900291365L
 internal const val ORGANIC_MIN_SECONDS_READS = 3
 
 /**
@@ -78,8 +78,8 @@ internal const val ORGANIC_MIN_SECONDS_READS = 3
  * reads it once, where the seek bar row's state is worked out, in the same place as the ads' flag.
  */
 // 451: 0x8109190010330c. 452 moved it to 0x81090f00103271, 453 to 0x8108fe00103259, 454 to 0x8108d00010323f
-// and 455 to 0x8108c2001031f3, read by the same seek bar row state.
-internal const val ORGANIC_LAZY = 0x8108c2001031f3L
+// 455 to 0x8108c2001031f3 and 456 to 0x8108b9001031f3, read by the same seek bar row state.
+internal const val ORGANIC_LAZY = 0x8108b9001031f3L
 internal const val ORGANIC_LAZY_READS = 1
 
 /** The markers, after Instagram's release prefix, of the methods that prove the reads are the seek bar's. */

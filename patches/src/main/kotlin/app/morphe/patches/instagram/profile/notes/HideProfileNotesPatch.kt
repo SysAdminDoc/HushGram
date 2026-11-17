@@ -38,9 +38,9 @@ internal const val PROMPT_OFF = "$PROFILE_NOTES->creationDisabled(I)Z"
  * which drops the Note it was about to draw. Both answer a yes the same way, so a yes from the
  * extension leaves Instagram doing what it does for an account the server turned Notes off for.
  * Updates renumber the config, so this was 0x8115b700017011 on 451, 0x8115a300016fe2 on 452,
- * 0x811581000170d9 on 453 and 0x811534000171f9 on 454.
+ * 0x811581000170d9 on 453, 0x811534000171f9 on 454 and 0x811519000172f6 on 455.
  */
-internal const val CONSUMPTION_DISABLED_FLAG = 0x811519000172f6L
+internal const val CONSUMPTION_DISABLED_FLAG = 0x8114f3000173adL
 
 /**
  * The config's other parameter, `is_creation_disabled`. The header builder reads it once, for your
@@ -48,9 +48,9 @@ internal const val CONSUMPTION_DISABLED_FLAG = 0x811519000172f6L
  * first note...") when there's no Note to draw. Nothing else holds that prompt back: a yes on
  * [CONSUMPTION_DISABLED_FLAG] drops a Note of your own and leaves the prompt in its place. With
  * both a yes, the builder has nothing for the bubble and leaves it out. 0x8115b700007010 on 451,
- * 0x8115a300006fe1 on 452, 0x811581000070d8 on 453, 0x811534000071f8 on 454.
+ * 0x8115a300006fe1 on 452, 0x811581000070d8 on 453, 0x811534000071f8 on 454, 0x811519000072f5 on 455.
  */
-internal const val CREATION_DISABLED_FLAG = 0x811519000072f5L
+internal const val CREATION_DISABLED_FLAG = 0x8114f3000073acL
 
 /** The profile screen, which keeps its name in Instagram's builds. */
 internal const val PROFILE_FRAGMENT = "Lcom/instagram/profile/fragment/UserDetailFragment;"

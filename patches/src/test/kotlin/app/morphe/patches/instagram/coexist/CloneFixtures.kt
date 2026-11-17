@@ -29,7 +29,7 @@ import org.junit.Assert.assertEquals
 import org.w3c.dom.Document
 import org.w3c.dom.Element
 
-/** The builds of Instagram 455.0.0.51.72 the clone patch is held to, read straight from the fixture folder. */
+/** The builds of Instagram 456.0.0.53.78 the clone patch is held to, read straight from the fixture folder. */
 internal object CloneFixtures {
     private const val ANDROID = "http://schemas.android.com/apk/res/android"
 

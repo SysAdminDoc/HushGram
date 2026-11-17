@@ -40,19 +40,20 @@ internal const val EDGE_DOUBLE = "$REEL_SKIP->edgeDouble(D)D"
 
 /**
  * Whether a reel gets double tap to skip, read by DoubleTapToSkipUseCase_getUiState for each reel
- * (05SV.A0R on 455's 386113969; 454 had 0x811254000164c9). Off on the accounts that don't have it, which is most of them.
+ * (08LX.A0R on 456's 386214574; 455 had 0x81123c00016519, 454 0x811254000164c9). Off on the accounts that don't have it,
+ * which is most of them.
  */
-internal const val SKIP_FLAG = 0x81123c00016519L
+internal const val SKIP_FLAG = 0x81121700016542L
 
 /**
  * How far a double tap skips, in seconds: read where the gesture navigator works out a double tap
- * (ClipsGestureNavigator_onDoubleTapToSkip, 0C45.A09 on 386113969) and again by the use case. 454 had
- * 0x84125400020474, and the edge below 0x84125400000473.
+ * (ClipsGestureNavigator_onDoubleTapToSkip) and again by the use case. 455 had 0x84123c00020472, and
+ * the edge below 0x84123c00000471. 454 had 0x84125400020474 and 0x84125400000473.
  */
-internal const val SECONDS_FLAG = 0x84123c00020472L
+internal const val SECONDS_FLAG = 0x8412170002047cL
 
 /** How wide the strip along each edge is, as a share of the reel's width. Read by the navigator alone. */
-internal const val EDGE_FLAG = 0x84123c00000471L
+internal const val EDGE_FLAG = 0x8412170000047bL
 
 /** What a fraction is read as: a float on some 454 builds, a double on others. */
 private val FRACTION = setOf("F", "D")

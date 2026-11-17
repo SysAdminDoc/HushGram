@@ -74,7 +74,7 @@ class NativeProfilePostsListTest {
     }
 
     private companion object {
-        val BUILDS = listOf(386113969, 386113915, 386113916, 386113918, 386113922, 386113923, 386113928, 386113929, 386113958, 386113968, 386113970, 386113971)
+        val BUILDS = listOf(386214574, 386214534, 386214562, 386214575)
         const val MEDIA = "Lcom/instagram/feed/media/Media;"
 
         /** The bundles of the builds the patches declare, as the other native tests read them. */

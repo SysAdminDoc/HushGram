@@ -207,7 +207,7 @@ class NativeFindReelOriginTest {
     }
 
     private companion object {
-        val BUILDS = listOf(386113969, 386113915, 386113916, 386113918, 386113922, 386113923, 386113928, 386113929, 386113958, 386113968, 386113970, 386113971)
+        val BUILDS = listOf(386214574, 386214534, 386214562, 386214575)
         /** The binder of a tile in a profile's Reels grid, and what builds the state it binds from a reel. */
         const val GRID_BIND = "ClipsGridItemDefinition_bind"
         const val GRID_ITEM = "ClipsGridExtensions_convertToClipsGridItem"

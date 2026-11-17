@@ -60,10 +60,10 @@ private const val LIST = "Ljava/util/List;"
  * 0x2081080a00102a78. The 453 retarget first took 0x208102ea00060a8d, a pending DM inbox gate of
  * the same shape that the tab host never asks, so the choice did nothing on 453. 454 moved it from
  * 453's 0x208107fa00102a5c, read by the same gate (00PP.A04 on 386014758), which now asks for the
- * config through Bbu instead of BbW. 455 moved it again from 454's 0x208107cd00102a43, read by the
- * same gate (08mt.A04 on 386113969).
+ * config through Bbu instead of BbW. 455 moved it again from 454's 0x208107cd00102a43, and 456 from
+ * 455's 0x208107bf001029f9, read by the same gate (08va.A05 on 386214574).
  */
-internal const val NEW_TAB_BAR_FLAG = 0x208107bf001029f9L
+internal const val NEW_TAB_BAR_FLAG = 0x208107b700102a11L
 
 /**
  * Picks the tab bar, newer or classic, instead of leaving it to Instagram (#356). Included in the

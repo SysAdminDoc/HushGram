@@ -288,7 +288,7 @@ class BackgroundPlayPatchTest {
             runnables.filter { it.type in made }.count { runnable -> runnable.methods.any { it.name == "run" && it.code().any { call -> call.referenceText() == start } } },
         )
         assertEquals("$label: the same prepared callback with them", found.prepared.name, story.prepared.name)
-        if ("386113969" in label) {
+        if ("386214574" in label) {
             assertEquals(
                 "$label: Instagram's names",
                 listOf("A0a", "A0e", "A0b", "A0d", "A0p", "A0T", "${sites.player}->A0F:LX/04s8;"),
