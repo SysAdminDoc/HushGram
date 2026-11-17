@@ -46,7 +46,10 @@ import com.android.tools.smali.dexlib2.iface.value.MethodEncodedValue
 import com.android.tools.smali.dexlib2.iface.value.MethodHandleEncodedValue
 import java.util.IdentityHashMap
 
-/** The native queue location before ownership changes, proved before any patch is written. */
+/**
+ * The native queue location before ownership changes, proved before any patch is written. The hook
+ * goes in [run] before its claim at [beforeClaim], and a held story jumps to [loop].
+ */
 internal class StoryRetryQueue(
     val owner: String,
     val run: String,
@@ -54,6 +57,26 @@ internal class StoryRetryQueue(
     val loop: Int,
     val batch: Int,
     val scratch: Int,
+    /** [run]'s parameters: none for the loop itself, the key and the item for 456's outlined step. */
+    val parameters: List<String> = emptyList(),
+    /** The synchronized loop the disk reader runs: [run] itself, or the loop calling 456's step. */
+    val sweep: String = run,
+)
+
+/** What the queue's loop calls and where the hook goes, read from the whole loop or from 456's loop and its step. */
+private class QueueLoop(
+    val run: Method,
+    val count: MethodReference,
+    val snapshot: MethodReference,
+    val lookup: MethodReference,
+    val claim: MethodReference,
+    val account: MethodReference,
+    val hooked: Method,
+    val beforeClaim: Int,
+    val next: Int,
+    val batch: Int,
+    /** The step's own non-null check of its key, which must be the claim's parameter check. */
+    val keyCheck: MethodReference? = null,
 )
 
 private const val OBJECT = "Ljava/lang/Object;"
@@ -132,11 +155,92 @@ internal fun BytecodePatchContext.findStoryRetryQueue(store: ClassDef, retry: St
             }
         }
     }
-    val (run, at) = callers.singleOrNull() ?: refuseQueue("expected one request-builder call, found ${callers.size}")
-    if (run.definingClass != base.type || run.parameterTypes.isNotEmpty() || run.returnType != "V" ||
-        AccessFlags.STATIC.isSet(run.accessFlags) || !AccessFlags.DECLARED_SYNCHRONIZED.isSet(run.accessFlags)) {
+    val (caller, at) = callers.singleOrNull() ?: refuseQueue("expected one request-builder call, found ${callers.size}")
+    if (caller.definingClass != base.type || caller.returnType != "V" || AccessFlags.STATIC.isSet(caller.accessFlags)) {
         refuseQueue("request builder isn't called by its owner's synchronized loop")
     }
+    val loop = if (caller.parameterTypes.isEmpty()) wholeLoop(caller, at) else splitLoop(base, store, caller, at)
+    val account = loop.account
+    if (account.definingClass != base.type || account.parameterTypes.isNotEmpty() || account.returnType != USER_SESSION) {
+        refuseQueue("loop uses a foreign account getter")
+    }
+    if (!account.same(accountGetter) || store.methods.any { it.name == accountGetter.name &&
+            it.parameterTypes.map(Any::toString) == accountGetter.parameterTypes.map(Any::toString) && it.returnType == USER_SESSION }) {
+        refuseQueue("story selection doesn't use the loop's native account getter")
+    }
+    val accountField = base.requireAccountGetter(accountGetter)
+    requireNativeUserId()
+    val beforeBuild = bridge.code().take(retry.build).filter { it.opcode != Opcode.NOP }
+    if (beforeBuild.map { it.opcode } != listOf(Opcode.CHECK_CAST, Opcode.INVOKE_STATIC, Opcode.INVOKE_VIRTUAL, Opcode.MOVE_RESULT_OBJECT) ||
+        beforeBuild[2].call()?.same(accountGetter) != true || beforeBuild[2].namedRegisters() != listOf(bridge.localRegisterCount()) ||
+        beforeBuild[0].namedRegisters() != listOf(retry.batch) ||
+        beforeBuild[1].namedRegisters() != listOf(retry.batch) ||
+        bridge.code()[retry.build].namedRegisters() != listOf(retry.batch, beforeBuild[3].namedRegisters().single())) {
+        refuseQueue("bridge doesn't build for its native account")
+    }
+
+    val claim = base.method(loop.claim)
+    val move = Shape(claim,
+        Opcode.CONST_4, Opcode.INVOKE_STATIC, Opcode.IGET_OBJECT, Opcode.MONITOR_ENTER, Opcode.IGET_OBJECT,
+        Opcode.INVOKE_VIRTUAL, Opcode.MOVE_RESULT, Opcode.IF_NEZ, Opcode.MONITOR_EXIT, Opcode.RETURN,
+        Opcode.IGET_OBJECT, Opcode.INVOKE_VIRTUAL, Opcode.MOVE_RESULT_OBJECT, Opcode.CONST_STRING, Opcode.INVOKE_STATIC,
+        Opcode.INVOKE_INTERFACE, Opcode.MONITOR_EXIT, Opcode.CONST_4, Opcode.RETURN, Opcode.MOVE_EXCEPTION,
+        Opcode.MONITOR_EXIT, Opcode.THROW,
+    )
+    claim.nativeMethod(listOf(STRING), "Z")
+    val pending = move.field(4, LINKED_MAP, base.type)
+    val inFlight = move.field(10, MAP, base.type)
+    val monitor = move.field(2, OBJECT, base.type)
+    val claimSelf = claim.localRegisterCount()
+    val claimKey = claim.parameterRegisterNumber(0)
+    if (setOf(move.reg(0), move.reg(2), move.reg(4), move.reg(6), claimSelf, claimKey).size != 6 ||
+        move.reg(10) in setOf(move.reg(2), move.reg(4), move.reg(6), claimSelf, claimKey) ||
+        move.reg(12) in setOf(move.reg(2), move.reg(10), move.reg(13), claimSelf, claimKey) ||
+        move.reg(13) in setOf(move.reg(2), move.reg(10), claimSelf, claimKey)) refuseQueue("claim aliases its live ownership registers")
+    move.registers(2, move.reg(2), claimSelf)
+    move.registers(3, move.reg(2))
+    move.registers(4, move.reg(4), claimSelf)
+    move.registers(5, move.reg(4), claimKey)
+    move.javaCall(5, "containsKey", listOf(OBJECT), "Z")
+    move.registers(7, move.reg(6))
+    move.branch(7, 10)
+    move.literal(0, 0)
+    move.registers(1, claimKey, move.reg(0))
+    requireClaimAssertions(move.call(1), move.call(14))
+    requireNonNullCheck(beforeBuild[1].call()!!, move.call(1))
+    // 456's step checks its key with a wrapper of the claim's own parameter check.
+    loop.keyCheck?.let { requireNonNullCheck(it, move.call(1)) }
+    move.registers(9, move.reg(0))
+    move.registers(10, move.reg(10), claimSelf)
+    move.registers(11, move.reg(4), claimKey)
+    move.javaCall(11, "remove", listOf(OBJECT), OBJECT)
+    move.registers(14, move.reg(12), move.reg(13))
+    move.registers(15, move.reg(10), claimKey, move.reg(12))
+    move.javaCall(15, "put", listOf(OBJECT, OBJECT), OBJECT)
+    move.literal(17, 1)
+    move.registers(18, move.reg(17))
+    move.monitor(3, listOf(8, 16, 20), 19, listOf(4, 5, 10, 11, 14, 15))
+    if ((move.reference(13) as? StringReference)?.string != CLAIM_TAG) refuseQueue("claim lacks its native store marker")
+    claim.requireParameterIntact(PATCH, 0, listOf(1, 5, 11, 15))
+    claim.requireThisIntact(PATCH, listOf(2, 4, 10))
+    base.requireOwnedMaps(pending, inFlight, monitor, accountField)
+    base.requireCount(loop.count, pending, inFlight, monitor)
+
+    base.requireSnapshot(loop.snapshot, pending, monitor)
+    base.requireLookup(loop.lookup, pending, inFlight, monitor)
+    requireDiskCleanup(store, reader, loop.run, move.call(1), accountGetter)
+    val scratch = loop.hooked.freeLocalsAt(PATCH, loop.beforeClaim, 1, targets = listOf(loop.next)).single()
+    return StoryRetryQueue(base.type, loop.hooked.name, loop.beforeClaim, loop.next, loop.batch, scratch,
+        loop.hooked.parameterTypes.map(Any::toString), loop.run.name)
+}
+
+/**
+ * The loop through 455: one synchronized method that takes the snapshot, claims each pending key,
+ * builds its request and sends it. The hook goes before the claim, and a held story takes the
+ * loop's own backedge to the next key.
+ */
+private fun BytecodePatchContext.wholeLoop(run: Method, at: Int): QueueLoop {
+    if (!AccessFlags.DECLARED_SYNCHRONIZED.isSet(run.accessFlags)) refuseQueue("request builder isn't called by its owner's synchronized loop")
     // 454 asserts the snapshot key non-null with the iterator's own assertion before its cast (07Gf.A0O on 386014758).
     val code = Shape(run,
         Opcode.MOVE_OBJECT, Opcode.MONITOR_ENTER, Opcode.INVOKE_VIRTUAL, Opcode.INVOKE_VIRTUAL, Opcode.MOVE_RESULT_OBJECT,
@@ -184,23 +288,6 @@ internal fun BytecodePatchContext.findStoryRetryQueue(store: ClassDef, retry: St
     code.registers(21, self, item)
     code.registers(28, request, code.reg(26))
     code.registers(29, self)
-    if (code.call(29).definingClass != base.type || code.call(29).parameterTypes.isNotEmpty() || code.call(29).returnType != USER_SESSION) {
-        refuseQueue("loop uses a foreign account getter")
-    }
-    if (!code.call(29).same(accountGetter) || store.methods.any { it.name == accountGetter.name &&
-            it.parameterTypes.map(Any::toString) == accountGetter.parameterTypes.map(Any::toString) && it.returnType == USER_SESSION }) {
-        refuseQueue("story selection doesn't use the loop's native account getter")
-    }
-    val account = base.requireAccountGetter(accountGetter)
-    requireNativeUserId()
-    val beforeBuild = bridge.code().take(retry.build).filter { it.opcode != Opcode.NOP }
-    if (beforeBuild.map { it.opcode } != listOf(Opcode.CHECK_CAST, Opcode.INVOKE_STATIC, Opcode.INVOKE_VIRTUAL, Opcode.MOVE_RESULT_OBJECT) ||
-        beforeBuild[2].call()?.same(accountGetter) != true || beforeBuild[2].namedRegisters() != listOf(bridge.localRegisterCount()) ||
-        beforeBuild[0].namedRegisters() != listOf(retry.batch) ||
-        beforeBuild[1].namedRegisters() != listOf(retry.batch) ||
-        bridge.code()[retry.build].namedRegisters() != listOf(retry.batch, beforeBuild[3].namedRegisters().single())) {
-        refuseQueue("bridge doesn't build for its native account")
-    }
     code.registers(33, code.reg(32), request)
     code.branch(34, 8)
     code.registers(35, lock)
@@ -210,63 +297,121 @@ internal fun BytecodePatchContext.findStoryRetryQueue(store: ClassDef, retry: St
     run.requireThisIntact(PATCH, listOf(0, 3, 15, 18, 21, 23, 29))
     if (18 in run.jumpTargets() || 21 in run.jumpTargets()) refuseQueue("a branch skips the cancellation site")
     if (self > 15 || key > 15 || item > 15) refuseQueue("operands exceed the cancellation instruction range")
+    return QueueLoop(run, code.call(2), code.call(3), code.call(15), code.call(18), code.call(29), run, 18, 8, item)
+}
 
-    val claim = base.method(code.call(18))
-    val move = Shape(claim,
-        Opcode.CONST_4, Opcode.INVOKE_STATIC, Opcode.IGET_OBJECT, Opcode.MONITOR_ENTER, Opcode.IGET_OBJECT,
-        Opcode.INVOKE_VIRTUAL, Opcode.MOVE_RESULT, Opcode.IF_NEZ, Opcode.MONITOR_EXIT, Opcode.RETURN,
-        Opcode.IGET_OBJECT, Opcode.INVOKE_VIRTUAL, Opcode.MOVE_RESULT_OBJECT, Opcode.CONST_STRING, Opcode.INVOKE_STATIC,
-        Opcode.INVOKE_INTERFACE, Opcode.MONITOR_EXIT, Opcode.CONST_4, Opcode.RETURN, Opcode.MOVE_EXCEPTION,
-        Opcode.MONITOR_EXIT, Opcode.THROW,
+/**
+ * 456's loop calls an outlined step for each pending item it looks up, still holding its lock: the
+ * step (00F8.A0Q(String, Object)V on 386214574) claims the key, builds the request and sends it. The
+ * hook goes in the step before its claim, and a held story returns from the step to the loop, which
+ * goes on to the next key. The step must have that loop as its one caller, and the story store
+ * mustn't override it.
+ */
+private fun BytecodePatchContext.splitLoop(base: ClassDef, store: ClassDef, step: Method, at: Int): QueueLoop {
+    val parameters = step.parameterTypes.map(Any::toString)
+    if (parameters != listOf(STRING, OBJECT)) refuseQueue("request builder isn't called by its owner's synchronized loop")
+    if (store.methods.any { it.name == step.name && it.parameterTypes.map(Any::toString) == parameters }) {
+        refuseQueue("story store overrides the loop's request step")
+    }
+    val code = Shape(step,
+        Opcode.MOVE_OBJECT, Opcode.INVOKE_STATIC, Opcode.MOVE_OBJECT, Opcode.INVOKE_VIRTUAL, Opcode.MOVE_RESULT,
+        Opcode.IF_EQZ, Opcode.MOVE_OBJECT, Opcode.INVOKE_VIRTUAL, Opcode.MOVE_RESULT_OBJECT, Opcode.INVOKE_VIRTUAL,
+        Opcode.MOVE_RESULT_OBJECT, Opcode.CONST_4, Opcode.NEW_INSTANCE, Opcode.INVOKE_DIRECT_RANGE, Opcode.INVOKE_VIRTUAL,
+        Opcode.INVOKE_VIRTUAL, Opcode.MOVE_RESULT_OBJECT, Opcode.INVOKE_STATIC, Opcode.MOVE_RESULT_OBJECT, Opcode.INVOKE_VIRTUAL,
+        Opcode.RETURN_VOID,
     )
-    claim.nativeMethod(listOf(STRING), "Z")
-    val pending = move.field(4, LINKED_MAP, base.type)
-    val inFlight = move.field(10, MAP, base.type)
-    val monitor = move.field(2, OBJECT, base.type)
-    val claimSelf = claim.localRegisterCount()
-    val claimKey = claim.parameterRegisterNumber(0)
-    if (setOf(move.reg(0), move.reg(2), move.reg(4), move.reg(6), claimSelf, claimKey).size != 6 ||
-        move.reg(10) in setOf(move.reg(2), move.reg(4), move.reg(6), claimSelf, claimKey) ||
-        move.reg(12) in setOf(move.reg(2), move.reg(10), move.reg(13), claimSelf, claimKey) ||
-        move.reg(13) in setOf(move.reg(2), move.reg(10), claimSelf, claimKey)) refuseQueue("claim aliases its live ownership registers")
-    move.registers(2, move.reg(2), claimSelf)
-    move.registers(3, move.reg(2))
-    move.registers(4, move.reg(4), claimSelf)
-    move.registers(5, move.reg(4), claimKey)
-    move.javaCall(5, "containsKey", listOf(OBJECT), "Z")
-    move.registers(7, move.reg(6))
-    move.branch(7, 10)
-    move.literal(0, 0)
-    move.registers(1, claimKey, move.reg(0))
-    requireClaimAssertions(move.call(1), move.call(14))
-    requireNonNullCheck(beforeBuild[1].call()!!, move.call(1))
-    move.registers(9, move.reg(0))
-    move.registers(10, move.reg(10), claimSelf)
-    move.registers(11, move.reg(4), claimKey)
-    move.javaCall(11, "remove", listOf(OBJECT), OBJECT)
-    move.registers(14, move.reg(12), move.reg(13))
-    move.registers(15, move.reg(10), claimKey, move.reg(12))
-    move.javaCall(15, "put", listOf(OBJECT, OBJECT), OBJECT)
-    move.literal(17, 1)
-    move.registers(18, move.reg(17))
-    move.monitor(3, listOf(8, 16, 20), 19, listOf(4, 5, 10, 11, 14, 15))
-    if ((move.reference(13) as? StringReference)?.string != CLAIM_TAG) refuseQueue("claim lacks its native store marker")
-    claim.requireParameterIntact(PATCH, 0, listOf(1, 5, 11, 15))
-    claim.requireThisIntact(PATCH, listOf(2, 4, 10))
-    base.requireOwnedMaps(pending, inFlight, monitor, account)
-    base.requireCount(code.call(2), pending, inFlight, monitor)
+    if (at != 7) refuseQueue("request builder moved within the loop")
+    val self = step.localRegisterCount()
+    val key = step.parameterRegisterNumber(0)
+    val item = step.parameterRegisterNumber(1)
+    val request = code.reg(8)
+    if (setOf(self, key, item, request).size != 4 || listOf(0, 2, 4, 6).any { code.reg(it) in setOf(self, key, item) }) {
+        refuseQueue("loop aliases its live ownership registers")
+    }
+    code.registers(0, code.reg(0), key)
+    code.registers(1, key)
+    code.registers(2, code.reg(2), self)
+    code.registers(3, self, key)
+    code.registers(5, code.reg(4))
+    code.branch(5, 20)
+    code.registers(6, code.reg(6), item)
+    code.registers(7, self, item)
+    code.registers(14, request, code.reg(12))
+    code.registers(15, self)
+    code.registers(19, code.reg(18), request)
+    step.requireThisIntact(PATCH, listOf(2, 3, 7, 15))
+    step.requireParameterIntact(PATCH, 0, listOf(0, 1, 3))
+    step.requireParameterIntact(PATCH, 1, listOf(6, 7))
+    if ((3..7).any { it in step.jumpTargets() }) refuseQueue("a branch skips the cancellation site")
+    if (self > 15 || key > 15 || item > 15) refuseQueue("operands exceed the cancellation instruction range")
 
-    base.requireSnapshot(code.call(3), pending, monitor)
-    base.requireLookup(code.call(15), pending, inFlight, monitor)
-    requireDiskCleanup(store, reader, run, move.call(1))
-    val scratch = run.freeLocalsAt(PATCH, 18, 1, targets = listOf(8)).single()
-    return StoryRetryQueue(base.type, run.name, 18, 8, item, scratch)
+    val callers = listOf(base.type, store.type).flatMap { owner -> classesCalling(owner, step.name, parameters, "V") }
+        .distinctBy { it.type }
+        .flatMap { type ->
+            type.methods.flatMap { method ->
+                method.code().indices.filter { index ->
+                    method.code()[index].call()?.let {
+                        it.name == step.name && it.definingClass in setOf(base.type, store.type) &&
+                            it.parameterTypes.map(Any::toString) == parameters && it.returnType == "V"
+                    } == true
+                }.map { method to it }
+            }
+        }
+    val (run, stepAt) = callers.singleOrNull() ?: refuseQueue("expected one call of the request step, found ${callers.size}")
+    if (run.definingClass != base.type || run.parameterTypes.isNotEmpty() || run.returnType != "V" ||
+        AccessFlags.STATIC.isSet(run.accessFlags) || !AccessFlags.DECLARED_SYNCHRONIZED.isSet(run.accessFlags)) {
+        refuseQueue("request step isn't called by its owner's synchronized loop")
+    }
+    val loop = Shape(run,
+        Opcode.MONITOR_ENTER, Opcode.INVOKE_VIRTUAL, Opcode.INVOKE_VIRTUAL, Opcode.MOVE_RESULT_OBJECT, Opcode.INVOKE_VIRTUAL,
+        Opcode.MOVE_RESULT_OBJECT, Opcode.INVOKE_STATIC, Opcode.INVOKE_INTERFACE, Opcode.MOVE_RESULT, Opcode.IF_EQZ,
+        Opcode.INVOKE_INTERFACE, Opcode.MOVE_RESULT_OBJECT, Opcode.INVOKE_STATIC, Opcode.CHECK_CAST, Opcode.INVOKE_VIRTUAL,
+        Opcode.MOVE_RESULT_OBJECT, Opcode.IF_EQZ, Opcode.INVOKE_VIRTUAL, Opcode.GOTO, Opcode.MONITOR_EXIT,
+        Opcode.RETURN_VOID, Opcode.MOVE_EXCEPTION, Opcode.MONITOR_EXIT, Opcode.THROW,
+    )
+    if (stepAt != 17) refuseQueue("request step moved within the loop")
+    val owner = run.localRegisterCount()
+    val iterator = loop.reg(5)
+    val loopKey = loop.reg(11)
+    val loopItem = loop.reg(15)
+    if (setOf(owner, iterator, loopKey, loopItem).size != 4 || loop.reg(8) == iterator) refuseQueue("loop aliases its live ownership registers")
+    loop.registers(0, owner)
+    loop.registers(1, owner)
+    loop.registers(2, owner)
+    loop.registers(4, loop.reg(3))
+    loop.javaCall(4, "iterator", emptyList(), "Ljava/util/Iterator;")
+    loop.registers(6, iterator)
+    requireIteratorCheck(loop.call(6))
+    loop.registers(7, iterator)
+    loop.javaCall(7, "hasNext", emptyList(), "Z")
+    loop.registers(9, loop.reg(8))
+    loop.branch(9, 19)
+    loop.registers(10, iterator)
+    loop.javaCall(10, "next", emptyList(), OBJECT)
+    loop.registers(12, loopKey)
+    if (!loop.call(12).same(loop.call(6))) refuseQueue("key check isn't the iterator's native assertion")
+    loop.registers(13, loopKey)
+    if (loop.reference(13)?.toString() != STRING) refuseQueue("key isn't a String")
+    loop.registers(14, owner, loopKey)
+    loop.registers(16, loopItem)
+    loop.branch(16, 7)
+    loop.registers(17, owner, loopKey, loopItem)
+    loop.branch(18, 7)
+    loop.registers(19, owner)
+    loop.registers(22, owner)
+    loop.registers(23, loop.reg(21))
+    // The lock is the loop's receiver, which nothing writes, and the step runs inside its catch-all.
+    loop.monitor(0, listOf(19, 22), 21, listOf(17))
+    run.requireThisIntact(PATCH, listOf(0, 1, 2, 14, 17))
+    return QueueLoop(run, loop.call(1), loop.call(2), loop.call(14), code.call(3), code.call(15), step, 3, 20, item, code.call(1))
 }
 
 /** Selection happens before the native builder, so a stock null request is never a cancellation signal. */
 internal fun BytecodePatchContext.hookStoryRetryQueue(found: StorySeenTargets) {
     val queue = found.queue ?: return
-    val run = mutableClassDefBy(queue.owner).methods.single { it.name == queue.run && it.parameterTypes.isEmpty() && it.returnType == "V" }
+    val run = mutableClassDefBy(queue.owner).methods.single {
+        it.name == queue.run && it.parameterTypes.map(Any::toString) == queue.parameters && it.returnType == "V"
+    }
     val native = run.implementation!!.instructions[queue.beforeClaim]
     val next = run.implementation!!.instructions[queue.loop]
     run.addInstructionsWithLabels(queue.beforeClaim, """
@@ -485,7 +630,9 @@ private fun ClassDef.requireLookup(reference: MethodReference, pending: FieldRef
  * through the store's storage field with that key, runs the queue, then asks the helper again and
  * removes what it read. The receiver reaches both calls from its one field read.
  */
-private fun BytecodePatchContext.requireDiskCleanup(store: ClassDef, reader: Method, run: Method, parameterCheck: MethodReference) {
+private fun BytecodePatchContext.requireDiskCleanup(
+    store: ClassDef, reader: Method, run: Method, parameterCheck: MethodReference, accountGetter: MethodReference,
+) {
     val code = reader.code()
     val at = code.indices.singleOrNull { code[it].call()?.same(run) == true } ?: refuseQueue("disk reader doesn't run the queue once")
     val self = reader.localRegisterCount()
@@ -499,7 +646,7 @@ private fun BytecodePatchContext.requireDiskCleanup(store: ClassDef, reader: Met
     if (!cleanup.same(remove)) refuseQueue("disk reader no longer reaches its native cleanup after the loop")
     requireDiskRemoval(storage, remove, parameterCheck)
     val key = code.getOrNull(at + 1)?.call() ?: refuseQueue("disk cleanup has no native account key builder")
-    requireDiskKey(store, key, run.code()[29].call()!!)
+    requireDiskKey(store, key, accountGetter)
     val read = storage.methods.singleOrNull { method ->
         !AccessFlags.STATIC.isSet(method.accessFlags) && method.parameterTypes.map(Any::toString) == listOf(STRING, "Z") && method.returnType == OBJECT
     } ?: refuseQueue("disk cleanup has no unique native read")

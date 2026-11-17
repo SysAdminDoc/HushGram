@@ -16,8 +16,12 @@ import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodParameter
 import com.android.tools.smali.dexlib2.immutable.ImmutableTryBlock
 
-/** Owned pending/in-flight maps and a snapshot retry loop shaped like the declared native build. */
-internal fun storyQueueBase(owner: String, request: String, session: Boolean = true): ImmutableClassDef {
+/**
+ * Owned pending/in-flight maps and a snapshot retry loop shaped like the declared native build. With
+ * [split], the loop hands each pending item to an outlined step that claims, builds and sends it, the
+ * way 456's 00F8.A0K calls A0Q on 386214574.
+ */
+internal fun storyQueueBase(owner: String, request: String, session: Boolean = true, split: Boolean = false): ImmutableClassDef {
     val lock = "$owner->lock:Ljava/lang/Object;"
     val pending = "$owner->pending:Ljava/util/LinkedHashMap;"
     val flight = "$owner->flight:Ljava/util/Map;"
@@ -133,7 +137,60 @@ internal fun storyQueueBase(owner: String, request: String, session: Boolean = t
         monitor-exit v1
         throw v0
     """, protected = 2 to 4)
-    method("A0I", emptyList(), "V", 10, """
+    if (split) {
+        method("A0I", emptyList(), "V", 4, """
+            monitor-enter p0
+            invoke-virtual { p0 }, $owner->A03()I
+            invoke-virtual { p0 }, $owner->A05()Ljava/util/ArrayList;
+            move-result-object v0
+            invoke-virtual { v0 }, Ljava/util/AbstractCollection;->iterator()Ljava/util/Iterator;
+            move-result-object v2
+            invoke-static { v2 }, LX/04Zi;->A0C(Ljava/lang/Object;)V
+            :next
+            invoke-interface { v2 }, Ljava/util/Iterator;->hasNext()Z
+            move-result v0
+            if-eqz v0, :done
+            invoke-interface { v2 }, Ljava/util/Iterator;->next()Ljava/lang/Object;
+            move-result-object v1
+            invoke-static { v1 }, LX/04Zi;->A0C(Ljava/lang/Object;)V
+            check-cast v1, Ljava/lang/String;
+            invoke-virtual { p0, v1 }, $owner->A04(Ljava/lang/String;)Ljava/lang/Object;
+            move-result-object v0
+            if-eqz v0, :next
+            invoke-virtual { p0, v1, v0 }, $owner->A0Q(Ljava/lang/String;Ljava/lang/Object;)V
+            goto :next
+            :done
+            monitor-exit p0
+            return-void
+            move-exception v0
+            monitor-exit p0
+            throw v0
+        """, monitor = true, protected = 1 to 19)
+        method("A0Q", listOf("Ljava/lang/String;", "Ljava/lang/Object;"), "V", 11, """
+            move-object v6, p1
+            invoke-static { p1 }, LX/04Zi;->A0R(Ljava/lang/Object;)V
+            move-object v5, p0
+            invoke-virtual { p0, p1 }, $owner->A0G(Ljava/lang/String;)Z
+            move-result v0
+            if-eqz v0, :done
+            move-object v4, p2
+            invoke-virtual { p0, p2 }, $owner->A0J(Ljava/lang/Object;)$request
+            move-result-object v1
+            invoke-virtual { p0 }, $owner->A0K()Ljava/lang/Integer;
+            move-result-object v3
+            const/4 v7, 0x0
+            new-instance v2, Lfixture/RetryCallback;
+            invoke-direct/range { v2 .. v7 }, Lfixture/RetryCallback;-><init>(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/String;I)V
+            invoke-virtual { v1, v2 }, $request->callback(Lfixture/RetryCallback;)V
+            invoke-virtual { p0 }, $owner->A0H()$USER_SESSION
+            move-result-object v0
+            invoke-static { v0 }, Lfixture/Scheduler;->forAccount($USER_SESSION)Lfixture/Scheduler;
+            move-result-object v0
+            invoke-virtual { v0, v1 }, Lfixture/Scheduler;->send($request)V
+            :done
+            return-void
+        """)
+    } else method("A0I", emptyList(), "V", 10, """
         move-object v6, p0
         monitor-enter v6
         invoke-virtual { p0 }, $owner->A03()I

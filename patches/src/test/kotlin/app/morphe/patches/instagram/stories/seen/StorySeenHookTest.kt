@@ -591,6 +591,7 @@ class StorySeenHookTest {
         storyId: Boolean = true,
         reelItemInterface: Boolean = false,
         itemViewPublic: Boolean = true,
+        splitQueue: Boolean = false,
     ): List<ClassDef> {
         val stories = if (storiesFromStatic) "sget-object v0, $BATCH->shared:Ljava/util/HashMap;" else "iget-object v0, p0, $BATCH->stories:Ljava/util/HashMap;"
         val builder = """
@@ -778,7 +779,7 @@ class StorySeenHookTest {
             ) + (0 until sends).map { copy -> method(STORE, if (copy == 0) "A0O" else "A0R", listOf(BATCH), "V", sendRegisters, sendBody, static = false) },
             superclass = STORE_BASE,
         )
-        val storeBase = storyQueueBase(STORE_BASE, REQUEST, storeSession)
+        val storeBase = storyQueueBase(STORE_BASE, REQUEST, storeSession, splitQueue)
         val resetNux = classOf(
             RESET_NUX,
             emptyList(),

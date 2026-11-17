@@ -64,6 +64,43 @@ class StoryRetryQueueTest {
 
     @Test fun cancellationSkipsClaimAndContinuesTheOwnedSnapshotWithoutChangingEitherMap() = verify(fixtures.standIns())
 
+    @Test fun cancellationInAnOutlinedStepSkipsClaimAndReturnsToTheLoop() {
+        val classes = fixtures.standIns(splitQueue = true)
+        val queue = PatchContexts.of(classes).findStorySeen().queue!!
+        assertEquals("A0Q", queue.run)
+        assertEquals(listOf("Ljava/lang/String;", "Ljava/lang/Object;"), queue.parameters)
+        assertEquals("A0I", queue.sweep)
+        verify(classes)
+    }
+
+    @Test fun anOutlinedStepWithASecondCallerRefusesUntouched() {
+        val classes = fixtures.standIns(splitQueue = true)
+        val found = PatchContexts.of(classes).findStorySeen()
+        val owner = classes.single { it.type == found.queue!!.owner }
+        val loop = owner.sweep(found.queue!!)
+        val second = ImmutableMethod(loop.definingClass, "anotherLoop", loop.parameters, loop.returnType, loop.accessFlags, null, null, loop.implementation)
+        refused(replace(classes, owner, methods = owner.methods.toList() + second), "expected one call of the request step, found 2")
+    }
+
+    @Test fun anOutlinedStepTheStoreOverridesRefusesUntouched() {
+        val classes = fixtures.standIns(splitQueue = true)
+        val found = PatchContexts.of(classes).findStorySeen()
+        val store = classes.single { it.type == found.store }
+        val step = owner(classes, found).hooked(found.queue!!)
+        val shadow = storyQueueMethod(store.type, step.name, step.parameterTypes.map(Any::toString), "V", 3, "return-void")
+        refused(replace(classes, store, methods = store.methods.toList() + shadow), "story store overrides the loop's request step")
+    }
+
+    @Test fun anOutlinedStepOutsideASynchronizedLoopRefusesUntouched() {
+        val classes = fixtures.standIns(splitQueue = true)
+        val found = PatchContexts.of(classes).findStorySeen()
+        val owner = owner(classes, found)
+        val loop = owner.sweep(found.queue!!)
+        val open = ImmutableMethod(loop.definingClass, loop.name, loop.parameters, loop.returnType,
+            loop.accessFlags and AccessFlags.DECLARED_SYNCHRONIZED.value.inv(), null, null, loop.implementation)
+        refused(replace(classes, owner, methods = owner.methods.map { if (it == loop) open else it }), "request step isn't called by its owner's synchronized loop")
+    }
+
     @Test fun aStockNullRequestStaysOnTheOriginalNativePath() {
         val classes = fixtures.standIns()
         val found = PatchContexts.of(classes).findStorySeen()
@@ -79,8 +116,8 @@ class StoryRetryQueueTest {
         assertEquals(Opcode.CONST_16, bridge.code()[last].opcode)
         assertEquals(Opcode.RETURN_OBJECT, bridge.code().last().opcode)
         val queue = found.queue!!
-        val loop = context.mutableClassDefBy(queue.owner).methods.single { it.name == queue.run }.code()
-        val native = queue.beforeClaim + 6 + 3
+        val loop = context.mutableClassDefBy(queue.owner).hooked(queue).code()
+        val native = (queue.beforeClaim + 7 until loop.size).first { loop[it].opcode == Opcode.INVOKE_VIRTUAL }
         assertEquals("the stock builder receives the selected batch", queue.batch, loop[native].namedRegisters()[1])
         assertEquals(Opcode.MOVE_RESULT_OBJECT, loop[native + 1].opcode)
         assertEquals("stock null results go through the original callback and scheduler", Opcode.INVOKE_VIRTUAL, loop[native + 2].opcode)
@@ -102,7 +139,7 @@ class StoryRetryQueueTest {
         val context = PatchContexts.of(classes + unrelated)
         context.holdBackStoryViews()
         val queue = found.queue
-        val loop = context.mutableClassDefBy(queue.owner).methods.single { it.name == queue.run }.code()
+        val loop = context.mutableClassDefBy(queue.owner).hooked(queue).code()
         assertEquals("only the story store is tested", found.store, loop[queue.beforeClaim].reference())
         assertEquals("another store goes directly to its original native claim", queue.beforeClaim + 6,
             target(loop, queue.beforeClaim + 1))
@@ -243,7 +280,7 @@ class StoryRetryQueueTest {
         val classes = fixtures.standIns()
         val found = PatchContexts.of(classes).findStorySeen()
         val owner = classes.single { it.type == found.queue!!.owner }
-        val method = owner.methods.single { it.name == found.queue!!.run }
+        val method = owner.sweep(found.queue!!)
         val bad = ImmutableMethod(method.definingClass, method.name, method.parameters, method.returnType, method.accessFlags, null, null,
             ImmutableMethodImplementation(method.implementation!!.registerCount, method.code(), emptyList(), null))
         refused(replace(classes, owner, methods = owner.methods.map { if (it == method) bad else it }), "catch-all lock cleanup")
@@ -253,7 +290,7 @@ class StoryRetryQueueTest {
         val classes = fixtures.standIns()
         val found = PatchContexts.of(classes).findStorySeen()
         val owner = classes.single { it.type == found.queue!!.owner }
-        val run = owner.methods.single { it.name == found.queue!!.run }
+        val run = owner.hooked(found.queue!!)
         val second = ImmutableMethod(run.definingClass, "anotherLoop", run.parameters, run.returnType, run.accessFlags, null, null, run.implementation)
         refused(replace(classes, owner, methods = owner.methods.toList() + second), "expected one request-builder call")
     }
@@ -292,10 +329,10 @@ class StoryRetryQueueTest {
     private fun verify(classes: List<ClassDef>) {
         val found = PatchContexts.of(classes).findStorySeen()
         val queue = found.queue!!
-        val original = classes.single { it.type == queue.owner }.methods.single { it.name == queue.run }
+        val original = classes.single { it.type == queue.owner }.hooked(queue)
         val context = PatchContexts.of(classes)
         context.holdBackStoryViews()
-        val patched = context.mutableClassDefBy(queue.owner).methods.single { it.name == queue.run }
+        val patched = context.mutableClassDefBy(queue.owner).hooked(queue)
         val code = patched.code()
         val at = queue.beforeClaim
         assertEquals(listOf(Opcode.INSTANCE_OF, Opcode.IF_EQZ, Opcode.INVOKE_STATIC, Opcode.MOVE_RESULT_OBJECT,
@@ -308,16 +345,18 @@ class StoryRetryQueueTest {
         assertEquals(listOf(queue.batch), code[at + 4].namedRegisters())
         assertEquals(at + 6, target(code, at + 1))
         assertEquals(at + 6, target(code, at + 4))
-        assertEquals(queue.loop, target(code, at + 5))
-        assertEquals("selection precedes the native claim", original.code()[18].reference(), code[at + 6].reference())
-        assertEquals("the selected local reaches the native request builder", listOf(original.localRegisterCount(), queue.batch), code[at + 9].namedRegisters())
+        // Through 455 a held story takes the loop's backedge; in 456's step it returns to the loop.
+        assertEquals(if (queue.loop < at) queue.loop else queue.loop + 6, target(code, at + 5))
+        assertEquals("selection precedes the native claim", original.code()[at].reference(), code[at + 6].reference())
+        val build = (at + 1 until original.code().size).first { original.code()[it].opcode == Opcode.INVOKE_VIRTUAL }
+        assertEquals("the selected local reaches the native request builder", listOf(original.localRegisterCount(), queue.batch), code[build + 6].namedRegisters())
         preserved(original, patched, at, 6)
 
         assertTrue("cancellation allocates no batch, callback, lambda or request", code.subList(at, at + 6)
             .none { it.opcode in setOf(Opcode.NEW_INSTANCE, Opcode.NEW_ARRAY, Opcode.FILLED_NEW_ARRAY, Opcode.FILLED_NEW_ARRAY_RANGE) })
         assertEquals("after a null selection there is only the native snapshot-loop backedge", listOf(Opcode.GOTO), code.subList(at + 5, at + 6).map { it.opcode })
         for (type in classes) for (method in type.methods) {
-            if (type.type == queue.owner && method.name == queue.run || type.type == found.store && method.name == found.send ||
+            if (type.type == queue.owner && method.name == queue.run && method.parameterTypes.map(Any::toString) == queue.parameters || type.type == found.store && method.name == found.send ||
                 type.type == found.binder && method.name == found.binderName || type.type.startsWith("Lapp/hushgram/extension/")) continue
             val after = context.classDefByOrNull(type.type)!!.methods.single { it.name == method.name && it.parameterTypes == method.parameterTypes && it.returnType == method.returnType }
             assertEquals("${type.type}->${method.name} changed", method.code().map { it.opcode to it.reference() }, after.code().map { it.opcode to it.reference() })
@@ -401,10 +440,10 @@ class StoryRetryQueueTest {
     private fun claimBranchOperandsAndSuccessOrFailureLiteralsRefuseUntouchedOnNativeCheck(classes: List<ClassDef>) {
         val found = PatchContexts.of(classes).findStorySeen()
         val owner = classes.single { it.type == found.queue!!.owner }
-        val run = owner.methods.single { it.name == found.queue!!.run }
-        val claimKey = run.code()[18].reference()
+        val queue = found.queue!!
+        val claimKey = owner.hooked(queue).code()[queue.beforeClaim].reference()
         val claim = owner.methods.single { it.toString() == claimKey }
-        val lookupKey = run.code()[15].reference()
+        val lookupKey = owner.sweep(queue).code()[queue.sweepAt(15)].reference()
         val lookup = owner.methods.single { it.toString() == lookupKey }
         refused(changed(classes, claim, 7, ImmutableInstruction21t(Opcode.IF_NEZ, claim.parameterRegisterNumber(0),
             (claim.code()[7] as OffsetInstruction).codeOffset)), "ownership registers at 7")
@@ -435,15 +474,15 @@ class StoryRetryQueueTest {
     private fun overwrittenMonitorAndAliasedClaimMapsRefuseUntouchedOnNativeCheck(classes: List<ClassDef>) {
         val found = PatchContexts.of(classes).findStorySeen()
         val owner = classes.single { it.type == found.queue!!.owner }
-        val run = owner.methods.single { it.name == found.queue!!.run }
-        val snapshot = owner.methods.single { it.toString() == run.code()[3].reference() }
+        val queue = found.queue!!
+        val snapshot = owner.methods.single { it.toString() == owner.sweep(queue).code()[queue.sweepAt(3)].reference() }
         val lock = snapshot.code()[0].namedRegisters().first()
         val collection = snapshot.code()[4].namedRegisters().single()
         refused(changedAll(classes, snapshot,
             5 to "new-instance v$lock, Ljava/util/ArrayList;",
             6 to "invoke-direct { v$lock, v$collection }, Ljava/util/ArrayList;-><init>(Ljava/util/Collection;)V",
             8 to "return-object v$lock"), "overwrites its monitor")
-        val claim = owner.methods.single { it.toString() == run.code()[18].reference() }
+        val claim = owner.methods.single { it.toString() == owner.hooked(queue).code()[queue.beforeClaim].reference() }
         val pending = claim.code()[4].namedRegisters().first()
         val flight = claim.code()[10].reference()
         val key = claim.parameterRegisterNumber(0)
@@ -480,13 +519,16 @@ class StoryRetryQueueTest {
 
     private fun loopResultsCannotOverwriteTheLiveBatchOrIteratorOnNativeCheck(classes: List<ClassDef>) {
         val found = PatchContexts.of(classes).findStorySeen()
-        val run = classes.single { it.type == found.queue!!.owner }.methods.single { it.name == found.queue!!.run }
-        for ((result, branch, register) in listOf(
-            Triple(19, 20, found.queue!!.batch),
-            Triple(9, 10, run.code()[6].namedRegisters().single()),
+        val queue = found.queue!!
+        val owner = owner(classes, found)
+        val sweep = owner.sweep(queue)
+        for ((run, result, register) in listOf(
+            Triple(owner.hooked(queue), queue.beforeClaim + 1, queue.batch),
+            Triple(sweep, queue.sweepAt(9), sweep.code()[queue.sweepAt(6)].namedRegisters().single()),
         )) {
+            val branch = result + 1
             val alias = changed(classes, run, result, ImmutableInstruction11x(Opcode.MOVE_RESULT, register))
-            val aliasedRun = alias.single { it.type == run.definingClass }.methods.single { it.name == run.name }
+            val aliasedRun = alias.single { it.type == run.definingClass }.methods.single { it.name == run.name && it.parameterTypes.map(Any::toString) == run.parameterTypes.map(Any::toString) }
             refused(changed(alias, aliasedRun, branch, ImmutableInstruction21t(Opcode.IF_EQZ, register,
                 (run.code()[branch] as OffsetInstruction).codeOffset)), "loop aliases its live ownership registers")
         }
@@ -566,7 +608,7 @@ class StoryRetryQueueTest {
             method.code().any { ((it as? ReferenceInstruction)?.reference as? StringReference)?.string == "PendingReelSeenStateStore.deserializeFromDisk" }
         }
         val code = reader.code()
-        val loop = code.indexOfFirst { it.reference() == "${found.queue!!.owner}->${found.queue.run}()V" }
+        val loop = code.indexOfFirst { it.reference() == "${found.queue!!.owner}->${found.queue.sweep}()V" }
         val remove = loop + 3
         val registers = code[remove].namedRegisters()
         // Obfuscated names differ per build, so take the cleanup call and the key helper from the reader itself.
@@ -589,7 +631,7 @@ class StoryRetryQueueTest {
         val reader = classes.single { it.type == found.store }.methods.single { method ->
             method.code().any { ((it as? ReferenceInstruction)?.reference as? StringReference)?.string == "PendingReelSeenStateStore.deserializeFromDisk" }
         }
-        val at = reader.code().indexOfFirst { it.reference() == "${found.queue!!.owner}->${found.queue.run}()V" }
+        val at = reader.code().indexOfFirst { it.reference() == "${found.queue!!.owner}->${found.queue.sweep}()V" }
         val key = classes.flatMap { it.methods }.single { it.toString() == reader.code()[at + 1].reference() }
         val builder = key.code()[4].namedRegisters().single()
         val prefix = key.code()[3].namedRegisters().single()
@@ -634,7 +676,7 @@ class StoryRetryQueueTest {
     private fun proofInputs(): List<List<ClassDef>> {
         val declared = Fixtures.files { it.name == "instagram-456.0.0.53.78-386214574.apks" }
         assertTrue("the authoritative declared 456 build (386214574) is required", declared.isNotEmpty())
-        return declared.map { fixtures.keptFixtureClasses(it) } + listOf(fixtures.standIns())
+        return declared.map { fixtures.keptFixtureClasses(it) } + listOf(fixtures.standIns(), fixtures.standIns(splitQueue = true))
     }
 
     /** [classes] written to a dex and read back, the way the patcher gets the app's classes. */
@@ -649,6 +691,19 @@ class StoryRetryQueueTest {
         methods: Iterable<Method> = owner.methods): List<ClassDef> = classes.map { if (it.type != owner.type) it else
         ImmutableClassDef(owner.type, owner.accessFlags, owner.superclass, owner.interfaces, null, null, fields, methods) }
     private fun Method.code(): List<Instruction> = implementation?.instructions?.toList().orEmpty()
+
+    private fun owner(classes: List<ClassDef>, found: StorySeenTargets) = classes.single { it.type == found.queue!!.owner }
+
+    /** The method the hook goes in: the loop through 455, 456's outlined step. */
+    private fun ClassDef.hooked(queue: StoryRetryQueue) = methods.single {
+        it.name == queue.run && it.parameterTypes.map(Any::toString) == queue.parameters
+    }
+
+    /** The synchronized loop the disk reader runs, the hooked method itself through 455. */
+    private fun ClassDef.sweep(queue: StoryRetryQueue) = methods.single { it.name == queue.sweep && it.parameterTypes.isEmpty() }
+
+    /** [index] of the whole loop through 455, one earlier in 456's loop, which locks its receiver without a copy. */
+    private fun StoryRetryQueue.sweepAt(index: Int) = if (parameters.isEmpty()) index else index - 1
     private fun Method.proof() = code().map { listOf(it.opcode, it.reference(), it.namedRegisters(),
         (it as? NarrowLiteralInstruction)?.narrowLiteral, (it as? OffsetInstruction)?.codeOffset) }
     private fun Instruction.reference(): String? = (this as? ReferenceInstruction)?.reference?.toString()

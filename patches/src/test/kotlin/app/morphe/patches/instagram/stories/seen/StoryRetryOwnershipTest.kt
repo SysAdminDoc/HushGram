@@ -85,9 +85,9 @@ class StoryRetryOwnershipTest {
     private fun aCountThatErasesPendingItemsRefusesBeforeMutationCheck(classes: List<ClassDef>) {
     val found = PatchContexts.of(classes).findStorySeen()
     val owner = classes.single { it.type == found.queue!!.owner }
-    val run = owner.methods.single { it.name == found.queue!!.run }
-    val count = run.call(2)
-    val pending = owner.methods.single { it.toString() == run.call(18).toString() }.reference(4)
+    val queue = found.queue!!
+    val count = owner.sweep(queue).call(queue.sweepAt(2))
+    val pending = owner.claim(queue).reference(4)
     val changed = storyQueueMethod(owner.type, count.name, emptyList(), "I", 2, """
         iget-object v0, p0, $pending
         invoke-virtual { v0 }, Ljava/util/AbstractMap;->clear()V
@@ -103,8 +103,7 @@ class StoryRetryOwnershipTest {
     private fun anAccountGetterThatErasesPendingItemsRefusesBeforeMutationCheck(classes: List<ClassDef>) {
     val found = PatchContexts.of(classes).findStorySeen()
     val owner = classes.single { it.type == found.queue!!.owner }
-    val run = owner.methods.single { it.name == found.queue!!.run }
-    val pending = owner.methods.single { it.toString() == run.call(18).toString() }.reference(4)
+    val pending = owner.claim(found.queue!!).reference(4)
     val getter = owner.methods.single { it.name == found.sessionGetter && it.returnType == USER_SESSION }
     val changed = storyQueueMethod(owner.type, getter.name, emptyList(), USER_SESSION, 2, """
         iget-object v0, p0, $pending
@@ -118,8 +117,8 @@ class StoryRetryOwnershipTest {
     private fun aCountCannotHideANativeOrAbstractBodyCheck(classes: List<ClassDef>) {
     val found = PatchContexts.of(classes).findStorySeen()
     val owner = classes.single { it.type == found.queue!!.owner }
-    val run = owner.methods.single { it.name == found.queue!!.run }
-    val count = owner.methods.single { it.toString() == run.call(2).toString() }
+    val queue = found.queue!!
+    val count = owner.methods.single { it.toString() == owner.sweep(queue).call(queue.sweepAt(2)).toString() }
     for (flag in listOf(AccessFlags.NATIVE, AccessFlags.ABSTRACT)) refused(flags(classes, count, count.accessFlags or flag.value))
     }
 
@@ -191,8 +190,8 @@ class StoryRetryOwnershipTest {
     private fun aCountCannotAliasItsTwoAccumulatedSizesCheck(classes: List<ClassDef>) {
     val found = PatchContexts.of(classes).findStorySeen()
     val owner = classes.single { it.type == found.queue!!.owner }
-    val run = owner.methods.single { it.name == found.queue!!.run }
-    val count = owner.methods.single { it.toString() == run.call(2).toString() }
+    val queue = found.queue!!
+    val count = owner.methods.single { it.toString() == owner.sweep(queue).call(queue.sweepAt(2)).toString() }
     val accumulator = count.implementation!!.instructions.toList()[4].namedRegisters().single()
     refused(changed(classes, count, 8, "add-int/2addr v$accumulator, v$accumulator"))
     }
@@ -200,15 +199,15 @@ class StoryRetryOwnershipTest {
     private fun thePreselectionAssertionMustUseTheSnapshotIteratorCheck(classes: List<ClassDef>) {
     val found = PatchContexts.of(classes).findStorySeen()
     val owner = classes.single { it.type == found.queue!!.owner }
-    val run = owner.methods.single { it.name == found.queue!!.run }
-    refused(changed(classes, run, 7, "invoke-static { p0 }, ${run.call(7)}"))
+    val run = owner.sweep(found.queue!!)
+    val at = found.queue!!.sweepAt(7)
+    refused(changed(classes, run, at, "invoke-static { p0 }, ${run.call(at)}"))
     }
 
     private fun assertionInitializationCannotRunBeforeSelectionCheck(classes: List<ClassDef>) {
     val found = PatchContexts.of(classes).findStorySeen()
     val owner = classes.single { it.type == found.queue!!.owner }
-    val run = owner.methods.single { it.name == found.queue!!.run }
-    val assertions = classes.single { it.type == run.call(7).definingClass }
+    val assertions = classes.single { it.type == owner.sweep(found.queue!!).call(found.queue!!.sweepAt(7)).definingClass }
     val initialize = storyQueueMethod(assertions.type, "<clinit>", emptyList(), "V", 0, """
         invoke-static { }, Lfixture/QueueState;->clearPending()V
         return-void
@@ -218,6 +217,7 @@ class StoryRetryOwnershipTest {
 
     private fun forInputs(check: (List<ClassDef>) -> Unit) {
         check(StorySeenHookTest().standIns())
+        check(StorySeenHookTest().standIns(splitQueue = true))
         for (bundle in Fixtures.files { it.name == "instagram-456.0.0.53.78-386214574.apks" }) {
             check(StorySeenHookTest().keptFixtureClasses(bundle))
         }
@@ -259,6 +259,18 @@ class StoryRetryOwnershipTest {
         return replace(classes, owner, owner.methods.map { if (it == method) changed else it })
     }
     private fun Method.reference(at: Int) = (implementation!!.instructions.toList()[at] as ReferenceInstruction).reference
+
+    /** The synchronized loop the queue runs, the hooked method itself through 455. */
+    private fun ClassDef.sweep(queue: StoryRetryQueue) = methods.single { it.name == queue.sweep && it.parameterTypes.isEmpty() }
+
+    /** [index] of the whole loop through 455, one earlier in 456's loop, which locks its receiver without a copy. */
+    private fun StoryRetryQueue.sweepAt(index: Int) = if (parameters.isEmpty()) index else index - 1
+
+    /** The claim the hook goes before, in the loop or in 456's outlined step. */
+    private fun ClassDef.claim(queue: StoryRetryQueue): Method {
+        val hooked = methods.single { it.name == queue.run && it.parameterTypes.map(Any::toString) == queue.parameters }
+        return methods.single { it.toString() == hooked.call(queue.beforeClaim).toString() }
+    }
     private fun Method.call(at: Int) = reference(at) as MethodReference
     private fun Method.proof() = implementation?.instructions?.toList()?.map { listOf(it.opcode,
         (it as? ReferenceInstruction)?.reference?.toString(), it.namedRegisters(),

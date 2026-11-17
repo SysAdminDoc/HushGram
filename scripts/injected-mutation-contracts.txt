@@ -1948,15 +1948,19 @@ once-call Lapp/hushgram/extension/instagram/media/QualityChoice;->eachChoice(Lja
 # or elsewhere, it isn't the guard the patch wrote.
 start-call Lapp/hushgram/extension/instagram/stories/StorySeen;->toSend(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; in instance (L*;)V class-holding pending_reel_seen_states_ PendingReelSeenStateStore.deserializeFromDisk
 once-call Lapp/hushgram/extension/instagram/stories/StorySeen;->toSend(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; in instance (L*;)V class-holding pending_reel_seen_states_ PendingReelSeenStateStore.deserializeFromDisk
-# The saved-story selection happens in the shared pending-action loop before claiming a pending
-# key. It returns the original while off or paused, a marked-only batch, or null to take the owned
-# snapshot-loop backedge. Stock request results and the story bridge stay unchanged.
-once-call Lapp/hushgram/extension/instagram/stories/StorySeen;->toRetry(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; in instance ()V calling instance Ljava/util/Iterator;->hasNext()Z class-holding null\scannot\sbe\scast\sto\snon-null\stype\sT\sof\scom.instagram.store.PendingActionStore
+# The saved-story selection happens in the shared pending-action loop's step before claiming a
+# pending key. 456 outlined the claim, build and send out of the synchronized loop into a step the
+# loop calls for each item it looks up (00F8.A0Q(String, Object)V on 386214574), the one method of
+# the store's owner taking a String and an Object that calls the claim, an instance (String)Z. The
+# selection returns the original while off or paused, a marked-only batch, or null to return from
+# the step to the loop. Stock request results and the story bridge stay unchanged.
+once-call Lapp/hushgram/extension/instagram/stories/StorySeen;->toRetry(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; in instance (Ljava/lang/String;Ljava/lang/Object;)V calling instance LX/*;->*(Ljava/lang/String;)Z class-holding null\scannot\sbe\scast\sto\snon-null\stype\sT\sof\scom.instagram.store.PendingActionStore
 # The route rule checks the emitted branch opcodes, operands and targets. Null does no native
 # ownership operation, allocation or removal. Other stores use the native claim and builder,
 # and the selected local reaches that builder. Source proofs on original449 also require the
-# owned maps, every builder caller, claim literals, monitor and disk cleanup key dataflow.
-retry-call Lapp/hushgram/extension/instagram/stories/StorySeen;->toRetry(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; in instance ()V calling instance Ljava/util/Iterator;->hasNext()Z class-holding null\scannot\sbe\scast\sto\snon-null\stype\sT\sof\scom.instagram.store.PendingActionStore
+# owned maps, every builder caller, claim literals, monitor and disk cleanup key dataflow, and on
+# 456 that the step's one caller is the store owner's synchronized loop.
+retry-call Lapp/hushgram/extension/instagram/stories/StorySeen;->toRetry(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; in instance (Ljava/lang/String;Ljava/lang/Object;)V calling instance LX/*;->*(Ljava/lang/String;)Z class-holding null\scannot\sbe\scast\sto\snon-null\stype\sT\sof\scom.instagram.store.PendingActionStore
 # Its second switch hands each story on screen to StorySeenButton first thing in the story item
 # binder's toolbar bind (014T.A03 on 451's 385713073; 451 has no header binder, and the media bind
 # and item bind that called it call only this one), the one static method holding its trace section,

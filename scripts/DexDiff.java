@@ -2087,7 +2087,8 @@ public class DexDiff {
                     + " in " + only.method + ", and must have exactly " + (contract.sites == 1 ? "one" : String.valueOf(contract.sites)));
         } else if (contract.kind.equals("retry-call")) {
             if (safeRetrySelection(only.m, sites.get(0), storyStores)) {
-                System.out.println("[diff] " + rule + ": selects before claim with a null snapshot-loop backedge in " + only.method);
+                System.out.println("[diff] " + rule + ": selects before claim with a null "
+                        + (only.m.getParameterTypes().isEmpty() ? "snapshot-loop backedge" : "return to the loop") + " in " + only.method);
             } else {
                 findings.add("contract: " + contract.callee + " in " + only.method
                         + " must select its local batch before claim and take the typed null snapshot-loop backedge without mutation");
@@ -2184,6 +2185,9 @@ public class DexDiff {
 
     /** Exactly the emitted six-instruction cancellation, before native ownership or request creation. */
     private static boolean safeRetrySelection(Method method, int at, Map<String, ClassDef> storyStores) {
+        if (method.getParameterTypes().equals(List.of("Ljava/lang/String;", "Ljava/lang/Object;"))) {
+            return safeStepSelection(method, at, storyStores);
+        }
         List<Instruction> body = instructions(method);
         if (AccessFlags.STATIC.isSet(method.getAccessFlags()) || !method.getParameterTypes().isEmpty()
                 || !method.getReturnType().equals("V") || at < 5 || at + 8 >= body.size()) return false;
@@ -2197,12 +2201,7 @@ public class DexDiff {
         int scratch = retryRegister(body.get(at - 2));
         TwoRegisterInstruction type = (TwoRegisterInstruction) body.get(at - 2);
         String store = ((ReferenceInstruction) type).getReference().toString();
-        List<String> eligibleStores = new ArrayList<>();
-        for (ClassDef candidate : storyStores.values()) {
-            if (method.getDefiningClass().equals(candidate.getSuperclass()) && AccessFlags.FINAL.isSet(candidate.getAccessFlags())
-                    && candidate.getInterfaces().isEmpty()) eligibleStores.add(candidate.getType());
-        }
-        if (!eligibleStores.equals(List.of(store))) return false;
+        if (!soleStoryStore(method, store, storyStores)) return false;
         if (type.getRegisterB() != self || scratch == self || scratch == batch || batch == self || store.equals(method.getDefiningClass()) || store.startsWith(OWN)
                 || !Arrays.equals(invokeRegisters(body.get(at)), new int[] { self, batch })
                 || retryRegister(body.get(at - 1)) != scratch || retryRegister(body.get(at + 2)) != batch
@@ -2232,6 +2231,64 @@ public class DexDiff {
             if (target >= at - 1 && target <= at + 7 && i != at - 1 && i != at + 2) return false;
         }
         return true;
+    }
+
+    /**
+     * 456's outlined step (00F8.A0Q(String, Object)V on 386214574), which its synchronized loop calls
+     * for each pending item it looks up: the same cancellation before the claim, where a held story
+     * returns to the loop. Before it the step checks its key and copies the key and itself for the
+     * request's callback. The selected local reaches the builder, and no branch bypasses selection.
+     */
+    private static boolean safeStepSelection(Method method, int at, Map<String, ClassDef> storyStores) {
+        List<Instruction> body = instructions(method);
+        if (AccessFlags.STATIC.isSet(method.getAccessFlags()) || !method.getReturnType().equals("V") || at != 5
+                || at + 9 >= body.size() || !method.getImplementation().getTryBlocks().isEmpty()) return false;
+        Opcode[] expected = { Opcode.MOVE_OBJECT, Opcode.INVOKE_STATIC, Opcode.MOVE_OBJECT,
+                Opcode.INSTANCE_OF, Opcode.IF_EQZ, Opcode.INVOKE_STATIC, Opcode.MOVE_RESULT_OBJECT,
+                Opcode.IF_NEZ, Opcode.GOTO, Opcode.INVOKE_VIRTUAL, Opcode.MOVE_RESULT, Opcode.IF_EQZ,
+                Opcode.MOVE_OBJECT, Opcode.INVOKE_VIRTUAL, Opcode.MOVE_RESULT_OBJECT };
+        for (int i = 0; i < expected.length; i++) if (body.get(at - 5 + i).getOpcode() != expected[i]) return false;
+        int self = method.getImplementation().getRegisterCount() - 3;
+        int key = self + 1;
+        int batch = self + 2;
+        List<Integer> owned = List.of(self, key, batch);
+        TwoRegisterInstruction type = (TwoRegisterInstruction) body.get(at - 2);
+        int scratch = type.getRegisterA();
+        String store = ((ReferenceInstruction) type).getReference().toString();
+        if (type.getRegisterB() != self || owned.contains(scratch) || store.equals(method.getDefiningClass()) || store.startsWith(OWN)
+                || !soleStoryStore(method, store, storyStores)
+                || owned.contains(retryRegister(body.get(at - 5))) || owned.contains(retryRegister(body.get(at - 3)))
+                || owned.contains(retryRegister(body.get(at + 7))) || owned.contains(retryRegister(body.get(at + 5)))
+                || !Arrays.equals(invokeRegisters(body.get(at - 4)), new int[] { key })
+                || !Arrays.equals(invokeRegisters(body.get(at)), new int[] { self, batch })
+                || retryRegister(body.get(at - 1)) != scratch || retryRegister(body.get(at + 1)) != batch
+                || retryRegister(body.get(at + 2)) != batch || retryRegister(body.get(at + 6)) != retryRegister(body.get(at + 5))) return false;
+        MethodReference claim = calledMethod(body.get(at + 4));
+        MethodReference builder = calledMethod(body.get(at + 8));
+        if (!nativeRetryCall(claim, method, "Z", "Ljava/lang/String;")
+                || !Arrays.equals(invokeRegisters(body.get(at + 4)), new int[] { self, key })
+                || builder == null || !builder.getDefiningClass().equals(method.getDefiningClass())
+                || !builder.getParameterTypes().equals(List.of("Ljava/lang/Object;")) || !builder.getReturnType().startsWith("L")
+                || !Arrays.equals(invokeRegisters(body.get(at + 8)), new int[] { self, batch })) return false;
+        Layout layout = new Layout(method.getImplementation());
+        int end = branchIndex(layout, at + 3);
+        if (end <= at + 9 || body.get(end).getOpcode() != Opcode.RETURN_VOID || branchIndex(layout, at + 6) != end
+                || branchIndex(layout, at - 1) != at + 4 || branchIndex(layout, at + 2) != at + 4) return false;
+        for (int i = 0; i < body.size(); i++) {
+            int target = branchIndex(layout, i);
+            if (target >= at - 5 && target <= at + 8 && i != at - 1 && i != at + 2) return false;
+        }
+        return true;
+    }
+
+    /** [store] is the one final story store without interfaces extending [method]'s class. */
+    private static boolean soleStoryStore(Method method, String store, Map<String, ClassDef> storyStores) {
+        List<String> eligibleStores = new ArrayList<>();
+        for (ClassDef candidate : storyStores.values()) {
+            if (method.getDefiningClass().equals(candidate.getSuperclass()) && AccessFlags.FINAL.isSet(candidate.getAccessFlags())
+                    && candidate.getInterfaces().isEmpty()) eligibleStores.add(candidate.getType());
+        }
+        return eligibleStores.equals(List.of(store));
     }
 
     private static int retryRegister(Instruction instruction) {
