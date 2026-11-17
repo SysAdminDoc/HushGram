@@ -581,6 +581,46 @@ public final class GlassTabBar {
     }
 
     /**
+     * Whether a press at [x], [y], in [bar]'s own pixels, goes to something drawn over the bar first, the way
+     * Android hands a press out: a sheet or menu Instagram opened over the bar, say. The Reels share sheet's
+     * Send button sits right where the seek bar's strip runs over the pill, and a press there went to the strip
+     * and seeked the reel instead of sending (#526). That sheet isn't in the holder {@link #showsASheet} knows.
+     */
+    static boolean coveredAt(View bar, float x, float y) {
+        if (!bar.isAttachedToWindow()) return false;
+        int[] at = new int[2];
+        bar.getLocationInWindow(at);
+        View taker = firstTaker(bar.getRootView(), bar, Math.round(x + at[0]), Math.round(y + at[1]), new Rect());
+        return taker != null && taker != bar;
+    }
+
+    /**
+     * The first view in [view]'s tree offered a press at [x], [y], in the window's pixels, that would take it:
+     * [bar] itself once the press reaches it, or a shown view over it that's clickable or long-clickable.
+     * Children are asked the way a ViewGroup offers a press, the highest first and, at the same height, the
+     * last drawn first. Null when nothing there would take it.
+     */
+    @Nullable
+    static View firstTaker(View view, View bar, int x, int y, Rect scratch) {
+        if (view == bar) return bar;
+        if (view.getVisibility() != View.VISIBLE) return null;
+        if (!view.getGlobalVisibleRect(scratch) || !scratch.contains(x, y)) return null;
+        if (view instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup) view;
+            int count = group.getChildCount();
+            View[] order = new View[count];
+            for (int i = 0; i < count; i++) order[i] = group.getChildAt(i);
+            // Stable, so children at the same height keep their drawing order.
+            java.util.Arrays.sort(order, (a, b) -> Float.compare(a.getZ(), b.getZ()));
+            for (int i = count - 1; i >= 0; i--) {
+                View taker = firstTaker(order[i], bar, x, y, scratch);
+                if (taker != null) return taker;
+            }
+        }
+        return view.isClickable() || view.isLongClickable() ? view : null;
+    }
+
+    /**
      * Makes the ring round [badge] clear (#315): a GradientDrawable background gets a clear stroke
      * [width] wide. One not in [cleared] is cleared as usual and added, and that's the true answer.
      * One cleared before is cleared again only while the badge waits to redraw, and without asking for
@@ -2189,6 +2229,10 @@ public final class GlassTabBar {
         /** Whether Instagram's bottom sheet holder in the bar's window shows a sheet. */
         @Override public boolean underASheet() {
             return showsASheet(sheetHolder());
+        }
+
+        @Override public boolean coveredAt(float x, float y) {
+            return GlassTabBar.coveredAt(bar, x, y);
         }
 
         /**

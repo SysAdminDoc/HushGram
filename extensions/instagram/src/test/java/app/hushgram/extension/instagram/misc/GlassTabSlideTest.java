@@ -80,6 +80,13 @@ public class GlassTabSlideTest {
             return sheet;
         }
 
+        /** How far down the bar, in its pixels, something Instagram drew over it takes presses. */
+        float coveredDown;
+
+        @Override public boolean coveredAt(float x, float y) {
+            return y < coveredDown;
+        }
+
         @Override public void follow(float x) {
             if (fails) throw new IllegalStateException("boom");
             follows.add(x);
@@ -454,6 +461,31 @@ public class GlassTabSlideTest {
         assertEquals(GlassTabSlide.ROUTED, slide.state());
         assertTrue(touch(MotionEvent.ACTION_UP, middle(1), 10));
         assertEquals(2, got.size());
+    }
+
+    /**
+     * #526: the Reels share sheet isn't one the holder knows, and its Send button sits over the strip's part
+     * of the bar. A press on something like that is its own, the strip's or the pill's below it too, and
+     * where nothing covers the bar the pill slides as ever.
+     */
+    @Test public void aButtonOverTheBarKeepsItsPress() {
+        List<float[]> got = stripOverTheBar();
+        pill.coveredDown = 40;
+        assertFalse("the strip doesn't take it", touch(MotionEvent.ACTION_DOWN, middle(1), 10));
+        assertEquals(GlassTabSlide.IDLE, slide.state());
+        assertFalse(touch(MotionEvent.ACTION_UP, middle(1), 10));
+        assertTrue("the strip got nothing", got.isEmpty());
+
+        assertFalse(touch(MotionEvent.ACTION_DOWN, middle(0), 30));
+        assertFalse("sideways on the covered pill is still no slide", touch(MotionEvent.ACTION_MOVE, middle(3), 33));
+        assertFalse(touch(MotionEvent.ACTION_UP, middle(3), 33));
+        assertTrue("no slide", pill.follows.isEmpty());
+
+        assertFalse(touch(MotionEvent.ACTION_DOWN, middle(0), 75));
+        assertTrue("below what covers it the pill slides", touch(MotionEvent.ACTION_MOVE, middle(0) + 40, 78));
+        assertEquals(GlassTabSlide.SLIDING, slide.state());
+        assertTrue(touch(MotionEvent.ACTION_UP, middle(0) + 40, 78));
+        assertTrue(got.isEmpty());
     }
 
     /**

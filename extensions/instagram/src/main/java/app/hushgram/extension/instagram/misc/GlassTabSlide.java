@@ -81,6 +81,12 @@ final class GlassTabSlide {
         boolean underASheet();
 
         /**
+         * Whether a press at [x], [y], in the bar's own pixels, goes to something Instagram drew over the bar,
+         * like a sheet that isn't in the holder {@link #underASheet} knows (#526).
+         */
+        boolean coveredAt(float x, float y);
+
+        /**
          * Where a finger held on the pill is, in the bar's own pixels, or NaN once it lifts, swipes up or down
          * off the bar or a second finger joins (#705). Told with Slide across the tabs off too. Does nothing
          * unless the glass draws something for it.
@@ -231,6 +237,7 @@ final class GlassTabSlide {
             bar.getLocationOnScreen(place);
             float x = event.getRawX() - place[0];
             float y = event.getRawY() - place[1];
+            if (host.coveredAt(x, y)) return false;
             View strip = host.stripAt(x, y);
             if (strip != null) {
                 routed = strip;

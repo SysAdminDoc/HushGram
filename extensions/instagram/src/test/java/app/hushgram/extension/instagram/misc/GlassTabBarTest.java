@@ -4209,6 +4209,66 @@ public class GlassTabBarTest {
         }
     }
 
+    /**
+     * A press on the pill where Instagram drew something over the bar is that thing's: the Reels share sheet's
+     * Send button sits right over the seek bar's strip, and the strip took it (#526). The reel and the strip
+     * under the bar never count, and neither does an overlay over it that takes no presses.
+     */
+    @Test
+    @Config(qualifiers = "en-rUS-w411dp-h891dp-xhdpi")
+    public void aPressOnSomethingOverTheBarIsNeverTheBars() {
+        ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup();
+        try {
+            Activity activity = controller.get();
+            FrameLayout root = new FrameLayout(activity);
+            View reel = new View(activity);
+            reel.setClickable(true);
+            root.addView(reel, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+            View strip = new View(activity);
+            FrameLayout.LayoutParams stripParams = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 112, Gravity.BOTTOM);
+            stripParams.bottomMargin = 177 - 28;
+            root.addView(strip, stripParams);
+            FrameLayout tabs = new FrameLayout(activity);
+            View bar = new View(activity);
+            tabs.addView(bar, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 177, Gravity.BOTTOM));
+            root.addView(tabs, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+            View overlay = new View(activity);
+            root.addView(overlay, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+            FrameLayout sheet = new FrameLayout(activity);
+            View send = new View(activity);
+            send.setClickable(true);
+            // Over the bar's top 40 px, the strip's 28 among them.
+            FrameLayout.LayoutParams sendParams = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 60, Gravity.BOTTOM);
+            sendParams.bottomMargin = 177 - 40;
+            sheet.addView(send, sendParams);
+            root.addView(sheet, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 600, Gravity.BOTTOM));
+            activity.setContentView(root);
+            layOut(root);
+
+            assertTrue("the Send button, over the pill and the strip", GlassTabBar.coveredAt(bar, 300, 10));
+            assertFalse("the sheet's own blank part takes no press", GlassTabBar.coveredAt(bar, 300, 100));
+            send.setOnLongClickListener(v -> true);
+            send.setClickable(false);
+            assertTrue("a long-press target counts too", GlassTabBar.coveredAt(bar, 300, 10));
+
+            sheet.setVisibility(View.GONE);
+            layOut(root);
+            assertFalse("with the sheet gone the bar has it, the reel and strip under it aside", GlassTabBar.coveredAt(bar, 300, 10));
+
+            sheet.setVisibility(View.VISIBLE);
+            root.removeView(sheet);
+            root.addView(sheet, 0, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 600, Gravity.BOTTOM));
+            layOut(root);
+            assertFalse("a sheet drawn under the bar doesn't cover it", GlassTabBar.coveredAt(bar, 300, 10));
+            sheet.setElevation(40f);
+            assertTrue("one raised over it does", GlassTabBar.coveredAt(bar, 300, 10));
+
+            assertFalse("a bar that isn't in a window is never covered", GlassTabBar.coveredAt(new View(activity), 300, 10));
+        } finally {
+            controller.pause().stop().destroy();
+        }
+    }
+
     /** Lays [root] out at the size of the window's content, where the screen shows all of it. */
     private static void layOut(View root) {
         ShadowLooper.idleMainLooper();

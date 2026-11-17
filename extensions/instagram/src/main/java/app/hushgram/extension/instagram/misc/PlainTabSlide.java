@@ -142,6 +142,10 @@ final class PlainTabSlide implements GlassTabSlide.Host {
         return GlassTabBar.showsASheet(holder);
     }
 
+    @Override public boolean coveredAt(float x, float y) {
+        return GlassTabBar.coveredAt(bar, x, y);
+    }
+
     @Override public void follow(float x) {
         View tab = Float.isNaN(x) ? null : slide.tabAt(x);
         if (tab == null) {
