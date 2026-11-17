@@ -130,13 +130,15 @@ private const val STRING = "Ljava/lang/String;"
  * takes as nothing to do. The pager's listener tells the extension first thing about each page, and
  * the exit button's render hands over its reel first thing. The seek bar row's render asks the
  * extension at its test of whether to draw the scrubber, with the answer and the reel state's clear
- * mode flag, and tests what comes back. The reel holder's chrome alpha setter passes the alpha it
- * was asked for through the extension, with the one it holds, right after reading that one, and
- * stores what comes back. The pager listener's scroll state change hands the extension the pager
- * and the state right after reading the pager. The viewer's setup hands the extension the handler
- * right after setting its turn-on action. The exit button's render also buzzes as it draws, and the
- * extension is asked right before that call whether to skip it (#480). The extension's enter and
- * reelId stubs are filled with the handler's turn-on and the reel's getId.
+ * mode flag, and tests what comes back. The reel holder's chrome alpha setter passes itself and the
+ * alpha it was asked for through the extension, with the one it holds, right after reading that one,
+ * and stores what comes back. The extension's setChrome stub is filled with a call to that setter, so
+ * the pages it kept hidden get their buttons back once clear mode isn't wanted (#740). The pager
+ * listener's scroll state change hands the extension the pager and the state right after reading the
+ * pager. The viewer's setup hands the extension the handler right after setting its turn-on action.
+ * The exit button's render also buzzes as it draws, and the extension is asked right before that
+ * call whether to skip it (#480). The extension's enter and reelId stubs are filled with the
+ * handler's turn-on and the reel's getId.
  *
  * 456 has no turn-on method: each caller reads the handler's action and runs it itself. There the
  * enter stub runs the action the same way, the action's two stubs let the extension wrap it once the
