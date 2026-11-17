@@ -84,10 +84,10 @@ class GlassTabBarHookTest {
             }
             val before = method.code()
             val read = before.indexOfFirst {
-                it.opcode == Opcode.INVOKE_STATIC && (it.reference() as MethodReference).definingClass == nav.definingClass &&
-                    (it.reference() as MethodReference).let { call -> call.parameterTypes.isEmpty() && call.returnType == "I" } &&
-                    context.classDefBy(nav.definingClass).methods.single { m -> m.name == (it.reference() as MethodReference).name && m.parameterTypes.isEmpty() }
-                        .code().any { held -> held.opcode == Opcode.SGET && held.reference().toString() == nav.toString() }
+                val call = it.reference() as? MethodReference
+                it.opcode == Opcode.INVOKE_STATIC && call != null && call.parameterTypes.isEmpty() && call.returnType == "I" &&
+                    context.classDefByOrNull(call.definingClass)?.methods?.singleOrNull { m -> m.name == call.name && m.parameterTypes.isEmpty() }
+                        ?.code()?.any { held -> held.opcode == Opcode.SGET && held.reference().toString() == nav.toString() } == true
             }
             assertTrue("$label: the camera's layout reads the navigation bar's height", read >= 0)
             val height = (before[read + 1] as OneRegisterInstruction).registerA
@@ -132,11 +132,16 @@ class GlassTabBarHookTest {
         return bundles
     }
 
-    /** The insets listener's classes, the class keeping the heights and the camera's 9:16 layout. */
+    /**
+     * The insets listener's classes, the class keeping the heights, the classes its static fields hold
+     * (456 reads the heights through its companion) and the camera's 9:16 layout.
+     */
     private fun cameraTypes(bundle: File): Set<String> {
         val types = FixtureDex.classesHolding(bundle, STATUS_BAR_CHANGED).map { it.type }.toSet()
         val holder = PatchContexts.of(FixtureDex.classes(bundle, types).values).findBarHeights().barHeightStores()[1].field.definingClass
-        return types + holder + CAMERA_LAYOUT
+        val kept = FixtureDex.classes(bundle, setOf(holder)).values.single().fields
+            .filter { AccessFlags.STATIC.isSet(it.accessFlags) && it.type.startsWith("L") && it.type != holder }.map { it.type }
+        return types + holder + kept + CAMERA_LAYOUT
     }
 
     private fun Method.code(): List<Instruction> = implementation?.instructions?.toList().orEmpty()

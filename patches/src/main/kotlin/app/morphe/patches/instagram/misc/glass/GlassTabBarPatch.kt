@@ -80,18 +80,21 @@ private fun refuse(why: String): Nothing = throw PatchException("Glass tab bar: 
 internal fun BytecodePatchContext.giveTheCameraTheNavBar(nav: FieldReference) {
     classDefByOrNull(CAMERA_LAYOUT) ?: refuse("$CAMERA_LAYOUT isn't in the app")
     val holder = classDefByOrNull(nav.definingClass) ?: refuse("${nav.definingClass} isn't in the app")
-    val getters = holder.methods.filter { method ->
+    // 456 moved the height getters to the holder's companion, the class one of its static fields holds.
+    val homes = listOf(holder) + holder.fields.filter { AccessFlags.STATIC.isSet(it.accessFlags) && it.type != holder.type }
+        .map { it.type }.distinct().mapNotNull { classDefByOrNull(it) }
+    val getters = homes.flatMap { home -> home.methods }.filter { method ->
         AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "I" && method.parameterTypes.isEmpty() &&
             method.implementation?.instructions?.any { it.opcode == Opcode.SGET && it.fieldIs(nav) } == true
-    }.map { it.name }.toSet()
+    }.map { "${it.definingClass}->${it.name}" }.toSet()
     val method = mutableClassDefBy(CAMERA_LAYOUT).methods.singleOrNull {
         it.name == "<init>" && it.parameterTypes.map(CharSequence::toString) == listOf("Landroid/content/Context;", "Z", "Z")
     } ?: refuse("$CAMERA_LAYOUT has no constructor from a Context")
     val code = method.implementation?.instructions?.toList() ?: emptyList()
     val read = code.indices.singleOrNull { at ->
         val call = code[at].calls() ?: return@singleOrNull false
-        code[at].opcode == Opcode.INVOKE_STATIC && call.definingClass == nav.definingClass && call.name in getters &&
-            call.parameterTypes.isEmpty()
+        code[at].opcode == Opcode.INVOKE_STATIC && "${call.definingClass}->${call.name}" in getters &&
+            call.parameterTypes.isEmpty() && call.returnType == "I"
     } ?: refuse("the camera's layout reads the navigation bar's height ${nav.definingClass} keeps other than once")
     val result = code.getOrNull(read + 1)?.takeIf { it.opcode == Opcode.MOVE_RESULT } as? OneRegisterInstruction
         ?: refuse("the camera's layout keeps no navigation bar height")
