@@ -7,6 +7,7 @@ package app.morphe.patches.instagram.misc.theme
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
+import app.morphe.patches.instagram.misc.extension.classesLoading
 import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.loadsString
@@ -16,6 +17,7 @@ import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
@@ -30,6 +32,21 @@ internal const val SWAP_BADGE = "$ACCENT_THEME->composeBadge(J)J"
 internal const val FOLDER_CHIP_CONTENT =
     "instagram.features.direct.inbox.feature.folderrowpill.ui.FolderPillChip.<anonymous> (FolderRowPillRow.kt:434)"
 
+/**
+ * The key the chip content's Compose trace starts with. 456 logs the key without [FOLDER_CHIP_CONTENT]
+ * (`LX/0Q8n;->invoke` on 386214574), and the key stays put as long as the chip's source does.
+ */
+internal const val FOLDER_CHIP_TRACE_KEY = 0x615bc9e1
+
+/** Whether [method] starts the chip content's Compose trace, by its label or its key. */
+internal fun BytecodePatchContext.tracesFolderChip(method: Method): Boolean =
+    loadsString(method, FOLDER_CHIP_CONTENT) || startsFolderChipTrace(method)
+
+/** Whether [method] loads [FOLDER_CHIP_TRACE_KEY], as 456's chip content does to start its trace. */
+internal fun startsFolderChipTrace(method: Method): Boolean = method.implementation?.instructions?.any {
+    it.opcode == Opcode.CONST && (it as NarrowLiteralInstruction).narrowLiteral == FOLDER_CHIP_TRACE_KEY
+} == true
+
 private fun refuse(why: String): Nothing = throw PatchException("$PATCH: $why")
 
 /** Where a folder chip's content paints its dot: in [method], the background call at [call], its color in the pair from [color]. */
@@ -39,16 +56,16 @@ internal class ChipDot(val method: Method, val call: Int, val color: Int)
  * The unread dot on the Messages inbox's folder chips (#671). The chip is Compose, and its content
  * paints the dot as a background whose color comes from Instagram's Compose palette (`LX/05Ah;->A0j`
  * on 386014758, or Prism's token read), never from a theme attribute, so the badge style Badges in the
- * accent color lays on the theme can't reach it. The content is the method loading
- * [FOLDER_CHIP_CONTENT]; of its background calls (see [paletteBackgrounds]), the chip's own reads its
+ * accent color lays on the theme can't reach it. The content is the method starting its trace (see
+ * [tracesFolderChip]); of its background calls (see [paletteBackgrounds]), the chip's own reads its
  * color from the content's own field and the dot's from a palette object's long field.
  * Answers null with a warning when there's not exactly one such call or something jumps onto it, and
  * refuses without the extension's hook.
  */
 internal fun BytecodePatchContext.findChipDot(): ChipDot? {
-    val contents = classesLoadingString(FOLDER_CHIP_CONTENT).flatMap { type ->
-        type.methods.filter { loadsString(it, FOLDER_CHIP_CONTENT) }
-    }
+    val contents = (classesLoadingString(FOLDER_CHIP_CONTENT) + classesLoading(FOLDER_CHIP_TRACE_KEY.toLong()))
+        .distinctBy { it.type }
+        .flatMap { type -> type.methods.filter { tracesFolderChip(it) } }
     val dots = contents.flatMap { method -> method.paletteBackgrounds().map { (call, color) -> ChipDot(method, call, color) } }
     if (dots.size != 1) {
         patchLog.warning("$PATCH: ${dots.size} folder chip dots found, not one, so the Messages chips keep Instagram's red dot")
@@ -93,7 +110,8 @@ internal fun BytecodePatchContext.tintChipDot() {
  * This method's background calls painting a color read from a palette: each static
  * (Object, Object, long)Object, or (Object, long)Object as the armeabi-v7a build calls it, whose long
  * pair was last written, going back through the code, by an `iget-wide` of a long field of another
- * class. Answers the call's index and the pair's first register.
+ * class, or by the result of another class's static long read, as 456's armeabi-v7a build reads a
+ * Prism token (`LX/0T63;->A06` on 386214562). Answers the call's index and the pair's first register.
  */
 internal fun Method.paletteBackgrounds(): List<Pair<Int, Int>> {
     val code = implementation?.instructions?.toList().orEmpty()
@@ -113,9 +131,14 @@ internal fun Method.paletteBackgrounds(): List<Pair<Int, Int>> {
         val color = registers[registers.size - 2]
         if (registers.last() != color + 1) return@mapNotNull null
         val read = code.lastWriteOf(at, color) ?: return@mapNotNull null
-        if (read.opcode != Opcode.IGET_WIDE || (read as OneRegisterInstruction).registerA != color) return@mapNotNull null
-        val field = (read as ReferenceInstruction).reference as FieldReference
-        if (field.type != "J" || field.definingClass == definingClass) return@mapNotNull null
+        if ((read as OneRegisterInstruction).registerA != color) return@mapNotNull null
+        val palette = when (read.opcode) {
+            Opcode.IGET_WIDE -> ((read as ReferenceInstruction).reference as FieldReference).takeIf { it.type == "J" }?.definingClass
+            Opcode.MOVE_RESULT_WIDE -> code.getOrNull(code.indexOf(read) - 1)?.takeIf { it.opcode == Opcode.INVOKE_STATIC }
+                ?.let { (it as ReferenceInstruction).reference as MethodReference }?.takeIf { it.returnType == "J" }?.definingClass
+            else -> null
+        }
+        if (palette == null || palette == definingClass) return@mapNotNull null
         at to color
     }
 }

@@ -12,6 +12,7 @@ import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
@@ -56,7 +57,7 @@ class ComposeBadgesTest {
     @Test
     fun withoutTheHookItRefuses() {
         val bundle = Fixtures.otherBuilds().first()
-        val failure = assertThrows(PatchException::class.java) { PatchContexts.of(FixtureDex.classesLoading(bundle, FOLDER_CHIP_CONTENT)).tintChipDot() }
+        val failure = assertThrows(PatchException::class.java) { PatchContexts.of(chips(bundle)).tintChipDot() }
         assertTrue(failure.message, failure.message!!.startsWith("Accent color"))
         PatchContexts.of(listOf(ImmutableClassDef.of(ExtensionDex.classDef(ACCENT_THEME)))).tintChipDot()
     }
@@ -67,7 +68,7 @@ class ComposeBadgesTest {
      * reads the content's field and stays, and the rest of the code is Instagram's.
      */
     private fun paints(bundle: File, label: String) {
-        val context = PatchContexts.of(FixtureDex.classesLoading(bundle, FOLDER_CHIP_CONTENT) + ImmutableClassDef.of(ExtensionDex.classDef(ACCENT_THEME)))
+        val context = PatchContexts.of(chips(bundle) + ImmutableClassDef.of(ExtensionDex.classDef(ACCENT_THEME)))
         val dot = context.findChipDot()
         assertNotNull("$label: no folder chip dot", dot)
         val stock = dot!!.method.code()
@@ -89,6 +90,20 @@ class ComposeBadgesTest {
             stock.kinds(),
             (code.subList(0, hook) + code.subList(hook + 2, code.size)).kinds(),
         )
+    }
+
+    /**
+     * The classes whose chip content starts its trace: by its label, or by its key alone as 456 does,
+     * which no string slice finds.
+     */
+    private fun chips(bundle: File): List<ClassDef> {
+        val found = FixtureDex.classesLoading(bundle, FOLDER_CHIP_CONTENT).associateByTo(LinkedHashMap()) { it.type }
+        FixtureDex.forEach(bundle) { dex ->
+            for (classDef in dex.classes) {
+                if (classDef.type !in found && classDef.methods.any(::startsFolderChipTrace)) found[classDef.type] = ImmutableClassDef.of(classDef)
+            }
+        }
+        return found.values.toList()
     }
 
     private fun Method.code(): List<Instruction> = implementation?.instructions?.toList().orEmpty()
