@@ -2905,15 +2905,16 @@ start-call Lapp/hushgram/extension/instagram/reels/SwipeToProfile;->profilePause
 once-call Lapp/hushgram/extension/instagram/reels/SwipeToProfile;->profilePaused(Ljava/lang/Object;)V in instance ()V holding UserDetailFragment.onPause
 once-call Lapp/hushgram/extension/instagram/reels/SwipeToProfile;->closesProfile(Landroid/app/Activity;Landroid/view/MotionEvent;)Z in instance (Landroid/view/MotionEvent;)Z holding dispatchTouchEvent
 # Find the reel you came from hands the reel's media to ReelOrigin.opening first thing in the Reels
-# viewer's profile opener (07FC.A03 on 450, the one method holding the marker below), reading the media
-# field of its one argument into v0 on the way, and hands a profile's Reels tab to
-# ReelOrigin.reelsTabResumed first thing in the tab's onResume (ClipsProfileTabFragment, picked by its
-# marker). Left out, the switch does nothing. Twice or elsewhere, it isn't the hook the patch wrote.
-# NativeFindReelOriginTest checks on all seven 450 builds where each lands.
-start-call Lapp/hushgram/extension/instagram/reels/ReelOrigin;->opening(Ljava/lang/Object;)V in instance (L*;)Z holding android_purge_26_q3_AuthorInfoNavigator_navigateToNormalProfile
-once-call Lapp/hushgram/extension/instagram/reels/ReelOrigin;->opening(Ljava/lang/Object;)V in instance (L*;)Z holding android_purge_26_q3_AuthorInfoNavigator_navigateToNormalProfile
-start-call Lapp/hushgram/extension/instagram/reels/ReelOrigin;->reelsTabResumed(Ljava/lang/Object;)V in instance ()V holding android_purge_26_q2_ClipsProfileTabFragment_onResume
-once-call Lapp/hushgram/extension/instagram/reels/ReelOrigin;->reelsTabResumed(Ljava/lang/Object;)V in instance ()V holding android_purge_26_q2_ClipsProfileTabFragment_onResume
+# viewer's profile opener (0CBz.A02 on 456's 386214574, the one method loading both strings below),
+# reading the media field of its one argument into v0 on the way, and hands a profile's Reels tab to
+# ReelOrigin.reelsTabResumed first thing in the tab's onResume (ClipsProfileTabFragment, 0Hlj on
+# 386214574, the one onResume loading the string below). 456 dropped the purge markers both were found
+# by. Left out, the switch does nothing. Twice or elsewhere, it isn't the hook the patch wrote.
+# NativeFindReelOriginTest checks on every 456 build where each lands.
+start-call Lapp/hushgram/extension/instagram/reels/ReelOrigin;->opening(Ljava/lang/Object;)V in instance (L*;)Z pooled holding open_profile_page profile_short_drama
+once-call Lapp/hushgram/extension/instagram/reels/ReelOrigin;->opening(Ljava/lang/Object;)V in instance (L*;)Z pooled holding open_profile_page profile_short_drama
+start-call Lapp/hushgram/extension/instagram/reels/ReelOrigin;->reelsTabResumed(Ljava/lang/Object;)V in instance ()V pooled holding ClipsProfileTabFragment.onResume
+once-call Lapp/hushgram/extension/instagram/reels/ReelOrigin;->reelsTabResumed(Ljava/lang/Object;)V in instance ()V pooled holding ClipsProfileTabFragment.onResume
 # For a photo reel (#225) it also hands a profile's posts grid to ReelOrigin.postsGridResumed right
 # after the grid's super.onResume(). ProfileMediaTabFragment keeps its name but holds no marker, and its
 # onResume no string: it's the instance ()V of the class holding the grid's tab identifier key that

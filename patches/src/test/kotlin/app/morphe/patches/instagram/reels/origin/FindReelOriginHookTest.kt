@@ -10,6 +10,8 @@ import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patches.instagram.download.INSTAGRAM_MEDIA
 import app.morphe.patches.instagram.misc.extension.PatchLogCapture
+import app.morphe.patches.instagram.reels.profiletabbar.OPEN_PROFILE_PAGE
+import app.morphe.patches.instagram.reels.profiletabbar.SHORT_DRAMA_PROFILE
 import app.morphe.util.namedRegisters
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -108,9 +110,9 @@ class FindReelOriginHookTest {
             stubs.single { it.name == "mediaType" }.code()[1].reference())
     }
 
-    @Test fun aMissingOpenerIsRefused() = refuses("holding the $OPEN_PROFILE marker, found none",
+    @Test fun aMissingOpenerIsRefused() = refuses("loading both $OPEN_PROFILE_PAGE and $SHORT_DRAMA_PROFILE, found none",
         ReelOriginFixture.classes().filter { it.type != ReelOriginFixture.OPENER })
-    @Test fun anOpenerMarkerInTwoMethodsIsRefused() = refuses("holding the $OPEN_PROFILE marker, found LX/07FC;->A0",
+    @Test fun anOpenerInTwoMethodsIsRefused() = refuses("loading both $OPEN_PROFILE_PAGE and $SHORT_DRAMA_PROFILE, found LX/07FC;->A0",
         ReelOriginFixture.with(ReelOriginFixture.opener(twice = true)))
     @Test fun aStaticOpenerIsRefused() = refuses("LX/07FC;->A03 is static",
         ReelOriginFixture.with(ReelOriginFixture.opener(flags = AccessFlags.PUBLIC.value or AccessFlags.STATIC.value)))
@@ -130,17 +132,17 @@ class FindReelOriginHookTest {
         ReelOriginFixture.with(ReelOriginFixture.opener(reads = "A01")))
     @Test fun aMediaWithoutPublicGetIdIsRefused() = refuses("$MEDIA has no public getId()",
         ReelOriginFixture.with(ReelOriginFixture.media(AccessFlags.PRIVATE.value)))
-    @Test fun aMissingTabIsRefused() = refuses("holding the $TAB_RESUME marker, found none",
+    @Test fun aMissingTabIsRefused() = refuses("expected one onCreate(Bundle) reading $USER_KEY, found none",
         ReelOriginFixture.classes().filter { it.type != ReelOriginFixture.TAB })
-    @Test fun aTabMarkerOutsideOnResumeIsRefused() = refuses("the Reels tab's marker isn't in an instance onResume()V",
+    @Test fun aTabWithoutOnResumeIsRefused() = refuses("the Reels tab ${ReelOriginFixture.TAB} has no instance onResume()V",
         ReelOriginFixture.with(ReelOriginFixture.tab(resumeName = "onStart")))
     @Test fun aJumpToTheTabsFirstInstructionIsRefused() = refuses("enters the Reels tab's onResume at its first instruction",
         ReelOriginFixture.with(ReelOriginFixture.tab(loop = true)))
-    @Test fun aTabThatNoLongerReadsWhoseProfileItIsIsRefused() = refuses("the Reels tab's onCreate doesn't read $USER_KEY",
+    @Test fun aTabThatNoLongerReadsWhoseProfileItIsIsRefused() = refuses("expected one onCreate(Bundle) reading $USER_KEY, found none",
         ReelOriginFixture.with(ReelOriginFixture.tab(userKey = false)))
     @Test fun aTabThatNoLongerFindsTilesByTransitionNameIsRefused() = refuses("doesn't look its tiles up by transition name",
         ReelOriginFixture.with(ReelOriginFixture.tab(transitionNames = false)))
-    @Test fun aTileLookupInAnotherClassIsRefused() = refuses("the $TILE_LOOKUP marker is in LX/07FC;, not the Reels tab",
+    @Test fun aTileLookupInAnotherClassIsRefused() = refuses("the Reels tab doesn't look its tiles up by transition name",
         ReelOriginFixture.with(ReelOriginFixture.opener(lookup = true)).map {
             if (it.type == ReelOriginFixture.TAB) ReelOriginFixture.tab(lookup = false) else it
         })
@@ -425,8 +427,6 @@ internal object ReelOriginFixture {
     /** The tab's own superclass, between it and Fragment, as in 450. */
     const val BASE = "LX/0ASy;"
 
-    private fun marker(name: String) = "android_purge_26_q3_$name"
-
     fun classes(): List<ClassDef> = listOf(opener(), destination(), media(AccessFlags.PUBLIC.value or AccessFlags.FINAL.value),
         tab(), clazz(BASE, FRAGMENT, emptyList()), fragment(), extension(), ExtensionDex.classDef(INSTAGRAM_MEDIA))
 
@@ -434,8 +434,8 @@ internal object ReelOriginFixture {
     fun with(replacement: ClassDef): List<ClassDef> = classes().map { if (it.type == replacement.type) replacement else it }
 
     /**
-     * 450's opener: a trace marker, then the destination's media read and the rest. v0 and v1 are
-     * its locals, p1 the destination.
+     * 450's opener: the two strings it's found by, then the destination's media read and the
+     * rest. v0 and v1 are its locals, p1 the destination.
      */
     fun opener(
         flags: Int = AccessFlags.PUBLIC.value or AccessFlags.FINAL.value,
@@ -451,17 +451,18 @@ internal object ReelOriginFixture {
         val code = mutableListOf<Instruction>()
         if (readsV0) code += ImmutableInstruction12x(Opcode.MOVE_OBJECT, 1, 0)
         code += ImmutableInstruction11n(Opcode.CONST_4, 1, 0)
-        code += ImmutableInstruction21c(Opcode.CONST_STRING, 0, ImmutableStringReference(marker(OPEN_PROFILE)))
+        code += ImmutableInstruction21c(Opcode.CONST_STRING, 0, ImmutableStringReference(OPEN_PROFILE_PAGE))
+        code += ImmutableInstruction21c(Opcode.CONST_STRING, 0, ImmutableStringReference(SHORT_DRAMA_PROFILE))
         val type = if (reads == "A03") MEDIA else "LX/011g;"
         code += ImmutableInstruction22c(Opcode.IGET_OBJECT, 0, argument, ImmutableFieldReference(DESTINATION, reads, type))
-        // A goto back to the start, five code units back.
-        code += if (loop) ImmutableInstruction10t(Opcode.GOTO, -5) else ImmutableInstruction11x(Opcode.RETURN, 1)
+        // A goto back to the start, seven code units back.
+        code += if (loop) ImmutableInstruction10t(Opcode.GOTO, -7) else ImmutableInstruction11x(Opcode.RETURN, 1)
         val methods = mutableListOf(method(OPENER, "A03", parameters, "Z", registers, code, flags))
         if (twice) methods += method(OPENER, "A04", listOf(DESTINATION), "Z", 4, listOf(
-            ImmutableInstruction21c(Opcode.CONST_STRING, 0, ImmutableStringReference(marker(OPEN_PROFILE))),
+            ImmutableInstruction21c(Opcode.CONST_STRING, 0, ImmutableStringReference(OPEN_PROFILE_PAGE)),
+            ImmutableInstruction21c(Opcode.CONST_STRING, 0, ImmutableStringReference(SHORT_DRAMA_PROFILE)),
             ImmutableInstruction11n(Opcode.CONST_4, 0, 0), ImmutableInstruction11x(Opcode.RETURN, 0)), flags)
         if (lookup) methods += method(OPENER, "A05", emptyList(), "V", 1, listOf(
-            ImmutableInstruction21c(Opcode.CONST_STRING, 0, ImmutableStringReference(marker(TILE_LOOKUP))),
             ImmutableInstruction35c(Opcode.INVOKE_VIRTUAL, 1, 0, 0, 0, 0, 0,
                 ImmutableMethodReference("Landroid/view/View;", "getTransitionName", emptyList(), "Ljava/lang/String;")),
             ImmutableInstruction10x(Opcode.RETURN_VOID)), AccessFlags.PUBLIC.value)
@@ -571,7 +572,7 @@ internal object ReelOriginFixture {
         return clazz(POSTS_GRID, superclass, methods, fields)
     }
 
-    /** 450's Reels tab: its onResume with the trace marker, its onCreate, its tile lookup and its grid. */
+    /** 450's Reels tab: its onResume with its trace name, its onCreate, its tile lookup and its grid. */
     fun tab(
         resumeName: String = "onResume",
         loop: Boolean = false,
@@ -581,18 +582,17 @@ internal object ReelOriginFixture {
         grids: List<Int> = listOf(AccessFlags.PUBLIC.value),
     ): ClassDef {
         val resume = mutableListOf<Instruction>(
-            ImmutableInstruction21c(Opcode.CONST_STRING, 0, ImmutableStringReference(marker(TAB_RESUME))),
+            ImmutableInstruction21c(Opcode.CONST_STRING, 0, ImmutableStringReference("ClipsProfileTabFragment.onResume")),
             ImmutableInstruction35c(Opcode.INVOKE_SUPER, 1, 1, 0, 0, 0, 0, ImmutableMethodReference(BASE, "onResume", emptyList(), "V")),
         )
         // A goto back to the start, five code units back.
         resume += if (loop) ImmutableInstruction10t(Opcode.GOTO, -5) else ImmutableInstruction10x(Opcode.RETURN_VOID)
         val create = listOfNotNull<Instruction>(
-            ImmutableInstruction21c(Opcode.CONST_STRING, 0, ImmutableStringReference(marker(TAB_CREATE))),
+            ImmutableInstruction21c(Opcode.CONST_STRING, 0, ImmutableStringReference("ClipsProfileTabFragment.onCreate")),
             if (userKey) ImmutableInstruction21c(Opcode.CONST_STRING, 0, ImmutableStringReference(USER_KEY)) else null,
             ImmutableInstruction10x(Opcode.RETURN_VOID),
         )
         val find = listOfNotNull<Instruction>(
-            ImmutableInstruction21c(Opcode.CONST_STRING, 0, ImmutableStringReference(marker(TILE_LOOKUP))),
             if (transitionNames) ImmutableInstruction35c(Opcode.INVOKE_VIRTUAL, 1, 0, 0, 0, 0, 0,
                 ImmutableMethodReference("Landroid/view/View;", "getTransitionName", emptyList(), "Ljava/lang/String;")) else null,
             ImmutableInstruction10x(Opcode.RETURN_VOID),
