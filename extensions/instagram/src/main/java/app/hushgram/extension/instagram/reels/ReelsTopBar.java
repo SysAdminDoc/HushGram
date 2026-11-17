@@ -97,6 +97,8 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * after that turn-off, and every bar showing in a resumed window goes invisible before the fade's first
  * frame. Each stays hidden, by the same pre-draw listener, while clear mode is wanted for the next
  * reels, and {@link #clearModeEnded} puts it back as soon as it isn't, unless a top bar switch hides it.
+ * A drag fades the bar in from its first move, before that turn-off, so {@link #clearModeStarted}
+ * holds it the same way {@link #HOLD_AFTER_TURN_ON_MS} after clear mode goes on.
  */
 public final class ReelsTopBar {
     /** The id Instagram gives the bar, the same on all seven 450 builds. */
@@ -139,6 +141,11 @@ public final class ReelsTopBar {
     static final String COUNT_FRIENDS_HID = "Reels Friends tab hidden";
     static final String COUNT_FRIENDS_AGAIN = "Reels Friends tab opened again";
     static final String COUNT_CLEAR_MODE_HID = "Reels top bar kept hidden through a swipe in clear mode";
+    /**
+     * How long after clear mode goes on its bars are held hidden, in ms: past Instagram's own fade out,
+     * and before the first swipe's drag fades them back in (#740).
+     */
+    static final long HOLD_AFTER_TURN_ON_MS = 600;
     /** The most views looked at inside one bar for its buttons. */
     static final int MAX_BAR_VIEWS = 200;
 
@@ -291,6 +298,23 @@ public final class ReelsTopBar {
             }
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.REEL_DECLUTTER, "top bar in clear mode", failure);
+        }
+    }
+
+    /**
+     * Called by {@link ReelClearMode} as clear mode becomes wanted, with Keep clear mode on. A drag fades
+     * the viewer's top bar in from its first move, before any turn-off is heard, so the first swipe out
+     * of clear mode showed the bar for a moment (#740). {@link #HOLD_AFTER_TURN_ON_MS} later, once
+     * Instagram's own fade has taken the bar out, it's held hidden the same way a swipe holds it.
+     */
+    static void clearModeStarted() {
+        try {
+            if (!Utils.settingsReady() || HushgramPause.isPaused() || sessions.isEmpty()) return;
+            Utils.runOnMainThreadDelayed(() -> {
+                if (ReelClearMode.holdsBars()) holdForClearMode();
+            }, HOLD_AFTER_TURN_ON_MS);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.REEL_DECLUTTER, "top bar as clear mode starts", failure);
         }
     }
 

@@ -1085,6 +1085,44 @@ public class ReelsTopBarTest {
         });
     }
 
+    /**
+     * A drag fades the bar in from its first move, before the swipe's turn-off is heard, so the bar is
+     * held from just after clear mode goes on, once Instagram's own fade has taken it out (#740).
+     */
+    @Test public void clearModeHoldsTheBarBeforeTheFirstSwipe() {
+        ClipsViewerActionBar bar = show(ClipsViewerSource.PROFILE_CLIPS);
+        Object handler = new Object();
+        withClearMode(true, () -> {
+            ReelsTopBar.Session session = track();
+            turnOnClearMode(handler, "reel 1");
+            idle(ReelsTopBar.HOLD_AFTER_TURN_ON_MS - 1);
+            assertEquals("Instagram's own fade out still runs", View.VISIBLE, bar.getVisibility());
+            idle(1);
+            assertEquals("held once that fade is done", View.INVISIBLE, bar.getVisibility());
+            assertTrue(session.isWatching());
+            assertTrue(HookStatus.report().toString(), counted(ReelsTopBar.COUNT_CLEAR_MODE_HID, 1));
+
+            bar.setVisibility(View.VISIBLE);
+            frame();
+            assertEquals("the first drag's fade in is undone before its frame", View.INVISIBLE, bar.getVisibility());
+
+            ReelClearMode.left(handler, "reel 1", ClearReason.REELS_VIEWER_SWIPE_OR_EXIT);
+            frame();
+            assertEquals("the swipe keeps it held", View.INVISIBLE, bar.getVisibility());
+            assertEquals(1, session.hiddenCount());
+
+            ReelClearMode.left(handler, "reel 2", ClearReason.EXIT_BUTTON);
+            assertEquals("back when you leave clear mode", View.VISIBLE, bar.getVisibility());
+            assertFalse(session.isWatching());
+
+            turnOnClearMode(handler, "reel 3");
+            ReelClearMode.left(handler, "reel 3", ClearReason.EXIT_BUTTON);
+            idle(ReelsTopBar.HOLD_AFTER_TURN_ON_MS);
+            assertEquals("clear mode left before the hold's time leaves the bar alone", View.VISIBLE, bar.getVisibility());
+            assertFalse(session.isWatching());
+        });
+    }
+
     /** A bar held for clear mode whose own switch went on meanwhile stays hidden once clear mode ends (#740). */
     @Test public void aBarHeldForClearModeKeepsItsSwitchsHold() {
         ClipsViewerActionBar bar = show(ClipsViewerSource.PROFILE_CLIPS);

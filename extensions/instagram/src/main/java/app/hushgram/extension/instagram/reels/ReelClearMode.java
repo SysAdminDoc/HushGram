@@ -74,7 +74,9 @@ import kotlin.jvm.functions.Function1;
  * fade run for {@link #FADE_MOVES_MS} before the first try for the next reel. In between the bar
  * faded in during the swipe and back out once it landed, so a reel that leaves clear mode by a swipe
  * has {@link ReelsTopBar#holdForClearMode} hide the bars on screen before that fade's first frame,
- * and keep them hidden for as long as clear mode is wanted (#740).
+ * and keep them hidden for as long as clear mode is wanted (#740). A drag starts that fade from its
+ * first move, before the turn-off, so the hold starts once clear mode goes on too, as soon as
+ * Instagram's fade out is done ({@link ReelsTopBar#clearModeStarted}).
  *
  * <p>Instagram's turn-on acts on whatever reel the pager is on, so {@link #current} looks at that
  * reel first and holds the turn-on back when it would be the wrong one: the reel that just left
@@ -1151,8 +1153,11 @@ public final class ReelClearMode {
 
     /** Clear mode is wanted through [handler]'s viewer. */
     private static void want(Object handler) {
+        boolean was = wanted;
         wanted = true;
         wantedIn = new WeakReference<>(handler);
+        // A drag fades the top bar in from its first move, before any turn-off is heard (#740).
+        if (!was && on()) ReelsTopBar.clearModeStarted();
     }
 
     /**
