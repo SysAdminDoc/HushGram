@@ -13,7 +13,6 @@ import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.instagram.download.MEDIA
-import app.morphe.patches.instagram.misc.extension.markers
 import app.morphe.patches.instagram.reels.ailabel.AI_PAGE_FILTER
 import app.morphe.patches.instagram.reels.captionwords.CAPTION_PAGE_FILTER
 import app.morphe.patches.instagram.reels.suggested.TO_CLIPS_ITEM
@@ -228,8 +227,8 @@ class HidePaidPartnershipReelsHookTest {
             classes(helpedName = "items") to "expected every page of Reels items to share one name, found [page, items]",
             classes(helpedInterface = otherSource) to "expected every page of Reels items to be one interface's page, found",
             classes(helpedInterface = null) to "expected every page of Reels items to be one interface's page, found",
-            classes(successMarks = 0) to "expected one method marked $REELS_PAGE_ARRIVED, found []",
-            classes(successMarks = 2) to "expected one method marked $REELS_PAGE_ARRIVED, found [Lfixture/",
+            classes(successMarks = 0) to "expected one method loading \"$REELS_PAGE_ARRIVED\", found []",
+            classes(successMarks = 2) to "expected one method loading \"$REELS_PAGE_ARRIVED\", found [Lfixture/",
             classes(successTakes = otherSource) to "expected $callback->success($otherSource)V to take a $source and answer nothing",
             classes(fallback = false) to "expected $success to ask for the page page and then one other list, found [page]",
             classes(fallbackInto = 4) to "$success keeps the page in v2 and its fallback in v4",
@@ -237,7 +236,7 @@ class HidePaidPartnershipReelsHookTest {
             classes(earlyJump = true) to "expected $success to reach instruction",
             classes(thisReused = true) to "the Reels page's callback: $callback->success writes over this",
             classes(listRegister = 16) to "$success keeps the page in v16, past what the hook's call can name",
-            classes(fetchMarked = false) to "expected one method marked $REELS_FETCH, found []",
+            classes(fetchMarked = false) to "expected one method loading \"$REELS_FETCH\", found []",
             classes(fetchMakes = false) to "$fetcher->fetch()V doesn't make $callback",
             classes(fetchNamed = false) to "expected $fetcher->fetch()V to make $callback with one module name at instruction",
             classes(fetchThroughProvider = true, fetchNamed = false) to
@@ -279,7 +278,6 @@ class HidePaidPartnershipReelsHookTest {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
         val bundles = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } } +
             Fixtures.otherBuilds()
-        val wanted = setOf(REELS_PAGE_ARRIVED, REELS_FETCH, LANE_SOURCE, TAB_CONTAINER_MODULE, PROFILE_MAPPER)
         var checked = 0
         for (bundle in bundles) {
             val converterClasses = FixtureDex.classesHolding(bundle, TO_CLIPS_ITEM)
@@ -288,18 +286,9 @@ class HidePaidPartnershipReelsHookTest {
 
             val parents = mutableMapOf<String, List<String>>()
             val callers = mutableListOf<ClassDef>()
-            val marked = mutableMapOf<String, MutableList<ClassDef>>()
             FixtureDex.forEach(bundle) { dex ->
                 for (classDef in dex.classes) {
                     parents.putIfAbsent(classDef.type, listOfNotNull(classDef.superclass) + classDef.interfaces)
-                }
-                if (dex.stringSection.any { string -> wanted.any { string.endsWith("_$it") } }) {
-                    for (classDef in dex.classes) {
-                        val found = classDef.methods.flatMap { it.markers() }.filter { it in wanted }.toSet()
-                        if (found.isEmpty()) continue
-                        val copy = ImmutableClassDef.of(classDef)
-                        found.forEach { marked.getOrPut(it) { mutableListOf() } += copy }
-                    }
                 }
                 if (dex.methodSection.none { it.calls(converterMethod) }) return@forEach
                 for (classDef in dex.classes) {
@@ -335,17 +324,30 @@ class HidePaidPartnershipReelsHookTest {
             val ancestors = mutableSetOf<String>()
             val next = ArrayDeque(pageClasses.map { it.type })
             while (next.isNotEmpty()) parents[next.removeFirst()].orEmpty().filter { it in parents && ancestors.add(it) }.forEach(next::addLast)
-            fun markedBy(name: String): List<Method> = marked[name].orEmpty().flatMap { it.methods }.filter { name in it.markers() }
-            val success = markedBy(REELS_PAGE_ARRIVED).single()
-            val fetch = markedBy(REELS_FETCH).single()
-            val callbackClass = marked.getValue(REELS_PAGE_ARRIVED).single()
+            // The methods loading [value], themselves or through a pool, the pools' own getters left out.
+            fun loadersOf(value: String): List<Method> {
+                val holders = FixtureDex.classesLoading(bundle, value)
+                val byType = holders.associateBy { it.type }
+                return holders.flatMap { it.methods }.filter { method ->
+                    !(method.parameterTypes.map(Any::toString) == listOf("I") && method.returnType == "Ljava/lang/String;") &&
+                        FixtureDex.loads(method, value, byType)
+                }
+            }
+            val tracedClasses = listOf(REELS_PAGE_ARRIVED, REELS_FETCH).flatMap { FixtureDex.classesLoading(bundle, it) }.distinctBy { it.type }
+            val traced = tracedClasses.associateBy { it.type }
+            fun loadedBy(name: String): Method = tracedClasses.flatMap { it.methods }.single { method ->
+                method.parameterTypes.map(Any::toString) != listOf("I") && FixtureDex.loads(method, name, traced)
+            }
+            val success = loadedBy(REELS_PAGE_ARRIVED)
+            val fetch = loadedBy(REELS_FETCH)
+            val callbackClass = traced.getValue(success.definingClass)
             // From 455 the fetcher asks a provider for the callback (07Yr.A00 and A01 on 386113969).
             val providerTypes = fetch.code().mapNotNull { instruction ->
                 (instruction.reference() as? MethodReference)?.takeIf { it.returnType == callbackClass.type && it.name != "<init>" }?.definingClass
             }.toSet()
             val looked = FixtureDex.classes(bundle, ancestors + itemType + MEDIA + providerTypes)
             val providers = providerTypes.mapNotNull { looked[it] }
-            val kept = (converterClasses + callers + wrapped + helped + callbackClass + marked.getValue(REELS_FETCH) +
+            val kept = (converterClasses + callers + wrapped + helped + tracedClasses +
                 looked.values).distinctBy { it.type } +
                 ExtensionDex.classDef(PAID_PARTNERSHIP_REELS)
             val context = PatchContexts.of(kept)
@@ -368,7 +370,10 @@ class HidePaidPartnershipReelsHookTest {
 
             assertEquals("${bundle.name}: the sources answering a page", 12, pageClasses.size)
             val search = pageClasses.filter { classDef -> classDef.fields.any { it.type == SEARCH_CONTEXT } }.map { it.type }
-            val profile = markedBy(PROFILE_MAPPER).single().returnType
+            // The profile's mapper: the static method taking the session first that loads the error it throws when no clips come back.
+            val profile = loadersOf(PROFILE_CLIPS_MISSING).single { method ->
+                AccessFlags.STATIC.isSet(method.accessFlags) && method.parameterTypes.firstOrNull()?.toString() == USER_SESSION
+            }.returnType
             assertEquals("${bundle.name}: the search's source", 1, search.size)
             assertTrue("${bundle.name}: the profile's source $profile answers no page", profile in pageClasses.map { it.type })
             for (type in pageClasses.map { it.type }) {
@@ -378,13 +383,18 @@ class HidePaidPartnershipReelsHookTest {
             }
 
             val values = sourceValues(FixtureDex.classes(bundle, setOf(VIEWER_SOURCE)).values.single())
-            val lane = marked.getValue(LANE_SOURCE).single()
-            val lanes = lane.methods.single { it.name == "<clinit>" }.code().mapNotNull { instruction ->
+            // The lane enum: the enum besides the viewer's sources whose setup names a lane FRIENDLY_COMMENTS.
+            val lane = loadersOf(LANE_NAME).single { method ->
+                method.name == "<clinit>" && method.definingClass != VIEWER_SOURCE
+            }
+            val lanes = lane.code().mapNotNull { instruction ->
                 (instruction.reference() as? FieldReference)?.takeIf { instruction.opcode == Opcode.SGET_OBJECT && it.definingClass == VIEWER_SOURCE }
                     ?.let { "clips_viewer_" + values[it.name] }
             }.toSet()
-            // 451's Redex inlines getClipsTabContainerModule into its callers, so its names are those of every marked copy.
-            val container = markedBy(TAB_CONTAINER_MODULE).flatMap { method -> method.code().mapNotNull { it.string() } }.filter { it.startsWith("clips_viewer_") }
+            // The tab container's name: the viewer's one getter of no arguments answering a String that can answer the connected tab's name.
+            val container = loadersOf(CONNECTED_MODULE).single { method ->
+                method.parameterTypes.isEmpty() && method.returnType == "Ljava/lang/String;" && !AccessFlags.STATIC.isSet(method.accessFlags)
+            }.code().mapNotNull { it.string() }.filter { it.startsWith("clips_viewer_") }
             assertTrue("${bundle.name}: the tab container answers no name", container.isNotEmpty())
             // 453's builds don't all offer the same lanes (some have no blend lane), so the list may name
             // a lane this build doesn't offer, as long as it's one of the viewer's sources here.
@@ -675,7 +685,7 @@ class HidePaidPartnershipReelsHookTest {
         // v0 the marker and the check, v1 the session, v3 the source, v4 this's copy, the page in [listRegister].
         val page = "v$listRegister"
         val successBody = buildString {
-            if (successMarks > 0) appendLine("const-string v0, \"android_purge_26_q2_$REELS_PAGE_ARRIVED\"")
+            if (successMarks > 0) appendLine("const-string v0, \"$REELS_PAGE_ARRIVED\"")
             appendLine("move-object/from16 v4, p0")
             appendLine("iget-object v1, v4, $callback->session:$session")
             appendLine("move-object/from16 v3, p1")
@@ -716,12 +726,12 @@ class HidePaidPartnershipReelsHookTest {
         )
         val otherCallback = if (successMarks > 1) listOf(classDef("Lfixture/OtherCallback;", listOf(
             method("Lfixture/OtherCallback;", "success", listOf(source), "V", 1, body = """
-                const-string v0, "android_purge_26_q2_$REELS_PAGE_ARRIVED"
+                const-string v0, "$REELS_PAGE_ARRIVED"
                 return-void
             """),
         ))) else emptyList()
         val fetchBody = buildString {
-            if (fetchMarked) appendLine("const-string v0, \"android_purge_26_q2_$REELS_FETCH\"")
+            if (fetchMarked) appendLine("const-string v0, \"$REELS_FETCH\"")
             appendLine("iget-object v1, p0, $fetcher->viewer:$viewer")
             if (fetchNamed) {
                 appendLine("invoke-interface { v1 }, $viewer->getModuleName()$string")
@@ -859,14 +869,16 @@ class HidePaidPartnershipReelsHookTest {
     private fun Method.loads(value: Int): Boolean = code().any { (it as? NarrowLiteralInstruction)?.narrowLiteral == value }
 
     private companion object {
-        /** The marker of the lane enum's answer for which viewer source a lane of the Reels tab shows. */
-        const val LANE_SOURCE = "ClipsContentLaneEnum_getContentSource"
+        /** A lane's name, which only the lane enum's static setup loads exactly. */
+        const val LANE_NAME = "FRIENDLY_COMMENTS"
 
-        /** The marker of the Reels tab's container module name, For you's under the homecoming test or not. */
-        const val TAB_CONTAINER_MODULE = "ClipsViewerSource_getClipsTabContainerModule"
+        /** The connected tab's module name, which the Reels tab's container getter answers among For you's. */
+        const val CONNECTED_MODULE = "clips_viewer_clips_connected"
 
-        /** The marker of the mapper making a profile's Reels source from its GraphQL answer. */
-        const val PROFILE_MAPPER = "ClipsProfileApiUtil_mapGraphQLResponseToREST"
+        /** The error the mapper making a profile's Reels source from its GraphQL answer throws when none come back. */
+        const val PROFILE_CLIPS_MISSING = "Expected profile clips to be available"
+
+        const val USER_SESSION = "Lcom/instagram/common/session/UserSession;"
 
         const val VIEWER_SOURCE = "Lcom/instagram/clips/intf/ClipsViewerSource;"
         const val SEARCH_CONTEXT = "Lcom/instagram/search/common/analytics/SearchContext;"

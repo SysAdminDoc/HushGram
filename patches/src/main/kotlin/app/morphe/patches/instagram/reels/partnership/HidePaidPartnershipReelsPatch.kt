@@ -15,21 +15,20 @@ import app.morphe.patches.instagram.download.pandoGetter
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesAccessing
 import app.morphe.patches.instagram.misc.extension.classesCalling
+import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.freeLocalsAt
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
-import app.morphe.patches.instagram.misc.extension.markers
+import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
 import app.morphe.patches.instagram.misc.extension.requireParameterIntact
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.extension.requireThisIntact
-import app.morphe.patches.instagram.misc.extension.typesMarked
-import app.morphe.patches.instagram.misc.extension.uniqueMethod
 import app.morphe.patches.instagram.misc.settings.settingsPatch
-import app.morphe.patches.instagram.reels.suggested.ClipsItemConverterFingerprint
 import app.morphe.patches.instagram.reels.suggested.TO_CLIPS_ITEM
+import app.morphe.patches.instagram.reels.suggested.reelsItemConverter
 import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.util.ControlFlow
 import app.morphe.util.addInstructionsAtControlFlowLabel
@@ -59,13 +58,13 @@ internal const val PAID_PARTNERSHIP_FIELD = "is_paid_partnership"
 internal const val BOOSTED_STATUS_FIELD = "boosted_status"
 
 /**
- * The marker of the Reels viewer's network callback taking a page its fetcher asked for, the one
+ * A name only the Reels viewer's network callback taking a page its fetcher asked for loads, the one
  * place every viewer's pages pass on their way in, whichever source made them.
  */
-internal const val REELS_PAGE_ARRIVED = "ClipsItemsNetworkCallback_onSuccess"
+internal const val REELS_PAGE_ARRIVED = "clips_delivery_prefetch"
 
-/** The marker of the Reels viewer's fetcher asking for a page, where it makes that callback. */
-internal const val REELS_FETCH = "AbstractPaginatingClipsItemsFetcher_maybeFetchInternal"
+/** The trace name of the Reels viewer's fetcher asking for a page, where it makes that callback. */
+internal const val REELS_FETCH = "AbstractPaginatingClipsItemsFetcher.maybeFetchInternal"
 
 /** The analytics name every Instagram screen answers, the Reels viewer's built from where it was opened. */
 private const val GET_MODULE_NAME = "getModuleName"
@@ -167,7 +166,7 @@ internal fun BytecodePatchContext.findPaidPartnershipReels(): PaidPartnershipSit
  */
 internal fun BytecodePatchContext.findReelsPage(patch: String): ReelsPageSites {
     fun refuse(detail: String): Nothing = refuseFor(patch, detail)
-    val converter = uniqueMethod(patch, "Reels item converter holding \"$TO_CLIPS_ITEM\"", ClipsItemConverterFingerprint)
+    val converter = reelsItemConverter(patch)
     val itemType = converter.returnType
     val item = classDefByOrNull(itemType) ?: refuse("the Reels item converter answers $itemType, which isn't a class of the app")
     if (!AccessFlags.PUBLIC.isSet(item.accessFlags)) refuse("$itemType isn't public, so the extension can't reach it")
@@ -196,8 +195,8 @@ internal fun BytecodePatchContext.findReelsPage(patch: String): ReelsPageSites {
     val pageInterface = declared.singleOrNull()?.singleOrNull()
         ?: refuse("expected every page of Reels items to be one interface's $pageName, found $declared")
 
-    val success = markedMethods(REELS_PAGE_ARRIVED).singleOrNull()
-        ?: refuse("expected one method marked $REELS_PAGE_ARRIVED, found ${markedMethods(REELS_PAGE_ARRIVED).map { it.describe() }}")
+    val success = methodsLoading(REELS_PAGE_ARRIVED).singleOrNull()
+        ?: refuse("expected one method loading \"$REELS_PAGE_ARRIVED\", found ${methodsLoading(REELS_PAGE_ARRIVED).map { it.describe() }}")
     if (AccessFlags.STATIC.isSet(success.accessFlags) || success.returnType != "V" ||
         success.parameterTypes.map(Any::toString) != listOf(pageInterface)
     ) {
@@ -271,8 +270,8 @@ private fun pageJoin(patch: String, success: Method, pageInterface: String, page
  */
 private fun BytecodePatchContext.moduleField(patch: String, callback: String): String {
     fun refuse(detail: String): Nothing = refuseFor(patch, detail)
-    val fetch = markedMethods(REELS_FETCH).singleOrNull()
-        ?: refuse("expected one method marked $REELS_FETCH, found ${markedMethods(REELS_FETCH).map { it.describe() }}")
+    val fetch = methodsLoading(REELS_FETCH).singleOrNull()
+        ?: refuse("expected one method loading \"$REELS_FETCH\", found ${methodsLoading(REELS_FETCH).map { it.describe() }}")
     val code = fetch.implementation?.instructions?.toList().orEmpty()
     val targets = fetch.jumpTargets()
     val made = code.indices.filter { at -> code[at].makes(callback) }
@@ -498,9 +497,15 @@ private fun BytecodePatchContext.publicGetter(field: String, returns: String): M
     return getter
 }
 
-/** The app's methods carrying the marker [name], in a stable order. */
-private fun BytecodePatchContext.markedMethods(name: String): List<Method> =
-    typesMarked(name).sorted().flatMap { type -> classDefBy(type).methods.filter { name in it.markers() } }
+/**
+ * The app's methods loading [name], however Redex pooled it, in a stable order. A pool's own getter
+ * holds every string it pools, so it's left out.
+ */
+private fun BytecodePatchContext.methodsLoading(name: String): List<Method> =
+    classesLoadingString(name).sortedBy { it.type }.flatMap { it.methods }.filter { method ->
+        !(method.parameterTypes.map(Any::toString) == listOf("I") && method.returnType == "Ljava/lang/String;") &&
+            loadsString(method, name)
+    }
 
 /** The methods of the app that call [target] by its class, name and parameters. */
 private fun BytecodePatchContext.callersOf(target: Method): List<Method> {
