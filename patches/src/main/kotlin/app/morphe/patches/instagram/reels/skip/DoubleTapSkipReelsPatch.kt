@@ -9,14 +9,12 @@ import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
-import app.morphe.patches.instagram.misc.extension.PURGE_MARKER
+import app.morphe.patches.instagram.misc.extension.classesLoading
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.loadsString
-import app.morphe.patches.instagram.misc.extension.markers
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
-import app.morphe.patches.instagram.misc.extension.typesMarked
 import app.morphe.patches.instagram.misc.flags.FlagLoad
 import app.morphe.patches.instagram.misc.flags.answerFlagLoads
 import app.morphe.patches.instagram.misc.flags.findFlagLoads
@@ -27,8 +25,8 @@ import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.WideLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
-import com.android.tools.smali.dexlib2.iface.reference.StringReference
 
 private const val PATCH = "Double tap to skip on Reels"
 internal const val REEL_SKIP = "$EXTENSION_PACKAGE/reels/ReelSkip;"
@@ -61,19 +59,14 @@ private val FRACTION = setOf("F", "D")
 /** Told the way each double tap skip went, so the arrows can show it (#691). */
 internal const val SKIPPED = "$REEL_SKIP->skipped(Ljava/lang/Object;)V"
 
-/**
- * The marker the gesture navigator traces where it works out a double tap to skip (0DXI.invoke on
- * 386014758): after it seeks, it answers BACKWARD or FORWARD, an enum's two constants it reads
- * right there.
- */
-internal const val SKIP_DIRECTION = "ClipsGestureNavigator_doubleTapToSkipDirection"
-
 /** The names the way a skip went keeps through Redex, which the extension tells the sides by. */
 internal val SKIP_WAYS = listOf("FORWARD", "BACKWARD")
 
 /**
- * The method holding [SKIP_DIRECTION], found by [type], [name] and its [parameters], and the two
- * fields, one per way, it reads after the seek ([fields], as references).
+ * The gesture navigator's double tap case, the one method reading [EDGE_FLAG] (0JfN.invoke on 456's
+ * 386214574, 0IwA.invoke on 386214562; 455 also traced ClipsGestureNavigator_doubleTapToSkipDirection
+ * there, which 456 dropped), found by [type], [name] and its [parameters], and the two fields, one
+ * per way, it reads after the seek ([fields], as references).
  */
 internal class SkipTurns(val type: String, val name: String, val parameters: List<String>, val returnType: String, val fields: Set<String>)
 
@@ -113,20 +106,17 @@ internal fun BytecodePatchContext.skipReels() {
 private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $detail")
 
 /**
- * Where the gesture navigator says which way a double tap skipped: the one method holding the
- * [SKIP_DIRECTION] marker, and in it, on the way on from the marker, one read each of two constants
- * of an enum naming [SKIP_WAYS]. Each read is the navigator's answer, read right after it seeks,
- * and nothing may jump onto it. Fails before anything changes when any of it isn't so.
+ * Where the gesture navigator says which way a double tap skipped: the one method reading
+ * [EDGE_FLAG], which only the navigator's double tap case reads, and in it, on the way on from that
+ * read, one read each of two constants of an enum naming [SKIP_WAYS]. Each read is the navigator's
+ * answer, read right after it seeks, and nothing may jump onto it. The navigator is a merged lambda
+ * whose other cases the flag's read never reaches. Fails before anything changes when any of it
+ * isn't so.
  */
 internal fun BytecodePatchContext.findSkipTurns(): SkipTurns {
-    val marked = typesMarked(SKIP_DIRECTION)
-    val holders = mutableListOf<Method>()
-    classDefForEach { classDef ->
-        if (classDef.type !in marked) return@classDefForEach
-        classDef.methods.filterTo(holders) { SKIP_DIRECTION in it.markers() }
-    }
+    val holders = classesLoading(EDGE_FLAG).flatMap { it.methods }.filter { it.edgeLoads().isNotEmpty() }
     val method = holders.singleOrNull() ?: refuse(
-        "expected one method holding the $SKIP_DIRECTION marker, found " +
+        "expected one method reading ${EDGE_FLAG.toString(16)}, the strip a double tap skips by, found " +
             if (holders.isEmpty()) "none" else holders.joinToString { "${it.definingClass}->${it.name}" },
     )
     val reads = turnReads(method)
@@ -137,21 +127,25 @@ internal fun BytecodePatchContext.findSkipTurns(): SkipTurns {
     return SkipTurns(method.definingClass, method.name, method.parameterTypes.map(CharSequence::toString), method.returnType, fields.toSet())
 }
 
+/** Where this method loads [EDGE_FLAG], which answering the flag leaves in place. */
+private fun Method.edgeLoads(): List<Int> {
+    val code = implementation?.instructions?.toList() ?: return emptyList()
+    return code.indices.filter {
+        code[it].opcode == Opcode.CONST_WIDE && (code[it] as WideLiteralInstruction).wideLiteral == EDGE_FLAG
+    }
+}
+
 /**
- * Each read in [method], on the way on from its [SKIP_DIRECTION] marker, of a constant of an enum
+ * Each read in [method], on the way on from its read of [EDGE_FLAG], of a constant of an enum
  * whose initializer names [SKIP_WAYS], as its index and field. One something jumps onto fails.
  */
 private fun BytecodePatchContext.turnReads(method: Method): List<Pair<Int, String>> {
     val code = method.implementation?.instructions?.toList() ?: refuse("${method.definingClass}->${method.name} has no body")
-    val marker = code.indexOfFirst { instruction ->
-        (instruction.opcode == Opcode.CONST_STRING || instruction.opcode == Opcode.CONST_STRING_JUMBO) &&
-            ((instruction as ReferenceInstruction).reference as StringReference).string
-                .let { PURGE_MARKER.find(it)?.groupValues?.get(1) } == SKIP_DIRECTION
-    }
-    if (marker < 0) refuse("${method.definingClass}->${method.name} doesn't load the $SKIP_DIRECTION marker itself")
+    val edge = method.edgeLoads()
+    if (edge.isEmpty()) refuse("${method.definingClass}->${method.name} doesn't read ${EDGE_FLAG.toString(16)} itself")
     val flow = ControlFlow.of(method)
     val reached = mutableSetOf<Int>()
-    val pending = ArrayDeque(listOf(marker))
+    val pending = ArrayDeque(edge)
     while (pending.isNotEmpty()) {
         val at = pending.removeFirst()
         if (reached.add(at)) pending += flow.normal[at]

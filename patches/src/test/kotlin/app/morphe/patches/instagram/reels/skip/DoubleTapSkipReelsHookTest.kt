@@ -54,7 +54,7 @@ class DoubleTapSkipReelsHookTest {
     /**
      * Each way the navigator answers after it seeks is handed to the arrows' hook just before the
      * navigator reads it, in the same register, and the read another case of the merged lambda makes,
-     * which the marker never reaches, isn't (#691). The flags' hooks stay as they were.
+     * which the strip's read never reaches, isn't (#691). The flags' hooks stay as they were.
      */
     @Test
     fun eachWayASkipGoesIsHandedToTheArrows() {
@@ -76,7 +76,7 @@ class DoubleTapSkipReelsHookTest {
     @Test
     fun aNavigatorTheArrowsDontFitFails() {
         val cases = listOf(
-            turnClasses(marker = false) to "expected one method holding the $SKIP_DIRECTION marker, found none",
+            turnClasses(edge = false) to "expected one method reading ${EDGE_FLAG.toString(16)}, the strip a double tap skips by, found none",
             turnClasses(oneWay = true) to "to read the two ways a skip goes once each",
             turnClasses(named = false) to "to read the two ways a skip goes once each",
             turnClasses(jumpedOnto = true) to "jumps onto its read of A02",
@@ -184,7 +184,7 @@ class DoubleTapSkipReelsHookTest {
             for (classDef in dex.classes) {
                 // The ways a skip goes are an enum naming them in its initializer.
                 val aWay = classDef.superclass == "Ljava/lang/Enum;" && classDef.methods.any { it.loadsAWay() }
-                if (aWay || classDef.methods.any { it.loadsAFlag() || it.loadsTheTurnMarker() }) holders += ImmutableClassDef.of(classDef)
+                if (aWay || classDef.methods.any { it.loadsAFlag() }) holders += ImmutableClassDef.of(classDef)
             }
         }
         val context = PatchContexts.of(holders)
@@ -323,13 +323,13 @@ class DoubleTapSkipReelsHookTest {
         method(type, name).code().mapNotNull { it.referenceText() }.filter { it in hooks }
 
     /**
-     * An enum of the ways a skip goes, [way], and a navigator, [turner], shaped like 454's
-     * 0DXI.invoke: a merged lambda whose double tap case loads the [SKIP_DIRECTION] marker, reads
-     * the strip and the seconds, seeks back or ahead and answers BACKWARD (A02) or FORWARD (A03).
-     * Another case, which the marker doesn't reach, answers FORWARD too.
+     * An enum of the ways a skip goes, [way], and a navigator, [turner], shaped like 456's
+     * 0JfN.invoke: a merged lambda whose double tap case reads the strip ([EDGE_FLAG], or another
+     * flag when not [edge]) and the seconds, seeks back or ahead and answers BACKWARD (A02) or
+     * FORWARD (A03). Another case, which the strip's read doesn't reach, answers FORWARD too.
      */
     private fun turnClasses(
-        marker: Boolean = true,
+        edge: Boolean = true,
         oneWay: Boolean = false,
         named: Boolean = true,
         jumpedOnto: Boolean = false,
@@ -338,9 +338,7 @@ class DoubleTapSkipReelsHookTest {
         val ahead = if (oneWay) "A02" else "A03"
         val body = """
             if-eqz p0, :other
-            const-string v0, "${if (marker) "android_purge_26_q3_$SKIP_DIRECTION" else "android_purge_26_q3_ClipsGestureNavigator_onDoubleTap"}"
-            invoke-static {v0}, Lfixture/Trace;->A01(Ljava/lang/String;)V
-            const-wide v0, 0x${EDGE_FLAG.toString(16)}L
+            const-wide v0, 0x${(if (edge) EDGE_FLAG else EDGE_FLAG + 1).toString(16)}L
             invoke-static {p0, v0, v1}, Lfixture/Mc;->A00(Ljava/lang/Object;J)F
             move-result v2
             const-wide v0, 0x${SECONDS_FLAG.toString(16)}L
@@ -382,7 +380,6 @@ class DoubleTapSkipReelsHookTest {
 
     private fun Method.loadsAWay(): Boolean = code().any { it.loadsString("BACKWARD") }
 
-    private fun Method.loadsTheTurnMarker(): Boolean = code().any { it.loadsString("android_purge_26_q3_$SKIP_DIRECTION") }
 
     private fun Instruction.loadsString(value: String): Boolean =
         (opcode == Opcode.CONST_STRING || opcode == Opcode.CONST_STRING_JUMBO) &&

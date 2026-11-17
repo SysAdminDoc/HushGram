@@ -3302,18 +3302,18 @@ shared-call Lapp/hushgram/extension/instagram/reels/ReelSound;->letsSoundOn(I)I 
 # the rule takes any parameters.
 once-call Lapp/hushgram/extension/instagram/reels/ReelZoom;->zoom(I)Z in (*)Ljava/lang/Object; sites 2 holding const:0x8105be00011aad const:0x208105be00021aae
 # Double tap to skip on Reels hands the double tap to skip flag to ReelSkip.skip(int) where the Reels use case
-# reads it for each reel, the method tracing DoubleTapToSkipUseCase_getUiState (05KP.A0V on 454's 386014758), and
-# the skip's seconds it reads there, always as a double, to ReelSkip.secondsDouble (#554). Left out, the reel keeps
-# Instagram's answer. The gesture navigator reads the strip width and the seconds again, as floats on some 454 builds
-# and as doubles on others, so its hooks differ by build and get no rule here: DoubleTapSkipReelsHookTest checks on
-# every 454 build that each read there is answered once.
-once-call Lapp/hushgram/extension/instagram/reels/ReelSkip;->skip(I)Z holding android_purge_26_q3_DoubleTapToSkipUseCase_getUiState const:0x81121700016542
-shared-call Lapp/hushgram/extension/instagram/reels/ReelSkip;->secondsDouble(D)D holding android_purge_26_q3_DoubleTapToSkipUseCase_getUiState const:0x8412170002047c
-# The navigator answers which way a double tap skipped, BACKWARD or FORWARD, right after it seeks, in the method
-# tracing ClipsGestureNavigator_doubleTapToSkipDirection (0DXI.invoke on 454's 386014758). Each of the two ways goes
-# to ReelSkip.skipped just before the navigator reads it, so the arrows flash on that side (#691). Left out, a skip
-# shows nothing.
-once-call Lapp/hushgram/extension/instagram/reels/ReelSkip;->skipped(Ljava/lang/Object;)V sites 2 pooled holding android_purge_26_q3_ClipsGestureNavigator_doubleTapToSkipDirection
+# reads it for each reel, the one method reading that flag (DoubleTapToSkipUseCase_getUiState, 08LX.A0R on 456's
+# 386214574), and the skip's seconds it reads there, always as a double, to ReelSkip.secondsDouble (#554). Left out,
+# the reel keeps Instagram's answer. The gesture navigator reads the strip width and the seconds again, as floats on
+# some builds and as doubles on others, so its hooks differ by build and get no rule here: DoubleTapSkipReelsHookTest
+# checks on every fixture build that each read there is answered once.
+once-call Lapp/hushgram/extension/instagram/reels/ReelSkip;->skip(I)Z holding const:0x81121700016542
+shared-call Lapp/hushgram/extension/instagram/reels/ReelSkip;->secondsDouble(D)D holding const:0x81121700016542 const:0x8412170002047c
+# The navigator answers which way a double tap skipped, BACKWARD or FORWARD, right after it seeks, in its double tap
+# case, the one method reading the strip width flag (0JfN.invoke on 456's 386214574; 455 also traced
+# ClipsGestureNavigator_doubleTapToSkipDirection there). Each of the two ways goes to ReelSkip.skipped just before the
+# navigator reads it, so the arrows flash on that side (#691). Left out, a skip shows nothing.
+once-call Lapp/hushgram/extension/instagram/reels/ReelSkip;->skipped(Ljava/lang/Object;)V sites 2 holding const:0x8412170000047b
 # Hide the 2x popup on Reels hands the "2x" label a reel's fast play part builds to FastPlayLabel.label
 # where the part's draw returns it (0Bcw.A0q on 454's 386014758, returning 0Bcw.A00's answer) (#552).
 # Left out, the label shows with the switch on; twice or elsewhere, it isn't the filter the patch wrote.
