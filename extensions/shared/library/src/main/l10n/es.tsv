@@ -460,6 +460,8 @@ Going to that date	Yendo a esa fecha
 Sort reels on profiles	Ordenar reels en perfiles
 Puts the arrow next to Reels on every profile, so you can sort them by Latest or Most viewed where Instagram took the choice away.	Pone la flecha junto a Reels en cada perfil para que puedas ordenarlos por Más recientes o Más vistos donde Instagram quitó la opción.
 The cards of people and creators to follow that Instagram puts between reels. Every reel still plays.	Las tarjetas de personas y creadores para seguir que Instagram pone entre los reels. Todos los reels se siguen reproduciendo.
+Hide stories in Reels	Ocultar historias en Reels
+The Catch up with friends pages of stories that Instagram puts between reels. Stories stay at the top of Home.	Las páginas de historias de amigos que Instagram pone entre los reels. Las historias siguen arriba en Inicio.
 Leaves out reels with a Paid partnership label, and reels Instagram marks as boosted. Ads have their own switch.	Omite los reels con la etiqueta Colaboración pagada y los que Instagram marca como promocionados. Los anuncios tienen su propio interruptor.
 Turn on Start Home on Following to use this choice.	Activa «Abrir Inicio en Seguidos» para usar esta opción.
 # context: Settings page: the summary of a greyed-out slider in place of its value; %1$s is the title of the switch it waits on, like Glass tab bar

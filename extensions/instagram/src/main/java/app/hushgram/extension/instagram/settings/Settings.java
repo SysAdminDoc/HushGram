@@ -2771,6 +2771,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_reels_suggestions", FALSE);
 
     /**
+     * The pages of friends' stories Instagram puts between reels, titled "Catch up with friends"
+     * ({@link app.hushgram.extension.instagram.reels.ReelsSuggestions}, #730). Read as each page of
+     * reels arrives, so a change shows from the next page. Off to start.
+     */
+    public static final BooleanSetting HIDE_REELS_STORIES =
+            new BooleanSetting("hushgram_hide_reels_stories", FALSE);
+
+    /**
      * Reels whose post Instagram marks as a paid partnership, or as boosted
      * ({@link app.hushgram.extension.instagram.reels.PaidPartnershipReels}). Read as each page of
      * reels arrives, so a change shows from the next page. Off to start.

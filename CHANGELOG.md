@@ -61,6 +61,7 @@ Every HushGram release, newest first.
 * `Ring thickness`, new under `Story ring size` in Stories, draws story rings thinner or thicker, from 50% to 200% of Instagram's width. The size and color lists above it work the same as before. Asked for in #528.
 * `Ring color` has a Custom choice now. Type a hex color in `Custom ring color` for one solid color, and add one in `Custom ring end color` if you want the ring to fade between the two. Saving the first color picks Custom for you. Asked for in #696.
 * On a photo story with music, the Download button at the top of the story asks whether you want the video or the photo, like the three-dot menu already does. Asked for in #726.
+* `Hide stories in Reels`, new under Reels right below `Hide suggested accounts`, leaves out the Catch up with friends pages of stories that Instagram drops between reels. Your stories row on Home stays. Starts off. Asked for in #730.
 
 ### Improvements
 

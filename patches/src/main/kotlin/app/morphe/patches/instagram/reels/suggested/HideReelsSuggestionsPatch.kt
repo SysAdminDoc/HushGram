@@ -70,6 +70,12 @@ internal val SUGGESTED_KINDS = listOf(
     "SUGGESTED_USERS", "CREATORS_YOU_MAY_FOLLOW", "NETEGO_SUGGESTED_USERS", "NETEGO_SUGGESTED_CREATORS",
 )
 
+/** The clips item kind of a Catch up with friends page of stories, which ReelsSuggestions drops under its own switch (#730). */
+internal val STORY_KINDS = listOf("STORIES_IN_REELS")
+
+/** Every kind ReelsSuggestions takes out, all named by the one enum field it reads. */
+internal val READ_KINDS = SUGGESTED_KINDS + STORY_KINDS
+
 private const val STRING = "Ljava/lang/String;"
 
 /**
@@ -80,8 +86,9 @@ private const val STRING = "Ljava/lang/String;"
 @Suppress("unused")
 val hideReelsSuggestionsPatch = bytecodePatch(
     name = "Hide suggested accounts in Reels",
-    description = "Leaves out the cards of accounts to follow that Instagram puts between reels. Every reel still " +
-        "plays. Starts off. Turn it on in HushGram settings > Reels.",
+    description = "Leaves out the cards of accounts to follow that Instagram puts between reels, and on a second " +
+        "switch its Catch up with friends pages of stories. Every reel still plays. Starts off. Turn them on in " +
+        "HushGram settings > Reels.",
 ) {
     category("Profiles")
     dependsOn(settingsPatch, instagramExtensionPatch)
@@ -172,7 +179,7 @@ internal class ReelsSuggestionSites(
 )
 
 /**
- * Finds the converter by [TO_CLIPS_ITEM] and checks that its clips item names [SUGGESTED_KINDS] in
+ * Finds the converter by [TO_CLIPS_ITEM] and checks that its clips item names [READ_KINDS] in
  * one enum field, the one the extension reads. The netego unit's type is the one String field the
  * binder dispatch reads off another class, and that class is the netego unit: the converter has to
  * return, once, the item a call taking the unit makes, with the unit still in its register and
@@ -187,7 +194,7 @@ internal fun BytecodePatchContext.findReelsSuggestions(): ReelsSuggestionSites {
     val where = "${converter.definingClass}->${converter.name}"
     val itemType = converter.returnType
     if (!itemType.startsWith("L") || classDefByOrNull(itemType) == null) refuse("$where answers $itemType, which isn't a class of the app")
-    requireOneKindField(PATCH, itemType, SUGGESTED_KINDS)
+    requireOneKindField(PATCH, itemType, READ_KINDS)
 
     val dispatch = uniqueMethod(PATCH, "Reels binder dispatch comparing $CREATORS_TO_FOLLOW", NetegoDispatchFingerprint)
     if (dispatch.parameterTypes.first().toString() != itemType) {

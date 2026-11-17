@@ -2663,7 +2663,7 @@
     },
     {
       "name": "Hide suggested accounts in Reels",
-      "description": "Leaves out the cards of accounts to follow that Instagram puts between reels. Every reel still plays. Starts off. Turn it on in HushGram settings > Reels.",
+      "description": "Leaves out the cards of accounts to follow that Instagram puts between reels, and on a second switch its Catch up with friends pages of stories. Every reel still plays. Starts off. Turn them on in HushGram settings > Reels.",
       "category": "Profiles",
       "use": true,
       "dependencies": [

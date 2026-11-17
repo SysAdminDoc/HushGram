@@ -30,8 +30,11 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  *
  * <p>Suggested accounts come two ways: as items of their own kinds ({@link #KINDS}), and as netego
  * units, whose kind is NETEGO for every unit and whose type says what they hold
- * ({@link #NETEGO_TYPES}). Reels, ads, Your algorithm (TYA_IN_REELS), stories and every other unit
- * stay.
+ * ({@link #NETEGO_TYPES}). Reels, ads, Your algorithm (TYA_IN_REELS) and every other unit stay.
+ *
+ * <p>Stories come as a unit of their own ({@link #STORY_KINDS}), the page of friends' stories
+ * Instagram titles "Catch up with friends" (#730). It has its own switch, so hiding suggested
+ * accounts leaves it alone and the other way round.
  *
  * <p>Every unit that stays and isn't a reel or an ad is counted by its kind, and every netego unit
  * that stays by its type, under {@link #KEPT_ROUTE}. A screen of suggestions that still shows (#167)
@@ -48,12 +51,18 @@ public final class ReelsSuggestions {
     static final Set<String> KINDS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
             "SUGGESTED_USERS", "CREATORS_YOU_MAY_FOLLOW", "NETEGO_SUGGESTED_USERS", "NETEGO_SUGGESTED_CREATORS")));
 
+    /** The clips item kind of a page of friends' stories, by the name Instagram 456 gives it. */
+    static final Set<String> STORY_KINDS = Collections.singleton("STORIES_IN_REELS");
+
     /** The netego unit types of friends and creators to follow. */
     static final Set<String> NETEGO_TYPES = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
             "friend_su_in_reels", "creators_in_reels")));
 
     /** The diagnostic counter route: the suggestions seen, and the ones taken out. */
     static final String ROUTE = "Reels suggestions";
+
+    /** The diagnostic counter route: the pages of stories seen, and the ones taken out. */
+    static final String STORIES_ROUTE = "Stories in Reels";
 
     /** The diagnostic counter route for the units kept that aren't reels or ads, by kind or netego type. */
     static final String KEPT_ROUTE = "Reels units kept";
@@ -74,24 +83,29 @@ public final class ReelsSuggestions {
 
     /**
      * Injected at each return of Instagram's Reels item converter. Answers null for a card of
-     * accounts or creators to follow while the switch is on, and [item] itself otherwise, or when
-     * anything goes wrong. Never throws.
+     * accounts or creators to follow while that switch is on, and for a page of stories while the
+     * stories switch is on, and [item] itself otherwise, or when anything goes wrong. Never throws.
      */
     public static Object filter(Object item) {
-        return filter(item, ReelsSuggestions::kindOf, ReelsSuggestions::switchedOn);
+        return filter(item, ReelsSuggestions::kindOf, ReelsSuggestions::switchedOn, ReelsSuggestions::storiesSwitchedOn);
     }
 
     static Object filter(Object item, KindReader reader, BooleanSupplier on) {
+        return filter(item, reader, on, ReelsSuggestions::storiesSwitchedOn);
+    }
+
+    static Object filter(Object item, KindReader reader, BooleanSupplier on, BooleanSupplier storiesOn) {
         if (item == null) return null;
         try {
             HookStatus.invoked(FamilyNames.REELS_SUGGESTIONS);
             String kind = reader.kindOf(item, KINDS, FamilyNames.REELS_SUGGESTIONS);
             if (kind == null) return item;
+            if (STORY_KINDS.contains(kind)) return takeOut(item, kind, STORIES_ROUTE, storiesOn);
             if (!KINDS.contains(kind)) {
                 kept(kind);
                 return item;
             }
-            return takeOut(item, kind, on);
+            return takeOut(item, kind, ROUTE, on);
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.REELS_SUGGESTIONS, "reels item", failure);
             return item;
@@ -116,7 +130,7 @@ public final class ReelsSuggestions {
                 Logger.printDebug(() -> "Reels suggestions: kept a netego unit of type " + type);
                 return item;
             }
-            return takeOut(item, type, on);
+            return takeOut(item, type, ROUTE, on);
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.REELS_SUGGESTIONS, "netego unit", failure);
             return item;
@@ -143,7 +157,7 @@ public final class ReelsSuggestions {
                 FeedFilterCounters.sawKind(KEPT_ROUTE, FRIENDS_TAB_PAGE + " " + kind);
                 return item;
             }
-            return takeOut(item, FRIENDS_TAB_PAGE, on);
+            return takeOut(item, FRIENDS_TAB_PAGE, ROUTE, on);
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.REELS_SUGGESTIONS, "friends tab page", failure);
             return item;
@@ -172,15 +186,19 @@ public final class ReelsSuggestions {
         return null;
     }
 
-    private static Object takeOut(Object item, String kind, BooleanSupplier on) {
-        FeedFilterCounters.sawKind(ROUTE, kind);
+    private static Object takeOut(Object item, String kind, String route, BooleanSupplier on) {
+        FeedFilterCounters.sawKind(route, kind);
         if (!on.getAsBoolean()) return item;
-        FeedFilterCounters.removed(ROUTE, 1, kind);
-        Logger.printDebug(() -> "Reels suggestions: took out a " + kind + " unit");
+        FeedFilterCounters.removed(route, 1, kind);
+        Logger.printDebug(() -> route + ": took out a " + kind + " unit");
         return null;
     }
 
     private static boolean switchedOn() {
         return Utils.settingsReady() && Settings.HIDE_REELS_SUGGESTIONS.get();
+    }
+
+    private static boolean storiesSwitchedOn() {
+        return Utils.settingsReady() && Settings.HIDE_REELS_STORIES.get();
     }
 }

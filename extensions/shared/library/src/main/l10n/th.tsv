@@ -457,6 +457,8 @@ Going to that date	กำลังไปยังวันที่ดังก�
 Sort reels on profiles	จัดเรียงรีลในโปรไฟล์
 Puts the arrow next to Reels on every profile, so you can sort them by Latest or Most viewed where Instagram took the choice away.	แสดงลูกศรข้าง Reels ในทุกโปรไฟล์ เพื่อให้คุณจัดเรียงตามล่าสุดหรือมีผู้ดูมากที่สุดได้ แม้ในโปรไฟล์ที่ Instagram นำตัวเลือกนี้ออกไปแล้ว
 The cards of people and creators to follow that Instagram puts between reels. Every reel still plays.	การ์ดแนะนำบุคคลและครีเอเตอร์ให้ติดตามที่ Instagram แทรกไว้ระหว่างรีลส์ ทั้งนี้ทุกรีลส์จะยังคงเล่นได้ตามปกติ
+Hide stories in Reels	ซ่อนสตอรี่ในรีลส์
+The Catch up with friends pages of stories that Instagram puts between reels. Stories stay at the top of Home.	หน้าสตอรี่ของเพื่อนที่ Instagram แทรกไว้ระหว่างรีลส์ ส่วนสตอรี่ด้านบนของหน้าหลักยังอยู่เหมือนเดิม
 Leaves out reels with a Paid partnership label, and reels Instagram marks as boosted. Ads have their own switch.	เว้นรีลส์ที่มีป้ายกำกับ "ความร่วมมือที่ได้รับค่าตอบแทน" และรีลส์ที่ Instagram ระบุว่าได้รับการโปรโมต ทั้งนี้โฆษณาจะมีสวิตช์แยกต่างหาก
 Turn on Start Home on Following to use this choice.	เปิดใช้งาน "เปิดหน้าหลักที่กำลังติดตาม" เพื่อใช้ตัวเลือกนี้
 # context: Settings page: the summary of a greyed-out slider in place of its value; %1$s is the title of the switch it waits on, like Glass tab bar

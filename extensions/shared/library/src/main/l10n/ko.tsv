@@ -461,6 +461,8 @@ Going to that date	해당 날짜로 이동 중
 Sort reels on profiles	프로필의 릴스 정렬
 Puts the arrow next to Reels on every profile, so you can sort them by Latest or Most viewed where Instagram took the choice away.	모든 프로필의 릴스 옆에 화살표를 표시해, Instagram이 선택을 없앤 곳에서도 최신순 또는 조회수 많은 순으로 정렬할 수 있습니다.
 The cards of people and creators to follow that Instagram puts between reels. Every reel still plays.	릴스 사이에 표시되는 팔로우할 사람 및 크리에이터 추천 카드를 숨깁니다. 릴스 자체는 모두 정상적으로 재생됩니다
+Hide stories in Reels	릴스에서 스토리 숨기기
+The Catch up with friends pages of stories that Instagram puts between reels. Stories stay at the top of Home.	Instagram이 릴스 사이에 넣는 친구 스토리 페이지를 숨깁니다. 홈 상단의 스토리는 그대로 남습니다.
 Leaves out reels with a Paid partnership label, and reels Instagram marks as boosted. Ads have their own switch.	유료 광고 파트너십 라벨이 있는 릴스와 Instagram이 홍보됨으로 표시한 릴스를 제외합니다. 광고는 별도의 스위치가 있습니다.
 Turn on Start Home on Following to use this choice.	이 옵션을 사용하려면 ‘팔로잉에서 홈 시작’을 활성화하세요
 # context: Settings page: the summary of a greyed-out slider in place of its value; %1$s is the title of the switch it waits on, like Glass tab bar

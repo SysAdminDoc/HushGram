@@ -460,6 +460,8 @@ Going to that date	O tarihe gidiliyor
 Sort reels on profiles	Profillerde reels'leri sırala
 Puts the arrow next to Reels on every profile, so you can sort them by Latest or Most viewed where Instagram took the choice away.	Her profilde Reels'in yanına oku koyar, böylece Instagram'ın seçeneği kaldırdığı yerlerde de En yeni veya En çok izlenen sırasıyla sıralayabilirsin.
 The cards of people and creators to follow that Instagram puts between reels. Every reel still plays.	Instagram'ın reel'ler arasına koyduğu, takip edilecek kişi ve içerik üreticisi kartları. Her reel oynatılmaya devam eder.
+Hide stories in Reels	Reels'te hikayeleri gizle
+The Catch up with friends pages of stories that Instagram puts between reels. Stories stay at the top of Home.	Instagram'ın reel'ler arasına koyduğu arkadaş hikayesi sayfaları. Hikayeler Ana Sayfa'nın üstünde kalır.
 Leaves out reels with a Paid partnership label, and reels Instagram marks as boosted. Ads have their own switch.	Ücretli ortaklık etiketi taşıyan reel'leri ve Instagram'ın öne çıkarılmış olarak işaretlediği reel'leri dışarıda bırakır. Reklamların kendi anahtarı var.
 Turn on Start Home on Following to use this choice.	Bu seçimi kullanmak için Ana Sayfa'yı Takip Edilenler ile aç seçeneğini açın.
 # context: Settings page: the summary of a greyed-out slider in place of its value; %1$s is the title of the switch it waits on, like Glass tab bar
