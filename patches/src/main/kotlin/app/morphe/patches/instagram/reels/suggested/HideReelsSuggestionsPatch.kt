@@ -11,7 +11,10 @@ import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.string
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
+import app.morphe.patches.instagram.feed.back.enumConstantName
 import app.morphe.patches.instagram.feed.requireOneKindField
+import app.morphe.patches.instagram.misc.extension.classesLoadingString
+import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.freeLocalsAt
@@ -22,6 +25,7 @@ import app.morphe.patches.instagram.misc.extension.uniqueMethod
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.util.addInstructionsAtControlFlowLabel
+import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
@@ -39,15 +43,20 @@ internal const val REELS_FILTER = "$REELS_SUGGESTIONS->filter(Ljava/lang/Object;
 internal const val NETEGO_FILTER = "$REELS_SUGGESTIONS->netego(Ljava/lang/Object;Ljava/lang/String;)Ljava/lang/Object;"
 internal const val FRIENDS_TAB_FILTER = "$REELS_SUGGESTIONS->friendsTab(Ljava/lang/Object;)Ljava/lang/Object;"
 
-/** The trace marker of the converter that makes each Reels item (a clips item) from the server's. */
-internal const val TO_CLIPS_ITEM = "android_purge_26_q2_ClipsItemExt_toClipsItemCombined"
+/**
+ * A string only the converter that makes each Reels item (a clips item) from the server's loads:
+ * the start of the id it gives a live's preview item. 456 dropped the converter's trace marker
+ * (ClipsItemExt_toClipsItemCombined).
+ */
+internal const val TO_CLIPS_ITEM = "live_preview_"
 
 /**
- * The trace marker of the method that makes the page of people to follow, which the Reels friends
- * tab shows when it has no reels ("Instagram is better with friends", #167), into a clips item of
- * its own. That item never goes through the converter.
+ * The item kind the page of people to follow is made with, which the Reels friends tab shows when
+ * it has no reels ("Instagram is better with friends", #167). The method making it into a clips
+ * item of its own reads it; that item never goes through the converter. 456 dropped that method's
+ * trace marker (ClipsItemExt_toFriendLaneEmptyStateClipsItem).
  */
-internal const val TO_FRIENDS_TAB_PAGE = "android_purge_26_q2_ClipsItemExt_toFriendLaneEmptyStateClipsItem"
+internal const val TO_FRIENDS_TAB_PAGE = "SUGGESTED_USERS"
 
 /**
  * Two of the netego unit types, which the Reels viewer's binder dispatch compares a netego unit's
@@ -88,17 +97,44 @@ val hideReelsSuggestionsPatch = bytecodePatch(
 
 private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $detail")
 
-/** The converter that makes a clips item from the server's Reels item, by its trace marker. */
-internal object ClipsItemConverterFingerprint : Fingerprint(
-    filters = listOf(string(TO_CLIPS_ITEM)),
-    custom = { method, _ -> method.holdsString(TO_CLIPS_ITEM) },
-)
+/**
+ * The converter that makes a clips item from the server's Reels item: the one method loading
+ * [TO_CLIPS_ITEM], however Redex pooled it. None or more than one stops [patch] before anything
+ * changes.
+ */
+internal fun BytecodePatchContext.reelsItemConverter(patch: String): MutableMethod {
+    val found = classesLoadingString(TO_CLIPS_ITEM).sortedBy { it.type }.flatMap { it.methods }
+        .filter { loadsString(it, TO_CLIPS_ITEM) }
+    val converter = found.singleOrNull() ?: throw PatchException(
+        "$patch: expected exactly one Reels item converter holding \"$TO_CLIPS_ITEM\" in this Instagram build, found " +
+            if (found.isEmpty()) "none" else found.joinToString { "${it.definingClass}->${it.name}" },
+    )
+    return mutableClassDefBy(converter.definingClass).methods.single { method ->
+        method.name == converter.name && method.returnType == converter.returnType &&
+            method.parameterTypes.map(Any::toString) == converter.parameterTypes.map(Any::toString)
+    }
+}
 
-/** The method that makes the friends tab's page of people to follow into a clips item, by its trace marker. */
-internal object FriendsTabPageFingerprint : Fingerprint(
-    filters = listOf(string(TO_FRIENDS_TAB_PAGE)),
-    custom = { method, _ -> method.holdsString(TO_FRIENDS_TAB_PAGE) },
-)
+/**
+ * The method that makes the friends tab's page of people to follow into a clips item: the one
+ * static method of [converter]'s class taking one value that reads the [TO_FRIENDS_TAB_PAGE] constant
+ * of an enum. What it answers is checked after, so a maker answering something else is named.
+ */
+private fun BytecodePatchContext.friendsTabPageMaker(converter: Method): Method {
+    val makers = classDefBy(converter.definingClass).methods.filter { method ->
+        AccessFlags.STATIC.isSet(method.accessFlags) && method.parameterTypes.size == 1 &&
+            method.instructions().any { instruction ->
+                val field = instruction.fieldReference()
+                instruction.opcode == Opcode.SGET_OBJECT && field != null && field.type == field.definingClass &&
+                    classDefByOrNull(field.definingClass)?.takeIf { it.superclass == "Ljava/lang/Enum;" }
+                        ?.let { enumConstantName(it, field) } == TO_FRIENDS_TAB_PAGE
+            }
+    }
+    return makers.singleOrNull() ?: refuse(
+        "expected one Reels friends tab page maker of ${converter.definingClass} reading the $TO_FRIENDS_TAB_PAGE kind, " +
+            "found ${makers.map { "${it.definingClass}->${it.name}" }}",
+    )
+}
 
 /**
  * The Reels viewer's binder dispatch for one clips item and its position, answering the binder:
@@ -138,13 +174,13 @@ internal class ReelsSuggestionSites(
  * binder dispatch reads off another class, and that class is the netego unit: the converter has to
  * return, once, the item a call taking the unit makes, with the unit still in its register and
  * nothing jumping to the return. Where Redex built that call's item in place, as 455 does on
- * some builds ([inlinedNetegoReturns]), the item's constructor right before the return counts. The friends tab's page is made by the one method holding
- * [TO_FRIENDS_TAB_PAGE], which has to answer the same item type and return it somewhere. Fails
+ * some builds ([inlinedNetegoReturns]), the item's constructor right before the return counts. The friends tab's page is made by the one method
+ * [friendsTabPageMaker] finds, which has to return its item somewhere. Fails
  * before anything changes when any of it isn't there exactly once, since that's an update this
  * patch hasn't seen.
  */
 internal fun BytecodePatchContext.findReelsSuggestions(): ReelsSuggestionSites {
-    val converter = uniqueMethod(PATCH, "Reels item converter holding \"$TO_CLIPS_ITEM\"", ClipsItemConverterFingerprint)
+    val converter = reelsItemConverter(PATCH)
     val where = "${converter.definingClass}->${converter.name}"
     val itemType = converter.returnType
     if (!itemType.startsWith("L") || classDefByOrNull(itemType) == null) refuse("$where answers $itemType, which isn't a class of the app")
@@ -187,7 +223,7 @@ internal fun BytecodePatchContext.findReelsSuggestions(): ReelsSuggestionSites {
     // Two locals the netego hook may borrow, checked now so a method short of them changes nothing.
     converter.freeLocalsAt(PATCH, netegoReturn, 2)
 
-    val page = uniqueMethod(PATCH, "Reels friends tab page maker holding \"$TO_FRIENDS_TAB_PAGE\"", FriendsTabPageFingerprint)
+    val page = friendsTabPageMaker(converter)
     val pageWhere = "${page.definingClass}->${page.name}"
     if (page.returnType != itemType) refuse("$pageWhere answers ${page.returnType}, not a $itemType")
     if (page.instructions().none { it.opcode == Opcode.RETURN_OBJECT }) refuse("$pageWhere returns no item")

@@ -47,7 +47,7 @@ class HideReelsSuggestionsHookTest {
     private val unit = "Lfixture/NetegoUnit;"
     private val binders = "Lfixture/Binders;"
     private val items = "Lfixture/Items;"
-    private val pages = "Lfixture/Pages;"
+    private val pageKind = "Lfixture/PageKind;"
     private val session = "Lcom/instagram/common/session/UserSession;"
     private val hooks = setOf(REELS_FILTER, NETEGO_FILTER, FRIENDS_TAB_FILTER)
 
@@ -91,7 +91,7 @@ class HideReelsSuggestionsHookTest {
 
         context.hide()
 
-        val page = context.mutableClassDefBy(pages).methods.single { it.name == "friendsTab" }
+        val page = context.mutableClassDefBy(converter).methods.single { it.name == "friendsTab" }
         assertEveryReturnFiltered("the stand-in page", page, item, FRIENDS_TAB_FILTER)
         val code = page.code()
         val none = code.indices.last { code[it].opcode == Opcode.RETURN_OBJECT }
@@ -103,6 +103,7 @@ class HideReelsSuggestionsHookTest {
     @Test
     fun aBuildThePatchCantReadFailsBeforeAnythingChanges() {
         val oneType = "expected the Reels binder dispatch to read one netego unit type, found"
+        val pageMaker = "expected one Reels friends tab page maker of $converter reading the $TO_FRIENDS_TAB_PAGE kind, found"
         val cases = listOf(
             classes(converters = 0) to "Reels item converter holding \"$TO_CLIPS_ITEM\" in this Instagram build, found none",
             classes(converters = 2) to "Reels item converter holding \"$TO_CLIPS_ITEM\" in this Instagram build, found Lfixture/",
@@ -123,12 +124,12 @@ class HideReelsSuggestionsHookTest {
             classes(madeByInstance = true) to "makes its netego item with invoke-virtual, not a static call",
             classes(jumpToNetegoReturn = true) to "something in $converter->convert jumps to the return of its netego item",
             classes(locals = 2) to "needs 2",
-            classes(pageMakers = 0) to "Reels friends tab page maker holding \"$TO_FRIENDS_TAB_PAGE\" in this Instagram build, found none",
-            classes(pageMakers = 2) to "Reels friends tab page maker holding \"$TO_FRIENDS_TAB_PAGE\" in this Instagram build, found Lfixture/",
-            classes(pageMarker = "${TO_FRIENDS_TAB_PAGE}_v2") to
-                "Reels friends tab page maker holding \"$TO_FRIENDS_TAB_PAGE\" in this Instagram build, found none",
-            classes(pageAnswers = "Lfixture/OtherItem;") to "$pages->friendsTab answers Lfixture/OtherItem;, not a $item",
-            classes(pageReturns = false) to "$pages->friendsTab returns no item",
+            classes(pageMakers = 0) to "$pageMaker []",
+            classes(pageMakers = 2) to "$pageMaker [$converter->friendsTab, $converter->friendsTab2]",
+            classes(pageKindName = "${TO_FRIENDS_TAB_PAGE}_V2") to "$pageMaker []",
+            classes(pageKindStored = false) to "$pageMaker []",
+            classes(pageAnswers = "Lfixture/OtherItem;") to "$converter->friendsTab answers Lfixture/OtherItem;, not a $item",
+            classes(pageReturns = false) to "$converter->friendsTab returns no item",
         )
         for ((classes, expected) in cases) {
             val context = PatchContexts.of(classes)
@@ -160,21 +161,25 @@ class HideReelsSuggestionsHookTest {
     }
 
     private fun builds(bundle: File, label: String) {
-        val converters = FixtureDex.classesHolding(bundle, TO_CLIPS_ITEM)
-        val pageMakers = FixtureDex.classesHolding(bundle, TO_FRIENDS_TAB_PAGE)
+        val converters = FixtureDex.classesLoading(bundle, TO_CLIPS_ITEM)
         val dispatches = FixtureDex.classesHolding(bundle, CREATORS_TO_FOLLOW)
-        val itemType = converters.flatMap { it.methods }.single { method -> method.code().any { it.string() == TO_CLIPS_ITEM } }.returnType
+        val converter = converters.flatMap { it.methods }.single { method -> method.code().any { it.string() == TO_CLIPS_ITEM } }
+        val itemType = converter.returnType
         val itemClass = FixtureDex.classes(bundle, setOf(itemType)).values
         val fieldTypes = itemClass.flatMap { it.fields }.map { it.type }.filter { it.startsWith("L") }.toSet()
         val kinds = FixtureDex.classes(bundle, fieldTypes).values
-        val context = PatchContexts.of((converters + pageMakers + dispatches + itemClass + kinds).distinctBy { it.type })
+        // The enums the converter's class reads a constant of, the friends tab page's kind among them.
+        val enumsRead = converters.flatMap { it.methods }.flatMap { it.code() }.filter { it.opcode == Opcode.SGET_OBJECT }
+            .map { (it.reference() as FieldReference).definingClass }.toSet()
+        val enums = FixtureDex.classes(bundle, enumsRead).values
+        val context = PatchContexts.of((converters + dispatches + itemClass + kinds + enums).distinctBy { it.type })
 
         context.hide()
 
-        val methods = (converters + pageMakers).map { it.type }.distinct().flatMap { context.mutableClassDefBy(it).methods }
+        val methods = converters.map { it.type }.distinct().flatMap { context.mutableClassDefBy(it).methods }
         val page = methods.filter { method -> method.code().any { it.referenceText() == FRIENDS_TAB_FILTER } }
         assertEquals("${label}: friends tab page makers hooked", 1, page.size)
-        assertTrue("${label}: the friends tab page maker", page.single().code().any { it.string() == TO_FRIENDS_TAB_PAGE })
+        assertEquals("${label}: the friends tab page maker sits beside the converter", converter.definingClass, page.single().definingClass)
         assertEveryReturnFiltered("$label friends tab page", page.single(), itemType, FRIENDS_TAB_FILTER)
         // The DexDiff rule for this hook counts its sites, one per return.
         assertEquals("${label}: friends tab page returns", 2, page.single().code().count { it.opcode == Opcode.RETURN_OBJECT })
@@ -285,7 +290,8 @@ class HideReelsSuggestionsHookTest {
         madeByInstance: Boolean = false,
         locals: Int = 4,
         pageMakers: Int = 1,
-        pageMarker: String = TO_FRIENDS_TAB_PAGE,
+        pageKindName: String = TO_FRIENDS_TAB_PAGE,
+        pageKindStored: Boolean = true,
         pageAnswers: String = item,
         pageReturns: Boolean = true,
     ): List<ClassDef> {
@@ -299,6 +305,28 @@ class HideReelsSuggestionsHookTest {
             "new-instance v0, $unit\n$fromUnit\nmove-result-object v1"
         } else {
             "new-instance v1, $item\ninvoke-direct { v1 }, $item-><init>()V"
+        }
+        val made = if (pageReturns) {
+            """
+                const/4 v1, 0x0
+                if-eqz p0, :none
+                new-instance v1, $item
+                invoke-direct { v1 }, $item-><init>()V
+                return-object v1
+                :none
+                return-object v1
+            """
+        } else {
+            """
+                new-instance v1, Ljava/lang/IllegalStateException;
+                invoke-direct { v1 }, Ljava/lang/IllegalStateException;-><init>()V
+                throw v1
+            """
+        }
+        // The friends tab's page makers sit beside the converter and read the page's kind.
+        val pageMethods = (0 until pageMakers).map { copy ->
+            method(converter, if (copy == 0) "friendsTab" else "friendsTab${copy + 1}", listOf("Lfixture/ServerPage;"), pageAnswers, 2, static = true,
+                body = "sget-object v0, $pageKind->A0j:$pageKind\n" + made.trimIndent())
         }
         val converterClasses = (0 until converters).map { copy ->
             val type = if (copy == 0) converter else "Lfixture/OtherConverter;"
@@ -320,8 +348,30 @@ class HideReelsSuggestionsHookTest {
                 :none
                 return-object v1
             """)
-            classDef(type, listOf(convert))
+            classDef(type, listOf(convert) + if (copy == 0) pageMethods else emptyList())
         }
+        // Instagram 456 builds the page's kind in a high register and constructs it through a low copy.
+        val kindConstant = { field: String, name: String, ordinal: Int, stored: Boolean ->
+            """
+                const-string v1, "$name"
+                const/4 v2, 0x$ordinal
+                new-instance v3, $pageKind
+                ${if (stored) "move-object v0, v3" else "new-instance v0, $pageKind"}
+                invoke-direct { v0, v1, v2 }, $pageKind-><init>(Ljava/lang/String;I)V
+                sput-object v3, $pageKind->$field:$pageKind
+            """.trimIndent()
+        }
+        val pageKindEnum = classDef(
+            pageKind,
+            listOf(
+                method(pageKind, "<clinit>", emptyList(), "V", 4, static = true, body = listOf(
+                    kindConstant("A0i", "BLEND_END_OF_FEED", 0, true),
+                    kindConstant("A0j", pageKindName, 1, pageKindStored),
+                    "return-void",
+                ).joinToString("\n")),
+            ),
+            superclass = "Ljava/lang/Enum;",
+        )
         val kindEnum = classDef(
             kind,
             listOf(method(kind, "<clinit>", emptyList(), "V", 1, static = true, body = (listOf("MEDIA", "NETEGO") + kindNames)
@@ -343,30 +393,7 @@ class HideReelsSuggestionsHookTest {
             """)
             classDef(type, listOf(bind), fields = listOf("name" to "Ljava/lang/String;"))
         }
-        val made = if (pageReturns) {
-            """
-                const/4 v1, 0x0
-                if-eqz p0, :none
-                new-instance v1, $item
-                invoke-direct { v1 }, $item-><init>()V
-                return-object v1
-                :none
-                return-object v1
-            """
-        } else {
-            """
-                new-instance v1, Ljava/lang/IllegalStateException;
-                invoke-direct { v1 }, Ljava/lang/IllegalStateException;-><init>()V
-                throw v1
-            """
-        }
-        val pageClasses = (0 until pageMakers).map { copy ->
-            val type = if (copy == 0) pages else "Lfixture/OtherPages;"
-            val friendsTab = method(type, "friendsTab", listOf("Lfixture/ServerPage;"), pageAnswers, 2, static = true,
-                body = "const-string v0, \"$pageMarker\"\n" + made.trimIndent())
-            classDef(type, listOf(friendsTab))
-        }
-        return converterClasses + kindEnum + itemClass + unitClass + dispatchClasses + pageClasses
+        return converterClasses + kindEnum + itemClass + unitClass + dispatchClasses + pageKindEnum
     }
 
     private fun method(
