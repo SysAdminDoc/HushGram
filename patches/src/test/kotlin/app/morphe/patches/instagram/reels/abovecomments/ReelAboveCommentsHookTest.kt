@@ -17,8 +17,6 @@ import app.morphe.patches.instagram.direct.lock.findHiddenChatsTouch
 import app.morphe.patches.instagram.direct.lock.hookHiddenChatsTouch
 import app.morphe.patches.instagram.media.taptoplay.FRAGMENT_ACTIVITY
 import app.morphe.patches.instagram.media.taptoplay.TOUCH as TAP_CLOCK
-import app.morphe.patches.instagram.misc.extension.PURGE_MARKER
-import app.morphe.patches.instagram.misc.extension.markers
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -50,7 +48,7 @@ class ReelAboveCommentsHookTest {
     private val manager = "Lfixture/WatchAndCommentViewManager;"
     private val controller = "Lfixture/ClipsVideoPlayerController;"
     private val player = "Lfixture/VideoPlayer;"
-    private val purge = "Lfixture/Purge;->mark(Ljava/lang/String;)V"
+    private val reason = "Lfixture/DismissReason;"
     private val view = "Landroid/view/View;"
     private val hooks = listOf(SHEET_MOVED, SHEET_TAPPED, SHEET_TOUCH)
     private val stubs = listOf(
@@ -62,8 +60,6 @@ class ReelAboveCommentsHookTest {
         "resumePlayer(Ljava/lang/Object;)V",
         "setPlayerSpeed(Ljava/lang/Object;F)V",
     )
-
-    private fun marker(name: String) = "android_purge_26_q3_$name"
 
     /** Every hook the patch writes is in the ReelAboveComments the bundle ships, public and static, and so is every stub. */
     @Test
@@ -164,21 +160,24 @@ class ReelAboveCommentsHookTest {
     @Test
     fun aBuildThePatchCantReadFailsBeforeAnythingChanges() {
         val cases = listOf(
-            Shape(heightChanged = 0) to "marked $SHEET_HEIGHT_CHANGED, found 0",
-            Shape(heightChanged = 2) to "marked $SHEET_HEIGHT_CHANGED, found 2",
+            Shape(tapLoaders = 0) to "loading \"$SHEET_AUDIO_TAP\", its onBottomSheetSingleTapConfirmed, found 0",
+            Shape(tapLoaders = 2) to "loading \"$SHEET_AUDIO_TAP\", its onBottomSheetSingleTapConfirmed, found 2",
+            Shape(heightChanged = 0) to "its onBottomSheetHeightChanged, found 0",
+            Shape(heightChanged = 2) to "its onBottomSheetHeightChanged, found 2",
             Shape(managerPublic = false) to "the manager $manager isn't public",
             Shape(heightLoops = true) to "jumps back to its first instruction",
-            Shape(tapElsewhere = true) to "isn't in the manager $manager",
+            Shape(pauseTraced = false) to "loading \"$PLAYER_PAUSE_TRACE\", its pauseCurrentPlayer, found 0",
             Shape(controllerPublic = false) to "the controller $controller isn't public",
-            Shape(resumeTakesInt = true) to "isn't an instance (Ljava/lang/String;JZZZ)V method",
+            Shape(resumeTakesInt = true) to "one instance (Ljava/lang/String;JZZZ)V method, its resumeCurrentPlayer, found 0",
             Shape(pausePublic = false) to "isn't public, so the extension can't call it",
             Shape(controllerFields = 2) to "has 2 $controller fields, expected one",
             Shape(controllerFieldPublic = false) to "isn't public, so the extension can't read it",
-            Shape(openedPauses = false) to "doesn't pause through",
+            Shape(openedPauses = false) to "its onFullyOpened, found 0",
             Shape(currentGetters = 2) to "makes 2 calls on the controller returning $player",
-            Shape(mediaMarked = false) to "isn't marked $SHEET_MEDIA_VIEW",
+            Shape(mediaFound = false) to "finds no view",
             Shape(mediaElsewhere = true) to "somewhere other than a View field of the manager",
             Shape(mediaPublic = false) to "->media isn't a public instance field",
+            Shape(dismissReasonEnum = false) to "its onBottomSheetDismissStarted, found 0",
             Shape(openCleared = false) to "doesn't clear open",
             Shape(dismissSetsOpenFirst = true) to "sets the open flag open first",
             Shape(eventOverwritten = true) to "writes over parameter 0",
@@ -227,26 +226,20 @@ class ReelAboveCommentsHookTest {
     }
 
     private fun builds(bundle: File, name: String) {
-        val markers = setOf(
-            SHEET_HEIGHT_CHANGED, SHEET_TAP_CONFIRMED, SHEET_DISMISS_STARTED, SHEET_DISMISSED, SHEET_FULLY_OPENED,
-            PLAYER_PAUSE, PLAYER_RESUME, PLAYER_SPEED,
-        )
-        val holders = mutableListOf<ClassDef>()
-        FixtureDex.forEach(bundle) { dex ->
-            val holds = dex.stringSection.any { string ->
-                string.startsWith("android_purge_") && PURGE_MARKER.find(string)?.groupValues?.get(1) in markers
-            }
-            if (!holds) return@forEach
-            for (classDef in dex.classes) {
-                if (classDef.methods.any { method -> method.markers().any { it in markers } }) holders += ImmutableClassDef.of(classDef)
-            }
-        }
-        val extra = FixtureDex.classes(bundle, setOf(FRAGMENT_ACTIVITY)).values
+        // The classes loading the tap event and the pause trace, with any pool answering for them, and
+        // the types the manager's methods take first, where the dismissal's reason is.
+        val holders = (FixtureDex.classesLoading(bundle, SHEET_AUDIO_TAP) + FixtureDex.classesLoading(bundle, PLAYER_PAUSE_TRACE))
+            .distinctBy { it.type }
+        val byType = holders.associateBy { it.type }
+        val instance = { method: Method -> !AccessFlags.STATIC.isSet(method.accessFlags) }
+        val tap = holders.flatMap { it.methods }.single { instance(it) && FixtureDex.loads(it, SHEET_AUDIO_TAP, byType) }
+        val pause = holders.flatMap { it.methods }.single { instance(it) && FixtureDex.loads(it, PLAYER_PAUSE_TRACE, byType) }
+        val managerClass = holders.single { it.type == tap.definingClass }
+        val firsts = managerClass.methods.mapNotNull { it.parameterTypes.firstOrNull()?.toString() }.toSet() - byType.keys
+        val extra = FixtureDex.classes(bundle, firsts + FRAGMENT_ACTIVITY).values
         val context = PatchContexts.of((holders + extra + ExtensionDex.classDef(REEL_ABOVE_COMMENTS)).distinctBy { it.type })
-        val methods = holders.flatMap { it.methods }
-        val height = methods.single { SHEET_HEIGHT_CHANGED in it.markers() }
-        val tap = methods.single { SHEET_TAP_CONFIRMED in it.markers() }
-        val touch = extra.single().methods.single {
+        val height = managerClass.methods.single { instance(it) && it.returnType == "V" && it.parameterTypes.map(Any::toString) == listOf("I") }
+        val touch = extra.single { it.type == FRAGMENT_ACTIVITY }.methods.single {
             it.name == "dispatchTouchEvent" && it.returnType == "Z" &&
                 it.parameterTypes.map(Any::toString) == listOf("Landroid/view/MotionEvent;") && it.implementation != null
         }
@@ -276,7 +269,7 @@ class ReelAboveCommentsHookTest {
         assertEquals("$name: the touch hook", SHEET_TOUCH, newTouch[0].referenceText())
 
         val managerType = height.definingClass
-        val controllerType = methods.single { PLAYER_SPEED in it.markers() }.definingClass
+        val controllerType = pause.definingClass
         assertEquals("$name: the reel view is the manager's", managerType, context.method(REEL_ABOVE_COMMENTS, "mediaView")[1].fieldRef()?.definingClass)
         val flags = context.method(REEL_ABOVE_COMMENTS, "sheetOpen").filter { it.opcode == Opcode.IGET_BOOLEAN }.mapNotNull { it.fieldRef() }
         assertEquals("$name: two flags of the manager", listOf(managerType, managerType), flags.map { it.definingClass })
@@ -288,14 +281,15 @@ class ReelAboveCommentsHookTest {
         }
     }
 
-    // ---- stand-ins shaped like Instagram 454's -------------------------------------------------
+    // ---- stand-ins shaped like Instagram 456's -------------------------------------------------
 
-    /** What each stand-in looks like; the defaults are 454's shape, and each case changes one thing. */
+    /** What each stand-in looks like; the defaults are 456's shape, and each case changes one thing. */
     private data class Shape(
+        val tapLoaders: Int = 1,
         val heightChanged: Int = 1,
         val managerPublic: Boolean = true,
         val heightLoops: Boolean = false,
-        val tapElsewhere: Boolean = false,
+        val pauseTraced: Boolean = true,
         val controllerPublic: Boolean = true,
         val resumeTakesInt: Boolean = false,
         val pausePublic: Boolean = true,
@@ -303,9 +297,10 @@ class ReelAboveCommentsHookTest {
         val controllerFieldPublic: Boolean = true,
         val openedPauses: Boolean = true,
         val currentGetters: Int = 1,
-        val mediaMarked: Boolean = true,
+        val mediaFound: Boolean = true,
         val mediaElsewhere: Boolean = false,
         val mediaPublic: Boolean = true,
+        val dismissReasonEnum: Boolean = true,
         val openCleared: Boolean = true,
         val dismissSetsOpenFirst: Boolean = false,
         val eventOverwritten: Boolean = false,
@@ -317,28 +312,25 @@ class ReelAboveCommentsHookTest {
 
     /**
      * The watch-and-comment manager with its sheet callbacks: the height change, which reads and sets
-     * the open flag and stores the reel view it finds after its getClipsMediaContentView marker; the
-     * tap callback, which keeps a tap on the audio button and answers false otherwise; the dismissal's
-     * start, which sets the closing flag; the dismissal, which clears both; and the full open, which
-     * pauses a playing reel through the controller. The Reels player controller with its speed setter,
-     * pause, resume, current player and playing check. IgFragmentActivity's dispatchTouchEvent.
+     * the open flag and stores the reel view it finds first; the tap callback, which keeps a tap on the
+     * audio button, logging it, and answers false otherwise; the dismissal's start, taking its reason
+     * and setting the closing flag; the dismissal, which clears both; and the full open, which pauses a
+     * playing reel through the controller. The Reels player controller with its speed setter, pause,
+     * which logs its trace, resume, current player and playing check. The dismissal's reason enum.
+     * IgFragmentActivity's dispatchTouchEvent.
      */
     private fun classes(shape: Shape = Shape()): List<ClassDef> {
         val heights = (0 until shape.heightChanged).map { copy ->
             method(manager, if (copy == 0) "heightChanged" else "heightChangedToo", listOf("I"), "V", 6, """
                 ${if (shape.heightLoops) ":top" else ""}
-                const-string v0, "${marker(SHEET_HEIGHT_CHANGED)}"
-                invoke-static { v0 }, $purge
-                ${if (shape.heightLoops) "if-eqz p1, :top" else ""}
                 iget-boolean v0, p0, $manager->open:Z
+                ${if (shape.heightLoops) "if-eqz p1, :top" else ""}
                 if-nez v0, :done
                 const/4 v1, 0x1
                 iput-boolean v1, p0, $manager->open:Z
-                const-string v0, "${marker(if (shape.mediaMarked) SHEET_MEDIA_VIEW else "WatchAndCommentViewManager_setupMediaContentView")}"
-                invoke-static { v0 }, $purge
                 iget-object v2, p0, $manager->root:$view
                 const v0, 0x7f0b0bbd
-                invoke-virtual { v2, v0 }, $view->findViewById(I)$view
+                ${if (shape.mediaFound) "invoke-virtual { v2, v0 }, $view->findViewById(I)$view" else "invoke-virtual { v2 }, $view->getRootView()$view"}
                 move-result-object v0
                 iput-object v0, ${if (shape.mediaElsewhere) "v2, Lfixture/Other;->media" else "p0, $manager->media"}:$view
                 :done
@@ -346,16 +338,14 @@ class ReelAboveCommentsHookTest {
             """)
         }
 
+        val logged = if (shape.tapLoaders > 0) SHEET_AUDIO_TAP else "partial_modal_sheet_dismissed"
         // With this past v15 the callback only answers false, since a 4-bit form can't name it.
         val tapBody = if (shape.tapRegisters > 17) """
                 const/4 v0, 0x0
-                const-string v1, "${marker(SHEET_TAP_CONFIRMED)}"
-                invoke-static { v1 }, $purge
+                const-string v1, "$logged"
                 return v0
             """ else """
                 const/4 v0, 0x0
-                const-string v1, "${marker(SHEET_TAP_CONFIRMED)}"
-                invoke-static { v1 }, $purge
                 iget-object v1, p0, $manager->audio:$view
                 ${if (shape.eventOverwritten) "const/4 p1, 0x0" else ""}
                 ${if (shape.thisOverwritten) "const/4 p0, 0x0" else ""}
@@ -366,23 +356,26 @@ class ReelAboveCommentsHookTest {
                 :answer
                 return v0
                 :audio
+                const-string v1, "$logged"
                 const/4 v0, 0x1
                 return v0
             """
-        val tap = method(if (shape.tapElsewhere) "Lfixture/Other;" else manager, "tapConfirmed", listOf("Landroid/view/MotionEvent;"), "Z",
-            shape.tapRegisters, tapBody)
+        val tap = method(manager, "tapConfirmed", listOf("Landroid/view/MotionEvent;"), "Z", shape.tapRegisters, tapBody)
+        val otherTaps = (1 until shape.tapLoaders).map { copy ->
+            method("Lfixture/Other;", "logged$copy", emptyList(), "V", 2, """
+                const-string v0, "$SHEET_AUDIO_TAP"
+                return-void
+            """)
+        }
 
-        val dismissStarted = method(manager, "dismissStarted", listOf("Lfixture/Event;"), "V", 3, """
-            const-string v0, "${marker(SHEET_DISMISS_STARTED)}"
-            invoke-static { v0 }, $purge
+        val dismissStarted = method(manager, "dismissStarted", listOf(if (shape.dismissReasonEnum) reason else "Lfixture/Event;", "Ljava/lang/Integer;"),
+            "V", 4, """
             const/4 v0, 0x1
             ${if (shape.dismissSetsOpenFirst) "iput-boolean v0, p0, $manager->open:Z" else ""}
             iput-boolean v0, p0, $manager->dismissing:Z
             return-void
         """)
         val dismissed = method(manager, "dismissed", emptyList(), "V", 2, """
-            const-string v0, "${marker(SHEET_DISMISSED)}"
-            invoke-static { v0 }, $purge
             const/4 v0, 0x0
             ${if (shape.openCleared) "iput-boolean v0, p0, $manager->open:Z" else ""}
             iput-boolean v0, p0, $manager->dismissing:Z
@@ -392,8 +385,6 @@ class ReelAboveCommentsHookTest {
             "invoke-virtual { v1 }, $controller->${if (copy == 0) "current" else "currentToo"}()$player\nmove-result-object v0"
         }
         val fullyOpened = method(manager, "fullyOpened", emptyList(), "V", 5, """
-            const-string v0, "${marker(SHEET_FULLY_OPENED)}"
-            invoke-static { v0 }, $purge
             iget-object v1, p0, $manager->controller:$controller
             $getters
             if-eqz v0, :done
@@ -419,23 +410,20 @@ class ReelAboveCommentsHookTest {
         val managerClass = ImmutableClassDef(
             manager, (if (shape.managerPublic) AccessFlags.PUBLIC.value else 0) or AccessFlags.FINAL.value, "Ljava/lang/Object;",
             null, null, null, managerFields,
-            heights + listOfNotNull(tap.takeIf { !shape.tapElsewhere }) + listOf(dismissStarted, dismissed, fullyOpened),
+            heights + listOf(tap, dismissStarted, dismissed, fullyOpened),
         )
 
         val speed = method(controller, "speed", listOf("Lkotlin/jvm/functions/Function1;", "F"), "V", 4, """
-            const-string v0, "${marker(PLAYER_SPEED)}"
-            invoke-static { v0 }, $purge
+            const/4 v0, 0x0
             return-void
         """)
         val pause = method(controller, "pause", listOf("Ljava/lang/String;", "Z", "Z"), "V", 5, """
-            const-string v0, "${marker(PLAYER_PAUSE)}"
-            invoke-static { v0 }, $purge
+            const-string v0, "${if (shape.pauseTraced) PLAYER_PAUSE_TRACE else "ClipsVideoPlayerController.pausePlayer pauseReason="}"
             return-void
         """, if (shape.pausePublic) AccessFlags.PUBLIC.value or AccessFlags.FINAL.value else AccessFlags.PRIVATE.value or AccessFlags.FINAL.value)
         val resume = method(controller, "resume", listOf("Ljava/lang/String;", if (shape.resumeTakesInt) "I" else "J", "Z", "Z", "Z"), "V",
             if (shape.resumeTakesInt) 7 else 8, """
-            const-string v0, "${marker(PLAYER_RESUME)}"
-            invoke-static { v0 }, $purge
+            const/4 v0, 0x0
             return-void
         """)
         val current = (0 until shape.currentGetters).map { copy ->
@@ -453,10 +441,16 @@ class ReelAboveCommentsHookTest {
             null, null, null, listOf(field(controller, "player", player)), listOf(speed, pause, resume, playing) + current,
         )
 
+        val reasonClass = ImmutableClassDef(
+            reason, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value or AccessFlags.ENUM.value, "Ljava/lang/Enum;",
+            null, null, null, emptyList(), emptyList(),
+        )
+
         return listOfNotNull(
             managerClass,
             controllerClass,
-            if (shape.tapElsewhere) classDef("Lfixture/Other;", listOf(tap)) else null,
+            reasonClass,
+            if (otherTaps.isNotEmpty()) classDef("Lfixture/Other;", otherTaps) else null,
             if (shape.activity) activity(shape.tapClock) else null,
             ExtensionDex.classDef(REEL_ABOVE_COMMENTS),
         )

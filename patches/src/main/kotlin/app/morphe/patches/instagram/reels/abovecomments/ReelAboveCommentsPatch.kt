@@ -14,22 +14,21 @@ import app.morphe.patches.instagram.download.reel.rewriteStub
 import app.morphe.patches.instagram.media.taptoplay.FRAGMENT_ACTIVITY
 import app.morphe.patches.instagram.media.taptoplay.TOUCH as TAP_CLOCK
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.jumpTargets
+import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
-import app.morphe.patches.instagram.misc.extension.markers
 import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
 import app.morphe.patches.instagram.misc.extension.requireParameterIntact
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.extension.requireThisIntact
-import app.morphe.patches.instagram.misc.extension.typesMarked
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.util.addInstructionsAtControlFlowLabel
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
-import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
@@ -37,7 +36,6 @@ import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
-import com.android.tools.smali.dexlib2.iface.reference.StringReference
 
 private const val PATCH = "Control the reel above comments"
 
@@ -46,18 +44,14 @@ internal const val SHEET_MOVED = "$REEL_ABOVE_COMMENTS->sheetMoved(Ljava/lang/Ob
 internal const val SHEET_TAPPED = "$REEL_ABOVE_COMMENTS->tapped(ILjava/lang/Object;Landroid/view/MotionEvent;)Z"
 internal const val SHEET_TOUCH = "$REEL_ABOVE_COMMENTS->touch(Landroid/app/Activity;Landroid/view/MotionEvent;)V"
 
-/** The markers, after Instagram's release prefix, of the comments sheet's manager's methods the patch reads or changes. */
-internal const val SHEET_HEIGHT_CHANGED = "WatchAndCommentViewManager_onBottomSheetHeightChanged"
-internal const val SHEET_TAP_CONFIRMED = "WatchAndCommentViewManager_onBottomSheetSingleTapConfirmed"
-internal const val SHEET_DISMISS_STARTED = "WatchAndCommentViewManager_onBottomSheetDismissStarted"
-internal const val SHEET_DISMISSED = "WatchAndCommentViewManager_onBottomSheetDismissed"
-internal const val SHEET_FULLY_OPENED = "WatchAndCommentViewManager_onFullyOpened"
-internal const val SHEET_MEDIA_VIEW = "WatchAndCommentViewManager_getClipsMediaContentView"
+/**
+ * The event the comments sheet's onBottomSheetSingleTapConfirmed logs for a tap on the audio button,
+ * the one tap it keeps. No other method of Instagram's loads it.
+ */
+internal const val SHEET_AUDIO_TAP = "partial_modal_sheet_audio_control_button_tapped"
 
-/** The markers of the Reels player controller's methods the extension calls. */
-internal const val PLAYER_PAUSE = "ClipsVideoPlayerController_pauseCurrentPlayer"
-internal const val PLAYER_RESUME = "ClipsVideoPlayerController_resumeCurrentPlayer"
-internal const val PLAYER_SPEED = "ClipsVideoPlayerController_setPlaybackSpeed"
+/** The trace the Reels player controller's pauseCurrentPlayer starts with. No other method of Instagram's loads it. */
+internal const val PLAYER_PAUSE_TRACE = "ClipsVideoPlayerController.pauseCurrentPlayer pauseReason="
 
 /** The reasons Instagram's own tap on a reel pauses and plays it with. */
 internal const val TAP_PAUSE_REASON = "single_tap_paused"
@@ -85,9 +79,10 @@ private const val FIND_VIEW_BY_ID = "Landroid/view/View;->findViewById(I)Landroi
  * and its player controller, and the controller's own current-player check, pause, resume and speed
  * calls, with the arguments Instagram's tap on a full-screen reel uses.
  *
- * Every method is found by Instagram's own markers, and everything is found and checked before
- * anything changes, so a build that differs stops the patch naming what it couldn't find, and nothing
- * is half done.
+ * The tap callback is the one method loading the audio button's tap event and the controller's pause
+ * the one loading its trace; the rest are the one method of their shape in the manager or the
+ * controller. Everything is found and checked before anything changes, so a build that differs stops
+ * the patch naming what it couldn't find, and nothing is half done.
  */
 @Suppress("unused")
 val reelAboveCommentsPatch = bytecodePatch(
@@ -138,50 +133,39 @@ internal class ReelAboveCommentsHooks(
 )
 
 internal fun BytecodePatchContext.findReelAboveComments(): ReelAboveCommentsHooks {
-    val wanted = setOf(
-        SHEET_HEIGHT_CHANGED, SHEET_TAP_CONFIRMED, SHEET_DISMISS_STARTED, SHEET_DISMISSED, SHEET_FULLY_OPENED,
-        PLAYER_PAUSE, PLAYER_RESUME, PLAYER_SPEED,
-    )
-    val marked = mutableMapOf<String, MutableList<Method>>()
-    val classes = mutableMapOf<String, ClassDef>()
-    val holders = typesMarked(*wanted.toTypedArray())
-    classDefForEach { classDef ->
-        if (classDef.type !in holders) return@classDefForEach
-        classes[classDef.type] = classDef
-        classDef.methods.forEach { method ->
-            method.markers().filter { it in wanted }.distinct().forEach { marked.getOrPut(it) { mutableListOf() } += method }
-        }
-    }
-    fun single(marker: String): Method {
-        val found = marked[marker].orEmpty()
-        return found.singleOrNull() ?: refuse("expected one method marked $marker, found ${found.size}")
-    }
-
-    // The manager: its sheet callbacks sit in one public class.
-    val heightChanged = single(SHEET_HEIGHT_CHANGED)
-    val manager = heightChanged.definingClass
-    val managerClass = classes[manager] ?: refuse("the manager $manager isn't in the app")
+    // The manager: the one method loading the audio button's tap event is its onBottomSheetSingleTapConfirmed.
+    val tapConfirmed = loader(SHEET_AUDIO_TAP, "onBottomSheetSingleTapConfirmed")
+    tapConfirmed.requireShape("onBottomSheetSingleTapConfirmed", listOf(MOTION_EVENT), "Z")
+    val manager = tapConfirmed.definingClass
+    val managerClass = classDefByOrNull(manager) ?: refuse("the manager $manager isn't in the app")
     if (!AccessFlags.PUBLIC.isSet(managerClass.accessFlags)) refuse("the manager $manager isn't public, so the extension can't reach it")
-    heightChanged.requireShape(SHEET_HEIGHT_CHANGED, listOf("I"), "V")
+    val callbacks = managerClass.methods.filter { !AccessFlags.STATIC.isSet(it.accessFlags) && it.implementation != null }
+    fun callback(what: String, matches: (Method) -> Boolean): Method {
+        val found = callbacks.filter(matches)
+        return found.singleOrNull() ?: refuse("expected the manager $manager to have one $what, found ${found.size}")
+    }
+    // onBottomSheetHeightChanged is its one instance (I)V method.
+    val heightChanged = callback("instance (I)V method, its onBottomSheetHeightChanged") {
+        it.returnType == "V" && it.parameterTypes.map(Any::toString) == listOf("I")
+    }
     if (0 in heightChanged.jumpTargets()) refuse("${heightChanged.text()} jumps back to its first instruction")
-    val tapConfirmed = single(SHEET_TAP_CONFIRMED).also { it.requireShape(SHEET_TAP_CONFIRMED, listOf(MOTION_EVENT), "Z") }
-    val dismissStarted = single(SHEET_DISMISS_STARTED)
-    val dismissed = single(SHEET_DISMISSED)
-    val fullyOpened = single(SHEET_FULLY_OPENED)
-    listOf(SHEET_TAP_CONFIRMED to tapConfirmed, SHEET_DISMISS_STARTED to dismissStarted, SHEET_DISMISSED to dismissed, SHEET_FULLY_OPENED to fullyOpened)
-        .forEach { (marker, method) ->
-            if (method.definingClass != manager) refuse("${method.text()}, marked $marker, isn't in the manager $manager")
-            if (AccessFlags.STATIC.isSet(method.accessFlags)) refuse("${method.text()}, marked $marker, is static")
-        }
 
-    // The controller: setPlaybackSpeed, pauseCurrentPlayer and resumeCurrentPlayer sit in one public class.
-    val speed = single(PLAYER_SPEED)
-    val controller = speed.definingClass
-    val controllerClass = classes[controller] ?: refuse("the controller $controller isn't in the app")
+    // The controller: the one method loading pauseCurrentPlayer's trace is its pause, and resumeCurrentPlayer
+    // and setPlaybackSpeed are its one instance method of their shape.
+    val pause = loader(PLAYER_PAUSE_TRACE, "pauseCurrentPlayer")
+    pause.requireShape("pauseCurrentPlayer", listOf(STRING, "Z", "Z"), "V")
+    val controller = pause.definingClass
+    val controllerClass = classDefByOrNull(controller) ?: refuse("the controller $controller isn't in the app")
     if (!AccessFlags.PUBLIC.isSet(controllerClass.accessFlags)) refuse("the controller $controller isn't public, so the extension can't reach it")
-    speed.requireShape(PLAYER_SPEED, listOf(FUNCTION1, "F"), "V")
-    val pause = single(PLAYER_PAUSE).also { it.requireShape(PLAYER_PAUSE, listOf(STRING, "Z", "Z"), "V") }
-    val resume = single(PLAYER_RESUME).also { it.requireShape(PLAYER_RESUME, listOf(STRING, "J", "Z", "Z", "Z"), "V") }
+    fun controllerMethod(what: String, parameters: List<String>, returns: String): Method {
+        val found = controllerClass.methods.filter {
+            !AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == returns && it.parameterTypes.map(Any::toString) == parameters
+        }
+        return found.singleOrNull()
+            ?: refuse("expected the controller $controller to have one instance (${parameters.joinToString("")})$returns method, its $what, found ${found.size}")
+    }
+    val resume = controllerMethod("resumeCurrentPlayer", listOf(STRING, "J", "Z", "Z", "Z"), "V")
+    val speed = controllerMethod("setPlaybackSpeed", listOf(FUNCTION1, "F"), "V")
     listOf(speed, pause, resume).forEach { method ->
         if (method.definingClass != controller) refuse("${method.text()} isn't in the controller $controller")
         if (!AccessFlags.PUBLIC.isSet(method.accessFlags)) refuse("${method.text()} isn't public, so the extension can't call it")
@@ -193,11 +177,14 @@ internal fun BytecodePatchContext.findReelAboveComments(): ReelAboveCommentsHook
         ?: refuse("the manager $manager has ${controllerFields.size} $controller fields, expected one")
     if (!AccessFlags.PUBLIC.isSet(controllerField.accessFlags)) refuse("$manager->${controllerField.name} isn't public, so the extension can't read it")
 
-    // onFullyOpened pauses a playing reel through the controller's current player and its playing check.
-    val openedCode = fullyOpened.code()
-    val openedCalls = openedCode.filter { it.opcode == Opcode.INVOKE_VIRTUAL }.mapNotNull { it.methodReference() }
+    // onFullyOpened, the manager's one ()V method pausing, pauses a playing reel through the controller's
+    // current player and its playing check.
+    val fullyOpened = callback("()V method pausing through ${pause.text()}, its onFullyOpened") { method ->
+        method.returnType == "V" && method.parameterTypes.isEmpty() &&
+            method.code().any { it.opcode == Opcode.INVOKE_VIRTUAL && it.methodReference()?.text() == pause.text() }
+    }
+    val openedCalls = fullyOpened.code().filter { it.opcode == Opcode.INVOKE_VIRTUAL }.mapNotNull { it.methodReference() }
         .filter { it.definingClass == controller }
-    if (openedCalls.none { it.text() == pause.text() }) refuse("${fullyOpened.text()} doesn't pause through ${pause.text()}")
     val playingChecks = openedCalls.filter { it.returnType == "Z" && it.parameterTypes.size == 1 }.distinctBy { it.text() }
     val isPlaying = playingChecks.singleOrNull()
         ?: refuse("${fullyOpened.text()} makes ${playingChecks.size} one-argument boolean calls on the controller, expected one: its playing check")
@@ -215,19 +202,27 @@ internal fun BytecodePatchContext.findReelAboveComments(): ReelAboveCommentsHook
         }
     }
 
-    // onBottomSheetHeightChanged stores the scaled reel view it finds after its getClipsMediaContentView marker.
+    // onBottomSheetHeightChanged stores the scaled reel view it finds first.
     val media = heightChanged.mediaField(manager)
-    // The open flag is the first one it reads, which it sets and the dismissal clears.
+    // The open flag is the first one it reads, which it sets.
     val heightCode = heightChanged.code()
     val open = heightCode.firstOrNull { it.opcode == Opcode.IGET_BOOLEAN && it.fieldReference()?.definingClass == manager }
         ?.fieldReference() ?: refuse("${heightChanged.text()} reads no flag of the manager")
     if (heightCode.none { it.writesField(open) }) refuse("${heightChanged.text()} reads ${open.name} but never sets it")
-    if (dismissed.code().none { it.writesField(open) }) refuse("${dismissed.text()} doesn't clear ${open.name}")
-    // The closing flag is the first one the dismissal's start sets, which the dismissal clears.
+    // onBottomSheetDismissStarted, the one callback taking the dismissal's reason, an enum, first, sets
+    // the closing flag first.
+    val dismissStarted = callback("method taking an enum first and returning V, its onBottomSheetDismissStarted") { method ->
+        method.returnType == "V" && method.parameterTypes.firstOrNull()?.toString()
+            ?.let { type -> classDefByOrNull(type)?.let { AccessFlags.ENUM.isSet(it.accessFlags) } } == true
+    }
     val dismissing = dismissStarted.code().firstOrNull { it.opcode == Opcode.IPUT_BOOLEAN && it.fieldReference()?.definingClass == manager }
         ?.fieldReference() ?: refuse("${dismissStarted.text()} sets no flag of the manager")
     if (dismissing.name == open.name) refuse("${dismissStarted.text()} sets the open flag ${open.name} first")
-    if (dismissed.code().none { it.writesField(dismissing) }) refuse("${dismissed.text()} doesn't clear ${dismissing.name}")
+    // onBottomSheetDismissed, the one ()V callback clearing it, clears the open flag too.
+    val dismissed = callback("()V method clearing ${dismissing.name}, its onBottomSheetDismissed") { method ->
+        method.returnType == "V" && method.parameterTypes.isEmpty() && method.code().any { it.writesField(dismissing) }
+    }
+    if (dismissed.code().none { it.writesField(open) }) refuse("${dismissed.text()} doesn't clear ${open.name}")
     listOf(media, open, dismissing).forEach { field ->
         val declared = managerClass.fields.singleOrNull { it.name == field.name && it.type == field.type }
             ?: refuse("the manager $manager doesn't declare ${field.name}:${field.type}")
@@ -406,34 +401,41 @@ internal fun BytecodePatchContext.reelAboveCommentsStubs(): ReelAboveCommentsStu
 }
 
 /**
- * The view field [this], onBottomSheetHeightChanged, stores the scaled reel in: after its
- * getClipsMediaContentView marker, the first findViewById's answer, moved straight into a [manager]
- * View field.
+ * The view field [this], onBottomSheetHeightChanged, stores the scaled reel in: its first
+ * findViewById's answer, moved straight into a [manager] View field.
  */
 private fun Method.mediaField(manager: String): FieldReference {
     val code = code()
-    val marker = code.indexOfFirst { load -> load.stringLoaded()?.let { it.startsWith("android_purge_") && it.endsWith("_$SHEET_MEDIA_VIEW") } == true }
-    if (marker < 0) refuse("${text()} isn't marked $SHEET_MEDIA_VIEW")
-    val find = (marker + 1 until code.size).firstOrNull { code[it].methodReference()?.text() == FIND_VIEW_BY_ID }
-        ?: refuse("${text()} finds no view after its $SHEET_MEDIA_VIEW marker")
+    val find = code.indices.firstOrNull { code[it].methodReference()?.text() == FIND_VIEW_BY_ID }
+        ?: refuse("${text()} finds no view")
     val moved = code.getOrNull(find + 1) as? OneRegisterInstruction
     val store = code.getOrNull(find + 2) as? TwoRegisterInstruction
     if (moved == null || store == null || moved.opcode != Opcode.MOVE_RESULT_OBJECT || store.opcode != Opcode.IPUT_OBJECT) {
-        refuse("${text()} doesn't store the view it finds after its $SHEET_MEDIA_VIEW marker straight into a field")
+        refuse("${text()} doesn't store the first view it finds straight into a field")
     }
     val field = store.fieldReference()
     if (field == null || field.definingClass != manager || field.type != VIEW ||
         store.registerA != moved.registerA || store.registerB != localRegisterCount()
     ) {
-        refuse("${text()} stores the view it finds after its $SHEET_MEDIA_VIEW marker somewhere other than a View field of the manager")
+        refuse("${text()} stores the first view it finds somewhere other than a View field of the manager")
     }
     return field
 }
 
-/** Throws unless [this], marked [marker], is an instance method taking [parameters] and returning [returns]. */
-private fun Method.requireShape(marker: String, parameters: List<String>, returns: String) {
+/**
+ * The one instance method of Instagram's loading [value], which is [what]. A static string pool
+ * answering for it holds it too, so only instance methods count.
+ */
+private fun BytecodePatchContext.loader(value: String, what: String): Method {
+    val found = classesLoadingString(value).flatMap { it.methods }
+        .filter { !AccessFlags.STATIC.isSet(it.accessFlags) && loadsString(it, value) }
+    return found.singleOrNull() ?: refuse("expected one instance method loading \"$value\", its $what, found ${found.size}")
+}
+
+/** Throws unless [this], Instagram's [what], is an instance method taking [parameters] and returning [returns]. */
+private fun Method.requireShape(what: String, parameters: List<String>, returns: String) {
     if (AccessFlags.STATIC.isSet(accessFlags) || returnType != returns || parameterTypes.map(Any::toString) != parameters) {
-        refuse("${text()}, marked $marker, isn't an instance (${parameters.joinToString("")})$returns method")
+        refuse("${text()}, its $what, isn't an instance (${parameters.joinToString("")})$returns method")
     }
 }
 
@@ -449,10 +451,6 @@ private fun BytecodePatchContext.mutable(method: Method): MutableMethod =
     }
 
 private fun Method.code(): List<Instruction> = implementation?.instructions?.toList().orEmpty()
-
-private fun Instruction.stringLoaded(): String? =
-    if (opcode != Opcode.CONST_STRING && opcode != Opcode.CONST_STRING_JUMBO) null
-    else ((this as ReferenceInstruction).reference as StringReference).string
 
 private fun Instruction.methodReference(): MethodReference? = (this as? ReferenceInstruction)?.reference as? MethodReference
 
