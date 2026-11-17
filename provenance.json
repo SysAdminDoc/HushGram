@@ -584,6 +584,10 @@
         "extensions/instagram/src/main/java/app/hushgram/extension/instagram/feed/FeedViewInfo.java",
         "extensions/instagram/src/test/java/app/hushgram/extension/instagram/feed/FeedViewInfoTest.java",
         "extensions/instagram/src/test/java/app/hushgram/extension/instagram/settings/FeedViewHistorySettingsTest.java",
+        "extensions/instagram/src/main/java/app/hushgram/extension/instagram/direct/ChatMenuPlacement.java",
+        "extensions/instagram/src/test/java/app/hushgram/extension/instagram/direct/ChatMenuPlacementTest.java",
+        "patches/src/main/kotlin/app/morphe/patches/instagram/direct/preview/ChatMenuShows.kt",
+        "patches/src/test/kotlin/app/morphe/patches/instagram/direct/preview/ChatMenuShowsTest.kt",
         "scripts/gen-readme-patches.py"
       ],
       "origin": "original",

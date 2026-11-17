@@ -71,6 +71,7 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
+* Long press a chat low in your messages and its menu now opens above the chat when it wouldn't fit between the chat and the tab bar. Before, it covered the tab bar, and with a bigger font its last rows were cut off. Reported in #728.
 * `Keep playing in the background` shows its notification on a Root Mount install too, with Pause, Play and Stop. A mount can't add the service HushGram normally uses, so the video used to keep playing with no notification and no way to stop it short of opening Instagram again. Reported in #349.
 * Picking friends on the Friends tab in Reels now leaves the other reels out. Before, one reel from each page without your picks still showed between theirs, so the tab barely looked filtered. Reported in #503.
 * In Turkish, German, Spanish and Portuguese, the seek bar rows called it a search bar. They now use the same word as `Keep a seek bar` in each language. Reported in #10.

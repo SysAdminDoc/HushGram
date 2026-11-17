@@ -126,7 +126,8 @@ internal class PreviewTargets(
 val previewChatsPatch = bytecodePatch(
     name = "Preview chats",
     description = "Long press a chat in your messages and tap Preview to read its newest messages without opening " +
-        "it, so nobody sees Seen. You can reply from there too. Starts off. Turn it on in HushGram settings > Messages.",
+        "it, so nobody sees Seen. You can reply from there too. Starts off. Turn it on in HushGram settings > Messages. " +
+        "Either way, a chat's menu opens above the chat when it wouldn't fit between the chat and the tab bar.",
 ) {
     category("Messages")
     dependsOn(settingsPatch, instagramExtensionPatch)
@@ -136,7 +137,9 @@ val previewChatsPatch = bytecodePatch(
         requireStatusMethod("previewChats")
         // Every finder refuses before any code changes.
         val found = findPreview()
+        val shows = findMenuShows()
         writePreview(found)
+        placeMenus(shows)
         enableStatus("previewChats")
     }
 }
