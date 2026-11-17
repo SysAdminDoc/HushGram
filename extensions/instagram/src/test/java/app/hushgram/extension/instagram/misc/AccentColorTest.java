@@ -4,6 +4,7 @@
  */
 package app.hushgram.extension.instagram.misc;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
@@ -15,6 +16,7 @@ import android.content.Context;
 import android.content.ContextWrapper;
 import android.content.res.ColorStateList;
 import android.content.res.Resources;
+import android.os.Parcel;
 import android.util.TypedValue;
 
 import org.junit.After;
@@ -366,6 +368,58 @@ public class AccentColorTest {
                 AccentColor.list(stock).getColorForState(ENABLED, 0));
         assertEquals(List.of(FamilyNames.ACCENT_COLOR + ": invoked 3, 0 found, 0 missing. Counted: "
                 + AccentColor.LIST + " 3"), HookStatus.report());
+    }
+
+    /** A list's states and colors read back as it holds them, and a copy of its colors is free to change. */
+    @Test
+    public void aListReadsBackItsStatesAndColors() {
+        ColorStateList stock = button();
+        AccentColor.Read read = AccentColor.read(stock);
+        assertEquals(4, read.states.length);
+        assertArrayEquals(PRESSED_STATE, read.states[0]);
+        assertEquals(0, read.states[3].length);
+        assertArrayEquals(new int[] {PRESSED, 0x4d4a5df9, WHITE, INDIGO}, read.colors);
+        read.colors[3] = WHITE;
+        assertEquals(INDIGO, stock.getDefaultColor());
+    }
+
+    /**
+     * #727: a phone's own build can write more into a list's parcel after its colors, and the list
+     * still reads. One that doesn't hold a color for each state doesn't.
+     */
+    @Test
+    public void aParcelWithMoreAfterTheColorsStillReads() {
+        Parcel parcel = Parcel.obtain();
+        try {
+            parcel.writeInt(2);
+            parcel.writeIntArray(DISABLED);
+            parcel.writeIntArray(new int[0]);
+            parcel.writeIntArray(new int[] {0x4d4a5df9, INDIGO});
+            parcel.writeInt(1);
+            parcel.writeLong(42L);
+            parcel.setDataPosition(0);
+            AccentColor.Read read = AccentColor.read(parcel);
+            assertArrayEquals(DISABLED, read.states[0]);
+            assertEquals(0, read.states[1].length);
+            assertArrayEquals(new int[] {0x4d4a5df9, INDIGO}, read.colors);
+
+            parcel.setDataPosition(0);
+            parcel.setDataSize(0);
+            parcel.writeInt(3);
+            parcel.writeIntArray(DISABLED);
+            parcel.writeIntArray(new int[0]);
+            parcel.writeIntArray(new int[] {0x4d4a5df9, INDIGO});
+            parcel.setDataPosition(0);
+            assertNull("three states and two colors", AccentColor.read(parcel));
+
+            parcel.setDataPosition(0);
+            parcel.setDataSize(0);
+            parcel.writeInt(-1);
+            parcel.setDataPosition(0);
+            assertNull(AccentColor.read(parcel));
+        } finally {
+            parcel.recycle();
+        }
     }
 
     /** A list with no accent blue in it, a plain color list and a subclass come back as they were. */

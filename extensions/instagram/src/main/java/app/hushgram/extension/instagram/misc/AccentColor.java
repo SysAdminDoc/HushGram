@@ -12,11 +12,15 @@ import android.util.TypedValue;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import androidx.annotation.Nullable;
+
+import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.WeakHashMap;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
+import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 
@@ -72,6 +76,16 @@ public final class AccentColor {
 
     /** The most states a list is read with. Instagram's have a handful. */
     private static final int MOST_STATES = 64;
+
+    /** A color list's own hidden getters, null where they're kept from apps. */
+    private static volatile Method statesGetter;
+    private static volatile Method colorsGetter;
+
+    /** Whether the getters were looked up yet. Written after them. */
+    private static volatile boolean gettersLooked;
+
+    /** Whether the log has said a list couldn't be read, which it says once a run. */
+    private static volatile boolean toldUnread;
 
     /**
      * Each list swapped, by the list the loader answered, for the color it was swapped to. The
@@ -341,35 +355,121 @@ public final class AccentColor {
 
     /**
      * A new list with [list]'s states and its colors swapped, or null when none of its colors is an
-     * accent blue or it can't be read. A list has no public getter for its states, so it's read back
-     * from the parcel it writes, which is the states' count, each state as an int array and then the
-     * colors as one.
+     * accent blue or it can't be read (see {@link #read(ColorStateList)}).
      */
     static ColorStateList swap(ColorStateList list, AccentHue hue) {
+        Read read = read(list);
+        if (read == null) {
+            HookStatus.counted(FamilyNames.ACCENT_COLOR, UNREAD);
+            if (!toldUnread) {
+                toldUnread = true;
+                Logger.printDebug(() -> "Accent color: couldn't read a color list, " + parcelSize(list) + " bytes");
+            }
+            return null;
+        }
+        int[] colors = read.colors;
+        boolean changed = false;
+        for (int i = 0; i < colors.length; i++) {
+            int swapped = swap(colors[i], hue);
+            changed |= swapped != colors[i];
+            colors[i] = swapped;
+        }
+        return changed ? new ColorStateList(read.states, colors) : null;
+    }
+
+    /**
+     * [list]'s states and a copy of its colors, or null when they can't be read. A list has no public
+     * getter for them. Its own hidden ones answer first; where a build keeps those from apps, the
+     * states and colors are read back from the start of the parcel it writes. A phone's own build can
+     * write more after them (#727), and that's left unread.
+     */
+    @Nullable
+    static Read read(ColorStateList list) {
+        Read read = fromGetters(list);
+        if (read != null) return read;
         Parcel parcel = Parcel.obtain();
         try {
             list.writeToParcel(parcel, 0);
             parcel.setDataPosition(0);
-            int count = parcel.readInt();
-            int[][] states = count >= 0 && count <= MOST_STATES ? new int[count][] : null;
-            for (int i = 0; states != null && i < count; i++) {
-                states[i] = parcel.createIntArray();
-                if (states[i] == null) states = null;
-            }
-            int[] colors = states == null ? null : parcel.createIntArray();
-            if (colors == null || colors.length != count || parcel.dataAvail() != 0) {
-                HookStatus.counted(FamilyNames.ACCENT_COLOR, UNREAD);
-                return null;
-            }
-            boolean changed = false;
-            for (int i = 0; i < colors.length; i++) {
-                int swapped = swap(colors[i], hue);
-                changed |= swapped != colors[i];
-                colors[i] = swapped;
-            }
-            return changed ? new ColorStateList(states, colors) : null;
+            return read(parcel);
+        } catch (Throwable failure) {
+            return null;
         } finally {
             parcel.recycle();
+        }
+    }
+
+    /**
+     * The states and colors a color list's parcel starts with: the states' count, each state as an int
+     * array and then the colors as one. Null when it doesn't read that way.
+     */
+    @Nullable
+    static Read read(Parcel parcel) {
+        int count = parcel.readInt();
+        if (count < 0 || count > MOST_STATES) return null;
+        int[][] states = new int[count][];
+        for (int i = 0; i < count; i++) {
+            states[i] = parcel.createIntArray();
+            if (states[i] == null) return null;
+        }
+        return checked(states, parcel.createIntArray());
+    }
+
+    @Nullable
+    private static Read fromGetters(ColorStateList list) {
+        if (!gettersLooked) {
+            Method states = null;
+            Method colors = null;
+            try {
+                states = ColorStateList.class.getMethod("getStates");
+                colors = ColorStateList.class.getMethod("getColors");
+            } catch (Throwable failure) {
+                Logger.printDebug(() -> "Accent color: a color list's getters are kept from apps: " + failure);
+            }
+            statesGetter = states;
+            colorsGetter = colors;
+            gettersLooked = true;
+        }
+        Method states = statesGetter;
+        Method colors = colorsGetter;
+        if (states == null || colors == null) return null;
+        try {
+            return checked((int[][]) states.invoke(list), (int[]) colors.invoke(list));
+        } catch (Throwable failure) {
+            return null;
+        }
+    }
+
+    /** [states] and a copy of [colors] when there's a color for each state, or null. */
+    @Nullable
+    private static Read checked(@Nullable int[][] states, @Nullable int[] colors) {
+        if (states == null || colors == null || colors.length != states.length || states.length > MOST_STATES) return null;
+        for (int[] state : states) {
+            if (state == null) return null;
+        }
+        return new Read(states.clone(), colors.clone());
+    }
+
+    private static int parcelSize(ColorStateList list) {
+        Parcel parcel = Parcel.obtain();
+        try {
+            list.writeToParcel(parcel, 0);
+            return parcel.dataSize();
+        } catch (Throwable failure) {
+            return -1;
+        } finally {
+            parcel.recycle();
+        }
+    }
+
+    /** A color list's states and colors, read. The colors are a copy, free to change. */
+    static final class Read {
+        final int[][] states;
+        final int[] colors;
+
+        Read(int[][] states, int[] colors) {
+            this.states = states;
+            this.colors = colors;
         }
     }
 
