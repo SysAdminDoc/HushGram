@@ -11,17 +11,21 @@ import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.WideLiteralInstruction
+import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
+import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Picture in picture for reels (#572): the hook is in the extension, and in every build of 454 both
+ * Picture in picture for reels (#572): the hook is in the extension, and in every fixture build both
  * of Instagram's reels picture in picture checks ask it first, answer yes on a yes, and otherwise run
  * as they came.
  */
@@ -41,9 +45,7 @@ class ReelsPictureInPictureTest {
             Fixtures.otherBuilds()
         var checked = 0
         for (bundle in bundles) {
-            val classes = (FixtureDex.classesLoading(bundle, PIP_ALLOWED) + FixtureDex.classesLoading(bundle, PIP_SWITCHED_ON))
-                .distinctBy { it.type }
-            val context = PatchContexts.of(classes)
+            val context = PatchContexts.of(classesReadingAFlag(bundle))
             val checks = context.findReelsPipChecks("test")
             val stock = listOf(checks.allowed, checks.switchedOn).map { it.code() }
 
@@ -67,7 +69,21 @@ class ReelsPictureInPictureTest {
             }
             checked++
         }
-        assertEquals("every build of 454 is read", Fixtures.BUILDS, checked)
+        assertEquals("every build is read", Fixtures.BUILDS, checked)
+    }
+
+    /** Every class in [bundle] with a method reading either check's flag, as the finder slices the app. */
+    private fun classesReadingAFlag(bundle: File): List<ClassDef> {
+        val flags = setOf(PIP_ALLOWED_FLAG, PIP_SWITCH_FLAG)
+        val found = mutableListOf<ClassDef>()
+        FixtureDex.forEach(bundle) { dex ->
+            dex.classes.filterTo(found) { classDef ->
+                classDef.methods.any { method ->
+                    method.code().any { it.opcode == Opcode.CONST_WIDE && (it as WideLiteralInstruction).wideLiteral in flags }
+                }
+            }
+        }
+        return found.map { ImmutableClassDef.of(it) }
     }
 
     /** An insert can push a branch past a plain goto's reach, and dexlib2 widens it. */
