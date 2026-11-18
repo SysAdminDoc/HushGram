@@ -2074,10 +2074,11 @@ once-call Lapp/hushgram/extension/instagram/stories/StorySeenButton;->bind(Ljava
 # Left out, the Follow button is never kept off a story's header; twice or elsewhere, it isn't the
 # hook the patch wrote.
 once-call Lapp/hushgram/extension/instagram/stories/StoryFollowButton;->bind(Ljava/lang/Object;)V in static (*)V holding ReelViewerItemBinder.bindToolbarViews
-# Download any story (#400) hands the story and its view holder to StoryDownloadButton in the same
-# toolbar bind, behind the other hooks, through two moves into borrowed locals. Left out, no story
-# gets a Download button; twice or elsewhere, it isn't the hook the patch wrote.
-once-call Lapp/hushgram/extension/instagram/stories/StoryDownloadButton;->bind(Ljava/lang/Object;Ljava/lang/Object;)V in static (*)V holding ReelViewerItemBinder.bindToolbarViews
+# Download any story (#400) hands the story, its view holder, the viewer's model of the reel and the
+# session (#745) to StoryDownloadButton in the same toolbar bind, behind the other hooks, through four
+# moves into borrowed locals. Left out, no story gets a Download button; twice or elsewhere, it isn't
+# the hook the patch wrote.
+once-call Lapp/hushgram/extension/instagram/stories/StoryDownloadButton;->bind(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V in static (*)V holding ReelViewerItemBinder.bindToolbarViews
 # It also hands StorySeenRings the story viewer's write of a reel's seen time into the store that greys
 # its ring (0202.A0A on 450, the viewer logger's per-story method, which takes the story and holds
 # nux_story), in the write's own place, with the story whose time it is. The extension skips it while
@@ -3473,6 +3474,11 @@ once-call Lapp/hushgram/extension/instagram/stories/StoryReplyBox;->viewCreated(
 # over the story at a large font; twice or elsewhere, it isn't the call the patch wrote.
 # StoryButtonsRoomHookTest checks on the fixtures that the call sits right after the super call.
 once-call Lapp/hushgram/extension/instagram/stories/StoryButtonsRoom;->resumed(Ljava/lang/Object;)V in instance ()V holding ReelViewerFragment.onResume
+# Download any story tells StoryListHold the story viewer came back, once, right after
+# ReelViewerFragment's onResume hands on to its superclass's (#745). Left out, no viewer is known, so
+# the story runs on under the Download button's lists; twice or elsewhere, it isn't the call the patch
+# wrote. DownloadStoryButtonHookTest checks on the fixtures that it sits right after the super call.
+once-call Lapp/hushgram/extension/instagram/stories/StoryListHold;->viewerShown(Ljava/lang/Object;)V in instance ()V holding ReelViewerFragment.onResume
 # Start reels with sound asks ReelSound.wanted() once, right after the Reels viewer's onCreate
 # (the one holding ClipsViewerFragment.onCreate) calls its super, and on a yes hands the viewer's
 # source to ReelSound.startWithSound() and tells ReelSound.opened() whether the sound was on, in

@@ -243,7 +243,8 @@ final class StoriesCategory {
                             + "Off or paused, Instagram's own menu returns.")));
             stories.add(toggle(context, Settings.DOWNLOAD_BUTTON_ON_STORIES, L10n.t("Download button on stories"),
                     L10n.t("Puts a Download button at the top of a story, beside the three dots. One tap saves the "
-                            + "photo or video in front, the same as Download in the menu.")));
+                            + "photo or video in front, the same as Download in the menu. Press and hold for "
+                            + "Save all, to save every story in the set you're watching.")));
             stories.add(toggle(context, Settings.TEXT_BUTTON_ON_STORIES, L10n.t("Copy text button on stories"),
                     L10n.t("Puts a Lens icon at the top of a story, beside the three dots. Tap it and Google Lens "
                             + "opens on what's showing, so you can select and copy its text.")));

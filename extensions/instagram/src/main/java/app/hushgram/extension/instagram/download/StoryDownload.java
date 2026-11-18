@@ -18,9 +18,11 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Consumer;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
+import app.hushgram.extension.instagram.stories.StoryListHold;
 import app.hushgram.extension.instagram.stories.StoryLoop;
 import app.hushgram.extension.instagram.stories.StoryPriority;
 import app.hushgram.extension.instagram.stories.StorySpeed;
@@ -407,7 +409,8 @@ public final class StoryDownload {
      * The story button's tap (#400): the save the menu's Download row runs, for [media], the story's
      * Media, whatever the Download on stories switch says. A photo story with music, which the menu
      * gives Download as video and Download as photo, gets the same two in a list under [button]
-     * first, and the one picked saves that story (#726). A save that can't start says so. Never throws.
+     * first, and the one picked saves that story (#726). The story holds still while the list is
+     * open. A save that can't start says so. Never throws.
      */
     public static void saveStory(@Nullable View button, Object media) {
         try {
@@ -425,6 +428,7 @@ public final class StoryDownload {
                 return true;
             });
             list.show();
+            StoryListHold.over(list);
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.STORY_DOWNLOAD, "story button", t);
         }
@@ -432,6 +436,82 @@ public final class StoryDownload {
 
     /** What's counted when the story button asks whether to save a photo story with music as a video or a photo (#726). */
     static final String BUTTON_ASKED = "story button asked video or photo";
+
+    /**
+     * The story button's press and hold on a reel with more than one story (#745): a list under
+     * [button] with Download, which saves [media] as a tap does, and Save all, which saves [stories],
+     * the Media of each story of the reel in order. The story holds still while the list is open, so
+     * Download saves the one on screen. Never throws.
+     */
+    public static void askStories(View button, Object media, List<Object> stories) {
+        ask(button, media, stories, StoryDownload::saveStories);
+    }
+
+    static void ask(View button, Object media, List<?> stories, Consumer<List<?>> all) {
+        try {
+            if (!button.isAttachedToWindow()) {
+                saveStory(button, media);
+                return;
+            }
+            PopupMenu list = new PopupMenu(button.getContext(), button);
+            list.getMenu().add(0, 0, 0, L10n.t("Download"));
+            list.getMenu().add(0, 1, 1, L10n.t("Save all"));
+            list.setOnMenuItemClickListener(row -> {
+                if (row.getItemId() == 0) saveStory(button, media);
+                else all.accept(stories);
+                return true;
+            });
+            list.show();
+            StoryListHold.over(list);
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.STORY_DOWNLOAD, "story button", t);
+        }
+    }
+
+    /** Saves each of [stories] in order, as a carousel's pages are. A save that can't start says so. Never throws. */
+    private static void saveStories(List<?> stories) {
+        Context context = Utils.getContext().getApplicationContext();
+        try {
+            boolean started = true;
+            for (List<MediaSave.Item> batch : batches(stories)) {
+                started &= MediaSave.saveBatch(context, batch, null);
+            }
+            if (!started) Feedback.show(context, L10n.t(context, "Download failed"), true);
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.STORY_DOWNLOAD, "story save all", t);
+            Feedback.show(context, L10n.t(context, "Download failed"), true);
+        }
+    }
+
+    /**
+     * Plain values from each of [stories], read now on the tap, cut into batches the saver takes: a
+     * reel can hold more stories than one batch has room for.
+     */
+    static List<List<MediaSave.Item>> batches(List<?> stories) {
+        List<List<MediaSave.Item>> batches = new ArrayList<>();
+        List<MediaSave.Item> batch = null;
+        for (Object media : stories) {
+            if (batch == null || batch.size() == MediaSave.MAX_BATCH_PAGES) {
+                batch = new ArrayList<>();
+                batches.add(batch);
+            }
+            batch.add(item(media));
+        }
+        return batches;
+    }
+
+    /** What's saved for [media]: its video when it has one, else its picture. One that can't be read fails on the worker. */
+    private static MediaSave.Item item(Object media) {
+        try {
+            List<MediaSave.Rendition> videos = ReelDownload.renditions(media);
+            String manifest = InstagramMedia.dashManifest(media);
+            if (!videos.isEmpty() || manifest != null) return new MediaSave.Item(true, videos, manifest, details(media));
+            return new MediaSave.Item(false, pictures(media), null, details(media));
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.STORY_DOWNLOAD, "story save all", failure);
+            return new MediaSave.Item(true, null, null, null);
+        }
+    }
 
     /** A row picked in the story button's list: saves [media] as [choice] says. Never throws. */
     private static void picked(Choice choice, Object media) {

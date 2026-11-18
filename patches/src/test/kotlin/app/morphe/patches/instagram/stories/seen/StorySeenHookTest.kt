@@ -889,7 +889,16 @@ class StorySeenHookTest {
             batchClass, storeClass, storeBase, resetNux, userSession, binderClass, viewHolder, reelItem, seenState,
             classOf(HOLDER_BASE, emptyList(), emptyList(), superclass = VIEW_HOLDER, abstract = true),
             classOf(HOLDER, emptyList(), emptyList(), superclass = HOLDER_BASE),
-            classOf(VIEWER, emptyList(), emptyList()),
+            classOf(
+                VIEWER,
+                listOf(field(VIEWER, "story", REEL_ITEM)),
+                listOf(
+                    method(VIEWER, "stories", listOf(USER_SESSION), "Ljava/util/List;", 3, """
+                        const/4 v0, 0x0
+                        return-object v0
+                    """, static = false),
+                ),
+            ),
             ImmutableClassDef.of(ExtensionDex.classDef(STORY_SEEN)),
             ImmutableClassDef.of(ExtensionDex.classDef(STORY_SEEN_BUTTON)),
             if (splitQueue) storySiblingStore(STORE_BASE, SIBLING_STORE, siblingHandBack) else null,

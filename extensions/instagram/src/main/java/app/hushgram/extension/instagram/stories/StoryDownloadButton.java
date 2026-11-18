@@ -23,6 +23,8 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import java.lang.ref.WeakReference;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
@@ -46,7 +48,9 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * and Share with Story buttons at the bottom on ({@link StoryButtonRows}). A tap runs the save the menu's
  * Download row runs ({@link StoryDownload#saveStory}) on the story's Media, read when the header
  * was bound. On a photo story with music it first asks, under the button, whether to save the video
- * or the photo, as the menu's two rows do (#726).
+ * or the photo, as the menu's two rows do (#726). A press and hold on a reel with more than one
+ * story asks whether to save the story in front or all of them (#745). The story holds still under
+ * either list ({@link StoryListHold}).
  *
  * <p>Holders are recycled from story to story, so a button already in a header is shown, hidden or
  * pointed at the new story on each bind. With the switch off, HushGram paused or the settings not
@@ -60,6 +64,9 @@ public final class StoryDownloadButton {
     static final String MENU_STUB = "header_menu_button_stub";
 
     static final String HOOK = "story download button";
+
+    /** What's counted when a press and hold asks about the story in front or all of the reel's (#745). */
+    static final String HELD = "story button held";
 
     private static final ResourceIdCache IDS = new ResourceIdCache();
 
@@ -78,6 +85,12 @@ public final class StoryDownloadButton {
         /** The root view of the story's view holder [holder], or null. */
         @Nullable
         View itemView(Object holder);
+
+        /** The stories of [reel], the viewer's model of the reel on screen, in order, or null. */
+        @Nullable
+        default List<?> items(Object reel, Object session) {
+            return null;
+        }
     }
 
     static final Reader PATCHED = new Reader() {
@@ -90,24 +103,40 @@ public final class StoryDownloadButton {
         public View itemView(Object holder) {
             return StoryDownloadButton.itemView(holder);
         }
+
+        @Override
+        public List<?> items(Object reel, Object session) {
+            return StoryReelReader.items(reel, session);
+        }
     };
 
-    /** The story a button saves, held weakly so a story Instagram dropped can go. */
+    /** What a press and hold does when the reel has more than one story: [media] is the one in front. */
+    interface Asker {
+        void ask(View button, Object media, List<Object> stories);
+    }
+
+    /** The story a button saves and the reel it's in, held weakly so what Instagram dropped can go. */
     static final class Bound {
         final WeakReference<Object> media;
+        final WeakReference<Object> reel;
+        final WeakReference<Object> session;
 
-        Bound(Object media) {
+        Bound(Object media, @Nullable Object reel, @Nullable Object session) {
             this.media = new WeakReference<>(media);
+            this.reel = new WeakReference<>(reel);
+            this.session = new WeakReference<>(session);
         }
     }
 
     /**
      * Injected first thing in the story item binder's toolbar bind. Shows the button for [item] in
      * [holder]'s header while the switch is on, and hides it otherwise, then lets the Copy text button
-     * (#303) do the same. Never throws.
+     * (#303) do the same. [reel], the viewer's model of the reel on screen, and [session] are kept for
+     * a press and hold (#745). Never throws.
      */
-    public static void bind(Object item, Object holder) {
-        show(item, holder, PATCHED, StoryDownloadButton::switchedOn, StoryButtonRows::byThumb, StoryDownload::saveStory);
+    public static void bind(Object item, Object holder, Object reel, Object session) {
+        show(item, holder, reel, session, PATCHED, StoryDownloadButton::switchedOn, StoryButtonRows::byThumb,
+                StoryDownload::saveStory, StoryDownload::askStories);
         StoryTextButton.bind(item, holder, PATCHED, StoryTextButton::switchedOn);
     }
 
@@ -128,6 +157,13 @@ public final class StoryDownloadButton {
     /** As above, with [saver] given the tapped button too, so a story can ask under it what to save (#726). */
     static void show(@Nullable Object item, @Nullable Object holder, Reader reader, BooleanSupplier on,
                      BooleanSupplier thumb, BiConsumer<View, Object> saver) {
+        show(item, holder, null, null, reader, on, thumb, saver, null);
+    }
+
+    /** As above, with [asker] answering a press and hold on [reel], which stays off without one (#745). */
+    static void show(@Nullable Object item, @Nullable Object holder, @Nullable Object reel, @Nullable Object session,
+                     Reader reader, BooleanSupplier on, BooleanSupplier thumb, BiConsumer<View, Object> saver,
+                     @Nullable Asker asker) {
         try {
             HookStatus.invoked(FamilyNames.STORY_DOWNLOAD);
             if (item != null && ViewingHistory.on()) ViewingHistory.story(reader.media(item));
@@ -147,11 +183,11 @@ public final class StoryDownloadButton {
             }
             if (row == null && (!low || footer == null)) return;
             if (button == null) {
-                button = create(root.getContext(), on, saver);
+                button = create(root.getContext(), reader, on, saver, asker);
                 added = true;
             }
             StoryButtonRows.place(button, root, row, footer, low, StoryDownloadButton::insert, true);
-            button.setTag(new Bound(media));
+            button.setTag(new Bound(media, reel, session));
             button.setVisibility(View.VISIBLE);
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.STORY_DOWNLOAD, HOOK, failure);
@@ -176,6 +212,57 @@ public final class StoryDownloadButton {
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.STORY_DOWNLOAD, HOOK, failure);
         }
+    }
+
+    /**
+     * A press and hold on [button] (#745): on a reel with more than one story, asks whether to save
+     * the one in front or all of them. A lone story, or a reel that can't be read, saves as a tap
+     * does. Answers whether the press was used, so the lift doesn't tap as well. Never throws.
+     */
+    static boolean held(ImageView button, Reader reader, BooleanSupplier on, BiConsumer<View, Object> saver, Asker asker) {
+        try {
+            if (!(button.getTag() instanceof Bound)) return false;
+            Bound bound = (Bound) button.getTag();
+            if (!on.getAsBoolean()) {
+                hide(button);
+                return true;
+            }
+            Object media = bound.media.get();
+            if (media == null) {
+                hide(button);
+                return true;
+            }
+            List<Object> stories = stories(bound, reader);
+            if (stories.size() < 2) {
+                HookStatus.counted(FamilyNames.STORY_DOWNLOAD, "story button tapped");
+                saver.accept(button, media);
+                return true;
+            }
+            HookStatus.counted(FamilyNames.STORY_DOWNLOAD, HELD);
+            asker.ask(button, media, stories);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.STORY_DOWNLOAD, HOOK, failure);
+        }
+        return true;
+    }
+
+    /** The Media of each story of [bound]'s reel that has one, in order. Empty when the reel can't be read. */
+    private static List<Object> stories(Bound bound, Reader reader) {
+        List<Object> stories = new ArrayList<>();
+        try {
+            Object reel = bound.reel.get();
+            Object session = bound.session.get();
+            List<?> items = reel == null || session == null ? null : reader.items(reel, session);
+            if (items == null) return stories;
+            for (Object item : new ArrayList<>(items)) {
+                Object media = item == null ? null : reader.media(item);
+                if (media != null) stories.add(media);
+            }
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.STORY_DOWNLOAD, HOOK, failure);
+            stories.clear();
+        }
+        return stories;
     }
 
     /** Whether the button shows: its own switch. Reads off while paused. */
@@ -245,7 +332,8 @@ public final class StoryDownloadButton {
         row.addView(button, at, params);
     }
 
-    private static ImageView create(Context context, BooleanSupplier on, BiConsumer<View, Object> saver) {
+    private static ImageView create(Context context, Reader reader, BooleanSupplier on,
+                                    BiConsumer<View, Object> saver, @Nullable Asker asker) {
         ImageView button = new ImageView(context);
         button.setImageDrawable(new Arrow(context.getResources().getDisplayMetrics().density));
         button.setScaleType(ImageView.ScaleType.CENTER);
@@ -259,6 +347,7 @@ public final class StoryDownloadButton {
             button.setBackgroundResource(ripple.resourceId);
         }
         button.setOnClickListener(view -> tapped((ImageView) view, on, saver));
+        if (asker != null) button.setOnLongClickListener(view -> held((ImageView) view, reader, on, saver, asker));
         return button;
     }
 
