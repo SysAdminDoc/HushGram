@@ -714,6 +714,17 @@ public final class AmbientLight {
         return stage != null && one.host == null && one.stage.get() == stage;
     }
 
+    /** Whether another story's glow is on the bands [light] fills. */
+    private static boolean otherStoryLit(Light light) {
+        for (Light other : lights.values()) {
+            if (other != light && other.kind == Kind.STORY && other.face != null && !other.hostLit.isEmpty()
+                    && sameBands(other, light)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /** Tells the strips of each window that lost a story's light, once the frame's lights are settled. */
     private static void tellStripsOfGlowsOut() {
         if (storyGlowsOut.isEmpty()) return;
@@ -1015,7 +1026,9 @@ public final class AmbientLight {
             Glow glow = glowOn(stage);
             Glow bands = host == null ? null : glowOn(host);
             dressBar(light, host);
+            boolean wasLit = story && !light.hostLit.isEmpty();
             boolean moved = light.place(media, stage);
+            if (wasLit && light.hostLit.isEmpty()) noteStoryGlowOut(light);
             if (story || light.kind == Kind.REEL) dressFronts(light);
             if (moved) {
                 glow.invalidateSelf();
@@ -1479,15 +1492,24 @@ public final class AmbientLight {
 
         /**
          * Finds where [media]'s picture is on [stage] now, and on the host round it. A picture less
-         * than half across the screen, like a carousel's next page, gets no glow. A picture filling
-         * its stage glows on the host only. True when it moved, or the spread changed.
+         * than half across the screen, like a carousel's next page, gets no glow, except a story being
+         * swiped away, which stays lit where it was until the next one is lit. A picture filling its
+         * stage glows on the host only. True when it moved, or the spread changed.
          */
         boolean place(View media, ViewGroup stage) {
-            at.setEmpty();
-            inView.setEmpty();
             boolean story = kind == Kind.STORY;
+            at.setEmpty();
+            boolean showing = media.isShown() && media.getGlobalVisibleRect(at);
+            boolean enough = showing && at.width() * 2 >= media.getWidth();
+            // Letting go here left the strips bare for a frame at each swipe, white on a light theme (#751).
+            // Still tall on the screen means it's turning away, not being pulled down to close.
+            if (story && showing && !enough && at.height() * 2 >= media.getHeight() && !hostLit.isEmpty()
+                    && !otherStoryLit(this)) {
+                return false;
+            }
+            inView.setEmpty();
             boolean fills = false;
-            if (media.isShown() && media.getGlobalVisibleRect(at) && at.width() * 2 >= media.getWidth()) {
+            if (enough) {
                 at.setEmpty();
                 if (kind != Kind.POST && media instanceof TextureView) {
                     ((TextureView) media).getTransform(transform);

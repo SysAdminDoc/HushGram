@@ -727,6 +727,83 @@ public class AmbientStoryLightTest {
     }
 
     @Test
+    public void aStorySwipedMostOfTheWayOffKeepsTheStripsLitUntilItsGone() {
+        // #751: under half across the screen the light let go of the strips with the story still there,
+        // and the light theme's white showed through them for a frame at each swipe.
+        int[] bars = storyBetweenTheBars();
+        storiesOn();
+        advance(AmbientSpeed.MEDIUM.fadeMillis);
+        View window = activity.getWindow().getDecorView();
+        int width = window.getWidth(), x = width / 2, y = bars[0] / 2;
+        Rect lit = new Rect(AmbientLight.hostLitForTests(photo));
+        List<Boolean> litWhenTold = new ArrayList<>();
+        AmbientLight.storyGlowOutForTests(decor -> litWhenTold.add(decor == window && AmbientLight.storyBandsLit(window)));
+
+        frame.setTranslationX(-width * 0.7f);
+        frame();
+
+        assertEquals("still lit where it was", lit, AmbientLight.hostLitForTests(photo));
+        assertTrue("its strips still glow", AmbientLight.storyBandsLit(window));
+        assertEquals("and no cover is called for", Collections.emptyList(), litWhenTold);
+        int kept = drawn(root).getPixel(x, y);
+        assertTrue("the story's top, still: " + hex(kept),
+                Color.alpha(kept) > 20 && Color.blue(kept) > 60 && Color.green(kept) < 30);
+
+        frame.setTranslationX(-width * 1.5f);
+        frame();
+
+        assertFalse("off the screen, it lets go", AmbientLight.storyBandsLit(window));
+        assertEquals("and the covers hear of it", Collections.singletonList(false), litWhenTold);
+    }
+
+    @Test
+    public void aSwipedStoryLetsGoOnceTheNextOneIsLit() {
+        // With both lit, the strips would show whichever light drew last, the one leaving included.
+        storyBetweenTheBars();
+        storiesOn();
+        advance(AmbientSpeed.MEDIUM.fadeMillis);
+        View window = activity.getWindow().getDecorView();
+        List<Boolean> litWhenTold = new ArrayList<>();
+        AmbientLight.storyGlowOutForTests(decor -> litWhenTold.add(decor == window && AmbientLight.storyBandsLit(window)));
+        frame.setTranslationX(-window.getWidth() * 0.7f);
+        frame();
+        assertFalse("nothing has taken over yet", AmbientLight.hostLitForTests(photo).isEmpty());
+
+        FrameLayout nextFrame = new FrameLayout(activity);
+        nextFrame.setId(storyFrameId);
+        ImageView next = new ImageView(activity);
+        next.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        next.setImageDrawable(picture(photo.getWidth(), photo.getHeight()));
+        nextFrame.addView(next, filling());
+        ((FrameLayout) frame.getParent()).addView(nextFrame, filling());
+        laidOut();
+        frame();
+        laidOut();
+        frame();
+
+        assertFalse("the next story is lit", AmbientLight.hostLitForTests(next).isEmpty());
+        assertTrue("the one leaving let go", AmbientLight.hostLitForTests(photo).isEmpty());
+        assertTrue("and the strips stayed lit", AmbientLight.storyBandsLit(window));
+        assertEquals("so no cover went on", Collections.singletonList(true), litWhenTold);
+    }
+
+    @Test
+    public void aStoryShrinkingAwayLetsTheStripsGo() {
+        // Pulled down to close, a story gets small both ways, which no swipe to the next one does.
+        storyBetweenTheBars();
+        storiesOn();
+        advance(AmbientSpeed.MEDIUM.fadeMillis);
+        View window = activity.getWindow().getDecorView();
+        assertTrue(AmbientLight.storyBandsLit(window));
+
+        frame.setScaleX(0.3f);
+        frame.setScaleY(0.3f);
+        frame();
+
+        assertFalse(AmbientLight.storyBandsLit(window));
+    }
+
+    @Test
     public void aStoryComingLongAfterTheLastWentOutStartsDark() {
         storyBetweenTheBars();
         storiesOn();
