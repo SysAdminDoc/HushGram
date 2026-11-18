@@ -77,6 +77,7 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
+* With `Double tap to skip` on, a double tap on the side of a short reel skips it to the start or the end instead of liking it. Instagram likes any reel no longer than the skip, wherever you double tap it. A double tap in the middle still likes it. Found while testing #554.
 * Two photos saved in the same second now both end up in your gallery. They used to get the same file name, so the second one wrote over the first. `Save changed pictures to the gallery` saves the old and the new picture together, which is how it showed up. Found while checking #715.
 * With `Keep clear mode on`, the next reel no longer flashes its buttons after a swipe and fades them out over a second. Instagram gets each reel ready before you reach it, buttons showing, so HushGram now keeps them hidden on every reel while clear mode is on. The top bar with the back arrow stays hidden through the swipe too, where it used to fade in and back out. When you leave clear mode, the reels around you get their buttons back. Reported in #740.
 * With `Only received reels` on, a reel you just sent stays out when you swipe through a chat's reels. Instagram doesn't mark every copy of a message as yours, so a reel you'd just sent passed for one you received until you left the chat and came back. HushGram now checks who sent it, the way Instagram does. Your own new messages no longer set off the `Messages after a reel` banner either. Reported in #738.

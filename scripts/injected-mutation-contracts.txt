@@ -3506,6 +3506,11 @@ shared-call Lapp/hushgram/extension/instagram/reels/ReelSkip;->secondsDouble(D)D
 # ClipsGestureNavigator_doubleTapToSkipDirection there). Each of the two ways goes to ReelSkip.skipped just before the
 # navigator reads it, so the arrows flash on that side (#691). Left out, a skip shows nothing.
 once-call Lapp/hushgram/extension/instagram/reels/ReelSkip;->skipped(Ljava/lang/Object;)V sites 2 holding const:0x8412170000047b
+# Before it seeks, the same case compares the reel's length with the skip and gives a reel no longer than the skip
+# the like, wherever it was double tapped. That compare's answer goes to ReelSkip.longer right before the if-lez
+# reading it, so with the switch on a double tap on a strip skips a short reel to its start or end. Left out, a double
+# tap meant to skip a short reel likes it.
+once-call Lapp/hushgram/extension/instagram/reels/ReelSkip;->longer(I)I holding const:0x8412170000047b
 # Hide the 2x popup on Reels hands the "2x" label a reel's fast play part builds to FastPlayLabel.label
 # where the part's draw returns it (0Er0.A0p on 456's 386214574, tagging its swipe hint and returning
 # 0Er0.A00's answer) (#552). Left out, the label shows with the switch on; twice or elsewhere, it isn't

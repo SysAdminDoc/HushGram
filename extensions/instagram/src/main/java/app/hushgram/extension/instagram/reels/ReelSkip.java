@@ -23,10 +23,11 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * <p>Instagram 454 already skips through a reel on a double tap, behind a server flag it asks for
  * each reel: a double tap in the strip along the left edge goes back and one along the right edge
  * goes ahead. Two more server numbers say how far, in seconds, and how wide each strip is, as a
- * share of the reel's width. A double tap between the strips is Instagram's like, and a reel no
- * longer than the skip gets no skip. The patch answers the yes or no through {@link #skip(int)},
- * the seconds through {@link #seconds(float)} and the strips through {@link #edge(float)}, with a
- * double version of each number for the builds that read them as doubles.
+ * share of the reel's width. A double tap between the strips is Instagram's like. The patch answers
+ * the yes or no through {@link #skip(int)}, the seconds through {@link #seconds(float)} and the
+ * strips through {@link #edge(float)}, with a double version of each number for the builds that
+ * read them as doubles. Instagram likes a reel no longer than the skip wherever it's double tapped,
+ * so the patch also answers whether a reel is longer through {@link #longer(int)}.
  *
  * <p>Instagram shows nothing when it skips. Right after a skip the gesture navigator hands the way it
  * went, its FORWARD or BACKWARD, to {@link #skipped(Object)}, and while Show the skip arrows is on
@@ -153,6 +154,23 @@ public final class ReelSkip {
             HookStatus.invoked(FamilyNames.REEL_DOUBLE_TAP_SKIP);
             if (!on()) return answer;
             return answer > 0d && answer < 0.5d ? answer : EDGE;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.REEL_DOUBLE_TAP_SKIP, HOOK, failure);
+            return answer;
+        }
+    }
+
+    /**
+     * Whether a reel is longer than a skip, as Instagram's compare of the two answers it ({@code answer}
+     * above 0 for longer), where the gesture navigator works out a double tap on a strip. Instagram likes
+     * a reel no longer than the skip instead of skipping it, so a double tap meant to skip a short reel
+     * liked it. While the switch is on every reel counts as longer: the skip stops at the start or the
+     * end of a short reel, and a double tap on a strip never likes. Off, Instagram's. Never throws.
+     */
+    public static int longer(int answer) {
+        try {
+            HookStatus.invoked(FamilyNames.REEL_DOUBLE_TAP_SKIP);
+            return on() ? 1 : answer;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.REEL_DOUBLE_TAP_SKIP, HOOK, failure);
             return answer;

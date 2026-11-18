@@ -48,7 +48,7 @@ class DoubleTapSkipReelsHookTest {
         val declared = ExtensionDex.classDef(REEL_SKIP).methods
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
-        (hooks + SKIPPED).forEach { assertTrue("$it is not in the extension: $declared", it.substringAfter("->") in declared) }
+        (hooks + SKIPPED + LONGER).forEach { assertTrue("$it is not in the extension: $declared", it.substringAfter("->") in declared) }
     }
 
     /**
@@ -63,13 +63,37 @@ class DoubleTapSkipReelsHookTest {
         val turns = context.findSkipTurns()
         context.skipReels()
         context.showSkipTurns(turns)
+        context.skipShortReels(turns)
 
         assertEquals(listOf(EDGE, SECONDS), context.hooksIn(turner, "turn"))
         assertEquals(setOf("$way->A02:$way", "$way->A03:$way"), assertHandsTheWays("synthetic", context.method(turner, "turn")))
+        assertAnswersTheLength("synthetic", context.method(turner, "turn"))
         val code = context.method(turner, "turn").code()
         val reads = code.indices.filter { code[it].opcode == Opcode.SGET_OBJECT }
         assertEquals("the other case's read keeps no hook", 5, reads.size)
         assertTrue("the other case's read keeps no hook", code[reads.last() - 1].referenceText() != SKIPPED)
+    }
+
+    /**
+     * The navigator's compare of a reel's length with the skip goes to [LONGER] in [method], once: right
+     * after the cmp-long, over its answer's register, the answer back there, and the if-lez that would give
+     * a short reel the like reading it next.
+     */
+    private fun assertAnswersTheLength(what: String, method: Method) {
+        val code = method.code()
+        val calls = code.indices.filter { code[it].referenceText() == LONGER }
+        assertEquals("$what: length hooks", 1, calls.size)
+        val at = calls.single()
+        assertEquals("$what: what comes before the length hook", Opcode.CMP_LONG, code[at - 1].opcode)
+        val register = (code[at - 1] as OneRegisterInstruction).registerA
+        assertEquals("$what: the length hook's call", Opcode.INVOKE_STATIC_RANGE, code[at].opcode)
+        val range = code[at] as RegisterRangeInstruction
+        assertEquals("$what: what the length hook is handed", register, range.startRegister)
+        assertEquals("$what: how many registers the length hook is handed", 1, range.registerCount)
+        assertEquals("$what: the length hook's answer", Opcode.MOVE_RESULT, code[at + 1].opcode)
+        assertEquals("$what: the length hook's register", register, (code[at + 1] as OneRegisterInstruction).registerA)
+        assertEquals("$what: what reads the answer", Opcode.IF_LEZ, code[at + 2].opcode)
+        assertEquals("$what: the register the like is decided by", register, (code[at + 2] as OneRegisterInstruction).registerA)
     }
 
     /** A navigator the arrows can't be put in fails at patch time, saying what it found. */
@@ -80,6 +104,9 @@ class DoubleTapSkipReelsHookTest {
             turnClasses(oneWay = true) to "to read the two ways a skip goes once each",
             turnClasses(named = false) to "to read the two ways a skip goes once each",
             turnClasses(jumpedOnto = true) to "jumps onto its read of A02",
+            turnClasses(lengthChecks = 0) to "to compare a reel's length with the skip once, found 0",
+            turnClasses(lengthChecks = 2) to "to compare a reel's length with the skip once, found 2",
+            turnClasses(lengthJumpedOnto = true) to "jumps onto its check of a reel's length",
         )
         for ((classes, expected) in cases) {
             val context = PatchContexts.of(classes)
@@ -193,10 +220,18 @@ class DoubleTapSkipReelsHookTest {
         val turns = context.findSkipTurns()
         context.skipReels()
         context.showSkipTurns(turns)
+        context.skipShortReels(turns)
 
         val turned = context.mutableClassDefBy(turns.type).methods
             .single { it.name == turns.name && it.parameterTypes.map(CharSequence::toString) == turns.parameters }
         assertEquals("$label: ways handed to the arrows", turns.fields, assertHandsTheWays(label, turned))
+        assertAnswersTheLength(label, turned)
+        assertEquals(
+            "$label: methods answering a reel's length",
+            1,
+            holders.map { it.type }.distinct().flatMap { context.mutableClassDefBy(it).methods }
+                .count { m -> m.code().any { it.referenceText() == LONGER } },
+        )
         assertEquals(
             "$label: methods handing ways to the arrows",
             1,
@@ -326,16 +361,29 @@ class DoubleTapSkipReelsHookTest {
      * An enum of the ways a skip goes, [way], and a navigator, [turner], shaped like 456's
      * 0JfN.invoke: a merged lambda whose double tap case reads the strip ([EDGE_FLAG], or another
      * flag when not [edge]) and the seconds, seeks back or ahead and answers BACKWARD (A02) or
-     * FORWARD (A03). Another case, which the strip's read doesn't reach, answers FORWARD too.
+     * FORWARD (A03). Before that it compares the reel's length with the skip ([lengthChecks] times)
+     * and answers null, which Instagram takes as a like, for a reel no longer. Another case, which the
+     * strip's read doesn't reach, answers FORWARD too.
      */
     private fun turnClasses(
         edge: Boolean = true,
         oneWay: Boolean = false,
         named: Boolean = true,
         jumpedOnto: Boolean = false,
+        lengthChecks: Int = 1,
+        lengthJumpedOnto: Boolean = false,
     ): List<ClassDef> {
         val static = AccessFlags.PUBLIC.value or AccessFlags.STATIC.value
         val ahead = if (oneWay) "A02" else "A03"
+        val length = """
+            invoke-static {p0}, Lfixture/Mc;->A04(Ljava/lang/Object;)J
+            move-result-wide v6
+            const-wide/16 v0, 0x2710
+            ${if (lengthJumpedOnto) "if-eqz p0, :length" else ""}
+            cmp-long v5, v6, v0
+            ${if (lengthJumpedOnto) ":length" else ""}
+            if-lez v5, :like
+        """
         val body = """
             if-eqz p0, :other
             const-wide v0, 0x${(if (edge) EDGE_FLAG else EDGE_FLAG + 1).toString(16)}L
@@ -344,6 +392,7 @@ class DoubleTapSkipReelsHookTest {
             const-wide v0, 0x${SECONDS_FLAG.toString(16)}L
             invoke-static {p0, v0, v1}, Lfixture/Mc;->A00(Ljava/lang/Object;J)F
             move-result v4
+            ${length.repeat(lengthChecks)}
             cmpg-float v5, v2, v4
             ${if (jumpedOnto) "if-eqz v5, :back" else ""}
             if-gez v5, :ahead
@@ -359,6 +408,9 @@ class DoubleTapSkipReelsHookTest {
             :other
             sget-object v3, $way->A03:$way
             return-object v3
+            :like
+            const/4 v3, 0x0
+            return-object v3
         """
         val initializer = """
             const-string v0, "${if (named) "FORWARD" else "AHEAD"}"
@@ -369,7 +421,7 @@ class DoubleTapSkipReelsHookTest {
         """
         val takes = listOf("Ljava/lang/Object;")
         return listOf(
-            classDef(turner, listOf(method(turner, "turn", takes, "Ljava/lang/Object;", 6, static, body))),
+            classDef(turner, listOf(method(turner, "turn", takes, "Ljava/lang/Object;", 8, static, body))),
             classDef(way, listOf(method(way, "<clinit>", emptyList(), "V", 1, AccessFlags.STATIC.value or AccessFlags.CONSTRUCTOR.value, initializer)), "Ljava/lang/Enum;"),
         )
     }

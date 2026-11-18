@@ -109,6 +109,19 @@ public class ReelSkipTest {
         }
     }
 
+    /**
+     * On, a reel no longer than the skip counts as longer, so a double tap on a strip skips it to its start
+     * or end instead of liking it. Instagram's compare answers -1, 0 or 1.
+     */
+    @Test
+    public void onAShortReelStillSkips() {
+        assertEquals("shorter than the skip", 1, ReelSkip.longer(-1));
+        assertEquals("as long as the skip", 1, ReelSkip.longer(0));
+        assertEquals("longer", 1, ReelSkip.longer(1));
+        assertTrue(HookStatus.missing(FamilyNames.REEL_DOUBLE_TAP_SKIP).toString(),
+                HookStatus.missing(FamilyNames.REEL_DOUBLE_TAP_SKIP).isEmpty());
+    }
+
     /** Off, paused or before the settings are read, every answer stays Instagram's. */
     @Test
     public void offPausedAndUnreadyKeepInstagramsAnswers() {
@@ -239,5 +252,8 @@ public class ReelSkipTest {
         assertEquals(when, 5d, ReelSkip.secondsDouble(5d), 0d);
         assertEquals(when, 0.9f, ReelSkip.edge(0.9f), 0f);
         assertEquals(when, 0.9d, ReelSkip.edgeDouble(0.9d), 0d);
+        assertEquals(when + ", a short reel", -1, ReelSkip.longer(-1));
+        assertEquals(when + ", as long as the skip", 0, ReelSkip.longer(0));
+        assertEquals(when + ", a long reel", 1, ReelSkip.longer(1));
     }
 }
