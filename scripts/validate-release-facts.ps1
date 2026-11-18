@@ -178,7 +178,7 @@ function Get-TaggedCatalogFacts {
     try {
         $ErrorActionPreference = 'Continue'
         $global:LASTEXITCODE = -1
-        $text = @(& git -C $Root show "refs/tags/v$($Version):patches-list.json" 2>$null)
+        $text = @(Invoke-RepoGit -Root $Root -Arguments @('show', "refs/tags/v$($Version):patches-list.json"))
         $status = $LASTEXITCODE
     } finally {
         $ErrorActionPreference = $preference

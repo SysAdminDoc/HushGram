@@ -2857,12 +2857,16 @@ param([string]$Root, [switch]$SkipDescriptionTestCount, [switch]$SkipTestResults
         $releasedCatalog = Get-Content -LiteralPath (Join-Path $factsRoot 'patches-list.json') -Raw | ConvertFrom-Json
         $releasedCatalog.patches = @($releasedCatalog.patches | Select-Object -Skip 1)
         [System.IO.File]::WriteAllText($releasedFile, ($releasedCatalog | ConvertTo-Json -Depth 20), (New-Object System.Text.UTF8Encoding($false)))
-        & git -C $factsRoot init -q
-        $blob = [string](& git -C $factsRoot hash-object -w $releasedFile)
-        & git -C $factsRoot update-index --add --cacheinfo "100644,$($blob.Trim()),patches-list.json"
-        $tree = [string](& git -C $factsRoot write-tree)
-        $commit = [string](& git -C $factsRoot -c user.name=HushGram -c user.email=release@example.invalid commit-tree $tree.Trim() -m 'the release')
-        & git -C $factsRoot tag "v$versionHere" $commit.Trim()
+        # Invoke-FixtureGit, never a bare `git -C`: from the hook in a linked worktree GIT_DIR is an
+        # absolute path, and on 2026-11-18 these calls tagged the real repository and staged this
+        # catalog in its index. The main checkout's hook exports a relative .git, which hid it.
+        Invoke-FixtureGit -Root $factsRoot -Arguments @('init', '-q') | Out-Null
+        Assert-True (Test-Path -LiteralPath $factsGit) "git init made no repository in $factsRoot, so it reached another one."
+        $blob = [string](Invoke-FixtureGit -Root $factsRoot -Arguments @('hash-object', '-w', $releasedFile))
+        Invoke-FixtureGit -Root $factsRoot -Arguments @('update-index', '--add', '--cacheinfo', "100644,$($blob.Trim()),patches-list.json") | Out-Null
+        $tree = [string](Invoke-FixtureGit -Root $factsRoot -Arguments @('write-tree'))
+        $commit = [string](Invoke-FixtureGit -Root $factsRoot -Arguments @('-c', 'user.name=HushGram', '-c', 'user.email=release@example.invalid', 'commit-tree', $tree.Trim(), '-m', 'the release'))
+        Invoke-FixtureGit -Root $factsRoot -Arguments @('tag', "v$versionHere", $commit.Trim()) | Out-Null
         Assert-True ($LASTEXITCODE -eq 0) "Could not tag the stand-in release's catalog in $factsRoot."
         $said = Invoke-LenientFacts
         Assert-True ($said -like "*v$versionHere's catalog at its tag lists $releasedCount patches for Instagram $buildHere*") `
@@ -2884,12 +2888,13 @@ param([string]$Root, [switch]$SkipDescriptionTestCount, [switch]$SkipTestResults
         $heldCatalog = Get-Content -LiteralPath (Join-Path $factsRoot 'patches-list.json') -Raw | ConvertFrom-Json
         $heldCatalog.patches = @($heldCatalog.patches | Select-Object -Skip 1)
         [System.IO.File]::WriteAllText($heldFile, ($heldCatalog | ConvertTo-Json -Depth 20), (New-Object System.Text.UTF8Encoding($false)))
-        & git -C $factsRoot init -q
-        $blob = [string](& git -C $factsRoot hash-object -w $heldFile)
-        & git -C $factsRoot update-index --add --cacheinfo "100644,$($blob.Trim()),patches-list.json"
-        $tree = [string](& git -C $factsRoot write-tree)
-        $commit = [string](& git -C $factsRoot -c user.name=HushGram -c user.email=release@example.invalid commit-tree $tree.Trim() -m 'the release')
-        & git -C $factsRoot tag "v$versionHere" $commit.Trim()
+        Invoke-FixtureGit -Root $factsRoot -Arguments @('init', '-q') | Out-Null
+        Assert-True (Test-Path -LiteralPath $factsGit) "git init made no repository in $factsRoot, so it reached another one."
+        $blob = [string](Invoke-FixtureGit -Root $factsRoot -Arguments @('hash-object', '-w', $heldFile))
+        Invoke-FixtureGit -Root $factsRoot -Arguments @('update-index', '--add', '--cacheinfo', "100644,$($blob.Trim()),patches-list.json") | Out-Null
+        $tree = [string](Invoke-FixtureGit -Root $factsRoot -Arguments @('write-tree'))
+        $commit = [string](Invoke-FixtureGit -Root $factsRoot -Arguments @('-c', 'user.name=HushGram', '-c', 'user.email=release@example.invalid', 'commit-tree', $tree.Trim(), '-m', 'the release'))
+        Invoke-FixtureGit -Root $factsRoot -Arguments @('tag', "v$versionHere", $commit.Trim()) | Out-Null
         Assert-True ($LASTEXITCODE -eq 0) "Could not tag the stand-in release's catalog in $factsRoot."
         $said = Invoke-Facts
         Assert-True ($said -like "*v$versionHere's catalog at its tag lists $releasedCount patches; the source held at that version lists $countHere*") `

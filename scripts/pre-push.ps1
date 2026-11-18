@@ -449,6 +449,16 @@ if (@($changed | Where-Object {
     $suites += , @('scripts/test-walk-plan.ps1', 'checking settings coverage and visible destination content')
     $suites += , @('scripts/test-walk-producer.ps1', 'checking candidate reuse and walkthrough navigation')
 }
+# The suites start with no GIT_* variable. git exports GIT_DIR to a hook, as an absolute path in a
+# linked worktree, and `git -C <stand-in>` doesn't override it, so a suite's stand-in repository
+# was this one: on 2026-11-18 test-release-tooling.ps1 tagged it v0.0.21 and staged a catalog in
+# its index. The main checkout's hook exports a relative .git, which -C resolves into the stand-in,
+# so it only showed from a worktree. Every suite reads this repository through -Root.
+$hookGit = @{}
+foreach ($variable in @(Get-ChildItem Env: | Where-Object { $_.Name -like 'GIT_*' })) {
+    $hookGit[$variable.Name] = $variable.Value
+    Remove-Item -LiteralPath ('Env:\' + $variable.Name)
+}
 foreach ($suite in $suites) {
     $suiteScript = Join-Path $Root $suite[0]
     if (-not (Test-Path -LiteralPath $suiteScript -PathType Leaf)) {
@@ -458,6 +468,7 @@ foreach ($suite in $suites) {
     & pwsh -NoProfile -File $suiteScript -Root $Root
     if ($LASTEXITCODE -ne 0) { Stop-Push "$($suite[0]) failed" }
 }
+foreach ($name in $hookGit.Keys) { Set-Item -LiteralPath ('Env:\' + $name) -Value $hookGit[$name] }
 
 # The release facts, when a published file or a list or script the check reads moves. Every push
 # but the index push leaves the description's test counts and this checkout's build outputs alone
