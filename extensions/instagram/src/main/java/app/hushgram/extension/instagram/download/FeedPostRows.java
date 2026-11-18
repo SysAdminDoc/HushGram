@@ -18,6 +18,7 @@ import java.util.WeakHashMap;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.L10n;
+import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 
@@ -27,8 +28,10 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * <p>Playback speed shows on a post whose video is the one a feed player has loaded. Instagram's feed
  * makes one 2x controller per feed, which can reach that feed's player and tell which post it holds,
  * so the patch hands each new controller here. A pick goes to the same player setter Instagram's
- * own hold for 2x uses. The player doesn't say what speed it's at, so the list checks the last one
- * picked for that player.
+ * own hold for 2x uses. The feed reuses one player from post to post and it doesn't say what speed
+ * it's at, so a pick is kept with the record the feed makes each time it prepares a video. That way
+ * it lasts for that playback only, the list can mark it, and the end of a hold for 2x, which Instagram
+ * has set 1x, goes back to it.
  *
  * <p>Block shows on anyone else's post and opens Instagram's own block sheet, with Instagram's own
  * confirm in it, so nothing is blocked by the tap alone.
@@ -48,13 +51,25 @@ public final class FeedPostRows {
 
     /** Every feed's 2x controller still alive, newest first. */
     private static final List<WeakReference<Object>> CONTROLLERS = new ArrayList<>();
-    /** The speed last picked for each player. */
+    /** The speed picked for each playback, by the record the feed made for it. */
     private static final Map<Object, Float> PICKED = new WeakHashMap<>();
-    /** The player the last Playback speed row was offered for, since opening the menu can unload it. */
+    /** The player and playback the last Playback speed row was offered for, since opening the menu can unload them. */
     private static WeakReference<Object> offeredManager;
+    private static WeakReference<Object> offeredPlayback;
     @Nullable private static String offeredId;
 
     private FeedPostRows() {
+    }
+
+    /** A feed's player manager, and the record of the playback a Playback speed tap is about, if it has one. */
+    private static final class Playing {
+        final Object manager;
+        @Nullable final Object playback;
+
+        Playing(Object manager, @Nullable Object playback) {
+            this.manager = manager;
+            this.playback = playback;
+        }
     }
 
     /** What the rows read from Instagram and run. Replaced by tests. */
@@ -76,6 +91,10 @@ public final class FeedPostRows {
         /** The player [manager] is driving, or null when there is none now. */
         @Nullable
         Object playerOf(Object manager);
+
+        /** The record [manager] made when it last prepared a video, or null once it stopped. */
+        @Nullable
+        Object playbackOf(Object manager);
 
         void setSpeed(Object player, float speed);
     }
@@ -99,6 +118,10 @@ public final class FeedPostRows {
 
         @Override public Object playerOf(Object manager) {
             return playerRun(manager);
+        }
+
+        @Override public Object playbackOf(Object manager) {
+            return playbackRun(manager);
         }
 
         @Override public void setSpeed(Object player, float speed) {
@@ -131,8 +154,33 @@ public final class FeedPostRows {
         return null;
     }
 
+    /** The record of what [manager] last prepared. The patch replaces this body. */
+    public static Object playbackRun(Object manager) {
+        return null;
+    }
+
     /** Sets [player]'s speed. The patch replaces this body. */
     public static void speedRun(Object player, float speed) {
+    }
+
+    /**
+     * The speed the end of a hold for 2x on [controller]'s feed goes back to: the one picked for the
+     * playback under way, or Instagram's own [speed] when none was or the switch is off. Never throws.
+     */
+    public static float restingSpeed(Object controller, float speed) {
+        try {
+            if (controller == null || !speedOn()) return speed;
+            Object manager = bridge.managerOf(controller);
+            Object playback = manager == null ? null : bridge.playbackOf(manager);
+            if (playback == null) return speed;
+            synchronized (PICKED) {
+                Float picked = PICKED.get(playback);
+                return picked == null ? speed : picked;
+            }
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.VIDEO_DOWNLOAD, "feed speed after a hold", failure);
+            return speed;
+        }
     }
 
     /** Playback speed's option, made once. Null when it can't be made. Never throws. */
@@ -224,11 +272,21 @@ public final class FeedPostRows {
     /** Whether what's on screen of [post] is a video a feed player has loaded, which it then remembers. */
     private static boolean offersSpeed(Object post, @Nullable Object itemState) {
         Object shown = VideoDownload.shown(post, itemState);
-        if (!VideoDownload.hasVideo(shown)) return false;
+        if (!VideoDownload.hasVideo(shown)) {
+            Logger.printDebug(() -> "Playback speed row: no video on screen of post " + InstagramMedia.mediaId(post)
+                    + ", showing " + (shown == null ? null : InstagramMedia.mediaId(shown)));
+            return false;
+        }
         Object manager = managerPlaying(post, shown);
-        if (manager == null) return false;
+        if (manager == null) {
+            Logger.printDebug(() -> "Playback speed row: no feed player holds " + InstagramMedia.mediaId(shown)
+                    + " of post " + InstagramMedia.mediaId(post));
+            return false;
+        }
+        Object playback = bridge.playbackOf(manager);
         synchronized (CONTROLLERS) {
             offeredManager = new WeakReference<>(manager);
+            offeredPlayback = playback == null ? null : new WeakReference<>(playback);
             offeredId = InstagramMedia.mediaId(shown);
         }
         return true;
@@ -301,46 +359,55 @@ public final class FeedPostRows {
         try {
             if (!speedOn() || media == null || activity == null || activity.isFinishing()) return;
             Object shown = VideoDownload.shown(media, itemState);
-            Object manager = shown == null ? null : managerFor(media, shown);
-            Object player = manager == null ? null : bridge.playerOf(manager);
+            Playing playing = shown == null ? null : playingFor(media, shown);
+            Object player = playing == null ? null : bridge.playerOf(playing.manager);
             if (player == null) {
                 didntChange(activity);
                 return;
             }
-            ReelSpeedButton.lists.show(activity, picked(player), speed -> pick(manager, speed, activity));
+            ReelSpeedButton.lists.show(activity, picked(playing.playback), speed -> pick(playing, speed, activity));
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.VIDEO_DOWNLOAD, "feed speed tap", failure);
         }
     }
 
-    /** The manager holding [shown], or the one its row was offered for if the menu unloaded it. */
+    /**
+     * The manager holding [shown] and its current playback, or what its row was offered for if the
+     * menu unloaded it. That keeps the offered playback rather than asking the manager, which may
+     * have moved on to another video by now.
+     */
     @Nullable
-    private static Object managerFor(Object post, Object shown) {
+    private static Playing playingFor(Object post, Object shown) {
         Object manager = managerPlaying(post, shown);
-        if (manager != null) return manager;
+        if (manager != null) return new Playing(manager, bridge.playbackOf(manager));
         synchronized (CONTROLLERS) {
             String id = InstagramMedia.mediaId(shown);
-            return offeredManager == null || id == null || !id.equals(offeredId) ? null : offeredManager.get();
+            if (offeredManager == null || id == null || !id.equals(offeredId)) return null;
+            Object offered = offeredManager.get();
+            if (offered == null) return null;
+            return new Playing(offered, offeredPlayback == null ? null : offeredPlayback.get());
         }
     }
 
-    private static float picked(Object player) {
+    private static float picked(@Nullable Object playback) {
+        if (playback == null) return NORMAL_SPEED;
         synchronized (PICKED) {
-            Float speed = PICKED.get(player);
+            Float speed = PICKED.get(playback);
             return speed == null ? NORMAL_SPEED : speed;
         }
     }
 
-    private static void pick(Object manager, float speed, Activity activity) {
+    private static void pick(Playing playing, float speed, Activity activity) {
         try {
-            Object player = bridge.playerOf(manager);
+            Object player = bridge.playerOf(playing.manager);
             if (player == null) {
                 didntChange(activity);
                 return;
             }
             bridge.setSpeed(player, speed);
+            if (playing.playback == null) return;
             synchronized (PICKED) {
-                PICKED.put(player, speed);
+                PICKED.put(playing.playback, speed);
             }
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.VIDEO_DOWNLOAD, "feed speed pick", failure);
@@ -372,6 +439,7 @@ public final class FeedPostRows {
         synchronized (CONTROLLERS) {
             CONTROLLERS.clear();
             offeredManager = null;
+            offeredPlayback = null;
             offeredId = null;
         }
         synchronized (PICKED) {

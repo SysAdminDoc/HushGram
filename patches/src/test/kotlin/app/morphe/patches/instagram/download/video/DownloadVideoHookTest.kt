@@ -101,7 +101,7 @@ class DownloadVideoHookTest {
         for (hook in listOf(OFFER_VIDEO, SAVE_VIDEO, ALLOW_VIDEO, OFFER_ALL, SAVE_ALL, ALL_OPTION, OWN_POST, OFFER_PLAYER, PLAYER_OPTION, PLAY_VIDEO,
             OFFER_DETAILS, DETAILS_OPTION, SHOW_DETAILS, OFFER_COVER, COVER_OPTION, SAVE_COVER, CHOOSE_OPTION, CHOOSE_PAGES,
             OFFER_LOOP, LOOP_OPTION, TOGGLE_LOOP,
-            OFFER_POST_ROWS, POST_BLOCK_OPTION, BLOCK_POST, POST_SPEED_OPTION, PICK_POST_SPEED, FEED_PLAYER_MADE)) {
+            OFFER_POST_ROWS, POST_BLOCK_OPTION, BLOCK_POST, POST_SPEED_OPTION, PICK_POST_SPEED, FEED_PLAYER_MADE, RESTING_SPEED)) {
             val declared = ExtensionDex.classDef(hook.substringBefore("->")).methods
                 .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
                 .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
@@ -184,6 +184,7 @@ class DownloadVideoHookTest {
         assertEquals(listOf(feedManager, "$feedManager->A00($feedManager)$MEDIA"), references("mediaRun"))
         assertEquals(listOf(feedManager, "$feedManager->player:$feedPlayer", "$feedPlayer->engine:$feedEngine"), references("playerRun"))
         assertEquals(listOf(feedEngine, "$feedEngine->A0U(F)V"), references("speedRun"))
+        assertEquals(listOf(feedManager, "$feedManager->playback:$feedRecord"), references("playbackRun"))
         val made = context.method(feedSpeed, "<init>").code()
         assertEquals("the extension hears of each controller as it's finished", FEED_PLAYER_MADE, made[made.size - 2].referenceText())
         assertEquals(Opcode.RETURN_VOID, made.last().opcode)
@@ -206,6 +207,39 @@ class DownloadVideoHookTest {
         neither.addFeedPostRows(neither.offerDownloadOnEveryVideo())
         assertEquals("no sheet, no Block", 0, blockReady(neither))
         assertEquals("the rest of the handler is still there", 1, neither.method(helper, "A09").code().count { it.referenceText() == SAVE_VIDEO })
+    }
+
+    /** The end of a hold for 2x asks the extension what speed to go back to, so a picked speed survives the hold. */
+    @Test
+    fun theEndOfAHoldAsksWhatSpeedToGoBackTo() {
+        val context = PatchContexts.of(postRowClasses())
+
+        context.addFeedPostRows(context.offerDownloadOnEveryVideo())
+
+        val code = context.method(feedSpeed, "A01").code()
+        val set = code.indexOfFirst { it.referenceText() == "$feedEngine->A0U(F)V" }
+        assertEquals(RESTING_SPEED, code[set - 2].referenceText())
+        assertEquals("the controller, p0 of 4 registers, then the speed", listOf(2, 1),
+            (code[set - 2] as Instruction35c).let { listOf(it.registerC, it.registerD) })
+        assertEquals(Opcode.MOVE_RESULT, code[set - 1].opcode)
+        assertEquals("the answer is what gets set", 1, (code[set - 1] as OneRegisterInstruction).registerA)
+    }
+
+    /**
+     * Something jumping onto the speed's call would skip the question, and a controller overwritten by then
+     * would answer for the wrong thing. Either way Playback speed stays out and the hold is left as it is.
+     */
+    @Test
+    fun anEndOfAHoldThatCantAskLeavesPlaybackSpeedOut() {
+        for (beforeSet in listOf("goto :set\n:set", "const/4 p0, 0x0")) {
+            val context = PatchContexts.of(postRowClasses(beforeSet = beforeSet))
+            val before = context.method(feedSpeed, "A01").code().map { it.opcode to it.referenceText() }
+
+            context.addFeedPostRows(context.offerDownloadOnEveryVideo())
+
+            assertTrue("$beforeSet: no Playback speed", context.method(FEED_POST_ROWS, "managerRun").code().none { it.opcode == Opcode.CHECK_CAST })
+            assertEquals("$beforeSet: the hold is untouched", before, context.method(feedSpeed, "A01").code().map { it.opcode to it.referenceText() })
+        }
     }
 
     private fun blockReady(context: BytecodePatchContext) =
@@ -1105,6 +1139,12 @@ class DownloadVideoHookTest {
             context.method(FEED_POST_ROWS, "speedRun").code().firstNotNullOf { call -> call.referenceText()?.takeIf { "->" in it } })
         val made = context.method(player.made.definingClass, "<init>").code()
         assertEquals("$label: the controller is reported as it's finished", FEED_PLAYER_MADE, made[made.size - 2].referenceText())
+        assertEquals("$label: the record of what's loaded", player.loaded.toString(),
+            context.method(FEED_POST_ROWS, "playbackRun").code().firstNotNullOf { read -> read.referenceText()?.takeIf { "->" in it } })
+        val ended = context.method(player.reset.definingClass, player.reset.name, player.reset.parameterTypes.map(Any::toString)).code()
+        val set = ended.indexOfFirst { it.referenceText() == player.setSpeed.toString() }
+        assertEquals("$label: the end of a hold asks what speed to go back to", RESTING_SPEED, ended[set - 2].referenceText())
+        assertEquals("$label: and sets the answer", (ended[set] as Instruction35c).registerD, (ended[set - 1] as OneRegisterInstruction).registerA)
     }
 
     private fun <T : Any> assertNotNullSite(message: String, site: T?): T {
@@ -1573,12 +1613,13 @@ class DownloadVideoHookTest {
     private val feedManager = "Lfixture/FeedManager;"
     private val feedPlayer = "Lfixture/FeedPlayer;"
     private val feedEngine = "Lfixture/FeedEngine;"
+    private val feedRecord = "Lfixture/FeedRecord;"
     private val functionZero = "Lkotlin/jvm/functions/Function0;"
 
     /** The menu's classes, the extension's rows, and what each row needs of Instagram. */
-    private fun postRowClasses(menuSession: Boolean = true, sheet: Boolean = true, player: Boolean = true): List<ClassDef> =
+    private fun postRowClasses(menuSession: Boolean = true, sheet: Boolean = true, player: Boolean = true, beforeSet: String = ""): List<ClassDef> =
         classes(menuSession = menuSession) + ExtensionDex.classDef(FEED_POST_ROWS) +
-            (if (sheet) listOf(blockSheetClass()) else emptyList()) + (if (player) feedPlayerClasses() else emptyList())
+            (if (sheet) listOf(blockSheetClass()) else emptyList()) + (if (player) feedPlayerClasses(beforeSet) else emptyList())
 
     /** Instagram's block sheet helper: its one instance, and the method that opens the sheet. */
     private fun blockSheetClass(): ClassDef = classDef(
@@ -1594,8 +1635,11 @@ class DownloadVideoHookTest {
         listOf(ImmutableField(blockSheet, "INSTANCE", blockSheet, AccessFlags.PUBLIC.value or AccessFlags.STATIC.value, null, null, null)),
     )
 
-    /** The hold for 2x: its controller, which asks a function for the manager, and the player that takes the speed. */
-    private fun feedPlayerClasses(): List<ClassDef> = listOf(
+    /**
+     * The hold for 2x: its controller, which asks a function for the manager, and the player that takes the speed.
+     * [beforeSet] goes in right ahead of the call that sets it.
+     */
+    private fun feedPlayerClasses(beforeSet: String = ""): List<ClassDef> = listOf(
         classDef(
             feedSpeed,
             listOf(
@@ -1613,6 +1657,7 @@ class DownloadVideoHookTest {
                     if-eqz v0, :done
                     iget-object v0, v0, $feedPlayer->engine:$feedEngine
                     if-eqz v0, :done
+                    $beforeSet
                     invoke-virtual { v0, v1 }, $feedEngine->A0U(F)V
                     :done
                     const-string v0, "Error resetting playback speed"
@@ -1626,10 +1671,11 @@ class DownloadVideoHookTest {
         classDef(
             feedManager,
             listOf(method(feedManager, "A00", listOf(feedManager), MEDIA, 2, static = true, body = """
+                iget-object v0, p0, $feedManager->playback:$feedRecord
                 const/4 v0, 0x0
                 return-object v0
             """)),
-            listOf(field(feedManager, "player", feedPlayer)),
+            listOf(field(feedManager, "player", feedPlayer), field(feedManager, "playback", feedRecord)),
         ),
         classDef(feedPlayer, emptyList(), listOf(field(feedPlayer, "engine", feedEngine))),
         classDef(feedEngine, listOf(method(feedEngine, "A0U", listOf("F"), "V", 2, static = false, body = "return-void"))),

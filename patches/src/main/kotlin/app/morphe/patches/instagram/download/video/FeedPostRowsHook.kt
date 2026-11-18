@@ -4,9 +4,11 @@
  */
 package app.morphe.patches.instagram.download.video
 
+import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
 import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
+import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.instagram.download.MEDIA
 import app.morphe.patches.instagram.download.USER
@@ -18,14 +20,18 @@ import app.morphe.patches.instagram.download.reel.rewriteStub
 import app.morphe.patches.instagram.feed.hold.SPEED_RESET_TAG
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesLoadingString
+import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.loadsString
+import app.morphe.patches.instagram.misc.extension.localRegisterCount
 import app.morphe.patches.instagram.misc.extension.patchLog
+import app.morphe.patches.instagram.misc.extension.requireParameterIntact
 import app.morphe.util.addInstructionsAtControlFlowLabel
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Field
 import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
@@ -39,6 +45,7 @@ internal const val BLOCK_POST = "$FEED_POST_ROWS->block(Ljava/lang/Object;Ljava/
 internal const val POST_SPEED_OPTION = "$FEED_POST_ROWS->speedOption()Ljava/lang/Object;"
 internal const val PICK_POST_SPEED = "$FEED_POST_ROWS->speed(Ljava/lang/Object;Ljava/lang/Object;Landroid/app/Activity;)V"
 internal const val FEED_PLAYER_MADE = "$FEED_POST_ROWS->controllerMade(Ljava/lang/Object;)V"
+internal const val RESTING_SPEED = "$FEED_POST_ROWS->restingSpeed(Ljava/lang/Object;F)F"
 
 private const val MENU_SESSION = "Lcom/instagram/common/session/UserSession;"
 private const val FUNCTION_ZERO = "Lkotlin/jvm/functions/Function0;"
@@ -47,17 +54,20 @@ private const val FUNCTION_INVOKE = "$FUNCTION_ZERO->invoke()Ljava/lang/Object;"
 /**
  * What Playback speed in a feed post's menu needs of Instagram's hold for 2x. Its controller's
  * [made] constructor is where the extension learns of it. The controller's [function] answers the
- * feed's player manager, of type [manager], whose [playing] says which post it has loaded. The
- * manager's [player] holds [inner], and [setSpeed] on that is the call the hold itself makes.
+ * feed's player manager, of type [manager], whose [playing] says which post it has loaded, read
+ * from the record in [loaded], which the manager makes anew for each playback. The manager's
+ * [player] holds [inner], and [setSpeed] on that is the call [reset], the end of a hold, makes.
  */
 internal class FeedPlayerSite(
     val made: Method,
     val function: FieldReference,
     val manager: String,
     val playing: MethodReference,
+    val loaded: FieldReference,
     val player: FieldReference,
     val inner: FieldReference,
     val setSpeed: MethodReference,
+    val reset: Method,
 )
 
 /** What Block in a feed post's menu needs: Instagram's sheet, and the menu's [activity] and [session]. */
@@ -126,19 +136,32 @@ internal fun BytecodePatchContext.findFeedPlayer(): FeedPlayerSite? {
     } ?: return leftOut(row, "the speed is never set on ${inner.type}")
     val setSpeed = code[setAt].call!!
 
+    // The end of a hold is asked what speed to set right before this call, with its controller and speed.
+    if (setAt in reset.jumpTargets()) return leftOut(row, "something jumps onto the call that sets the speed")
+    if ((code[setAt] as FiveRegisterInstruction).registerD > 15 || reset.localRegisterCount() > 15) {
+        return leftOut(row, "the end of a hold's registers are out of a call's reach")
+    }
+    try {
+        reset.requireParameterIntact(row, 0, listOf(setAt))
+    } catch (overwritten: PatchException) {
+        return leftOut(row, "the end of a hold overwrites its controller: ${overwritten.message}")
+    }
+
     val managerClass = classDefByOrNull(manager) ?: return leftOut(row, "$manager is missing")
     val playing = managerClass.methods.filter {
         AccessFlags.STATIC.isSet(it.accessFlags) && AccessFlags.PUBLIC.isSet(it.accessFlags) && it.returnType == MEDIA &&
             it.parameterTypes.map(Any::toString) == listOf(manager)
     }.singleOrNull() ?: return leftOut(row, "expected one public getter of the post $manager has loaded")
+    val loaded = playing.code().firstOrNull { it.opcode == Opcode.IGET_OBJECT && it.field?.definingClass == manager }?.field
+        ?: return leftOut(row, "$manager's getter reads no record of what's loaded")
     val made = controller.methods.singleOrNull { it.name == "<init>" }
         ?: return leftOut(row, "expected one constructor of ${controller.type}")
     if (made.code().count { it.opcode == Opcode.RETURN_VOID } != 1) return leftOut(row, "expected ${controller.type}'s constructor to return once")
 
-    if (!managerClass.isPublic || !reachable(function) || !reachable(player) || !reachable(inner) || !reachable(setSpeed)) {
+    if (!managerClass.isPublic || !reachable(function) || !reachable(loaded) || !reachable(player) || !reachable(inner) || !reachable(setSpeed)) {
         return leftOut(row, "the extension can't reach the feed's player")
     }
-    return FeedPlayerSite(made, function, manager, playing, player, inner, setSpeed)
+    return FeedPlayerSite(made, function, manager, playing, loaded, player, inner, setSpeed, reset)
 }
 
 /**
@@ -274,10 +297,29 @@ internal fun BytecodePatchContext.addFeedPostRows(page: PageIndex) {
                 return-void
             """,
         )
+        rewriteStub(
+            rows, stub("playbackRun"), 0,
+            """
+                check-cast p0, ${player.manager}
+                iget-object p0, p0, ${player.loaded}
+                return-object p0
+            """,
+        )
         val made = mutable(player.made)
         made.addInstructionsAtControlFlowLabel(
             made.code().indexOfFirst { it.opcode == Opcode.RETURN_VOID },
             "invoke-static/range { p0 .. p0 }, $FEED_PLAYER_MADE",
+        )
+        // Instagram's end of a hold sets 1x outright, which would wipe a speed picked from the menu.
+        val ended = mutable(player.reset)
+        val at = ended.code().indexOfFirst { it.call?.toString() == player.setSpeed.toString() }
+        val speed = (ended.code()[at] as FiveRegisterInstruction).registerD
+        ended.addInstructions(
+            at,
+            """
+                invoke-static { p0, v$speed }, $RESTING_SPEED
+                move-result v$speed
+            """,
         )
     }
 }

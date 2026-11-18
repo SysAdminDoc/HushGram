@@ -52,6 +52,7 @@ public class FeedPostRowsTest {
         final Map<Object, Object> managers = new HashMap<>();
         final Map<Object, Object> playing = new HashMap<>();
         final Map<Object, Object> players = new HashMap<>();
+        final Map<Object, Object> playbacks = new HashMap<>();
         final List<String> speeds = new ArrayList<>();
         final List<Object[]> sheets = new ArrayList<>();
         boolean canBlock = true;
@@ -74,6 +75,10 @@ public class FeedPostRowsTest {
 
         @Override public Object playerOf(Object manager) {
             return players.get(manager);
+        }
+
+        @Override public Object playbackOf(Object manager) {
+            return playbacks.get(manager);
         }
 
         @Override public void setSpeed(Object player, float speed) {
@@ -140,9 +145,15 @@ public class FeedPostRowsTest {
         return rows;
     }
 
+    /** The feed's player prepares [post], which makes a new playback record, as Instagram's does for every video. */
     private void loaded(Object post) {
         FeedPostRows.controllerMade(controller);
         feed.playing.put(manager, post);
+        feed.playbacks.put(manager, new Object());
+    }
+
+    private float afterAHold() {
+        return FeedPostRows.restingSpeed(controller, 1f);
     }
 
     private static String toast() {
@@ -221,6 +232,104 @@ public class FeedPostRowsTest {
 
         FeedPostRows.speed(post, null, activity);
         assertEquals(Float.valueOf(1.5f), shownSpeed);
+    }
+
+    /** A feed reuses its player, so a pick lasts for that playback and whatever plays next starts at 1x. */
+    @Test
+    public void aPickLastsForItsPlaybackOnly() {
+        Settings.POST_MENU_SPEED.save(true);
+        PostInfoTest.Post first = video(THEIRS);
+        loaded(first);
+        FeedPostRows.speed(first, null, activity);
+        chosen.chose(0.5f);
+
+        PostInfoTest.Post next = video("9_51234567");
+        loaded(next);
+        FeedPostRows.speed(next, null, activity);
+        assertEquals("the next video", Float.valueOf(1f), shownSpeed);
+
+        loaded(first);
+        FeedPostRows.speed(first, null, activity);
+        assertEquals("the first video, come back to", Float.valueOf(1f), shownSpeed);
+    }
+
+    /** Instagram's end of a hold for 2x sets 1x, and a picked speed goes back in its place. */
+    @Test
+    public void theEndOfAHoldGoesBackToThePick() {
+        Settings.POST_MENU_SPEED.save(true);
+        PostInfoTest.Post post = video(THEIRS);
+        loaded(post);
+        assertEquals("nothing picked", 1f, afterAHold(), 0f);
+
+        FeedPostRows.speed(post, null, activity);
+        chosen.chose(0.5f);
+        assertEquals(0.5f, afterAHold(), 0f);
+
+        loaded(video("9_51234567"));
+        assertEquals("the next video", 1f, afterAHold(), 0f);
+    }
+
+    /** Off, paused, or with nothing loaded, the end of a hold keeps the speed Instagram gave it. */
+    @Test
+    public void theEndOfAHoldIsInstagramsWithoutAPickInForce() {
+        Settings.POST_MENU_SPEED.save(true);
+        PostInfoTest.Post post = video(THEIRS);
+        loaded(post);
+        FeedPostRows.speed(post, null, activity);
+        chosen.chose(0.5f);
+
+        Settings.POST_MENU_SPEED.save(false);
+        assertEquals("off", 1f, afterAHold(), 0f);
+        Settings.POST_MENU_SPEED.save(true);
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertEquals("paused", 1f, afterAHold(), 0f);
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        assertEquals("on again", 0.5f, afterAHold(), 0f);
+
+        assertEquals("no controller", 1f, FeedPostRows.restingSpeed(null, 1f), 0f);
+        assertEquals("a controller with no manager", 1f, FeedPostRows.restingSpeed(new Object(), 1f), 0f);
+        feed.playbacks.remove(manager);
+        assertEquals("nothing loaded", 1f, afterAHold(), 0f);
+    }
+
+    /** A pick made once the menu has unloaded the video stays with that video's playback, and no other. */
+    @Test
+    public void aPickAfterTheMenuUnloadedTheVideoStaysWithIt() {
+        Settings.POST_MENU_SPEED.save(true);
+        PostInfoTest.Post post = video(THEIRS);
+        loaded(post);
+        Object playback = feed.playbacks.get(manager);
+        offered(post);
+        feed.playing.remove(manager);
+        feed.playbacks.remove(manager);
+
+        FeedPostRows.speed(post, null, activity);
+        chosen.chose(2f);
+        FeedPostRows.speed(post, null, activity);
+        assertEquals("still marked", Float.valueOf(2f), shownSpeed);
+
+        feed.playing.put(manager, post);
+        feed.playbacks.put(manager, playback);
+        assertEquals("its playback carries on", 2f, afterAHold(), 0f);
+        feed.playbacks.put(manager, new Object());
+        assertEquals("another playback took over", 1f, afterAHold(), 0f);
+    }
+
+    /** With no playback to tie it to, a pick still sets the speed and just isn't remembered. */
+    @Test
+    public void aPickWithNoPlaybackStillSetsTheSpeed() {
+        Settings.POST_MENU_SPEED.save(true);
+        PostInfoTest.Post post = video(THEIRS);
+        loaded(post);
+        feed.playbacks.remove(manager);
+
+        FeedPostRows.speed(post, null, activity);
+        chosen.chose(1.5f);
+        assertEquals(Collections.singletonList("player=1.5"), feed.speeds);
+        FeedPostRows.speed(post, null, activity);
+        assertEquals(Float.valueOf(1f), shownSpeed);
     }
 
     /** Opening the menu can unload the video, so the row's own player still answers its tap. */
@@ -357,5 +466,6 @@ public class FeedPostRowsTest {
         FeedPostRows.speed(post, null, activity);
         FeedPostRows.block(post, new Object());
         FeedPostRows.controllerMade(null);
+        assertEquals("the end of a hold keeps Instagram's speed", 1f, afterAHold(), 0f);
     }
 }
