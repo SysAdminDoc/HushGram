@@ -274,8 +274,10 @@ public class ProfileHistorySettingsTest {
         ProfileHistoryRows.visit(context, "2", "zed2", null, "", january5 + 60_000L);
         List<ProfileHistory.Past> past = ProfileHistory.past(context);
         assertEquals(2, past.size());
-        assertEquals("Seen from Jan 5, 2026 to Mar 9, 2026", ProfileHistoryPage.Rows.dates(context, past.get(0)));
-        assertEquals("Seen on Jan 5, 2026", ProfileHistoryPage.Rows.dates(context, past.get(1)));
+        // The dates fill most of each row, so they're named apart from the "Seen from %1$s to %2$s" text around them.
+        String jan5 = "Jan 5, 2026", mar9 = "Mar 9, 2026";
+        assertEquals("Seen from " + jan5 + " to " + mar9, ProfileHistoryPage.Rows.dates(context, past.get(0)));
+        assertEquals("Seen on " + jan5, ProfileHistoryPage.Rows.dates(context, past.get(1)));
     }
 
     /** A long press copies the old username or the old bio, and views or saves an old picture (#611). */
