@@ -53,6 +53,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.ConcurrentHashMap;
 
 import app.hushgram.extension.instagram.download.ExternalDownload;
 import app.hushgram.extension.instagram.download.ViewingHistory;
@@ -406,8 +407,26 @@ final class ViewingHistoryPage {
         }
     };
 
+    /** A lock per row, so two views of one row share one load. */
+    private static final ConcurrentHashMap<String, Object> LOADING = new ConcurrentHashMap<>();
+
     private static String key(ViewingHistory.Row row) {
         return row.kind.name() + "\t" + row.id;
+    }
+
+    /**
+     * Reads or fetches [row]'s picture once. A second view of the row waits for the first load and
+     * shows its picture, instead of fetching again or reading back the copy the first one saved.
+     */
+    @Nullable
+    private static Bitmap load(Context application, ViewingHistory.Row row, String key, int size) {
+        synchronized (LOADING.computeIfAbsent(key, ignored -> new Object())) {
+            Bitmap cached = PICTURES.get(key);
+            if (cached != null) return cached;
+            Bitmap bitmap = ViewingHistory.picture(application, row, size);
+            if (bitmap != null) PICTURES.put(key, bitmap);
+            return bitmap;
+        }
     }
 
     /** Forgets the pictures shown, for Clear viewing history. */
@@ -499,9 +518,8 @@ final class ViewingHistoryPage {
             Context application = context.getApplicationContext() != null ? context.getApplicationContext() : context;
             int size = Dim.dp(PICTURE_DP);
             Utils.runOnBackgroundThread(() -> {
-                Bitmap bitmap = ViewingHistory.picture(application, row, size);
+                Bitmap bitmap = load(application, row, key, size);
                 if (bitmap == null) return;
-                PICTURES.put(key, bitmap);
                 Utils.runOnMainThread(() -> {
                     if (key.equals(view.getTag())) fill(view, bitmap);
                 });

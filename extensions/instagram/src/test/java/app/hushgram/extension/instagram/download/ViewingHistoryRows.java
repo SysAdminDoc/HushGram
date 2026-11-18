@@ -31,4 +31,20 @@ public final class ViewingHistoryRows {
         };
         return () -> ViewingHistory.fetch = original;
     }
+
+    /** Like fetchAnswering, but each fetch takes [millis], so loads started together overlap. */
+    public static Runnable slowFetchAnswering(android.graphics.Bitmap bitmap, java.util.List<String> asked, long millis) {
+        ViewingHistory.Fetch original = ViewingHistory.fetch;
+        ViewingHistory.fetch = (context, url, size) -> {
+            asked.add(url);
+            try {
+                Thread.sleep(millis);
+            } catch (InterruptedException interrupted) {
+                Thread.currentThread().interrupt();
+                return null;
+            }
+            return bitmap;
+        };
+        return () -> ViewingHistory.fetch = original;
+    }
 }

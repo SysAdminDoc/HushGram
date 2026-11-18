@@ -264,6 +264,41 @@ public class ViewingHistorySettingsTest {
         }
     }
 
+    /**
+     * The list binds its rows as it lays out, so a row can have two views loading at once. They
+     * share one fetch, and the later one never shows a copy read back from the first one's saved file.
+     */
+    @Test public void twoViewsOfARowShareOneFetch() throws Exception {
+        Context context = RuntimeEnvironment.getApplication();
+        ViewingHistory.clear(context);
+        ViewingHistoryPage.forgetPictures();
+        ViewingHistoryRows.add(context, Kind.REEL, "3_3", "amy", "https://scontent.cdninstagram.com/s.jpg", System.currentTimeMillis());
+        android.graphics.Bitmap cover = android.graphics.Bitmap.createBitmap(32, 32, android.graphics.Bitmap.Config.ARGB_8888);
+        java.util.List<String> asked = java.util.Collections.synchronizedList(new java.util.ArrayList<>());
+        Runnable restore = ViewingHistoryRows.slowFetchAnswering(cover, asked, 500L);
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.VIDEO_DOWNLOAD);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            HushgramPreferenceFragment settings = DownloadSettingsTest.pageIn(controller);
+            Preference row = settings.findPreference(HushgramPreferenceFragment.VIEWING_HISTORY_ROW);
+            ViewingHistoryPage page = ViewingHistoryPage.open(controller.get(), row);
+            Utils.awaitBackgroundTasksForTests();
+            ShadowLooper.idleMainLooper();
+            android.widget.LinearLayout first = (android.widget.LinearLayout) page.list.getAdapter().getView(0, null, page.list);
+            android.widget.LinearLayout second = (android.widget.LinearLayout) page.list.getAdapter().getView(0, null, page.list);
+            Utils.awaitBackgroundTasksForTests();
+            ShadowLooper.idleMainLooper();
+            assertEquals("one fetch for the row", Collections.singletonList("https://scontent.cdninstagram.com/s.jpg"), new java.util.ArrayList<>(asked));
+            for (android.widget.LinearLayout view : Arrays.asList(first, second)) {
+                android.graphics.drawable.Drawable shown = ViewingHistoryPage.Rows.picture(view).getDrawable();
+                assertTrue(String.valueOf(shown), shown instanceof android.graphics.drawable.BitmapDrawable);
+                assertTrue("the fetched picture, not a copy", ((android.graphics.drawable.BitmapDrawable) shown).getBitmap() == cover);
+            }
+        } finally {
+            restore.run();
+            ViewingHistoryPage.forgetPictures();
+        }
+    }
+
     @Test public void aRowLeadsToItsPostOrItsPerson() {
         assertEquals("the world record egg's real address", "https://www.instagram.com/p/BsOGulcndj-/",
                 String.valueOf(ViewingHistoryPage.link(ViewingHistoryRows.row(Kind.POST, "1949525278281554174_2", "amy"))));
