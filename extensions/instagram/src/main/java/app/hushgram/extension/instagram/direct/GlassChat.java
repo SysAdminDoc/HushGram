@@ -7,15 +7,19 @@ package app.hushgram.extension.instagram.direct;
 import android.app.Activity;
 import android.app.Application;
 import android.content.Context;
+import android.content.res.ColorStateList;
 import android.content.res.Configuration;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.ColorFilter;
 import android.graphics.LinearGradient;
 import android.graphics.Paint;
 import android.graphics.PixelFormat;
 import android.graphics.Rect;
 import android.graphics.Shader;
+import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
+import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.LayerDrawable;
 import android.os.Bundle;
 import android.os.SystemClock;
@@ -31,6 +35,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BooleanSupplier;
 
 import app.hushgram.extension.instagram.feed.GlassTopBar;
 import app.hushgram.extension.instagram.settings.FamilyNames;
@@ -54,7 +59,8 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * background it had, which the disc keeps and gives back.
  *
  * <p>The chat's message bar takes the glass too, as a pill over Instagram's own (#391), blurring the messages
- * that scroll under it. With Glass reply box on stories, the Send message box on each story page the viewer
+ * that scroll under it. Some of Instagram's message bars hide that pill's picture and draw the pill on the row
+ * after it, which then takes the glass in place of its fill (#759). With Glass reply box on stories, the Send message box on each story page the viewer
  * holds takes it as well, blurring the story behind it. Both are found by name the same way, and the boxes
  * are looked for again every {@link #SEARCH_EVERY_MS}, since the viewer adds a page for each person.
  *
@@ -84,6 +90,8 @@ public final class GlassChat {
     static final String STORY_BOX = "message_composer_container";
     /** How deep into the story viewer its reply boxes are looked for. */
     static final int STORY_DEPTH = 24;
+    /** How deep past a hidden pill picture the row drawing its pill is looked for (#759). */
+    static final int ROW_DEPTH = 3;
 
     /**
      * How many parents up from the chat's root the header's buttons are looked for. Instagram 453 puts the
@@ -120,6 +128,8 @@ public final class GlassChat {
     private static ViewTreeObserver.OnPreDrawListener drawListener;
     private static WeakReference<View> header = new WeakReference<>(null);
     private static WeakReference<View> messageBox = new WeakReference<>(null);
+    /** The pill picture Instagram hid, while the message box is the row drawing the pill in its place (#759). */
+    private static WeakReference<View> hiddenPill = new WeakReference<>(null);
     private static final List<WeakReference<View>> discs = new ArrayList<>();
     private static long searchedAt = -SEARCH_EVERY_MS;
     private static long boxSearchedAt = -SEARCH_EVERY_MS;
@@ -291,40 +301,139 @@ public final class GlassChat {
         View root = activity.findViewById(viewer);
         if (root == null || !root.isShown()) return;
         List<View> boxes = new ArrayList<>();
-        collect(root, box, boxes, 0);
+        collect(root, box, boxes, 0, STORY_DEPTH);
         if (boxes.isEmpty()) return;
         HookStatus.invoked(FamilyNames.GLASS_CHAT);
         for (View found : boxes) GlassTopBar.glazeBox(found, page, true, GlassChat::storiesOn, FamilyNames.GLASS_CHAT);
     }
 
-    private static void collect(View at, int id, List<View> into, int depth) {
+    private static void collect(View at, int id, List<View> into, int depth, int deepest) {
         if (at.getId() == id) into.add(at);
-        if (!(at instanceof ViewGroup) || depth >= STORY_DEPTH) return;
+        if (!(at instanceof ViewGroup) || depth >= deepest) return;
         ViewGroup group = (ViewGroup) at;
-        for (int i = 0; i < group.getChildCount(); i++) collect(group.getChildAt(i), id, into, depth + 1);
+        for (int i = 0; i < group.getChildCount(); i++) collect(group.getChildAt(i), id, into, depth + 1, deepest);
     }
 
-    /** The chat's message bar pill, looked for every {@link #SEARCH_EVERY_MS} while there's none. */
+    /**
+     * The chat's message bar pill showing now, or the row drawing the pill in its place when Instagram hides the
+     * pill's picture (#759), looked for every {@link #SEARCH_EVERY_MS} while there's neither.
+     */
     @Nullable
     private static View messageBox(Activity activity) {
         View known = messageBox.get();
-        if (known != null && known.isAttachedToWindow()) return known;
+        if (known != null && known.isShown() && !shown(hiddenPill)) return known;
         long now = SystemClock.uptimeMillis();
         if (now - boxSearchedAt < SEARCH_EVERY_MS) {
             putOff = true;
             return null;
         }
         boxSearchedAt = now;
-        int id = id(activity, MESSAGE_BOX);
-        View found = id == 0 ? null : activity.findViewById(id);
+        hiddenPill = new WeakReference<>(null);
+        View found = findMessageBox(activity);
         messageBox = new WeakReference<>(found);
         return found;
     }
 
+    /**
+     * The first pill picture in the chat's messages that shows, or else the row after a hidden one that draws the
+     * pill in its place: some of Instagram 456's message bars hide the picture and leave it there (#759).
+     */
+    @Nullable
+    private static View findMessageBox(Activity activity) {
+        int id = id(activity, MESSAGE_BOX);
+        int source = id(activity, MESSAGES);
+        View messages = id == 0 || source == 0 ? null : shownView(activity.getWindow().getDecorView(), source);
+        if (messages == null) return null;
+        List<View> pills = new ArrayList<>();
+        collect(messages, id, pills, 0, GlassTopBar.BOX_DEPTH);
+        for (View pill : pills) {
+            if (pill.isShown()) return pill;
+        }
+        for (View pill : pills) {
+            View row = pillRow(pill);
+            if (row == null) continue;
+            hiddenPill = new WeakReference<>(pill);
+            return row;
+        }
+        return null;
+    }
+
+    /** The first view with [id] in [at] that shows, passing over the views that don't and all they hold. */
+    @Nullable
+    private static View shownView(View at, int id) {
+        if (at.getVisibility() != View.VISIBLE) return null;
+        if (at.getId() == id) return at;
+        if (!(at instanceof ViewGroup)) return null;
+        ViewGroup group = (ViewGroup) at;
+        for (int i = 0, n = group.getChildCount(); i < n; i++) {
+            View found = shownView(group.getChildAt(i), id);
+            if (found != null) return found;
+        }
+        return null;
+    }
+
+    /**
+     * The view Instagram draws a hidden pill picture's pill on: the first after it in its bar, or in one after it,
+     * that shows a fill and is over half the bar wide. Null when there's none.
+     */
+    @Nullable
+    static View pillRow(View pill) {
+        ViewParent up = pill.getParent();
+        if (!(up instanceof ViewGroup)) return null;
+        ViewGroup bar = (ViewGroup) up;
+        int half = bar.getWidth() / 2;
+        for (int i = bar.indexOfChild(pill) + 1, n = bar.getChildCount(); i < n; i++) {
+            View found = filled(bar.getChildAt(i), half, 1);
+            if (found != null) return found;
+        }
+        return null;
+    }
+
+    @Nullable
+    private static View filled(View view, int half, int depth) {
+        if (!view.isShown() || view.getWidth() <= half) return null;
+        if (GlassTopBar.boxShowing(view) || paints(view.getBackground())) return view;
+        if (depth >= ROW_DEPTH || !(view instanceof ViewGroup)) return null;
+        ViewGroup group = (ViewGroup) view;
+        for (int i = 0, n = group.getChildCount(); i < n; i++) {
+            View found = filled(group.getChildAt(i), half, depth + 1);
+            if (found != null) return found;
+        }
+        return null;
+    }
+
+    private static boolean paints(@Nullable Drawable fill) {
+        if (fill == null) return false;
+        if (fill instanceof ColorDrawable) return Color.alpha(((ColorDrawable) fill).getColor()) != 0;
+        if (fill instanceof GradientDrawable) {
+            ColorStateList colour = ((GradientDrawable) fill).getColor();
+            return colour == null || Color.alpha(colour.getDefaultColor()) != 0;
+        }
+        return true;
+    }
+
+    private static boolean shown(WeakReference<View> reference) {
+        View view = reference.get();
+        return view != null && view.isShown();
+    }
+
+    /** Whether the glass is wanted on the row drawing the pill: only while the pill's picture stays hidden. */
+    private static BooleanSupplier onWhileHidden(View pill) {
+        WeakReference<View> hidden = new WeakReference<>(pill);
+        return () -> on() && !shown(hidden);
+    }
+
     private static void dress(View container, Activity activity) {
         GlassTopBar.glazeChat(container, id(activity, MESSAGES), id(activity, MESSAGE_LIST), GlassChat::topBarOn);
-        GlassTopBar.glazeBox(messageBox(activity), id(activity, MESSAGES), false, GlassChat::on, FamilyNames.GLASS_CHAT,
-                Settings.GLASS_CHAT_BOX_OPACITY, id(activity, MESSAGE_BOX_BUTTON));
+        View box = messageBox(activity);
+        View hidden = hiddenPill.get();
+        if (box != null && hidden != null) {
+            GlassTopBar.glazeRow(box, id(activity, MESSAGES), onWhileHidden(hidden), FamilyNames.GLASS_CHAT,
+                    Settings.GLASS_CHAT_BOX_OPACITY, id(activity, MESSAGE_BOX_BUTTON));
+        } else {
+            GlassTopBar.glazeBox(box, id(activity, MESSAGES), false, GlassChat::on, FamilyNames.GLASS_CHAT,
+                    Settings.GLASS_CHAT_BOX_OPACITY, id(activity, MESSAGE_BOX_BUTTON));
+        }
         boolean night = (container.getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK)
                 == Configuration.UI_MODE_NIGHT_YES;
         float density = container.getResources().getDisplayMetrics().density;
@@ -364,6 +473,7 @@ public final class GlassChat {
         discs.clear();
         header = new WeakReference<>(null);
         messageBox = new WeakReference<>(null);
+        hiddenPill = new WeakReference<>(null);
         searchedAt = -SEARCH_EVERY_MS;
         boxSearchedAt = -SEARCH_EVERY_MS;
     }

@@ -82,6 +82,8 @@ public class GlassChatTest {
     private ImageView video;
     private LinearLayout textArea;
     private View sendButton;
+    /** The message bar's row laid over its pill picture. */
+    private LinearLayout pillRow;
 
     @Before
     public void prepare() {
@@ -169,6 +171,7 @@ public class GlassChatTest {
         pill.setId(PILL_ID);
         pill.setBackgroundColor(Color.GRAY);
         LinearLayout row = new LinearLayout(activity);
+        pillRow = row;
         textArea = new LinearLayout(activity);
         textArea.setBackground(greyFill());
         sendButton = new View(activity);
@@ -295,6 +298,134 @@ public class GlassChatTest {
         assertNull(pill.getForeground());
         assertEquals(Color.GRAY, ((ColorDrawable) pill.getBackground()).getColor());
         assertSame("the text area has its fill back", fill, textArea.getBackground());
+    }
+
+    /**
+     * #759: Instagram 456's message bar with its pill picture hidden draws the pill on the row after it. The glass
+     * goes on that row in place of its fill, the hidden picture gets none, and the row has its fill back when off.
+     */
+    @Test
+    public void aHiddenPillPictureLeavesTheGlassToTheRowDrawingThePill() {
+        Settings.GLASS_CHAT.save(true);
+        ImageView pill = messageBar();
+        Drawable rowFill = greyFill();
+        pillRow.setBackground(rowFill);
+        Drawable textFill = textArea.getBackground();
+        pill.setVisibility(View.GONE);
+        layout();
+        frame();
+
+        assertFalse("nothing on the hidden picture", GlassTopBar.boxShowing(pill));
+        assertNull(pill.getForeground());
+        assertTrue("the glass is on the row", GlassTopBar.boxShowing(pillRow));
+        assertNull("the text area's fill is off the glass", textArea.getBackground());
+
+        Settings.GLASS_CHAT.save(false);
+        frame();
+
+        assertFalse(GlassTopBar.boxShowing(pillRow));
+        assertSame("the row has its pill back", rowFill, pillRow.getBackground());
+        assertSame(textFill, textArea.getBackground());
+    }
+
+    /**
+     * #759: a pill picture Instagram hides once it has the glass gives back the fills it took off, the row takes
+     * the glass, and the picture has it again when Instagram shows it again.
+     */
+    @Test
+    public void thePillsGlassFollowsThePictureAsInstagramHidesAndShowsIt() {
+        Settings.GLASS_CHAT.save(true);
+        ImageView pill = messageBar();
+        Drawable rowFill = greyFill();
+        pillRow.setBackground(rowFill);
+        Drawable textFill = textArea.getBackground();
+        layout();
+        frame();
+        assertTrue(GlassTopBar.boxShowing(pill));
+        assertNull(pillRow.getBackground());
+
+        pill.setVisibility(View.GONE);
+        layout();
+        frame();
+        assertNull("the glass is off the hidden picture", pill.getForeground());
+        assertSame("the row has its fill back", rowFill, pillRow.getBackground());
+        assertSame(textFill, textArea.getBackground());
+
+        ShadowLooper.idleMainLooper(GlassChat.SEARCH_EVERY_MS + 100, TimeUnit.MILLISECONDS);
+        frame();
+        assertTrue("the row takes the glass", GlassTopBar.boxShowing(pillRow));
+        assertNull(textArea.getBackground());
+
+        pill.setVisibility(View.VISIBLE);
+        layout();
+        ShadowLooper.idleMainLooper(GlassChat.SEARCH_EVERY_MS + 100, TimeUnit.MILLISECONDS);
+        frame();
+        frame();
+        assertTrue("the picture has it back", GlassTopBar.boxShowing(pill));
+        assertFalse("and the row gives it up", GlassTopBar.boxShowing(pillRow));
+        assertNull(pillRow.getBackground());
+
+        Settings.GLASS_CHAT.save(false);
+        frame();
+        assertNull(pill.getForeground());
+        assertSame(rowFill, pillRow.getBackground());
+        assertSame(textFill, textArea.getBackground());
+    }
+
+    /** #759: a hidden picture by the pill's name ahead of the one showing doesn't take the glass from it. */
+    @Test
+    public void theShowingPillPictureTakesTheGlassOverAHiddenOne() {
+        Settings.GLASS_CHAT.save(true);
+        ImageView pill = messageBar();
+        ImageView stale = new ImageView(activity);
+        stale.setId(PILL_ID);
+        stale.setVisibility(View.GONE);
+        ((ViewGroup) pill.getParent()).addView(stale, 0, new FrameLayout.LayoutParams(MATCH, BAR));
+        layout();
+        frame();
+
+        assertFalse(GlassTopBar.boxShowing(stale));
+        assertTrue(GlassTopBar.boxShowing(pill));
+    }
+
+    /** #759: a hidden chat's messages ahead of the ones showing keep their pill, and the showing bar gets the glass. */
+    @Test
+    public void aHiddenChatsMessageBarIsPassedOverForTheOneShowing() {
+        Settings.GLASS_CHAT.save(true);
+        ImageView pill = messageBar();
+        FrameLayout gone = new FrameLayout(activity);
+        gone.setId(MESSAGES_ID);
+        gone.setVisibility(View.GONE);
+        ImageView stale = new ImageView(activity);
+        stale.setId(PILL_ID);
+        gone.addView(stale, new FrameLayout.LayoutParams(MATCH, BAR));
+        root.addView(gone, 1, new FrameLayout.LayoutParams(MATCH, MATCH));
+        layout();
+        frame();
+
+        assertFalse(GlassTopBar.boxShowing(stale));
+        assertTrue(GlassTopBar.boxShowing(pill));
+    }
+
+    /**
+     * #759: the row's glass follows the message bar's tint slider down to clear, with the row's own grey fill
+     * nowhere over it.
+     */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    @Config(sdk = 33)
+    public void theRowsGlassFollowsTheMessageBarsTintSlider() {
+        Settings.GLASS_CHAT.save(true);
+        ImageView pill = messageBar();
+        pillRow.setBackground(greyFill());
+        pill.setVisibility(View.GONE);
+        layout();
+        frame();
+        assertTrue(GlassTopBar.boxShowing(pillRow));
+        assertTrue(middleAlpha(pillRow.getBackground()) > 0);
+
+        Settings.GLASS_CHAT_BOX_OPACITY.save(0);
+        assertEquals("the row is clear", 0, middleAlpha(pillRow.getBackground()));
     }
 
     /** A view by the pill's name that isn't in the chat's messages isn't the message bar, and is left alone. */

@@ -96,7 +96,7 @@ public final class GlassTopBar {
     /** How many parents up from the header the one drawing the feed before it is looked for. */
     static final int HOST_DEPTH = 6;
     /** How many parents up from a message box the view drawing what's under it is looked for. */
-    static final int BOX_DEPTH = 8;
+    public static final int BOX_DEPTH = 8;
     /** How deep into the header a view drawing inside it is looked for, before it's taken that one does. */
     private static final int SHOWN_DEPTH = 6;
 
@@ -139,7 +139,7 @@ public final class GlassTopBar {
     public static void glazeChat(@Nullable View header, int messages, int list, BooleanSupplier on) {
         try {
             if (header == null || !on.getAsBoolean() || !GLAZED.add(header)) return;
-            Glass glass = new Glass(header, on, FamilyNames.GLASS_CHAT, 0, false, Settings.GLASS_CHAT_TOP_BAR_OPACITY);
+            Glass glass = new Glass(header, on, FamilyNames.GLASS_CHAT, 0, false, Settings.GLASS_CHAT_TOP_BAR_OPACITY, false);
             // Below Android 12 there's no blur, so messages under the header would only be hidden.
             if (messages != 0 && list != 0 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 glass.chat = new ChatReach(messages, list);
@@ -176,9 +176,25 @@ public final class GlassTopBar {
      */
     public static void glazeBox(@Nullable View box, int source, boolean dark, BooleanSupplier on, String family,
                                 @Nullable IntegerSetting tintSlider, int corner) {
+        glazeBox(box, source, dark, on, family, tintSlider, corner, false);
+    }
+
+    /**
+     * #759: gives [row], the view Instagram draws a chat's message bar pill on when it hides the pill's picture,
+     * the glass in place of that fill, as {@link #glazeBox(View, int, boolean, BooleanSupplier, String,
+     * IntegerSetting, int)} does a picture. The views laid over the whole row lose their fill while it's on, and
+     * the row gets its own back when it comes off. Never throws. Done once per row.
+     */
+    public static void glazeRow(@Nullable View row, int source, BooleanSupplier on, String family,
+                                @Nullable IntegerSetting tintSlider, int corner) {
+        glazeBox(row, source, false, on, family, tintSlider, corner, true);
+    }
+
+    private static void glazeBox(@Nullable View box, int source, boolean dark, BooleanSupplier on, String family,
+                                 @Nullable IntegerSetting tintSlider, int corner, boolean replaces) {
         try {
             if (box == null || source == 0 || !on.getAsBoolean() || under(box, source) == null || !GLAZED.add(box)) return;
-            Glass glass = new Glass(box, on, family, source, dark, tintSlider);
+            Glass glass = new Glass(box, on, family, source, dark, tintSlider, replaces);
             glass.cornerId = corner;
             listen(glass);
             HookStatus.counted(family, COUNT_BOXES);
@@ -189,7 +205,7 @@ public final class GlassTopBar {
 
     private static void attach(View header, BooleanSupplier on, String family, @Nullable IntegerSetting tintSlider) {
         if (!GLAZED.add(header)) return;
-        listen(new Glass(header, on, family, 0, false, tintSlider));
+        listen(new Glass(header, on, family, 0, false, tintSlider, false));
         HookStatus.counted(family, COUNT_GLAZED);
     }
 
@@ -431,6 +447,8 @@ public final class GlassTopBar {
         private final boolean dark;
         /** Whether a message box takes the glass over itself, as a foreground, and not as its background. */
         final boolean over;
+        /** Whether a message box's glass takes the place of its fill, which isn't drawn over it (#759). */
+        final boolean replaces;
         @Nullable private GlassLens rim;
         private final RectF rimBox = new RectF();
         /** How many times the rim bend was asked for. Read by tests. */
@@ -466,14 +484,15 @@ public final class GlassTopBar {
         private int lastHeight;
 
         Glass(View header, BooleanSupplier enabled, String family, int sourceId, boolean dark,
-              @Nullable IntegerSetting tintSlider) {
+              @Nullable IntegerSetting tintSlider, boolean replaces) {
             this.header = header;
             this.enabled = enabled;
             this.family = family;
             this.tintSlider = tintSlider;
             this.sourceId = sourceId;
             this.dark = dark;
-            this.over = sourceId != 0 && !(header instanceof ViewGroup);
+            this.replaces = sourceId != 0 && replaces;
+            this.over = sourceId != 0 && !this.replaces && !(header instanceof ViewGroup);
             boolean home = sourceId == 0 && FamilyNames.HOME_TOP_BAR.equals(family);
             this.lined = sourceId == 0 && !FamilyNames.GLASS_CHAT.equals(family);
             this.frost = new Frost(this, header.getResources().getDisplayMetrics().density);
@@ -499,7 +518,7 @@ public final class GlassTopBar {
         /** The background a message box had, drawn over its glass, or null when there's none to keep. */
         @Nullable
         Drawable kept() {
-            return sourceId == 0 || over ? null : original;
+            return sourceId == 0 || over || replaces ? null : original;
         }
 
         @Override
@@ -528,7 +547,8 @@ public final class GlassTopBar {
         @Override
         public boolean onPreDraw() {
             try {
-                if (!enabled.getAsBoolean()) {
+                // A message box Instagram hides keeps no glass, so what it took off the views round it comes back (#759).
+                if (!enabled.getAsBoolean() || (sourceId != 0 && !header.isShown())) {
                     takeOff();
                     return true;
                 }
@@ -562,6 +582,7 @@ public final class GlassTopBar {
                 // A message box keeps what's round it as it is: the glass is only the pill.
                 base = dark || night ? Color.BLACK : Color.WHITE;
                 if (over) uncover();
+                else if (replaces) uncoverInside();
                 return;
             }
             View host = host();
@@ -668,9 +689,21 @@ public final class GlassTopBar {
             int at = parent.indexOfChild(header);
             if (at < 0) return;
             for (int i = at + 1, n = parent.getChildCount(); i < n; i++) uncover(parent.getChildAt(i), 1);
+            describe("");
+        }
+
+        /** Takes the fill off the views in a row given the glass in its fill's place that cover the whole row (#759). */
+        private void uncoverInside() {
+            if (!(header instanceof ViewGroup) || header.getWidth() <= 0) return;
+            ViewGroup row = (ViewGroup) header;
+            for (int i = 0, n = row.getChildCount(); i < n; i++) uncover(row.getChildAt(i), 1);
+            describe("the row in place of the hidden pill, ");
+        }
+
+        private void describe(String where) {
             if (cleared.size() == describedCovers) return;
             describedCovers = cleared.size();
-            Logger.printDebug(() -> "Message box glass: on " + header.getClass().getSimpleName() + " alpha "
+            Logger.printDebug(() -> "Message box glass: on " + where + header.getClass().getSimpleName() + " alpha "
                     + header.getAlpha() + ", fills taken off " + takenOff());
         }
 
