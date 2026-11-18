@@ -76,6 +76,9 @@ Every HushGram release, newest first.
 * HushGram now patches Instagram 455.0.0.51.72 instead of 454.0.0.54.77. Get APKMirror's (arm64-v8a) (480-640dpi) (Android 9.0+) bundle, build 386113969. Its armeabi-v7a (386113968), x86 (386113970) and x86_64 (386113971) builds are declared too.
 * HushGram now patches Instagram 456.0.0.53.78 instead of 455.0.0.51.72. Get APKMirror's (arm64-v8a) (480dpi) (Android 9.0+) bundle, build 386214574. Its armeabi-v7a (386214562) and x86 (386214575) builds are declared too. Meta published no x86_64 build this time.
 * HushGram now builds on Morphe patcher 2.4.0, so patching needs Morphe Manager 2.6.0 or newer. On a computer, use morphe-desktop 2.2.0 or newer.
+* **Tooling:** The push gate starts its test suites without the git settings a hook hands them. Pushed from a second worktree, the release check's test had written its stand-in tag into the real repository. Nothing reached GitHub.
+* **Tooling:** The test for `patch-for-device.ps1` caught up with the script merging a split bundle first. It now checks the merge reads the declared build's .apks and hands the CLI the merged APK.
+* **Tooling:** Three contract rules had no fixture build that breaks them, so the contract test refused the file. They keep Instagram's code from calling clear mode's `entered()` and `scrubber()` or search's `hideSection()`. Each has a failing build now.
 
 ### Bug Fixes
 
