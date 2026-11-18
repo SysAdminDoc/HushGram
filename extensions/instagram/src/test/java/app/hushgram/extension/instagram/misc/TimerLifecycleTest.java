@@ -12,12 +12,14 @@ import static org.junit.Assert.assertTrue;
 
 import android.app.Activity;
 import android.content.Context;
+import android.graphics.Insets;
 import android.os.SystemClock;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
+import android.view.WindowInsets;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 
@@ -291,9 +293,29 @@ public class TimerLifecycleTest {
         return ((ViewGroup.MarginLayoutParams) view.getLayoutParams()).bottomMargin;
     }
 
+    /** A Reels viewer whose window has a navigation bar [nav] pixels tall at its foot, as a phone reports it. */
+    private static final class Viewer extends FrameLayout {
+        int nav;
+
+        Viewer(Context context) {
+            super(context);
+        }
+
+        @Override
+        public WindowInsets getRootWindowInsets() {
+            WindowInsets real = super.getRootWindowInsets();
+            if (nav <= 0) return real;
+            Insets bar = Insets.of(0, 0, 0, nav);
+            return new WindowInsets.Builder(real)
+                    .setInsets(WindowInsets.Type.navigationBars(), bar)
+                    .setInsetsIgnoringVisibility(WindowInsets.Type.navigationBars(), bar)
+                    .build();
+        }
+    }
+
     /** A reel in a Reels viewer, shaped as Instagram 451 builds one. */
     private static final class Reel {
-        FrameLayout viewer;
+        Viewer viewer;
         LinearLayout column;
         FrameLayout gesture;
         View media;
@@ -319,7 +341,7 @@ public class TimerLifecycleTest {
         }
         int match = ViewGroup.LayoutParams.MATCH_PARENT;
         Reel reel = new Reel();
-        reel.viewer = new FrameLayout(activity);
+        reel.viewer = new Viewer(activity);
         reel.viewer.setId(REELS_ID);
         reel.column = new LinearLayout(activity);
         reel.column.setOrientation(LinearLayout.VERTICAL);
@@ -445,7 +467,8 @@ public class TimerLifecycleTest {
      * #466, #467: with the wait on Reels the reel runs behind the pill and keeps that one size as the
      * pill slides away and back. Given the pill's slot only while the pill was all the way off (#335), the
      * video grew and jumped back with every slide. The caption, buttons and seek bar stay raised clear
-     * of the pill's spot, and once the pill is away there's no black band where it was (#335).
+     * of the pill while it shows and follow it down once it's away (#736), here all the way, with no
+     * navigation bar under the window. Once the pill is away there's no black band where it was (#335).
      */
     @Test public void aReelsAutoHideKeepsTheReelOneSizeBehindThePill() {
         LinearLayout tabs = namedTabBar();
@@ -471,7 +494,7 @@ public class TimerLifecycleTest {
         layout();
         assertEquals("the reel doesn't move", 0, bottomMargin(reel.viewer));
         assertEquals(1920, reel.media.getHeight());
-        assertRaised(reel, pill + gap());
+        assertRaised(reel, 0);
 
         tapAt(spot);
         idle(500);
@@ -510,10 +533,14 @@ public class TimerLifecycleTest {
         GlassTabBar.restoreAll();
     }
 
-    /** {@link #aReelStopsAboveTheGestureHandleWhetherThePillShowsOrNot}, with the wait on Reels (#467). */
+    /**
+     * {@link #aReelStopsAboveTheGestureHandleWhetherThePillShowsOrNot}, with the wait on Reels (#467). Once the
+     * pill slides away the caption and seek bar drop with it to just over the handle, not into it (#736).
+     */
     @Test public void aReelsAutoHideKeepsTheSeekBarAboveTheGestureHandle() {
         LinearLayout tabs = namedTabBar();
         Reel reel = showReel();
+        reel.viewer.nav = 63;
         Settings.GLASS_TAB_BAR.save(true);
         Settings.GLASS_TAB_BAR_REELS_HIDE.save(GlassReelsHide.TWO_SECONDS);
         GlassTabBar.apply(activity);
@@ -535,7 +562,7 @@ public class TimerLifecycleTest {
         idle(500);
         tabs.getViewTreeObserver().dispatchOnPreDraw();
         assertEquals("the reel doesn't move", 0, bottomMargin(reel.viewer));
-        assertRaised(reel, pill + gap());
+        assertRaised(reel, 63);
 
         tapAt(spot);
         idle(500);
