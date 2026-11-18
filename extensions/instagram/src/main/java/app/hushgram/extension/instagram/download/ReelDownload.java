@@ -430,19 +430,27 @@ public final class ReelDownload {
     /**
      * The icon of the reel or feed menu row named [name]. Every row of ours starts from Download's
      * arrow [download]; Details (the reel's or the feed post's) answers Instagram's info glyph,
-     * Playback speed its 24dp timer glyph and Loop this video its circling arrow, from the package the
-     * arrow comes from, which on a second copy is still Instagram's own, or [download] when the build
-     * has none. Called by the reel and feed option bridges the patches write. Never throws.
+     * Playback speed (the reel's or the feed post's) its 24dp timer glyph, the feed post's Block its
+     * circle with a line through it and Loop this video its circling arrow, from the package the arrow
+     * comes from, which on a second copy is still Instagram's own, or [download] when the build has
+     * none. Called by the reel and feed option bridges the patches write. Never throws.
      */
     public static int rowIcon(String name, int download) {
-        return rowIcon(name, download, Utils.getContext(),
-                SPEED_OPTION.equals(name) ? SPEED_ICONS : LOOP_OPTION.equals(name) ? LOOP_ICONS : DETAILS_ICONS);
+        return rowIcon(name, download, Utils.getContext(), iconsOf(name));
+    }
+
+    /** The glyph names the row called [name] takes, the first its build has. */
+    static String[] iconsOf(String name) {
+        if (SPEED_OPTION.equals(name) || FeedPostRows.SPEED_OPTION.equals(name)) return SPEED_ICONS;
+        if (FeedPostRows.BLOCK_OPTION.equals(name)) return ReelBlockButton.ICON_NAMES;
+        return LOOP_OPTION.equals(name) ? LOOP_ICONS : DETAILS_ICONS;
     }
 
     static int rowIcon(String name, int download, Context context, String... icons) {
         try {
             boolean own = DETAILS_OPTION.equals(name) || PostInfo.OPTION.equals(name) || SPEED_OPTION.equals(name)
-                    || LOOP_OPTION.equals(name);
+                    || LOOP_OPTION.equals(name) || FeedPostRows.SPEED_OPTION.equals(name)
+                    || FeedPostRows.BLOCK_OPTION.equals(name);
             if (!own || download == 0 || context == null) return download;
             Resources resources = context.getResources();
             String owner = resources.getResourcePackageName(download);

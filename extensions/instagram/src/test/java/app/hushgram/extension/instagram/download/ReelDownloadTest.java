@@ -950,4 +950,19 @@ public class ReelDownloadTest {
             assertFalse(icon + " is the speed icon's", List.of(ReelSpeedButton.ICON_NAMES).subList(0, 2).contains(icon));
         }
     }
+
+    /** Playback speed and Block in a feed post's menu (#743) draw their own glyphs, not Download's arrow. */
+    @Test
+    public void theFeedPostRowsTakeTheirOwnGlyphs() {
+        android.content.Context context = org.robolectric.RuntimeEnvironment.getApplication();
+        int download = android.R.drawable.ic_menu_save;
+
+        for (String row : new String[]{FeedPostRows.SPEED_OPTION, FeedPostRows.BLOCK_OPTION}) {
+            assertEquals(row, android.R.drawable.ic_media_ff, ReelDownload.rowIcon(row, download, context, "no_such_icon", "ic_media_ff"));
+            assertEquals(row + " in a build without the glyph", download, ReelDownload.rowIcon(row, download, context, "no_such_icon"));
+        }
+        assertEquals(Arrays.asList(ReelDownload.SPEED_ICONS), Arrays.asList(ReelDownload.iconsOf(FeedPostRows.SPEED_OPTION)));
+        assertEquals(Arrays.asList(ReelBlockButton.ICON_NAMES), Arrays.asList(ReelDownload.iconsOf(FeedPostRows.BLOCK_OPTION)));
+        assertEquals(Arrays.asList(ReelDownload.DETAILS_ICONS), Arrays.asList(ReelDownload.iconsOf(PostInfo.OPTION)));
+    }
 }
