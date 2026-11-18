@@ -448,6 +448,8 @@ public final class GlassTopBar {
         int stripTop;
         int stripBottom;
         int fade;
+        /** How far Home's glass fades out below a header still showing, so it never ends on a hard line (#462). */
+        int softEdge;
         private boolean describedHollow;
         private int describedCovers = -1;
 
@@ -574,9 +576,10 @@ public final class GlassTopBar {
             int wasAbove = above;
             int wasBelow = below;
             boolean wasHollow = hollow;
+            int wasSoftEdge = softEdge;
             reachUnder(host);
             // A header sliding only moves its node, and how far the glass reaches is drawn into that node.
-            if (above != wasAbove || below != wasBelow || hollow != wasHollow) {
+            if (above != wasAbove || below != wasBelow || hollow != wasHollow || softEdge != wasSoftEdge) {
                 frost.invalidateSelf();
                 if (edge != null) edge.invalidateSelf();
             }
@@ -587,6 +590,7 @@ public final class GlassTopBar {
             above = 0;
             below = 0;
             hollow = false;
+            softEdge = 0;
             ChatReach messages = chat;
             if (messages != null) {
                 if (host == null || !(host.getParent() instanceof ViewGroup)) {
@@ -625,6 +629,7 @@ public final class GlassTopBar {
             fade = Math.round(STRIP_FADE * density);
             // The backdrop is recorded down to where the strip's fade ends, past a header slid away above it.
             if (hollow) below = Math.max(below, stripBottom + fade - header.getHeight());
+            else softEdge = fade;
             if (hollow && !describedHollow) {
                 describedHollow = true;
                 Logger.printDebug(() -> "Top bar glass: only the strip behind the status bar, header at " + top + ", holding " + children(header));
@@ -724,6 +729,7 @@ public final class GlassTopBar {
             above = 0;
             below = 0;
             hollow = false;
+            softEdge = 0;
         }
 
         private void forgetBackdrop() {
@@ -771,7 +777,7 @@ public final class GlassTopBar {
             int up = above;
             View messages = banded instanceof ViewGroup && banded.getParent() == source ? banded : null;
             // A chat's messages are recorded down to where the soft edge over them fades out.
-            int down = messages == null ? below : below + Math.max(0, Math.round(messages.getY() - y - height)) + edgeFade();
+            int down = messages == null ? below + softEdge : below + Math.max(0, Math.round(messages.getY() - y - height)) + edgeFade();
             boolean same = recorded && x == lastX && y == lastY && width == lastWidth && height == lastHeight
                     && blurDp == nodeBlurDp && up == nodeAbove && down == nodeBelow;
             if (same && now - recordedAt < GlassTabBar.RECORD_EVERY_MS) return;
@@ -1002,17 +1008,19 @@ public final class GlassTopBar {
             if (hollow) {
                 area.set(bounds.left, bounds.top + glass.stripTop, bounds.right, bounds.top + glass.stripBottom + glass.fade);
             } else {
-                area.set(bounds.left, bounds.top - glass.above, bounds.right, bounds.bottom + glass.below);
+                area.set(bounds.left, bounds.top - glass.above, bounds.right, bounds.bottom + glass.below + glass.softEdge);
             }
-            // The strip alone fades out under the status bar, so it's drawn in a layer the fade can thin (#450).
-            int layer = hollow ? canvas.saveLayer(area.left, area.top, area.right, area.bottom, null) : -1;
+            // The strip fades out under the status bar and Home's glass below its header, so each is drawn in a
+            // layer the fade can thin (#450, #462).
+            boolean fades = hollow || glass.softEdge > 0;
+            int layer = fades ? canvas.saveLayer(area.left, area.top, area.right, area.bottom, null) : -1;
             try {
                 drawGlass(canvas, bounds, base);
-                if (hollow) fadeOut(canvas, area.bottom - glass.fade);
+                if (fades) fadeOut(canvas, area.bottom - glass.fade);
             } finally {
                 if (layer >= 0) canvas.restoreToCount(layer);
             }
-            if (!glass.lined || hollow) return;
+            if (!glass.lined || fades) return;
             paint.setColor(hairline(base));
             canvas.drawRect(area.left, area.bottom - hairline, area.right, area.bottom, paint);
         }

@@ -332,9 +332,44 @@ public class GlassReachTest {
                 Color.alpha(bitmap.getPixel(WIDE / 2, STATUS + HEADER / 2 + moved))};
     }
 
+    /**
+     * A header still showing ends in the same fade as the strip, at rest and part way through a slide, so scrolling
+     * back up never stops on a hard line (#462).
+     */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    @Config(sdk = 33)
+    public void theGlassFadesOutBelowAHeaderStillShowing() {
+        logoInHeader();
+        glaze();
+        int fade = fade();
+        for (int moved : new int[] {0, -40}) {
+            header.setTranslationY(moved);
+            frame();
+            assertFalse(GlassTopBar.hollow(header));
+
+            Bitmap drawn = drawn(moved, fade + 1);
+            int bottom = STATUS + moved + HEADER;
+            int middle = drawn.getPixel(WIDE / 2, bottom - HEADER / 2);
+            int edge = drawn.getPixel(WIDE / 2, bottom - 1);
+            assertNotEquals(0, Color.alpha(middle));
+            assertEquals("whole down to the header's bottom", Color.alpha(middle), Color.alpha(edge));
+            assertEquals("no hairline along it", Color.red(middle), Color.red(edge), 3);
+            int halfway = Color.alpha(drawn.getPixel(WIDE / 2, bottom + fade / 2));
+            assertTrue("fading below it: " + halfway + " of " + Color.alpha(middle),
+                    halfway > Color.alpha(middle) / 4 && halfway < Color.alpha(middle) * 3 / 4);
+            assertEquals("gone where the fade ends", 0, Color.alpha(drawn.getPixel(WIDE / 2, bottom + fade)));
+        }
+    }
+
     /** The glass from the window's top down past the header at rest, with the header slid by [moved]. */
     private Bitmap drawn(int moved) {
-        Bitmap bitmap = Bitmap.createBitmap(WIDE, STATUS + HEADER, Bitmap.Config.ARGB_8888);
+        return drawn(moved, 0);
+    }
+
+    /** The same, [past] pixels further down. */
+    private Bitmap drawn(int moved, int past) {
+        Bitmap bitmap = Bitmap.createBitmap(WIDE, STATUS + HEADER + past, Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(bitmap);
         canvas.translate(0, STATUS + moved);
         Drawable frost = header.getBackground();
