@@ -239,6 +239,10 @@ public class BadDexFixture {
     private static final String OVERRIDE_WRITER = "Lcom/facebook/mobileconfig/troubleshooting/MobileConfigOverridesWriterHolder;";
     private static final String OVERRIDES_ALLOWED = "Lcom/facebook/mobileconfig/fixture/OverrideCalls;";
     private static final String OVERRIDES_OUTSIDE = "Lapp/hushgram/extension/fixture/misc/OverrideCalls;";
+    private static final String REEL_CLEAR_MODE = "Lapp/hushgram/extension/instagram/reels/ReelClearMode;";
+    private static final String SEARCH_SUGGESTIONS = "Lapp/hushgram/extension/instagram/explore/SearchSuggestions;";
+    private static final String EXTENSION_ONLY_INSIDE = "Lapp/hushgram/extension/fixture/misc/ExtensionOnlyCalls;";
+    private static final String EXTENSION_ONLY_OUTSIDE = "Lfixture/ExtensionOnlyCalls;";
 
     private static final String TOP_BAR = "Lfixture/TopBar;";
     private static final String CONTEXT = "Landroid/content/Context;";
@@ -474,6 +478,9 @@ public class BadDexFixture {
             "no-call Landroid/app/NotificationManager;->cancel(Ljava/lang/String;I)V outside Lapp/hushgram/extension/",
             "no-call Landroid/content/pm/PackageManager;->setComponentEnabledSetting(Landroid/content/ComponentName;II)V outside Lapp/hushgram/extension/",
             "no-call Landroid/content/pm/PackageManager;->setComponentEnabledSettings(Ljava/util/List;)V outside Lapp/hushgram/extension/",
+            "no-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->entered(Ljava/lang/Object;Ljava/lang/Object;)V outside Lapp/hushgram/extension/",
+            "no-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->scrubber(II)Z outside Lapp/hushgram/extension/",
+            "no-call Lapp/hushgram/extension/instagram/explore/SearchSuggestions;->hideSection()Z outside Lapp/hushgram/extension/",
             "no-call Lcom/facebook/mobileconfig/troubleshooting/MobileConfigOverridesWriterHolder;->importOverridesFromUser(Ljava/lang/String;)Ljava/lang/String; outside Lcom/facebook/mobileconfig/",
             "no-call Lcom/facebook/mobileconfig/MobileConfigOverridesTableHolder;->reload()V outside Lcom/facebook/mobileconfig/",
             "no-call Lcom/facebook/mobileconfig/MobileConfigOverridesTableHolder;->removeAllOverrides()V outside Lcom/facebook/mobileconfig/",
@@ -625,6 +632,31 @@ public class BadDexFixture {
             new OverrideCall(OVERRIDE_TABLE, "updateOverrideForInt", "V", "update-long", "J", "J"),
             new OverrideCall(OVERRIDE_TABLE, "updateOverrideForString", "V", "update-string", "J", "Ljava/lang/String;"),
             new OverrideCall(OVERRIDE_TABLE, "updateOverrideForDouble", "V", "update-double", "J", "D"));
+
+    /**
+     * A static extension method only the extension may call (clear mode's entered() and scrubber(),
+     * search's hideSection()): its owner, name, answer and what it takes. The good build calls each
+     * from inside the extension, the way the extension's own wrapper does, and its bad build
+     * "bad-extension-only-[caseName]-called" adds one host method calling it.
+     */
+    private static final class ExtensionOnlyCall {
+        final String owner, name, answers, caseName;
+        final String[] takes;
+        ExtensionOnlyCall(String owner, String name, String answers, String caseName, String... takes) {
+            this.owner = owner; this.name = name; this.answers = answers; this.caseName = caseName; this.takes = takes;
+        }
+        int words() {
+            int words = 0;
+            for (String type : takes) words += width(type);
+            return words;
+        }
+        ImmutableMethodReference reference() { return method(owner, name, answers, takes); }
+    }
+
+    private static final List<ExtensionOnlyCall> EXTENSION_ONLY_CALLS = Arrays.asList(
+            new ExtensionOnlyCall(REEL_CLEAR_MODE, "entered", "V", "clear-mode-entered", OBJECT, OBJECT),
+            new ExtensionOnlyCall(REEL_CLEAR_MODE, "scrubber", "Z", "clear-mode-scrubber", "I", "I"),
+            new ExtensionOnlyCall(SEARCH_SUGGESTIONS, "hideSection", "Z", "search-hide-section"));
 
     private static final ImmutableTypeReference STRING_TYPE = new ImmutableTypeReference("Ljava/lang/String;");
     private static final ImmutableTypeReference INT_ARRAY = new ImmutableTypeReference("[I");
@@ -1762,6 +1794,37 @@ public class BadDexFixture {
         return names;
     }
 
+    /**
+     * Static methods of [owner], one per extension-only call, each taking what its call takes. The
+     * ones in [made] pass their parameters on to the call and return its answer.
+     */
+    private static ClassDef extensionOnlyCalls(String owner, Set<String> made) {
+        List<Method> methods = new ArrayList<>();
+        for (ExtensionOnlyCall call : EXTENSION_ONLY_CALLS) {
+            boolean answers = !call.answers.equals("V");
+            int locals = answers ? 1 : 0;
+            List<Instruction> instructions = new ArrayList<>();
+            if (made.contains(call.caseName)) {
+                int[] r = new int[5];
+                for (int i = 0; i < call.words(); i++) r[i] = locals + i;
+                instructions.add(new ImmutableInstruction35c(Opcode.INVOKE_STATIC, call.words(),
+                        r[0], r[1], r[2], r[3], r[4], call.reference()));
+                if (answers) instructions.add(op(Opcode.MOVE_RESULT, 0));
+            } else if (answers) instructions.add(new ImmutableInstruction11n(Opcode.CONST_4, 0, 0));
+            instructions.add(answers ? op(Opcode.RETURN, 0) : op(Opcode.RETURN_VOID));
+            methods.add(define(owner, call.name, call.answers, true,
+                    new ImmutableMethodImplementation(locals + call.words(), instructions, null, null), call.takes));
+        }
+        return new ImmutableClassDef(owner, AccessFlags.PUBLIC.getValue() | AccessFlags.FINAL.getValue(),
+                OBJECT, null, null, null, null, methods);
+    }
+
+    private static Set<String> allExtensionOnlyCalls() {
+        Set<String> names = new LinkedHashSet<>();
+        for (ExtensionOnlyCall call : EXTENSION_ONLY_CALLS) names.add(call.caseName);
+        return names;
+    }
+
     /** Read the serialized good DEX, so allowed-call coverage cannot pass on absent calls. */
     private static void inspectNativeCalls(File dex) throws Exception {
         MultiDexContainer<? extends DexFile> container = DexFileFactory.loadDexContainer(dex, Opcodes.forApi(30));
@@ -2554,6 +2617,8 @@ public class BadDexFixture {
                 recommendationLabel, showcaseUnit(), showcaseType, preEof, returnController(returnHook()), returnRefresh(),
                 shortcuts(Collections.<String>emptySet()), settingsEntry(), followCheck(followHook()), reelDeclutter(),
                 overrideCalls(OVERRIDES_ALLOWED, allOverrideCalls()), overrideCalls(OVERRIDES_OUTSIDE, Collections.<String>emptySet()),
+                extensionOnlyCalls(EXTENSION_ONLY_INSIDE, allExtensionOnlyCalls()),
+                extensionOnlyCalls(EXTENSION_ONLY_OUTSIDE, Collections.<String>emptySet()),
                 topBar(false, true, 1), finderStub(FILLED_FINDER_STUB),
                 emojiProvider(emojiHook(), Collections.<Instruction>emptyList()), systemEmoji(),
                 emojiPictures(emojiPicturesHook(), Collections.<Instruction>emptyList()),
@@ -3188,6 +3253,12 @@ public class BadDexFixture {
         for (OverrideCall call : OVERRIDE_CALLS) {
             dexes.put("bad-native-override-" + call.caseName,
                     replaced(good(), overrideCalls(OVERRIDES_OUTSIDE, Collections.singleton(call.caseName))));
+        }
+        // contract: a host method calling an extension method only the extension may call, one
+        // build for each. The extension's own calls stay.
+        for (ExtensionOnlyCall call : EXTENSION_ONLY_CALLS) {
+            dexes.put("bad-extension-only-" + call.caseName + "-called",
+                    replaced(good(), extensionOnlyCalls(EXTENSION_ONLY_OUTSIDE, Collections.singleton(call.caseName))));
         }
 
         // contract: the logo's touch listener call left as Facebook makes it, so the long press

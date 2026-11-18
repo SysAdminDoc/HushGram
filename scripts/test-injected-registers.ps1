@@ -48,8 +48,9 @@
     register, as a long an extension method writes there, and in the feed guard. Each framework
     call a patch sends to an extension stand-in (the ShortcutManager, NotificationManager, Window,
     Location, SurfaceView, SurfaceControl.Transaction and PackageManager calls) is left in Facebook's code by a build of its own, which has to fail that call's no-call
-    rule and no other, and the contract file may hold no no-call rule without such a build. The
-    call that gives the Facebook logo its touch listener is left as Facebook makes it, the stand-in
+    rule and no other. So is each extension method only the extension may call (clear mode's
+    entered() and scrubber(), search's hideSection()), called by a host method in a build of its
+    own. The contract file may hold no no-call rule without such a build. The call that gives the Facebook logo its touch listener is left as Facebook makes it, the stand-in
     is sent in place of the container's call instead, made on the container's register, sent
     twice, sent in another top bar method holding the logo's first trace section with the builder
     left alone, or sent there as well as in the builder, and a second builder answers the rule, a
@@ -772,9 +773,21 @@ try {
         $override | Add-Member -NotePropertyName AllowedSite -NotePropertyValue (
             "Lcom/facebook/mobileconfig/fixture/OverrideCalls;->$shape")
     }
+    # Extension methods only the extension may call. The good build calls each inside the extension;
+    # each bad build adds one host method calling one of them.
+    $extensionOnlyCalls = @(
+        [pscustomobject]@{ Case = 'clear-mode-entered'; Owner = 'Lapp/hushgram/extension/instagram/reels/ReelClearMode;'; Call = 'entered'; Takes = 'Ljava/lang/Object;Ljava/lang/Object;'; Answers = 'V' }
+        [pscustomobject]@{ Case = 'clear-mode-scrubber'; Owner = 'Lapp/hushgram/extension/instagram/reels/ReelClearMode;'; Call = 'scrubber'; Takes = 'II'; Answers = 'Z' }
+        [pscustomobject]@{ Case = 'search-hide-section'; Owner = 'Lapp/hushgram/extension/instagram/explore/SearchSuggestions;'; Call = 'hideSection'; Takes = ''; Answers = 'Z' }
+    )
+    foreach ($extensionOnly in $extensionOnlyCalls) {
+        $shape = "$($extensionOnly.Call)($($extensionOnly.Takes))$($extensionOnly.Answers)"
+        $extensionOnly | Add-Member -NotePropertyName Callee -NotePropertyValue "$($extensionOnly.Owner)->$shape"
+        $extensionOnly | Add-Member -NotePropertyName Site -NotePropertyValue "Lfixture/ExtensionOnlyCalls;->$shape"
+    }
     $noCallRules = @(Get-Content -LiteralPath $contracts | Where-Object { $_ -match '^\s*no-call\s' } |
         ForEach-Object { ($_.Trim() -split '\s+')[1] } | Sort-Object)
-    $fixtureCallees = @($shortcutCalls + $overrideCalls | ForEach-Object { $_.Callee } | Sort-Object)
+    $fixtureCallees = @($shortcutCalls + $overrideCalls + $extensionOnlyCalls | ForEach-Object { $_.Callee } | Sort-Object)
     Assert-True (($noCallRules -join "`n") -ceq ($fixtureCallees -join "`n")) `
         ("The contract file's no-call rules and this suite's bad builds name different calls.`n" +
         "Contract file:`n$($noCallRules -join "`n")`nThis suite:`n$($fixtureCallees -join "`n")")
@@ -789,7 +802,12 @@ try {
             "no-call $($override.Callee) outside Lcom/facebook/mobileconfig/: 0 call sites")) `
             "The good build's $($override.Call) was not reported clean.`n$($good.Output -join "`n")"
     }
-    $allowedOutput = @(& $Java '-cp' $classPath 'BadDexFixture' '--native-calls' (Get-Dex 'good') 2>&1 |
+    foreach ($extensionOnly in $extensionOnlyCalls) {
+        Assert-True (($good.Output -join "`n") -match [regex]::Escape(
+            "no-call $($extensionOnly.Callee) outside Lapp/hushgram/extension/: 0 call sites")) `
+            "The good build's call of $($extensionOnly.Call) inside the extension was not reported clean.`n$($good.Output -join "`n")"
+    }
+    $allowedOutput =@(& $Java '-cp' $classPath 'BadDexFixture' '--native-calls' (Get-Dex 'good') 2>&1 |
         ForEach-Object { "$_" })
     Assert-True ($LASTEXITCODE -eq 0) "Could not inspect the good build's encoded native calls.`n$($allowedOutput -join "`n")"
     $allowedCalls = @($allowedOutput | Where-Object { $_.StartsWith('[fixture] native-call ') })
@@ -1279,6 +1297,7 @@ try {
     }
     foreach ($shortcut in $shortcutCalls) { $bad["bad-shortcut-$($shortcut.Case)-left"] = 'contract' }
     foreach ($override in $overrideCalls) { $bad["bad-native-override-$($override.Case)"] = 'contract' }
+    foreach ($extensionOnly in $extensionOnlyCalls) { $bad["bad-extension-only-$($extensionOnly.Case)-called"] = 'contract' }
     $failures = @()
     $badResults = @{}
     foreach ($case in $bad.GetEnumerator()) {
@@ -1333,6 +1352,22 @@ try {
             Assert-True (($badResults[$name].Output -join "`n") -match [regex]::Escape(
                 "no-call $($shortcut.Callee) outside Lapp/hushgram/extension/: 0 call sites")) `
                 "$name also reported a forbidden shortcut call.`n$($badResults[$name].Output -join "`n")"
+        }
+    }
+
+    # Each extension-only build fails on its own method's no-call rule alone, naming the host method
+    # that calls it, while the extension's own calls of all three stay clean.
+    foreach ($extensionOnly in $extensionOnlyCalls) {
+        $name = "bad-extension-only-$($extensionOnly.Case)-called"
+        $fails = @((Get-Findings $badResults[$name]).Fails)
+        $expected = "[diff] FAIL: contract: $($extensionOnly.Callee) is still called outside Lapp/hushgram/extension/, in $($extensionOnly.Site)"
+        Assert-True ($fails.Count -eq 1 -and $fails[0] -ceq $expected) `
+            "$name did not fail with its own no-call finding alone.`nExpected: $expected`nGot:`n$($fails -join "`n")"
+        foreach ($other in $extensionOnlyCalls) {
+            $count = if ($other.Case -eq $extensionOnly.Case) { '1 call site, in ' } else { '0 call sites' }
+            Assert-True (($badResults[$name].Output -join "`n") -match [regex]::Escape(
+                "no-call $($other.Callee) outside Lapp/hushgram/extension/: $count")) `
+                "$name reported $($other.Call) wrong: expected '$count'.`n$($badResults[$name].Output -join "`n")"
         }
     }
 
