@@ -16,11 +16,10 @@ import java.util.function.BooleanSupplier;
  *
  * <p>Instagram adds a device status to its feed, reels and story requests ({@code device_status},
  * built once a run by DeviceStatusApiUtil), and it says which video formats the phone decodes in
- * hardware: {@code hw_av1_dec}, {@code 10bit_hw_av1_dec}, {@code hw_vp9_dec} and the rest. A phone
- * that reports an AV1 decoder gets manifests that hold only AV1 at full size, so Never save AV1
- * video has nothing better than the 720p H.264 file to fall back on. The patch hands both AV1
- * answers to {@link #hardwareAv1} as they go into the status, and while the switch is on the answer
- * is no, so Instagram sends what it sends a phone without one.
+ * hardware: {@code hw_av1_dec}, {@code 10bit_hw_av1_dec}, {@code hw_vp9_dec} and the rest. The patch
+ * hands both AV1 answers to {@link #hardwareAv1} as they go into the status, and while the switch is
+ * on the answer is no. Instagram doesn't always act on it: a server flag decides whether the status
+ * is sent at all, and a phone answering no was still sent the same AV1-only manifests (#546).
  *
  * <p>The status is built once, so a change takes a restart. The hook fails open: with the switch
  * off, HushGram paused, the settings not read yet or anything thrown, Instagram's own answer goes in.

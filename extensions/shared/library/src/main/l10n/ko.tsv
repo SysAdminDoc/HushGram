@@ -2368,7 +2368,7 @@ Keeps the message Instagram shows when you lock a reel's speed, and when the loc
 Remove hidden data from saved photos	저장한 사진에서 숨겨진 데이터 제거
 Takes Meta's FBMD tracking tag out of each photo you save, along with any camera, place and time details. The picture and its colors stay the same. With Add the source on, the source still goes in afterward. JPEG photos only.	저장하는 사진마다 Meta의 FBMD 추적 태그와 카메라, 장소, 시간 정보를 제거합니다. 사진과 색상은 그대로입니다. ‘저장한 사진과 동영상에 출처 추가’를 켜 두면 출처는 그 뒤에 그대로 기록됩니다. JPEG 사진만 해당합니다.
 Ask for VP9 instead of AV1	AV1 대신 VP9 요청
-Tells Instagram your phone has no AV1 decoder, so reels and stories come as VP9 or H.264, both to watch and to save. Takes a restart.	휴대폰에 AV1 디코더가 없다고 Instagram에 알려서 릴스와 스토리를 VP9 또는 H.264로 받습니다. 보기와 저장 모두 해당합니다. 다시 시작해야 적용됩니다.
+Tells Instagram your phone has no AV1 decoder. Instagram doesn't always listen, so videos can still come as AV1. If they do, Convert to keep the full size gives you H.264. Takes a restart.	휴대폰에 AV1 디코더가 없다고 Instagram에 알립니다. Instagram이 항상 따르지는 않아서 동영상이 여전히 AV1로 올 수 있습니다. 그럴 때는 원본 크기를 유지하도록 변환을 켜면 H.264로 받을 수 있습니다. 다시 시작해야 적용됩니다.
 # context: Summary of Show the skip arrows under Double tap to skip on feed videos in Feed settings (#562)
 Two arrows flash on the side you double tapped, with the seconds skipped under them.	두 번 탭한 쪽에 화살표 두 개가 잠깐 나타나고, 그 아래에 건너뛴 초가 표시됩니다.
 # context: Feed settings: choice under Seek bar shape that gives the seek bar on feed videos a shape of its own (#567)

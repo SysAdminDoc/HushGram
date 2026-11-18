@@ -2372,7 +2372,7 @@ Keeps the message Instagram shows when you lock a reel's speed, and when the loc
 Remove hidden data from saved photos	移除已保存照片中的隐藏数据
 Takes Meta's FBMD tracking tag out of each photo you save, along with any camera, place and time details. The picture and its colors stay the same. With Add the source on, the source still goes in afterward. JPEG photos only.	从你保存的每张照片中移除 Meta 的 FBMD 跟踪标记，以及相机、地点和时间等信息。图片和色彩保持不变。打开“在保存的照片和视频中加入来源信息”时，之后仍会写入来源。仅适用于 JPEG 照片。
 Ask for VP9 instead of AV1	改为请求 VP9 而非 AV1
-Tells Instagram your phone has no AV1 decoder, so reels and stories come as VP9 or H.264, both to watch and to save. Takes a restart.	告诉 Instagram 你的手机没有 AV1 解码器，让 Reels 和快拍改以 VP9 或 H.264 发送，观看和保存都一样。需要重新启动。
+Tells Instagram your phone has no AV1 decoder. Instagram doesn't always listen, so videos can still come as AV1. If they do, Convert to keep the full size gives you H.264. Takes a restart.	告诉 Instagram 你的手机没有 AV1 解码器。Instagram 不一定会照做，视频仍可能以 AV1 发送。遇到这种情况，转换格式以保留完整尺寸可以给你 H.264。需要重新启动。
 # context: Summary of Show the skip arrows under Double tap to skip on feed videos in Feed settings (#562)
 Two arrows flash on the side you double tapped, with the seconds skipped under them.	在你点两下的那一侧闪现两个箭头，下方显示跳过的秒数.
 # context: Feed settings: choice under Seek bar shape that gives the seek bar on feed videos a shape of its own (#567)

@@ -16,6 +16,7 @@ Every HushGram release, newest first.
 * Posts with several photos and a song keep their seek bar in the reels viewer now, the same as a single photo with a song. Reported in #10.
 * `See-through top bar` fades out below the header now, instead of stopping on a hard line when you scroll back up. Reported in #462.
 * Home no longer crashes when a hide switch removes the only post on a page of the feed, which could happen when opening a link to a post.
+* `Ask for VP9 instead of AV1` now says what you can expect. Instagram doesn't always listen, so videos can still come as AV1, and `Convert to keep the full size` gets you H.264. Reported in #546.
 
 ## 0.0.21 (2026-11-18)
 

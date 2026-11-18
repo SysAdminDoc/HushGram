@@ -3903,8 +3903,8 @@ public final class L10nTranslations {
                 "Tippen auf Feed-Videos bleibt im Feed");
         table.put("Teal",
                 "Petrol");
-        table.put("Tells Instagram your phone has no AV1 decoder, so reels and stories come as VP9 or H.264, both to watch and to save. Takes a restart.",
-                "Sagt Instagram, dass dein Handy keinen AV1-Decoder hat. Reels und Storys kommen dann als VP9 oder H.264, zum Ansehen und zum Speichern. Braucht einen Neustart.");
+        table.put("Tells Instagram your phone has no AV1 decoder. Instagram doesn't always listen, so videos can still come as AV1. If they do, Convert to keep the full size gives you H.264. Takes a restart.",
+                "Sagt Instagram, dass dein Handy keinen AV1-Decoder hat. Instagram h\u00e4lt sich nicht immer daran, Videos k\u00f6nnen also trotzdem als AV1 kommen. Dann liefert dir Umwandeln, um die volle Gr\u00f6\u00dfe zu behalten, H.264. Braucht einen Neustart.");
         table.put("Tells Instagram your phone is at %1$s.",
                 "Teilt Instagram mit, dass sich dein Handy bei %1$s befindet.");
         table.put("Tells Instagram your phone is at the place set below, for the location sticker, nearby places and maps. Photos keep their own places.",
@@ -8372,8 +8372,8 @@ public final class L10nTranslations {
                 "Los toques en videos del feed se quedan en el feed");
         table.put("Teal",
                 "Verde azulado");
-        table.put("Tells Instagram your phone has no AV1 decoder, so reels and stories come as VP9 or H.264, both to watch and to save. Takes a restart.",
-                "Le dice a Instagram que tu tel\u00e9fono no tiene decodificador AV1, as\u00ed que los reels y las historias llegan en VP9 o H.264, para verlos y para guardarlos. Requiere reiniciar.");
+        table.put("Tells Instagram your phone has no AV1 decoder. Instagram doesn't always listen, so videos can still come as AV1. If they do, Convert to keep the full size gives you H.264. Takes a restart.",
+                "Le dice a Instagram que tu tel\u00e9fono no tiene decodificador AV1. Instagram no siempre hace caso, as\u00ed que los v\u00eddeos a\u00fan pueden llegar en AV1. Si pasa, Convertir para mantener el tama\u00f1o completo te da H.264. Requiere reiniciar.");
         table.put("Tells Instagram your phone is at %1$s.",
                 "Le dice a Instagram que tu tel\u00e9fono est\u00e1 en %1$s.");
         table.put("Tells Instagram your phone is at the place set below, for the location sticker, nearby places and maps. Photos keep their own places.",
@@ -12841,8 +12841,8 @@ public final class L10nTranslations {
                 "Ketukan di video feed tetap di feed");
         table.put("Teal",
                 "Hijau kebiruan");
-        table.put("Tells Instagram your phone has no AV1 decoder, so reels and stories come as VP9 or H.264, both to watch and to save. Takes a restart.",
-                "Memberi tahu Instagram bahwa ponselmu tidak punya dekoder AV1, jadi reel dan story datang sebagai VP9 atau H.264, untuk ditonton maupun disimpan. Perlu dimulai ulang.");
+        table.put("Tells Instagram your phone has no AV1 decoder. Instagram doesn't always listen, so videos can still come as AV1. If they do, Convert to keep the full size gives you H.264. Takes a restart.",
+                "Memberi tahu Instagram bahwa ponselmu tidak punya dekoder AV1. Instagram tidak selalu menurut, jadi video masih bisa datang sebagai AV1. Jika begitu, Konversi agar tetap ukuran penuh memberimu H.264. Perlu dimulai ulang.");
         table.put("Tells Instagram your phone is at %1$s.",
                 "Memberi tahu Instagram bahwa ponselmu ada di %1$s.");
         table.put("Tells Instagram your phone is at the place set below, for the location sticker, nearby places and maps. Photos keep their own places.",
@@ -17310,8 +17310,8 @@ public final class L10nTranslations {
                 "I tocchi sui video del feed restano nel feed");
         table.put("Teal",
                 "Verde acqua");
-        table.put("Tells Instagram your phone has no AV1 decoder, so reels and stories come as VP9 or H.264, both to watch and to save. Takes a restart.",
-                "Dice a Instagram che il telefono non ha un decoder AV1, cos\u00ec reel e storie arrivano in VP9 o H.264, sia da guardare sia da salvare. Richiede un riavvio.");
+        table.put("Tells Instagram your phone has no AV1 decoder. Instagram doesn't always listen, so videos can still come as AV1. If they do, Convert to keep the full size gives you H.264. Takes a restart.",
+                "Dice a Instagram che il telefono non ha un decoder AV1. Instagram non sempre ne tiene conto, quindi i video possono arrivare comunque in AV1. In quel caso, Converti per mantenere la dimensione piena ti d\u00e0 H.264. Richiede un riavvio.");
         table.put("Tells Instagram your phone is at %1$s.",
                 "Dice a Instagram che il tuo telefono si trova a %1$s.");
         table.put("Tells Instagram your phone is at the place set below, for the location sticker, nearby places and maps. Photos keep their own places.",
@@ -21779,8 +21779,8 @@ public final class L10nTranslations {
                 "\ud53c\ub4dc \ub3d9\uc601\uc0c1\uc744 \ud0ed\ud574\ub3c4 \ud53c\ub4dc\uc5d0 \uba38\ubb3c\uae30");
         table.put("Teal",
                 "\uccad\ub85d\uc0c9");
-        table.put("Tells Instagram your phone has no AV1 decoder, so reels and stories come as VP9 or H.264, both to watch and to save. Takes a restart.",
-                "\ud734\ub300\ud3f0\uc5d0 AV1 \ub514\ucf54\ub354\uac00 \uc5c6\ub2e4\uace0 Instagram\uc5d0 \uc54c\ub824\uc11c \ub9b4\uc2a4\uc640 \uc2a4\ud1a0\ub9ac\ub97c VP9 \ub610\ub294 H.264\ub85c \ubc1b\uc2b5\ub2c8\ub2e4. \ubcf4\uae30\uc640 \uc800\uc7a5 \ubaa8\ub450 \ud574\ub2f9\ud569\ub2c8\ub2e4. \ub2e4\uc2dc \uc2dc\uc791\ud574\uc57c \uc801\uc6a9\ub429\ub2c8\ub2e4.");
+        table.put("Tells Instagram your phone has no AV1 decoder. Instagram doesn't always listen, so videos can still come as AV1. If they do, Convert to keep the full size gives you H.264. Takes a restart.",
+                "\ud734\ub300\ud3f0\uc5d0 AV1 \ub514\ucf54\ub354\uac00 \uc5c6\ub2e4\uace0 Instagram\uc5d0 \uc54c\ub9bd\ub2c8\ub2e4. Instagram\uc774 \ud56d\uc0c1 \ub530\ub974\uc9c0\ub294 \uc54a\uc544\uc11c \ub3d9\uc601\uc0c1\uc774 \uc5ec\uc804\ud788 AV1\ub85c \uc62c \uc218 \uc788\uc2b5\ub2c8\ub2e4. \uadf8\ub7f4 \ub54c\ub294 \uc6d0\ubcf8 \ud06c\uae30\ub97c \uc720\uc9c0\ud558\ub3c4\ub85d \ubcc0\ud658\uc744 \ucf1c\uba74 H.264\ub85c \ubc1b\uc744 \uc218 \uc788\uc2b5\ub2c8\ub2e4. \ub2e4\uc2dc \uc2dc\uc791\ud574\uc57c \uc801\uc6a9\ub429\ub2c8\ub2e4.");
         table.put("Tells Instagram your phone is at %1$s.",
                 "Instagram\uc5d0 \ub0b4 \ud734\ub300\ud3f0\uc774 %1$s\uc5d0 \uc788\ub2e4\uace0 \uc54c\ub9bd\ub2c8\ub2e4.");
         table.put("Tells Instagram your phone is at the place set below, for the location sticker, nearby places and maps. Photos keep their own places.",
@@ -26248,8 +26248,8 @@ public final class L10nTranslations {
                 "Toques em v\u00eddeos do feed ficam no feed");
         table.put("Teal",
                 "Azul-petr\u00f3leo");
-        table.put("Tells Instagram your phone has no AV1 decoder, so reels and stories come as VP9 or H.264, both to watch and to save. Takes a restart.",
-                "Diz ao Instagram que seu celular n\u00e3o tem decodificador AV1, ent\u00e3o reels e stories v\u00eam em VP9 ou H.264, para assistir e para salvar. Precisa reiniciar.");
+        table.put("Tells Instagram your phone has no AV1 decoder. Instagram doesn't always listen, so videos can still come as AV1. If they do, Convert to keep the full size gives you H.264. Takes a restart.",
+                "Diz ao Instagram que seu celular n\u00e3o tem decodificador AV1. O Instagram nem sempre obedece, ent\u00e3o os v\u00eddeos ainda podem vir em AV1. Nesse caso, Converter para manter o tamanho original te d\u00e1 H.264. Precisa reiniciar.");
         table.put("Tells Instagram your phone is at %1$s.",
                 "Diz ao Instagram que seu celular est\u00e1 em %1$s.");
         table.put("Tells Instagram your phone is at the place set below, for the location sticker, nearby places and maps. Photos keep their own places.",
@@ -30717,8 +30717,8 @@ public final class L10nTranslations {
                 "\u0e41\u0e15\u0e30\u0e27\u0e34\u0e14\u0e35\u0e42\u0e2d\u0e43\u0e19\u0e1f\u0e35\u0e14\u0e41\u0e25\u0e49\u0e27\u0e22\u0e31\u0e07\u0e2d\u0e22\u0e39\u0e48\u0e43\u0e19\u0e1f\u0e35\u0e14");
         table.put("Teal",
                 "\u0e2a\u0e35\u0e40\u0e02\u0e35\u0e22\u0e27\u0e2b\u0e31\u0e27\u0e40\u0e1b\u0e47\u0e14");
-        table.put("Tells Instagram your phone has no AV1 decoder, so reels and stories come as VP9 or H.264, both to watch and to save. Takes a restart.",
-                "\u0e1a\u0e2d\u0e01 Instagram \u0e27\u0e48\u0e32\u0e42\u0e17\u0e23\u0e28\u0e31\u0e1e\u0e17\u0e4c\u0e02\u0e2d\u0e07\u0e04\u0e38\u0e13\u0e44\u0e21\u0e48\u0e21\u0e35\u0e15\u0e31\u0e27\u0e16\u0e2d\u0e14\u0e23\u0e2b\u0e31\u0e2a AV1 \u0e23\u0e35\u0e25\u0e41\u0e25\u0e30\u0e2a\u0e15\u0e2d\u0e23\u0e35\u0e48\u0e08\u0e36\u0e07\u0e21\u0e32\u0e40\u0e1b\u0e47\u0e19 VP9 \u0e2b\u0e23\u0e37\u0e2d H.264 \u0e17\u0e31\u0e49\u0e07\u0e15\u0e2d\u0e19\u0e14\u0e39\u0e41\u0e25\u0e30\u0e15\u0e2d\u0e19\u0e1a\u0e31\u0e19\u0e17\u0e36\u0e01 \u0e15\u0e49\u0e2d\u0e07\u0e23\u0e35\u0e2a\u0e15\u0e32\u0e23\u0e4c\u0e17");
+        table.put("Tells Instagram your phone has no AV1 decoder. Instagram doesn't always listen, so videos can still come as AV1. If they do, Convert to keep the full size gives you H.264. Takes a restart.",
+                "\u0e1a\u0e2d\u0e01 Instagram \u0e27\u0e48\u0e32\u0e42\u0e17\u0e23\u0e28\u0e31\u0e1e\u0e17\u0e4c\u0e02\u0e2d\u0e07\u0e04\u0e38\u0e13\u0e44\u0e21\u0e48\u0e21\u0e35\u0e15\u0e31\u0e27\u0e16\u0e2d\u0e14\u0e23\u0e2b\u0e31\u0e2a AV1 \u0e41\u0e15\u0e48 Instagram \u0e44\u0e21\u0e48\u0e44\u0e14\u0e49\u0e17\u0e33\u0e15\u0e32\u0e21\u0e40\u0e2a\u0e21\u0e2d\u0e44\u0e1b \u0e27\u0e34\u0e14\u0e35\u0e42\u0e2d\u0e08\u0e36\u0e07\u0e2d\u0e32\u0e08\u0e22\u0e31\u0e07\u0e21\u0e32\u0e40\u0e1b\u0e47\u0e19 AV1 \u0e2b\u0e32\u0e01\u0e40\u0e1b\u0e47\u0e19\u0e40\u0e0a\u0e48\u0e19\u0e19\u0e31\u0e49\u0e19 \u0e41\u0e1b\u0e25\u0e07\u0e44\u0e1f\u0e25\u0e4c\u0e40\u0e1e\u0e37\u0e48\u0e2d\u0e04\u0e07\u0e02\u0e19\u0e32\u0e14\u0e40\u0e15\u0e47\u0e21\u0e44\u0e27\u0e49\u0e08\u0e30\u0e43\u0e2b\u0e49\u0e44\u0e1f\u0e25\u0e4c H.264 \u0e15\u0e49\u0e2d\u0e07\u0e23\u0e35\u0e2a\u0e15\u0e32\u0e23\u0e4c\u0e17");
         table.put("Tells Instagram your phone is at %1$s.",
                 "\u0e41\u0e08\u0e49\u0e07 Instagram \u0e27\u0e48\u0e32\u0e42\u0e17\u0e23\u0e28\u0e31\u0e1e\u0e17\u0e4c\u0e02\u0e2d\u0e07\u0e04\u0e38\u0e13\u0e2d\u0e22\u0e39\u0e48\u0e17\u0e35\u0e48 %1$s");
         table.put("Tells Instagram your phone is at the place set below, for the location sticker, nearby places and maps. Photos keep their own places.",
@@ -35186,8 +35186,8 @@ public final class L10nTranslations {
                 "Ak\u0131\u015f videolar\u0131na dokunmak ak\u0131\u015fta kal\u0131r");
         table.put("Teal",
                 "Camg\u00f6be\u011fi");
-        table.put("Tells Instagram your phone has no AV1 decoder, so reels and stories come as VP9 or H.264, both to watch and to save. Takes a restart.",
-                "Instagram'a telefonunda AV1 kod \u00e7\u00f6z\u00fcc\u00fc olmad\u0131\u011f\u0131n\u0131 s\u00f6yler, b\u00f6ylece reels ve hikayeler hem izlemek hem kaydetmek i\u00e7in VP9 ya da H.264 olarak gelir. Yeniden ba\u015flatma gerekir.");
+        table.put("Tells Instagram your phone has no AV1 decoder. Instagram doesn't always listen, so videos can still come as AV1. If they do, Convert to keep the full size gives you H.264. Takes a restart.",
+                "Instagram'a telefonunda AV1 kod \u00e7\u00f6z\u00fcc\u00fc olmad\u0131\u011f\u0131n\u0131 s\u00f6yler. Instagram buna her zaman uymaz, bu y\u00fczden videolar yine de AV1 olarak gelebilir. B\u00f6yle olursa Tam boyutu korumak i\u00e7in d\u00f6n\u00fc\u015ft\u00fcr sana H.264 verir. Yeniden ba\u015flatma gerekir.");
         table.put("Tells Instagram your phone is at %1$s.",
                 "Instagram'a telefonunun %1$s konumunda oldu\u011funu s\u00f6yler.");
         table.put("Tells Instagram your phone is at the place set below, for the location sticker, nearby places and maps. Photos keep their own places.",
@@ -39655,8 +39655,8 @@ public final class L10nTranslations {
                 "Ch\u1ea1m v\u00e0o video b\u1ea3ng feed v\u1eabn \u1edf l\u1ea1i b\u1ea3ng feed");
         table.put("Teal",
                 "Xanh lam l\u1ee5c");
-        table.put("Tells Instagram your phone has no AV1 decoder, so reels and stories come as VP9 or H.264, both to watch and to save. Takes a restart.",
-                "B\u00e1o cho Instagram l\u00e0 \u0111i\u1ec7n tho\u1ea1i c\u1ee7a b\u1ea1n kh\u00f4ng c\u00f3 b\u1ed9 gi\u1ea3i m\u00e3 AV1, n\u00ean reels v\u00e0 tin \u0111\u1ebfn d\u01b0\u1edbi d\u1ea1ng VP9 ho\u1eb7c H.264, c\u1ea3 khi xem l\u1eabn khi l\u01b0u. C\u1ea7n kh\u1edfi \u0111\u1ed9ng l\u1ea1i.");
+        table.put("Tells Instagram your phone has no AV1 decoder. Instagram doesn't always listen, so videos can still come as AV1. If they do, Convert to keep the full size gives you H.264. Takes a restart.",
+                "B\u00e1o cho Instagram l\u00e0 \u0111i\u1ec7n tho\u1ea1i c\u1ee7a b\u1ea1n kh\u00f4ng c\u00f3 b\u1ed9 gi\u1ea3i m\u00e3 AV1. Instagram kh\u00f4ng ph\u1ea3i l\u00fac n\u00e0o c\u0169ng l\u00e0m theo, n\u00ean video v\u1eabn c\u00f3 th\u1ec3 \u0111\u1ebfn d\u01b0\u1edbi d\u1ea1ng AV1. Khi \u0111\u00f3, Chuy\u1ec3n \u0111\u1ed5i \u0111\u1ec3 gi\u1eef k\u00edch th\u01b0\u1edbc \u0111\u1ea7y \u0111\u1ee7 s\u1ebd cho b\u1ea1n H.264. C\u1ea7n kh\u1edfi \u0111\u1ed9ng l\u1ea1i.");
         table.put("Tells Instagram your phone is at %1$s.",
                 "B\u00e1o cho Instagram bi\u1ebft \u0111i\u1ec7n tho\u1ea1i c\u1ee7a b\u1ea1n \u0111ang \u1edf %1$s.");
         table.put("Tells Instagram your phone is at the place set below, for the location sticker, nearby places and maps. Photos keep their own places.",
@@ -44124,8 +44124,8 @@ public final class L10nTranslations {
                 "\u70b9\u51fb\u52a8\u6001\u89c6\u9891\u65f6\u7559\u5728\u52a8\u6001");
         table.put("Teal",
                 "\u84dd\u7eff\u8272");
-        table.put("Tells Instagram your phone has no AV1 decoder, so reels and stories come as VP9 or H.264, both to watch and to save. Takes a restart.",
-                "\u544a\u8bc9 Instagram \u4f60\u7684\u624b\u673a\u6ca1\u6709 AV1 \u89e3\u7801\u5668\uff0c\u8ba9 Reels \u548c\u5feb\u62cd\u6539\u4ee5 VP9 \u6216 H.264 \u53d1\u9001\uff0c\u89c2\u770b\u548c\u4fdd\u5b58\u90fd\u4e00\u6837\u3002\u9700\u8981\u91cd\u65b0\u542f\u52a8\u3002");
+        table.put("Tells Instagram your phone has no AV1 decoder. Instagram doesn't always listen, so videos can still come as AV1. If they do, Convert to keep the full size gives you H.264. Takes a restart.",
+                "\u544a\u8bc9 Instagram \u4f60\u7684\u624b\u673a\u6ca1\u6709 AV1 \u89e3\u7801\u5668\u3002Instagram \u4e0d\u4e00\u5b9a\u4f1a\u7167\u505a\uff0c\u89c6\u9891\u4ecd\u53ef\u80fd\u4ee5 AV1 \u53d1\u9001\u3002\u9047\u5230\u8fd9\u79cd\u60c5\u51b5\uff0c\u8f6c\u6362\u683c\u5f0f\u4ee5\u4fdd\u7559\u5b8c\u6574\u5c3a\u5bf8\u53ef\u4ee5\u7ed9\u4f60 H.264\u3002\u9700\u8981\u91cd\u65b0\u542f\u52a8\u3002");
         table.put("Tells Instagram your phone is at %1$s.",
                 "\u5411 Instagram \u4e0a\u62a5\u624b\u673a\u4f4d\u4e8e %1$s\u3002");
         table.put("Tells Instagram your phone is at the place set below, for the location sticker, nearby places and maps. Photos keep their own places.",
@@ -48593,8 +48593,8 @@ public final class L10nTranslations {
                 "\u9ede\u64ca\u52d5\u614b\u5f71\u7247\u6642\u7559\u5728\u52d5\u614b");
         table.put("Teal",
                 "\u85cd\u7da0\u8272");
-        table.put("Tells Instagram your phone has no AV1 decoder, so reels and stories come as VP9 or H.264, both to watch and to save. Takes a restart.",
-                "\u544a\u8a34 Instagram \u4f60\u7684\u624b\u6a5f\u6c92\u6709 AV1 \u89e3\u78bc\u5668\uff0c\u8b93\u9023\u7e8c\u77ed\u7247\u548c\u9650\u6642\u52d5\u614b\u6539\u4ee5 VP9 \u6216 H.264 \u50b3\u4f86\uff0c\u89c0\u770b\u548c\u5132\u5b58\u90fd\u4e00\u6a23\u3002\u9700\u8981\u91cd\u65b0\u555f\u52d5\u3002");
+        table.put("Tells Instagram your phone has no AV1 decoder. Instagram doesn't always listen, so videos can still come as AV1. If they do, Convert to keep the full size gives you H.264. Takes a restart.",
+                "\u544a\u8a34 Instagram \u4f60\u7684\u624b\u6a5f\u6c92\u6709 AV1 \u89e3\u78bc\u5668\u3002Instagram \u4e0d\u4e00\u5b9a\u6703\u7167\u505a\uff0c\u5f71\u7247\u4ecd\u53ef\u80fd\u4ee5 AV1 \u50b3\u4f86\u3002\u9047\u5230\u9019\u7a2e\u60c5\u6cc1\uff0c\u8f49\u63db\u683c\u5f0f\u4ee5\u4fdd\u7559\u5b8c\u6574\u5c3a\u5bf8\u53ef\u4ee5\u7d66\u4f60 H.264\u3002\u9700\u8981\u91cd\u65b0\u555f\u52d5\u3002");
         table.put("Tells Instagram your phone is at %1$s.",
                 "\u5411 Instagram \u56de\u5831\u624b\u6a5f\u4f4d\u65bc %1$s\u3002");
         table.put("Tells Instagram your phone is at the place set below, for the location sticker, nearby places and maps. Photos keep their own places.",

@@ -319,7 +319,7 @@
     },
     {
       "name": "Ask for VP9 instead of AV1",
-      "description": "Tells Instagram your phone has no AV1 decoder, so reels and stories come as VP9 or H.264, both to watch and to save. Useful when AV1 saves won't play in your gallery or editor, or Never save AV1 video can only fall back to a small file. Takes a restart. Starts off. Turn it on in HushGram settings > Downloads.",
+      "description": "Tells Instagram your phone has no AV1 decoder. Instagram doesn't always listen, so videos can still come as AV1. If they do, Convert to keep the full size gives you H.264. Takes a restart. Starts off. Turn it on in HushGram settings > Downloads.",
       "category": "Downloads",
       "use": true,
       "dependencies": [
