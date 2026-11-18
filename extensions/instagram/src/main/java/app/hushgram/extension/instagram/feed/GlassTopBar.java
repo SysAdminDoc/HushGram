@@ -427,6 +427,8 @@ public final class GlassTopBar {
         @Nullable private final GlassReach reach;
         /** Runs a chat's messages on under its header and behind the status bar (#684). Null elsewhere. */
         @Nullable ChatReach chat;
+        /** Whether the last frame wasn't drawn because the chat's reach had just moved something (#757). */
+        private boolean heldBack;
         /** The view holding a chat's messages while they run on under the glass, with its soft edge on it. */
         @Nullable View banded;
         @Nullable private Edge edge;
@@ -553,6 +555,16 @@ public final class GlassTopBar {
                     return true;
                 }
                 putOn();
+                // Instagram pads a chat's messages again each time the message bar changes height, so this frame
+                // was laid out without the room the reach gives them and would show them a line or more off. The
+                // reach has put it back, and the next frame lays it out, so this one isn't drawn (#757). Never two
+                // in a row, so a reach that moves something every frame still draws.
+                ChatReach messages = chat;
+                if (messages != null && messages.moved() && !heldBack) {
+                    heldBack = true;
+                    return false;
+                }
+                heldBack = false;
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) record(SystemClock.uptimeMillis());
             } catch (Throwable failure) {
                 // Instagram's header as it was, for as long as this header lives.

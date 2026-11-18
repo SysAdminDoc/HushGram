@@ -81,6 +81,8 @@ final class ChatReach {
     private boolean described;
     /** How far the glass reaches above the header, behind the status bar, 0 while it doesn't. */
     int gap;
+    /** Whether a margin or padding was set since {@link #moved()} was last asked, which only the next layout takes. */
+    private boolean moved;
 
     /** The view stretched down, whose bottom the list shares, with its own bottom margin, and the list's own bottom padding. */
     @Nullable private View stretched;
@@ -103,6 +105,28 @@ final class ChatReach {
         WindowInsets insets = view.getRootWindowInsets();
         if (insets == null || Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return 0;
         return insets.getInsets(WindowInsets.Type.navigationBars()).bottom;
+    }
+
+    /**
+     * Whether this set a margin or padding since last asked. The frame laid out before it would show the messages
+     * where Instagram put them, a line or more off for that one frame (#757), so that frame is better not drawn.
+     */
+    boolean moved() {
+        boolean was = moved;
+        moved = false;
+        return was;
+    }
+
+    /** Sets [view]'s layout params, which only the next layout takes. */
+    private void relay(View view, ViewGroup.LayoutParams params) {
+        view.setLayoutParams(params);
+        moved = true;
+    }
+
+    /** Sets [view]'s top and bottom padding, which only the next layout takes. */
+    private void pad(View view, int top, int bottom) {
+        view.setPadding(view.getPaddingLeft(), top, view.getPaddingRight(), bottom);
+        moved = true;
     }
 
     /** The view holding the messages while they run on under the header, else null. */
@@ -186,10 +210,10 @@ final class ChatReach {
         ViewGroup.MarginLayoutParams params = (ViewGroup.MarginLayoutParams) pull.getLayoutParams();
         pulledMargin = params.topMargin;
         params.topMargin -= up;
-        pull.setLayoutParams(params);
+        relay(pull, params);
         listPadding = found.getPaddingTop();
         listClipped = !(found instanceof ViewGroup) || ((ViewGroup) found).getClipToPadding();
-        found.setPadding(found.getPaddingLeft(), listPadding + up, found.getPaddingRight(), found.getPaddingBottom());
+        pad(found, listPadding + up, found.getPaddingBottom());
         if (found instanceof ViewGroup) ((ViewGroup) found).setClipToPadding(false);
         messagesClip = content.getClipBounds();
         messages = content;
@@ -244,11 +268,9 @@ final class ChatReach {
         int want = Math.max(0, bottom + under - natural);
         if (params.bottomMargin != stretchedMargin - want) {
             params.bottomMargin = stretchedMargin - want;
-            stretch.setLayoutParams(params);
+            relay(stretch, params);
         }
-        if (found.getPaddingBottom() != listBottomPadding + want) {
-            found.setPadding(found.getPaddingLeft(), found.getPaddingTop(), found.getPaddingRight(), listBottomPadding + want);
-        }
+        if (found.getPaddingBottom() != listBottomPadding + want) pad(found, found.getPaddingTop(), listBottomPadding + want);
         down = want;
     }
 
@@ -259,12 +281,12 @@ final class ChatReach {
             ViewGroup.MarginLayoutParams params = (ViewGroup.MarginLayoutParams) stretch.getLayoutParams();
             if (params.bottomMargin == stretchedMargin - down) {
                 params.bottomMargin = stretchedMargin;
-                stretch.setLayoutParams(params);
+                relay(stretch, params);
             }
         }
         View found = list;
         if (stretch != null && found != null && found.getPaddingBottom() == listBottomPadding + down) {
-            found.setPadding(found.getPaddingLeft(), found.getPaddingTop(), found.getPaddingRight(), listBottomPadding);
+            pad(found, found.getPaddingTop(), listBottomPadding);
         }
         stretched = null;
         down = 0;
@@ -290,11 +312,11 @@ final class ChatReach {
         if (params.topMargin != pulledMargin - by) {
             pulledMargin = params.topMargin;
             params.topMargin -= by;
-            pull.setLayoutParams(params);
+            relay(pull, params);
         }
         if (found.getPaddingTop() != listPadding + by) {
             listPadding = found.getPaddingTop();
-            found.setPadding(found.getPaddingLeft(), listPadding + by, found.getPaddingRight(), found.getPaddingBottom());
+            pad(found, listPadding + by, found.getPaddingBottom());
         }
         if (found instanceof ViewGroup && ((ViewGroup) found).getClipToPadding()) ((ViewGroup) found).setClipToPadding(false);
         View stretch = stretched;
@@ -340,14 +362,12 @@ final class ChatReach {
             ViewGroup.MarginLayoutParams params = (ViewGroup.MarginLayoutParams) pull.getLayoutParams();
             if (params.topMargin == pulledMargin - by) {
                 params.topMargin = pulledMargin;
-                pull.setLayoutParams(params);
+                relay(pull, params);
             }
         }
         View found = list;
         if (found != null) {
-            if (found.getPaddingTop() == listPadding + by) {
-                found.setPadding(found.getPaddingLeft(), listPadding, found.getPaddingRight(), found.getPaddingBottom());
-            }
+            if (found.getPaddingTop() == listPadding + by) pad(found, listPadding, found.getPaddingBottom());
             if (found instanceof ViewGroup) ((ViewGroup) found).setClipToPadding(listClipped);
         }
         View content = messages;

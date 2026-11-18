@@ -22,6 +22,7 @@ Every HushGram release, newest first.
 * Letting go after `Hold for 2x on feed videos` no longer pauses the video when `Tap a feed video to pause it` is on too.
 * The `Show if a profile follows you` label no longer lands on top of the post count on profiles with no name.
 * `Glass in chats` keeps the message bar's glass when Instagram switches the bar to its newer layout, and `Message bar tint` works on it again. Reported in #759.
+* Messages in a chat no longer jump and snap back while you type a long message with `Glass in chats` on. Reported in #757.
 
 ## 0.0.21 (2026-11-18)
 
