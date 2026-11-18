@@ -201,18 +201,34 @@ Test-Broken { param($c) (Get-Entry $c $licensedCandidate).license.spdx = 'CC-BY-
 Test-Broken { param($c) (Get-Entry $c $unlicensed).disposition = 'adopted' } '*has no licence*' 'An unlicensed source marked adopted'
 
 # A relicensed source keeps its earlier licence pinned, and code it took from another lineage says so.
+# When no checked-in source has been relicensed (InstaEclipse was the only one, until it answered
+# 404 in the 2026-11-18 census), a licensed candidate gets a well-formed earlier licence on the copy.
 $relicensed = @($entries | Where-Object { @($_.licenseHistory | Where-Object { $_ }).Count -gt 0 })
-Assert-True ($relicensed.Count -ge 1) 'No ledger source records an earlier licence, so the cases below would prove nothing.'
-$relicensedId = [string]$relicensed[0].id
-Test-Broken { param($c) (Get-Entry $c $relicensedId).licenseHistory[0].commit = 'main' } '*earlier licence*pinned to no commit*' `
+$relicensedId = if ($relicensed.Count -ge 1) { [string]$relicensed[0].id } else { $licensedCandidate }
+Assert-True ([bool]$relicensedId) 'No ledger source records or can take an earlier licence, so the cases below would prove nothing.'
+function Get-EarlierLicence {
+    param($Copy)
+    $entry = Get-Entry $Copy $relicensedId
+    if (@($entry.licenseHistory | Where-Object { $_ }).Count -eq 0) {
+        $pin = 'c0' * 20
+        $record = [pscustomobject]@{ spdx = 'MIT'; url = "$($entry.repository)/blob/$pin/LICENSE"; sha256 = ('ab' * 32); commit = $pin; until = '2026-08-01' }
+        $entry | Add-Member -NotePropertyName licenseHistory -NotePropertyValue @($record) -Force
+    }
+    return $entry.licenseHistory[0]
+}
+$wellFormed = Copy-Json $ledger
+Get-EarlierLicence $wellFormed | Out-Null
+$wellFormedResult = Test-SourceLedger -Ledger $wellFormed -Root $Root
+Assert-True $wellFormedResult.Valid ("A well-formed earlier licence was refused: " + ($wellFormedResult.Problems -join ' | '))
+Test-Broken { param($c) (Get-EarlierLicence $c).commit = 'main' } '*earlier licence*pinned to no commit*' `
     'An earlier licence pinned to a branch name'
-Test-Broken { param($c) (Get-Entry $c $relicensedId).licenseHistory[0].sha256 = $null } '*earlier licence*no sha256*' 'An earlier licence with no hash'
-Test-Broken { param($c) (Get-Entry $c $relicensedId).licenseHistory[0].url = 'http://example.com/LICENSE' } '*earlier licence*no https url*' `
+Test-Broken { param($c) (Get-EarlierLicence $c).sha256 = $null } '*earlier licence*no sha256*' 'An earlier licence with no hash'
+Test-Broken { param($c) (Get-EarlierLicence $c).url = 'http://example.com/LICENSE' } '*earlier licence*no https url*' `
     'An earlier licence with no https url'
-Test-Broken { param($c) (Get-Entry $c $relicensedId).licenseHistory[0].spdx = '' } '*earlier licence with no SPDX*' 'An earlier licence with no SPDX identifier'
-Test-Broken { param($c) (Get-Entry $c $relicensedId).licenseHistory[0].until = 'October' } '*earlier licence*until is not a yyyy-MM-dd date*' `
+Test-Broken { param($c) (Get-EarlierLicence $c).spdx = '' } '*earlier licence with no SPDX*' 'An earlier licence with no SPDX identifier'
+Test-Broken { param($c) (Get-EarlierLicence $c).until = 'October' } '*earlier licence*until is not a yyyy-MM-dd date*' `
     'An earlier licence with no end date'
-Test-Broken { param($c) (Get-Entry $c $relicensedId).licenseHistory[0].until = '2999-01-01' } '*earlier licence*until is 2999-01-01, after today*' `
+Test-Broken { param($c) (Get-EarlierLicence $c).until = '2999-01-01' } '*earlier licence*until is 2999-01-01, after today*' `
     'An earlier licence that ends in the future'
 $inheriting = @($entries | Where-Object { @($_.inherits | Where-Object { $_ }).Count -gt 0 })
 Assert-True ($inheriting.Count -ge 1) 'No ledger source records inherited code, so the cases below would prove nothing.'
@@ -228,10 +244,19 @@ Test-Broken { param($c) (Get-Entry $c $inheritingId).inherits[0].paths = @('../o
 
 # provenance.json can't credit what the ledger doesn't allow, and can't port from what isn't adopted.
 $behaviorOnly = [string]@($entries | Where-Object { $_.disposition -eq 'behavior-only' })[0].repository
+# The cases break the first ported rule that came through other repositories; a rule copied
+# straight from its upstream (the Thai strings) has no via list to add to.
+function Get-ViaRule {
+    param($Document)
+    $rule = @($Document.rules | Where-Object { $_.origin -eq 'ported' -and $_.PSObject.Properties['via'] })[0]
+    Assert-True ($null -ne $rule) 'provenance.json has no ported rule with a via list, so the cases below would prove nothing.'
+    return $rule
+}
 Test-Broken { param($c) } '*credits*but the ledger lists it as behavior-only*' 'A provenance rule crediting a behavior-only source' {
     $path = Join-Path $rulesRoot 'provenance.json'
     $document = [IO.File]::ReadAllText($path) | ConvertFrom-Json
-    $document.rules[0].via = @(@($document.rules[0].via) + $behaviorOnly)
+    $rule = Get-ViaRule $document
+    $rule.via = @(@($rule.via) + $behaviorOnly)
     [IO.File]::WriteAllText($path, ($document | ConvertTo-Json -Depth 10))
 }
 Test-Broken { param($c) $e = Get-Entry $c $adoptedId; $e.disposition = 'candidate'; $e.PSObject.Properties.Remove('adopted') } '*ports files from*not adopted*' `
@@ -241,19 +266,20 @@ Test-Broken { param($c) $e = Get-Entry $c $adoptedId; $e.disposition = 'candidat
 $forkedEntry = @($entries | Where-Object { $_.disposition -eq 'behavior-only' -and @($_.forks | Where-Object { $_ }).Count -gt 0 })[0]
 $behaviorOnlyFork = 'https://' + (ConvertTo-SourceKey $forkedEntry.repository).Split('/')[0] + '/' + @($forkedEntry.forks)[0]
 $recordedMirror = [string]@(@($entries | Where-Object { @($_.mirrors | Where-Object { $_ }).Count -gt 0 })[0].mirrors)[0].repository
-function Set-FirstRule {
+function Set-ViaRule {
     param([string]$Property, [string]$Value)
     $path = Join-Path $rulesRoot 'provenance.json'
     $document = [IO.File]::ReadAllText($path) | ConvertFrom-Json
-    $document.rules[0].$Property = if ($Property -eq 'via') { @(@($document.rules[0].via) + $Value) } else { $Value }
+    $rule = Get-ViaRule $document
+    $rule.$Property = if ($Property -eq 'via') { @(@($rule.via) + $Value) } else { $Value }
     [IO.File]::WriteAllText($path, ($document | ConvertTo-Json -Depth 10))
 }
 Test-Broken { param($c) } '*credits*as a fork of*behavior-only*' 'A provenance rule crediting a fork of a behavior-only source' {
-    Set-FirstRule 'via' $behaviorOnlyFork }
+    Set-ViaRule 'via' $behaviorOnlyFork }
 Test-Broken { param($c) } '*ports files from*only as a fork of*' 'A ported provenance rule from a fork of a behavior-only source' {
-    Set-FirstRule 'upstream' $behaviorOnlyFork }
+    Set-ViaRule 'upstream' $behaviorOnlyFork }
 Test-Broken { param($c) } '*ports files from*only as a mirror of*' 'A ported provenance rule from a recorded mirror' {
-    Set-FirstRule 'upstream' $recordedMirror }
+    Set-ViaRule 'upstream' $recordedMirror }
 
 # The records themselves.
 Test-Broken { param($c) $c.indexes[0].hushgram.status = '' } '*records no HushGram listing*' 'An index with no listing record'
