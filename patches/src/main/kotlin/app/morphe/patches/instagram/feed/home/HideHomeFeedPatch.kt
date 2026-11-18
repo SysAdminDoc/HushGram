@@ -11,6 +11,7 @@ import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.string
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
+import app.morphe.patches.instagram.feed.emptiedPageHeaderPatch
 import app.morphe.patches.instagram.feed.findFeedItemHelper
 import app.morphe.patches.instagram.feed.suggested.emptiedFeedEndPatch
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
@@ -58,7 +59,7 @@ val hideHomeFeedPatch = bytecodePatch(
     default = true,
 ) {
     category("Feed")
-    dependsOn(settingsPatch, instagramExtensionPatch, emptiedFeedEndPatch)
+    dependsOn(settingsPatch, instagramExtensionPatch, emptiedFeedEndPatch, emptiedPageHeaderPatch)
     compatibleWith(*AppCompatibilities.instagram())
 
     execute {

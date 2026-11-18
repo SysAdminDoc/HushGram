@@ -12,6 +12,14 @@ import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.FixtureDex
+import app.morphe.patches.instagram.ads.hideAdsPatch
+import app.morphe.patches.instagram.feed.ADD_PAGE_HEADER
+import app.morphe.patches.instagram.feed.NEW_POSTS_HEADER
+import app.morphe.patches.instagram.feed.emptiedPageHeaderPatch
+import app.morphe.patches.instagram.feed.guardNewPostsHeader
+import app.morphe.patches.instagram.feed.home.hideHomeFeedPatch
+import app.morphe.patches.instagram.feed.reels.hideFeedReelsPatch
+import app.morphe.patches.instagram.metaai.hideMetaAiPatch
 import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
@@ -36,6 +44,10 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
+
+private const val PAGES = "Lfixture/FeedPages;"
+private const val HEADER_INSERT = "Ljava/util/AbstractList;->add(ILjava/lang/Object;)V"
+private const val PLAIN_INSERT = "Ljava/util/ArrayList;->add(ILjava/lang/Object;)V"
 
 class EmptyFeedEndTest {
     private val adapter = "Lfixture/MainFeedAdapter;"
@@ -417,6 +429,122 @@ class EmptyFeedEndTest {
         }
         assertEquals("every build was checked", bundles.size + others.size, checked)
     }
+
+    @Test
+    fun theHeaderHookIsInTheExtension() {
+        val declared = ExtensionDex.classDef(ADD_PAGE_HEADER.substringBefore("->")).methods
+            .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
+            .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
+        assertTrue("$ADD_PAGE_HEADER is not in the extension: $declared", ADD_PAGE_HEADER.substringAfter("->") in declared)
+    }
+
+    /** Only the insert after the header's title changes hands, on the same registers. */
+    @Test
+    fun theHeadersInsertGoesThroughTheExtension() {
+        val context = PatchContexts.of(listOf(feedPages()))
+        val before = context.pageCode()
+
+        context.guardNewPostsHeader()
+
+        val code = context.pageCode()
+        assertEquals(before.size, code.size)
+        val guarded = code.indices.single { code[it].calls(ADD_PAGE_HEADER) }
+        assertEquals(before.indices.single { before[it].calls(HEADER_INSERT) }, guarded)
+        assertEquals(Opcode.INVOKE_STATIC, code[guarded].opcode)
+        val call = code[guarded] as FiveRegisterInstruction
+        assertEquals(listOf(3, 0, 1, 2), listOf(call.registerCount, call.registerC, call.registerD, call.registerE))
+        assertEquals("the page's other inserts stay", 2, code.count { it.calls(PLAIN_INSERT) })
+    }
+
+    @Test
+    fun aHeaderInsertOnHighRegistersStaysARangeCall() {
+        val type = "Lfixture/HighPages;"
+        val context = PatchContexts.of(listOf(classDef(type, listOf(
+            method(type, "build", "V", registers = 20, static = true, body = """
+                const-string v0, "$NEW_POSTS_HEADER"
+                invoke-virtual/range { v16 .. v18 }, $HEADER_INSERT
+                return-void
+            """),
+        ))))
+
+        context.guardNewPostsHeader()
+
+        val call = context.classDefBy(type).methods.single().implementation!!.instructions.toList()[1]
+        assertEquals(Opcode.INVOKE_STATIC_RANGE, call.opcode)
+        assertTrue(call.calls(ADD_PAGE_HEADER))
+        assertEquals(listOf(16, 3), (call as RegisterRangeInstruction).let { listOf(it.startRegister, it.registerCount) })
+    }
+
+    /** Hide suggested posts and the others still go in on a build that moved the header. */
+    @Test
+    fun aBuildWithoutTheHeaderInsertStillPatches() {
+        val type = "Lfixture/NoInsert;"
+        val context = PatchContexts.of(listOf(classDef(type, listOf(
+            method(type, "build", "V", registers = 3, static = true, body = """
+                invoke-virtual { v0, v1, v2 }, $HEADER_INSERT
+                const-string v0, "$NEW_POSTS_HEADER"
+                return-void
+            """),
+        ))))
+
+        context.guardNewPostsHeader()
+
+        val code = context.classDefBy(type).methods.single().implementation!!.instructions.toList()
+        assertTrue("an insert before the title isn't the header's", code[0].calls(HEADER_INSERT))
+        PatchContexts.of(listOf(feedNames())).guardNewPostsHeader()
+    }
+
+    @Test
+    fun everyPatchThatEmptiesAPageGuardsTheHeader() {
+        for (patch in listOf(hideSuggestedPostsPatch, hideHomeFeedPatch, hideAdsPatch, hideMetaAiPatch, hideFeedReelsPatch)) {
+            assertTrue("${patch.name} can leave a page with no posts", emptiedPageHeaderPatch in patch.dependencies)
+        }
+    }
+
+    @Test
+    fun eachBuildGuardsItsOneHeaderInsert() {
+        val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
+        val bundles = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } }
+        val others = Fixtures.otherBuilds()
+        assertTrue("no fixture of a declared build", bundles.isNotEmpty())
+        assertTrue("other builds of the declared version were not read", others.isNotEmpty())
+        for (bundle in bundles + others) {
+            val where = "${bundle.parentFile.name}/${bundle.name}"
+            val classes = FixtureDex.classesLoading(bundle, NEW_POSTS_HEADER).distinctBy { it.type }
+            val context = PatchContexts.of(classes)
+
+            context.guardNewPostsHeader()
+
+            val guarded = classes.flatMap { context.classDefBy(it.type).methods }.filter { method ->
+                method.implementation?.instructions?.any { it.calls(ADD_PAGE_HEADER) } == true
+            }
+            assertEquals("$where: one method guarded", 1, guarded.size)
+            val method = guarded.single()
+            assertTrue("$where: the one naming the header", context.loadsString(method, NEW_POSTS_HEADER))
+            assertEquals("$where: one insert", 1, method.implementation!!.instructions.count { it.calls(ADD_PAGE_HEADER) })
+        }
+    }
+
+    private fun BytecodePatchContext.pageCode() =
+        classDefBy(PAGES).methods.single().implementation!!.instructions.toList()
+
+    /** A page being built: a post goes in, then the header's title and its insert, then one more item. */
+    private fun feedPages() = classDef(PAGES, listOf(
+        method(PAGES, "build", "V", registers = 3, static = true, body = """
+            new-instance v0, Ljava/util/ArrayList;
+            invoke-direct { v0 }, Ljava/util/ArrayList;-><init>()V
+            const/4 v1, 0x0
+            const-string v2, "post"
+            invoke-virtual { v0, v1, v2 }, $PLAIN_INSERT
+            const/4 v1, 0x1
+            const-string v2, "$NEW_POSTS_HEADER"
+            invoke-virtual { v0, v1, v2 }, $HEADER_INSERT
+            const/4 v1, 0x2
+            const-string v2, "more"
+            invoke-virtual { v0, v1, v2 }, $PLAIN_INSERT
+            return-void
+        """),
+    ))
 
     /** The index of the instruction the branch at [at] lands on. */
     private fun target(code: List<Instruction>, at: Int): Int {

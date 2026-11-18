@@ -1003,4 +1003,26 @@ public class FeedSuggestionsTest {
             Settings.FEED_ACCOUNT.resetToDefault();
         }
     }
+
+    @Test
+    public void aPageLeftWithNoPostsGetsNoNewPostsHeader() {
+        // A linked carousel came as a page of one, Hide carousels took it out, and Instagram's insert
+        // after the first post crashed the app on the empty list.
+        List<Object> page = new java.util.ArrayList<>();
+
+        FeedPageHeader.add(page, 1, "header");
+
+        assertTrue(page.isEmpty());
+    }
+
+    @Test
+    public void aPageWithPostsGetsTheHeaderWhereInstagramAsked() {
+        List<Object> one = new java.util.ArrayList<>(java.util.Collections.singletonList("post"));
+        FeedPageHeader.add(one, 1, "header");
+        assertEquals(java.util.Arrays.asList("post", "header"), one);
+
+        List<Object> two = new java.util.ArrayList<>(java.util.Arrays.asList("first", "second"));
+        FeedPageHeader.add(two, 1, "header");
+        assertEquals(java.util.Arrays.asList("first", "header", "second"), two);
+    }
 }

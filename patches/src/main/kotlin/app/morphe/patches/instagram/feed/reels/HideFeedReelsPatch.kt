@@ -6,6 +6,7 @@ package app.morphe.patches.instagram.feed.reels
 
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.bytecodePatch
+import app.morphe.patches.instagram.feed.emptiedPageHeaderPatch
 import app.morphe.patches.instagram.feed.filterParsedFeedItems
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.enableStatus
@@ -28,7 +29,7 @@ val hideFeedReelsPatch = bytecodePatch(
     category("Feed")
     dependsOn(settingsPatch)
     compatibleWith(*AppCompatibilities.instagram())
-    dependsOn(instagramExtensionPatch)
+    dependsOn(instagramExtensionPatch, emptiedPageHeaderPatch)
 
     execute {
         filterParsedFeedItems()

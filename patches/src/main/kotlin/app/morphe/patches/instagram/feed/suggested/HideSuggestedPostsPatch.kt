@@ -13,6 +13,7 @@ import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.download.MEDIA
 import app.morphe.patches.instagram.download.USER
 import app.morphe.patches.instagram.download.pandoGetter
+import app.morphe.patches.instagram.feed.emptiedPageHeaderPatch
 import app.morphe.patches.instagram.feed.filterParsedFeedItems
 import app.morphe.patches.instagram.feed.home.HomeFeedReads
 import app.morphe.patches.instagram.feed.home.findHomeFeedReads
@@ -79,7 +80,7 @@ val hideSuggestedPostsPatch = bytecodePatch(
     category("Feed")
     dependsOn(settingsPatch)
     compatibleWith(*AppCompatibilities.instagram())
-    dependsOn(instagramExtensionPatch, emptiedFeedEndPatch)
+    dependsOn(instagramExtensionPatch, emptiedFeedEndPatch, emptiedPageHeaderPatch)
 
     execute {
         requireStatusMethod(FEED_TYPES_STATUS)

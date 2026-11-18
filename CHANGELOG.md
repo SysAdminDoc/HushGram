@@ -15,6 +15,7 @@ Every HushGram release, newest first.
 * `Ambient light in stories` no longer flashes white bars on a light theme when a story opens or you swipe to the next one. The glow also stays on until the next story's is ready. Reported in #751.
 * Posts with several photos and a song keep their seek bar in the reels viewer now, the same as a single photo with a song. Reported in #10.
 * `See-through top bar` fades out below the header now, instead of stopping on a hard line when you scroll back up. Reported in #462.
+* Home no longer crashes when a hide switch removes the only post on a page of the feed, which could happen when opening a link to a post.
 
 ## 0.0.21 (2026-11-18)
 
