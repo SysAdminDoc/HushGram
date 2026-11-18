@@ -42,6 +42,11 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * tap as well, {@link #tapped} pauses or plays it and lets go of the state, so the lift doesn't do
  * it twice. A press a scroll takes over ends without a lift and leaves the video as it was.
  *
+ * <p>With Hold for 2x on feed videos on, the press is left to Instagram, which plays the video faster.
+ * Instagram's gesture listener then reports the lift as a tap before it reports the release, so
+ * {@link #tapped} and {@link #opening} know that one tap as the end of the hold and leave the video
+ * playing.
+ *
  * <p>On Instagram 451 a tap can open Reels without reaching that handler: the video's overlays open
  * Reels on their own, the end screen a finished feed reel shows among them, and Instagram's own tap
  * can be sent to Reels by a server setting. All of them end in the feed's one Reels launcher, which
@@ -80,6 +85,9 @@ public final class FeedTapPause {
      */
     static final String PRESS_TAKEN = "held presses taken as taps";
     static final String PRESS_LEFT = "held presses left to Instagram";
+
+    /** What {@link HookStatus} counts: the tap that ends a hold for 2x, which leaves the video as it was. */
+    static final String HOLD_LIFT_LEFT = "lifts of a hold for 2x left alone";
 
     /** What {@link HookStatus} counts for each Reels opening with the switch on, followed by its entry point's name. */
     static final String OPENED_FROM = "Reels openings from ";
@@ -209,6 +217,10 @@ public final class FeedTapPause {
     @Nullable
     private static volatile WeakReference<Object> held;
 
+    /** The post state of the press {@link #pressed} left to Hold for 2x on feed videos, until the tap or the release that ends it. */
+    @Nullable
+    private static volatile WeakReference<Object> heldFast;
+
     private FeedTapPause() {
     }
 
@@ -220,6 +232,7 @@ public final class FeedTapPause {
      * are unfilled, or something in here threw before the video was paused or played. Never throws.
      */
     public static boolean tapped(@Nullable Object handler, @Nullable Object media, @Nullable Object state) {
+        boolean endsHold;
         try {
             HookStatus.invoked(FamilyNames.FEED_TAP_PAUSE);
             if (handler == null || media == null || state == null) return false;
@@ -227,11 +240,13 @@ public final class FeedTapPause {
             HookStatus.bound(FamilyNames.FEED_TAP_PAUSE, TAP);
             // A tap that ends a held press this took is that press's own, which leaves its lift nothing to do.
             letGo(state);
+            endsHold = letGoFast(state);
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.FEED_TAP_PAUSE, TAP, failure);
             return false;
         }
-        return toggle(feed -> feed.controllerOf(handler), media, state, TAP);
+        Function<Videos, Object> reach = feed -> feed.controllerOf(handler);
+        return endsHold ? leftPlaying(reach, media, state, TAP) : toggle(reach, media, state, TAP);
     }
 
     /**
@@ -244,10 +259,12 @@ public final class FeedTapPause {
      */
     public static boolean pressed(@Nullable Object handler, @Nullable Object media, @Nullable Object state) {
         held = null;
+        heldFast = null;
         try {
             if (handler == null || media == null || state == null) return false;
             if (!switchedOn()) return false;
             if (FeedHoldSpeed.holding()) {
+                heldFast = new WeakReference<>(state);
                 Logger.printDebug(() -> "Feed video: left a held press to Hold for 2x");
                 return false;
             }
@@ -275,6 +292,8 @@ public final class FeedTapPause {
      */
     public static void released(@Nullable Object handler, @Nullable Object media, @Nullable Object state, int lifted) {
         try {
+            // A hold for 2x is over either way, so no later tap gets taken for its lift.
+            if (state != null) letGoFast(state);
             if (state == null || !letGo(state) || lifted == 0) return;
             if (handler == null || media == null || !switchedOn()) return;
             HookStatus.bound(FamilyNames.FEED_TAP_PAUSE, RELEASE);
@@ -301,6 +320,7 @@ public final class FeedTapPause {
                                   @Nullable Object state) {
         boolean pauses;
         boolean keeps;
+        boolean endsHold;
         try {
             if (launcher == null || media == null || state == null) return false;
             pauses = switchedOn();
@@ -312,12 +332,15 @@ public final class FeedTapPause {
             boolean onVideo = VIDEO_TAP.equals(from);
             if (!onVideo) return keeps && BACKGROUND_TAP.equals(from) && kept(from);
             letGo(state);
+            endsHold = letGoFast(state);
             if (!pauses) return kept(from);
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.FEED_TAP_PAUSE, OPEN, failure);
             return false;
         }
-        return toggle(feed -> feed.controllerOfLauncher(launcher), media, state, OPEN) || keeps && kept(VIDEO_TAP);
+        Function<Videos, Object> reach = feed -> feed.controllerOfLauncher(launcher);
+        boolean handled = endsHold ? leftPlaying(reach, media, state, OPEN) : toggle(reach, media, state, OPEN);
+        return handled || keeps && kept(VIDEO_TAP);
     }
 
     /**
@@ -354,6 +377,23 @@ public final class FeedTapPause {
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.FEED_TAP_PAUSE, hook, failure);
             return handled;
+        }
+    }
+
+    /**
+     * Takes the tap that ends a hold for 2x on [media] without pausing or playing anything, on the same
+     * checks as {@link #toggle}. True when it did. False leaves the tap to Instagram. Never throws.
+     */
+    private static boolean leftPlaying(Function<Videos, Object> reach, Object media, Object state, String hook) {
+        try {
+            Videos feed = videos;
+            if (target(feed, reach.apply(feed), media, state, false) == null) return false;
+            HookStatus.counted(FamilyNames.FEED_TAP_PAUSE, HOLD_LIFT_LEFT);
+            Logger.printDebug(() -> "Feed video: left the lift of a hold for 2x alone");
+            return true;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.FEED_TAP_PAUSE, hook, failure);
+            return false;
         }
     }
 
@@ -398,6 +438,14 @@ public final class FeedTapPause {
         return true;
     }
 
+    /** Whether [state] is the press left to Hold for 2x on feed videos, which this then lets go of. */
+    private static boolean letGoFast(Object state) {
+        WeakReference<Object> press = heldFast;
+        if (press == null || press.get() != state) return false;
+        heldFast = null;
+        return true;
+    }
+
     /** Counts a gesture that goes to Instagram with the switch on, under the check [reason] it failed or as a press, and answers none. */
     @Nullable
     private static Target left(String reason, boolean press) {
@@ -416,5 +464,6 @@ public final class FeedTapPause {
     static void resetForTests() {
         videos = new Patched();
         held = null;
+        heldFast = null;
     }
 }

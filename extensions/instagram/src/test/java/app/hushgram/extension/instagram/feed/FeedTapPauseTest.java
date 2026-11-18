@@ -449,6 +449,82 @@ public class FeedTapPauseTest {
         assertTrue(report, report.contains(FeedTapPause.PRESS_TAKEN + " 2"));
     }
 
+    private void holdFor2xOn() {
+        Settings.TAP_FEED_VIDEO_TO_PAUSE.save(true);
+        Settings.HOLD_FEED_VIDEO_FAST.save(true);
+        FeedHoldSpeed.inBuildForTests = true;
+    }
+
+    /**
+     * Android sends a held press's tap before its release, so lifting a finger from Hold for 2x reaches the tap handler
+     * first. That tap belongs to the hold: the video stays as it was, the handler stops there, and the next tap pauses.
+     */
+    @Test
+    public void theLiftOfAHoldFor2xLeavesTheVideoAlone() {
+        holdFor2xOn();
+        assertFalse("the hold is Instagram's", press());
+        assertTrue("its lift goes no further", tap());
+        lift();
+        assertEquals("still playing", 0, feed.pauses + feed.starts);
+        assertNull("nothing to tell the post", feed.marked);
+        String report = report();
+        assertTrue(report, report.contains(FeedTapPause.HOLD_LIFT_LEFT + " 1"));
+
+        assertTrue("the next tap is a tap", tap());
+        assertEquals(1, feed.pauses);
+    }
+
+    /** The same lift can reach the Reels launcher instead of the tap handler, which leaves the video alone too. */
+    @Test
+    public void theLiftOfAHoldFor2xAtTheLauncherLeavesTheVideoAlone() {
+        holdFor2xOn();
+        assertFalse(press());
+        assertTrue("Reels stays shut", open(EntryPoint.VIDEO_TAP));
+        lift();
+        assertEquals("still playing", 0, feed.pauses + feed.starts);
+
+        assertTrue("the next tap is a tap", open(EntryPoint.VIDEO_TAP));
+        assertEquals(1, feed.pauses);
+    }
+
+    /** A hold that ends without its tap, as when a scroll takes it over, can't swallow the next real tap. */
+    @Test
+    public void aHoldThatEndedAlreadyLeavesTheNextTapAlone() {
+        holdFor2xOn();
+        assertFalse(press());
+        FeedTapPause.released(handler, media, state, 0);
+        assertTrue(tap());
+        assertEquals("a scroll ended the hold", 1, feed.pauses);
+
+        assertFalse("a new hold", press());
+        lift();
+        assertTrue(tap());
+        assertEquals("a finger lifted with no tap first", 1, feed.starts);
+    }
+
+    /** Only the held post's tap is the hold's. A tap on another post's state still pauses or plays. */
+    @Test
+    public void aTapOnAnotherPostDuringAHoldIsATap() {
+        holdFor2xOn();
+        assertFalse(press());
+        assertTrue(FeedTapPause.tapped(handler, media, new Object()));
+        assertEquals(1, feed.pauses);
+    }
+
+    /** The lift of a hold on an ad or a post that isn't playing goes on to Instagram, as any tap there does. */
+    @Test
+    public void theLiftOfAHoldOnAnotherPostIsInstagrams() {
+        holdFor2xOn();
+        feed.ad = new Object();
+        assertFalse(press());
+        assertFalse("an ad", tap());
+        feed.ad = null;
+        feed.page = "another post";
+        assertFalse(press());
+        assertFalse("another post", tap());
+        assertEquals(0, feed.pauses + feed.starts);
+    }
+
     /** A press that throws before it's taken stays Instagram's and is reported, and its lift does nothing. */
     @Test
     public void aFailureInAPressLeavesItToInstagram() {
