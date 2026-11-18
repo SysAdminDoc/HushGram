@@ -575,7 +575,11 @@ final class MediaStoreWriter implements Downloader.Sink {
         }
     }
 
-    /** MediaStore leaves pending entries out unless asked: from Android 11 by a query argument, on 10 by the address. */
+    /**
+     * MediaStore leaves pending entries out unless asked: from Android 11 by a query argument, on 10
+     * by the address. Android 9 has no pending entries, and its saves take the legacy path before
+     * any lookup, so it answers none.
+     */
     @SuppressWarnings("deprecation")
     private Cursor pendingLookup(Uri collection, String[] args) {
         String[] id = { MediaStore.MediaColumns._ID };
@@ -587,7 +591,10 @@ final class MediaStoreWriter implements Downloader.Sink {
             query.putInt(MediaStore.QUERY_ARG_MATCH_PENDING, MediaStore.MATCH_INCLUDE);
             return resolver.query(collection, id, query, null);
         }
-        return resolver.query(MediaStore.setIncludePending(collection), id, PENDING_SAME_NAME_IN_FOLDER, args, null);
+        if (Build.VERSION.SDK_INT >= 29) {
+            return resolver.query(MediaStore.setIncludePending(collection), id, PENDING_SAME_NAME_IN_FOLDER, args, null);
+        }
+        return null;
     }
 
     /**
