@@ -61,6 +61,9 @@ public final class ReelSeekBar {
     /** The name of Instagram's kind of reel for a photo with a song. Redex keeps an enum's names. */
     static final String PHOTO_WITH_MUSIC = "PHOTO_WITH_MUSIC";
 
+    /** The same for several photos with a song, which state no length either (#10). */
+    static final String CAROUSEL_WITH_MUSIC = "CAROUSEL_WITH_MUSIC";
+
     /** How many of the latest photo reels are remembered: more than Instagram keeps loaded around the one showing. */
     private static final int PHOTOS_KEPT = 64;
 
@@ -393,9 +396,11 @@ public final class ReelSeekBar {
         return tag != null && photoBarOn() && isPhoto(tag);
     }
 
-    /** Notes the reel when its kind is a photo with a song, and says whether it is. */
+    /** Notes the reel when its kind is one or several photos with a song, and says whether it is. */
     private static boolean note(Object kind, String id) {
-        if (!(kind instanceof Enum) || !PHOTO_WITH_MUSIC.equals(((Enum<?>) kind).name())) return false;
+        if (!(kind instanceof Enum)) return false;
+        String name = ((Enum<?>) kind).name();
+        if (!PHOTO_WITH_MUSIC.equals(name) && !CAROUSEL_WITH_MUSIC.equals(name)) return false;
         if (id != null) {
             synchronized (PHOTOS) {
                 PHOTOS.put(ReelTimeLabel.REEL_TAG_PREFIX + id, Boolean.TRUE);
