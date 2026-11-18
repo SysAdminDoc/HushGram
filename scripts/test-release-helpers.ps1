@@ -119,11 +119,10 @@ try {
         Sort-Object -Unique { [string]::Join('.', ($_ -split '\.' | ForEach-Object { $_.PadLeft(10, '0') })) } | Select-Object -Last 1
     $repo = 'https://github.com/SysAdminDoc/HushGram'
     $expected = (@('A short summary.', 'New in this release', '- First patch line.', '- `Hide Meta AI`: Second patch line, carried on.',
-            'Behind the scenes', '- The tooling line.', "The [changelog]($repo/blob/main/CHANGELOG.md) has every earlier release too.", 'How to update',
+            "The [changelog]($repo/blob/main/CHANGELOG.md) has every earlier release too.", 'How to update',
             ("1. Update Morphe Manager to 9.9.9 or newer, then refresh the HushGram source.`n2. Patch Instagram ``$target``. [Supported Instagram builds]($repo#supported-instagram-builds) lists the builds that work.`n" +
             "3. Install over your current patched Instagram with the manager's existing signing key. Keep that key so updates keep working."),
-            "The ``.mpp`` download is a patch bundle, not an Instagram APK. [Installation instructions]($repo#install).", 'What was checked',
-            '5 runtime tests passed locally. All 6 patch tests passed too.') -join "`n`n") + "`n"
+            "The ``.mpp`` download is a patch bundle, not an Instagram APK. [Installation instructions]($repo#install).") -join "`n`n") + "`n"
     Assert-True ($notes -ceq $expected) "The GitHub notes aren't Hushfacebook's layout with every bullet once: $notes"
     $description = if (Test-Path -LiteralPath $descriptionOut) { [IO.File]::ReadAllText($descriptionOut) | ConvertFrom-Json } else { '' }
     Assert-True ($description -ceq ("$heading`n`n### Features`n`n* First patch line.`n* **Hide Meta AI:** Second patch line, carried on.`n`n" +

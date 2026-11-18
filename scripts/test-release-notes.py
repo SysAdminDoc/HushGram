@@ -353,21 +353,18 @@ class GitHubNotesTests(unittest.TestCase):
     SECTION = ("* The **summary** of it.\n\n### Improvements\n\n* **Tooling:** A script.\n"
                "* A clearer row.\n\n### Features\n\n* `Hide Meta AI` has a new row.\n\n"
                "### Bug Fixes\n\n* **Hide Meta AI:** A fix.\n")
-    VALIDATION = "Validation: 1 runtime tests passed locally. All 1 patch tests passed too."
-
     # SECTION's topic label is one plain() writes in front of the text.
-    def build(self, section, summary=None, checked=None):
-        return notes.build_github_notes(section, self.VALIDATION, "453.0.0.57.79", "2.0.0", summary, checked)
+    def build(self, section, summary=None):
+        return notes.build_github_notes(section, "453.0.0.57.79", "2.0.0", summary)
 
     def test_layout(self):
-        body, carried = self.build(self.SECTION, checked="The walk passed.")
-        self.assertEqual(carried, 4)
+        body, carried = self.build(self.SECTION)
+        self.assertEqual(carried, 3)
         self.assertEqual(body, "\n\n".join([
             "The `summary` of it.",
             "New in this release", "- `Hide Meta AI` has a new row.",
             "Fixes", "- `Hide Meta AI`: A fix.",
             "Other changes", "- A clearer row.",
-            "Behind the scenes", "- A script.",
             f"The [changelog]({notes.REPO_URL}/blob/main/CHANGELOG.md) has every earlier release too.",
             "How to update",
             "1. Update Morphe Manager to 2.0.0 or newer, then refresh the HushGram source.\n"
@@ -376,9 +373,9 @@ class GitHubNotesTests(unittest.TestCase):
             "3. Install over your current patched Instagram with the manager's existing signing key. Keep that key so "
             "updates keep working.",
             f"The `.mpp` download is a patch bundle, not an Instagram APK. [Installation instructions]({notes.REPO_URL}#install).",
-            "What was checked", "1 runtime tests passed locally. All 1 patch tests passed too.", "The walk passed.",
         ]) + "\n")
         self.assertNotIn("**", body)
+        self.assertNotIn("A script.", body)
 
     def test_summary_from_a_file_when_the_section_has_none(self):
         section = self.SECTION.split("\n", 1)[1]
@@ -396,7 +393,7 @@ class GitHubNotesTests(unittest.TestCase):
         labeled = (self.SECTION.replace("* The", "* **Instagram:** The").replace("* A clearer", "* **Instagram:** A clearer")
                    .replace("* **Hide Meta AI:**", "* **Instagram - Hide Meta AI:**"))
         self.assertEqual(labeled.count("**Instagram"), 3)
-        self.assertEqual(self.build(labeled, checked="The walk passed."), self.build(self.SECTION, checked="The walk passed."))
+        self.assertEqual(self.build(labeled), self.build(self.SECTION))
 
     def test_newest_changelog_section(self):
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
@@ -404,9 +401,10 @@ class GitHubNotesTests(unittest.TestCase):
         section, _, _ = notes.read_section(changelog, newest)
         summary = None if notes.read_summary(section) else "A summary."
         body, carried = notes.build_github_notes(
-            section, "Validation: 1 runtime tests passed locally.", notes.read_target(ROOT / "patches-list.json"),
+            section, notes.read_target(ROOT / "patches-list.json"),
             notes.read_manager_floor(ROOT / "gradle" / "libs.versions.toml"), summary)
-        self.assertEqual(carried, sum(len(b) for b in notes.read_bullets(section).values()))
+        bullets = [b for found in notes.read_bullets(section).values() for b in found]
+        self.assertEqual(carried, sum(1 for b in bullets if not b.startswith("* **Tooling:**")))
         self.assertNotIn("**Instagram", body)
         self.assertNotIn("**Tooling", body)
         self.assertFalse([line for line in body.split("\n") if line.startswith("- Instagram")])

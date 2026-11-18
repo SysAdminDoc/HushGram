@@ -1,9 +1,10 @@
 """Release notes from one CHANGELOG section: the GitHub release body and the bundle description.
 
 Two texts come out of the section. The GitHub release body reads like Hushfacebook's: the
-section's summary as the opening paragraph, then New in this release, Fixes, Other changes and
-Behind the scenes (the Tooling bullets), every bullet once with bold turned into backticks, then a
-link to the changelog, How to update and What was checked.
+section's summary as the opening paragraph, then New in this release, Fixes and Other changes,
+every bullet once with bold turned into backticks, then a link to the changelog and How to update.
+The Tooling bullets stay in the CHANGELOG and the bundle description, since the notes are for the
+people patching Instagram.
 
 The bundle description is what Morphe Manager draws for the current version, so it's a changelog
 in Manager's shape: a version heading with its compare link, then Features, Bug Fixes and
@@ -26,12 +27,11 @@ closing credit, like Asked for in #12 or Thanks to @name, doesn't count; the sum
 120).
 
     py -3.13 -I scripts/release/release_notes.py --version 0.0.16 --validation validation.md
-        --checked walk.md --out notes.md --description-out description.json
+        --out notes.md --description-out description.json
 
-(one command, split here to fit). --out is the GitHub release body, and --checked is an optional
-paragraph for What was checked after the validation sentence (the walk, say). --description-out
-is the Manager text as a JSON string, ready to be the description in patches-bundle.json. Either
-output can be left out.
+(one command, split here to fit). --out is the GitHub release body. --description-out is the
+Manager text as a JSON string, ready to be the description in patches-bundle.json, and the
+validation sentence goes there alone. Either output can be left out.
 
 --check reads the section (Unreleased when no --version is given) and checks it the same way
 without writing anything, which scripts/release/preflight.ps1 runs before the gate. --drop-labels
@@ -66,7 +66,6 @@ MAX_WORDS = 40
 SUMMARY_MAX_WORDS = 120
 # The GitHub body's group for each CHANGELOG type, as Hushfacebook's notes name them.
 GITHUB_GROUPS = {"Features": "New in this release", "Bug Fixes": "Fixes", "Improvements": "Other changes"}
-TOOLING_GROUP = "Behind the scenes"
 TARGET_PACKAGE = "com.instagram.android"
 # A closing sentence that credits or points at an issue doesn't count toward the limit.
 CREDIT_RE = re.compile(r"(Asked for|Asked about|Asked in|Reported in|Reported on|Thanks|Fixes from|Refs)\b")
@@ -286,11 +285,10 @@ def build_notes(section: str, validation: str, version: str, date: str, previous
 def plain(bullet: str) -> str:
     """A CHANGELOG bullet as the GitHub body writes it: bold names in backticks.
 
-    A topic label stays in front, "`Glass tab bar`: text". Tooling's goes, since the bullet sits
-    under Behind the scenes."""
+    A topic label stays in front, "`Glass tab bar`: text"."""
     label, text = BULLET_RE.match(bullet).groups()
     text = re.sub(r"\*\*([^*]+)\*\*", r"`\1`", text)
-    return f"`{label}`: {text}" if label and label != TOOLING else text
+    return f"`{label}`: {text}" if label else text
 
 
 def update_steps(target: str, floor: str) -> str:
@@ -303,12 +301,12 @@ def update_steps(target: str, floor: str) -> str:
     ])
 
 
-def build_github_notes(section: str, validation: str, target: str, floor: str,
-                       summary: str | None = None, checked: str | None = None) -> tuple[str, int]:
+def build_github_notes(section: str, target: str, floor: str,
+                       summary: str | None = None) -> tuple[str, int]:
     """The GitHub release body in Hushfacebook's layout, and how many CHANGELOG bullets it carries.
 
-    summary is the opening paragraph when the section has no summary bullet of its own, and
-    checked an extra paragraph for What was checked."""
+    summary is the opening paragraph when the section has no summary bullet of its own. Tooling
+    bullets are left out."""
     found = read_bullets(section)
     total = sum(len(bullets) for bullets in found.values())
     if not total:
@@ -326,11 +324,14 @@ def build_github_notes(section: str, validation: str, target: str, floor: str,
     else:
         raise NotesError("the section opens with no summary bullet before its first heading, "
                          "and the GitHub notes open with one (or pass --summary)")
-    blocks: dict[str, list[str]] = {name: [] for name in list(GITHUB_GROUPS.values()) + [TOOLING_GROUP]}
+    blocks: dict[str, list[str]] = {name: [] for name in GITHUB_GROUPS.values()}
+    shown = 0
     for name in SECTIONS:
         for bullet in found.get(name, []):
-            tooling = BULLET_RE.match(bullet).group(1) == TOOLING
-            blocks[TOOLING_GROUP if tooling else GITHUB_GROUPS[name]].append(plain(bullet))
+            if BULLET_RE.match(bullet).group(1) == TOOLING:
+                continue
+            blocks[GITHUB_GROUPS[name]].append(plain(bullet))
+            shown += 1
     parts = [intro]
     for name, bullets in blocks.items():
         if bullets:
@@ -341,14 +342,10 @@ def build_github_notes(section: str, validation: str, target: str, floor: str,
     parts.append(update_steps(target, floor))
     parts.append(f"The `.mpp` download is a patch bundle, not an Instagram APK. "
                  f"[Installation instructions]({REPO_URL}#install).")
-    parts.append("What was checked")
-    parts.append(re.sub(r"^Validation:\s*", "", read_validation(validation)))
-    if checked and checked.strip():
-        parts.append(" ".join(checked.split()))
     body = "\n\n".join(parts) + "\n"
     kept = sum(1 for line in body.split("\n") if line.startswith("- "))
-    if kept != total:
-        raise NotesError(f"the notes carry {kept} of the section's {total} bullets")
+    if kept != shown:
+        raise NotesError(f"the notes carry {kept} of the section's {shown} bullets outside Tooling")
     check_dashes(body, "the notes")
     check_clean(body, "the notes")
     return body, kept
@@ -365,7 +362,6 @@ def main(argv: list[str] | None = None) -> int:
                         help="take the Instagram label off the section's bullets in the CHANGELOG, for the release cut")
     parser.add_argument("--validation", help="file with the one validation sentence")
     parser.add_argument("--summary", help="file with the opening paragraph, when the section has no summary bullet")
-    parser.add_argument("--checked", help="file with a paragraph for What was checked, after the validation sentence")
     parser.add_argument("--catalog", default=str(root / "gradle" / "libs.versions.toml"),
                         help="the version catalog that pins manager-floor")
     parser.add_argument("--out", help="where the GitHub release body goes")
@@ -406,9 +402,8 @@ def main(argv: list[str] | None = None) -> int:
         github = None
         if args.out:
             summary = pathlib.Path(args.summary).read_text(encoding="utf-8") if args.summary else None
-            checked = pathlib.Path(args.checked).read_text(encoding="utf-8") if args.checked else None
-            github, _ = build_github_notes(section, validation, read_target(patches_path),
-                                           read_manager_floor(pathlib.Path(args.catalog)), summary, checked)
+            github, _ = build_github_notes(section, read_target(patches_path),
+                                           read_manager_floor(pathlib.Path(args.catalog)), summary)
     except (NotesError, OSError, KeyError, json.JSONDecodeError) as error:
         print(f"[notes] refused: {error}", file=sys.stderr)
         return 1
