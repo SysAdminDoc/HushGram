@@ -749,6 +749,53 @@ public class FriendshipChipTest {
     }
 
     /**
+     * #157 again: Instagram 456 hides the name after it hides the slot, so after the hook has run,
+     * and the label fell back onto the counts. The line comes back just before the header is drawn,
+     * and that draw is skipped so the overlap never shows, on every bind and only for this label.
+     */
+    @Test
+    public void aNameHiddenAfterTheHookIsBackBeforeTheDraw() {
+        TextView name = (TextView) ((LinearLayout) pronouns.getParent()).getChildAt(0);
+        name.setId(View.generateViewId());
+        FriendshipStatus.fullNameIdForTests = name.getId();
+        Settings.FRIENDSHIP_STATUS_CHIP.save(false);
+        try {
+            for (int bind = 0; bind < 2; bind++) {
+                pronouns.setVisibility(View.GONE);
+                FriendshipStatus.inPlaceOfPronouns(pronouns, new Profile(false, null));
+                name.setVisibility(View.GONE);
+                assertTrue("bind " + bind + " skips the draw", pronouns.getViewTreeObserver().dispatchOnPreDraw());
+                assertEquals("bind " + bind + " has the line back", View.VISIBLE, name.getVisibility());
+                assertEquals("", name.getText().toString());
+            }
+
+            name.setVisibility(View.GONE);
+            assertFalse("one look per bind", pronouns.getViewTreeObserver().dispatchOnPreDraw());
+            assertEquals(View.GONE, name.getVisibility());
+
+            FriendshipStatus.inPlaceOfPronouns(pronouns, new Profile(false, null));
+            name.setText("Named");
+            name.setVisibility(View.VISIBLE);
+            assertFalse("a name Instagram showed", pronouns.getViewTreeObserver().dispatchOnPreDraw());
+            assertEquals("Named", name.getText().toString());
+
+            FriendshipStatus.inPlaceOfPronouns(pronouns, new Profile(false, null));
+            name.setVisibility(View.GONE);
+            pronouns.setVisibility(View.GONE);
+            assertFalse("the slot went", pronouns.getViewTreeObserver().dispatchOnPreDraw());
+            assertEquals(View.GONE, name.getVisibility());
+
+            FriendshipStatus.inPlaceOfPronouns(pronouns, new Profile(false, null));
+            name.setVisibility(View.GONE);
+            pronouns.setText("they/them");
+            assertFalse("the slot holds something else", pronouns.getViewTreeObserver().dispatchOnPreDraw());
+            assertEquals(View.GONE, name.getVisibility());
+        } finally {
+            FriendshipStatus.fullNameIdForTests = 0;
+        }
+    }
+
+    /**
      * The map of chips is weak on the counts block, so its value mustn't hold the block, or any
      * view or context that leads back to it, strongly: the entry would keep the header and the
      * Activity alive, and anyShown() true, for as long as the app runs. Neither the chip nor its

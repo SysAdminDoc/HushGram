@@ -19,6 +19,7 @@ Every HushGram release, newest first.
 * Home no longer crashes when a hide switch removes the only post on a page of the feed, which could happen when opening a link to a post.
 * `Ask for VP9 instead of AV1` now says what you can expect. Instagram doesn't always listen, so videos can still come as AV1, and `Convert to keep the full size` gets you H.264. Reported in #546.
 * Letting go after `Hold for 2x on feed videos` no longer pauses the video when `Tap a feed video to pause it` is on too.
+* The `Show if a profile follows you` label no longer lands on top of the post count on profiles with no name.
 
 ## 0.0.21 (2026-11-18)
 
