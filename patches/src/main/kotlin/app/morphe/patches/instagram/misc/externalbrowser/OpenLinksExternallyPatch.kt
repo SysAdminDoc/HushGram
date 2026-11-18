@@ -303,6 +303,11 @@ private const val FINISH_WINDOW = 40
  * takes it back. Instagram 449 loads the close's own label with a `const` just before that call,
  * and a jump to that `const` keeps the section balanced with the right label. A close fed any
  * other way would get whatever its registers held at the jump, so it stops the patch.
+ *
+ * The close is the last one that returns. From 456 the method's catch-all handler closes the
+ * section too and rethrows, and its close comes last, so a jump there ended in the handler's
+ * `throw` of a register holding no exception. A section closed only on a rethrowing path stops
+ * the patch.
  */
 internal fun MutableMethod.traceCloseIndex(superCall: Int): Int? {
     val instructions = instructions()
@@ -313,12 +318,17 @@ internal fun MutableMethod.traceCloseIndex(superCall: Int): Int? {
             ?.definingClass
     } ?: return null
 
-    val closeIndex = instructions.indexOfLast { instruction ->
-        instruction.opcode == Opcode.INVOKE_STATIC &&
-            instruction.methodReferenceOrNull()
+    val closes = instructions.indices.filter { at ->
+        at > superCall && instructions[at].opcode == Opcode.INVOKE_STATIC &&
+            instructions[at].methodReferenceOrNull()
                 ?.let { it.definingClass == tracer && it.returnType == "V" } == true
     }
-    if (closeIndex <= superCall) return null
+    if (closes.isEmpty()) return null
+    val closeIndex = closes.lastOrNull { instructions.getOrNull(it + 1)?.opcode == Opcode.RETURN_VOID }
+        ?: throw PatchException(
+            "$PATCH: $definingClass->$name closes its trace section only on paths that don't return " +
+                "(instructions $closes), so the redirect has no close to jump to that returns",
+        )
 
     val feed = instructions[closeIndex - 1]
     val feedsTheClose = feed.opcode in MARKER_LOADS &&

@@ -249,6 +249,68 @@ class OpenLinksExternallyTest {
     }
 
     /**
+     * 456's onCreate closes its section twice: on the way out, then in the catch-all handler that
+     * rethrows, which comes last. The redirect jumps to the close that returns. Sent to the handler's
+     * close it ended in a `throw` of a register holding no exception.
+     */
+    @Test
+    fun `the redirect jumps to the close that returns, not the handler's that rethrows`() {
+        val method = method(
+            "onCreate", bundle,
+            """
+                const v2, 0x7b
+                invoke-static { v2 }, Lfixture/Trace;->begin(I)I
+                move-result v1
+                invoke-super { p0, p1 }, $superOnCreate
+                const/4 v0, 0x1
+                invoke-static { v0 }, Lfixture/Log;->note(I)V
+                const v2, 0x7c
+                invoke-static { v2, v1 }, Lfixture/Trace;->end(II)V
+                return-void
+                :rethrow
+                move-exception v0
+                const v2, 0x7d
+                invoke-static { v2, v1 }, Lfixture/Trace;->end(II)V
+                throw v0
+            """,
+            registers = 5,
+        )
+        assertEquals("the returning close's const", 6, method.traceCloseIndex(3))
+        method.hookRedirect(intentFromActivity = true)
+        val body = method.body()
+        val jump = body.single { it.opcode == Opcode.IF_NEZ } as BuilderOffsetInstruction
+        val handled = jump.target.location.index
+        assertEquals(Opcode.CONST, body[handled].opcode)
+        assertEquals("Lfixture/Trace;->end(II)V", body[handled + 1].call)
+        assertEquals("then the return", Opcode.RETURN_VOID, body[handled + 2].opcode)
+    }
+
+    /** A section closed only where the method rethrows leaves the redirect nowhere to return from. */
+    @Test
+    fun `a section closed only on a rethrow stops the patch`() {
+        val method = method(
+            "onCreate", bundle,
+            """
+                const v2, 0x7b
+                invoke-static { v2 }, Lfixture/Trace;->begin(I)I
+                move-result v1
+                invoke-super { p0, p1 }, $superOnCreate
+                invoke-static { p1 }, Lfixture/Log;->check(Landroid/os/Bundle;)V
+                return-void
+                :rethrow
+                move-exception v0
+                const v2, 0x7d
+                invoke-static { v2, v1 }, Lfixture/Trace;->end(II)V
+                throw v0
+            """,
+            registers = 5,
+        )
+        val refused = assertThrows(PatchException::class.java) { method.hookRedirect(intentFromActivity = true) }
+        assertTrue(refused.message, refused.message.orEmpty().contains("only on paths that don't return"))
+        assertTrue("something was written", method.body().none { it.referenceText() == REDIRECT })
+    }
+
+    /**
      * Only a call before the super call opens a section. An int answered after it is some other
      * value, and the redirect returns as in a method with no section.
      */
