@@ -800,11 +800,13 @@ public class DownloaderTest {
     }
 
     @Test public void canceledPreparationsDoNotQueueReplacementLookups() throws Exception {
-        BlockingLookup lookup = new BlockingLookup(3);
+        BlockingLookup lookup = new BlockingLookup(DownloadPreparation.MAX_PREPARING);
         List<FetchAttempt> attempts = new ArrayList<>();
         AtomicInteger replacementLookups = new AtomicInteger();
         try {
-            for (int i = 0; i < 3; i++) attempts.add(new FetchAttempt(REBOUND, lookup.policy(), temp.newFile()));
+            for (int i = 0; i < DownloadPreparation.MAX_PREPARING; i++) {
+                attempts.add(new FetchAttempt(REBOUND, lookup.policy(), temp.newFile()));
+            }
             assertTrue(lookup.entered.await(3, TimeUnit.SECONDS));
             for (FetchAttempt attempt : attempts) attempt.cancel();
             for (FetchAttempt attempt : attempts) {
@@ -821,7 +823,7 @@ public class DownloaderTest {
             assertEquals(Downloader.Status.NETWORK_ERROR, refused.status);
             assertFalse(file.exists());
             assertEquals("an occupied preparation pool created or queued more native work", 0, replacementLookups.get());
-            assertEquals(3, lookup.active.get());
+            assertEquals(DownloadPreparation.MAX_PREPARING, lookup.active.get());
         } finally {
             lookup.release.countDown();
             for (FetchAttempt attempt : attempts) attempt.finish();

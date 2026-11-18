@@ -42,6 +42,9 @@ import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.URL;
 import java.nio.ByteBuffer;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BooleanSupplier;
 
@@ -184,6 +187,156 @@ public class DashJoinTest {
         assertTrue(report, report.contains("the saved file holds video/avc profile unknown 1280x720 duration unknown, "
                 + "audio/mp4a-latm AAC object type unknown 44100 Hz 2 ch duration unknown"));
         System.out.println("DashJoinTest: a " + (PICTURES + SOUNDS) + "-sample join took " + tookMs + " ms");
+    }
+
+    /** How far a save said it got, and what it had done when it first knew the whole length. */
+    private static final class Counted implements Downloader.Progress {
+        volatile long done;
+        volatile long total = -1;
+        volatile long doneWhenSized = -1;
+        volatile Runnable close;
+        volatile boolean cancelled;
+
+        @Override public void transferred(long done, long total) {
+            if (total >= 0 && doneWhenSized < 0) doneWhenSized = done;
+            this.done = done;
+            this.total = total;
+        }
+
+        @Override public void reading(Runnable close) {
+            this.close = close;
+        }
+
+        @Override public boolean cancelled() {
+            return cancelled;
+        }
+    }
+
+    /** Lets the save's fetches reach this test's servers, whichever port they're on. */
+    private static MediaUrlPolicy anyLocalPort() {
+        return new MediaUrlPolicy(host -> new InetAddress[] { InetAddress.getByName("10.9.8.7") }) {
+            @Override
+            Refusal refusal(URL url) {
+                return url.getHost().equals("127.0.0.1") ? null : super.refusal(url);
+            }
+        };
+    }
+
+    private static DashManifest.Track pictureAt(LocalServer on, String path) {
+        return new DashManifest.Track("video/mp4", "avc1.64001f", 1280, 720, 1_200_000, on.origin() + path);
+    }
+
+    private static DashManifest.Track soundAt(LocalServer on, String path) {
+        return new DashManifest.Track("audio/mp4", "mp4a.40.2", 0, 0, 128_000, on.origin() + path);
+    }
+
+    /** The save of [picture] and [sound], already running on a thread of its own. */
+    private FutureTask<Downloader.Result> saving(DashManifest.Track picture, DashManifest.Track sound, long maxBytes,
+            Downloader.Progress progress) {
+        FutureTask<Downloader.Result> save = new FutureTask<>(() ->
+                DashSave.save(context, picture, sound, new Gallery(), anyLocalPort(), maxBytes, progress));
+        Thread thread = new Thread(save, "dash-save-test");
+        thread.setDaemon(true);
+        thread.start();
+        return save;
+    }
+
+    private static void waitUntil(String what, BooleanSupplier met) throws InterruptedException {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
+        while (!met.getAsBoolean()) {
+            assertTrue(what, System.nanoTime() < deadline);
+            Thread.sleep(10);
+        }
+    }
+
+    /** The picture and the sound come at once, and the notification counts them as one file (#493). */
+    @Test
+    public void theSoundComesWhileThePictureIsStillOnItsWay() throws Exception {
+        long pictureLength = 200_000;
+        byte[] soundBody = mp4(5_000);
+        CountDownLatch release = new CountDownLatch(1);
+        server.serveHeld("/held.mp4", "video/mp4", mp4(1_000), pictureLength, 64_000, release);
+        Counted progress = new Counted();
+        try (LocalServer second = new LocalServer()) {
+            second.serve("/sound.mp4", "audio/mp4", soundBody);
+            FutureTask<Downloader.Result> save = saving(pictureAt(server, "/held.mp4"),
+                    soundAt(second, "/sound.mp4"), Downloader.MAX_BYTES, progress);
+            try {
+                waitUntil("the sound wasn't asked for while the picture came", () -> second.hits("/sound.mp4") == 1);
+                waitUntil("the two tracks weren't counted as one, total " + progress.total,
+                        () -> progress.total == pictureLength + soundBody.length);
+            } finally {
+                release.countDown();
+            }
+            Downloader.Result result = save.get(30, TimeUnit.SECONDS);
+            assertEquals(result.toString(), Downloader.Status.OK, result.status);
+            assertEquals(pictureLength + soundBody.length, progress.done);
+            assertEquals(pictureLength + soundBody.length, progress.total);
+            assertEquals(0, workFiles());
+        }
+    }
+
+    /** A sound that can't be had ends the picture's wait, and the sound's failure is the reason given. */
+    @Test
+    public void aSoundThatFailsEndsThePictureAndIsTheReasonGiven() throws Exception {
+        // These tests' JDK can't close a connection under a waiting read, so the read ends at this.
+        Downloader.readTimeoutMs = 1_500;
+        CountDownLatch release = new CountDownLatch(1);
+        server.serveHeld("/held.mp4", "video/mp4", mp4(1_000), 200_000, 64_000, release);
+        try (LocalServer second = new LocalServer()) {
+            second.serve("/gone.mp4", 403, "text/plain", new byte[] { 'n', 'o' }, 2);
+            Downloader.Result result = saving(pictureAt(server, "/held.mp4"), soundAt(second, "/gone.mp4"),
+                    Downloader.MAX_BYTES, new Counted()).get(15, TimeUnit.SECONDS);
+            assertEquals(result.toString(), Downloader.Status.EXPIRED, result.status);
+            assertEquals(0, workFiles());
+        } finally {
+            release.countDown();
+            Downloader.readTimeoutMs = 20_000;
+        }
+    }
+
+    /** A cancel with both tracks on their way ends the save as cancelled, with no file left. */
+    @Test
+    public void aCancelStopsBothTracks() throws Exception {
+        Downloader.readTimeoutMs = 1_500;
+        CountDownLatch release = new CountDownLatch(1);
+        server.serveHeld("/held.mp4", "video/mp4", mp4(1_000), 200_000, 64_000, release);
+        Counted progress = new Counted();
+        try (LocalServer second = new LocalServer()) {
+            second.serveHeld("/sound.mp4", "audio/mp4", mp4(1_000), 100_000, 64_000, release);
+            FutureTask<Downloader.Result> save = saving(pictureAt(server, "/held.mp4"),
+                    soundAt(second, "/sound.mp4"), Downloader.MAX_BYTES, progress);
+            waitUntil("the two tracks never both came", () -> progress.total == 300_000);
+            progress.cancelled = true;
+            progress.close.run();
+            Downloader.Result result = save.get(15, TimeUnit.SECONDS);
+            assertEquals(result.toString(), Downloader.Status.CANCELLED, result.status);
+            assertEquals(0, workFiles());
+        } finally {
+            release.countDown();
+            Downloader.readTimeoutMs = 20_000;
+        }
+    }
+
+    /** With no stated length there's no telling what the picture leaves, so the sound waits for it. */
+    @Test
+    public void aPictureOfNoStatedLengthComesBeforeTheSound() throws Exception {
+        byte[] body = mp4(1_000);
+        server.serve("/unsized.mp4", 200, "video/mp4", body, -1);
+        Counted progress = new Counted();
+        Downloader.Result result = saving(pictureAt(server, "/unsized.mp4"), audio, Downloader.MAX_BYTES, progress)
+                .get(30, TimeUnit.SECONDS);
+        assertEquals(result.toString(), Downloader.Status.OK, result.status);
+        assertTrue("the sound began at " + progress.doneWhenSized, progress.doneWhenSized >= body.length);
+        assertEquals(2L * body.length, progress.total);
+    }
+
+    /** The two tracks together are held to the cap, with both fetched at once as well. */
+    @Test
+    public void thePairIsHeldToTheCapTogether() throws Exception {
+        Downloader.Result result = saving(video, audio, 1_500, new Counted()).get(30, TimeUnit.SECONDS);
+        assertEquals(result.toString(), Downloader.Status.TOO_LARGE, result.status);
+        assertEquals(0, workFiles());
     }
 
     /**

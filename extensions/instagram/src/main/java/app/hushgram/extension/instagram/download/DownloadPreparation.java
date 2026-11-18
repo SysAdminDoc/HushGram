@@ -17,7 +17,8 @@ final class DownloadPreparation implements Downloader.Progress {
         Object open(DownloadPreparation preparation) throws IOException;
     }
 
-    private static final int MAX_PREPARING = 3;
+    /** Three saves at once, each opening its picture and its sound. */
+    static final int MAX_PREPARING = 6;
     private static final ThreadPoolExecutor PREPARING = new ThreadPoolExecutor(
             MAX_PREPARING, MAX_PREPARING, 10, TimeUnit.SECONDS, new SynchronousQueue<>(),
             work -> daemon(work, "hushgram-save-prepare"), new ThreadPoolExecutor.AbortPolicy());
@@ -50,7 +51,7 @@ final class DownloadPreparation implements Downloader.Progress {
         long testTimeout = timeoutForTests;
         long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(testTimeout > 0 ? testTimeout : timeoutMs);
         try {
-            // No queue: callbacks that ignore cancellation retain at most these three workers.
+            // No queue: callbacks that ignore cancellation retain at most these workers.
             PREPARING.execute(() -> owner.prepare(work));
         } catch (RejectedExecutionException occupied) {
             owner.cancel();

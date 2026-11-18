@@ -6,6 +6,7 @@ Every HushGram release, newest first.
 
 ### Improvements
 
+* Saving a reel gets its picture and sound at the same time now, instead of one after the other, so saves finish sooner. Asked about in #493.
 * **Tooling:** The GitHub release notes leave out the Tooling bullets and the What was checked part now. They're still here in the changelog, and Manager's notes keep their Validation line.
 
 ### Bug Fixes

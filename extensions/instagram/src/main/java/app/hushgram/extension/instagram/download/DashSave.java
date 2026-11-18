@@ -174,17 +174,15 @@ final class DashSave {
             if (folder == null) return Downloader.Result.fail(Downloader.Status.WRITE_ERROR, "no cache folder");
 
             videoFile = File.createTempFile("video", ".mp4", folder);
-            Downloader.Result result = fetchWork(video.url, Downloader.Kind.VIDEO, videoFile, policy, maxBytes,
-                progress);
-            if (!result.ok()) return result;
-
-            if (soundUrl != null) {
+            Downloader.Result result;
+            if (soundUrl == null) {
+                result = fetchWork(video.url, Downloader.Kind.VIDEO, videoFile, policy, maxBytes, progress);
+            } else {
                 audioFile = File.createTempFile("audio", ".mp4", folder);
-                // One count for the pair: the sound's bytes go on from the picture's.
-                result = fetchWork(soundUrl, audio != null ? Downloader.Kind.AUDIO : Downloader.Kind.VIDEO, audioFile,
-                    policy, maxBytes - videoFile.length(), Downloader.after(videoFile.length(), progress));
-                if (!result.ok()) return result;
+                result = fetchTogether(video.url, videoFile, soundUrl,
+                    audio != null ? Downloader.Kind.AUDIO : Downloader.Kind.VIDEO, audioFile, policy, maxBytes, progress);
             }
+            if (!result.ok()) return result;
 
             boolean isH264 = false;
             if (convert) {
@@ -366,6 +364,172 @@ final class DashSave {
             return Downloader.Result.noRoom("not enough free space for a work file over " + room + " bytes");
         }
         return result;
+    }
+
+    /**
+     * Fetches the picture and the sound on a connection each, so a save takes about as long as its
+     * larger track rather than both in a row (#493). The sound starts once the picture's answer has
+     * said how long it is, since its share of [maxBytes] is what that leaves. A picture of no stated
+     * length is fetched first, with the sound after it. The first track to fail ends the other and is
+     * the answer. Both fetches are over when this returns, so the caller can discard their files.
+     */
+    private static Downloader.Result fetchTogether(String pictureUrl, File pictureFile, String soundUrl,
+            Downloader.Kind soundKind, File soundFile, MediaUrlPolicy policy, long maxBytes,
+            Downloader.Progress progress) {
+        TwoTracks tracks = new TwoTracks(progress, (pictureSize, sound) ->
+            fetchWork(soundUrl, soundKind, soundFile, policy, maxBytes - pictureSize, sound));
+        Downloader.Result picture;
+        try {
+            picture = fetchWork(pictureUrl, Downloader.Kind.VIDEO, pictureFile, policy, maxBytes, tracks.picture);
+        } catch (Throwable failure) {
+            picture = TwoTracks.failed(failure);
+        }
+        return tracks.finish(picture, pictureFile.length());
+    }
+
+    /** One save's picture and sound fetches, told to its progress as one count and stopped as one. */
+    private static final class TwoTracks {
+        interface SoundFetch {
+            Downloader.Result fetch(long pictureSize, Downloader.Progress sound);
+        }
+
+        private final Downloader.Progress progress;
+        private final SoundFetch fetchSound;
+        final Track picture = new Track();
+        private final Track sound = new Track();
+        private volatile boolean stopped;
+        private volatile Thread soundThread;
+        private boolean soundAsked;
+        private Downloader.Result failure;
+
+        TwoTracks(Downloader.Progress progress, SoundFetch fetchSound) {
+            this.progress = progress;
+            this.fetchSound = fetchSound;
+        }
+
+        static Downloader.Result failed(Throwable failure) {
+            return Downloader.Result.fail(Downloader.Status.NETWORK_ERROR,
+                "the fetch failed: " + failure.getClass().getSimpleName());
+        }
+
+        /** Waits for the sound, or fetches it now if it never started. Answers how the pair went. */
+        Downloader.Result finish(Downloader.Result pictureResult, long pictureSize) {
+            ended(pictureResult);
+            Thread running = soundThread;
+            if (running != null) {
+                await(running);
+            } else if (pictureResult.ok()) {
+                synchronized (this) {
+                    picture.heard = true;
+                    picture.done = pictureSize;
+                    picture.total = pictureSize;
+                }
+                ended(soundResult(pictureSize));
+            }
+            synchronized (this) {
+                return failure != null ? failure : pictureResult;
+            }
+        }
+
+        private static void await(Thread thread) {
+            boolean interrupted = false;
+            while (true) {
+                try {
+                    thread.join();
+                    break;
+                } catch (InterruptedException again) {
+                    interrupted = true;
+                }
+            }
+            if (interrupted) Thread.currentThread().interrupt();
+        }
+
+        private Downloader.Result soundResult(long pictureSize) {
+            try {
+                return fetchSound.fetch(pictureSize, sound);
+            } catch (Throwable thrown) {
+                return failed(thrown);
+            }
+        }
+
+        /** The picture's length is known, so the sound can start. Without a thread it waits its turn. */
+        private void startSound(long pictureSize) {
+            Thread thread = new Thread(() -> ended(soundResult(pictureSize)), "hushgram-save-sound");
+            thread.setDaemon(true);
+            try {
+                thread.start();
+                soundThread = thread;
+            } catch (Throwable noThread) {
+                MediaSave.failure(() -> "could not fetch the sound beside the picture", noThread);
+            }
+        }
+
+        /** Takes a finished track's [result]. The first real failure ends the other track. */
+        private void ended(Downloader.Result result) {
+            if (result.ok()) return;
+            synchronized (this) {
+                // The track this pair stopped says it was cancelled, which is no news.
+                if (stopped && result.status == Downloader.Status.CANCELLED) return;
+                if (failure == null) failure = result;
+                stopped = true;
+            }
+            closeBoth();
+        }
+
+        private void closeBoth() {
+            Runnable closePicture, closeSound;
+            synchronized (this) {
+                closePicture = picture.close;
+                closeSound = sound.close;
+            }
+            if (closePicture != null) closePicture.run();
+            if (closeSound != null) closeSound.run();
+        }
+
+        /** Both tracks' bytes so far, and their whole length once every started track has said its own. */
+        private void tell() {
+            long done = picture.done + sound.done;
+            boolean unknown = picture.total < 0 || (sound.heard && sound.total < 0);
+            progress.transferred(done, unknown ? -1 : picture.total + (sound.heard ? sound.total : 0));
+        }
+
+        private final class Track implements Downloader.Progress {
+            boolean heard;
+            long done;
+            long total = -1;
+            Runnable close;
+
+            @Override
+            public void transferred(long done, long total) {
+                boolean start = false;
+                synchronized (TwoTracks.this) {
+                    heard = true;
+                    this.done = done;
+                    this.total = total;
+                    tell();
+                    if (this == picture && total >= 0 && !soundAsked && !stopped) {
+                        soundAsked = true;
+                        start = true;
+                    }
+                }
+                if (start) startSound(total);
+            }
+
+            @Override
+            public void reading(Runnable close) {
+                synchronized (TwoTracks.this) {
+                    this.close = close;
+                }
+                // Told every time, so a cancel that came first still closes this new connection.
+                progress.reading(TwoTracks.this::closeBoth);
+                if (stopped) close.run();
+            }
+
+            @Override
+            public boolean cancelled() {
+                return stopped || progress.cancelled();
+            }
+        }
     }
 
     // ---------------------------------------------------------------- internals
