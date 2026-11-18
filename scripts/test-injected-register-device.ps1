@@ -647,6 +647,11 @@ class FakeAdb {
     $captured = Join-Path $signingRoot 'captured.json'
     [IO.File]::WriteAllText($java, @'
 if ($args[0] -eq '-version') { 'openjdk version "21.0.5"'; exit 0 }
+if ($args.Count -eq 6 -and $args[1] -eq '-cp' -and $args[3].EndsWith('MergeSplits.java')) {
+    [IO.File]::WriteAllText((Join-Path $PSScriptRoot 'merged.json'), (@{ source = $args[4]; destination = $args[5] } | ConvertTo-Json))
+    [IO.File]::WriteAllText($args[5], 'merged')
+    exit 0
+}
 if ($args.Count -ne 3 -or $args[0] -ne '-jar' -or -not $args[2].StartsWith('@')) { exit 18 }
 $file = $args[2].Substring(1)
 $values = @([IO.File]::ReadAllLines($file) | ForEach-Object { ConvertFrom-Json -InputObject $_ })
@@ -705,7 +710,9 @@ exit 0
     Write-Host "[scripts] device signing arguments: $($signingCases.Count) cases passed"
 
     # With no -Apk, the declared build's fixture comes from HUSHGRAM_FIXTURE_DIR, a split .apks
-    # included, found the way the gate and the receipt find it. 0.0.17's .apks was skipped.
+    # included, found the way the gate and the receipt find it. 0.0.17's .apks was skipped. Since
+    # dd29f2b7d the script merges a bundle first, so the merger reads the .apks and the CLI gets
+    # the merged APK.
     $fixtureFolder = Join-Path $signingRoot 'fixtures'
     New-Item -ItemType Directory -Path $fixtureFolder -Force | Out-Null
     [IO.File]::WriteAllText((Join-Path $fixtureFolder 'notes-1.0.apk'), 'fixture')
@@ -720,15 +727,23 @@ exit 0
     try {
         [Environment]::SetEnvironmentVariable('HUSHGRAM_FIXTURE_DIR', $fixtureFolder, 'Process')
         [IO.File]::Delete($captured)
+        $mergeRecord = Join-Path $signingRoot 'merged.json'
+        [IO.File]::Delete($mergeRecord)
+        $fromFixtures = Join-Path $signingRoot 'from-fixtures'
         $refusal = $null
         try {
             & (Join-Path $Root 'scripts/patch-for-device.ps1') -Root $signingRoot `
-                -DesktopJar $desktop -Java $java -Aapt2 $aapt -OutDir (Join-Path $signingRoot 'from-fixtures') `
+                -DesktopJar $desktop -Java $java -Aapt2 $aapt -OutDir $fromFixtures `
                 -Keystore (Join-Path $signingRoot 'fixture.keystore')
         } catch { $refusal = $_.Exception.Message }
         Assert-True ($refusal -ceq 'The desktop CLI exited with 17') "The fixture folder's .apks wasn't patched: $refusal"
+        Assert-True (Test-Path -LiteralPath $mergeRecord) "The fixture folder's .apks went to the CLI without being merged first."
+        $merge = Get-Content -LiteralPath $mergeRecord -Raw | ConvertFrom-Json
+        Assert-True ([string]$merge.source -ceq $splitFixture) "The merge read $($merge.source), not the declared build's .apks."
         $record = Get-Content -LiteralPath $captured -Raw | ConvertFrom-Json
-        Assert-True ([string]$record.arguments[-1] -ceq $splitFixture) "The fixture folder gave the CLI $($record.arguments[-1]), not the declared build's .apks."
+        $mergedInput = [IO.Path]::GetFullPath((Join-Path $fromFixtures 'stock-merged.apk'))
+        Assert-True ([IO.Path]::GetFullPath([string]$record.arguments[-1]) -ceq $mergedInput) `
+            "The fixture folder gave the CLI $($record.arguments[-1]), not the merge of the declared build's .apks."
     } finally {
         [Environment]::SetEnvironmentVariable('HUSHGRAM_FIXTURE_DIR', $oldFixtureDir, 'Process')
     }
