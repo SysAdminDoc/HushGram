@@ -823,6 +823,10 @@ Copy media link	Copia il link del media
 Couldn't copy the media link	Impossibile copiare il link del media
 Details	Dettagli
 Details in a post's menu	Dettagli nel menu di un post
+Block in a post's menu	Blocca nel menu di un post
+Adds Block to the menu of someone else's feed post. It opens Instagram's own block sheet, so nothing happens until you confirm there.	Aggiunge Blocca al menu dei post del feed di altre persone. Apre la schermata di blocco di Instagram, quindi non succede nulla finché non confermi lì.
+Speed in a post's menu	Velocità nel menu di un post
+Adds Playback speed to a feed video's menu. Pick a speed from 0.5x to 3x for the video that's playing.	Aggiunge Velocità di riproduzione al menu dei video del feed. Scegli una velocità da 0.5x a 3x per il video in riproduzione.
 Media ID %1$s	ID media %1$s
 Media link	Link del media
 Media link copied. It stops working after a few days.	Link del media copiato. Smette di funzionare dopo qualche giorno.

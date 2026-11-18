@@ -187,7 +187,7 @@ public final class ReelBlockButton {
     }
 
     /** Whether [ownerId] is the account in front, whose own reels get no Block icon. */
-    private static boolean yours(String ownerId) {
+    static boolean yours(String ownerId) {
         String mine = DownloadHistory.accounts.get();
         return mine != null && ownerId.equals(mine.trim());
     }

@@ -183,6 +183,7 @@ val downloadVideoPatch = bytecodePatch(
         addFeedDownloadButton(button)
         addLithoDownloadButton(litho)
         addHoldToDownload(hold)
+        addFeedPostRows(page)
         enableStatus("videoDownload")
     }
 }
@@ -578,7 +579,7 @@ internal fun BytecodePatchContext.offerDownloadOnEveryVideo(): PageIndex {
         hooked.addInstructions(own.result + 1, "$load\ninvoke-static { v${own.answer}, v$held }, $OWN_POST\nmove-result v${own.answer}")
     }
     menuFound.helperAt(hooked, batchAt, keep).let { (held, load) ->
-        val offers = listOf(OFFER_ALL, OFFER_COVER, OFFER_PLAYER, OFFER_DETAILS, OFFER_LOOP)
+        val offers = listOf(OFFER_ALL, OFFER_COVER, OFFER_PLAYER, OFFER_DETAILS, OFFER_LOOP, OFFER_POST_ROWS)
         hooked.addInstructions(batchAt, load + offers.joinToString("") { "\ninvoke-static { v$held, v$rows }, $it" })
     }
 

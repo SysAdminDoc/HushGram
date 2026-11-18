@@ -818,6 +818,10 @@ Copy media link	Sao chép liên kết phương tiện
 Couldn't copy the media link	Không sao chép được liên kết phương tiện
 Details	Chi tiết
 Details in a post's menu	Chi tiết trong menu bài viết
+Block in a post's menu	Chặn trong menu bài viết
+Adds Block to the menu of someone else's feed post. It opens Instagram's own block sheet, so nothing happens until you confirm there.	Thêm Chặn vào menu bài viết trên bảng feed của người khác. Mục này mở màn hình chặn của chính Instagram, nên sẽ không có gì xảy ra cho đến khi bạn xác nhận ở đó.
+Speed in a post's menu	Tốc độ trong menu bài viết
+Adds Playback speed to a feed video's menu. Pick a speed from 0.5x to 3x for the video that's playing.	Thêm Tốc độ phát vào menu video trên bảng feed. Chọn tốc độ từ 0.5x đến 3x cho video đang phát.
 Media ID %1$s	ID phương tiện %1$s
 Media link	Liên kết phương tiện
 Media link copied. It stops working after a few days.	Đã sao chép liên kết phương tiện. Liên kết ngừng hoạt động sau vài ngày.

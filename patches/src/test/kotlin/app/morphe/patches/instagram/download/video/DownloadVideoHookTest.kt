@@ -20,12 +20,14 @@ import app.morphe.patches.instagram.download.PANDO_IMAGE_INFO
 import app.morphe.patches.instagram.download.PANDO_VIDEO_VERSION
 import app.morphe.patches.instagram.download.USER
 import app.morphe.patches.instagram.download.VIDEO_VERSION
+import app.morphe.patches.instagram.download.reel.BLOCK_HELPER_ANCHOR
 import app.morphe.patches.instagram.download.reel.DOWNLOAD
 import app.morphe.patches.instagram.download.reel.ELIGIBILITY_PATH
 import app.morphe.patches.instagram.download.reel.OPTION
 import app.morphe.patches.instagram.download.reel.anchoredClasses
 import app.morphe.patches.instagram.download.reel.downloadCheckIn
 import app.morphe.patches.instagram.download.reel.ROW_ICON
+import app.morphe.patches.instagram.feed.hold.SPEED_RESET_TAG
 import app.morphe.patches.instagram.feed.suggested.HideRowAsserts
 import app.morphe.patches.instagram.feed.suggested.ALLOW_HIDE
 import app.morphe.patches.instagram.feed.suggested.OFFER_HIDE
@@ -47,7 +49,9 @@ import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.formats.Instruction35c
+import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
+import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import com.android.tools.smali.dexlib2.immutable.ImmutableField
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
@@ -96,7 +100,8 @@ class DownloadVideoHookTest {
     fun theHooksAreInTheExtension() {
         for (hook in listOf(OFFER_VIDEO, SAVE_VIDEO, ALLOW_VIDEO, OFFER_ALL, SAVE_ALL, ALL_OPTION, OWN_POST, OFFER_PLAYER, PLAYER_OPTION, PLAY_VIDEO,
             OFFER_DETAILS, DETAILS_OPTION, SHOW_DETAILS, OFFER_COVER, COVER_OPTION, SAVE_COVER, CHOOSE_OPTION, CHOOSE_PAGES,
-            OFFER_LOOP, LOOP_OPTION, TOGGLE_LOOP)) {
+            OFFER_LOOP, LOOP_OPTION, TOGGLE_LOOP,
+            OFFER_POST_ROWS, POST_BLOCK_OPTION, BLOCK_POST, POST_SPEED_OPTION, PICK_POST_SPEED, FEED_PLAYER_MADE)) {
             val declared = ExtensionDex.classDef(hook.substringBefore("->")).methods
                 .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
                 .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
@@ -123,8 +128,88 @@ class DownloadVideoHookTest {
         assertEquals("anyone else's first row follows", "$state->other:Ljava/lang/Object;", code[offer + 1].referenceText())
         val owner = code.indexOfFirst { it.referenceText() == mine }
         assertEquals("the owner check's jump", offer - 2, code.target(owner + 2))
-        assertEquals("eight separate actions in the builder", 8, code.count { it.referenceText()?.startsWith("Lapp/hushgram/") == true })
+        assertEquals("nine separate actions in the builder", 9, code.count { it.referenceText()?.startsWith("Lapp/hushgram/") == true })
     }
+
+    /**
+     * Block and Playback speed in a feed post's menu (#743) answer their own taps ahead of the rest of
+     * the handler. Anything else tapped falls through to it, untouched.
+     */
+    @Test
+    fun theFeedPostRowsAnswerTheirTapsFirst() {
+        val context = PatchContexts.of(postRowClasses())
+        val page = context.offerDownloadOnEveryVideo()
+        val before = context.method(helper, "A09").code()
+
+        context.addFeedPostRows(page)
+
+        val code = context.method(helper, "A09").code()
+        assertEquals("the tapped option, p1 of 42 registers", 41, (code[0] as TwoRegisterInstruction).registerB)
+        assertEquals("Block is asked about first", POST_BLOCK_OPTION, code[1].referenceText())
+        assertEquals("no Block row goes on to Playback speed", 10, code.target(3))
+        assertEquals("another row goes on to Playback speed", 10, code.target(4))
+        assertEquals("the menu", 40, (code[5] as TwoRegisterInstruction).registerB)
+        assertEquals("the post", "$helper->A01($helper)$MEDIA", code[6].referenceText())
+        assertEquals(BLOCK_POST, code[8].referenceText())
+        assertEquals("the post, then the menu", listOf(1, 0), (code[8] as Instruction35c).let { listOf(it.registerC, it.registerD) })
+        assertEquals("a Block tap ends there", Opcode.RETURN_VOID, code[9].opcode)
+
+        assertEquals(POST_SPEED_OPTION, code[10].referenceText())
+        assertEquals("no speed row goes on to the handler", 21, code.target(12))
+        assertEquals("another row goes on to the handler", 21, code.target(13))
+        assertEquals("the post", "$helper->A01($helper)$MEDIA", code[15].referenceText())
+        assertEquals("the activity", "$helper->activity:$activity", code[17].referenceText())
+        assertEquals("the feed state", page.menuState.toString(), code[18].referenceText())
+        assertEquals(PICK_POST_SPEED, code[19].referenceText())
+        assertEquals("the post, the feed state, the activity", listOf(1, 0, 2),
+            (code[19] as Instruction35c).let { listOf(it.registerC, it.registerD, it.registerE) })
+        assertEquals("a speed tap ends there", Opcode.RETURN_VOID, code[20].opcode)
+        assertEquals("the handler is as it was", before.map { it.opcode to it.referenceText() }, code.drop(21).map { it.opcode to it.referenceText() })
+    }
+
+    /** The bridges go through Instagram's own block sheet and the player its hold for 2x sets. */
+    @Test
+    fun theFeedPostRowsBridgesReachInstagram() {
+        val context = PatchContexts.of(postRowClasses())
+
+        context.addFeedPostRows(context.offerDownloadOnEveryVideo())
+
+        fun references(name: String) = context.method(FEED_POST_ROWS, name).code().mapNotNull { it.referenceText() }
+        assertEquals("Block can open", 1, blockReady(context))
+        assertEquals(
+            listOf(helper, USER, "$blockSheet->INSTANCE:$blockSheet", "$helper->activity:$activity", "$helper->session:$session", blockOpen),
+            references("blockRun"),
+        )
+        assertEquals(listOf(feedSpeed, "$feedSpeed->function:$functionZero", "$functionZero->invoke()Ljava/lang/Object;"), references("managerRun"))
+        assertEquals(listOf(feedManager, "$feedManager->A00($feedManager)$MEDIA"), references("mediaRun"))
+        assertEquals(listOf(feedManager, "$feedManager->player:$feedPlayer", "$feedPlayer->engine:$feedEngine"), references("playerRun"))
+        assertEquals(listOf(feedEngine, "$feedEngine->A0U(F)V"), references("speedRun"))
+        val made = context.method(feedSpeed, "<init>").code()
+        assertEquals("the extension hears of each controller as it's finished", FEED_PLAYER_MADE, made[made.size - 2].referenceText())
+        assertEquals(Opcode.RETURN_VOID, made.last().opcode)
+    }
+
+    /** A row this build can't support stays away by itself. The other row and Download any video go on. */
+    @Test
+    fun aFeedPostRowThatCantWorkIsLeftOutAlone() {
+        val noSession = PatchContexts.of(postRowClasses(menuSession = false))
+        noSession.addFeedPostRows(noSession.offerDownloadOnEveryVideo())
+        assertEquals("no session, no Block", 0, blockReady(noSession))
+        assertEquals("Playback speed still works", Opcode.CHECK_CAST, noSession.method(FEED_POST_ROWS, "speedRun").code().first().opcode)
+
+        val noPlayer = PatchContexts.of(postRowClasses(player = false))
+        noPlayer.addFeedPostRows(noPlayer.offerDownloadOnEveryVideo())
+        assertEquals("Block still works", 1, blockReady(noPlayer))
+        assertTrue("no player, no Playback speed", noPlayer.method(FEED_POST_ROWS, "managerRun").code().none { it.opcode == Opcode.CHECK_CAST })
+
+        val neither = PatchContexts.of(postRowClasses(sheet = false, player = false))
+        neither.addFeedPostRows(neither.offerDownloadOnEveryVideo())
+        assertEquals("no sheet, no Block", 0, blockReady(neither))
+        assertEquals("the rest of the handler is still there", 1, neither.method(helper, "A09").code().count { it.referenceText() == SAVE_VIDEO })
+    }
+
+    private fun blockReady(context: BytecodePatchContext) =
+        (context.method(FEED_POST_ROWS, "blockReady").code().first() as NarrowLiteralInstruction).narrowLiteral
 
     /**
      * Your own post's download check hands its answer and the menu's helper to ownPost(), which
@@ -240,7 +325,7 @@ class DownloadVideoHookTest {
         assertEquals("then the share sheet's check", sheet, asked.referenceText())
         assertEquals("handed the answer", 1, asked.registerD)
         assertEquals("whose no runs into the row", DOWNLOAD, code[flagged + 8].referenceText())
-        assertEquals("eight separate actions in the builder", 8, code.count { it.referenceText()?.startsWith("Lapp/hushgram/") == true })
+        assertEquals("nine separate actions in the builder", 9, code.count { it.referenceText()?.startsWith("Lapp/hushgram/") == true })
     }
 
     /** A share sheet check that doesn't answer no on a 0 flag would hide the row the hook keeps, and nothing changes. */
@@ -869,6 +954,7 @@ class DownloadVideoHookTest {
             .filter { it.returnType in modifiers }.flatMap { it.code() }.mapNotNull { (it as? ReferenceInstruction)?.reference as? MethodReference }
         load(bundle, classes, innerCalls.filter { it.name == "<init>" && it.parameterTypes.size == 2 }.flatMap { listOf(it.definingClass, it.parameterTypes[0].toString()) })
         HideRowAsserts.loadMenuClasses(bundle, classes)
+        loadFeedPostRowClasses(bundle, classes)
         val context = PatchContexts.of(classes)
 
         if (hide == HideRow.BEFORE) requireNotNull(context.hideAccountRowOrWarn()) { "$label: no row found" }.write()
@@ -932,6 +1018,8 @@ class DownloadVideoHookTest {
             code.indexOfFirst { it.referenceText() == OFFER_PLAYER } + 1, code.indexOfLast { it.referenceText() == OFFER_DETAILS })
         assertEquals("$label: Loop this video offered once, right after Details",
             code.indexOfFirst { it.referenceText() == OFFER_DETAILS } + 1, code.indexOfLast { it.referenceText() == OFFER_LOOP })
+        assertEquals("$label: Block and Playback speed offered once, right after Loop this video",
+            code.indexOfFirst { it.referenceText() == OFFER_LOOP } + 1, code.indexOfLast { it.referenceText() == OFFER_POST_ROWS })
         // The check's answer, then the menu's helper read off the builder's lambda, go to ownPost().
         val own = code.indexOfFirst { it.referenceText() == OWN_POST }
         assertEquals("$label: ownPost() calls", 1, code.count { it.referenceText() == OWN_POST })
@@ -975,6 +1063,53 @@ class DownloadVideoHookTest {
         val bridges = context.classDefBy(INSTAGRAM_MEDIA).methods.filter { it.name in videoBridges }
         assertEquals("$label: the video bridges", videoBridges.size, bridges.size)
         bridges.forEach { assertEquals("$label: ${it.name}", Opcode.CHECK_CAST, it.code().first().opcode) }
+        assertFeedPostRows(context, page, label)
+    }
+
+    /** What Block and Playback speed reach: the block sheet's helper, the end of a hold for 2x and what it reads. */
+    private fun loadFeedPostRowClasses(bundle: File, classes: MutableList<ClassDef>) {
+        val tagged = FixtureDex.classesLoading(bundle, SPEED_RESET_TAG)
+        assertTrue("no class loads \"$SPEED_RESET_TAG\"", tagged.isNotEmpty())
+        val found = FixtureDex.withStringPools(bundle, tagged + FixtureDex.classesLoading(bundle, BLOCK_HELPER_ANCHOR)) +
+            ExtensionDex.classDef(FEED_POST_ROWS)
+        found.forEach { one -> if (classes.none { it.type == one.type }) classes += one }
+        val reads = tagged.flatMap { it.methods }.filter { AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == "Z" }
+            .flatMap { it.code() }.mapNotNull { (it as? ReferenceInstruction)?.reference }
+            .flatMap { reference ->
+                when (reference) {
+                    is FieldReference -> listOf(reference.definingClass, reference.type)
+                    is MethodReference -> listOf(reference.definingClass)
+                    is TypeReference -> listOf(reference.type)
+                    else -> emptyList()
+                }
+            }
+        load(bundle, classes, reads)
+    }
+
+    /** In each build both rows of the feed menu find everything they need, so neither is left out. */
+    private fun assertFeedPostRows(context: BytecodePatchContext, page: PageIndex, label: String) {
+        val player = assertNotNullSite("$label: the feed's player", context.findFeedPlayer())
+        assertEquals("$label: the setter is the player's", player.inner.type, player.setSpeed.definingClass)
+
+        context.addFeedPostRows(page)
+
+        val menu = context.classDefBy(page.menuState.definingClass)
+        val code = context.method(menu.type, findMenuHandler(menu).handler.name, listOf(OPTION)).code()
+        assertEquals("$label: Block is asked about first", POST_BLOCK_OPTION, code[1].referenceText())
+        assertEquals("$label: one Block tap", 1, code.count { it.referenceText() == BLOCK_POST })
+        assertEquals("$label: one speed tap", 1, code.count { it.referenceText() == PICK_POST_SPEED })
+        assertEquals("$label: Block can open", 1, blockReady(context))
+        val opens = context.method(FEED_POST_ROWS, "blockRun").code().single { it.opcode == Opcode.INVOKE_VIRTUAL_RANGE }
+        assertTrue("$label: ${opens.referenceText()}", opens.referenceText()!!.endsWith("$session${USER}Ljava/lang/String;Ljava/lang/String;)V"))
+        assertEquals("$label: the speed's setter", player.setSpeed.toString(),
+            context.method(FEED_POST_ROWS, "speedRun").code().firstNotNullOf { call -> call.referenceText()?.takeIf { "->" in it } })
+        val made = context.method(player.made.definingClass, "<init>").code()
+        assertEquals("$label: the controller is reported as it's finished", FEED_PLAYER_MADE, made[made.size - 2].referenceText())
+    }
+
+    private fun <T : Any> assertNotNullSite(message: String, site: T?): T {
+        assertTrue(message, site != null)
+        return site!!
     }
 
     /**
@@ -1163,6 +1298,7 @@ class DownloadVideoHookTest {
         helperFieldFinal: Boolean = true,
         rowPublic: Boolean = true,
         fenceConstant: Boolean = true,
+        menuSession: Boolean = false,
     ): List<ClassDef> {
         val menu = ImmutableClassDef(
             helper, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, "Ljava/lang/Object;", null, null, null,
@@ -1173,6 +1309,7 @@ class DownloadVideoHookTest {
                 field(helper, "post", MEDIA),
                 field(helper, "item", itemState).takeIf { menuHoldsItem },
                 field(helper, "rows", state).takeIf { menuKeepsState },
+                field(helper, "session", session).takeIf { menuSession },
             ),
             listOf(
                 method(helper, "A09", listOf(OPTION), "V", handlerRegisters, static = false, body = """
@@ -1428,6 +1565,75 @@ class DownloadVideoHookTest {
             ExtensionDex.classDef(INSTAGRAM_MEDIA),
         )
     }
+
+    private val blockSheet = "Lfixture/BlockSheet;"
+    private val blockShape = "$contextType$activity$session${USER}Ljava/lang/String;Ljava/lang/String;"
+    private val blockOpen = "$blockSheet->open($blockShape)V"
+    private val feedSpeed = "Lfixture/FeedSpeed;"
+    private val feedManager = "Lfixture/FeedManager;"
+    private val feedPlayer = "Lfixture/FeedPlayer;"
+    private val feedEngine = "Lfixture/FeedEngine;"
+    private val functionZero = "Lkotlin/jvm/functions/Function0;"
+
+    /** The menu's classes, the extension's rows, and what each row needs of Instagram. */
+    private fun postRowClasses(menuSession: Boolean = true, sheet: Boolean = true, player: Boolean = true): List<ClassDef> =
+        classes(menuSession = menuSession) + ExtensionDex.classDef(FEED_POST_ROWS) +
+            (if (sheet) listOf(blockSheetClass()) else emptyList()) + (if (player) feedPlayerClasses() else emptyList())
+
+    /** Instagram's block sheet helper: its one instance, and the method that opens the sheet. */
+    private fun blockSheetClass(): ClassDef = classDef(
+        blockSheet,
+        listOf(
+            method(blockSheet, "open", listOf(contextType, activity, session, USER, "Ljava/lang/String;", "Ljava/lang/String;"), "V", 7,
+                static = false, body = "return-void"),
+            method(blockSheet, "A00", emptyList(), "V", 1, static = true, body = """
+                const-string v0, "$BLOCK_HELPER_ANCHOR"
+                return-void
+            """),
+        ),
+        listOf(ImmutableField(blockSheet, "INSTANCE", blockSheet, AccessFlags.PUBLIC.value or AccessFlags.STATIC.value, null, null, null)),
+    )
+
+    /** The hold for 2x: its controller, which asks a function for the manager, and the player that takes the speed. */
+    private fun feedPlayerClasses(): List<ClassDef> = listOf(
+        classDef(
+            feedSpeed,
+            listOf(
+                method(feedSpeed, "<init>", listOf(contextType, session, functionZero), "V", 4, static = false, body = """
+                    iput-object p3, p0, $feedSpeed->function:$functionZero
+                    return-void
+                """),
+                method(feedSpeed, "A01", listOf(feedSpeed, "Z"), "Z", 4, static = true, body = """
+                    iget-object v0, p0, $feedSpeed->function:$functionZero
+                    invoke-interface { v0 }, $functionZero->invoke()Ljava/lang/Object;
+                    move-result-object v0
+                    check-cast v0, $feedManager
+                    const/high16 v1, 0x3f800000
+                    iget-object v0, v0, $feedManager->player:$feedPlayer
+                    if-eqz v0, :done
+                    iget-object v0, v0, $feedPlayer->engine:$feedEngine
+                    if-eqz v0, :done
+                    invoke-virtual { v0, v1 }, $feedEngine->A0U(F)V
+                    :done
+                    const-string v0, "Error resetting playback speed"
+                    const-string v1, "$SPEED_RESET_TAG"
+                    const/4 v0, 0x1
+                    return v0
+                """),
+            ),
+            listOf(field(feedSpeed, "function", functionZero)),
+        ),
+        classDef(
+            feedManager,
+            listOf(method(feedManager, "A00", listOf(feedManager), MEDIA, 2, static = true, body = """
+                const/4 v0, 0x0
+                return-object v0
+            """)),
+            listOf(field(feedManager, "player", feedPlayer)),
+        ),
+        classDef(feedPlayer, emptyList(), listOf(field(feedPlayer, "engine", feedEngine))),
+        classDef(feedEngine, listOf(method(feedEngine, "A0U", listOf("F"), "V", 2, static = false, body = "return-void"))),
+    )
 
     private fun anInterface(type: String, methods: List<Pair<String, String>>): ClassDef = ImmutableClassDef(
         type, AccessFlags.PUBLIC.value or AccessFlags.INTERFACE.value or AccessFlags.ABSTRACT.value,

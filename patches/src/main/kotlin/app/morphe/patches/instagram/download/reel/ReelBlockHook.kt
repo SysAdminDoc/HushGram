@@ -59,14 +59,15 @@ internal class BlockSite(
 
 private fun refuseBlock(detail: String): Nothing = throw PatchException("$BLOCK_PATCH, the Block button beside a reel: $detail")
 
+/** Instagram's block sheet helper: its class, its one [instance] and the method that [open]s the sheet. */
+internal class BlockHelper(val type: String, val instance: FieldReference, val open: MethodReference)
+
 /**
- * Finds what [addBlockButton] needs: the one class loading [BLOCK_HELPER_ANCHOR] that is public,
- * keeps its one instance in a static field of its own type, and has one public instance method
- * taking a context, an activity, a session, a user and two strings; and the one public activity
- * and one public session field of [found]'s delegate. Fails naming what it didn't find exactly
- * once, before anything changes.
+ * Every class loading [BLOCK_HELPER_ANCHOR] that is public, keeps its one instance in a static field
+ * of its own type, and has one public instance method taking a context, an activity, a session, a
+ * user and two strings. A build has one.
  */
-internal fun BytecodePatchContext.findBlockSite(found: NotInterestedSite): BlockSite {
+internal fun BytecodePatchContext.blockHelpers(): List<BlockHelper> {
     val shape = listOf(BLOCK_CONTEXT, BLOCK_ACTIVITY, BLOCK_SESSION, BLOCK_USER, BLOCK_STRING, BLOCK_STRING)
     fun opens(helper: ClassDef) = helper.methods.filter {
         !AccessFlags.STATIC.isSet(it.accessFlags) && AccessFlags.PUBLIC.isSet(it.accessFlags) && it.returnType == "V" &&
@@ -75,13 +76,27 @@ internal fun BytecodePatchContext.findBlockSite(found: NotInterestedSite): Block
     fun instances(helper: ClassDef) = helper.fields.filter {
         AccessFlags.STATIC.isSet(it.accessFlags) && AccessFlags.PUBLIC.isSet(it.accessFlags) && it.type == helper.type
     }
-    val helpers = classesLoadingString(BLOCK_HELPER_ANCHOR).filter { helper ->
+    return classesLoadingString(BLOCK_HELPER_ANCHOR).filter { helper ->
         AccessFlags.PUBLIC.isSet(helper.accessFlags) && opens(helper).size == 1 && instances(helper).size == 1
+    }.map { helper ->
+        val instance = instances(helper).single()
+        BlockHelper(
+            helper.type,
+            ImmutableFieldReference(helper.type, instance.name, instance.type),
+            ImmutableMethodReference(helper.type, opens(helper).single().name, shape, "V"),
+        )
     }
+}
+
+/**
+ * Finds what [addBlockButton] needs: the one of [blockHelpers], and the one public activity and one
+ * public session field of [found]'s delegate. Fails naming what it didn't find exactly once, before
+ * anything changes.
+ */
+internal fun BytecodePatchContext.findBlockSite(found: NotInterestedSite): BlockSite {
+    val helpers = blockHelpers()
     val helper = helpers.singleOrNull()
         ?: refuseBlock("expected one helper class loading \"$BLOCK_HELPER_ANCHOR\", found ${helpers.size}")
-    val open = opens(helper).single()
-    val instance = instances(helper).single()
 
     val delegate = classDefByOrNull(found.delegate) ?: refuseBlock("the delegate ${found.delegate} is missing")
     fun field(type: String) = delegate.fields.filter { !AccessFlags.STATIC.isSet(it.accessFlags) && it.type == type }
@@ -93,8 +108,8 @@ internal fun BytecodePatchContext.findBlockSite(found: NotInterestedSite): Block
 
     return BlockSite(
         helper.type,
-        ImmutableFieldReference(helper.type, instance.name, instance.type),
-        ImmutableMethodReference(helper.type, open.name, shape, "V"),
+        helper.instance,
+        helper.open,
         ImmutableFieldReference(delegate.type, activity.name, activity.type),
         ImmutableFieldReference(delegate.type, session.name, session.type),
     )

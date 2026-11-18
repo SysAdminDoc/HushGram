@@ -7,6 +7,7 @@ Every HushGram release, newest first.
 ### Improvements
 
 * Saving a reel gets its picture and sound at the same time now, instead of one after the other, so saves finish sooner. Asked about in #493.
+* A feed post's three-dot menu can now show Block and Playback speed. Turn on `Block in a post's menu` and `Speed in a post's menu` under Downloads. Requested in #743.
 * **Tooling:** The GitHub release notes leave out the Tooling bullets and the What was checked part now. They're still here in the changelog, and Manager's notes keep their Validation line.
 
 ### Bug Fixes

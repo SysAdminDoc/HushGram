@@ -760,6 +760,35 @@ public class DownloadSettingsTest {
     }
 
     /**
+     * Block and Playback speed for a feed post's menu (#743) follow Details, start off, belong to
+     * the feed video patch and go in a settings file. A build with no feed menu has neither row.
+     */
+    @Test
+    public void thePostMenuRowsFollowDetails() {
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.VIDEO_DOWNLOAD);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            List<Preference> rows = rowsOf(pageIn(controller));
+            int details = indexOfKey(rows, Settings.POST_DETAILS.key);
+            assertEquals(details + 1, indexOfKey(rows, Settings.POST_MENU_BLOCK.key));
+            assertEquals(details + 2, indexOfKey(rows, Settings.POST_MENU_SPEED.key));
+            assertEquals("Block in a post's menu", String.valueOf(rows.get(details + 1).getTitle()));
+            assertEquals("Speed in a post's menu", String.valueOf(rows.get(details + 2).getTitle()));
+            assertFalse(((SwitchPreference) rows.get(details + 1)).isChecked());
+            assertFalse(((SwitchPreference) rows.get(details + 2)).isChecked());
+            assertTrue(PatchFamily.VIDEO_DOWNLOAD.switches.contains(Settings.POST_MENU_BLOCK));
+            assertTrue(PatchFamily.VIDEO_DOWNLOAD.switches.contains(Settings.POST_MENU_SPEED));
+            assertTrue(ConfigurationBackup.eligible().containsKey(Settings.POST_MENU_BLOCK.key));
+            assertTrue(ConfigurationBackup.eligible().containsKey(Settings.POST_MENU_SPEED.key));
+        }
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.REEL_DOWNLOAD);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            List<Preference> rows = rowsOf(pageIn(controller));
+            assertEquals(-1, indexOfKey(rows, Settings.POST_MENU_BLOCK.key));
+            assertEquals(-1, indexOfKey(rows, Settings.POST_MENU_SPEED.key));
+        }
+    }
+
+    /**
      * Save photos at full size (#500) sits right under Download feed photos when the full resolution
      * patch is in the build too, since that patch reports the larger screen the original needs. It
      * starts on, waits for Download feed photos, asks for a restart and goes in a settings file. A
@@ -838,7 +867,7 @@ public class DownloadSettingsTest {
         try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
             List<Preference> rows = rowsOf(pageIn(controller));
             int choose = indexOfKey(rows, Settings.DOWNLOAD_CHOOSE_PAGES.key);
-            assertEquals(indexOfKey(rows, Settings.POST_DETAILS.key) + 1, choose);
+            assertEquals(indexOfKey(rows, Settings.POST_MENU_SPEED.key) + 1, choose);
             SwitchPreference row = (SwitchPreference) rows.get(choose);
             assertEquals("Choose carousel pages", String.valueOf(row.getTitle()));
             assertFalse("Choose carousel pages starts off", row.isChecked());

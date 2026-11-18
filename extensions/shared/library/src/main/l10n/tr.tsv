@@ -823,6 +823,10 @@ Copy media link	Medya bağlantısını kopyala
 Couldn't copy the media link	Medya bağlantısı kopyalanamadı
 Details	Ayrıntılar
 Details in a post's menu	Gönderi menüsünde Ayrıntılar
+Block in a post's menu	Gönderi menüsünde Engelle
+Adds Block to the menu of someone else's feed post. It opens Instagram's own block sheet, so nothing happens until you confirm there.	Başkalarının akış gönderilerinin menüsüne Engelle'yi ekler. Instagram'ın kendi engelleme ekranını açar, yani orada onaylayana kadar hiçbir şey olmaz.
+Speed in a post's menu	Gönderi menüsünde hız
+Adds Playback speed to a feed video's menu. Pick a speed from 0.5x to 3x for the video that's playing.	Akış videolarının menüsüne Oynatma hızı seçeneğini ekler. Oynayan video için 0.5x ile 3x arasında bir hız seç.
 Media ID %1$s	Medya kimliği %1$s
 Media link	Medya bağlantısı
 Media link copied. It stops working after a few days.	Medya bağlantısı kopyalandı. Birkaç gün sonra çalışmaz.

@@ -816,6 +816,10 @@ Copy media link	คัดลอกลิงก์สื่อ
 Couldn't copy the media link	ไม่สามารถคัดลอกลิงก์สื่อได้
 Details	รายละเอียด
 Details in a post's menu	รายละเอียดในเมนูของโพสต์
+Block in a post's menu	บล็อกในเมนูของโพสต์
+Adds Block to the menu of someone else's feed post. It opens Instagram's own block sheet, so nothing happens until you confirm there.	เพิ่มบล็อกในเมนูของโพสต์ในฟีดของคนอื่น โดยจะเปิดหน้าบล็อกของ Instagram เอง จึงไม่มีอะไรเกิดขึ้นจนกว่าคุณจะยืนยันที่นั่น
+Speed in a post's menu	ความเร็วในเมนูของโพสต์
+Adds Playback speed to a feed video's menu. Pick a speed from 0.5x to 3x for the video that's playing.	เพิ่มความเร็วในการเล่นในเมนูของวิดีโอในฟีด เลือกความเร็วตั้งแต่ 0.5x ถึง 3x สำหรับวิดีโอที่กำลังเล่นอยู่
 Media ID %1$s	ID สื่อ %1$s
 Media link	ลิงก์สื่อ
 Media link copied. It stops working after a few days.	คัดลอกลิงก์สื่อแล้ว ลิงก์จะหยุดทำงานหลังจากผ่านไปสองสามวัน

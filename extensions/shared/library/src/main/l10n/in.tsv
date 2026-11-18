@@ -823,6 +823,10 @@ Copy media link	Salin tautan media
 Couldn't copy the media link	Tidak dapat menyalin tautan media
 Details	Detail
 Details in a post's menu	Detail di menu postingan
+Block in a post's menu	Blokir di menu postingan
+Adds Block to the menu of someone else's feed post. It opens Instagram's own block sheet, so nothing happens until you confirm there.	Menambahkan Blokir ke menu postingan feed milik orang lain. Ini membuka layar blokir Instagram sendiri, jadi tidak ada yang terjadi sampai kamu mengonfirmasi di sana.
+Speed in a post's menu	Kecepatan di menu postingan
+Adds Playback speed to a feed video's menu. Pick a speed from 0.5x to 3x for the video that's playing.	Menambahkan Kecepatan pemutaran ke menu video feed. Pilih kecepatan dari 0.5x sampai 3x untuk video yang sedang diputar.
 Media ID %1$s	ID media %1$s
 Media link	Tautan media
 Media link copied. It stops working after a few days.	Tautan media disalin. Tautan ini tidak berfungsi lagi setelah beberapa hari.

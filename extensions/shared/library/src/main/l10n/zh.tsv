@@ -827,6 +827,10 @@ Copy media link	复制媒体链接
 Couldn't copy the media link	无法复制媒体链接
 Details	详细数据
 Details in a post's menu	帖子菜单中的详细数据
+Block in a post's menu	帖子菜单中的屏蔽
+Adds Block to the menu of someone else's feed post. It opens Instagram's own block sheet, so nothing happens until you confirm there.	在别人的动态首页帖子菜单中加入“屏蔽”。它会打开 Instagram 自己的屏蔽页面，在那里确认之前不会发生任何事。
+Speed in a post's menu	帖子菜单中的速度
+Adds Playback speed to a feed video's menu. Pick a speed from 0.5x to 3x for the video that's playing.	在动态首页视频的菜单中加入“播放速度”。可为正在播放的视频选择 0.5x 到 3x 的速度。
 Media ID %1$s	媒体 ID %1$s
 Media link	媒体链接
 Media link copied. It stops working after a few days.	已复制媒体链接。链接会在几天后失效。

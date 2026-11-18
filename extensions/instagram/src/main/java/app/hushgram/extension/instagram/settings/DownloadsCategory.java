@@ -61,6 +61,12 @@ final class DownloadsCategory {
                         L10n.t("Adds Details to a feed post's or reel's menu. It shows when it went up, who posted it, "
                                 + "its media ID and the size Download saves, with buttons to copy the file link, "
                                 + "username and caption.")));
+                downloads.addPreference(toggle(context, Settings.POST_MENU_BLOCK, L10n.t("Block in a post's menu"),
+                        L10n.t("Adds Block to the menu of someone else's feed post. It opens Instagram's own block "
+                                + "sheet, so nothing happens until you confirm there.")));
+                downloads.addPreference(toggle(context, Settings.POST_MENU_SPEED, L10n.t("Speed in a post's menu"),
+                        L10n.t("Adds Playback speed to a feed video's menu. Pick a speed from 0.5x to 3x for the "
+                                + "video that's playing.")));
                 downloads.addPreference(toggle(context, Settings.DOWNLOAD_CHOOSE_PAGES, L10n.t("Choose carousel pages"),
                         L10n.t("Adds Choose pages to a carousel's menu, after Save all, and to the download icon. "
                                 + "Tick the pages you want and only those save, in order.")));

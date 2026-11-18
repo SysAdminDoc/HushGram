@@ -426,9 +426,10 @@ public final class VideoDownload {
      * on this list and orders the rows by it, so without this the row {@link #offer} added never
      * shows there. Save all follows Download, keeping native options in their existing order, then
      * Download cover with its switch on. With their own switches on, Open in another player follows
-     * them, then Details ({@link PostInfo}), then with Stop videos looping on, Loop this video. With
-     * Choose carousel pages on, Choose pages goes right after Save all, as the long menu has it. A
-     * list with every action or the switches off comes back as it came. Never throws.
+     * them, then Details ({@link PostInfo}), then with Stop videos looping on, Loop this video, then
+     * Playback speed and Block ({@link FeedPostRows}). With Choose carousel pages on, Choose pages
+     * goes right after Save all, as the long menu has it. A list with every action or the switches
+     * off comes back as it came. Never throws.
      */
     public static List<?> allow(List<?> options, Object download) {
         try {
@@ -439,6 +440,10 @@ public final class VideoDownload {
             if (ExternalPlayer.on()) allowed = withPlayer(allowed, download);
             if (PostInfo.on()) allowed = PostInfo.withDetails(allowed, download, batchOption, coverOption, playerOption);
             if (StopLooping.offersRow(false)) allowed = withLoop(allowed, download);
+            if (FeedPostRows.on()) {
+                allowed = FeedPostRows.withRows(allowed, download, batchOption, coverOption, playerOption,
+                        PostInfo.on() ? PostInfo.option() : null, loopOption);
+            }
             return download != null && chooses() ? withChoose(allowed, download) : allowed;
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.VIDEO_DOWNLOAD, "short feed menu", t);

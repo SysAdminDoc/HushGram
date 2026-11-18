@@ -4511,6 +4511,17 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_post_details", FALSE);
 
     /**
+     * Someone else's feed post gets Block in its menu, which opens Instagram's own block sheet, so
+     * nothing happens until it's confirmed there. Starts off.
+     */
+    public static final BooleanSetting POST_MENU_BLOCK =
+            new BooleanSetting("hushgram_post_menu_block", FALSE);
+
+    /** A feed video that's playing gets Playback speed in its menu. Starts off. */
+    public static final BooleanSetting POST_MENU_SPEED =
+            new BooleanSetting("hushgram_post_menu_speed", FALSE);
+
+    /**
      * Video saves keep to what other apps open: H.264 video with AAC-LC or HE-AAC sound, within
      * {@link #DOWNLOAD_QUALITY}, or the app's single MP4 file when the manifest has no such pair.
      * The sharpest version Meta streams is often AV1 with xHE-AAC sound, which Gallery and VLC play

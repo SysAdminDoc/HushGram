@@ -822,6 +822,10 @@ Copy media link	미디어 링크 복사
 Couldn't copy the media link	미디어 링크를 복사할 수 없습니다
 Details	세부 정보
 Details in a post's menu	게시물 메뉴의 세부 정보
+Block in a post's menu	게시물 메뉴의 차단
+Adds Block to the menu of someone else's feed post. It opens Instagram's own block sheet, so nothing happens until you confirm there.	다른 사람의 피드 게시물 메뉴에 차단을 추가합니다. Instagram의 차단 화면이 열리므로 거기서 확인하기 전에는 아무 일도 일어나지 않습니다.
+Speed in a post's menu	게시물 메뉴의 속도
+Adds Playback speed to a feed video's menu. Pick a speed from 0.5x to 3x for the video that's playing.	피드 동영상 메뉴에 재생 속도를 추가합니다. 재생 중인 동영상의 속도를 0.5x에서 3x까지 고를 수 있습니다.
 Media ID %1$s	미디어 ID %1$s
 Media link	미디어 링크
 Media link copied. It stops working after a few days.	미디어 링크를 복사했습니다. 며칠 후에는 작동하지 않습니다.
