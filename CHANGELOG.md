@@ -8,6 +8,10 @@ Every HushGram release, newest first.
 
 * **Tooling:** The GitHub release notes leave out the Tooling bullets and the What was checked part now. They're still here in the changelog, and Manager's notes keep their Validation line.
 
+### Bug Fixes
+
+* `Show if a profile follows you` now labels profiles that have a name but no pronouns. The label and badges were only showing up on profiles with no name at all. Reported in #727.
+
 ## 0.0.21 (2026-11-18)
 
 ### Features

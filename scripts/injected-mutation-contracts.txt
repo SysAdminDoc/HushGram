@@ -2532,15 +2532,16 @@ once-call Lapp/hushgram/extension/instagram/misc/Fonts;->prismTypeface(Landroid/
 next-call Lapp/hushgram/extension/instagram/misc/Fonts;->textView(Landroid/widget/TextView;)V after Lcom/instagram/common/ui/base/IgTextViewUtils;->initialize(Landroid/widget/TextView;Landroid/content/Context;Landroid/util/AttributeSet;)V in instance (Landroid/content/Context;Landroid/util/AttributeSet;II)V holding Lcom/instagram/common/ui/base/IgTextViewUtils;->initialize(Landroid/widget/TextView;Landroid/content/Context;Landroid/util/AttributeSet;)V
 # Show if a profile follows you hands the pronouns slot beside a profile's name and the header to
 # FriendshipStatus right after the name's binder shows the slot with the pronouns in it, and right
-# after it hides the slot for an account with none (0BNk.A04 on 449, the one method loading the
-# trace name below). Each hook is called once there and nowhere else, so both rules are once-call.
-# Left out, nothing is added beside the name; twice or elsewhere, it isn't the hook the patch wrote.
+# after each place it hides the slot for an account with none (the one method loading the trace
+# name below). 456 hides it in two places, one for a profile with a name and one without (#727), so
+# the second hook is called twice there and nowhere else; the first is called once.
+# Left out, nothing is added beside the name; elsewhere, it isn't the hook the patch wrote.
 # FriendshipStatusHookTest checks on the 449 fixture that each lands right after its call. The
 # stubs the patch fills, the two reading the profile screen's own answer as the options sheet does
 # (#40) among them, are the extension's own methods, called only by FriendshipStatus, so they're no
 # hook into Instagram and get no rule; FriendshipStatusHookTest checks them on every 450 build.
 once-call Lapp/hushgram/extension/instagram/profile/FriendshipStatus;->besidePronouns(Ljava/lang/Object;Ljava/lang/Object;)V in static (Landroid/content/Context;Landroid/view/View;*)V holding bindFullName
-once-call Lapp/hushgram/extension/instagram/profile/FriendshipStatus;->inPlaceOfPronouns(Ljava/lang/Object;Ljava/lang/Object;)V in static (Landroid/content/Context;Landroid/view/View;*)V holding bindFullName
+once-call Lapp/hushgram/extension/instagram/profile/FriendshipStatus;->inPlaceOfPronouns(Ljava/lang/Object;Ljava/lang/Object;)V in static (Landroid/content/Context;Landroid/view/View;*)V sites 2 holding bindFullName
 # Its second switch hands each row of a follow list to FollowingList right after the row binder's
 # static call fills the row in (0CRR.bindView on 449, the one method loading Kotlin's message for
 # its FollowRowState cast below). The hook is called once there and nowhere else. Left out, your
