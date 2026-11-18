@@ -77,14 +77,26 @@ public final class StoryBands {
         Bands bands = new Bands(decor);
         WATCHED.put(decor, bands);
         decor.getViewTreeObserver().addOnPreDrawListener(bands);
+        decor.getViewTreeObserver().addOnGlobalLayoutListener(bands);
         bands.check();
     }
 
     static void release(@Nullable View decor) {
         Bands bands = decor == null ? null : WATCHED.remove(decor);
         if (bands == null) return;
-        if (decor.getViewTreeObserver().isAlive()) decor.getViewTreeObserver().removeOnPreDrawListener(bands);
+        if (decor.getViewTreeObserver().isAlive()) {
+            decor.getViewTreeObserver().removeOnPreDrawListener(bands);
+            decor.getViewTreeObserver().removeOnGlobalLayoutListener(bands);
+        }
         bands.hide();
+    }
+
+    /**
+     * Ambient light's glow on a story went out in [decor]'s window, after this frame's check may have
+     * run, so the strips are looked at again before the frame draws them bare (#751). Main thread only.
+     */
+    public static void glowWentOut(@Nullable View decor) {
+        if (decor != null) refresh(decor);
     }
 
     /** Checks [decor] again now, as a frame would. */
@@ -157,7 +169,7 @@ public final class StoryBands {
     }
 
     /** One window's covers, checked before each frame. */
-    private static final class Bands implements ViewTreeObserver.OnPreDrawListener {
+    private static final class Bands implements ViewTreeObserver.OnPreDrawListener, ViewTreeObserver.OnGlobalLayoutListener {
         private final WeakReference<View> decor;
         private final GlassTabBar.ShownOnTop story = new GlassTabBar.ShownOnTop(GlassTabBar.STORY_ROOT);
         final ColorDrawable top = new ColorDrawable(Color.BLACK);
@@ -172,6 +184,17 @@ public final class StoryBands {
         public boolean onPreDraw() {
             check();
             return true;
+        }
+
+        /** A layout comes just before its frame's check, which then finds a story it put up (#751). */
+        @Override
+        public void onGlobalLayout() {
+            try {
+                View window = decor.get();
+                if (window != null) story.laidOut(window);
+            } catch (Throwable failure) {
+                HookStatus.threw(FamilyNames.STORY_BANDS, "layout", failure);
+            }
         }
 
         void check() {

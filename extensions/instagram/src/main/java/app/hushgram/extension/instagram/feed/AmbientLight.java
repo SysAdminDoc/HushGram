@@ -44,13 +44,16 @@ import androidx.annotation.Nullable;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.WeakHashMap;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 import app.hushgram.extension.instagram.misc.GlassTabBar;
+import app.hushgram.extension.instagram.misc.StoryBands;
 import app.hushgram.extension.instagram.reels.ReelBlurBars;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
@@ -122,6 +125,9 @@ public final class AmbientLight {
 
     /** How many pictures glow at once. A feed shows two or three, Reels one and its neighbours. */
     static final int MAX_LIGHTS = 6;
+
+    /** How long a story's glow waits for the next story to take it over once its picture has gone. */
+    static final long STORY_GLOW_KEPT_MS = 1000L;
 
     /** How many parents of a picture are asked whether they're its stage. */
     static final int STAGE_DEPTH = 16;
@@ -197,6 +203,13 @@ public final class AmbientLight {
     };
 
     private static Sampler sampler = SCREEN;
+    /** Told a window's story glow went out, so its strips get their covers in the same frame. Swapped in tests. */
+    private static Consumer<View> storyGlowOut = StoryBands::glowWentOut;
+    /** The windows that lost a story's light since the strips were last told. Main thread only. */
+    private static final Set<View> storyGlowsOut = Collections.newSetFromMap(new WeakHashMap<>());
+    /** The story light last put out while it glowed, for the next story to go on from, and when. Main thread only. */
+    @Nullable private static Light parted;
+    private static long partedAt;
 
     private static final ResourceIdCache ids = new ResourceIdCache();
     private static final WeakHashMap<Activity, Session> sessions = new WeakHashMap<>();
@@ -646,6 +659,10 @@ public final class AmbientLight {
         glow.lights.add(light);
         if (host != null) glowOn(host).lights.add(light);
         light.place(media, stage);
+        if (kind == Kind.STORY && takeOverStoryGlow(light)) {
+            glow.invalidateSelf();
+            if (host != null) glowOn(host).invalidateSelf();
+        }
         dressBar(light, host);
         dressFronts(light);
         HookStatus.counted(FamilyNames.AMBIENT_LIGHT, kind == Kind.STORY ? COUNT_STORIES : COUNT_LIT);
@@ -658,6 +675,60 @@ public final class AmbientLight {
             main.post(TICK);
         }
         return true;
+    }
+
+    /**
+     * Starts a new story's [light] from the glow of the story before it, showing or just gone, so its
+     * strips keep glowing until its own first copy comes back and the glow fades to that (#751).
+     * Answers whether there was one to take over.
+     */
+    private static boolean takeOverStoryGlow(Light light) {
+        Light from = null;
+        for (Light other : lights.values()) {
+            if (other != light && other.kind == Kind.STORY && other.face != null && sameBands(other, light)) {
+                from = other;
+                break;
+            }
+        }
+        if (from == null && parted != null && SystemClock.uptimeMillis() - partedAt <= STORY_GLOW_KEPT_MS
+                && sameBands(parted, light)) {
+            from = parted;
+        }
+        if (from == null || from.face == null) return false;
+        light.face = from.face.copy(Bitmap.Config.ARGB_8888, true);
+        System.arraycopy(from.current, 0, light.current, 0, light.current.length);
+        // A glow still fading goes on fading here, or it would stay as faint as it was at the swipe.
+        System.arraycopy(from.before, 0, light.before, 0, light.before.length);
+        System.arraycopy(from.shown, 0, light.shown, 0, light.shown.length);
+        light.fadeStart = from.fadeStart;
+        light.fadeMillis = from.fadeMillis;
+        light.fading = from.fading;
+        return true;
+    }
+
+    /** Whether two lights fill the same bands: those of one host, or of one stage without a host. */
+    private static boolean sameBands(Light one, Light other) {
+        ViewGroup host = other.host();
+        if (host != null) return one.host() == host;
+        ViewGroup stage = other.stage.get();
+        return stage != null && one.host == null && one.stage.get() == stage;
+    }
+
+    /** Tells the strips of each window that lost a story's light, once the frame's lights are settled. */
+    private static void tellStripsOfGlowsOut() {
+        if (storyGlowsOut.isEmpty()) return;
+        List<View> windows = new ArrayList<>(storyGlowsOut);
+        storyGlowsOut.clear();
+        for (View window : windows) {
+            if (window != null) storyGlowOut.accept(window);
+        }
+    }
+
+    /** Notes that [light], a story's, is going out of its window. */
+    private static void noteStoryGlowOut(Light light) {
+        Activity owner = light.owner.get();
+        View window = owner == null || owner.getWindow() == null ? null : owner.getWindow().peekDecorView();
+        if (window != null) storyGlowsOut.add(window);
     }
 
     /** The glow [stage] wears, wrapping its background now. A background Instagram set since is wrapped afresh. */
@@ -861,6 +932,13 @@ public final class AmbientLight {
     /** Puts out [media]'s light, and gives its stage, host and tab bar their own backgrounds back when it was the last. */
     private static void drop(View media, Light light) {
         lights.remove(media);
+        if (light.kind == Kind.STORY) {
+            noteStoryGlowOut(light);
+            if (light.face != null) {
+                parted = light;
+                partedAt = SystemClock.uptimeMillis();
+            }
+        }
         light.takeEdges(media);
         putOut(light.stage.get(), light);
         putOut(light.host(), light);
@@ -982,8 +1060,9 @@ public final class AmbientLight {
         light.atY = where[1];
         if (moved) light.stir();
         // Reading a picture back is what costs. While the list moves the copy waits for it to stop,
-        // and a still photo rests between copies. A picture with no glow yet still gets its first.
-        if (light.face != null && (moved || SystemClock.uptimeMillis() < light.restUntil)) return;
+        // and a still photo rests between copies. A picture with no copy yet still gets its first,
+        // also when it glows with the last story's colors for now.
+        if (light.seen != null && (moved || SystemClock.uptimeMillis() < light.restUntil)) return;
         light.asking = true;
         try {
             if (!light.inView.isEmpty()) {
@@ -1096,7 +1175,9 @@ public final class AmbientLight {
     static void putBack() {
         main.removeCallbacks(TICK);
         ticking = false;
+        parted = null;
         for (Map.Entry<View, Light> entry : new ArrayList<>(lights.entrySet())) {
+            if (entry.getValue().kind == Kind.STORY) noteStoryGlowOut(entry.getValue());
             if (entry.getKey() != null) entry.getValue().takeEdges(entry.getKey());
         }
         for (Map.Entry<View, Glow> entry : new ArrayList<>(glows.entrySet())) {
@@ -1119,6 +1200,10 @@ public final class AmbientLight {
     /** Tests give the reel frame an id of their own, since a test app has none of Instagram's. */
     static void idForTests(Context context, int id) {
         ids.putForTests(Utils.resourcePackage(context), REEL_FRAME, id);
+    }
+
+    static void storyGlowOutForTests(Consumer<View> stand) {
+        storyGlowOut = stand;
     }
 
     static void storyIdForTests(Context context, int id) {
@@ -1191,6 +1276,8 @@ public final class AmbientLight {
             sessions.clear();
         }
         putBack();
+        storyGlowsOut.clear();
+        storyGlowOut = StoryBands::glowWentOut;
         frames.clear();
         cutCorners.clear();
         drawing.clear();
@@ -2017,6 +2104,7 @@ public final class AmbientLight {
                 if (!wanted()) {
                     putBack();
                     detach();
+                    tellStripsOfGlowsOut();
                     return false;
                 }
                 follow();
@@ -2048,6 +2136,8 @@ public final class AmbientLight {
                     walk(owner, owner.getWindow().getDecorView(), frame, storyFrame, feed && !reelsBlurred(),
                             new int[] {ReelCorners.MAX_VIEWS});
                 }
+                // After the walk, so a story that took another's place keeps its strips lit (#751).
+                tellStripsOfGlowsOut();
             } catch (Throwable failure) {
                 HookStatus.threw(FamilyNames.AMBIENT_LIGHT, HOOK, failure);
             }

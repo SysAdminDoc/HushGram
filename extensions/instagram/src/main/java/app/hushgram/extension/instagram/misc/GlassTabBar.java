@@ -962,6 +962,12 @@ public final class GlassTabBar {
             this.name = name;
         }
 
+        /** Has the next look go ahead when [root] holds the screen at all, as a layout may just have put it up (#751). */
+        void laidOut(View root) {
+            int id = id(root.getContext(), name);
+            if (id != 0 && root.findViewById(id) != null) lookedAt = -SHEET_LOOK_MS;
+        }
+
         /** Whether the screen shows {@link #onTop on top} in [root]'s window. */
         boolean in(View root) {
             return shownIn(root) != null;

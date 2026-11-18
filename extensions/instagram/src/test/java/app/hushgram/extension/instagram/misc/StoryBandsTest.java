@@ -129,6 +129,22 @@ public class StoryBandsTest {
     }
 
     @Test
+    public void aStoryJustLaidOutHasItsStripsCoveredInThatFrame() {
+        // #751: the look for the viewer runs four times a second, so the white page showed in the
+        // strips for the first frames of a story opening.
+        View story = story(page, GAP_TOP, GAP_BOTTOM);
+        story.setId(View.NO_ID);
+        settle(story);
+        assertTrue(StoryBands.covers(decor).isEmpty());
+
+        story.setId(STORY);
+        decor.getViewTreeObserver().dispatchOnGlobalLayout();
+        StoryBands.refresh(decor);
+
+        assertEquals(2, StoryBands.covers(decor).size());
+    }
+
+    @Test
     public void aStoryBetweenTheBarsHasBothStripsBlack() {
         View story = story(page, GAP_TOP, GAP_BOTTOM);
         settle(story);

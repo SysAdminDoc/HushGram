@@ -37,6 +37,9 @@ import android.widget.ImageView;
 
 import com.instagram.ui.widget.framelayout.MediaFrameLayout;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.After;
@@ -610,6 +613,133 @@ public class AmbientStoryLightTest {
         assertEquals("one light, the video's", 1, AmbientLight.litForTests());
         assertEquals(new Rect(0, 120, WIDTH, 520), AmbientLight.litRectForTests(video));
         assertNull(AmbientLight.litRectForTests(photo));
+    }
+
+    private static FrameLayout.LayoutParams filling() {
+        return new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT);
+    }
+
+    /** Sits the story between the status bar and the gesture bar, its photo filling it, and answers those bars' heights. */
+    private int[] storyBetweenTheBars() {
+        if (activity.getActionBar() != null) activity.getActionBar().hide();
+        laidOut();
+        View window = activity.getWindow().getDecorView();
+        int statusBar = window.getHeight() / 25, gestureBar = window.getHeight() / 20;
+        root.removeView(frame);
+        frame.removeView(photo);
+        frame.addView(photo, filling());
+        FrameLayout main = new FrameLayout(activity);
+        main.addView(frame, filling());
+        FrameLayout.LayoutParams between = filling();
+        between.topMargin = statusBar;
+        between.bottomMargin = gestureBar;
+        root.addView(main, between);
+        photo.setImageDrawable(picture(window.getWidth(), window.getHeight() - statusBar - gestureBar));
+        laidOut();
+        return new int[] {statusBar, gestureBar};
+    }
+
+    /** Holds each copy of a picture back until its entry runs, when it comes out all [color]. */
+    private List<Runnable> holdCopies(int color) {
+        List<Runnable> held = new ArrayList<>();
+        AmbientLight.samplerForTests((owner, source, inWindow, into, done) -> held.add(() -> {
+            into.eraseColor(color);
+            done.accept(true);
+        }));
+        return held;
+    }
+
+    /** Puts the next story's photo in the frame and has a frame take it in. */
+    private void nextStoryPhoto() {
+        ImageView next = new ImageView(activity);
+        next.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        next.setImageDrawable(picture(photo.getWidth(), photo.getHeight()));
+        frame.addView(next, filling());
+        laidOut();
+        frame();
+        laidOut();
+    }
+
+    @Test
+    public void aStoryGlowGoingOutTellsTheStripsBeforeTheFrameDraws() {
+        // #751: with the glow gone the strip showed the white page for a frame, since the covers had
+        // already been looked at when the light went out.
+        storyBetweenTheBars();
+        storiesOn();
+        advance(AmbientSpeed.MEDIUM.fadeMillis);
+        View window = activity.getWindow().getDecorView();
+        assertTrue(AmbientLight.storyBandsLit(window));
+        List<Boolean> litWhenTold = new ArrayList<>();
+        AmbientLight.storyGlowOutForTests(decor -> litWhenTold.add(decor == window && AmbientLight.storyBandsLit(window)));
+
+        photo.setVisibility(View.GONE);
+        frame();
+
+        assertEquals("told once, for this window, with the glow gone", Collections.singletonList(false), litWhenTold);
+    }
+
+    @Test
+    public void theNextStoryKeepsTheGlowUntilItsOwnIsReady() {
+        // #751: the strips went black for most of a second at each swipe, until the next story's first
+        // copy came back.
+        int[] bars = storyBetweenTheBars();
+        storiesOn();
+        advance(AmbientSpeed.MEDIUM.fadeMillis);
+        View window = activity.getWindow().getDecorView();
+        int x = window.getWidth() / 2, y = bars[0] / 2;
+        List<Runnable> held = holdCopies(Color.GREEN);
+        List<Boolean> litWhenTold = new ArrayList<>();
+        AmbientLight.storyGlowOutForTests(decor -> litWhenTold.add(decor == window && AmbientLight.storyBandsLit(window)));
+
+        photo.setVisibility(View.GONE);
+        nextStoryPhoto();
+
+        assertEquals("one light, the next story's", 1, AmbientLight.litForTests());
+        assertTrue("its strips still glow", AmbientLight.storyBandsLit(window));
+        assertEquals("and no cover goes on for a frame", Collections.singletonList(true), litWhenTold);
+        int kept = drawn(root).getPixel(x, y);
+        assertTrue("the last story's top, still: " + hex(kept),
+                Color.alpha(kept) > 20 && Color.blue(kept) > 60 && Color.green(kept) < 30);
+
+        advance(AmbientSpeed.MEDIUM.sampleMillis);
+        assertFalse("its own copy was asked for", held.isEmpty());
+        for (Runnable copy : new ArrayList<>(held)) copy.run();
+        advance(AmbientSpeed.MEDIUM.fadeMillis);
+        int own = drawn(root).getPixel(x, y);
+        assertTrue("faded to its own colors: " + hex(own), Color.green(own) > 60 && Color.blue(own) < 30);
+    }
+
+    @Test
+    public void aStoryComingJustAfterTheLastWentOutTakesItsGlowOver() {
+        storyBetweenTheBars();
+        storiesOn();
+        advance(AmbientSpeed.MEDIUM.fadeMillis);
+        View window = activity.getWindow().getDecorView();
+        holdCopies(Color.GREEN);
+
+        photo.setVisibility(View.GONE);
+        frame();
+        assertFalse("nothing glows between them", AmbientLight.storyBandsLit(window));
+        advance(AmbientLight.STORY_GLOW_KEPT_MS / 2);
+        nextStoryPhoto();
+
+        assertTrue(AmbientLight.storyBandsLit(window));
+    }
+
+    @Test
+    public void aStoryComingLongAfterTheLastWentOutStartsDark() {
+        storyBetweenTheBars();
+        storiesOn();
+        advance(AmbientSpeed.MEDIUM.fadeMillis);
+        View window = activity.getWindow().getDecorView();
+        holdCopies(Color.GREEN);
+
+        photo.setVisibility(View.GONE);
+        frame();
+        advance(AmbientLight.STORY_GLOW_KEPT_MS + 1);
+        nextStoryPhoto();
+
+        assertFalse("an old story's colors don't come back", AmbientLight.storyBandsLit(window));
     }
 
     @Test
