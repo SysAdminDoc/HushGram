@@ -165,8 +165,8 @@ class GroupNotificationsHookTest {
     }
 
     /**
-     * The declared build posts from nine methods without a tag and seven with one (Firebase's
-     * display notifications among them), and cancels from four without a tag and twenty-three
+     * Each declared 456 build posts from ten methods without a tag and eight with one (Firebase's
+     * display notifications among them), and cancels from four without a tag and twenty
      * with one (the message notifications' withdraw and trim among them). Every one of those calls
      * goes to its stand-in on the same registers, with the instruction count unchanged, and none is
      * left behind.
@@ -205,11 +205,11 @@ class GroupNotificationsHookTest {
         val byShape = NOTIFY_SHAPES.associateWith { shape ->
             methods.count { method -> method.instructions().any { it.notifyCall() == shape } }
         }
-        assertEquals("${label}: methods posting by shape", mapOf(untagged to 10, tagged to 7), byShape)
+        assertEquals("${label}: methods posting by shape", mapOf(untagged to 10, tagged to 8), byShape)
         val cancelsByShape = CANCEL_SHAPES.associateWith { shape ->
             methods.count { method -> method.instructions().any { it.cancelCall() == shape } }
         }
-        assertEquals("${label}: methods cancelling by shape", mapOf(cancelUntagged to 4, cancelTagged to 24), cancelsByShape)
+        assertEquals("${label}: methods cancelling by shape", mapOf(cancelUntagged to 4, cancelTagged to 20), cancelsByShape)
 
         val context = PatchContexts.of(callers)
         val sent = context.groupNotifications()

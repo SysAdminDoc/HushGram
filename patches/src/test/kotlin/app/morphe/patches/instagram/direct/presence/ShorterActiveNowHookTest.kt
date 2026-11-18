@@ -8,9 +8,11 @@ import app.morphe.ExtensionDex
 import app.morphe.Fixtures
 import app.morphe.PatchContexts
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
+import app.morphe.patcher.extensions.InstructionExtensions.replaceInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
+import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod.Companion.toMutable
 import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
@@ -25,6 +27,9 @@ import com.android.tools.smali.dexlib2.iface.instruction.ThreeRegisterInstructio
 import com.android.tools.smali.dexlib2.iface.instruction.WideLiteralInstruction
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import com.android.tools.smali.dexlib2.immutable.ImmutableField
+import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
+import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction10x
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
@@ -33,11 +38,11 @@ import java.io.File
 import java.util.concurrent.TimeUnit
 
 /**
- * Shorter Active now (#683): on every 455 build, each place the Active now limit of 390 seconds comes
- * from goes through the extension, and nothing else changes. 386113922 and 386113923 keep it in the
- * presence formatter's static final long, whose static initializer hands it over right before
- * storing it. The other builds load it in each check, which hands its copy over right after loading
- * it. A build the patch can't read fails it before an instruction changes.
+ * Shorter Active now (#683): on every declared build, each place the Active now limit of 390 seconds
+ * comes from goes through the extension, and nothing else changes. Two 455 builds (386113922 and
+ * 386113923) kept it in the presence formatter's static final long, whose static initializer hands it
+ * over right before storing it. The 456 builds load it in each check, which hands its copy over right
+ * after loading it. A build the patch can't read fails it before an instruction changes.
  */
 class ShorterActiveNowHookTest {
     @Test
@@ -77,19 +82,57 @@ class ShorterActiveNowHookTest {
     /** A limit something besides the initializer could set can't be trusted to be the one Instagram keeps. */
     @Test
     fun aLimitThatIsNotFinalFailsThePatch() {
-        val (kept, targets) = firstOtherBuild("keeps the limit in a field") { it.stored != null }
-        val site = targets.stored!!
-        val owner = kept.single { it.type == site.type }
-        val loosened = ImmutableClassDef(
-            owner.type, owner.accessFlags, owner.superclass, owner.interfaces, owner.sourceFile, owner.annotations,
-            owner.fields.map {
-                val flags = if (it.name == site.field.name) it.accessFlags and AccessFlags.FINAL.value.inv() else it.accessFlags
-                ImmutableField(it.definingClass, it.name, it.type, flags, it.initialValue, it.annotations, it.hiddenApiRestrictions)
+        val kept = PatchContexts.of(fieldForm(isFinal = true)).findActiveNow().stored
+        assertEquals("the field form is read off the stand-in's long", LIMIT_FIELD, kept?.field?.name)
+        refuses("isn't static final") { PatchContexts.of(fieldForm(isFinal = false)).findActiveNow() }
+    }
+
+    /**
+     * A declared build rewritten into the field form 386113922 and 386113923 had, which no 456 build
+     * has: the presence text method reads the limit off its class's static long right before comparing
+     * it, and the class's static initializer sets that long straight from TimeUnit.SECONDS.toMillis(390).
+     */
+    private fun fieldForm(isFinal: Boolean): List<ClassDef> {
+        val build = Fixtures.otherBuilds().firstOrNull() ?: throw AssertionError("no other build to rewrite")
+        val kept = keptFrom(build)
+        val text = kept.flatMap { it.methods }.single { it.isPresenceText() }
+        val owner = kept.single { it.type == text.definingClass }
+        val load = text.limitCompares().firstOrNull() ?: throw AssertionError("${text.key()} loads no limit to rewrite")
+        val pair = (text.code()[load] as OneRegisterInstruction).registerA
+        val field = "${owner.type}->$LIMIT_FIELD:J"
+        val reads = ImmutableMethod.of(text.toMutable().apply { replaceInstruction(load, "sget-wide v$pair, $field") })
+
+        val stock = owner.methods.singleOrNull { it.name == "<clinit>" }
+        val init = ImmutableMethod.of(
+            ImmutableMethod(
+                owner.type, "<clinit>", emptyList(), "V", stock?.accessFlags ?: (AccessFlags.STATIC.value or AccessFlags.CONSTRUCTOR.value),
+                null, null,
+                ImmutableMethodImplementation(
+                    maxOf(stock?.implementation?.registerCount ?: 0, 3),
+                    stock?.implementation?.instructions ?: listOf(ImmutableInstruction10x(Opcode.RETURN_VOID)),
+                    stock?.implementation?.tryBlocks,
+                    null,
+                ),
+            ).toMutable().apply {
+                addInstructions(
+                    0,
+                    """
+                        sget-object v0, Ljava/util/concurrent/TimeUnit;->SECONDS:Ljava/util/concurrent/TimeUnit;
+                        const-wide/16 v1, 0x186
+                        invoke-virtual {v0, v1, v2}, $TO_MILLIS
+                        move-result-wide v0
+                        sput-wide v0, $field
+                    """,
+                )
             },
-            owner.methods,
         )
-        val context = PatchContexts.of(kept.filter { it.type != owner.type } + loosened + ExtensionDex.classDef(ACTIVE_NOW))
-        refuses("isn't static final") { context.findActiveNow() }
+        val flags = AccessFlags.PRIVATE.value or AccessFlags.STATIC.value or (if (isFinal) AccessFlags.FINAL.value else 0)
+        val rewritten = ImmutableClassDef(
+            owner.type, owner.accessFlags, owner.superclass, owner.interfaces, owner.sourceFile, owner.annotations,
+            owner.fields.toList() + ImmutableField(owner.type, LIMIT_FIELD, "J", flags, null, null, null),
+            owner.methods.filter { it.name != "<clinit>" }.map { if (it.key() == text.key()) reads else it } + init,
+        )
+        return kept.filter { it.type != owner.type } + rewritten + ExtensionDex.classDef(ACTIVE_NOW)
     }
 
     /** A check that does something else between loading the limit and comparing it isn't the one the hook was written for. */
@@ -239,5 +282,8 @@ class ShorterActiveNowHookTest {
     private companion object {
         /** Instagram's Active now limit in milliseconds, as its 454 initializer worked it out. */
         val LIMIT = TimeUnit.SECONDS.toMillis(390)
+
+        /** The static long the field-form stand-in keeps the limit in. */
+        const val LIMIT_FIELD = "hushLimit"
     }
 }
