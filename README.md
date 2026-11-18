@@ -1,7 +1,7 @@
 ![HushGram. Keep the moments. Cut the noise.](assets/readme-hero.png)
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.0.20-E1306C" alt="Version 0.0.20">
+  <img src="https://img.shields.io/badge/version-0.0.21-E1306C" alt="Version 0.0.21">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-blue" alt="License GPL-3.0"></a>
   <img src="https://img.shields.io/badge/platform-Android%209%2B-3DDC84" alt="Platform Android 9+">
   <img src="https://img.shields.io/badge/Instagram-456.0.0.53.78-E1306C" alt="Instagram 456.0.0.53.78">
