@@ -3936,6 +3936,63 @@ public class GlassTabBarTest {
         assertTrue(given.isEmpty());
     }
 
+    /**
+     * #764: unfolding a foldable has Instagram move the bar's own tabs into its side rail. The liquid look's
+     * shift, fade and tuck come off each tab that left, so the rail shows them in line, and a tab still in
+     * the bar keeps what the look gave it. A change Instagram made after the move is its own and stays.
+     */
+    @Test
+    public void tabsMovedIntoTheRailLoseTheLiquidLook() {
+        Context context = RuntimeEnvironment.getApplication();
+        LinearLayout bar = new LinearLayout(context);
+        LinearLayout rail = new LinearLayout(context);
+        rail.setOrientation(LinearLayout.VERTICAL);
+        View search = new FrameLayout(context);
+        View home = new FrameLayout(context);
+        View reels = new FrameLayout(context);
+        View profile = new FrameLayout(context);
+        View direct = new FrameLayout(context);
+        for (View tab : new View[] {search, home, reels, profile, direct}) bar.addView(tab);
+
+        Map<View, Float> shifted = new java.util.WeakHashMap<>();
+        Map<View, Float> faded = new java.util.WeakHashMap<>();
+        Map<View, Boolean> tucked = new java.util.WeakHashMap<>();
+        search.setTranslationX(612f);
+        shifted.put(search, 612f);
+        home.setTranslationX(-40f);
+        shifted.put(home, -40f);
+        home.setAlpha(0.4f);
+        faded.put(home, 0.4f);
+        reels.setTranslationX(25f);
+        shifted.put(reels, 25f);
+        profile.setVisibility(View.INVISIBLE);
+        tucked.put(profile, Boolean.TRUE);
+        direct.setTranslationX(-18f);
+        shifted.put(direct, -18f);
+
+        assertEquals("every tab still in the bar", 0, GlassTabBar.tabsThatLeft(bar, shifted, faded, tucked));
+        assertEquals(612f, search.getTranslationX(), 0f);
+        assertEquals(View.INVISIBLE, profile.getVisibility());
+
+        for (View tab : new View[] {search, home, profile, direct}) {
+            bar.removeView(tab);
+            rail.addView(tab);
+        }
+        direct.setTranslationX(7f);
+
+        assertEquals(4, GlassTabBar.tabsThatLeft(bar, shifted, faded, tucked));
+        assertEquals(0f, search.getTranslationX(), 0f);
+        assertEquals(0f, home.getTranslationX(), 0f);
+        assertEquals(1f, home.getAlpha(), 0f);
+        assertEquals(View.VISIBLE, profile.getVisibility());
+        assertEquals("Instagram's own shift", 7f, direct.getTranslationX(), 0f);
+        assertEquals("the tab left in the bar", 25f, reels.getTranslationX(), 0f);
+        assertEquals(java.util.Collections.singleton(reels), shifted.keySet());
+        assertTrue(faded.isEmpty());
+        assertTrue(tucked.isEmpty());
+        assertEquals(0, GlassTabBar.tabsThatLeft(bar, shifted, faded, tucked));
+    }
+
     private static void layOutReel(View view) {
         view.measure(View.MeasureSpec.makeMeasureSpec(1080, View.MeasureSpec.EXACTLY),
                 View.MeasureSpec.makeMeasureSpec(2260, View.MeasureSpec.EXACTLY));
