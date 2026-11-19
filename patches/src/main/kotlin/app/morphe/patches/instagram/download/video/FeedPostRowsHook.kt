@@ -277,6 +277,7 @@ internal fun BytecodePatchContext.addFeedPostRows(page: PageIndex) {
                 return-object p0
             """,
         )
+        // Answers an Object, so no player and its inner run may meet at one return.
         rewriteStub(
             rows, stub("playerRun"), 0,
             """
