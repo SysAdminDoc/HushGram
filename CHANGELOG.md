@@ -6,6 +6,7 @@ Every HushGram release, newest first.
 
 ### Improvements
 
+* `Let the screen sleep when a reel stops` is new under Reels. Instagram keeps the screen on the whole time Reels is open, even with a reel paused. With this on, a paused reel lets your phone's own screen timeout run, and the screen stays on again the moment a reel plays. Starts off, no restart needed. `Control the reel above comments` moved to the Comments group in Manager to make room, and its switch is still on the Reels page. Asked for in #777.
 * `Expand captions on reels` is new under Reels and comes with `Expand captions`. Reels show their whole caption, so there's no "more" to tap. It's a switch of its own, apart from the feed one, since a long caption covers more of the video. Starts off. Asked for in #752.
 * `Hide Threads posts` is new under Reels, right after `Hide stories in Reels`. It takes out the cards Instagram slips between reels to get you onto Threads. Every reel still plays. Starts off. Asked for in #765.
 * `Hide Not interested and Interested` is new under Reels and takes those two buttons off the bottom of a reel. `Hide 'Are you interested?' bubbles` under Feed covers Home only now. If you had it on, the Reels one starts on too, so nothing comes back after the update. Asked for in #769.

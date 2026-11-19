@@ -671,6 +671,11 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Rewritten by the Let the screen sleep when a reel stops patch. */
+    public static boolean reelScreenSleep() {
+        return false;
+    }
+
     public static boolean reelSeekBar() {
         return false;
     }

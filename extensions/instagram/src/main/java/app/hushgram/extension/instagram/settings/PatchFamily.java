@@ -298,6 +298,7 @@ public enum PatchFamily {
     KEEP_REEL_SPEED(FamilyNames.KEEP_REEL_SPEED, "keepReelSpeed", null, Settings.KEEP_REEL_SPEED),
     REEL_ABOVE_COMMENTS(FamilyNames.REEL_ABOVE_COMMENTS, "reelAboveComments", null, Settings.REEL_ABOVE_COMMENTS),
     REEL_LINKS(FamilyNames.REEL_LINKS, "reelLinks", null, Settings.OPEN_REEL_LINKS_FIRST),
+    REEL_SCREEN_SLEEP(FamilyNames.REEL_SCREEN_SLEEP, "reelScreenSleep", null, Settings.REEL_SCREEN_SLEEP),
     REEL_POST_TIME(FamilyNames.REEL_POST_TIME, "reelPostTime", null, Settings.SHOW_REEL_POST_TIME),
     REEL_SEEK_BAR(FamilyNames.REEL_SEEK_BAR, "reelSeekBar", null, Settings.REEL_SEEK_BAR, Settings.REEL_SEEK_THUMB, Settings.BIG_REEL_SEEK_BAR,
             Settings.DM_REEL_SEEK_BAR, Settings.PHOTO_REEL_SEEK_BAR, Settings.HIDE_REEL_SEEK_BAR),

@@ -90,7 +90,8 @@ val reelAboveCommentsPatch = bytecodePatch(
     description = "With a reel's comments open, a tap on the reel above them pauses or plays it and a hold plays it " +
         "at 2x, and the comments stay open. Starts off. Turn it on in HushGram settings > Reels.",
 ) {
-    category("Fixes")
+    // Reels and Playback are at the limit, and the tap lands on a reel with its comments open.
+    category("Comments")
     dependsOn(settingsPatch, instagramExtensionPatch)
     compatibleWith(*AppCompatibilities.instagram())
 

@@ -2429,6 +2429,9 @@ Removed @%s from the list	已將 @%s 從名單移除
 # context: switch in HushGram settings > Reels; a reel link opened from outside Instagram plays the linked reel first instead of a reel Instagram kept on the phone (#606)
 Open reel links on that reel	在連結指向的 Reel 開啟 Reels 連結
 A reel link opens on the reel it points to. Instagram doesn't play another reel it kept on your phone while that one loads.	Reels 連結會開啟它指向的 Reel。該 Reel 載入時，Instagram 不會先播放存在你手機上的其他 Reel。
+# context: switch in HushGram settings > Reels; Instagram keeps the screen on the whole time its Reels viewer is open, and this lets a paused reel follow the phone's own screen timeout (#777)
+Let the screen sleep when a reel stops	Reel 停止時讓螢幕休眠
+Instagram keeps the screen on while Reels is open. With this on, a paused reel lets your phone's screen timeout run, and a playing one keeps it on.	Reels 開啟時，Instagram 會讓螢幕一直亮著。開啟這個選項後，暫停的 Reel 會照手機的螢幕逾時設定關閉螢幕，播放中的 Reel 則讓螢幕保持亮著。
 # context: Stories settings: moves the story speed button into a video story's three-dot menu as a Playback speed row (#621)
 Speed in the story menu	限時動態選單中的速度
 # context: Summary of Speed in the story menu; Playback speed is the row's own label (#621)

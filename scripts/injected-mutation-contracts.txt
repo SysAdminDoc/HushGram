@@ -4155,3 +4155,10 @@ once-call Lapp/hushgram/extension/instagram/feed/HideCaptions;->hideReelCaption(
 # SpannableStringBuilder, holding the itas-android schema name and " [...]". Left out, a feed
 # caption keeps Instagram's count; twice or elsewhere, it isn't the hook the patch wrote.
 once-call Lapp/hushgram/extension/instagram/feed/CaptionLength;->maxLines(Ljava/lang/Object;I)I in static (Landroid/content/Context;LX/*;Lcom/instagram/search/common/analytics/SearchContext;LX/*;Ljava/lang/String;Ljava/lang/String;Z)Landroid/text/SpannableStringBuilder; pooled holding itas-android \s[...]
+# Let the screen sleep when a reel stops hands ReelScreenSleep.keepAwake the window and the boolean
+# right after the Reels viewer's keep-awake helper gets its activity's window (#777). The helper is
+# the instance (boolean) void method loading FLAG_KEEP_SCREEN_ON and calling getWindow and
+# clearFlags. playInternal tells ReelScreenSleep.started about each player it starts. Left out, a
+# paused reel keeps the screen on; twice or elsewhere, it isn't the hook the patch wrote.
+once-call Lapp/hushgram/extension/instagram/reels/ReelScreenSleep;->keepAwake(Landroid/view/Window;I)V in instance (Z)V holding const:0x80 Landroid/app/Activity;->getWindow()Landroid/view/Window; Landroid/view/Window;->clearFlags(I)V
+once-call Lapp/hushgram/extension/instagram/reels/ReelScreenSleep;->started(Ljava/lang/Object;)V in static (L*;Ljava/lang/String;ZZ)V holding IgVideoPlayerImpl.playInternal\splayAfterSeek:\s

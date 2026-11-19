@@ -325,7 +325,8 @@
           "Keep the tab bar on a reel's profile",
           "Find the reel you came from",
           "Open reel links on that reel",
-          "Control the reel above comments"
+          "Control the reel above comments",
+          "Let the screen sleep when a reel stops"
         ]
       },
       "anchors": [

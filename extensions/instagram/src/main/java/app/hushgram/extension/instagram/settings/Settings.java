@@ -3970,6 +3970,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_open_reel_links_first", TRUE);
 
     /**
+     * The Reels viewer stops keeping the screen on while no video plays, so a paused or stuck reel
+     * lets the phone's own screen timeout run (#777,
+     * {@link app.hushgram.extension.instagram.reels.ReelScreenSleep}). Read every couple of seconds
+     * while the viewer is open. Off to start.
+     */
+    public static final BooleanSetting REEL_SCREEN_SLEEP =
+            new BooleanSetting("hushgram_reel_screen_sleep", FALSE);
+
+    /**
      * Instagram's seek bar stays under every ordinary reel, short ones too, with the time played
      * and the reel's length above it
      * ({@link app.hushgram.extension.instagram.reels.ReelSeekBar}). The bar is decided as each reel

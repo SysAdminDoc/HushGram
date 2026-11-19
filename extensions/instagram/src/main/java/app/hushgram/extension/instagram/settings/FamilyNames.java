@@ -160,6 +160,7 @@ public final class FamilyNames {
     public static final String KEEP_REEL_SPEED = "Keep the reel speed";
     public static final String REEL_ABOVE_COMMENTS = "Control the reel above comments";
     public static final String REEL_LINKS = "Open reel links on that reel";
+    public static final String REEL_SCREEN_SLEEP = "Let the screen sleep when a reel stops";
     public static final String REEL_POST_TIME = "Show a reel's exact time";
     public static final String REEL_SEEK_BAR = "Keep a seek bar on Reels";
     public static final String REEL_BLUR_BARS = "Blur the bars around Reels";

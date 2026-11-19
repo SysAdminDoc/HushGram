@@ -2426,6 +2426,9 @@ Removed @%s from the list	Se quitó @%s de la lista
 # context: switch in HushGram settings > Reels; a reel link opened from outside Instagram plays the linked reel first instead of a reel Instagram kept on the phone (#606)
 Open reel links on that reel	Abrir los enlaces de reels en ese reel
 A reel link opens on the reel it points to. Instagram doesn't play another reel it kept on your phone while that one loads.	Un enlace a un reel abre el reel al que apunta. Instagram no reproduce otro reel guardado en tu teléfono mientras ese carga.
+# context: switch in HushGram settings > Reels; Instagram keeps the screen on the whole time its Reels viewer is open, and this lets a paused reel follow the phone's own screen timeout (#777)
+Let the screen sleep when a reel stops	Dejar que la pantalla se apague cuando un reel se detiene
+Instagram keeps the screen on while Reels is open. With this on, a paused reel lets your phone's screen timeout run, and a playing one keeps it on.	Instagram mantiene la pantalla encendida mientras Reels está abierto. Con esto activado, un reel en pausa deja correr el tiempo de espera de la pantalla de tu teléfono, y uno que se reproduce la mantiene encendida.
 # context: Stories settings: moves the story speed button into a video story's three-dot menu as a Playback speed row (#621)
 Speed in the story menu	Velocidad en el menú de la historia
 # context: Summary of Speed in the story menu; Playback speed is the row's own label (#621)
