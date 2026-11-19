@@ -2592,3 +2592,14 @@ Takes the kinds of notifications you tick off the Notifications page. The list f
 %1$d kinds of notification are hidden.	%1$d jenis notifikasi disembunyikan.
 # context: message in that list's dialog before the Notifications page has loaded once (#756)
 No notifications seen yet. Open your notifications in Instagram once, then come back here.	Belum ada notifikasi yang terlihat. Buka notifikasi Anda di Instagram sekali, lalu kembali ke sini.
+# context: switch under HushGram settings > Reels with Keep Reels auto scroll on; adds a row to a reel's three-dot menu that turns Instagram's own auto scroll on or off, worded as in Keep auto scroll on (#768)
+Auto scroll in the reel menu	Gulir otomatis di menu reel
+# context: summary under that switch; Turn on auto scroll and Turn off auto scroll are the menu row's two labels below (#768)
+Adds Turn on auto scroll or Turn off auto scroll to the menu a reel's three dots open, so one tap changes it from the next reel on. It works on accounts where Instagram doesn't offer auto scroll too. Restart Instagram to see the change.	Menambahkan Aktifkan gulir otomatis atau Matikan gulir otomatis ke menu yang dibuka tiga titik reel, jadi satu ketukan mengubahnya mulai reel berikutnya. Ini juga berfungsi di akun yang tidak ditawari gulir otomatis oleh Instagram. Mulai ulang Instagram untuk melihat perubahannya.
+# context: that three-dot menu row on a reel; the label says what a tap does (#768)
+Turn off auto scroll	Matikan gulir otomatis
+Turn on auto scroll	Aktifkan gulir otomatis
+# context: toasts after tapping that row (#768)
+Auto scroll on	Gulir otomatis aktif
+Auto scroll off	Gulir otomatis mati
+Auto scroll didn't change	Gulir otomatis tidak berubah

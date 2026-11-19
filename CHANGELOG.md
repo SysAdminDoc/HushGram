@@ -6,6 +6,7 @@ Every HushGram release, newest first.
 
 ### Improvements
 
+* `Auto scroll in the reel menu` under Reels puts Turn on auto scroll or Turn off auto scroll in a reel's three-dot menu. It works on accounts where Instagram doesn't offer auto scroll too. Requested in #768.
 * `Hide notifications by type` under Notifications lists the kinds of notifications Instagram has sent you, each with a line from one, and takes the ones you tick off the page. Requested in #756.
 * Saving a reel gets its picture and sound at the same time now, instead of one after the other, so saves finish sooner. Asked about in #493.
 * A feed post's three-dot menu can now show Block and Playback speed. Turn on `Block in a post's menu` and `Speed in a post's menu` under Downloads. Requested in #743.

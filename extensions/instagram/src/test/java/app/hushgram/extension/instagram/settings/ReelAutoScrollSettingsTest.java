@@ -38,6 +38,8 @@ public class ReelAutoScrollSettingsTest {
         Settings.KEEP_REEL_AUTO_SCROLL.resetToDefault();
         Settings.REEL_AUTO_ADVANCE.resetToDefault();
         Settings.REEL_AUTO_SCROLL_ON.resetToDefault();
+        Settings.AUTO_SCROLL_IN_REEL_MENU.resetToDefault();
+        Settings.REEL_AUTO_SCROLL_HELD_OFF.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         BaseSettings.SAFE_MODE.save(false);
@@ -50,12 +52,17 @@ public class ReelAutoScrollSettingsTest {
         Settings.KEEP_REEL_AUTO_SCROLL.resetToDefault();
         Settings.REEL_AUTO_ADVANCE.resetToDefault();
         Settings.REEL_AUTO_SCROLL_ON.resetToDefault();
+        Settings.AUTO_SCROLL_IN_REEL_MENU.resetToDefault();
+        Settings.REEL_AUTO_SCROLL_HELD_OFF.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
     }
     private void open(boolean installed) throws Exception {
-        PatchFamily.inBuildForTests = installed ? EnumSet.of(PatchFamily.REEL_AUTO_SCROLL) : EnumSet.noneOf(PatchFamily.class);
+        open(installed ? EnumSet.of(PatchFamily.REEL_AUTO_SCROLL) : EnumSet.noneOf(PatchFamily.class));
+    }
+    private void open(EnumSet<PatchFamily> build) throws Exception {
+        PatchFamily.inBuildForTests = build;
         controller = Robolectric.buildActivity(Activity.class).setup();
         page = new HushgramPreferenceFragment();
         controller.get().getFragmentManager().beginTransaction().add(android.R.id.content, page).commitNow();
@@ -142,5 +149,50 @@ public class ReelAutoScrollSettingsTest {
         assertNull("the words are the new switch's alone", page.getPreferenceScreen().findPreference(Settings.KEEP_REEL_AUTO_SCROLL.key));
         page.searchSettings("");
         assertNotNull(page.getPreferenceScreen().findPreference(Settings.KEEP_REEL_AUTO_SCROLL.key));
+    }
+    /**
+     * Auto scroll in the reel menu (#768) shows only in a build with the reel menu's rows too, right
+     * under Move on when a reel ends, off to start, and asks for a restart, since the viewer builds
+     * its scroller as it opens. A backup keeps it and leaves out the hold its row sets. Its words find it.
+     */
+    @Test public void reelMenuSwitchSitsUnderMoveOnOnlyWithTheReelMenu() throws Exception {
+        open(true);
+        assertNull("a build without the reel menu's rows", page.getPreferenceScreen().findPreference(Settings.AUTO_SCROLL_IN_REEL_MENU.key));
+        assertFalse(ConfigurationBackup.eligible().containsKey(Settings.AUTO_SCROLL_IN_REEL_MENU.key));
+        controller.close();
+        controller = null;
+
+        open(EnumSet.of(PatchFamily.REEL_AUTO_SCROLL, PatchFamily.REEL_DOWNLOAD));
+        SwitchPreference advance = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.REEL_AUTO_ADVANCE.key);
+        SwitchPreference row = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.AUTO_SCROLL_IN_REEL_MENU.key);
+        assertNotNull(row);
+        assertEquals("Auto scroll in the reel menu", row.getTitle().toString());
+        assertEquals("Adds Turn on auto scroll or Turn off auto scroll to the menu a reel's three dots open, so one tap "
+                + "changes it from the next reel on. It works on accounts where Instagram doesn't offer auto scroll too. "
+                + "Restart Instagram to see the change.", row.getSummary().toString());
+        assertSame(advance.getParent(), row.getParent());
+        int above = -1;
+        for (int i = 0; i < row.getParent().getPreferenceCount(); i++) if (row.getParent().getPreference(i) == advance) above = i;
+        assertSame("right under Move on when a reel ends", row, row.getParent().getPreference(above + 1));
+        assertFalse(row.isChecked());
+        assertEquals(Boolean.FALSE, Settings.AUTO_SCROLL_IN_REEL_MENU.defaultValue);
+        assertTrue(Settings.AUTO_SCROLL_IN_REEL_MENU.rebootApp);
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.AUTO_SCROLL_IN_REEL_MENU.key));
+        assertFalse("a backup leaves the hold out", ConfigurationBackup.eligible().containsKey(Settings.REEL_AUTO_SCROLL_HELD_OFF.key));
+        assertNull("the hold isn't a control", page.getPreferenceScreen().findPreference(Settings.REEL_AUTO_SCROLL_HELD_OFF.key));
+
+        Settings.REEL_AUTO_SCROLL_HELD_OFF.save(true);
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertTrue("a pause leaves the hold alone", Settings.REEL_AUTO_SCROLL_HELD_OFF.savedValue());
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+
+        org.robolectric.shadows.ShadowLooper.idleMainLooper();
+        for (String query : new String[]{"three dots", "auto scroll in the reel menu", "Keep Reels auto scroll on"}) {
+            page.searchSettings(query);
+            assertNotNull(query, page.getPreferenceScreen().findPreference(Settings.AUTO_SCROLL_IN_REEL_MENU.key));
+        }
+        page.searchSettings("");
     }
 }

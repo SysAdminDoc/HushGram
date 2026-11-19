@@ -314,6 +314,9 @@ public final class ConfigurationBackup {
                 settings.put(Settings.SPEED_BUTTON_ON_REELS.key, Settings.SPEED_BUTTON_ON_REELS);
                 settings.put(Settings.SPEED_IN_REEL_MENU.key, Settings.SPEED_IN_REEL_MENU);
             }
+            if (PatchFamily.REEL_AUTO_SCROLL.inBuild()) {
+                settings.put(Settings.AUTO_SCROLL_IN_REEL_MENU.key, Settings.AUTO_SCROLL_IN_REEL_MENU);
+            }
             if (PatchFamily.REEL_DECLUTTER.inBuild()) {
                 settings.put(Settings.FULL_SCREEN_BUTTON_ON_REELS.key, Settings.FULL_SCREEN_BUTTON_ON_REELS);
             }

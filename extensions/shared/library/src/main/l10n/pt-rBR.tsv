@@ -2592,3 +2592,14 @@ Takes the kinds of notifications you tick off the Notifications page. The list f
 %1$d kinds of notification are hidden.	%1$d tipos de notificação estão ocultos.
 # context: message in that list's dialog before the Notifications page has loaded once (#756)
 No notifications seen yet. Open your notifications in Instagram once, then come back here.	Nenhuma notificação vista ainda. Abra suas notificações no Instagram uma vez e depois volte aqui.
+# context: switch under HushGram settings > Reels with Keep Reels auto scroll on; adds a row to a reel's three-dot menu that turns Instagram's own auto scroll on or off, worded as in Keep auto scroll on (#768)
+Auto scroll in the reel menu	Rolagem automática no menu do reel
+# context: summary under that switch; Turn on auto scroll and Turn off auto scroll are the menu row's two labels below (#768)
+Adds Turn on auto scroll or Turn off auto scroll to the menu a reel's three dots open, so one tap changes it from the next reel on. It works on accounts where Instagram doesn't offer auto scroll too. Restart Instagram to see the change.	Adiciona Ativar a rolagem automática ou Desativar a rolagem automática ao menu que os três pontos de um reel abrem, para mudar com um toque a partir do próximo reel. Também funciona em contas em que o Instagram não oferece a rolagem automática. Reinicie o Instagram para ver a mudança.
+# context: that three-dot menu row on a reel; the label says what a tap does (#768)
+Turn off auto scroll	Desativar a rolagem automática
+Turn on auto scroll	Ativar a rolagem automática
+# context: toasts after tapping that row (#768)
+Auto scroll on	Rolagem automática ativada
+Auto scroll off	Rolagem automática desativada
+Auto scroll didn't change	A rolagem automática não mudou

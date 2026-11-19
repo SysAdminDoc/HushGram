@@ -2589,3 +2589,14 @@ Takes the kinds of notifications you tick off the Notifications page. The list f
 %1$d kinds of notification are hidden.	ซ่อนการแจ้งเตือน %1$d ประเภทแล้ว
 # context: message in that list's dialog before the Notifications page has loaded once (#756)
 No notifications seen yet. Open your notifications in Instagram once, then come back here.	ยังไม่เห็นการแจ้งเตือนใดเลย โปรดเปิดการแจ้งเตือนใน Instagram สักหนึ่งครั้ง แล้วกลับมาที่นี่
+# context: switch under HushGram settings > Reels with Keep Reels auto scroll on; adds a row to a reel's three-dot menu that turns Instagram's own auto scroll on or off, worded as in Keep auto scroll on (#768)
+Auto scroll in the reel menu	การเลื่อนอัตโนมัติในเมนูรีลส์
+# context: summary under that switch; Turn on auto scroll and Turn off auto scroll are the menu row's two labels below (#768)
+Adds Turn on auto scroll or Turn off auto scroll to the menu a reel's three dots open, so one tap changes it from the next reel on. It works on accounts where Instagram doesn't offer auto scroll too. Restart Instagram to see the change.	เพิ่ม "เปิดการเลื่อนอัตโนมัติ" หรือ "ปิดการเลื่อนอัตโนมัติ" ลงในเมนูที่เปิดจากจุดสามจุดของรีลส์ แตะครั้งเดียวก็เปลี่ยนได้ตั้งแต่รีลส์ถัดไป ใช้ได้แม้ในบัญชีที่ Instagram ไม่มีการเลื่อนอัตโนมัติให้ รีสตาร์ท Instagram เพื่อดูการเปลี่ยนแปลง
+# context: that three-dot menu row on a reel; the label says what a tap does (#768)
+Turn off auto scroll	ปิดการเลื่อนอัตโนมัติ
+Turn on auto scroll	เปิดการเลื่อนอัตโนมัติ
+# context: toasts after tapping that row (#768)
+Auto scroll on	เปิดการเลื่อนอัตโนมัติแล้ว
+Auto scroll off	ปิดการเลื่อนอัตโนมัติแล้ว
+Auto scroll didn't change	การเลื่อนอัตโนมัติไม่เปลี่ยนแปลง

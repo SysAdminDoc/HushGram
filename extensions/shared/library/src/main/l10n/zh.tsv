@@ -2595,3 +2595,14 @@ Takes the kinds of notifications you tick off the Notifications page. The list f
 %1$d kinds of notification are hidden.	已隐藏 %1$d 种通知类型。
 # context: message in that list's dialog before the Notifications page has loaded once (#756)
 No notifications seen yet. Open your notifications in Instagram once, then come back here.	尚未看到任何通知。请先在 Instagram 中打开通知一次，再回到这里。
+# context: switch under HushGram settings > Reels with Keep Reels auto scroll on; adds a row to a reel's three-dot menu that turns Instagram's own auto scroll on or off, worded as in Keep auto scroll on (#768)
+Auto scroll in the reel menu	Reel 菜单中的自动卷动
+# context: summary under that switch; Turn on auto scroll and Turn off auto scroll are the menu row's two labels below (#768)
+Adds Turn on auto scroll or Turn off auto scroll to the menu a reel's three dots open, so one tap changes it from the next reel on. It works on accounts where Instagram doesn't offer auto scroll too. Restart Instagram to see the change.	在 Reel 三个点打开的菜单中加入“开启自动卷动”或“关闭自动卷动”，点一下即可从下一则 Reel 起变更。即使账户未提供自动卷动也适用。请重新启动 Instagram 以应用变更。
+# context: that three-dot menu row on a reel; the label says what a tap does (#768)
+Turn off auto scroll	关闭自动卷动
+Turn on auto scroll	开启自动卷动
+# context: toasts after tapping that row (#768)
+Auto scroll on	自动卷动已开启
+Auto scroll off	自动卷动已关闭
+Auto scroll didn't change	自动卷动未变更

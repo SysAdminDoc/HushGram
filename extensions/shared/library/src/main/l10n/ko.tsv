@@ -2591,3 +2591,14 @@ Takes the kinds of notifications you tick off the Notifications page. The list f
 %1$d kinds of notification are hidden.	알림 유형 %1$d개가 숨겨져 있습니다.
 # context: message in that list's dialog before the Notifications page has loaded once (#756)
 No notifications seen yet. Open your notifications in Instagram once, then come back here.	아직 본 알림이 없습니다. Instagram에서 알림을 한 번 연 다음 여기로 돌아오세요.
+# context: switch under HushGram settings > Reels with Keep Reels auto scroll on; adds a row to a reel's three-dot menu that turns Instagram's own auto scroll on or off, worded as in Keep auto scroll on (#768)
+Auto scroll in the reel menu	릴스 메뉴에 자동 스크롤 추가
+# context: summary under that switch; Turn on auto scroll and Turn off auto scroll are the menu row's two labels below (#768)
+Adds Turn on auto scroll or Turn off auto scroll to the menu a reel's three dots open, so one tap changes it from the next reel on. It works on accounts where Instagram doesn't offer auto scroll too. Restart Instagram to see the change.	릴스의 점 세 개를 누르면 열리는 메뉴에 자동 스크롤 켜기 또는 자동 스크롤 끄기를 추가해, 한 번 탭으로 다음 릴스부터 바꿀 수 있습니다. Instagram이 자동 스크롤을 제공하지 않는 계정에서도 작동합니다. 변경 사항을 보려면 Instagram을 다시 시작하세요.
+# context: that three-dot menu row on a reel; the label says what a tap does (#768)
+Turn off auto scroll	자동 스크롤 끄기
+Turn on auto scroll	자동 스크롤 켜기
+# context: toasts after tapping that row (#768)
+Auto scroll on	자동 스크롤 켜짐
+Auto scroll off	자동 스크롤 꺼짐
+Auto scroll didn't change	자동 스크롤이 바뀌지 않았습니다

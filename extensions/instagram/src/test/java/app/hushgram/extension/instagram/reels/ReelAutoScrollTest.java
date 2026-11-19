@@ -70,6 +70,9 @@ public class ReelAutoScrollTest {
         Settings.KEEP_REEL_AUTO_SCROLL.save(true);
         Settings.REEL_AUTO_ADVANCE.resetToDefault();
         Settings.REEL_AUTO_SCROLL_ON.resetToDefault();
+        Settings.REEL_AUTO_SCROLL_HELD_OFF.resetToDefault();
+        Settings.AUTO_SCROLL_IN_REEL_MENU.resetToDefault();
+        ReelAutoScroll.forgetForTests();
         HookStatus.clear();
     }
 
@@ -78,6 +81,9 @@ public class ReelAutoScrollTest {
         Settings.KEEP_REEL_AUTO_SCROLL.resetToDefault();
         Settings.REEL_AUTO_ADVANCE.resetToDefault();
         Settings.REEL_AUTO_SCROLL_ON.resetToDefault();
+        Settings.REEL_AUTO_SCROLL_HELD_OFF.resetToDefault();
+        Settings.AUTO_SCROLL_IN_REEL_MENU.resetToDefault();
+        ReelAutoScroll.forgetForTests();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -492,6 +498,115 @@ public class ReelAutoScrollTest {
         assertTrue("the switch keeps answering on", ReelAutoScroll.answer(0));
         Settings.REEL_AUTO_ADVANCE.save(false);
         assertFalse("and its off leaves what Instagram's switch last said", ReelAutoScroll.answer(0));
+    }
+
+    /**
+     * #768: the reel menu's row turns auto scroll on, saving Move on when a reel ends on, and off,
+     * saving it off and holding auto scroll off over Instagram's own "on", without remembering that
+     * on, until Instagram's own switch keeps an on.
+     */
+    @Test
+    public void theReelMenuRowTurnsItOnAndOff() {
+        Settings.KEEP_REEL_AUTO_SCROLL.save(false);
+        assertFalse("off to start", ReelAutoScroll.scrolling());
+        assertEquals(Boolean.TRUE, ReelAutoScroll.toggleFromMenu());
+        assertTrue(Settings.REEL_AUTO_ADVANCE.get());
+        assertTrue(Settings.REEL_AUTO_SCROLL_ON.savedValue());
+        assertFalse(Settings.REEL_AUTO_SCROLL_HELD_OFF.savedValue());
+        assertTrue(ReelAutoScroll.scrolling());
+        assertTrue("from the next reel", ReelAutoScroll.answer(0));
+
+        assertEquals(Boolean.FALSE, ReelAutoScroll.toggleFromMenu());
+        assertFalse(Settings.REEL_AUTO_ADVANCE.get());
+        assertFalse(Settings.REEL_AUTO_SCROLL_ON.savedValue());
+        assertTrue(Settings.REEL_AUTO_SCROLL_HELD_OFF.savedValue());
+        assertFalse(ReelAutoScroll.scrolling());
+        assertFalse("held off over Instagram's own on", ReelAutoScroll.answer(1));
+        assertFalse("and that on isn't remembered", Settings.REEL_AUTO_SCROLL_ON.savedValue());
+        Settings.KEEP_REEL_AUTO_SCROLL.save(true);
+        assertFalse(ReelAutoScroll.answer(1));
+
+        ReelAutoScroll.chosen(1);
+        assertTrue("choosing on waits for Instagram to keep it", Settings.REEL_AUTO_SCROLL_HELD_OFF.savedValue());
+        ReelAutoScroll.stored(1);
+        assertFalse("Instagram's own switch let it go", Settings.REEL_AUTO_SCROLL_HELD_OFF.savedValue());
+        assertTrue(ReelAutoScroll.answer(1));
+        assertTrue(Settings.REEL_AUTO_SCROLL_ON.savedValue());
+        assertTrue(ReelAutoScroll.scrolling());
+        assertFalse("Move on when a reel ends stays as the menu left it", Settings.REEL_AUTO_ADVANCE.get());
+    }
+
+    /**
+     * A hold gives way while Move on when a reel ends is on in the settings, and comes back when
+     * it's off. A timer still to run lets it go, and so does an on Instagram keeps, but not an off,
+     * a timer that ran out, or anything while paused.
+     */
+    @Test
+    public void aHoldGivesWayToMoveOnAndToInstagramsOwnOn() {
+        CountingMemory memory = new CountingMemory(false);
+        CountingMemory held = new CountingMemory(true);
+        assertFalse(ReelAutoScroll.answer(1, () -> true, () -> true, () -> false, memory, held));
+        assertEquals("a held off on isn't remembered", 0, memory.writes);
+        assertTrue("Move on when a reel ends wins", ReelAutoScroll.answer(0, () -> true, () -> true, () -> true, memory, held));
+        assertTrue("the hold is kept for when it's off again", held.on);
+        assertFalse(ReelAutoScroll.answer(1, () -> true, () -> true, () -> false, memory, held));
+        assertTrue("paused, Instagram's answer stands", ReelAutoScroll.answer(1, () -> false, () -> true, () -> false, memory, held));
+
+        ReelAutoScroll.stored(0, () -> true, memory, held);
+        assertTrue("an off keeps the hold", held.on);
+        ReelAutoScroll.stored(1, () -> false, memory, held);
+        assertTrue("paused, nothing is let go", held.on);
+        ReelAutoScroll.timerSet(500, () -> 1_000, () -> true, memory, held);
+        assertTrue("a timer that ran out lets nothing go", held.on);
+        ReelAutoScroll.timerSet(2_000, () -> 1_000, () -> true, memory, held);
+        assertFalse(held.on);
+        assertTrue(memory.on);
+        assertTrue(ReelAutoScroll.answer(0, () -> true, () -> true, () -> false, memory, held));
+
+        held.on = true;
+        ReelAutoScroll.stored(1, () -> true, memory, held);
+        assertFalse(held.on);
+        assertTrue("the overloads without a hold never hold",
+                ReelAutoScroll.answer(1, () -> true, () -> false, () -> false, new CountingMemory(false)));
+    }
+
+    /**
+     * The row's label follows the last answer Instagram got. Before it asks, it's on with Move on
+     * when a reel ends, or with Keep auto scroll on and an on remembered, unless the menu holds it off.
+     */
+    @Test
+    public void theRowsLabelFollowsTheLastAnswer() {
+        CountingMemory on = new CountingMemory(true);
+        CountingMemory free = new CountingMemory(false);
+        CountingMemory holding = new CountingMemory(true);
+        assertTrue(ReelAutoScroll.scrolling(() -> true, () -> false, on, free));
+        assertFalse(ReelAutoScroll.scrolling(() -> false, () -> false, on, free));
+        assertTrue(ReelAutoScroll.scrolling(() -> false, () -> true, free, holding));
+        assertFalse("held off", ReelAutoScroll.scrolling(() -> true, () -> false, on, holding));
+
+        assertTrue(ReelAutoScroll.answer(1, () -> true, () -> false, () -> false, new CountingMemory(false)));
+        assertTrue("Instagram's own on", ReelAutoScroll.scrolling(() -> false, () -> false, free, holding));
+        assertFalse(ReelAutoScroll.answer(0, () -> true, () -> false, () -> false, new CountingMemory(false)));
+        assertFalse(ReelAutoScroll.scrolling(() -> true, () -> true, on, free));
+        assertTrue("a paused answer leaves the last one",
+                ReelAutoScroll.answer(1, () -> false, () -> false, () -> false, new CountingMemory(false)));
+        assertFalse(ReelAutoScroll.scrolling(() -> true, () -> true, on, free));
+    }
+
+    /** Paused or before the settings are read, the row changes nothing and says so, and the switch is off. */
+    @Test
+    public void theRowStandsDownWhilePausedOrUnread() {
+        Settings.AUTO_SCROLL_IN_REEL_MENU.save(true);
+        assertFalse("a build without the patch", ReelAutoScroll.inMenu());
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertEquals(null, ReelAutoScroll.toggleFromMenu());
+        assertFalse(Settings.REEL_AUTO_ADVANCE.savedValue());
+        assertFalse(Settings.REEL_AUTO_SCROLL_HELD_OFF.savedValue());
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        SettingsContextRule.withoutContext(() -> assertEquals(null, ReelAutoScroll.toggleFromMenu()));
+        assertFalse(Settings.REEL_AUTO_ADVANCE.savedValue());
     }
 
     /** Paused or before the settings are read, the viewer and every check get Instagram's own answer. */

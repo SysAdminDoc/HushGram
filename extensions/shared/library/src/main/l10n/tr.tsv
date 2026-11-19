@@ -2592,3 +2592,14 @@ Takes the kinds of notifications you tick off the Notifications page. The list f
 %1$d kinds of notification are hidden.	%1$d bildirim türü gizli.
 # context: message in that list's dialog before the Notifications page has loaded once (#756)
 No notifications seen yet. Open your notifications in Instagram once, then come back here.	Henüz bildirim görülmedi. Instagram'da bildirimlerini bir kez aç, sonra buraya geri dön.
+# context: switch under HushGram settings > Reels with Keep Reels auto scroll on; adds a row to a reel's three-dot menu that turns Instagram's own auto scroll on or off, worded as in Keep auto scroll on (#768)
+Auto scroll in the reel menu	Reel menüsünde otomatik kaydırma
+# context: summary under that switch; Turn on auto scroll and Turn off auto scroll are the menu row's two labels below (#768)
+Adds Turn on auto scroll or Turn off auto scroll to the menu a reel's three dots open, so one tap changes it from the next reel on. It works on accounts where Instagram doesn't offer auto scroll too. Restart Instagram to see the change.	Bir reel'in üç noktasının açtığı menüye Otomatik kaydırmayı aç veya Otomatik kaydırmayı kapat ekler, böylece tek dokunuşla sonraki reel'den itibaren değişir. Instagram'ın otomatik kaydırma sunmadığı hesaplarda da çalışır. Değişikliği görmek için Instagram'ı yeniden başlat.
+# context: that three-dot menu row on a reel; the label says what a tap does (#768)
+Turn off auto scroll	Otomatik kaydırmayı kapat
+Turn on auto scroll	Otomatik kaydırmayı aç
+# context: toasts after tapping that row (#768)
+Auto scroll on	Otomatik kaydırma açık
+Auto scroll off	Otomatik kaydırma kapalı
+Auto scroll didn't change	Otomatik kaydırma değişmedi

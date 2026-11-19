@@ -3983,6 +3983,16 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_reel_auto_advance", FALSE, true);
 
     /**
+     * A Turn on auto scroll or Turn off auto scroll row in the menu a reel's three dots open, whose
+     * tap changes auto scroll in Reels from the next reel on (#768), on an account Instagram doesn't
+     * offer auto scroll to as well ({@link app.hushgram.extension.instagram.reels.ReelAutoScroll}).
+     * The Reels viewer builds its scroller as it opens, so a change takes a restart. Off to start, so
+     * the menu stays Instagram's own.
+     */
+    public static final BooleanSetting AUTO_SCROLL_IN_REEL_MENU =
+            new BooleanSetting("hushgram_auto_scroll_in_reel_menu", FALSE, true);
+
+    /**
      * A finger can't move the Reels viewer on to the next reel, and a pull down doesn't load new
      * ones ({@link app.hushgram.extension.instagram.reels.ReelScrolling}). A viewer turns its pager
      * off as it opens, so a change takes a restart. Off to start.
@@ -4106,6 +4116,15 @@ public class Settings extends BaseSettings {
      */
     public static final BooleanSetting REEL_AUTO_SCROLL_ON =
             new BooleanSetting("hushgram_reel_auto_scroll_on", FALSE, false, false);
+
+    /**
+     * Whether auto scroll in Reels was turned off from the reel menu and stays off, even where
+     * Instagram's own switch says on, until auto scroll is turned on again from either menu
+     * ({@link app.hushgram.extension.instagram.reels.ReelAutoScroll}). It isn't a switch: a pause
+     * doesn't change it, and a settings backup leaves it out.
+     */
+    public static final BooleanSetting REEL_AUTO_SCROLL_HELD_OFF =
+            new BooleanSetting("hushgram_reel_auto_scroll_held_off", FALSE, false, false);
 
     /**
      * Download in the menu of anyone's story, photo or video, saving it through the save pipeline

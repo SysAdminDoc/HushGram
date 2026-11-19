@@ -2507,3 +2507,14 @@ Takes the kinds of notifications you tick off the Notifications page. The list f
 %1$d kinds of notification are hidden.	Đã ẩn %1$d loại thông báo.
 # context: message in that list's dialog before the Notifications page has loaded once (#756)
 No notifications seen yet. Open your notifications in Instagram once, then come back here.	Chưa thấy thông báo nào. Hãy mở thông báo của bạn trong Instagram một lần, rồi quay lại đây.
+# context: switch under HushGram settings > Reels with Keep Reels auto scroll on; adds a row to a reel's three-dot menu that turns Instagram's own auto scroll on or off, worded as in Keep auto scroll on (#768)
+Auto scroll in the reel menu	Tự động cuộn trong menu reel
+# context: summary under that switch; Turn on auto scroll and Turn off auto scroll are the menu row's two labels below (#768)
+Adds Turn on auto scroll or Turn off auto scroll to the menu a reel's three dots open, so one tap changes it from the next reel on. It works on accounts where Instagram doesn't offer auto scroll too. Restart Instagram to see the change.	Thêm Bật tự động cuộn hoặc Tắt tự động cuộn vào menu mở ra từ ba dấu chấm của reel, để một lần chạm đổi được từ reel kế tiếp. Dùng được cả trên tài khoản mà Instagram không có tự động cuộn. Hãy khởi động lại Instagram để thấy thay đổi.
+# context: that three-dot menu row on a reel; the label says what a tap does (#768)
+Turn off auto scroll	Tắt tự động cuộn
+Turn on auto scroll	Bật tự động cuộn
+# context: toasts after tapping that row (#768)
+Auto scroll on	Đã bật tự động cuộn
+Auto scroll off	Đã tắt tự động cuộn
+Auto scroll didn't change	Không đổi được tự động cuộn

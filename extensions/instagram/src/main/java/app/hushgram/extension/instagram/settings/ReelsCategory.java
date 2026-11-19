@@ -342,6 +342,12 @@ final class ReelsCategory {
                             + "Instagram's own auto scroll, even on accounts where Instagram doesn't offer it. "
                             + "While it's on, Instagram's own Auto scroll switch can't turn it off. "
                             + "Restart Instagram to see the change.")));
+            if (build.contains(PatchFamily.REEL_DOWNLOAD)) {
+                reels.add(toggle(context, Settings.AUTO_SCROLL_IN_REEL_MENU, L10n.t("Auto scroll in the reel menu"),
+                        L10n.t("Adds Turn on auto scroll or Turn off auto scroll to the menu a reel's three dots open, "
+                                + "so one tap changes it from the next reel on. It works on accounts where Instagram "
+                                + "doesn't offer auto scroll too. Restart Instagram to see the change.")));
+            }
         }
         if (build.contains(PatchFamily.REEL_SCROLLING)) {
             reels.add(toggle(context, Settings.STOP_REELS_SCROLLING, L10n.t("Stop Reels scrolling"),

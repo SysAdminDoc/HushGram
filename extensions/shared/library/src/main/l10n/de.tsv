@@ -2592,3 +2592,14 @@ Takes the kinds of notifications you tick off the Notifications page. The list f
 %1$d kinds of notification are hidden.	%1$d Benachrichtigungsarten sind ausgeblendet.
 # context: message in that list's dialog before the Notifications page has loaded once (#756)
 No notifications seen yet. Open your notifications in Instagram once, then come back here.	Noch keine Benachrichtigungen gesehen. Öffne einmal deine Benachrichtigungen in Instagram und komm dann hierher zurück.
+# context: switch under HushGram settings > Reels with Keep Reels auto scroll on; adds a row to a reel's three-dot menu that turns Instagram's own auto scroll on or off, worded as in Keep auto scroll on (#768)
+Auto scroll in the reel menu	Automatisches Scrollen im Reel-Menü
+# context: summary under that switch; Turn on auto scroll and Turn off auto scroll are the menu row's two labels below (#768)
+Adds Turn on auto scroll or Turn off auto scroll to the menu a reel's three dots open, so one tap changes it from the next reel on. It works on accounts where Instagram doesn't offer auto scroll too. Restart Instagram to see the change.	Fügt Automatisches Scrollen einschalten oder Automatisches Scrollen ausschalten zum Menü hinzu, das die drei Punkte eines Reels öffnen, sodass ein Tipp es ab dem nächsten Reel ändert. Das funktioniert auch bei Konten, denen Instagram automatisches Scrollen nicht anbietet. Starte Instagram neu, um die Änderung zu sehen.
+# context: that three-dot menu row on a reel; the label says what a tap does (#768)
+Turn off auto scroll	Automatisches Scrollen ausschalten
+Turn on auto scroll	Automatisches Scrollen einschalten
+# context: toasts after tapping that row (#768)
+Auto scroll on	Automatisches Scrollen an
+Auto scroll off	Automatisches Scrollen aus
+Auto scroll didn't change	Automatisches Scrollen nicht geändert
