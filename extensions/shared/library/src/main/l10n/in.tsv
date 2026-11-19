@@ -2507,6 +2507,14 @@ Unfollow	Berhenti mengikuti
 Interested	Tertarik
 # context: Item in Items in the three-dot menus under Feed: Instagram's Why you're seeing this post row (#697)
 Why you're seeing this post	Mengapa Anda melihat postingan ini
+# context: Item in Items in the three-dot menus under Feed: Instagram's Remix and sequence row in a reel's Made with Edits part (#707)
+Remix and sequence	Remix dan urutan
+# context: Item in Items in the three-dot menus under Feed: Instagram's Use as reference row in a reel's Made with Edits part (#707)
+Use as reference	Gunakan sebagai referensi
+# context: Item in Items in the three-dot menus under Feed: Instagram's Use template row in a reel's Made with Edits part (#707)
+Use template	Gunakan template
+# context: Item in Items in the three-dot menus under Feed: Instagram's Get Edits row in a reel's Made with Edits part (#707)
+Get Edits	Dapatkan Edits
 # context: Title of the row under Feed that lists the items to keep in the menus behind the three dots on posts, reels and stories (#697, #707)
 Items in the three-dot menus	Item di menu titik tiga
 # context: Summary of Items in the three-dot menus under Feed while every item is ticked (#697, #707)

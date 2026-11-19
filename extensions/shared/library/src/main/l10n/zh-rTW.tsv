@@ -2510,6 +2510,14 @@ Unfollow	取消追蹤
 Interested	感興趣
 # context: Item in Items in the three-dot menus under Feed: Instagram's Why you're seeing this post row (#697)
 Why you're seeing this post	你為什麼會看到這則貼文
+# context: Item in Items in the three-dot menus under Feed: Instagram's Remix and sequence row in a reel's Made with Edits part (#707)
+Remix and sequence	Remix 與串連
+# context: Item in Items in the three-dot menus under Feed: Instagram's Use as reference row in a reel's Made with Edits part (#707)
+Use as reference	用作參考
+# context: Item in Items in the three-dot menus under Feed: Instagram's Use template row in a reel's Made with Edits part (#707)
+Use template	使用範本
+# context: Item in Items in the three-dot menus under Feed: Instagram's Get Edits row in a reel's Made with Edits part (#707)
+Get Edits	取得 Edits
 # context: Title of the row under Feed that lists the items to keep in the menus behind the three dots on posts, reels and stories (#697, #707)
 Items in the three-dot menus	三點選單中的項目
 # context: Summary of Items in the three-dot menus under Feed while every item is ticked (#697, #707)

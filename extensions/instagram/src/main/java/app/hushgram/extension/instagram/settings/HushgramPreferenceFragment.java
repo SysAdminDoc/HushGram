@@ -1542,6 +1542,16 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 return L10n.t("Why you're seeing this post");
             case "PLAYBACK_SPEED":
                 return L10n.t("Playback speed");
+            case "REMIX":
+                return L10n.t("Remix and sequence");
+            case "REFERENCE":
+                return L10n.t("Use as reference");
+            case "TEMPLATE":
+                return L10n.t("Use template");
+            case "GET_EDITS":
+                return L10n.t("Get Edits");
+            case "LOOP":
+                return L10n.t("Loop this video");
             default:
                 return L10n.t("Playback");
         }

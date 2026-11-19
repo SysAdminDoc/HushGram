@@ -117,7 +117,8 @@ public class MenuItemsSettingsTest {
 
         ListView list = openList();
         String[] expected = {"Report", "Mute", "Unfollow", "Not interested", "Interested", "Why you're seeing this post",
-                "Playback speed", "Playback"};
+                "Playback speed", "Playback", "Remix and sequence", "Use as reference", "Use template", "Get Edits",
+                "Loop this video"};
         assertEquals(expected.length, list.getCount());
         for (int i = 0; i < expected.length; i++) {
             assertEquals(expected[i], list.getItemAtPosition(i).toString());

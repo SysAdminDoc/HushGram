@@ -13,11 +13,13 @@ import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.function.IntFunction;
 import java.util.function.Supplier;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
+import app.hushgram.extension.instagram.settings.SettingsStatus;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 import app.hushgram.extension.shared.settings.HushgramPause;
@@ -30,7 +32,12 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * enum: {@code REPORT}, {@code MUTE_USER}, {@code UNFOLLOW_USER} and the rest). The patch hands
  * the list to {@link #feedRows} before the builder returns it, and the rows the setting names come
  * out. Reels and feed videos add each row through one method that takes the option, which asks
- * {@link #reelRow} first and adds nothing when the answer is yes.
+ * {@link #reelRow} first and adds nothing when the answer is yes. A reel made with Instagram's Edits
+ * app gets a "Made with Edits" part (Remix and sequence, Use as reference, Use template, Get Edits),
+ * added by one method that takes those rows as a list, each keyed by a name of its own. The patch
+ * hands the list to {@link #editsRows} at that method's start, and the title goes too when no row is
+ * left ({@link #editsTitle}). Loop this video is HushGram's own row, which {@link #hidesLoop} leaves
+ * out.
  *
  * <p>A story's menu is a list of labels with no option behind them, and Instagram's strings live in
  * its own string packs, so a label can't be told by its text. Instagram gives each label its icon
@@ -45,7 +52,8 @@ import app.hushgram.extension.shared.settings.HushgramPause;
 public final class MenuItems {
     /** The items the setting can leave out, in the order the list shows them. */
     public static final List<String> OFFERED = Collections.unmodifiableList(Arrays.asList(
-            "REPORT", "MUTE", "UNFOLLOW", "NOT_INTERESTED", "INTERESTED", "WHY", "PLAYBACK_SPEED", "PLAYBACK"));
+            "REPORT", "MUTE", "UNFOLLOW", "NOT_INTERESTED", "INTERESTED", "WHY", "PLAYBACK_SPEED", "PLAYBACK",
+            "REMIX", "REFERENCE", "TEMPLATE", "GET_EDITS", "LOOP"));
 
     /** What's counted for each row left out of a menu. */
     static final String LEFT_OFF = "Three-dot menu items left off";
@@ -69,6 +77,29 @@ public final class MenuItems {
     /** The drawable Instagram's story menu [menu] shows beside [label], or 0. The patch writes the body. */
     public static int storyIcon(Object menu, CharSequence label) {
         return 0;
+    }
+
+    /** The key Instagram gives [row], one of a reel's Edits rows, like "remix_and_sequence". The patch writes the body. */
+    public static String editsRowKey(Object row) {
+        return null;
+    }
+
+    /** The item the Edits row Instagram keys [key] is, or null when the setting doesn't offer it. */
+    @Nullable
+    static String itemOfEditsKey(@Nullable String key) {
+        if (key == null) return null;
+        switch (key) {
+            case "remix_and_sequence":
+                return "REMIX";
+            case "use_as_reference":
+                return "REFERENCE";
+            case "show_as_template":
+                return "TEMPLATE";
+            case "basel_made_with_edits_audio_menu":
+                return "GET_EDITS";
+            default:
+                return null;
+        }
     }
 
     /** The item Instagram's option named [option] is, or null when the setting doesn't offer it. */
@@ -155,6 +186,59 @@ public final class MenuItems {
             return true;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.MENU_ITEMS, HOOK, failure);
+            return false;
+        }
+    }
+
+    /**
+     * Injected at the start of the method that adds the "Made with Edits" part of a reel's menu, with
+     * its Edits rows (Remix and sequence, Use as reference, Use template, Get Edits). Answers a new
+     * list without the ones the setting names, or the same list when none goes. Never throws.
+     */
+    public static List<?> editsRows(List<?> rows) {
+        return editsRows(rows, MenuItems::hidden, MenuItems::editsRowKey);
+    }
+
+    static List<?> editsRows(List<?> rows, Supplier<Set<String>> hiddenNow, Function<Object, String> keys) {
+        try {
+            if (rows == null || rows.isEmpty()) return rows;
+            HookStatus.invoked(FamilyNames.MENU_ITEMS);
+            Set<String> hidden = hiddenNow.get();
+            if (hidden.isEmpty()) return rows;
+            List<Object> kept = new ArrayList<>(rows.size());
+            for (Object row : rows) {
+                String item = row == null ? null : itemOfEditsKey(keys.apply(row));
+                if (item != null && hidden.contains(item)) {
+                    HookStatus.counted(FamilyNames.MENU_ITEMS, LEFT_OFF);
+                    continue;
+                }
+                kept.add(row);
+            }
+            return kept.size() == rows.size() ? rows : kept;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.MENU_ITEMS, HOOK, failure);
+            return rows;
+        }
+    }
+
+    /**
+     * Injected after {@link #editsRows} with the part's title, "Made with Edits", and the rows before
+     * and after. Answers no title when every Edits row was left out, so the title goes with them.
+     */
+    @Nullable
+    public static CharSequence editsTitle(@Nullable CharSequence title, @Nullable List<?> before, @Nullable List<?> after) {
+        if (before == null || after == null || before.isEmpty() || !after.isEmpty()) return title;
+        return null;
+    }
+
+    /**
+     * Whether the setting leaves HushGram's own Loop this video row out of the menus of reels and feed
+     * videos. Answers no without this patch in the build. Never throws.
+     */
+    public static boolean hidesLoop() {
+        try {
+            return SettingsStatus.menuItems() && hidden().contains("LOOP");
+        } catch (Throwable failure) {
             return false;
         }
     }

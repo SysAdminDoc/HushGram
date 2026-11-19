@@ -38,8 +38,9 @@ import app.hushgram.extension.shared.settings.PauseForTests;
 
 /**
  * What Three-dot menu items does (#697, #707): a feed menu loses the rows whose option is unticked,
- * a reel's row adder skips an unticked option, and a story menu loses Report and Mute by the icon
- * Instagram gives each label. Nothing saved, paused or anything thrown leaves the menu as built.
+ * a reel's row adder skips an unticked option, a reel's Edits rows go by their keys, and a story
+ * menu loses Report and Mute by the icon Instagram gives each label. Nothing saved, paused or
+ * anything thrown leaves the menu as built.
  */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = {28, 37})
@@ -227,7 +228,93 @@ public class MenuItemsTest {
         assertEquals("", MenuItems.join(Collections.emptySet()));
         assertEquals(Collections.emptySet(), MenuItems.parse(null));
         for (String name : MenuItems.OFFERED) {
-            assertTrue(name, MenuItems.itemOf(optionFor(name)) != null);
+            boolean read = MenuItems.itemOf(optionFor(name)) != null || name.equals(MenuItems.itemOfEditsKey(keyFor(name)))
+                    || name.equals("LOOP");
+            assertTrue(name, read);
+        }
+    }
+
+    /** An Edits row the way Instagram holds one: its key in a String field. */
+    private static final class EditsRow {
+        final String key;
+
+        EditsRow(String key) {
+            this.key = key;
+        }
+
+        @Override public String toString() {
+            return key;
+        }
+    }
+
+    private static List<EditsRow> editsRows() {
+        return Arrays.asList(new EditsRow("show_as_template"), new EditsRow("remix_and_sequence"),
+                new EditsRow("use_as_reference"), new EditsRow("basel_made_with_edits_audio_menu"), new EditsRow("new_row"));
+    }
+
+    private static String keyOf(Object row) {
+        return ((EditsRow) row).key;
+    }
+
+    @Test
+    public void theEditsRowsLoseTheUntickedOnesAsANewList() {
+        List<EditsRow> rows = editsRows();
+        List<?> kept = MenuItems.editsRows(rows, () -> hiding("REMIX", "GET_EDITS"), MenuItemsTest::keyOf);
+        assertEquals("[show_as_template, use_as_reference, new_row]", kept.toString());
+        assertEquals("Instagram's list is left as it was", 5, rows.size());
+        String report = HookStatus.report().toString();
+        assertTrue(report, report.contains("Counted: " + MenuItems.LEFT_OFF + " 2"));
+        kept = MenuItems.editsRows(rows, () -> hiding("TEMPLATE", "REFERENCE"), MenuItemsTest::keyOf);
+        assertEquals("[remix_and_sequence, basel_made_with_edits_audio_menu, new_row]", kept.toString());
+    }
+
+    @Test
+    public void theEditsRowsStayAsBuiltWithNothingToLoseOrAKeyThatCantBeRead() {
+        List<EditsRow> rows = editsRows();
+        assertSame(rows, MenuItems.editsRows(rows, Collections::emptySet, MenuItemsTest::keyOf));
+        assertSame(rows, MenuItems.editsRows(rows, () -> hiding("REPORT", "LOOP"), MenuItemsTest::keyOf));
+        assertSame(rows, MenuItems.editsRows(rows, () -> hiding("REMIX"), row -> {
+            throw new ClassCastException("moved");
+        }));
+        assertSame(null, MenuItems.editsRows(null, () -> hiding("REMIX"), MenuItemsTest::keyOf));
+        List<EditsRow> none = Collections.emptyList();
+        assertSame(none, MenuItems.editsRows(none, () -> hiding("REMIX"), MenuItemsTest::keyOf));
+        // The stub answers no key until the patch writes it.
+        Settings.HIDDEN_MENU_ITEMS.save("REMIX,REFERENCE,TEMPLATE,GET_EDITS");
+        assertSame(rows, MenuItems.editsRows(rows));
+    }
+
+    @Test
+    public void madeWithEditsGoesOnlyWithTheLastEditsRow() {
+        List<EditsRow> rows = editsRows();
+        List<?> left = MenuItems.editsRows(rows, () -> hiding("REMIX", "REFERENCE", "TEMPLATE", "GET_EDITS"), MenuItemsTest::keyOf);
+        assertEquals(1, left.size());
+        assertEquals("Made with Edits", MenuItems.editsTitle("Made with Edits", rows, left));
+        List<?> gone = Collections.emptyList();
+        assertEquals(null, MenuItems.editsTitle("Made with Edits", rows, gone));
+        assertEquals("nothing there to begin with", "Made with Edits", MenuItems.editsTitle("Made with Edits", gone, gone));
+        assertEquals(null, MenuItems.editsTitle(null, rows, rows));
+        assertEquals("Made with Edits", MenuItems.editsTitle("Made with Edits", null, gone));
+    }
+
+    @Test
+    public void loopNeedsThePatchInTheBuild() {
+        Settings.HIDDEN_MENU_ITEMS.save("LOOP");
+        assertFalse("SettingsStatus.menuItems() answers no until the patch writes it", MenuItems.hidesLoop());
+    }
+
+    private static String keyFor(String item) {
+        switch (item) {
+            case "REMIX":
+                return "remix_and_sequence";
+            case "REFERENCE":
+                return "use_as_reference";
+            case "TEMPLATE":
+                return "show_as_template";
+            case "GET_EDITS":
+                return "basel_made_with_edits_audio_menu";
+            default:
+                return null;
         }
     }
 

@@ -58,6 +58,8 @@ public class StopLoopingTest {
         StopLooping.reelsForTests = null;
         StopLooping.forget();
         Built.stopLooping = true;
+        Built.menuItems = false;
+        Settings.HIDDEN_MENU_ITEMS.resetToDefault();
         Settings.STOP_VIDEO_LOOPING.resetToDefault();
         Settings.REEL_AUTO_ADVANCE.resetToDefault();
         BaseSettings.PAUSED.save(false);
@@ -242,6 +244,20 @@ public class StopLoopingTest {
         assertFalse(StopLooping.offersRow(false));
     }
 
+    /** Unticking Loop this video in Three-dot menu items leaves the row off reels and feed videos (#707). */
+    @Test
+    @Config(shadows = Built.class)
+    public void threeDotMenuItemsCanLeaveTheRowOut() {
+        Settings.HIDDEN_MENU_ITEMS.save("LOOP");
+        assertTrue("without Three-dot menu items in the build the saved list does nothing", StopLooping.offersRow(true));
+        Built.menuItems = true;
+        assertFalse(StopLooping.offersRow(true));
+        assertFalse(StopLooping.offersRow(false));
+        Settings.HIDDEN_MENU_ITEMS.save("REPORT,REMIX");
+        assertTrue(StopLooping.offersRow(true));
+        assertTrue(StopLooping.offersRow(false));
+    }
+
     /** A media ID or a video source's ID, joined to its owner's or not, comes down to the media's own number. */
     @Test
     public void theNumberIsTheIdBeforeTheOwner() {
@@ -300,8 +316,11 @@ public class StopLoopingTest {
     @Implements(value = SettingsStatus.class, isInAndroidSdk = false)
     public static class Built {
         static boolean stopLooping = true;
+        static boolean menuItems;
 
         @Implementation protected static boolean stopLooping() { return stopLooping; }
+
+        @Implementation protected static boolean menuItems() { return menuItems; }
     }
 
     /** A post here is its media ID, as a String. */

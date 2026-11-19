@@ -14,6 +14,7 @@ import java.util.Set;
 import java.util.WeakHashMap;
 
 import app.hushgram.extension.instagram.download.InstagramMedia;
+import app.hushgram.extension.instagram.feed.MenuItems;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.instagram.settings.SettingsStatus;
@@ -191,12 +192,12 @@ public final class StopLooping {
 
     /**
      * Whether a menu offers Loop this video on a video: the patch is in the build and its switch is
-     * on, and for a reel's menu ([reel]), auto scroll isn't keeping Reels looping anyway. The caller
-     * checks that there's a video. Never throws.
+     * on, and for a reel's menu ([reel]), auto scroll isn't keeping Reels looping anyway. Three-dot
+     * menu items can leave it out too (#707). The caller checks that there's a video. Never throws.
      */
     public static boolean offersRow(boolean reel) {
         try {
-            return SettingsStatus.stopLooping() && on() && !(reel && autoScrolls());
+            return SettingsStatus.stopLooping() && on() && !(reel && autoScrolls()) && !MenuItems.hidesLoop();
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.STOP_LOOPING, "video loop row", failure);
             return false;

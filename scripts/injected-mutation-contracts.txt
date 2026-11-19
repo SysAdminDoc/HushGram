@@ -1841,6 +1841,12 @@ once-call Lapp/hushgram/extension/instagram/feed/FeedSaveRow;->settle(Ljava/lang
 # Leave out menu items takes the rows named in its setting out of the same list after they're
 # settled, its call between settle's and each return. Left out, a left-out row stays in the menu.
 once-call Lapp/hushgram/extension/instagram/feed/MenuItems;->feedRows(Ljava/lang/Object;)V in (*)Ljava/lang/Object; sites returns pooled holding cns_client_event
+# It also hands a reel menu's Made with Edits rows, then that part's title, through the extension
+# first in the adder their builder calls, the one method of its shape in the class holding
+# audio_page and MUSIC (#707). Left out, an unticked Edits row stays in the menu.
+start-call Lapp/hushgram/extension/instagram/feed/MenuItems;->editsRows(Ljava/util/List;)Ljava/util/List; in instance (LX/*;Ljava/lang/CharSequence;Ljava/lang/Integer;Ljava/util/List;Ljava/util/List;Lkotlin/jvm/functions/Function1;Z)V pooled class-holding audio_page MUSIC
+once-call Lapp/hushgram/extension/instagram/feed/MenuItems;->editsRows(Ljava/util/List;)Ljava/util/List; in instance (LX/*;Ljava/lang/CharSequence;Ljava/lang/Integer;Ljava/util/List;Ljava/util/List;Lkotlin/jvm/functions/Function1;Z)V pooled class-holding audio_page MUSIC
+once-call Lapp/hushgram/extension/instagram/feed/MenuItems;->editsTitle(Ljava/lang/CharSequence;Ljava/util/List;Ljava/util/List;)Ljava/lang/CharSequence; in instance (LX/*;Ljava/lang/CharSequence;Ljava/lang/Integer;Ljava/util/List;Ljava/util/List;Lkotlin/jvm/functions/Function1;Z)V pooled class-holding audio_page MUSIC
 once-call Lapp/hushgram/extension/instagram/feed/FeedSaveRow;->allow(Ljava/util/List;)Ljava/util/List; in static (Z)Ljava/util/List; holding Lcom/instagram/feed/media/mediaoption/MediaOption$Option;->WHY_AM_I_SEEING_THIS:Lcom/instagram/feed/media/mediaoption/MediaOption$Option; Lcom/instagram/feed/media/mediaoption/MediaOption$Option;->REPORT:Lcom/instagram/feed/media/mediaoption/MediaOption$Option;
 # Hide Made with Edits (#570) hands the label kinds list to EditsLabel.labels in the constructor of
 # the feed header's label state, right before it's stored (the one constructor of that 22-value

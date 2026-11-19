@@ -29,7 +29,10 @@ import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.formats.Instruction35c
+import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
+import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodParameter
@@ -42,9 +45,10 @@ import org.junit.Test
 /**
  * Three-dot menu items (#697, #707): the hooks are in the extension, and in every build of 454 the
  * feed menu's builder hands its rows over before each return, the reel row adder asks first and
- * returns when told, and each story menu builder names its menu first and hands its labels over
- * before each return, with the icon stub calling Instagram's own icon method. A menu that moved is
- * refused by name, and with every menu gone the patch stops.
+ * returns when told, each story menu builder names its menu first and hands its labels over before
+ * each return, with the icon stub calling Instagram's own icon method, and the adder of a reel's
+ * Made with Edits rows hands its rows and title over first, with the key stub reading a row's own
+ * field. A menu that moved is refused by name, and with every menu gone the patch stops.
  */
 class MenuItemsHookTest {
     @Test
@@ -52,7 +56,7 @@ class MenuItemsHookTest {
         val declared = ExtensionDex.classDef(MENU_ITEMS).methods
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
-        for (hook in listOf(FEED_ROWS, REEL_ROW, STORY_MENU, STORY_LABELS)) {
+        for (hook in listOf(FEED_ROWS, REEL_ROW, STORY_MENU, STORY_LABELS, EDITS_ROWS, EDITS_TITLE)) {
             assertTrue("$hook is not in the extension: $declared", hook.substringAfter("->") in declared)
         }
     }
@@ -102,6 +106,23 @@ class MenuItemsHookTest {
         if (outlined.isNotEmpty()) classes += FixtureDex.classes(bundle, outlined).values
         // 455's builder reads its helper off its lambda and adds rows through a static adder of its state.
         HideRowAsserts.loadMenuClasses(bundle, classes)
+        // The builder of a reel's Made with Edits part, the classes of the rows it fills and the adders it
+        // calls, and the string pools a build that pools the key asks. The builder is often the reel
+        // menu's own class, already sliced, so every loader is read and only the new ones are added.
+        val loaders = FixtureDex.classesLoading(bundle, EDITS_KEY)
+        classes += loaders.filter { loader -> classes.none { it.type == loader.type } }
+        val named = loaders.asSequence().flatMap { it.methods.asSequence() }.flatMap { it.code().asSequence() }
+            .mapNotNull { instruction ->
+                when (val reference = (instruction as? ReferenceInstruction)?.reference) {
+                    is FieldReference -> reference.definingClass.takeIf { instruction.opcode == Opcode.IPUT_OBJECT }
+                    is MethodReference -> reference.definingClass.takeIf {
+                        instruction.opcode == Opcode.INVOKE_VIRTUAL || instruction.opcode == Opcode.INVOKE_VIRTUAL_RANGE
+                    }
+                    else -> null
+                }
+            }.filter { type -> classes.none { it.type == type } }.toSet()
+        if (named.isNotEmpty()) classes += FixtureDex.classes(bundle, named).values
+        classes += FixtureDex.withStringPools(bundle, loaders).filter { pool -> classes.none { it.type == pool.type } }
         return classes
     }
 
@@ -109,7 +130,7 @@ class MenuItemsHookTest {
         val classes = classes(bundle)
         val context = PatchContexts.of(classes)
         val parts = context.findMenuItems()
-        assertEquals("$label: every menu is found", listOf("feed posts", "reels", "stories"), parts.map { it.menu })
+        assertEquals("$label: every menu is found", listOf("feed posts", "reels", "stories", "reels' Edits rows"), parts.map { it.menu })
         parts.forEach { it.write() }
         val written = classes.map { it.type }.filter { it != MENU_ITEMS }.distinct().flatMap { context.mutableClassDefBy(it).methods }
 
@@ -169,6 +190,41 @@ class MenuItemsHookTest {
         val icon = stub("storyIcon").mapNotNull { (it as? ReferenceInstruction)?.reference as? MethodReference }.single()
         assertEquals("$label: storyIcon asks the story menu", helper, icon.definingClass)
         assertEquals("$label: for an icon", "I", icon.returnType)
+
+        // The Made with Edits adder hands its rows, then its title, through the extension first.
+        val edits = written.filter { method -> method.code().any { it.referenceText() == EDITS_ROWS } }
+        assertEquals("$label: the Made with Edits adder", 1, edits.size)
+        val hooked = edits.single()
+        val head = hooked.code()
+        val takes = hooked.parameterTypes.map(Any::toString)
+        val width = { type: String -> if (type == "J" || type == "D") 2 else 1 }
+        val self = hooked.implementation!!.registerCount - 1 - takes.sumOf(width)
+        fun registerOf(index: Int) = self + 1 + takes.take(index).sumOf(width)
+        val lists = takes.indices.filter { takes[it] == "Ljava/util/List;" }.map(::registerOf)
+        val title = registerOf(takes.indexOf("Ljava/lang/CharSequence;"))
+        assertEquals("$label: reads the rows", Opcode.MOVE_OBJECT_FROM16, head[0].opcode)
+        val rows = (head[0] as TwoRegisterInstruction).registerB
+        assertTrue("$label: the rows are a List parameter: v$rows of $lists", rows in lists)
+        assertEquals(EDITS_ROWS, head[1].referenceText())
+        assertEquals(0, (head[1] as Instruction35c).registerC)
+        assertEquals(Opcode.MOVE_RESULT_OBJECT, head[2].opcode)
+        assertEquals(Opcode.MOVE_OBJECT_16, head[3].opcode)
+        assertEquals("$label: the rows left", listOf(rows, 1), (head[3] as TwoRegisterInstruction).let { listOf(it.registerA, it.registerB) })
+        assertEquals("$label: reads the title", title, (head[4] as TwoRegisterInstruction).registerB)
+        assertEquals(EDITS_TITLE, head[5].referenceText())
+        assertEquals(listOf(2, 0, 1), (head[5] as Instruction35c).let { listOf(it.registerC, it.registerD, it.registerE) })
+        assertEquals(Opcode.MOVE_RESULT_OBJECT, head[6].opcode)
+        assertEquals("$label: the title left", listOf(title, 2), (head[7] as TwoRegisterInstruction).let { listOf(it.registerA, it.registerB) })
+
+        // The key stub reads a row's key off the field the builder puts it in.
+        val key = stub("editsRowKey")
+        val row = ((key[0] as ReferenceInstruction).reference as TypeReference).type
+        assertEquals(Opcode.CHECK_CAST, key[0].opcode)
+        assertEquals(Opcode.IGET_OBJECT, key[1].opcode)
+        val field = (key[1] as ReferenceInstruction).reference as FieldReference
+        assertEquals("$label: the row's own key", listOf(row, "Ljava/lang/String;"), listOf(field.definingClass, field.type))
+        assertEquals(Opcode.RETURN_OBJECT, key[2].opcode)
+        assertTrue("$label: the extension can read $row", AccessFlags.PUBLIC.isSet(classes.single { it.type == row }.accessFlags))
     }
 
     private fun firstBundle(): File? = bundles().firstOrNull()
@@ -217,6 +273,26 @@ class MenuItemsHookTest {
         }
         val moved = ImmutableClassDef(owner.type, owner.accessFlags, owner.superclass, owner.interfaces, null, null, owner.fields, methods)
         refuses("the adder of one row") { PatchContexts.of(classes - owner + moved).findReelMenuItems() }
+    }
+
+    /** A Made with Edits row whose key the extension can't read, gone or the class hidden, is refused by name. */
+    @Test
+    fun anEditsRowWithoutAKeyToReadIsRefused() {
+        val bundle = firstBundle() ?: return
+        val classes = classes(bundle)
+        val found = PatchContexts.of(classes)
+        found.findEditsMenuItems().write()
+        val key = found.mutableClassDefBy(MENU_ITEMS).methods.single { it.name == "editsRowKey" }.code()
+        val type = ((key[0] as ReferenceInstruction).reference as TypeReference).type
+        val row = classes.single { it.type == type }
+
+        val keyless = ImmutableClassDef(row.type, row.accessFlags, row.superclass, row.interfaces, null, null,
+            row.fields.filterNot { it.type == "Ljava/lang/String;" }, row.methods)
+        refuses("doesn't keep its key") { PatchContexts.of(classes - row + keyless).findEditsMenuItems() }
+
+        val hidden = ImmutableClassDef(row.type, row.accessFlags and AccessFlags.PUBLIC.value.inv(), row.superclass,
+            row.interfaces, null, null, row.fields, row.methods)
+        refuses("doesn't keep its key") { PatchContexts.of(classes - row + hidden).findEditsMenuItems() }
     }
 
     /** The reel menu's adder of one row, by its shape: a Context, the option, two more, an icon and a label. */

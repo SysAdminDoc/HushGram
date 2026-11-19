@@ -20,6 +20,7 @@ Every HushGram release, newest first.
 * `Hide notifications by type` under Notifications lists the kinds of notifications Instagram has sent you, each with a line from one, and takes the ones you tick off the page. Requested in #756.
 * Saving a reel gets its picture and sound at the same time now, instead of one after the other, so saves finish sooner. Asked about in #493.
 * A feed post's three-dot menu can now show Block and Playback speed. Turn on `Block in a post's menu` and `Speed in a post's menu` under Downloads. Requested in #743.
+* `Items in the three-dot menus` under Feed has five more to untick. A reel's menu can drop Remix and sequence, Use as reference, Use template and Get Edits, and the Made with Edits heading goes too once none of them is left. `Loop this video` can come off the reel and feed video menus as well. Asked for in #707.
 * Press and hold the Download button on a story to pick `Download` or `Save all`, which saves every story in the set you're watching. It comes with `Download button on stories`. Requested in #745.
 * Under `Default playback quality` there's a new `Drop quality to keep playing` switch. It's on to start, so a slow connection drops a rung instead of stalling. Turn it off to keep the quality you picked. Requested in #761.
 * Two new switches under Feed, next to `Hide the Like button`. `Hide counts on posts` takes the like, comment, share and repost numbers off feed posts and keeps the buttons. `Hide Liked by` takes the "Liked by" line off them. Asked for in #762.
