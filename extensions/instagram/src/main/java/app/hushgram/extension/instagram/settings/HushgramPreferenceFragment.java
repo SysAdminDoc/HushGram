@@ -5464,18 +5464,37 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 return L10n.t("Everywhere but Reels");
             case ONLY_REELS:
                 return L10n.t("Only in Reels");
+            case OUTSIDE_EXPLORE:
+                return L10n.t("Everywhere but Explore");
+            case ONLY_EXPLORE:
+                return L10n.t("Only in Explore");
+            case REELS_AND_EXPLORE:
+                return L10n.t("Reels and Explore");
+            case OUTSIDE_REELS_AND_EXPLORE:
+                return L10n.t("Everywhere but Reels and Explore");
             default:
                 return L10n.t("Everywhere");
         }
     }
 
-    /** What waits for a tap with [scope], for the row's summary. Reels in the feed go with the feed. */
+    /**
+     * What waits for a tap with [scope], for the row's summary. Reels in the feed go with the feed,
+     * and a reel opened from Explore goes with Reels (#762).
+     */
     static String tapToPlayScopeSummary(TapToPlayScope scope) {
         switch (scope) {
             case OUTSIDE_REELS:
                 return L10n.t("Feed videos and stories wait for your tap. Reels play as you swipe to them.");
             case ONLY_REELS:
                 return L10n.t("Reels wait for your tap. Feed videos and stories play as Instagram plays them.");
+            case OUTSIDE_EXPLORE:
+                return L10n.t("Feed videos, reels and stories wait for your tap. Videos in Explore play as Instagram plays them.");
+            case ONLY_EXPLORE:
+                return L10n.t("Videos in Explore wait for your tap. Feed videos, reels and stories play as Instagram plays them.");
+            case REELS_AND_EXPLORE:
+                return L10n.t("Reels and videos in Explore wait for your tap. Feed videos and stories play as Instagram plays them.");
+            case OUTSIDE_REELS_AND_EXPLORE:
+                return L10n.t("Feed videos and stories wait for your tap. Reels and videos in Explore play as Instagram plays them.");
             default:
                 return L10n.t("Feed videos, reels and stories all wait for your tap.");
         }

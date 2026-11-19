@@ -247,6 +247,22 @@ Only in Reels	Chỉ trong Reels
 Feed videos, reels and stories all wait for your tap.	Video trên bảng feed, reel và tin đều đợi bạn nhấn.
 Feed videos and stories wait for your tap. Reels play as you swipe to them.	Video trên bảng feed và tin đợi bạn nhấn. Reels phát khi bạn vuốt đến.
 Reels wait for your tap. Feed videos and stories play as Instagram plays them.	Reels đợi bạn nhấn. Video trên bảng feed và tin phát như Instagram vẫn làm.
+# context: Tap to play settings: 'Where videos wait' choice that holds feed videos, reels and stories but lets videos in the Explore tab play (#762)
+Everywhere but Explore	Mọi nơi trừ Khám phá
+# context: 'Where videos wait' choice that holds only videos in the Explore tab (#762)
+Only in Explore	Chỉ trong Khám phá
+# context: 'Where videos wait' choice that holds reels and videos in the Explore tab (#762)
+Reels and Explore	Reels và Khám phá
+# context: 'Where videos wait' choice that holds feed videos and stories but lets reels and the Explore tab play (#762)
+Everywhere but Reels and Explore	Mọi nơi trừ Reels và Khám phá
+# context: summary of 'Everywhere but Explore' (#762)
+Feed videos, reels and stories wait for your tap. Videos in Explore play as Instagram plays them.	Video trên bảng feed, reel và tin đợi bạn nhấn. Video trong Khám phá phát như Instagram vẫn làm.
+# context: summary of 'Only in Explore' (#762)
+Videos in Explore wait for your tap. Feed videos, reels and stories play as Instagram plays them.	Video trong Khám phá đợi bạn nhấn. Video trên bảng feed, reel và tin phát như Instagram vẫn làm.
+# context: summary of 'Reels and Explore' (#762)
+Reels and videos in Explore wait for your tap. Feed videos and stories play as Instagram plays them.	Reels và video trong Khám phá đợi bạn nhấn. Video trên bảng feed và tin phát như Instagram vẫn làm.
+# context: summary of 'Everywhere but Reels and Explore' (#762)
+Feed videos and stories wait for your tap. Reels and videos in Explore play as Instagram plays them.	Video trên bảng feed và tin đợi bạn nhấn. Reels và video trong Khám phá phát như Instagram vẫn làm.
 Turn on Tap to play to use this choice.	Hãy bật Nhấn để phát để dùng lựa chọn này.
 Resume long videos	Tiếp tục xem video dài
 Videos and reels over two minutes pick up where you left off. Seek to start elsewhere. Live videos and ads start as usual.	Video và reel dài hơn hai phút tiếp tục từ chỗ bạn dừng. Hãy tua để bắt đầu ở nơi khác. Video trực tiếp và quảng cáo bắt đầu như bình thường.

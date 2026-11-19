@@ -500,6 +500,7 @@
         "patches/src/test/kotlin/app/morphe/patches/instagram/profile/follow/**",
         "extensions/instagram/src/test/java/app/hushgram/extension/instagram/media/PlayButtonsTest.java",
         "extensions/instagram/src/test/java/app/hushgram/extension/instagram/settings/TapToPlayScopeSettingsTest.java",
+        "extensions/instagram/src/test/java/app/hushgram/extension/instagram/reels/TapToPlayExploreScreenTest.java",
         "extensions/instagram/src/test/java/app/hushgram/extension/instagram/stories/StoryRetryTest.java",
         "patches/src/test/kotlin/app/morphe/patches/instagram/stories/seen/StoryRetryFixtures.kt",
         "patches/src/test/kotlin/app/morphe/patches/instagram/stories/seen/StoryRetryQueueTest.kt",

@@ -239,12 +239,12 @@ public final class FeedAutoScroll {
         return (int) (inner * PAGE);
     }
 
-    /** Whether Tap to play holds feed videos, so one nobody tapped never plays to its end. */
+    /** Whether Tap to play holds Home's feed videos, so one nobody tapped never plays to its end. */
     static boolean tapToPlayHolds() {
         try {
             if (!Settings.TAP_TO_PLAY.get()) return false;
             TapToPlayScope scope = Settings.TAP_TO_PLAY_SCOPE.get();
-            return scope == null || scope.covers(false);
+            return scope == null || scope.covers(TapToPlayScope.Surface.ELSEWHERE);
         } catch (Throwable unknown) {
             return false;
         }

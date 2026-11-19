@@ -246,6 +246,22 @@ Only in Reels	ในรีลส์เท่านั้น
 Feed videos, reels and stories all wait for your tap.	วิดีโอในฟีด, รีลส์ และสตอรี่จะรอให้คุณแตะทั้งหมด
 Feed videos and stories wait for your tap. Reels play as you swipe to them.	วิดีโอในฟีดและสตอรี่จะรอให้คุณแตะ ส่วนรีลส์จะเล่นทันทีที่คุณปัดไปถึง
 Reels wait for your tap. Feed videos and stories play as Instagram plays them.	รีลส์จะรอให้คุณแตะ ส่วนวิดีโอในฟีดและสตอรี่จะเล่นตามปกติของ Instagram
+# context: Tap to play settings: 'Where videos wait' choice that holds feed videos, reels and stories but lets videos in the Explore tab play (#762)
+Everywhere but Explore	ทุกที่ยกเว้นในสำรวจ
+# context: 'Where videos wait' choice that holds only videos in the Explore tab (#762)
+Only in Explore	ในสำรวจเท่านั้น
+# context: 'Where videos wait' choice that holds reels and videos in the Explore tab (#762)
+Reels and Explore	รีลส์และสำรวจ
+# context: 'Where videos wait' choice that holds feed videos and stories but lets reels and the Explore tab play (#762)
+Everywhere but Reels and Explore	ทุกที่ยกเว้นในรีลส์และสำรวจ
+# context: summary of 'Everywhere but Explore' (#762)
+Feed videos, reels and stories wait for your tap. Videos in Explore play as Instagram plays them.	วิดีโอในฟีด, รีลส์ และสตอรี่จะรอให้คุณแตะ ส่วนวิดีโอในสำรวจจะเล่นตามปกติของ Instagram
+# context: summary of 'Only in Explore' (#762)
+Videos in Explore wait for your tap. Feed videos, reels and stories play as Instagram plays them.	วิดีโอในสำรวจจะรอให้คุณแตะ ส่วนวิดีโอในฟีด, รีลส์ และสตอรี่จะเล่นตามปกติของ Instagram
+# context: summary of 'Reels and Explore' (#762)
+Reels and videos in Explore wait for your tap. Feed videos and stories play as Instagram plays them.	รีลส์และวิดีโอในสำรวจจะรอให้คุณแตะ ส่วนวิดีโอในฟีดและสตอรี่จะเล่นตามปกติของ Instagram
+# context: summary of 'Everywhere but Reels and Explore' (#762)
+Feed videos and stories wait for your tap. Reels and videos in Explore play as Instagram plays them.	วิดีโอในฟีดและสตอรี่จะรอให้คุณแตะ ส่วนรีลส์และวิดีโอในสำรวจจะเล่นตามปกติของ Instagram
 Turn on Tap to play to use this choice.	เปิด "แตะเพื่อเล่น" เพื่อใช้ตัวเลือกนี้
 Resume long videos	เล่นวิดีโอยาวต่อจากเดิม
 Videos and reels over two minutes pick up where you left off. Seek to start elsewhere. Live videos and ads start as usual.	วิดีโอและรีลส์ที่ยาวเกินสองนาทีจะเล่นต่อจากจุดที่คุณดูค้างไว้ เลื่อนแถบเวลาเพื่อเริ่มเล่นจากจุดอื่น ส่วนวิดีโอถ่ายทอดสดและโฆษณาจะเริ่มเล่นตามปกติ

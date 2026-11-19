@@ -6,6 +6,8 @@
  */
 package app.hushgram.extension.instagram.media;
 
+import android.os.Handler;
+import android.os.Looper;
 import android.os.SystemClock;
 import android.view.View;
 import android.view.ViewConfiguration;
@@ -21,8 +23,11 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
+import app.hushgram.extension.instagram.media.TapToPlayScope.Surface;
+import app.hushgram.extension.instagram.reels.FullScreenBars;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.Logger;
@@ -66,13 +71,16 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * path instead. The story viewer resumes on the release of a press and hold only a story it paused
  * while it played, and {@link #resumeHeldStory} gives a story this patch held the same resume.
  *
- * <p>{@link Settings#TAP_TO_PLAY_SCOPE} can leave the Reels viewer out, or everything but it (#39).
- * playInternal's hook says whether its IgVideoPlayerImpl is the Reels viewer's: the patch checks
- * that the player's video logger is the one the Reels viewer makes. IgGrootPlayer's own play goes
- * by what playInternal last said of that IgGrootPlayer, and one it never said anything of, such as
- * a story's, is outside Reels. A start the choice leaves out goes ahead untouched, and the Reels
- * tap and auto scroller, or the story release, the feed's play button and the autoplay check, do
- * what Instagram decided wherever the choice leaves them out.
+ * <p>{@link Settings#TAP_TO_PLAY_SCOPE} can leave the Reels viewer out, or everything but it (#39),
+ * and the Explore tab the same way (#762). playInternal's hook says whether its IgVideoPlayerImpl
+ * is the Reels viewer's: the patch checks that the player's video logger is the one the Reels
+ * viewer makes. IgGrootPlayer's own play goes by what playInternal last said of that IgGrootPlayer,
+ * and one it never said anything of, such as a story's, is outside Reels. A start outside Reels is
+ * in Explore while the window the last tap landed on has Explore's tab selected with no reel over
+ * it ({@link #exploreOnScreen}), asked only when the choice treats Explore unlike the rest. A start
+ * the choice leaves out goes ahead untouched, and the Reels tap and auto scroller, or the story
+ * release, the feed's play button and the autoplay check, do what Instagram decided wherever the
+ * choice leaves them out.
  *
  * <p>Off, paused, before the settings are ready, or when anything here throws, every start goes ahead
  * and the check answers what Instagram decided, as it would unpatched.
@@ -156,8 +164,13 @@ public final class TapToPlay {
     private static int autoScrolls;
     private static boolean checkLogged;
     private static boolean viewlessClickLogged;
-    private static boolean reelsLeftOutLogged;
-    private static boolean restLeftOutLogged;
+    /** Where the log has said starts go ahead because the choice leaves them out. Guarded by {@link #LOG_LOCK}. */
+    private static final Set<String> LEFT_OUT_LOGGED = new HashSet<>();
+    private static final Handler MAIN = new Handler(Looper.getMainLooper());
+    /** What {@link #exploreOnScreen} last read on the main thread, for a start off it. */
+    private static volatile boolean exploreSeen;
+    /** A main-thread read of Explore is posted and hasn't run yet. */
+    private static final AtomicBoolean EXPLORE_READ_POSTED = new AtomicBoolean();
 
     /** Makes the next decision throw, once. For tests. */
     @Nullable
@@ -262,7 +275,7 @@ public final class TapToPlay {
                 failNext = null;
                 throw failure;
             }
-            if (!onFor(true)) return;
+            if (!onInReels()) return;
             HookStatus.bound(FamilyNames.TAP_TO_PLAY, "auto scroll");
             if (Settings.TAP_TO_PLAY_AUTO_SCROLL_WAITS.get()) return;
             scrolledAt(SystemClock.uptimeMillis());
@@ -306,7 +319,7 @@ public final class TapToPlay {
     public static boolean autoplayAllowed(boolean answer) {
         try {
             HookStatus.invoked(FamilyNames.TAP_TO_PLAY);
-            if (!answer || !onFor(false)) return answer;
+            if (!answer || !onOutsideReels()) return answer;
             HookStatus.bound(FamilyNames.TAP_TO_PLAY, "autoplay check");
             logCheckOnce();
             return false;
@@ -325,7 +338,7 @@ public final class TapToPlay {
     public static void playButtonTapped(@Nullable Object click) {
         try {
             HookStatus.invoked(FamilyNames.TAP_TO_PLAY);
-            if (!onFor(false)) return;
+            if (!onOutsideReels()) return;
             HookStatus.bound(FamilyNames.TAP_TO_PLAY, "play button");
             View button = PlayButtons.viewOf(click);
             if (button != null) {
@@ -373,7 +386,7 @@ public final class TapToPlay {
                 failNext = null;
                 throw failure;
             }
-            if (resume || navigator == null || !onFor(true)) return resume;
+            if (resume || navigator == null || !onInReels()) return resume;
             HookStatus.bound(FamilyNames.TAP_TO_PLAY, "Reels tap");
             Object state = reelStates.stateOf(navigator);
             if (state == NOT_PATCHED) {
@@ -418,7 +431,7 @@ public final class TapToPlay {
                 failNext = null;
                 throw failure;
             }
-            if (resume || storyPlayer == null || !onFor(false)) return resume;
+            if (resume || storyPlayer == null || !onOutsideReels()) return resume;
             HookStatus.bound(FamilyNames.TAP_TO_PLAY, "story release");
             long sinceTap = TapClock.msSinceTap(SystemClock.uptimeMillis());
             if (sinceTap < 0 || sinceTap > TAP_WINDOW_MS || TapClock.heldMs() < ViewConfiguration.getLongPressTimeout()) {
@@ -494,8 +507,10 @@ public final class TapToPlay {
                 if (inReels) REELS.add(player, now);
                 else REELS.remove(player);
             }
-            if (!scope().covers(inReels)) {
-                logLeftOutOnce(inReels);
+            TapToPlayScope scope = scope();
+            Surface surface = surfaceOf(inReels, scope);
+            if (!scope.covers(surface)) {
+                logLeftOutOnce(surface, scope);
                 return true;
             }
             return decide(player, reason, now, path, inReels);
@@ -509,9 +524,16 @@ public final class TapToPlay {
         return Utils.settingsReady() && Settings.TAP_TO_PLAY.get();
     }
 
-    /** On, and the choice of where holds starts in the Reels viewer, [reels], or outside it. */
-    private static boolean onFor(boolean reels) {
-        return on() && scope().covers(reels);
+    /** On, and the choice of where holds starts in the Reels viewer. */
+    private static boolean onInReels() {
+        return on() && scope().covers(Surface.REELS);
+    }
+
+    /** On, and the choice of where holds starts outside the Reels viewer, where this one is: in Explore or not. */
+    private static boolean onOutsideReels() {
+        if (!on()) return false;
+        TapToPlayScope scope = scope();
+        return scope.covers(surfaceOf(false, scope));
     }
 
     private static TapToPlayScope scope() {
@@ -519,14 +541,58 @@ public final class TapToPlay {
         return scope == null ? TapToPlayScope.EVERYWHERE : scope;
     }
 
-    private static void logLeftOutOnce(boolean reels) {
+    /**
+     * Where a start is: the Reels viewer when [reels], otherwise Explore or elsewhere, which only a
+     * [scope] that treats Explore unlike the rest asks about.
+     */
+    private static Surface surfaceOf(boolean reels, TapToPlayScope scope) {
+        if (reels) return Surface.REELS;
+        return scope.splitsExplore() && screens.exploreShowing() ? Surface.EXPLORE : Surface.ELSEWHERE;
+    }
+
+    /** Whether Explore's tab shows with no reel over it. Tests put their own in. */
+    interface Screens {
+        boolean exploreShowing();
+    }
+
+    /** Reaches the screen only through this, from inside the hooks' tries. */
+    static Screens screens = TapToPlay::exploreOnScreen;
+
+    /**
+     * Whether the window the last tap landed on has Explore's tab selected with no reel filling it.
+     * On the main thread it reads the views and remembers the answer. A start off it gets the last
+     * answer, and a fresh read is posted for the next one.
+     */
+    static boolean exploreOnScreen() {
+        if (Looper.myLooper() != Looper.getMainLooper()) {
+            if (EXPLORE_READ_POSTED.compareAndSet(false, true)) {
+                MAIN.post(() -> {
+                    EXPLORE_READ_POSTED.set(false);
+                    try {
+                        exploreOnScreen();
+                    } catch (Throwable failure) {
+                        HookStatus.threw(FamilyNames.TAP_TO_PLAY, "Explore check", failure);
+                    }
+                });
+            }
+            return exploreSeen;
+        }
+        View decor = TapClock.window();
+        boolean seen = decor != null && FullScreenBars.exploreSelected(decor);
+        exploreSeen = seen;
+        return seen;
+    }
+
+    private static void logLeftOutOnce(Surface surface, TapToPlayScope scope) {
+        String where;
+        if (surface == Surface.REELS) where = "in Reels";
+        else if (surface == Surface.EXPLORE) where = "in Explore";
+        else where = scope.splitsExplore() ? "outside Reels and Explore" : "outside Reels";
         synchronized (LOG_LOCK) {
-            if (reels ? reelsLeftOutLogged : restLeftOutLogged) return;
-            if (reels) reelsLeftOutLogged = true;
-            else restLeftOutLogged = true;
+            if (!LEFT_OUT_LOGGED.add(where)) return;
         }
         Logger.diagnosticDebug(DiagnosticCategory.OTHER, SOURCE, () -> "Tap to play: starts "
-                + (reels ? "in Reels" : "outside Reels") + " go ahead, the choice of where leaves them out");
+                + where + " go ahead, the choice of where leaves them out");
     }
 
     /** The rule, with the clock passed in, for a start outside Reels. */
@@ -648,9 +714,10 @@ public final class TapToPlay {
             autoScrolls = 0;
             checkLogged = false;
             viewlessClickLogged = false;
-            reelsLeftOutLogged = false;
-            restLeftOutLogged = false;
+            LEFT_OUT_LOGGED.clear();
         }
+        screens = TapToPlay::exploreOnScreen;
+        exploreSeen = false;
         failNext = null;
     }
 

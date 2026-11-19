@@ -265,8 +265,11 @@ public final class FullScreenBars {
         return null;
     }
 
-    /** Whether [decor] has Explore's tab selected with no reel filling the window over it (#297). */
-    static boolean exploreSelected(View decor) {
+    /**
+     * Whether [decor] has Explore's tab selected with no reel filling the window over it (#297), for
+     * Scroll break and Tap to play's choice of where (#762).
+     */
+    public static boolean exploreSelected(View decor) {
         View viewer = find(decor, VIEWER);
         if (viewer != null && fills(viewer, decor)) return false;
         return SEARCH_TAB.equals(selectedTab(decor));

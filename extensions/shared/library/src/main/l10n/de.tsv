@@ -249,6 +249,22 @@ Only in Reels	Nur in Reels
 Feed videos, reels and stories all wait for your tap.	Videos im Feed, Reels und Stories warten alle, bis du tippst.
 Feed videos and stories wait for your tap. Reels play as you swipe to them.	Videos im Feed und Stories warten, bis du tippst. Reels spielen, sobald du zu ihnen wischst.
 Reels wait for your tap. Feed videos and stories play as Instagram plays them.	Reels warten, bis du tippst. Videos im Feed und Stories spielen wie sonst bei Instagram.
+# context: Tap to play settings: 'Where videos wait' choice that holds feed videos, reels and stories but lets videos in the Explore tab play (#762)
+Everywhere but Explore	Überall außer in Entdecken
+# context: 'Where videos wait' choice that holds only videos in the Explore tab (#762)
+Only in Explore	Nur in Entdecken
+# context: 'Where videos wait' choice that holds reels and videos in the Explore tab (#762)
+Reels and Explore	Reels und Entdecken
+# context: 'Where videos wait' choice that holds feed videos and stories but lets reels and the Explore tab play (#762)
+Everywhere but Reels and Explore	Überall außer in Reels und Entdecken
+# context: summary of 'Everywhere but Explore' (#762)
+Feed videos, reels and stories wait for your tap. Videos in Explore play as Instagram plays them.	Videos im Feed, Reels und Stories warten, bis du tippst. Videos in Entdecken spielen wie sonst bei Instagram.
+# context: summary of 'Only in Explore' (#762)
+Videos in Explore wait for your tap. Feed videos, reels and stories play as Instagram plays them.	Videos in Entdecken warten, bis du tippst. Videos im Feed, Reels und Stories spielen wie sonst bei Instagram.
+# context: summary of 'Reels and Explore' (#762)
+Reels and videos in Explore wait for your tap. Feed videos and stories play as Instagram plays them.	Reels und Videos in Entdecken warten, bis du tippst. Videos im Feed und Stories spielen wie sonst bei Instagram.
+# context: summary of 'Everywhere but Reels and Explore' (#762)
+Feed videos and stories wait for your tap. Reels and videos in Explore play as Instagram plays them.	Videos im Feed und Stories warten, bis du tippst. Reels und Videos in Entdecken spielen wie sonst bei Instagram.
 Turn on Tap to play to use this choice.	Aktiviere „Zum Abspielen tippen“, um diese Auswahl zu nutzen.
 Resume long videos	Lange Videos fortsetzen
 Videos and reels over two minutes pick up where you left off. Seek to start elsewhere. Live videos and ads start as usual.	Videos und Reels über zwei Minuten laufen an deiner letzten Stelle weiter. Die Zeitleiste ändert den Start. Live-Videos und Werbung starten wie gewohnt.

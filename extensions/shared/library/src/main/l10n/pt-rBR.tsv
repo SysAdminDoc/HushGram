@@ -249,6 +249,22 @@ Only in Reels	Só nos Reels
 Feed videos, reels and stories all wait for your tap.	Vídeos do feed, reels e stories esperam o seu toque.
 Feed videos and stories wait for your tap. Reels play as you swipe to them.	Vídeos do feed e stories esperam o seu toque. Os reels tocam quando você desliza até eles.
 Reels wait for your tap. Feed videos and stories play as Instagram plays them.	Os reels esperam o seu toque. Vídeos do feed e stories tocam como o Instagram toca.
+# context: Tap to play settings: 'Where videos wait' choice that holds feed videos, reels and stories but lets videos in the Explore tab play (#762)
+Everywhere but Explore	Em todo lugar, menos no Explorar
+# context: 'Where videos wait' choice that holds only videos in the Explore tab (#762)
+Only in Explore	Só no Explorar
+# context: 'Where videos wait' choice that holds reels and videos in the Explore tab (#762)
+Reels and Explore	Reels e Explorar
+# context: 'Where videos wait' choice that holds feed videos and stories but lets reels and the Explore tab play (#762)
+Everywhere but Reels and Explore	Em todo lugar, menos nos Reels e no Explorar
+# context: summary of 'Everywhere but Explore' (#762)
+Feed videos, reels and stories wait for your tap. Videos in Explore play as Instagram plays them.	Vídeos do feed, reels e stories esperam o seu toque. Os vídeos do Explorar tocam como o Instagram toca.
+# context: summary of 'Only in Explore' (#762)
+Videos in Explore wait for your tap. Feed videos, reels and stories play as Instagram plays them.	Os vídeos do Explorar esperam o seu toque. Vídeos do feed, reels e stories tocam como o Instagram toca.
+# context: summary of 'Reels and Explore' (#762)
+Reels and videos in Explore wait for your tap. Feed videos and stories play as Instagram plays them.	Os reels e os vídeos do Explorar esperam o seu toque. Vídeos do feed e stories tocam como o Instagram toca.
+# context: summary of 'Everywhere but Reels and Explore' (#762)
+Feed videos and stories wait for your tap. Reels and videos in Explore play as Instagram plays them.	Vídeos do feed e stories esperam o seu toque. Os reels e os vídeos do Explorar tocam como o Instagram toca.
 Turn on Tap to play to use this choice.	Ative Tocar para reproduzir para usar esta opção.
 Resume long videos	Retomar vídeos longos
 Videos and reels over two minutes pick up where you left off. Seek to start elsewhere. Live videos and ads start as usual.	Vídeos e reels com mais de dois minutos continuam de onde você parou. Arraste a barra de progresso para começar em outro ponto. Vídeos ao vivo e anúncios começam normalmente.

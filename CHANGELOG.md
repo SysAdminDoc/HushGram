@@ -17,6 +17,7 @@ Every HushGram release, newest first.
 * The Saved bookmark on your profile opens the same Saved the profile menu does, starting on All with your posts and with a back arrow at the top, instead of the grid of collections. If Instagram hasn't given your account that version yet, you get the grid like before. From #762.
 * `Hide the New collection button` sits under `Fast scroll in Saved` in Profiles. It takes the + off the top of Saved, on both Saved screens, and your collections stay where they are. No restart needed. Also from #762.
 * Hide comments has two more switches under Comments. `Hide likes on comments` takes the heart and its like count off every comment in a post's or reel's comments. `Hide the comment box` takes the box at the bottom away (your picture, the text field and Post), so the comments get that space too. Turn it back off when you want to write one. Both from #762.
+* Tap to play's `Where videos wait` can treat Explore on its own now. Four new picks: `Everywhere but Explore`, `Only in Explore`, `Reels and Explore` and `Everywhere but Reels and Explore`. A reel you open from Explore goes with Reels, and the three picks you had before work the same as always. Asked for in #762.
 * **Tooling:** The GitHub release notes leave out the Tooling bullets and the What was checked part now. They're still here in the changelog, and Manager's notes keep their Validation line.
 
 ### Bug Fixes

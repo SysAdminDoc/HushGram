@@ -856,6 +856,96 @@ public class TapToPlayTest {
         assertEquals(Collections.emptyList(), HookStatus.missing(FamilyNames.TAP_TO_PLAY));
     }
 
+    /**
+     * Only in Explore (#762): a start while Explore's tab shows waits for a tap, and Explore's
+     * autoplay check answers no. The same starts anywhere else, a reel opened from Explore
+     * included, play as Instagram plays them, and the Reels hooks do what Instagram decided.
+     */
+    @Test
+    @Config(sdk = {28, 37})
+    public void onlyInExploreHoldsWhatStartsInExplore() {
+        Settings.TAP_TO_PLAY_SCOPE.save(TapToPlayScope.ONLY_EXPLORE);
+        boolean[] explore = {true};
+        TapToPlay.screens = () -> explore[0];
+        assertFalse("a video in Explore waits", TapToPlay.allowStart(new Object(), "autoplay", 0));
+        assertFalse("its IgGrootPlayer's play too", TapToPlay.allowDirectStart(new Object(), "autoplay"));
+        assertFalse("Explore draws its play button", TapToPlay.autoplayAllowed(true));
+        assertTrue("a reel opened from Explore plays", TapToPlay.allowStart(new Object(), "autoplay", 1));
+        TapToPlay.reelStates = asked -> {
+            throw new AssertionError("asked about a reel the choice leaves out");
+        };
+        assertFalse("the Reels tap does what Instagram decided", TapToPlay.resumeOnTap(false, new Object()));
+
+        explore[0] = false;
+        assertTrue("a feed video plays", TapToPlay.allowStart(new Object(), "autoplay", 0));
+        assertTrue("a story plays", TapToPlay.allowDirectStart(new Object(), "autoplay"));
+        assertTrue("Instagram's own autoplay answer on Home", TapToPlay.autoplayAllowed(true));
+        assertEquals("nothing armed", 0, TapToPlay.armedCount());
+        assertEquals(Collections.emptyList(), HookStatus.missing(FamilyNames.TAP_TO_PLAY));
+    }
+
+    /** Everywhere but Explore (#762): Explore plays as Instagram plays it, and the rest waits, reels included. */
+    @Test
+    @Config(sdk = {28, 37})
+    public void everywhereButExploreLetsExplorePlay() {
+        Settings.TAP_TO_PLAY_SCOPE.save(TapToPlayScope.OUTSIDE_EXPLORE);
+        boolean[] explore = {true};
+        TapToPlay.screens = () -> explore[0];
+        assertTrue("a video in Explore plays", TapToPlay.allowStart(new Object(), "autoplay", 0));
+        assertTrue("Instagram's own autoplay answer in Explore", TapToPlay.autoplayAllowed(true));
+        assertFalse("a reel opened from Explore waits", TapToPlay.allowStart(new Object(), "autoplay", 1));
+
+        explore[0] = false;
+        assertFalse("a feed video waits", TapToPlay.allowStart(new Object(), "autoplay", 0));
+        assertFalse("a story waits", TapToPlay.allowDirectStart(new Object(), "autoplay"));
+        assertFalse("the feed draws its play button", TapToPlay.autoplayAllowed(true));
+        assertEquals("nothing armed", 0, TapToPlay.armedCount());
+    }
+
+    /** Reels and Explore hold those two and nothing else, and the choice opposite holds the rest (#762). */
+    @Test
+    public void reelsAndExploreAndTheChoiceOppositeSplitTheOtherWay() {
+        boolean[] explore = {false};
+        TapToPlay.screens = () -> explore[0];
+        Settings.TAP_TO_PLAY_SCOPE.save(TapToPlayScope.REELS_AND_EXPLORE);
+        assertFalse("a reel waits", TapToPlay.allowStart(new Object(), "autoplay", 1));
+        assertTrue("a feed video plays", TapToPlay.allowStart(new Object(), "autoplay", 0));
+        explore[0] = true;
+        assertFalse("a video in Explore waits", TapToPlay.allowStart(new Object(), "autoplay", 0));
+
+        Settings.TAP_TO_PLAY_SCOPE.save(TapToPlayScope.OUTSIDE_REELS_AND_EXPLORE);
+        assertTrue("a video in Explore plays", TapToPlay.allowStart(new Object(), "autoplay", 0));
+        assertTrue("a reel plays", TapToPlay.allowStart(new Object(), "autoplay", 1));
+        explore[0] = false;
+        assertFalse("a feed video waits", TapToPlay.allowStart(new Object(), "autoplay", 0));
+        assertFalse("a story waits", TapToPlay.allowDirectStart(new Object(), "autoplay"));
+    }
+
+    /**
+     * Only a choice that treats Explore unlike the rest looks at the screen, and never for a
+     * reel: the three choices there were before ask nothing new of a start (#762).
+     */
+    @Test
+    public void onlyAChoiceThatSplitsExploreAsksWhereAStartIs() {
+        int[] asked = {0};
+        TapToPlay.screens = () -> {
+            asked[0]++;
+            return true;
+        };
+        for (TapToPlayScope scope : Arrays.asList(TapToPlayScope.EVERYWHERE, TapToPlayScope.OUTSIDE_REELS, TapToPlayScope.ONLY_REELS)) {
+            Settings.TAP_TO_PLAY_SCOPE.save(scope);
+            TapToPlay.allowStart(new Object(), "autoplay", 0);
+            TapToPlay.allowDirectStart(new Object(), "autoplay");
+            TapToPlay.autoplayAllowed(true);
+        }
+        assertEquals("never asked", 0, asked[0]);
+        Settings.TAP_TO_PLAY_SCOPE.save(TapToPlayScope.ONLY_EXPLORE);
+        TapToPlay.allowStart(new Object(), "autoplay", 1);
+        assertEquals("nor for a reel", 0, asked[0]);
+        TapToPlay.allowStart(new Object(), "autoplay", 0);
+        assertEquals("the control: a feed start asks", 1, asked[0]);
+    }
+
     /** IgGrootPlayer's play goes by what playInternal last said of that player. */
     @Test
     public void aPlayerGoesByWhatPlayInternalLastSaidOfIt() {
@@ -899,6 +989,26 @@ public class TapToPlayTest {
         String report = LogBufferManager.buildExportText();
         assertEquals(report, 1, occurrences(report, "Tap to play: starts in Reels go ahead, the choice of where leaves them out"));
         assertEquals(report, 1, occurrences(report, "Tap to play: starts outside Reels go ahead, the choice of where leaves them out"));
+    }
+
+    /** With a choice that splits Explore off, the line says Explore, or outside Reels and Explore (#762). */
+    @Test
+    public void debugLoggingNamesExploreWhenTheChoiceSplitsItOff() {
+        BaseSettings.DEBUG.save(true);
+        LogBufferManager.clearLogBuffer();
+        boolean[] explore = {true};
+        TapToPlay.screens = () -> explore[0];
+        Settings.TAP_TO_PLAY_SCOPE.save(TapToPlayScope.OUTSIDE_EXPLORE);
+        TapToPlay.allowStart(new Object(), "autoplay", 0);
+        TapToPlay.allowStart(new Object(), "autoplay", 0);
+        Settings.TAP_TO_PLAY_SCOPE.save(TapToPlayScope.ONLY_EXPLORE);
+        explore[0] = false;
+        TapToPlay.allowStart(new Object(), "autoplay", 0);
+
+        String report = LogBufferManager.buildExportText();
+        assertEquals(report, 1, occurrences(report, "Tap to play: starts in Explore go ahead, the choice of where leaves them out"));
+        assertEquals(report, 1, occurrences(report, "Tap to play: starts outside Reels and Explore go ahead, the choice of where leaves them out"));
+        assertEquals(report, 0, occurrences(report, "Tap to play: starts outside Reels go ahead"));
     }
 
     /** A move that throws stays in the hook, records nothing, and the report names it. */

@@ -73,7 +73,8 @@ public class TapToPlayScopeSettingsTest {
 
             List<String> entries = new ArrayList<>();
             for (CharSequence entry : row.getEntries()) entries.add(String.valueOf(entry));
-            assertEquals(Arrays.asList("Everywhere", "Everywhere but Reels", "Only in Reels"), entries);
+            assertEquals(Arrays.asList("Everywhere", "Everywhere but Reels", "Only in Reels", "Everywhere but Explore",
+                    "Only in Explore", "Reels and Explore", "Everywhere but Reels and Explore"), entries);
             List<String> values = new ArrayList<>();
             for (CharSequence value : row.getEntryValues()) values.add(String.valueOf(value));
             List<String> names = new ArrayList<>();
@@ -93,6 +94,12 @@ public class TapToPlayScopeSettingsTest {
             ShadowLooper.idleMainLooper();
             assertEquals(TapToPlayScope.ONLY_REELS, Settings.TAP_TO_PLAY_SCOPE.savedValue());
             assertEquals("Reels wait for your tap. Feed videos and stories play as Instagram plays them.",
+                    String.valueOf(row.getSummary()));
+
+            row.setValue("ONLY_EXPLORE");
+            ShadowLooper.idleMainLooper();
+            assertEquals(TapToPlayScope.ONLY_EXPLORE, Settings.TAP_TO_PLAY_SCOPE.savedValue());
+            assertEquals("Videos in Explore wait for your tap. Feed videos, reels and stories play as Instagram plays them.",
                     String.valueOf(row.getSummary()));
 
             // A value saved behind the row shows on it once the page hears of it.

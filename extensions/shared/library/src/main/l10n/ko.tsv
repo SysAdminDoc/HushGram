@@ -250,6 +250,22 @@ Only in Reels	릴스에서만
 Feed videos, reels and stories all wait for your tap.	피드 동영상, 릴스, 스토리 모두 탭할 때까지 대기합니다
 Feed videos and stories wait for your tap. Reels play as you swipe to them.	피드 동영상과 스토리는 탭할 때까지 대기합니다. 릴스는 스와이프하면 바로 재생됩니다
 Reels wait for your tap. Feed videos and stories play as Instagram plays them.	릴스는 탭할 때까지 대기합니다. 피드 동영상과 스토리는 Instagram 기본 방식대로 재생됩니다
+# context: Tap to play settings: 'Where videos wait' choice that holds feed videos, reels and stories but lets videos in the Explore tab play (#762)
+Everywhere but Explore	탐색을 제외한 모든 곳
+# context: 'Where videos wait' choice that holds only videos in the Explore tab (#762)
+Only in Explore	탐색에서만
+# context: 'Where videos wait' choice that holds reels and videos in the Explore tab (#762)
+Reels and Explore	릴스와 탐색
+# context: 'Where videos wait' choice that holds feed videos and stories but lets reels and the Explore tab play (#762)
+Everywhere but Reels and Explore	릴스와 탐색을 제외한 모든 곳
+# context: summary of 'Everywhere but Explore' (#762)
+Feed videos, reels and stories wait for your tap. Videos in Explore play as Instagram plays them.	피드 동영상, 릴스, 스토리는 탭할 때까지 대기합니다. 탐색의 동영상은 Instagram 기본 방식대로 재생됩니다
+# context: summary of 'Only in Explore' (#762)
+Videos in Explore wait for your tap. Feed videos, reels and stories play as Instagram plays them.	탐색의 동영상은 탭할 때까지 대기합니다. 피드 동영상, 릴스, 스토리는 Instagram 기본 방식대로 재생됩니다
+# context: summary of 'Reels and Explore' (#762)
+Reels and videos in Explore wait for your tap. Feed videos and stories play as Instagram plays them.	릴스와 탐색의 동영상은 탭할 때까지 대기합니다. 피드 동영상과 스토리는 Instagram 기본 방식대로 재생됩니다
+# context: summary of 'Everywhere but Reels and Explore' (#762)
+Feed videos and stories wait for your tap. Reels and videos in Explore play as Instagram plays them.	피드 동영상과 스토리는 탭할 때까지 대기합니다. 릴스와 탐색의 동영상은 Instagram 기본 방식대로 재생됩니다
 Turn on Tap to play to use this choice.	이 옵션을 사용하려면 ‘탭하여 재생’을 켜세요
 Resume long videos	긴 동영상 이어보기
 Videos and reels over two minutes pick up where you left off. Seek to start elsewhere. Live videos and ads start as usual.	2분이 넘는 동영상과 릴스는 시청을 중단한 시점부터 이어서 재생됩니다. 다른 부분을 보려면 원하는 시점으로 이동하세요. 라이브 동영상과 광고는 기존과 동일하게 처음부터 재생됩니다

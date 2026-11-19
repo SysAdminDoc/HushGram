@@ -254,6 +254,22 @@ Only in Reels	僅 Reels
 Feed videos, reels and stories all wait for your tap.	動態首頁影片、Reels 和限時動態皆等待你點擊才播放。
 Feed videos and stories wait for your tap. Reels play as you swipe to them.	動態首頁影片與限時動態會等待你點擊。Reels 則在滑動至該影片時播放。
 Reels wait for your tap. Feed videos and stories play as Instagram plays them.	Reels 會等待你點擊。動態首頁影片與限時動態則依 Instagram 原本的方式播放。
+# context: Tap to play settings: 'Where videos wait' choice that holds feed videos, reels and stories but lets videos in the Explore tab play (#762)
+Everywhere but Explore	探索以外的位置
+# context: 'Where videos wait' choice that holds only videos in the Explore tab (#762)
+Only in Explore	僅探索
+# context: 'Where videos wait' choice that holds reels and videos in the Explore tab (#762)
+Reels and Explore	Reels 和探索
+# context: 'Where videos wait' choice that holds feed videos and stories but lets reels and the Explore tab play (#762)
+Everywhere but Reels and Explore	Reels 和探索以外的位置
+# context: summary of 'Everywhere but Explore' (#762)
+Feed videos, reels and stories wait for your tap. Videos in Explore play as Instagram plays them.	動態首頁影片、Reels 和限時動態會等待你點擊。探索中的影片則依 Instagram 原本的方式播放。
+# context: summary of 'Only in Explore' (#762)
+Videos in Explore wait for your tap. Feed videos, reels and stories play as Instagram plays them.	探索中的影片會等待你點擊。動態首頁影片、Reels 和限時動態則依 Instagram 原本的方式播放。
+# context: summary of 'Reels and Explore' (#762)
+Reels and videos in Explore wait for your tap. Feed videos and stories play as Instagram plays them.	Reels 和探索中的影片會等待你點擊。動態首頁影片與限時動態則依 Instagram 原本的方式播放。
+# context: summary of 'Everywhere but Reels and Explore' (#762)
+Feed videos and stories wait for your tap. Reels and videos in Explore play as Instagram plays them.	動態首頁影片與限時動態會等待你點擊。Reels 和探索中的影片則依 Instagram 原本的方式播放。
 Turn on Tap to play to use this choice.	請啟用「點擊播放」以使用此選項。
 Resume long videos	繼續播放長影片
 Videos and reels over two minutes pick up where you left off. Seek to start elsewhere. Live videos and ads start as usual.	超過兩分鐘的影片與 Reels 會從上次離開的位置繼續播放。可拖曳進度列改從其他位置開始。直播與廣告仍會照常播放。

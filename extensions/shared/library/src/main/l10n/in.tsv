@@ -249,6 +249,22 @@ Only in Reels	Hanya di Reels
 Feed videos, reels and stories all wait for your tap.	Video di feed, reels, dan cerita semuanya menunggu ketukan Anda.
 Feed videos and stories wait for your tap. Reels play as you swipe to them.	Video di feed dan cerita menunggu ketukan Anda. Reels diputar saat Anda menggeser ke sana.
 Reels wait for your tap. Feed videos and stories play as Instagram plays them.	Reels menunggu ketukan Anda. Video di feed dan cerita diputar seperti biasa di Instagram.
+# context: Tap to play settings: 'Where videos wait' choice that holds feed videos, reels and stories but lets videos in the Explore tab play (#762)
+Everywhere but Explore	Di mana saja kecuali Jelajahi
+# context: 'Where videos wait' choice that holds only videos in the Explore tab (#762)
+Only in Explore	Hanya di Jelajahi
+# context: 'Where videos wait' choice that holds reels and videos in the Explore tab (#762)
+Reels and Explore	Reels dan Jelajahi
+# context: 'Where videos wait' choice that holds feed videos and stories but lets reels and the Explore tab play (#762)
+Everywhere but Reels and Explore	Di mana saja kecuali Reels dan Jelajahi
+# context: summary of 'Everywhere but Explore' (#762)
+Feed videos, reels and stories wait for your tap. Videos in Explore play as Instagram plays them.	Video di feed, reels, dan cerita menunggu ketukan Anda. Video di Jelajahi diputar seperti biasa di Instagram.
+# context: summary of 'Only in Explore' (#762)
+Videos in Explore wait for your tap. Feed videos, reels and stories play as Instagram plays them.	Video di Jelajahi menunggu ketukan Anda. Video di feed, reels, dan cerita diputar seperti biasa di Instagram.
+# context: summary of 'Reels and Explore' (#762)
+Reels and videos in Explore wait for your tap. Feed videos and stories play as Instagram plays them.	Reels dan video di Jelajahi menunggu ketukan Anda. Video di feed dan cerita diputar seperti biasa di Instagram.
+# context: summary of 'Everywhere but Reels and Explore' (#762)
+Feed videos and stories wait for your tap. Reels and videos in Explore play as Instagram plays them.	Video di feed dan cerita menunggu ketukan Anda. Reels dan video di Jelajahi diputar seperti biasa di Instagram.
 Turn on Tap to play to use this choice.	Aktifkan Ketuk untuk memutar untuk menggunakan pilihan ini.
 Resume long videos	Lanjutkan video panjang
 Videos and reels over two minutes pick up where you left off. Seek to start elsewhere. Live videos and ads start as usual.	Video dan reel lebih dari dua menit dilanjutkan dari posisi terakhir. Geser bilah untuk posisi lain. Video langsung dan iklan mulai seperti biasa.

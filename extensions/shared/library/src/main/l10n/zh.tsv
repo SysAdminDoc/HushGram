@@ -254,6 +254,22 @@ Only in Reels	仅 Reels
 Feed videos, reels and stories all wait for your tap.	动态首页视频、Reels 和快拍皆等待你点击才播放。
 Feed videos and stories wait for your tap. Reels play as you swipe to them.	动态首页视频与快拍会等待你点击。Reels 则在滑动至该视频时播放。
 Reels wait for your tap. Feed videos and stories play as Instagram plays them.	Reels 会等待你点击。动态首页视频与快拍则依 Instagram 原本的方式播放。
+# context: Tap to play settings: 'Where videos wait' choice that holds feed videos, reels and stories but lets videos in the Explore tab play (#762)
+Everywhere but Explore	探索以外的位置
+# context: 'Where videos wait' choice that holds only videos in the Explore tab (#762)
+Only in Explore	仅探索
+# context: 'Where videos wait' choice that holds reels and videos in the Explore tab (#762)
+Reels and Explore	Reels 和探索
+# context: 'Where videos wait' choice that holds feed videos and stories but lets reels and the Explore tab play (#762)
+Everywhere but Reels and Explore	Reels 和探索以外的位置
+# context: summary of 'Everywhere but Explore' (#762)
+Feed videos, reels and stories wait for your tap. Videos in Explore play as Instagram plays them.	动态首页视频、Reels 和快拍会等待你点击。探索中的视频则依 Instagram 原本的方式播放。
+# context: summary of 'Only in Explore' (#762)
+Videos in Explore wait for your tap. Feed videos, reels and stories play as Instagram plays them.	探索中的视频会等待你点击。动态首页视频、Reels 和快拍则依 Instagram 原本的方式播放。
+# context: summary of 'Reels and Explore' (#762)
+Reels and videos in Explore wait for your tap. Feed videos and stories play as Instagram plays them.	Reels 和探索中的视频会等待你点击。动态首页视频与快拍则依 Instagram 原本的方式播放。
+# context: summary of 'Everywhere but Reels and Explore' (#762)
+Feed videos and stories wait for your tap. Reels and videos in Explore play as Instagram plays them.	动态首页视频与快拍会等待你点击。Reels 和探索中的视频则依 Instagram 原本的方式播放。
 Turn on Tap to play to use this choice.	请启用“点击播放”以使用此选项。
 Resume long videos	继续播放长视频
 Videos and reels over two minutes pick up where you left off. Seek to start elsewhere. Live videos and ads start as usual.	超过两分钟的视频与 Reels 会从上次离开的位置继续播放。可拖动进度条改从其他位置开始。直播与广告仍会照常播放。

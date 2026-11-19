@@ -249,6 +249,22 @@ Only in Reels	Yalnızca Reels'te
 Feed videos, reels and stories all wait for your tap.	Akıştaki videolar, reels ve hikayeler dokunmanı bekler.
 Feed videos and stories wait for your tap. Reels play as you swipe to them.	Akıştaki videolar ve hikayeler dokunmanı bekler. Reels, kaydırdığında oynar.
 Reels wait for your tap. Feed videos and stories play as Instagram plays them.	Reels dokunmanı bekler. Akıştaki videolar ve hikayeler Instagram'ın oynattığı gibi oynar.
+# context: Tap to play settings: 'Where videos wait' choice that holds feed videos, reels and stories but lets videos in the Explore tab play (#762)
+Everywhere but Explore	Keşfet dışında her yerde
+# context: 'Where videos wait' choice that holds only videos in the Explore tab (#762)
+Only in Explore	Yalnızca Keşfet'te
+# context: 'Where videos wait' choice that holds reels and videos in the Explore tab (#762)
+Reels and Explore	Reels ve Keşfet
+# context: 'Where videos wait' choice that holds feed videos and stories but lets reels and the Explore tab play (#762)
+Everywhere but Reels and Explore	Reels ve Keşfet dışında her yerde
+# context: summary of 'Everywhere but Explore' (#762)
+Feed videos, reels and stories wait for your tap. Videos in Explore play as Instagram plays them.	Akıştaki videolar, reels ve hikayeler dokunmanı bekler. Keşfet'teki videolar Instagram'ın oynattığı gibi oynar.
+# context: summary of 'Only in Explore' (#762)
+Videos in Explore wait for your tap. Feed videos, reels and stories play as Instagram plays them.	Keşfet'teki videolar dokunmanı bekler. Akıştaki videolar, reels ve hikayeler Instagram'ın oynattığı gibi oynar.
+# context: summary of 'Reels and Explore' (#762)
+Reels and videos in Explore wait for your tap. Feed videos and stories play as Instagram plays them.	Reels ve Keşfet'teki videolar dokunmanı bekler. Akıştaki videolar ve hikayeler Instagram'ın oynattığı gibi oynar.
+# context: summary of 'Everywhere but Reels and Explore' (#762)
+Feed videos and stories wait for your tap. Reels and videos in Explore play as Instagram plays them.	Akıştaki videolar ve hikayeler dokunmanı bekler. Reels ve Keşfet'teki videolar Instagram'ın oynattığı gibi oynar.
 Turn on Tap to play to use this choice.	Bu seçimi kullanmak için Oynatmak için dokun seçeneğini açın.
 Resume long videos	Uzun videolara kaldığın yerden devam et
 Videos and reels over two minutes pick up where you left off. Seek to start elsewhere. Live videos and ads start as usual.	İki dakikadan uzun videolar ve reels kaldığın yerden devam eder. Başka bir yerden başlatmak için çubuğu kaydır. Canlı videolar ve reklamlar normal başlar.
