@@ -4149,3 +4149,9 @@ start-call Lapp/hushgram/extension/instagram/feed/HideCaptions;->hideReelCaption
 once-call Lapp/hushgram/extension/instagram/feed/HideCaptions;->hideReelCaption()Z in instance (L*;)L*; holding is_reels_caption_expanded caption_vertical_scroll
 start-call Lapp/hushgram/extension/instagram/feed/HideCaptions;->hideReelCaption()Z in instance (L*;)L*; holding is_reels_caption_expanded :
 once-call Lapp/hushgram/extension/instagram/feed/HideCaptions;->hideReelCaption()Z in instance (L*;)L*; holding is_reels_caption_expanded :
+# Expand captions asks CaptionLength.maxLines for the line count right before the feed caption's
+# builder cuts the caption with ExpandingTextView's trim helper (#771). The builder is the static
+# method taking a Context, the caption's props and a SearchContext and answering a
+# SpannableStringBuilder, holding the itas-android schema name and " [...]". Left out, a feed
+# caption keeps Instagram's count; twice or elsewhere, it isn't the hook the patch wrote.
+once-call Lapp/hushgram/extension/instagram/feed/CaptionLength;->maxLines(Ljava/lang/Object;I)I in static (Landroid/content/Context;LX/*;Lcom/instagram/search/common/analytics/SearchContext;LX/*;Ljava/lang/String;Ljava/lang/String;Z)Landroid/text/SpannableStringBuilder; pooled holding itas-android \s[...]
