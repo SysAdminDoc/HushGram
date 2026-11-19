@@ -13,6 +13,7 @@ Every HushGram release, newest first.
 * Two new switches under Feed, next to `Hide the Like button`. `Hide counts on posts` takes the like, comment, share and repost numbers off feed posts and keeps the buttons. `Hide Liked by` takes the "Liked by" line off them. Asked for in #762.
 * `Hide the tag icon on posts` sits right under `Hide the audio icon on posts` in Feed. It takes the little person icon off posts with people tagged in them, and product tags keep theirs. Also from #762.
 * `Hide the empty profile prompt` is new in Profiles, under `Hide the Create button`. While your profile has no posts yet, it takes the big "first post" prompt off your own grid. Other people's empty profiles look the same as before. Also from #762.
+* The Messages page has two new switches after `Hide suggested accounts in Messages`. `Hide the New message button` takes the pencil off the top of your messages and leaves the other buttons there. `Hide suggestions in New message` drops the Suggested people from the New message and new group screens, and search still finds anyone you type. Hiding one doesn't hide the other anymore. Asked for in #762.
 * **Tooling:** The GitHub release notes leave out the Tooling bullets and the What was checked part now. They're still here in the changelog, and Manager's notes keep their Validation line.
 
 ### Bug Fixes

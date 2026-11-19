@@ -953,6 +953,12 @@ Half a second	Nửa giây
 On this Instagram build it covers %1$d of %2$d routes. The diagnostic report lists the rest.	Trên bản Instagram này, nó bao phủ %1$d trong %2$d lộ trình. Báo cáo chẩn đoán liệt kê phần còn lại.
 Hide suggested accounts in Messages	Ẩn tài khoản gợi ý trong Tin nhắn
 Takes the accounts Instagram suggests off the bottom of your messages. Your chats and follow requests stay. Restart Instagram to see the change.	Gỡ các tài khoản Instagram gợi ý khỏi cuối phần tin nhắn. Cuộc trò chuyện và yêu cầu theo dõi vẫn giữ. Hãy khởi động lại Instagram để thấy thay đổi.
+# context: switch on the Messages page after Hide suggested accounts in Messages; New message is Instagram's own label for the pencil button in the inbox top bar and the screen it opens (#762)
+Hide the New message button	Ẩn nút Tin nhắn mới
+Takes the pencil button for a new message off the top of your messages.	Gỡ nút bút chì để viết tin nhắn mới khỏi phía trên tin nhắn của bạn.
+# context: switch right after it; Suggested is the header Instagram puts over the people listed on the New message screen before you type, and new group is the screen for starting a group chat (#762)
+Hide suggestions in New message	Ẩn gợi ý trong Tin nhắn mới
+Takes the Suggested people off the New message and new group screens. Search still finds anyone.	Gỡ những người được gợi ý khỏi màn hình Tin nhắn mới và nhóm mới. Tìm kiếm vẫn tìm được bất kỳ ai.
 A light tick each time the highlight slides past a tab, so it follows the bar as you tap or swipe between screens.	Một rung nhẹ mỗi lần vùng sáng trượt qua một tab, để nó đi theo thanh khi bạn nhấn hoặc vuốt giữa các màn hình.
 Blur behind the tab bar	Làm mờ phía sau thanh tab
 Blurs what's behind the pill on Android 12 and newer. Off, the pill is a frosted tint.	Làm mờ nội dung phía sau thanh trên Android 12 trở lên. Khi tắt, thanh là một lớp màu mờ đục.

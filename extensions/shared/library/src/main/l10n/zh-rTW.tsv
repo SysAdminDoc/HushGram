@@ -958,6 +958,12 @@ Half a second	半秒
 On this Instagram build it covers %1$d of %2$d routes. The diagnostic report lists the rest.	在此 Instagram 版本上，已涵蓋 %1$d 條路徑，共 %2$d 條。其餘路徑列於診斷報告。
 Hide suggested accounts in Messages	隱藏私訊中的建議帳號
 Takes the accounts Instagram suggests off the bottom of your messages. Your chats and follow requests stay. Restart Instagram to see the change.	移除私訊底部 Instagram 建議的帳號。聊天與追蹤邀請仍會保留。請重新啟動 Instagram 以套用變更。
+# context: switch on the Messages page after Hide suggested accounts in Messages; New message is Instagram's own label for the pencil button in the inbox top bar and the screen it opens (#762)
+Hide the New message button	隱藏新訊息按鈕
+Takes the pencil button for a new message off the top of your messages.	移除訊息頂端用來寫新訊息的鉛筆按鈕。
+# context: switch right after it; Suggested is the header Instagram puts over the people listed on the New message screen before you type, and new group is the screen for starting a group chat (#762)
+Hide suggestions in New message	隱藏新訊息中的建議
+Takes the Suggested people off the New message and new group screens. Search still finds anyone.	從新訊息和新群組畫面移除建議的人。搜尋仍然找得到任何人。
 A light tick each time the highlight slides past a tab, so it follows the bar as you tap or swipe between screens.	在點擊或滑動切換畫面時，標示每滑過一個分頁就會輕震一次，讓觸覺回饋跟隨分頁列。
 Blur behind the tab bar	模糊分頁列後方內容
 Blurs what's behind the pill on Android 12 and newer. Off, the pill is a frosted tint.	在 Android 12 以上版本模糊膠囊後方的內容。關閉時，膠囊使用霧面色調。

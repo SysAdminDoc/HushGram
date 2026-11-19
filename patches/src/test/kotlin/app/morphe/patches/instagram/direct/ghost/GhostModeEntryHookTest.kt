@@ -210,26 +210,33 @@ class GhostModeEntryHookTest {
         assertEquals("$where: stored in a View.OnClickListener field", "Landroid/view/View\$OnClickListener;",
             (tapStore.visualReference() as FieldReference).type)
         assertEquals("$where: the configuration", found.config, tapStore.namedRegisters()[1])
-        assertEquals("$where: the call", Opcode.INVOKE_STATIC, code[at].opcode)
-        assertEquals("$where: the hook", GHOST_LONG_PRESS, code[at].visualReference().toString())
-        assertEquals("$where: the answer", Opcode.MOVE_RESULT_OBJECT, code[at + 1].opcode)
-        assertEquals("$where: the answer's register", listOf(found.free), code[at + 1].namedRegisters())
-        assertEquals("$where: the store", Opcode.IPUT_OBJECT, code[at + 2].opcode)
-        assertEquals("$where: the registers", listOf(found.free, found.config), code[at + 2].namedRegisters())
-        assertEquals("$where: the field", found.longPress, code[at + 2].visualReference().toString())
+        assertEquals("$where: the stored listener", found.listener, tapStore.namedRegisters()[0])
+        assertEquals("$where: the tap field", found.tap, tapStore.visualReference().toString())
+        // The listener is marked as New message's first, so a bar binding the configuration can tell the button.
+        assertEquals("$where: the mark", Opcode.INVOKE_STATIC_RANGE, code[at].opcode)
+        assertEquals("$where: the mark's hook", GHOST_NEW_MESSAGE_ACTION, code[at].visualReference().toString())
+        assertEquals("$where: the mark's register", listOf(found.listener), code[at].namedRegisters())
+        assertEquals("$where: the call", Opcode.INVOKE_STATIC, code[at + 1].opcode)
+        assertEquals("$where: the hook", GHOST_LONG_PRESS, code[at + 1].visualReference().toString())
+        assertEquals("$where: the answer", Opcode.MOVE_RESULT_OBJECT, code[at + 2].opcode)
+        assertEquals("$where: the answer's register", listOf(found.free), code[at + 2].namedRegisters())
+        assertEquals("$where: the store", Opcode.IPUT_OBJECT, code[at + 3].opcode)
+        assertEquals("$where: the registers", listOf(found.free, found.config), code[at + 3].namedRegisters())
+        assertEquals("$where: the field", found.longPress, code[at + 3].visualReference().toString())
         assertTrue("$where: a long press field", found.longPress.endsWith(":Landroid/view/View\$OnLongClickListener;"))
         assertTrue("$where: the free register is not the configuration", found.free != found.config && found.free <= 15)
         assertEquals("$where: hooks", 1, code.count { it.visualReference().toString() == GHOST_LONG_PRESS })
+        assertEquals("$where: marks", 1, code.count { it.visualReference().toString() == GHOST_NEW_MESSAGE_ACTION })
 
-        // Only that builder changed, and only by those three instructions.
+        // Only that builder changed, and only by those four instructions.
         for ((type, original) in before) {
             val now = snapshot(context.mutableClassDefBy(type))
             for ((method, instructions) in original) {
                 if (method == signature) {
                     val after = now.getValue(method)
-                    assertEquals("$where: instructions added", instructions.size + 3, after.size)
+                    assertEquals("$where: instructions added", instructions.size + 4, after.size)
                     assertEquals("$where: before the hook", instructions.take(at), after.take(at))
-                    assertEquals("$where: after the hook", instructions.drop(at), after.drop(at + 3))
+                    assertEquals("$where: after the hook", instructions.drop(at), after.drop(at + 4))
                 } else if (method !in hooked) {
                     assertEquals("$where: $method changed", instructions, now.getValue(method))
                 }
@@ -237,7 +244,7 @@ class GhostModeEntryHookTest {
         }
     }
 
-    private companion object {
+    internal companion object {
         const val CLICK = "Landroid/view/View\$OnClickListener;"
         const val FUNCTION0 = "Lkotlin/jvm/functions/Function0;"
 

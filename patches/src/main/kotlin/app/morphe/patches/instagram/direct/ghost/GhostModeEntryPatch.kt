@@ -84,8 +84,8 @@ internal val ghostModeEntryPatch = bytecodePatch {
 
 /**
  * Where the button's configuration is built: the method, the instruction right after the one
- * that stores the button's tap listener in it, the register holding the configuration, a local
- * register free there, and the configuration's long press field.
+ * that stores the button's tap listener in it, the registers holding the configuration and the
+ * listener, a local register free there, and the configuration's long press and tap fields.
  */
 internal class GhostEntry(
     val type: String,
@@ -95,7 +95,22 @@ internal class GhostEntry(
     val config: Int,
     val free: Int,
     val longPress: String,
+    val listener: Int,
+    val tap: String,
 )
+
+/**
+ * What each patching run found of the two bars before changing them, for the patch hiding the New
+ * message button, which reaches the same buttons and can't search again once these hooks are in.
+ */
+private val olderBars = java.util.WeakHashMap<BytecodePatchContext, List<GhostEntry>>()
+private val newerBars = java.util.WeakHashMap<BytecodePatchContext, GhostAction>()
+
+/** The older bar's New message configurations this run hooked, or null when its search refused. */
+internal fun BytecodePatchContext.ghostEntriesFound(): List<GhostEntry>? = olderBars[this]
+
+/** The newer bar's New message maker and binder this run hooked, or null when its search refused. */
+internal fun BytecodePatchContext.ghostActionFound(): GhostAction? = newerBars[this]
 
 /** Gives both inbox top bars the long press on New message. Returns whether either got it. */
 internal fun BytecodePatchContext.addGhostModeEntry(): Boolean {
@@ -106,7 +121,9 @@ internal fun BytecodePatchContext.addGhostModeEntry(): Boolean {
 
 /**
  * Puts the extension's listener in each New message button's configuration, which Instagram's older action bar
- * binds to the button with setOnLongClickListener when the field isn't null. Returns whether it did.
+ * binds to the button with setOnLongClickListener when the field isn't null. The button's tap listener goes to
+ * the extension first, marked as New message's the way the newer bar's model is, so a bar binding a
+ * configuration can tell that button by its listener. Returns whether it did.
  */
 internal fun BytecodePatchContext.addGhostEntries(): Boolean {
     val entries = try {
@@ -115,6 +132,7 @@ internal fun BytecodePatchContext.addGhostEntries(): Boolean {
         patchLog.warning("${refusal.message}. Ghost mode is still in HushGram settings, and the long press on New message is left out of the older inbox top bar.")
         return false
     }
+    olderBars[this] = entries
     // Later instructions first, so an insert doesn't move the index of one still to come in the same method.
     for (found in entries.sortedByDescending { it.insertAt }) {
         val method = mutableClassDefBy(found.type).methods.single {
@@ -123,6 +141,7 @@ internal fun BytecodePatchContext.addGhostEntries(): Boolean {
         method.addInstructions(
             found.insertAt,
             """
+                invoke-static/range { v${found.listener} .. v${found.listener} }, $GHOST_NEW_MESSAGE_ACTION
                 invoke-static { }, $GHOST_LONG_PRESS
                 move-result-object v${found.free}
                 iput-object v${found.free}, v${found.config}, ${found.longPress}
@@ -158,6 +177,7 @@ internal fun BytecodePatchContext.addGhostAction(): Boolean {
         patchLog.warning("${refusal.message}. Ghost mode is still in HushGram settings, and the long press on New message is left out of the newer inbox top bar.")
         return false
     }
+    newerBars[this] = found
     val maker = mutableClassDefBy(found.makerType).methods.single {
         it.name == found.makerName && it.parameterTypes.map(CharSequence::toString) == found.makerParameters
     }
@@ -352,7 +372,11 @@ private fun BytecodePatchContext.entryAt(builder: Method, made: Int, controller:
     val insertAt = store + 1
     if (insertAt >= code.size || insertAt in builder.jumpTargets()) refuse("the place after the listener is stored is a jump target")
     val free = builder.freeLocalsAt(PATCH, insertAt, 1, except = listOf(config)).single()
-    return GhostEntry(builder.definingClass, builder.name, builder.parameterTypes.map(CharSequence::toString), insertAt, config, free, longPress)
+    val tap = "${tapField.definingClass}->${tapField.name}:${tapField.type}"
+    return GhostEntry(
+        builder.definingClass, builder.name, builder.parameterTypes.map(CharSequence::toString), insertAt, config, free, longPress,
+        listenerRegister, tap,
+    )
 }
 
 /**

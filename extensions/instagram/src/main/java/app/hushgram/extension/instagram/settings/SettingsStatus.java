@@ -232,6 +232,11 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Rewritten by the Hide New message button and suggestions patch. */
+    public static boolean newMessage() {
+        return false;
+    }
+
     public static boolean instants() {
         return false;
     }

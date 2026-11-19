@@ -968,6 +968,12 @@ Half a second	Medio segundo
 On this Instagram build it covers %1$d of %2$d routes. The diagnostic report lists the rest.	En esta compilación de Instagram cubre %1$d de %2$d vías. El informe de diagnóstico indica el resto.
 Hide suggested accounts in Messages	Ocultar cuentas sugeridas en Mensajes
 Takes the accounts Instagram suggests off the bottom of your messages. Your chats and follow requests stay. Restart Instagram to see the change.	Quita de la parte inferior de tus mensajes las cuentas que Instagram te sugiere. Tus chats y las solicitudes de seguimiento se quedan. Reinicia Instagram para ver el cambio.
+# context: switch on the Messages page after Hide suggested accounts in Messages; New message is Instagram's own label for the pencil button in the inbox top bar and the screen it opens (#762)
+Hide the New message button	Ocultar el botón Nuevo mensaje
+Takes the pencil button for a new message off the top of your messages.	Quita el botón del lápiz para un mensaje nuevo de la parte de arriba de tus mensajes.
+# context: switch right after it; Suggested is the header Instagram puts over the people listed on the New message screen before you type, and new group is the screen for starting a group chat (#762)
+Hide suggestions in New message	Ocultar sugerencias en Nuevo mensaje
+Takes the Suggested people off the New message and new group screens. Search still finds anyone.	Quita las personas sugeridas de las pantallas Nuevo mensaje y nuevo grupo. La búsqueda sigue encontrando a cualquiera.
 A light tick each time the highlight slides past a tab, so it follows the bar as you tap or swipe between screens.	Un toque suave cada vez que el resaltado pasa por una pestaña, para que siga la barra al tocar o deslizar entre pantallas.
 Blur behind the tab bar	Desenfoque tras la barra de pestañas
 Blurs what's behind the pill on Android 12 and newer. Off, the pill is a frosted tint.	Desenfoca lo que hay detrás de la píldora en Android 12 y posteriores. Desactivado, la píldora es un tinte esmerilado.

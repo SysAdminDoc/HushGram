@@ -30,7 +30,9 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * button configuration, and the patch hands {@link #longPress()}'s answer to its long press field.
  * The newer one (IgdsActionBar) is built from action models with no long press of their own, so the
  * patch marks the New message model as Instagram makes it ({@link #newMessageAction}) and the bar's
- * binder hands each button here with its model ({@link #bindAction}).
+ * binder hands each button here with its model ({@link #bindAction}). The older bar's New message
+ * tap listener is marked the same way as its configuration is built, so either bar's button can be
+ * told apart by what it's bound to ({@link #isNewMessage}).
  *
  * <p>The listener is null unless the build carries a ghost patch, and it checks Pause when the
  * press lands, so a paused HushGram does nothing there, as stock Instagram does.
@@ -48,7 +50,10 @@ public final class GhostModeEntry {
     /** Whether longPress() has logged its first answer. */
     private static final AtomicBoolean ANSWER_LOGGED = new AtomicBoolean();
 
-    /** The newer bar's New message models Instagram made, held weakly so a dropped bar lets them go. */
+    /**
+     * The newer bar's New message models and the older bar's New message tap listeners Instagram
+     * made, held weakly so a dropped bar lets them go.
+     */
     private static final Map<Object, Boolean> NEW_MESSAGE = Collections.synchronizedMap(new WeakHashMap<>());
 
     /** The newer bar's buttons given the long press, so a button the bar reuses for another action loses it. */
@@ -71,13 +76,21 @@ public final class GhostModeEntry {
         }
     }
 
-    /** Called with each New message model the newer bar's maker answers. Null, when it has none, is left alone. */
+    /**
+     * Called with each New message model the newer bar's maker answers, and with the New message
+     * tap listener the older bar's header builder makes. Null, when it has none, is left alone.
+     */
     public static void newMessageAction(Object action) {
         try {
             if (action != null) NEW_MESSAGE.put(action, Boolean.TRUE);
         } catch (Throwable t) {
             HookStatus.threw(ROUTE, "New message model", t);
         }
+    }
+
+    /** Whether [action] is a New message model or tap listener marked by {@link #newMessageAction}. */
+    public static boolean isNewMessage(Object action) {
+        return action != null && NEW_MESSAGE.containsKey(action);
     }
 
     /**

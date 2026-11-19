@@ -31,7 +31,8 @@ final class MessagesCategory {
     static void add(HushgramPreferenceFragment page, PreferenceScreen screen, Context context, Set<PatchFamily> build) {
         if (build.contains(PatchFamily.NOTES_ROW) || build.contains(PatchFamily.SPLIT_NOTES_ROW)
                 || build.contains(PatchFamily.INBOX_SEARCH)
-                || build.contains(PatchFamily.INBOX_SUGGESTIONS) || build.contains(PatchFamily.INSTANTS)
+                || build.contains(PatchFamily.INBOX_SUGGESTIONS) || build.contains(PatchFamily.NEW_MESSAGE)
+                || build.contains(PatchFamily.INSTANTS)
                 || build.contains(PatchFamily.THREAD_SEEN) || build.contains(PatchFamily.TYPING)
                 || build.contains(PatchFamily.DM_MEDIA_SEEN)
                 || build.contains(PatchFamily.ACTIVE_STATUS)
@@ -79,6 +80,14 @@ final class MessagesCategory {
                         L10n.t("Hide suggested accounts in Messages"),
                         L10n.t("Takes the accounts Instagram suggests off the bottom of your messages. Your chats "
                                 + "and follow requests stay. Restart Instagram to see the change.")));
+            }
+            if (build.contains(PatchFamily.NEW_MESSAGE)) {
+                messages.addPreference(toggle(context, Settings.HIDE_NEW_MESSAGE_BUTTON,
+                        L10n.t("Hide the New message button"),
+                        L10n.t("Takes the pencil button for a new message off the top of your messages.")));
+                messages.addPreference(toggle(context, Settings.HIDE_NEW_MESSAGE_SUGGESTIONS,
+                        L10n.t("Hide suggestions in New message"),
+                        L10n.t("Takes the Suggested people off the New message and new group screens. Search still finds anyone.")));
             }
             if (build.contains(PatchFamily.INSTANTS)) {
                 messages.addPreference(toggle(context, Settings.HIDE_INSTANTS, L10n.t("Hide Instants"),

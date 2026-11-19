@@ -165,6 +165,8 @@ public enum PatchFamily {
     SPLIT_NOTES_ROW(FamilyNames.SPLIT_NOTES_ROW, "splitNotesRow", null, Settings.SPLIT_NOTES_ROW),
     INBOX_SEARCH(FamilyNames.INBOX_SEARCH, "inboxSearch", null, Settings.HIDE_INBOX_SEARCH),
     INBOX_SUGGESTIONS(FamilyNames.INBOX_SUGGESTIONS, "inboxSuggestions", null, Settings.HIDE_INBOX_SUGGESTIONS),
+    NEW_MESSAGE(FamilyNames.NEW_MESSAGE, "newMessage", null, Settings.HIDE_NEW_MESSAGE_BUTTON,
+            Settings.HIDE_NEW_MESSAGE_SUGGESTIONS),
     INSTANTS(FamilyNames.INSTANTS, "instants", null, Settings.HIDE_INSTANTS),
     SHARE_SHEET(FamilyNames.SHARE_SHEET, "shareSheet", null, Settings.HIDE_SHARE_SHEET_GROUP, Settings.HIDE_SHARE_SHEET_SEARCH),
     REPOST_BUTTON(FamilyNames.REPOST_BUTTON, "repostButton", null, Settings.HIDE_REPOST_BUTTON),
