@@ -4,24 +4,33 @@
  */
 package app.morphe.patches.instagram.download.profile
 
+import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
+import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
 import app.morphe.patcher.extensions.InstructionExtensions.replaceInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
+import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.instagram.misc.extension.classesCreating
 import app.morphe.patches.instagram.misc.extension.classesLoadingString
+import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.patchLog
 import app.morphe.patches.instagram.misc.extension.stringLoadedAt
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.ThreeRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
+import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 
 /** The extension's side of Long press a profile picture to view it (#737). */
 internal const val PICTURE_HOLD = "$EXTENSION_PACKAGE/download/ProfilePictureHold;"
@@ -156,6 +165,122 @@ private fun pictureRead(code: List<Instruction>, at: Int, register: Int): Boolea
         return write.opcode == Opcode.IGET_OBJECT && field?.type in PICTURE_VIEWS
     }
     return false
+}
+
+/** The extension's answer for the picture that turns between the photo and the avatar (#758): whether the viewer opened. */
+internal const val FLIP_HOOK = "$PICTURE_HOLD->flipped(Landroid/view/View;)Z"
+
+/** That picture, which keeps its name on every 456 build. */
+internal const val COIN_FLIP_VIEW = "Lcom/instagram/avatars/coinflip/ProfileCoinFlipView;"
+
+/** What the picture's gesture listener calls to open Instagram's card on a long press. */
+internal const val OPEN_CARD = "Lkotlin/jvm/functions/Function0;->invoke()Ljava/lang/Object;"
+
+internal const val GESTURE_DETECTOR = "Landroid/view/GestureDetector;"
+internal const val GESTURE_LISTENER = "Landroid/view/GestureDetector\$OnGestureListener;"
+internal const val MOTION_EVENT = "Landroid/view/MotionEvent;"
+private const val FUNCTION0 = "Lkotlin/jvm/functions/Function0;"
+
+/**
+ * The coin-flip picture's long press: in [owner]'s onLongPress, [read] reads Instagram's card off
+ * the picture's controller in [controller] into [card], and the call right after it opens the card.
+ * [picture] is the controller's field holding the picture.
+ */
+internal class CoinFlipHold(val owner: String, val read: Int, val controller: Int, val card: Int, val picture: String)
+
+/**
+ * Finds the long press of the profile picture that turns between the photo and the account's avatar
+ * (#758), or null after the patch log says why, so the other pictures keep the hook without it. That
+ * picture takes its presses through a GestureDetector, not a long press listener. Its controller is
+ * the one class creating a GestureDetector that has a [COIN_FLIP_VIEW] field; the listener is the
+ * GestureDetector listener the controller creates, and its onLongPress reads a Function0 off the
+ * controller and calls [OPEN_CARD] on it, once.
+ */
+internal fun BytecodePatchContext.findCoinFlipHold(): CoinFlipHold? {
+    fun skip(why: String): CoinFlipHold? {
+        patchLog.warning("$HOLD_PATCH: $why. The other profile pictures keep the long press without it.")
+        return null
+    }
+    val hold = classDefByOrNull(PICTURE_HOLD) ?: throw PatchException("$HOLD_PATCH: the extension has no $PICTURE_HOLD")
+    if (hold.methods.none { it.reference() == FLIP_HOOK && AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }) {
+        throw PatchException("$HOLD_PATCH: the extension has no public static $FLIP_HOOK")
+    }
+    val controllers = classesCreating(GESTURE_DETECTOR).filter { it.pictureFields().size == 1 }
+    val controller = controllers.singleOrNull() ?: return skip("expected one coin-flip picture controller, found ${controllers.size}")
+    val picture = controller.pictureFields().single()
+    // The listener implements Instagram's own interface, which extends the platform's.
+    fun listens(type: String, depth: Int = 0): Boolean =
+        type == GESTURE_LISTENER || (depth < 4 && classDefByOrNull(type)?.interfaces?.any { listens(it.toString(), depth + 1) } == true)
+    val listeners = controller.methods.flatMap { method ->
+        method.implementation?.instructions?.filter { it.opcode == Opcode.NEW_INSTANCE }.orEmpty()
+            .map { ((it as ReferenceInstruction).reference as TypeReference).type }
+    }.distinct().mapNotNull { classDefByOrNull(it) }.filter { listener -> listener.interfaces.any { listens(it.toString()) } }
+    val listener = listeners.singleOrNull() ?: return skip("expected one gesture listener for the coin-flip picture, found ${listeners.size}")
+    val press = listener.methods.singleOrNull {
+        it.name == "onLongPress" && it.returnType == "V" && it.parameterTypes.map(Any::toString) == listOf(MOTION_EVENT)
+    } ?: return skip("the coin-flip picture's gesture listener ${listener.type} has no onLongPress")
+    return press.coinFlipSite(controller.type, picture) ?: skip("${listener.type}->onLongPress doesn't open the card the way the hook was written for")
+}
+
+/** [COIN_FLIP_VIEW] fields of this class, as references. */
+private fun ClassDef.pictureFields(): List<String> =
+    fields.filter { it.type == COIN_FLIP_VIEW && !AccessFlags.STATIC.isSet(it.accessFlags) }.map { "${it.definingClass}->${it.name}:${it.type}" }
+
+/**
+ * Where this onLongPress opens the card, or null when it doesn't the one way the hook was written
+ * for: one [OPEN_CARD] on a register an iget-object of a Function0 field of [controller] wrote right
+ * before it, nothing branching onto that read, no move-result taking the card's answer, and nothing
+ * after the call using the card's register, which the hook leaves holding its own answer.
+ */
+internal fun Method.coinFlipSite(controller: String, picture: String): CoinFlipHold? {
+    val code = implementation?.instructions?.toList() ?: return null
+    val calls = code.indices.filter { code[it].opcode == Opcode.INVOKE_INTERFACE && (code[it] as ReferenceInstruction).reference.toString() == OPEN_CARD }
+    val call = calls.singleOrNull() ?: return null
+    val read = call - 1
+    val get = code.getOrNull(read) as? TwoRegisterInstruction ?: return null
+    val field = (get as? ReferenceInstruction)?.reference as? FieldReference ?: return null
+    val card = (code[call] as FiveRegisterInstruction).registerC
+    if (get.opcode != Opcode.IGET_OBJECT || field.definingClass != controller || field.type != FUNCTION0 || get.registerA != card) return null
+    // The hook reads the picture into the card's register, so the controller has to live elsewhere.
+    if (get.registerB == card) return null
+    val after = code.getOrNull(call + 1) ?: return null
+    if (after.opcode == Opcode.MOVE_RESULT_OBJECT || read in jumpTargets()) return null
+    if (code.drop(call + 1).any { card in it.registers() }) return null
+    return CoinFlipHold(definingClass, read, get.registerB, card, picture)
+}
+
+/**
+ * Only called with what [findCoinFlipHold] found: right before the card's read, the picture goes to
+ * [FLIP_HOOK], and when the viewer opened the long press goes on past the card's call.
+ */
+internal fun BytecodePatchContext.applyCoinFlipHold(found: CoinFlipHold) {
+    val method = mutableClassDefBy(found.owner).methods.single {
+        it.name == "onLongPress" && it.returnType == "V" && it.parameterTypes.map(Any::toString) == listOf(MOTION_EVENT)
+    }
+    val site = method.coinFlipSite(found.picture.substringBefore("->"), found.picture)
+    if (site == null || site.read != found.read || site.controller != found.controller || site.card != found.card) {
+        throw PatchException("$HOLD_PATCH: ${found.owner}->onLongPress changed after its card call was found")
+    }
+    method.addInstructionsWithLabels(
+        found.read,
+        """
+            iget-object v${found.card}, v${found.controller}, ${found.picture}
+            invoke-static/range { v${found.card} .. v${found.card} }, $FLIP_HOOK
+            move-result v${found.card}
+            if-nez v${found.card}, :held
+        """,
+        ExternalLabel("held", method.getInstruction(found.read + 2)),
+    )
+}
+
+/** The registers an instruction names, wide halves left out. */
+private fun Instruction.registers(): List<Int> = when (this) {
+    is FiveRegisterInstruction -> listOf(registerC, registerD, registerE, registerF, registerG).take(registerCount)
+    is RegisterRangeInstruction -> (startRegister until startRegister + registerCount).toList()
+    is ThreeRegisterInstruction -> listOf(registerA, registerB, registerC)
+    is TwoRegisterInstruction -> listOf(registerA, registerB)
+    is OneRegisterInstruction -> listOf(registerA)
+    else -> emptyList()
 }
 
 private fun Opcode.isInvoke(): Boolean = this in setOf(

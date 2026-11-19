@@ -7,22 +7,32 @@ package app.morphe.patches.instagram.download.profile
 import app.morphe.ExtensionDex
 import app.morphe.Fixtures
 import app.morphe.PatchContexts
+import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
+import app.morphe.patcher.extensions.InstructionExtensions.removeInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.instagram.NeutralNativePath
 import app.morphe.patches.shared.compat.AppCompatibilities
+import app.morphe.util.ControlFlow
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.WideLiteralInstruction
+import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
+import com.android.tools.smali.dexlib2.iface.reference.TypeReference
+import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
+import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
+import com.android.tools.smali.dexlib2.immutable.ImmutableMethodParameter
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
@@ -82,6 +92,170 @@ class ProfilePictureHoldHookTest {
     fun eachOtherBuildHooksBothBindersToo() {
         for (base in Fixtures.otherBuilds()) hooks(base, base.parentFile.name)
     }
+
+    @Test
+    fun theFlipHookIsInTheExtension() {
+        val declared = ExtensionDex.classDef(PICTURE_HOLD).methods
+            .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
+            .map { "$PICTURE_HOLD->${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
+        assertTrue("$FLIP_HOOK is not in the extension: $declared", FLIP_HOOK in declared)
+    }
+
+    @Test
+    fun aBuildWithoutTheCoinFlipPictureLeavesTheRestOfThePatchIn() {
+        assertNull(PatchContexts.of(listOf(ExtensionDex.classDef(PICTURE_HOLD))).findCoinFlipHold())
+    }
+
+    @Test
+    fun anExtensionWithoutTheFlipHookFailsThePatch() {
+        val missing = assertThrows(PatchException::class.java) { PatchContexts.of(emptyList()).findCoinFlipHold() }
+        assertTrue(missing.message, missing.message!!.contains("the extension has no"))
+    }
+
+    /** #758: the picture that turns between the photo and the avatar opens Instagram's card from its gesture listener. */
+    @Test
+    fun eachDeclaredBuildHooksTheCoinFlipPicture() {
+        val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
+        val checked = mutableSetOf<String>()
+        for (version in versions) {
+            for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
+                flips(bundle, bundle.name)
+                checked += version
+            }
+        }
+        assertEquals("a declared build has no fixture", versions, checked)
+    }
+
+    @Test
+    fun eachOtherBuildHooksTheCoinFlipPictureToo() {
+        for (base in Fixtures.otherBuilds()) flips(base, base.parentFile.name)
+    }
+
+    @Test
+    fun theCardCallIsFoundOnTheStockShape() {
+        val site = longPress().coinFlipSite(CONTROLLER, PICTURE) ?: throw AssertionError("the stock shape wasn't found")
+        assertEquals(listOf(LISTENER, 1, 1, 0, PICTURE), listOf(site.owner, site.read, site.controller, site.card, site.picture))
+    }
+
+    @Test
+    fun aCardRegisterReadAfterTheCallIsLeftAlone() {
+        assertNull(longPress(after = "invoke-static { v0 }, Lfixture/Use;->read(Ljava/lang/Object;)V").coinFlipSite(CONTROLLER, PICTURE))
+    }
+
+    @Test
+    fun aCardWhoseAnswerIsTakenIsLeftAlone() {
+        assertNull(longPress(after = "move-result-object v3").coinFlipSite(CONTROLLER, PICTURE))
+    }
+
+    @Test
+    fun aCardReadOffItsOwnRegisterIsLeftAlone() {
+        assertNull(longPress(read = "iget-object v0, v0, $CONTROLLER->A0I:$FUNCTION0_TYPE", controller = 0).coinFlipSite(CONTROLLER, PICTURE))
+    }
+
+    @Test
+    fun aCardReadSomethingJumpsOntoIsLeftAlone() {
+        assertNull(longPress(jump = true).coinFlipSite(CONTROLLER, PICTURE))
+    }
+
+    @Test
+    fun aCardFromAnotherClassIsLeftAlone() {
+        assertNull(longPress().coinFlipSite("Lfixture/Other;", PICTURE))
+    }
+
+    /**
+     * The listener's onLongPress as 456 has it: the controller off the listener, the card off the
+     * controller, the card's call, the controller's animation.
+     */
+    private fun longPress(
+        read: String = "iget-object v0, v1, $CONTROLLER->A0I:$FUNCTION0_TYPE",
+        controller: Int = 1,
+        after: String = "",
+        jump: Boolean = false,
+    ): Method {
+        val method = MutableMethod(ImmutableMethod(LISTENER, "onLongPress",
+            listOf(ImmutableMethodParameter(MOTION_EVENT, null, null)), "V",
+            AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, null, null,
+            ImmutableMethodImplementation(4, emptyList(), null, null)))
+        method.addInstructionsWithLabels(0, """
+            iget-object v$controller, v2, $LISTENER->A00:$CONTROLLER
+            ${if (jump) "goto :read" else "nop"}
+            :read
+            $read
+            invoke-interface { v0 }, $OPEN_CARD
+            $after
+            invoke-static { v1 }, $CONTROLLER->A03($CONTROLLER)V
+            return-void
+        """.trimIndent())
+        // Drop the filler so the read sits at 1 when nothing jumps.
+        if (!jump) method.removeInstruction(1)
+        return method
+    }
+
+    /**
+     * Finds the card's call on its own, as the one onLongPress(MotionEvent) in the build calling
+     * Function0.invoke on a card read off a class holding the coin-flip picture, then checks the
+     * patch found that call and hooked it with nothing else in the method moving.
+     */
+    private fun flips(bundle: File, label: String) {
+        val calls = FixtureDex.methodsWhere(bundle, { true }) { method ->
+            method.name == "onLongPress" && method.returnType == "V" && method.parameterTypes.map(Any::toString) == listOf(MOTION_EVENT) &&
+                method.code().any { it.referenceText() == OPEN_CARD }
+        }
+        val owners = calls.map { it.code() }.flatMap { code ->
+            code.indices.filter { code[it].referenceText() == OPEN_CARD && it > 0 }
+                .mapNotNull { (code[it - 1].referenceObject() as? FieldReference)?.definingClass }
+        }.toSet()
+        val holders = FixtureDex.classes(bundle, owners).values.filter { holder -> holder.fields.any { it.type == COIN_FLIP_VIEW } }
+        val holder = holders.singleOrNull() ?: throw AssertionError("$label: expected one class holding the coin-flip picture and a card, found ${holders.map { it.type }}")
+        val stock = calls.filter { call ->
+            val code = call.code()
+            code.indices.any { code[it].referenceText() == OPEN_CARD && it > 0 && (code[it - 1].referenceObject() as? FieldReference)?.definingClass == holder.type }
+        }.singleOrNull() ?: throw AssertionError("$label: expected one onLongPress opening the card")
+        val stockCode = stock.code()
+        val stockCall = stockCode.indices.single { stockCode[it].referenceText() == OPEN_CARD }
+
+        // What the patch reads: the classes creating a GestureDetector, what they create, and the interfaces of those.
+        val creators = FixtureDex.classesCreating(bundle, setOf(GESTURE_DETECTOR))
+        val created = creators.flatMap { it.methods }.flatMap { it.code() }.filter { it.opcode == Opcode.NEW_INSTANCE }
+            .mapNotNull { (it.referenceObject() as? TypeReference)?.type }.toSet()
+        val createdClasses = FixtureDex.classes(bundle, created).values
+        val interfaces = FixtureDex.classes(bundle, createdClasses.flatMap { it.interfaces }.toSet()).values
+        val context = PatchContexts.of((creators + createdClasses + interfaces).distinctBy { it.type } + ExtensionDex.classDef(PICTURE_HOLD))
+
+        val found = context.findCoinFlipHold() ?: throw AssertionError("$label: the patch found no coin-flip long press")
+        val where = "$label: ${found.owner}->onLongPress"
+        assertEquals("$where: the listener", stock.definingClass, found.owner)
+        assertEquals("$where: the card's read, right before its call", stockCall - 1, found.read)
+        assertEquals("$where: the picture", COIN_FLIP_VIEW, found.picture.substringAfter(":"))
+        assertEquals("$where: the picture is the controller's", holder.type, found.picture.substringBefore("->"))
+        val read = stockCode[found.read] as TwoRegisterInstruction
+        assertEquals("$where: the card's register", (stockCode[stockCall] as FiveRegisterInstruction).registerC, found.card)
+        assertEquals("$where: the controller's register", read.registerB, found.controller)
+
+        val method = context.mutableClassDefBy(found.owner).methods.single { it.name == "onLongPress" && it.parameterTypes.map(Any::toString) == listOf(MOTION_EVENT) }
+        val path = NeutralNativePath(method)
+        context.applyCoinFlipHold(found)
+
+        val code = method.code()
+        val at = found.read
+        val picture = code[at] as TwoRegisterInstruction
+        assertEquals("$where: the picture read first", Opcode.IGET_OBJECT, code[at].opcode)
+        assertEquals("$where: the picture into the card's register, off the controller", listOf(found.card, found.controller), listOf(picture.registerA, picture.registerB))
+        assertEquals("$where: the picture field", found.picture, code[at].referenceText())
+        assertEquals("$where: then the hook", FLIP_HOOK, code[at + 1].referenceText())
+        assertTrue("$where: a static call", code[at + 1].opcode == Opcode.INVOKE_STATIC_RANGE || code[at + 1].opcode == Opcode.INVOKE_STATIC)
+        assertEquals("$where: on the picture", listOf(found.card), code[at + 1].arguments())
+        assertEquals("$where: its answer", Opcode.MOVE_RESULT, code[at + 2].opcode)
+        assertEquals("$where: its answer in the card's register", found.card, (code[at + 2] as OneRegisterInstruction).registerA)
+        assertEquals("$where: a yes skips the card", Opcode.IF_NEZ, code[at + 3].opcode)
+        assertEquals("$where: on the answer", found.card, (code[at + 3] as OneRegisterInstruction).registerA)
+        assertEquals("$where: Instagram's card read is next", stockCode[found.read].referenceText(), code[at + 4].referenceText())
+        assertEquals("$where: then its call", OPEN_CARD, code[at + 5].referenceText())
+        assertEquals("$where: a yes goes to the instruction after the card's call", at + 6, ControlFlow.of(method).normal[at + 3].first())
+        path.assertPreserved(where, method, setOf(at, at + 1, at + 2, at + 3))
+    }
+
+    private fun Instruction.referenceObject() = (this as? ReferenceInstruction)?.reference
 
     private fun anchorClasses(bundle: File): List<ClassDef> =
         (FixtureDex.classesLoading(bundle, LEGACY_AVATAR) + FixtureDex.classesLoading(bundle, COMPOSE_AVATAR)).distinctBy { it.type }
@@ -170,5 +344,9 @@ class ProfilePictureHoldHookTest {
             "LX/*;LX/*;LX/*;LX/*;LX/*;LX/*;Ljava/lang/Integer;Ljava/lang/Integer;Ljava/lang/Object;Ljava/lang/Object;Ljava/util/List;IZ)V"
         const val COMPOSE_SHAPE = "(Landroidx/fragment/app/Fragment;LX/*;LX/*;LX/*;LX/*;)V"
         val COMPOSE_NUMBERS = listOf(0x8109600006361aL, 0x810f47000a5516L)
+        const val LISTENER = "Lfixture/Listener;"
+        const val CONTROLLER = "Lfixture/Controller;"
+        const val FUNCTION0_TYPE = "Lkotlin/jvm/functions/Function0;"
+        const val PICTURE = "$CONTROLLER->A0F:$COIN_FLIP_VIEW"
     }
 }

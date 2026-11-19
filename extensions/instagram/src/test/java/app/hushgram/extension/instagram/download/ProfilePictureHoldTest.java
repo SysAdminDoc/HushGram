@@ -306,6 +306,45 @@ public class ProfilePictureHoldTest {
         assertTrue(instagram.isEmpty());
     }
 
+    // #758: the picture that turns between the photo and the avatar asks flipped before Instagram's card.
+
+    @Test public void offTheCoinFlipPictureKeepsInstagramsCard() {
+        assertFalse(ProfilePictureHold.flipped(picture));
+        assertTrue(opened.isEmpty());
+        assertEquals(Collections.singletonList(FamilyNames.PROFILE_PICTURE + ": invoked 1, 0 found, 0 missing"),
+                HookStatus.report());
+    }
+
+    @Test public void onTheCoinFlipPictureOpensTheViewerInsteadOfTheCard() {
+        Settings.PROFILE_PICTURE_LONG_PRESS.save(true);
+        assertTrue(ProfilePictureHold.flipped(picture));
+        assertEquals(1, opened.size());
+        assertEquals("someone", opened.get(0).owner);
+        assertEquals(java.util.Arrays.asList(FULL, SHOWN), urls(opened.get(0).sizes));
+        assertTrue(HookStatus.report().get(0).endsWith("picture long press opened the viewer 1"));
+    }
+
+    @Test public void pausedTheCoinFlipPictureKeepsInstagramsCard() {
+        Settings.PROFILE_PICTURE_LONG_PRESS.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertFalse(ProfilePictureHold.flipped(picture));
+        assertTrue(opened.isEmpty());
+    }
+
+    @Test public void aCoinFlipPictureWithNoAccountOrAFailingViewerKeepsInstagramsCard() {
+        Settings.PROFILE_PICTURE_LONG_PRESS.save(true);
+        ImageView loose = new ImageView(activity.get());
+        new FrameLayout(activity.get()).addView(loose);
+        assertFalse(ProfilePictureHold.flipped(loose));
+        opens = false;
+        assertFalse(ProfilePictureHold.flipped(picture));
+        ProfilePictureHold.viewer = (context, sizes, owner, save, allowed) -> {
+            throw new IllegalStateException("no window");
+        };
+        assertFalse(ProfilePictureHold.flipped(picture));
+        assertEquals(1, opened.size());
+    }
+
     /** Instagram's reads of an account's picture: [someone]'s two sizes, [other]'s one. */
     private class Reads implements ProfilePicture.Native {
         @Override public boolean addRow(Object sheet, Context context, View.OnClickListener listener, String label) { return false; }

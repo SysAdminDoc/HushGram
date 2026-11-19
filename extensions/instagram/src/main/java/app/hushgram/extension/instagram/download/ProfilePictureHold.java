@@ -29,6 +29,10 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * switch is read at the press, so turning it on or off counts on the next long press: off, paused,
  * or with no account or picture found, the press goes to Instagram's listener as before. A tap is
  * never touched. The account is the one the profile's top bar shows ({@link ProfileExtras#accountAround}).
+ *
+ * <p>An account with an avatar gets a picture that turns between the photo and the avatar, and its
+ * long press opens Instagram's card from a gesture listener. The patch asks {@link #flipped} there
+ * first, and the card stays shut when the viewer opened (#758).
  */
 public final class ProfilePictureHold {
     private ProfilePictureHold() {
@@ -72,6 +76,17 @@ public final class ProfilePictureHold {
             set = listener;
         }
         view.setOnLongClickListener(set);
+    }
+
+    /**
+     * Injected in the long press of the picture that turns between the photo and the account's
+     * avatar (#758), right before it opens Instagram's card: answers whether the viewer opened on
+     * [picture], so the card stays shut. That picture takes its long press through a gesture
+     * listener, never a long press listener, so {@link #hold} doesn't reach it. Never throws.
+     */
+    public static boolean flipped(View picture) {
+        HookStatus.invoked(ROUTE);
+        return view(picture);
     }
 
     /** Whether the switch is on, which a pause answers off. */

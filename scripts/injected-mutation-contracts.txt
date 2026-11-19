@@ -3385,6 +3385,13 @@ once-call Lapp/hushgram/extension/instagram/download/ProfilePicture;->offerPopup
 # sites on each declared build and every other one.
 sole-call Lapp/hushgram/extension/instagram/download/ProfilePictureHold;->hold(Landroid/view/View;Landroid/view/View$OnLongClickListener;)V replacing Landroid/view/View;->setOnLongClickListener(Landroid/view/View$OnLongClickListener;)V in static (Landroid/content/Context;Landroid/view/View;LX/*;Lcom/instagram/common/session/UserSession;LX/*;LX/*;LX/*;LX/*;LX/*;LX/*;Ljava/lang/Integer;Ljava/lang/Integer;Ljava/lang/Object;Ljava/lang/Object;Ljava/util/List;IZ)V sites each pooled holding LegacyProfileAvatarViewBinder.bindView ComposeProfileAvatarViewBinder.bindView
 sole-call Lapp/hushgram/extension/instagram/download/ProfilePictureHold;->hold(Landroid/view/View;Landroid/view/View$OnLongClickListener;)V replacing Landroid/view/View;->setOnLongClickListener(Landroid/view/View$OnLongClickListener;)V in instance (Landroidx/fragment/app/Fragment;LX/*;LX/*;LX/*;LX/*;)V sites each holding const:0x8109600006361a const:0x810f47000a5516
+# An account with an avatar gets a picture that turns between the photo and the avatar (#758), and
+# its long press reaches Instagram's card from a GestureDetector listener, never a long press
+# listener. The patch reads the picture off the controller and asks ProfilePictureHold.flipped right
+# before the card's Function0 read in that listener's onLongPress (0HIo on 456's 386214574, whose
+# class reads the controller's ProfileCoinFlipView field in onScroll), and a yes skips the card's call.
+# Left out, that picture's long press opens Instagram's card with the switch on.
+once-call Lapp/hushgram/extension/instagram/download/ProfilePictureHold;->flipped(Landroid/view/View;)Z in instance (Landroid/view/MotionEvent;)V calling instance Lkotlin/jvm/functions/Function0;->invoke()Ljava/lang/Object; class-holding LX/*;->*:Lcom/instagram/avatars/coinflip/ProfileCoinFlipView;
 # Profile extras button (#234) hands ProfileExtras.bound the profile bar and its right row first thing
 # in the bar's bind (ProfileActionBar.A00 on 452, the same one method Hide the Threads button reads the
 # list in). The bar empties both rows on every bind, so the extension puts its button in again behind
