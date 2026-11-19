@@ -50,7 +50,7 @@ class FeedAudioIconPatchTest {
 
     @Test
     fun theStatusMethodIsSwitchedOn() {
-        val context = PatchContexts.of(listOf(ExtensionDex.classDef(SETTINGS_STATUS)) + classes())
+        val context = PatchContexts.of(listOf(ExtensionDex.classDef(SETTINGS_STATUS)) + classes() + TagIndicatorFixture.classes())
         feedAudioIconPatch.execute(context)
         val status = context.method(SETTINGS_STATUS, FEED_AUDIO_ICON_STATUS).code()
         assertEquals(1, (status.first() as NarrowLiteralInstruction).narrowLiteral)
@@ -129,7 +129,10 @@ class FeedAudioIconPatchTest {
     private fun hidesIcon(bundle: File, label: String) {
         val holders = FixtureDex.classesLoading(bundle, AUDIO_ICON_LABEL)
         assertTrue("$label: no class prints the label", holders.isNotEmpty())
-        val context = PatchContexts.of(listOf(ExtensionDex.classDef(SETTINGS_STATUS)) + FixtureDex.withStringPools(bundle, holders))
+        val audio = FixtureDex.withStringPools(bundle, holders)
+        val audioTypes = audio.mapTo(HashSet()) { it.type }
+        val tag = TagIndicatorFixture.slice(bundle).filter { it.type !in audioTypes }
+        val context = PatchContexts.of(listOf(ExtensionDex.classDef(SETTINGS_STATUS)) + audio + tag)
         val found = context.findFeedAudioIcon()
 
         feedAudioIconPatch.execute(context)
@@ -146,6 +149,10 @@ class FeedAudioIconPatchTest {
         val code = hooked.single().code()
         val at = code.indexOfFirst { it.reference()?.toString() == HIDES_AUDIO_ICON }
         assertHooked("$label ${found.type}", code.filter { it.opcode != Opcode.NOP }, at, found.register)
+        val tagged = tag.flatMap { classDef ->
+            context.mutableClassDefBy(classDef.type).methods.filter { method -> method.code().any { it.reference()?.toString() == TAG_INDICATOR } }
+        }
+        assertEquals("$label: the tag icon's bind hooked too", 1, tagged.size)
     }
 
     /** invoke/range on the stored register, its answer back into the same register, then the store. */

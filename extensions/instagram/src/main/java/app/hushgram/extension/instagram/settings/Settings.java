@@ -3158,6 +3158,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_feed_audio_icon", FALSE);
 
     /**
+     * The small person icon in the corner of a post with people tagged in it (#762,
+     * {@link app.hushgram.extension.instagram.feed.FeedAudioIcon#tagIndicator}). Read as the icon is
+     * bound, so a post already on screen changes when Instagram draws it again. Off to start.
+     */
+    public static final BooleanSetting HIDE_FEED_TAG_ICON =
+            new BooleanSetting("hushgram_hide_feed_tag_icon", FALSE);
+
+    /**
      * Home's header staying in place while the feed scrolls
      * ({@link app.hushgram.extension.instagram.feed.HomeTopBar}). Home hands its header to the
      * scroll controller as it opens, so the restart card comes up. Off to start.

@@ -1902,6 +1902,9 @@ While you swipe through a chat's reels, a banner says when the other person sent
 New message after this reel	这则 Reel 之后有新消息
 Hide the audio icon on posts	隐藏帖子上的音频图标
 Takes the speaker icon off videos in your feed. Tapping the video still turns the sound on or off. Posts already on screen change when they load again.	移除动态中视频上的喇叭图标。点一下视频仍可打开或关闭声音。画面上已有的帖子会在重新加载后更新。
+# context: second switch on the Feed page under Hide the audio icon on posts; the tag icon is the small person badge in the corner of a post with people tagged (#762)
+Hide the tag icon on posts	隐藏帖子上的标记图标
+Takes the little person icon off posts with people tagged in them. Tapping the photo still shows who's tagged.	移除有标记他人的帖子上的小人像图标。点一下照片仍会显示标记了谁。
 Light when paused	暂停时亮起
 Pause a reel and Burn-in guard brings the buttons back to full brightness until you play it again or swipe on. The wait then starts over.	暂停 Reels 后，防烙印保护会让按钮恢复全亮，直到你再次播放或滑到下一部。之后等待时间会重新计算。
 Grow the heart	放大爱心

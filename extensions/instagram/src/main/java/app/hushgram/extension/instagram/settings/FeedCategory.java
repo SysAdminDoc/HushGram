@@ -410,6 +410,9 @@ final class FeedCategory {
             feed.addPreference(toggle(context, Settings.HIDE_FEED_AUDIO_ICON, L10n.t("Hide the audio icon on posts"),
                     L10n.t("Takes the speaker icon off videos in your feed. Tapping the video still turns the sound on "
                             + "or off. Posts already on screen change when they load again.")));
+            feed.addPreference(toggle(context, Settings.HIDE_FEED_TAG_ICON, L10n.t("Hide the tag icon on posts"),
+                    L10n.t("Takes the little person icon off posts with people tagged in them. Tapping the photo "
+                            + "still shows who's tagged.")));
         }
         if (feedAutoScroll) {
             feed.addPreference(toggle(context, Settings.FEED_AUTO_SCROLL, L10n.t("Auto scroll in Home"),

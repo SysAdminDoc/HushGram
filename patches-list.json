@@ -3131,7 +3131,7 @@
     },
     {
       "name": "Hide the audio icon on posts",
-      "description": "Takes the speaker icon off videos in your feed. Tapping the video still turns the sound on or off. Starts off. Turn it on in HushGram settings > Feed.",
+      "description": "Takes the speaker icon off videos in your feed. Tapping the video still turns the sound on or off. A second switch takes the tagged people icon off posts too. Both start off. Turn them on in HushGram settings > Feed.",
       "category": "Interaction",
       "use": true,
       "dependencies": [

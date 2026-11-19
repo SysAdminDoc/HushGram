@@ -3976,6 +3976,11 @@ first-call Lapp/hushgram/extension/instagram/feed/CommentGifs;->composerTypes(Lj
 # before that flag. Left out, the icon stays with the switch on; twice or elsewhere, it isn't the store
 # the patch wrote. FeedAudioIconPatchTest finds the store and checks the hook on all eight 453 builds.
 once-call Lapp/hushgram/extension/instagram/feed/FeedAudioIcon;->hides(I)Z in instance (*)V pooled class-holding ,\shidesAudioIcon=
+# Hide the tag icon on posts (#762), under the same patch, hands the state of a post's corner tag
+# indicator and its kind to FeedAudioIcon.tagIndicator at the start of the bind drawing it (03z8.A00
+# on 456), and puts the answer back in the state's register. No rule: the bind's class is a
+# singleton holding no string, and the bind loads none either, only a resource id and a literal that
+# change between builds. TagIndicatorHookTest checks on every build that the hook fronts the bind.
 # Story text fonts (#275) hands the story text editor's list of formats to StoryFonts.formats right
 # before the controller's private ()ArrayList returns it (08Z8.A04 on 452), the one such method in
 # the class that logs TextFormatController, so the picked files go after Instagram's own fonts. Left

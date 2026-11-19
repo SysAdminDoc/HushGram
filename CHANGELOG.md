@@ -11,6 +11,7 @@ Every HushGram release, newest first.
 * Press and hold the Download button on a story to pick `Download` or `Save all`, which saves every story in the set you're watching. It comes with `Download button on stories`. Requested in #745.
 * Under `Default playback quality` there's a new `Drop quality to keep playing` switch. It's on to start, so a slow connection still drops a rung instead of stalling. Turn it off and videos stay at the quality you picked. Requested in #761.
 * Two new switches under Feed, next to `Hide the Like button`. `Hide counts on posts` takes the like, comment, share and repost numbers off feed posts and keeps the buttons. `Hide Liked by` takes the "Liked by" line off them. Asked for in #762.
+* `Hide the tag icon on posts` sits right under `Hide the audio icon on posts` in Feed. It takes the little person icon off posts with people tagged in them, and product tags keep theirs. Also from #762.
 * **Tooling:** The GitHub release notes leave out the Tooling bullets and the What was checked part now. They're still here in the changelog, and Manager's notes keep their Validation line.
 
 ### Bug Fixes

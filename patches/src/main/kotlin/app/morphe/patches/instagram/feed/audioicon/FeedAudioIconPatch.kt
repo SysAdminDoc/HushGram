@@ -21,12 +21,17 @@ internal const val FEED_AUDIO_ICON_STATUS = "feedAudioIcon"
  * to the extension as the constructor stores it (see [findFeedAudioIcon]). A tap on the video still
  * toggles sound, because nothing about the tap is touched. The patch switches the status method on,
  * and the settings screen then offers the switch. In the default selection with its switch off.
+ *
+ * The tagged people icon in the same corner row (#762) gets a second switch: the bind that draws it
+ * hands its state to the extension first, which answers no state for a people tag (see
+ * [findTagIndicatorBind]), and the bind's own empty path hides it.
  */
 @Suppress("unused")
 val feedAudioIconPatch = bytecodePatch(
     name = "Hide the audio icon on posts",
     description = "Takes the speaker icon off videos in your feed. Tapping the video still turns the sound on or off. " +
-        "Starts off. Turn it on in HushGram settings > Feed.",
+        "A second switch takes the tagged people icon off posts too. " +
+        "Both start off. Turn them on in HushGram settings > Feed.",
 ) {
     category("Interaction")
     dependsOn(settingsPatch, instagramExtensionPatch)
@@ -34,7 +39,10 @@ val feedAudioIconPatch = bytecodePatch(
 
     execute {
         requireStatusMethod(FEED_AUDIO_ICON_STATUS)
-        findFeedAudioIcon().write(this)
+        val audioIcon = findFeedAudioIcon()
+        val tagIcon = findTagIndicatorBind()
+        audioIcon.write(this)
+        tagIcon.write(this)
         enableStatus(FEED_AUDIO_ICON_STATUS)
     }
 }

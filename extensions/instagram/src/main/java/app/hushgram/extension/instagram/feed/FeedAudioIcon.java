@@ -20,13 +20,21 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * tap on it still turns the sound on or off. A post drawn before the switch changed keeps what it was
  * built with, until Instagram builds it again as the feed refreshes or the post scrolls back in.
  *
- * <p>The hook fails open: with the switch off, HushGram paused, the settings not read yet or anything
- * thrown, the flag stays what Instagram worked out.
+ * <p>The tagged people icon (#762) sits in the same corner row. Instagram binds it from a small state
+ * that says which kind of tags the post has, and draws no icon when it gets no state at all. The patch
+ * hands that state and its kind to {@link #tagIndicator} as the bind starts, and a people tag comes back
+ * as no state while the switch is on, so Instagram's own empty path hides the icon. Product tags and
+ * the other kinds keep their icon.
+ *
+ * <p>Both hooks fail open: with the switch off, HushGram paused, the settings not read yet or anything
+ * thrown, Instagram keeps what it worked out.
  */
 public final class FeedAudioIcon {
     /** The step a failed switch read is reported under. */
     static final String HOOK = "feed audio icon";
     static final String COUNT_HIDDEN = "feed audio icons hidden";
+    static final String TAG_HOOK = "feed tag icon";
+    static final String COUNT_TAG_HIDDEN = "feed tag icons hidden";
 
     private FeedAudioIcon() {
     }
@@ -47,5 +55,32 @@ public final class FeedAudioIcon {
             HookStatus.threw(FamilyNames.FEED_AUDIO_ICON, HOOK, failure);
             return false;
         }
+    }
+
+    /**
+     * Injected at the start of the bind that draws a post's tag indicator, handed the indicator's state
+     * and the kind of tags it reads from it. Answers null for a people tag while the switch is on, which
+     * Instagram's bind reads as no indicator, and the state itself otherwise. Never throws, and never
+     * waits for the settings.
+     */
+    public static Object tagIndicator(Object state, Object kind) {
+        if (state == null) return null;
+        try {
+            HookStatus.invoked(FamilyNames.FEED_AUDIO_ICON);
+            if (!Utils.settingsReady() || !Settings.HIDE_FEED_TAG_ICON.get()) return state;
+            if (!isPeopleTag(kind)) return state;
+            HookStatus.counted(FamilyNames.FEED_AUDIO_ICON, COUNT_TAG_HIDDEN);
+            return null;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.FEED_AUDIO_ICON, TAG_HOOK, failure);
+            return state;
+        }
+    }
+
+    /** People tagged by their Instagram or Facebook account, the two kinds the person icon stands for. */
+    static boolean isPeopleTag(Object kind) {
+        if (!(kind instanceof Enum)) return false;
+        String name = ((Enum<?>) kind).name();
+        return "PEOPLE".equals(name) || "FB_USER".equals(name);
     }
 }

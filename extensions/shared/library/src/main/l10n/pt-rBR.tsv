@@ -1899,6 +1899,9 @@ While you swipe through a chat's reels, a banner says when the other person sent
 New message after this reel	Nova mensagem depois deste reel
 Hide the audio icon on posts	Ocultar o ícone de áudio nas publicações
 Takes the speaker icon off videos in your feed. Tapping the video still turns the sound on or off. Posts already on screen change when they load again.	Tira o ícone do alto-falante dos vídeos do seu feed. Tocar no vídeo continua ligando ou desligando o som. As publicações que já estão na tela mudam quando carregam de novo.
+# context: second switch on the Feed page under Hide the audio icon on posts; the tag icon is the small person badge in the corner of a post with people tagged (#762)
+Hide the tag icon on posts	Ocultar o ícone de marcação nas publicações
+Takes the little person icon off posts with people tagged in them. Tapping the photo still shows who's tagged.	Tira o ícone de pessoa das publicações com pessoas marcadas. Tocar na foto continua mostrando quem foi marcado.
 Light when paused	Claro ao pausar
 Pause a reel and Burn-in guard brings the buttons back to full brightness until you play it again or swipe on. The wait then starts over.	Pause um reel e a proteção contra burn-in devolve os botões ao brilho total até você reproduzi-lo de novo ou deslizar. Depois a espera recomeça do zero.
 Grow the heart	Aumentar o coração

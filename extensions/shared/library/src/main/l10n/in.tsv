@@ -1899,6 +1899,9 @@ While you swipe through a chat's reels, a banner says when the other person sent
 New message after this reel	Pesan baru setelah reel ini
 Hide the audio icon on posts	Sembunyikan ikon audio di postingan
 Takes the speaker icon off videos in your feed. Tapping the video still turns the sound on or off. Posts already on screen change when they load again.	Menghapus ikon speaker dari video di feed Anda. Mengetuk video tetap menyalakan atau mematikan suara. Postingan yang sudah ada di layar berubah saat dimuat ulang.
+# context: second switch on the Feed page under Hide the audio icon on posts; the tag icon is the small person badge in the corner of a post with people tagged (#762)
+Hide the tag icon on posts	Sembunyikan ikon tag di postingan
+Takes the little person icon off posts with people tagged in them. Tapping the photo still shows who's tagged.	Menghapus ikon orang kecil dari postingan yang menandai orang. Mengetuk foto tetap menampilkan siapa yang ditandai.
 Light when paused	Terang saat dijeda
 Pause a reel and Burn-in guard brings the buttons back to full brightness until you play it again or swipe on. The wait then starts over.	Jeda sebuah reel dan Pelindung burn-in mengembalikan tombol ke kecerahan penuh sampai Anda memutarnya lagi atau menggeser. Lalu waktu tunggu dimulai dari awal.
 Grow the heart	Perbesar hati

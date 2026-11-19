@@ -8,7 +8,7 @@ import static org.junit.Assert.*;
 import android.app.Activity;
 import android.preference.PreferenceGroup;
 import android.preference.SwitchPreference;
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.EnumSet;
 import org.junit.After;
 import org.junit.Before;
@@ -37,6 +37,7 @@ public class FeedAudioIconSettingsTest {
     @Before public void prepare() {
         RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
         Settings.HIDE_FEED_AUDIO_ICON.resetToDefault();
+        Settings.HIDE_FEED_TAG_ICON.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         BaseSettings.SAFE_MODE.save(false);
@@ -47,6 +48,7 @@ public class FeedAudioIconSettingsTest {
         Utils.awaitBackgroundTasksForTests();
         PatchFamily.inBuildForTests = null;
         Settings.HIDE_FEED_AUDIO_ICON.resetToDefault();
+        Settings.HIDE_FEED_TAG_ICON.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
@@ -83,8 +85,24 @@ public class FeedAudioIconSettingsTest {
         assertFalse(row.isChecked());
         assertFalse(Settings.HIDE_FEED_AUDIO_ICON.get());
         assertFalse("each post state reads the switch, so no restart prompt", Settings.HIDE_FEED_AUDIO_ICON.rebootApp);
-        assertEquals(Collections.singletonList(Settings.HIDE_FEED_AUDIO_ICON), PatchFamily.FEED_AUDIO_ICON.switches);
+        assertEquals(Arrays.asList(Settings.HIDE_FEED_AUDIO_ICON, Settings.HIDE_FEED_TAG_ICON), PatchFamily.FEED_AUDIO_ICON.switches);
         assertEquals("Hide the audio icon on posts", PatchFamily.FEED_AUDIO_ICON.patchName);
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.HIDE_FEED_AUDIO_ICON.key));
+    }
+    /** The tag icon switch (#762) sits right under the audio icon one, off to start, no restart needed. */
+    @Test public void tagIconSwitchFollowsTheAudioIconOne() throws Exception {
+        open(EnumSet.of(PatchFamily.FULL_SCREEN_BARS, PatchFamily.FEED_AUDIO_ICON));
+        SwitchPreference audio = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.HIDE_FEED_AUDIO_ICON.key);
+        SwitchPreference tag = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.HIDE_FEED_TAG_ICON.key);
+        assertNotNull(tag);
+        assertEquals("Hide the tag icon on posts", tag.getTitle().toString());
+        assertEquals("Takes the little person icon off posts with people tagged in them. Tapping the photo still shows "
+                + "who's tagged.", tag.getSummary().toString());
+        assertSame(audio.getParent(), tag.getParent());
+        assertEquals(audio.getOrder() + 1, tag.getOrder());
+        assertFalse(tag.isChecked());
+        assertFalse(Settings.HIDE_FEED_TAG_ICON.get());
+        assertFalse("each bind reads the switch, so no restart prompt", Settings.HIDE_FEED_TAG_ICON.rebootApp);
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.HIDE_FEED_TAG_ICON.key));
     }
 }

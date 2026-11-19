@@ -6,6 +6,8 @@ package app.hushgram.extension.instagram.feed;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import org.junit.After;
@@ -33,6 +35,7 @@ public class FeedAudioIconTest {
     @Before
     public void prepare() {
         Settings.HIDE_FEED_AUDIO_ICON.resetToDefault();
+        Settings.HIDE_FEED_TAG_ICON.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -41,6 +44,7 @@ public class FeedAudioIconTest {
     @After
     public void restore() {
         Settings.HIDE_FEED_AUDIO_ICON.resetToDefault();
+        Settings.HIDE_FEED_TAG_ICON.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -91,6 +95,46 @@ public class FeedAudioIconTest {
 
         assertTrue("on again once resumed and ready", FeedAudioIcon.hides(0));
     }
+
+    /** The tag icon (#762): a people tag's state comes back as no state while its switch is on. */
+    @Test
+    public void tagIconSwitchDropsOnlyPeopleTags() {
+        Object state = new Object();
+        assertSame("off to start", state, FeedAudioIcon.tagIndicator(state, Kind.PEOPLE));
+        assertEquals(Boolean.FALSE, Settings.HIDE_FEED_TAG_ICON.defaultValue);
+        assertFalse(Settings.HIDE_FEED_TAG_ICON.rebootApp);
+
+        Settings.HIDE_FEED_TAG_ICON.save(true);
+
+        assertNull(FeedAudioIcon.tagIndicator(state, Kind.PEOPLE));
+        assertNull(FeedAudioIcon.tagIndicator(state, Kind.FB_USER));
+        assertSame("product tags keep their icon", state, FeedAudioIcon.tagIndicator(state, Kind.PRODUCTS));
+        assertSame("an unknown kind is left alone", state, FeedAudioIcon.tagIndicator(state, "PEOPLE"));
+        assertSame("no kind is left alone", state, FeedAudioIcon.tagIndicator(state, null));
+        assertNull("no state stays none", FeedAudioIcon.tagIndicator(null, Kind.PRODUCTS));
+        assertFalse("the audio icon switch is its own", FeedAudioIcon.hides(0));
+
+        String report = HookStatus.report().toString();
+        assertTrue(report, report.contains(FeedAudioIcon.COUNT_TAG_HIDDEN + " 2"));
+    }
+
+    @Test
+    public void tagIconPausedAndUnreadyKeepTheState() {
+        Object state = new Object();
+        Settings.HIDE_FEED_TAG_ICON.save(true);
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertSame("paused", state, FeedAudioIcon.tagIndicator(state, Kind.PEOPLE));
+
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        SettingsContextRule.withoutContext(() -> assertSame("unready", state, FeedAudioIcon.tagIndicator(state, Kind.PEOPLE)));
+
+        assertNull("on again once resumed and ready", FeedAudioIcon.tagIndicator(state, Kind.PEOPLE));
+    }
+
+    /** Stands in for Instagram's indicator kinds, which the hook reads by name. */
+    private enum Kind { PEOPLE, FB_USER, PRODUCTS }
 
     /** Flipping the switch off puts the next state Instagram builds back as it would be. */
     @Test

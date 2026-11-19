@@ -1899,6 +1899,9 @@ While you swipe through a chat's reels, a banner says when the other person sent
 New message after this reel	Bu videodan sonra yeni mesaj
 Hide the audio icon on posts	Gönderilerdeki ses simgesini gizle
 Takes the speaker icon off videos in your feed. Tapping the video still turns the sound on or off. Posts already on screen change when they load again.	Akışındaki videolardan hoparlör simgesini kaldırır. Videoya dokunmak sesi yine açıp kapatır. Ekranda zaten olan gönderiler yeniden yüklendiğinde değişir.
+# context: second switch on the Feed page under Hide the audio icon on posts; the tag icon is the small person badge in the corner of a post with people tagged (#762)
+Hide the tag icon on posts	Gönderilerdeki etiket simgesini gizle
+Takes the little person icon off posts with people tagged in them. Tapping the photo still shows who's tagged.	Kişilerin etiketlendiği gönderilerden küçük kişi simgesini kaldırır. Fotoğrafa dokunmak kimlerin etiketlendiğini yine gösterir.
 Light when paused	Duraklatınca aydınlık
 Pause a reel and Burn-in guard brings the buttons back to full brightness until you play it again or swipe on. The wait then starts over.	Bir reel'i duraklatın, Ekran yanığı koruması tuşları siz tekrar oynatana veya kaydırana kadar tam parlaklığa getirsin. Sonra bekleme baştan başlar.
 Grow the heart	Kalbi büyüt
