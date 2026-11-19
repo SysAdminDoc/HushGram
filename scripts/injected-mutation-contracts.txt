@@ -4039,3 +4039,14 @@ once-call Lapp/hushgram/extension/instagram/stories/StoryViewers;->listed(Ljava/
 # Instagram; twice or elsewhere, it isn't the hook the patch wrote. Some builds may pool the name (pooled).
 once-call Lapp/hushgram/extension/instagram/feed/FeedViewInfo;->held(Ljava/lang/Object;)Ljava/lang/Object; in static (Landroid/content/Context;L*;L*;Lcom/instagram/common/session/UserSession;L*;L*;)V pooled holding feed_view_info
 once-call Lapp/hushgram/extension/instagram/feed/FeedViewInfo;->held(Ljava/lang/Object;)Ljava/lang/Object; in static (Landroid/content/Context;L*;Lcom/instagram/common/session/UserSession;L*;L*;)V pooled holding feed_view_info
+# Hide captions leaves a caption out at its render (#395, #680). The feed caption's render, the one
+# method holding the caption's tag and its expand animation, asks HideCaptions.hideFeedCaption first.
+# Each of the reel caption's two renders, the looks Instagram picks between (one names the caption's
+# vertical scroll, the other loads a lone colon), asks hideReelCaption first. Left out,
+# a hidden caption keeps its room; anywhere else, it isn't the hook the patch wrote.
+start-call Lapp/hushgram/extension/instagram/feed/HideCaptions;->hideFeedCaption()Z in instance (L*;)L*; holding row_feed_comment_textview_layout caption_expand_collapse_transition
+once-call Lapp/hushgram/extension/instagram/feed/HideCaptions;->hideFeedCaption()Z in instance (L*;)L*; holding row_feed_comment_textview_layout caption_expand_collapse_transition
+start-call Lapp/hushgram/extension/instagram/feed/HideCaptions;->hideReelCaption()Z in instance (L*;)L*; holding is_reels_caption_expanded caption_vertical_scroll
+once-call Lapp/hushgram/extension/instagram/feed/HideCaptions;->hideReelCaption()Z in instance (L*;)L*; holding is_reels_caption_expanded caption_vertical_scroll
+start-call Lapp/hushgram/extension/instagram/feed/HideCaptions;->hideReelCaption()Z in instance (L*;)L*; holding is_reels_caption_expanded :
+once-call Lapp/hushgram/extension/instagram/feed/HideCaptions;->hideReelCaption()Z in instance (L*;)L*; holding is_reels_caption_expanded :
