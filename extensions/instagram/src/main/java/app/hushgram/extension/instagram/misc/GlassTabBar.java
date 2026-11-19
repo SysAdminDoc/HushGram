@@ -499,6 +499,38 @@ public final class GlassTabBar {
     }
 
     /**
+     * Puts back at 0 each view under [band], [depth] levels down at most, that Litho left translated against
+     * [band]'s own translation, and says how many. Litho ends an animation of one of its views by putting it
+     * where its layout says inside the LithoView, counting the translations of the views it's in but not their
+     * scrolls (#221). A seek bar row has less room over its seek bar than the pill's lift, so the rest of the
+     * lift is a translation, and the animation Litho runs as the window grows back from picture in picture
+     * left the seek bar's holder that much lower, on top of the pill (#450). Such a view's own translation and
+     * those of the views between it and [band] add up to the opposite of [band]'s. Any other translation, a
+     * slide still under way included, is left as it is.
+     */
+    static int keepUnderTheLift(View band, int depth) {
+        float lift = band.getTranslationY();
+        if (lift == 0f || !(band instanceof ViewGroup)) return 0;
+        return putBackUnder((ViewGroup) band, lift, depth);
+    }
+
+    private static int putBackUnder(ViewGroup group, float above, int depth) {
+        if (depth <= 0) return 0;
+        int fixed = 0;
+        for (int i = 0; i < group.getChildCount(); i++) {
+            View child = group.getChildAt(i);
+            float own = child.getTranslationY();
+            if (own != 0f && own + above == 0f) {
+                child.setTranslationY(0f);
+                own = 0f;
+                fixed++;
+            }
+            if (child instanceof ViewGroup) fixed += putBackUnder((ViewGroup) child, above + own, depth - 1);
+        }
+        return fixed;
+    }
+
+    /**
      * Puts each shown view under [view] whose id is [info] or [scrubber] in [anchors], and each whose id
      * is [footers] in [footerViews], without looking inside those.
      */
@@ -1076,6 +1108,10 @@ public final class GlassTabBar {
     static final String COUNT_REEL_RAISED = "Reel's caption or seek bar raised over its footer";
     /** What a reel's video or cover moved up to where the slot would put it, with the reel behind the pill, is counted under (#450). */
     static final String COUNT_REEL_MEDIA_PLACED = "Reel behind the pill placed as over the slot";
+    /** Counted each time a view Litho put back down under a raised reel band is lifted with the band again (#450). */
+    static final String COUNT_LITHO_PUT_BACK = "Reel's seek bar kept up after Litho put it back";
+    /** How many levels under a raised reel band are looked at for a view Litho put back down ({@link #keepUnderTheLift}). */
+    static final int PUT_BACK_DEPTH = 3;
     /** Counted each time a footer under a reel is laid over the reel instead of shrinking it (#260). */
     static final String COUNT_FOOTER_OVERLAID = "Footer laid over the reel";
     /**
@@ -2585,8 +2621,11 @@ public final class GlassTabBar {
                         if (band == null) continue;
                         bands.put(anchor, band);
                     }
-                    if (raisedNow.add(band) && lift(band, -footer)) {
-                        HookStatus.counted(FamilyNames.GLASS_TAB_BAR, COUNT_REEL_RAISED);
+                    if (!raisedNow.add(band)) continue;
+                    if (lift(band, -footer)) HookStatus.counted(FamilyNames.GLASS_TAB_BAR, COUNT_REEL_RAISED);
+                    Float ours = raised.get(band);
+                    if (ours != null && ours == band.getTranslationY() && keepUnderTheLift(band, PUT_BACK_DEPTH) > 0) {
+                        HookStatus.counted(FamilyNames.GLASS_TAB_BAR, COUNT_LITHO_PUT_BACK);
                     }
                 }
             }

@@ -4020,6 +4020,45 @@ public class GlassTabBarTest {
     }
 
     /**
+     * #450: coming back from picture in picture, Litho's animation ended by putting the seek bar's holder where
+     * its layout says, which counts the row's translation, so the holder sat that much lower, on the pill. A
+     * view whose translation, with those between it and the band, cancels the band's is put back at 0. A slide
+     * still under way, a band that isn't raised and a view past the depth are left alone.
+     */
+    @Test
+    public void aViewLithoPutBackUnderARaisedBandGoesUpWithIt() {
+        Context context = RuntimeEnvironment.getApplication();
+        FrameLayout band = new FrameLayout(context);
+        FrameLayout holder = new FrameLayout(context);
+        View bar = new View(context), sliding = new View(context);
+        band.addView(holder);
+        band.addView(sliding);
+        holder.addView(bar);
+        holder.setTranslationY(32f);
+        sliding.setTranslationY(25.5f);
+        assertEquals("the band isn't raised", 0, GlassTabBar.keepUnderTheLift(band, 3));
+        assertEquals(32f, holder.getTranslationY(), 0f);
+
+        band.setTranslationY(-32f);
+        assertEquals("only the holder was put back", 1, GlassTabBar.keepUnderTheLift(band, 3));
+        assertEquals(0f, holder.getTranslationY(), 0f);
+        assertEquals("a slide under way stays", 25.5f, sliding.getTranslationY(), 0f);
+        assertEquals("nothing left to put back", 0, GlassTabBar.keepUnderTheLift(band, 3));
+
+        bar.setTranslationY(32f);
+        assertEquals("past the depth", 0, GlassTabBar.keepUnderTheLift(band, 1));
+        assertEquals("a level down", 1, GlassTabBar.keepUnderTheLift(band, 3));
+        assertEquals(0f, bar.getTranslationY(), 0f);
+
+        holder.setTranslationY(12f);
+        bar.setTranslationY(20f);
+        assertEquals("the two together cancel the band", 1, GlassTabBar.keepUnderTheLift(band, 3));
+        assertEquals("the holder's own stays", 12f, holder.getTranslationY(), 0f);
+        assertEquals(0f, bar.getTranslationY(), 0f);
+        assertEquals("a view isn't a band", 0, GlassTabBar.keepUnderTheLift(sliding, 3));
+    }
+
+    /**
      * #704: the seek bar's room lifts a reel's seek bar row out of the navigation bar, and the pill raises the
      * same row. When the room got there first, the pill took its lift for Instagram's and left the row there,
      * with the seek bar behind the pill. The room's lift, and the caption scroll that goes with it, are the
