@@ -1109,6 +1109,12 @@ once-call Lapp/hushgram/extension/instagram/direct/ChatReelsExit;->viewer(Ljava/
 # your key; twice or elsewhere, it isn't the call the patch wrote.
 start-call Lapp/hushgram/extension/instagram/misc/InstagramSignature;->originalSigners(Landroid/content/pm/PackageInfo;)Ljava/util/List; in instance ()LX/*; calling Landroid/content/pm/SigningInfo;->getSigningCertificateHistory()[Landroid/content/pm/Signature; holding Landroid/content/pm/PackageInfo;->signatures:[Landroid/content/pm/Signature;
 once-call Lapp/hushgram/extension/instagram/misc/InstagramSignature;->originalSigners(Landroid/content/pm/PackageInfo;)Ljava/util/List; in instance ()LX/*; calling Landroid/content/pm/SigningInfo;->getSigningCertificateHistory()[Landroid/content/pm/Signature; holding Landroid/content/pm/PackageInfo;->signatures:[Landroid/content/pm/Signature;
+# It also asks FacebookAppLogin in place of the one PackageManager.resolveActivity call in the
+# Facebook app login handler (#760), the instance method of the class loading the Facebook app's
+# login screen name that takes LoginClient$Request and names the Facebook beta, the first app it
+# tries. Left out, a re-signed build hands its Facebook login to a Facebook app that turns it away;
+# twice or elsewhere, it isn't the call the patch wrote.
+sole-call Lapp/hushgram/extension/instagram/misc/FacebookAppLogin;->resolveActivity(Landroid/content/pm/PackageManager;Landroid/content/Intent;I)Landroid/content/pm/ResolveInfo; replacing Landroid/content/pm/PackageManager;->resolveActivity(Landroid/content/Intent;I)Landroid/content/pm/ResolveInfo; in instance (Lcom/facebook/login/LoginClient$Request;)V holding com.facebook.wakizashi
 # The secure provider's inline gate asks for real current family keys after a native refusal,
 # once. The native fixture proves its error and kill-switch strings together with the kept policy
 # getter call pick one instance ()V across every dex. The query helper shares its strings with the
