@@ -982,6 +982,10 @@ Adds a bookmark to the tabs on your own profile that opens Saved. Restart Instag
 Fast scroll in Saved	Cuộn nhanh trong Đã lưu
 # context: Profiles > summary of Fast scroll in Saved; collections are Instagram's saved collections (#644)
 Shows a handle at the right edge of Saved and your collections while they scroll. Drag it to jump through them.	Hiện tay nắm ở cạnh phải của Đã lưu và bộ sưu tập của bạn khi cuộn. Kéo tay nắm để nhảy nhanh qua danh sách.
+# context: Profiles > switch right after Fast scroll in Saved; New collection is Instagram's own label for the + at the top right of Saved that starts a new saved collection (#762)
+Hide the New collection button	Ẩn nút Bộ sưu tập mới
+# context: Profiles > summary of Hide the New collection button; Saved is Instagram's own Saved page (#762)
+Takes the + for a new collection off the top of Saved. Your collections stay.	Gỡ nút + để tạo bộ sưu tập mới khỏi phía trên Đã lưu. Các bộ sưu tập của bạn vẫn còn.
 Battery	Pin
 Stop the background heartbeat	Ngừng nhịp nền
 Instagram wakes your phone every minute or two, screen off included, only to note that it is still running. This stops that. Messages, notifications and everything you see are unaffected.	Instagram đánh thức điện thoại mỗi một hai phút, kể cả khi tắt màn hình, chỉ để ghi nhận là nó vẫn đang chạy. Mục này ngăn điều đó. Tin nhắn, thông báo và mọi thứ bạn thấy không bị ảnh hưởng.

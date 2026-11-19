@@ -5230,7 +5230,7 @@
     },
     {
       "name": "Saved on your profile",
-      "description": "Adds a bookmark to the tabs on your own profile, beside posts, reels and tagged, that opens Saved, and a handle to drag through Saved and your collections. Both start off. Turn them on in HushGram settings > Profiles. The bookmark needs an Instagram restart.",
+      "description": "Adds a bookmark to the tabs on your own profile, beside posts, reels and tagged, that opens Saved on All, a handle to drag through Saved and your collections, and a switch that hides the + for a new collection. All start off. Turn them on in HushGram settings > Profiles. The bookmark needs an Instagram restart.",
       "category": "Profiles",
       "use": true,
       "dependencies": [

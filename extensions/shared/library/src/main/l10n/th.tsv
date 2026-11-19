@@ -990,6 +990,10 @@ Adds a bookmark to the tabs on your own profile that opens Saved. Restart Instag
 Fast scroll in Saved	เลื่อนเร็วใน "บันทึกแล้ว"
 # context: Profiles > summary of Fast scroll in Saved; collections are Instagram's saved collections (#644)
 Shows a handle at the right edge of Saved and your collections while they scroll. Drag it to jump through them.	แสดงที่จับที่ขอบขวาของ "บันทึกแล้ว" และคอลเลกชันของคุณขณะเลื่อน ลากเพื่อข้ามไปอย่างรวดเร็ว
+# context: Profiles > switch right after Fast scroll in Saved; New collection is Instagram's own label for the + at the top right of Saved that starts a new saved collection (#762)
+Hide the New collection button	ซ่อนปุ่มคอลเลกชันใหม่
+# context: Profiles > summary of Hide the New collection button; Saved is Instagram's own Saved page (#762)
+Takes the + for a new collection off the top of Saved. Your collections stay.	นำปุ่ม + สำหรับคอลเลกชันใหม่ออกจากด้านบนของ "บันทึกแล้ว" คอลเลกชันของคุณยังอยู่
 Battery	แบตเตอรี่
 Stop the background heartbeat	หยุดสัญญาณชีพในเบื้องหลัง
 Instagram wakes your phone every minute or two, screen off included, only to note that it is still running. This stops that. Messages, notifications and everything you see are unaffected.	Instagram ปลุกโทรศัพท์ของคุณทุกหนึ่งถึงสองนาที แม้กระทั่งในขณะปิดหน้าจอ เพียงเพื่อบันทึกว่าแอปยังคงทำงานอยู่ การตั้งค่านี้จะหยุดการทำงานดังกล่าว โดยข้อความ การแจ้งเตือน และทุกสิ่งที่คุณเห็นจะไม่ได้รับผลกระทบ

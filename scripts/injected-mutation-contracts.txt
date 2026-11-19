@@ -3446,6 +3446,17 @@ once-call Lapp/hushgram/extension/instagram/misc/Heartbeat;->skipBackgroundFetch
 # siblings share its shape and the factory it calls, and neither the binder nor its class holds a
 # string. GhostModeEntryHookTest finds both on every 450 build through the tap's log string, the one
 # Function0 lambda whose switch case starts a new message, and the bar's own class name.
+# Saved on your profile (#762) puts SavedHome.fromBookmark, then the profile menu's maker of the tabbed
+# Saved (0Pxp.A00 on 456) and SavedHome.pick, right after SavedUrlHandlerActivity's one method making
+# the collections grid (A2k) has it, and SavedHome.hideNewCollection ahead of the + in both Saved
+# screens' top bar setup (0HwF.Af1 and 0HxE.Af1), skipping its make-and-add when it answers yes, and
+# SavedHome.showBack in 0HwF.Af1 ahead of the bar's back arrow call (01tS.A22), asked only when the
+# fragment stack's count left the arrow off. No
+# rule for any of them: the activity's method and both setups load no string of their own (Redex
+# pools them, and the grid's tile names sit in other methods of its class), and each setup shares its
+# shape with its class's other (bar)V methods. SavedHomeHookTest finds all four through the tab key
+# the menu's maker loads, on every declared build and the other builds of 456, and checks each call
+# and branch target and that nothing else in those classes changed.
 # Hide New message button and suggestions (#762) hands NewMessageButton.bind each button either inbox
 # top bar binds and what it's bound to: first thing in IgdsActionBar's binder, ahead of the ghost
 # call, and in the older bar's binder (01tS.A0e on 456's 386214574, the one instance (View, built

@@ -354,10 +354,14 @@ public final class ProfileSaved {
         }
     }
 
-    /** What Instagram's router makes of its Saved link, for the account whose session is [token]. */
+    /**
+     * What Instagram's router makes of its Saved link, for the account whose session is [token], marked
+     * as the bookmark's so the screen opens the tabbed Saved on All ({@link SavedHome}).
+     */
     static Intent savedIntent(String pkg, String token) {
         Bundle bundle = new Bundle();
         bundle.putString(SESSION_TOKEN, token);
+        SavedHome.markFromBookmark(bundle);
         return new Intent(Intent.ACTION_VIEW, Uri.parse(SAVED_LINK))
                 .setClassName(pkg, SAVED_HANDLER)
                 .putExtra(LINK_BUNDLE, bundle);

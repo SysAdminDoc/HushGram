@@ -183,7 +183,7 @@ public enum PatchFamily {
             Settings.FILL_REEL_SCREEN, Settings.FIT_REEL_SCREEN, Settings.FULL_SCREEN_HOME, Settings.FULL_SCREEN_MESSAGES,
             Settings.FILL_STORY_SCREEN),
     SAVED_ON_PROFILE(FamilyNames.SAVED_ON_PROFILE, "savedOnProfile", null, Settings.SAVED_ON_PROFILE,
-            Settings.SAVED_FAST_SCROLL),
+            Settings.SAVED_FAST_SCROLL, Settings.HIDE_SAVED_NEW_COLLECTION),
     STOP_HEARTBEAT(FamilyNames.STOP_HEARTBEAT, "stopHeartbeat", null, Settings.STOP_HEARTBEAT,
             Settings.STOP_UPLOAD_ALARM, Settings.STOP_BACKGROUND_FETCH),
     REFRESH_RATE(FamilyNames.REFRESH_RATE, "refreshRate", null, Settings.HIGHEST_REFRESH_RATE),
@@ -594,6 +594,30 @@ public enum PatchFamily {
         return FOLLOWING_FEED.inBuild() && SettingsStatus.favoritesFeed();
     }
 
+    /** Whether a test says this build hides the + in Saved, instead of asking {@link SettingsStatus}. */
+    @Nullable
+    static volatile Boolean savedNewCollectionForTests;
+
+    /**
+     * Whether this build can leave the + for a new collection off Saved's top bar (#762). Saved on your
+     * profile goes in without it when neither Saved screen's top bar matched, so its switch isn't
+     * offered then.
+     */
+    public static boolean savedNewCollectionInBuild() {
+        Boolean forced = savedNewCollectionForTests;
+        if (forced != null) return forced;
+        Set<PatchFamily> families = inBuildForTests;
+        if (families != null) return families.contains(SAVED_ON_PROFILE);
+        return SAVED_ON_PROFILE.inBuild() && SettingsStatus.savedNewCollection();
+    }
+
+    /** Whether this build's Saved bookmark opens the tabbed Saved on All, instead of the collections grid. */
+    public static boolean savedOnAllInBuild() {
+        Set<PatchFamily> families = inBuildForTests;
+        if (families != null) return families.contains(SAVED_ON_PROFILE);
+        return SAVED_ON_PROFILE.inBuild() && SettingsStatus.savedOnAll();
+    }
+
     /** The families this build carries, in declaration order. */
     public static Set<PatchFamily> inThisBuild() {
         Set<PatchFamily> found = EnumSet.noneOf(PatchFamily.class);
@@ -654,6 +678,12 @@ public enum PatchFamily {
                 }
                 if (family == FOLLOWING_FEED && !followingMixInBuild()) {
                     lines.add("  Mix in Following: not in this build (Home's paging didn't match)");
+                }
+                if (family == SAVED_ON_PROFILE && !savedOnAllInBuild()) {
+                    lines.add("  Open Saved on All: not in this build (the Saved link's screen didn't match), so the bookmark opens the collections grid");
+                }
+                if (family == SAVED_ON_PROFILE && !savedNewCollectionInBuild()) {
+                    lines.add("  Hide the New collection button: not in this build (neither Saved screen's top bar matched)");
                 }
                 if (family == FOLLOWING_FEED && !favoritesFeedInBuild()) {
                     lines.add("  Favorites from the tab bar: not in this build (Home's feed switch or the tab bar didn't match)");

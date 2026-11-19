@@ -623,6 +623,14 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean savedOnAll() {
+        return false;
+    }
+
+    public static boolean savedNewCollection() {
+        return false;
+    }
+
     public static boolean stopHeartbeat() {
         return false;
     }

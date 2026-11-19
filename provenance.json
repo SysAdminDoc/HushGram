@@ -529,6 +529,8 @@
         "extensions/instagram/src/main/java/app/hushgram/extension/instagram/settings/CategoryGroups.java",
         "extensions/instagram/src/main/java/app/hushgram/extension/instagram/misc/SavedFastScroll.java",
         "extensions/instagram/src/test/java/app/hushgram/extension/instagram/misc/SavedFastScrollTest.java",
+        "extensions/instagram/src/main/java/app/hushgram/extension/instagram/misc/SavedHome.java",
+        "extensions/instagram/src/test/java/app/hushgram/extension/instagram/misc/SavedHomeTest.java",
         "extensions/instagram/src/test/java/app/hushgram/extension/instagram/settings/SavedProfilesTabLongPressTest.java",
         "extensions/instagram/src/test/java/app/hushgram/extension/instagram/settings/GlassPreviewSettingsTest.java",
         "extensions/instagram/src/test/java/app/hushgram/extension/instagram/misc/GlassLensStrengthTest.java",

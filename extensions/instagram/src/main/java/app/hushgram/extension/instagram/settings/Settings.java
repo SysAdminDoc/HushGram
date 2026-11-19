@@ -2200,6 +2200,14 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting SAVED_FAST_SCROLL = new BooleanSetting("hushgram_saved_fast_scroll", FALSE);
 
     /**
+     * Leaves the + for a new collection off the top of both Saved screens
+     * ({@link app.hushgram.extension.instagram.misc.SavedHome}, #762). Your collections stay. Read each
+     * time a Saved screen sets up its top bar, so it takes no restart. Off to start.
+     */
+    public static final BooleanSetting HIDE_SAVED_NEW_COLLECTION =
+            new BooleanSetting("hushgram_hide_saved_new_collection", FALSE);
+
+    /**
      * Instagram stops waking itself with an alarm every minute or two to note that it is still running
      * ({@link app.hushgram.extension.instagram.misc.Heartbeat}). Read each time the next alarm would be set.
      * Off to start.
