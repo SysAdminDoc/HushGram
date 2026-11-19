@@ -1679,6 +1679,22 @@ Start reels muted	Iniciar los reels en silencio
 Every reel starts silent, wherever you open it from. The volume keys or the speaker icon unmute it. Wins over Start reels with sound.	Cada reel empieza en silencio, lo abras desde donde lo abras. Las teclas de volumen o el icono del altavoz activan el sonido. Tiene prioridad sobre Iniciar los reels con sonido.
 Hide captions	Ocultar descripciones
 Takes the caption off posts in your feed and off reels. The post stays, and the comments sheet still shows it.	Quita la descripción de las publicaciones del feed y de los reels. La publicación se queda y la hoja de comentarios la sigue mostrando.
+# context: "more" is the word Instagram puts at the end of a cut caption in the feed; use the word Instagram shows there in this language (#771)
+Expand captions	Expandir descripciones
+Shows more of a post's caption in your feed before "more", the whole caption to start. Reels and stories stay as they are.	Muestra más de la descripción de una publicación en tu feed antes de «más», la descripción entera al principio. Los reels y las historias se quedan como están.
+Caption lines before more	Líneas antes de «más»
+The whole caption shows, with no "more" to tap.	Se muestra la descripción entera, sin «más» que tocar.
+Captions longer than that end with "more", which opens the rest.	Las descripciones más largas terminan en «más», que abre el resto.
+Turn on Expand captions to use this choice.	Activa «Expandir descripciones» para usar esta opción.
+Whole caption	Descripción entera
+1 line	1 línea
+2 lines	2 líneas
+3 lines	3 líneas
+4 lines	4 líneas
+5 lines	5 líneas
+6 lines	6 líneas
+8 lines	8 líneas
+10 lines	10 líneas
 Keep Home's top bar	Fijar la barra superior de Inicio
 Keeps the Instagram logo and the buttons beside it at the top of Home while you scroll, instead of sliding them away.	Mantiene el logo de Instagram y los botones de al lado arriba en Inicio mientras te desplazas, en vez de ocultarlos.
 # context: Feed settings: the See-through top bar switch, right under Keep Home's top bar (#418). It blurs the posts that scroll under Home's header, the bar with the Instagram logo.

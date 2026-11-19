@@ -557,6 +557,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean expandCaptions() {
+        return false;
+    }
+
     public static boolean feedAudioIcon() {
         return false;
     }

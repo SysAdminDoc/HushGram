@@ -109,6 +109,7 @@ import app.hushgram.extension.instagram.media.ResumePlayback;
 import app.hushgram.extension.instagram.feed.HiddenAccounts;
 import app.hushgram.extension.instagram.feed.AmbientSpeed;
 import app.hushgram.extension.instagram.feed.AmbientSpread;
+import app.hushgram.extension.instagram.feed.CaptionLines;
 import app.hushgram.extension.instagram.feed.CornerSize;
 import app.hushgram.extension.instagram.feed.LikeAnimation;
 import app.hushgram.extension.instagram.feed.MenuItems;
@@ -875,6 +876,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     belongs |= family == PatchFamily.REEL_DOUBLE_TAP_SKIP
                             && Settings.DOUBLE_TAP_SKIP_REELS_SECONDS.key.equals(key);
                     belongs |= family == PatchFamily.FEED_AUTO_SCROLL && Settings.FEED_AUTO_SCROLL_SECONDS.key.equals(key);
+                    belongs |= family == PatchFamily.EXPAND_CAPTIONS && Settings.CAPTION_LINES.key.equals(key);
                     belongs |= family == PatchFamily.MEDIA_CACHE && (Settings.MEDIA_CACHE_LIMIT_MB.key.equals(key)
                             || CLEAR_MEDIA_CACHE_NOW.equals(key));
                     belongs |= family == PatchFamily.STORY_SEEK_BAR && (Settings.STORY_SEEK_BAR_LOOK.key.equals(key)
@@ -7187,6 +7189,34 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 L10n.t("Expressive"),
                 L10n.t("Wave"),
         }, title);
+        return row;
+    }
+
+    /**
+     * How much of a feed post's caption Expand captions shows (#771): the whole caption to start, or
+     * a number of lines with "more" after them. Its values are the choices' own names. A count's
+     * summary starts with that count, so the row shows which one is picked.
+     */
+    static ChoiceRow<CaptionLines> captionLinesRow(Context context) {
+        String title = L10n.t("Caption lines before more");
+        String cut = L10n.t("Captions longer than that end with \"more\", which opens the rest.");
+        String[] labels = {
+                L10n.t("Whole caption"),
+                L10n.t("1 line"),
+                L10n.t("2 lines"),
+                L10n.t("3 lines"),
+                L10n.t("4 lines"),
+                L10n.t("5 lines"),
+                L10n.t("6 lines"),
+                L10n.t("8 lines"),
+                L10n.t("10 lines"),
+        };
+        String[] summaries = new String[labels.length];
+        summaries[0] = L10n.t("The whole caption shows, with no \"more\" to tap.");
+        for (int i = 1; i < labels.length; i++) summaries[i] = labels[i] + "\n" + cut;
+        ChoiceRow<CaptionLines> row = new ChoiceRow<>(context, Settings.CAPTION_LINES, CaptionLines.values(), summaries,
+                L10n.t("Turn on Expand captions to use this choice."));
+        fill(row, Settings.CAPTION_LINES, CaptionLines.values(), labels, title);
         return row;
     }
 

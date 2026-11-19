@@ -16,6 +16,7 @@ import app.hushgram.extension.instagram.download.FileNameTemplate;
 import app.hushgram.extension.instagram.download.HoldFingers;
 import app.hushgram.extension.instagram.download.HoldTime;
 import app.hushgram.extension.instagram.download.SaveFolder;
+import app.hushgram.extension.instagram.feed.CaptionLines;
 import app.hushgram.extension.instagram.feed.FeedSeekShape;
 import app.hushgram.extension.instagram.feed.OverlayLook;
 import app.hushgram.extension.instagram.feed.SeekShape;
@@ -3255,6 +3256,22 @@ public class Settings extends BaseSettings {
      */
     public static final BooleanSetting HIDE_CAPTIONS =
             new BooleanSetting("hushgram_hide_captions", FALSE);
+
+    /**
+     * More of a feed post's caption before Instagram's "more" (#771,
+     * {@link app.hushgram.extension.instagram.feed.CaptionLength}): as much as {@link #CAPTION_LINES}
+     * says, in Home, Explore and the other feeds. Reels and stories keep Instagram's count. Instagram
+     * keeps captions it has laid out, so it takes a restart. Off to start.
+     */
+    public static final BooleanSetting EXPAND_CAPTIONS =
+            new BooleanSetting("hushgram_expand_captions", FALSE, true);
+
+    /**
+     * How much of the caption {@link #EXPAND_CAPTIONS} shows: the whole caption to start, or a number
+     * of lines with "more" after them. Read as each caption is built, so it takes a restart too.
+     */
+    public static final EnumSetting<CaptionLines> CAPTION_LINES =
+            new EnumSetting<>("hushgram_caption_lines", CaptionLines.WHOLE, true, parent(EXPAND_CAPTIONS));
 
     /**
      * The small speaker icon in the corner of a feed video

@@ -175,6 +175,38 @@ public class ChildControlAvailabilityTest {
         }
     }
 
+    @Test public void captionLinesKeepItsSavedChoiceAcrossParentChanges() {
+        Settings.CAPTION_LINES.save(app.hushgram.extension.instagram.feed.CaptionLines.FOUR);
+        try {
+            checkParent(Settings.EXPAND_CAPTIONS, Settings.CAPTION_LINES, PatchFamily.EXPAND_CAPTIONS,
+                    "Turn on Expand captions to use this choice.", "FOUR");
+        } finally {
+            Settings.EXPAND_CAPTIONS.resetToDefault();
+            Settings.CAPTION_LINES.resetToDefault();
+        }
+    }
+
+    @Test public void captionLinesSummaryNamesThePickedCount() {
+        // Every count shares one explanation, so without the count the row never said which one was picked (#771).
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.EXPAND_CAPTIONS);
+        Settings.EXPAND_CAPTIONS.save(true);
+        Settings.CAPTION_LINES.save(app.hushgram.extension.instagram.feed.CaptionLines.FOUR);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            HushgramPreferenceFragment page = DownloadSettingsTest.pageIn(controller);
+            ListPreference row = (ListPreference) page.findPreference(Settings.CAPTION_LINES.key);
+            assertNotNull(row);
+            String cut = L10n.t("Captions longer than that end with \"more\", which opens the rest.");
+            assertEquals(L10n.t("4 lines") + "\n" + cut, String.valueOf(row.getSummary()));
+            row.setValue("TEN");
+            assertEquals(L10n.t("10 lines") + "\n" + cut, String.valueOf(row.getSummary()));
+            row.setValue("WHOLE");
+            assertEquals(L10n.t("The whole caption shows, with no \"more\" to tap."), String.valueOf(row.getSummary()));
+        } finally {
+            Settings.EXPAND_CAPTIONS.resetToDefault();
+            Settings.CAPTION_LINES.resetToDefault();
+        }
+    }
+
     @Test public void playbackKeepsItsSavedChoiceAcrossParentChanges() {
         Settings.PLAYBACK_QUALITY.save(PlaybackQuality.HIGHEST);
         checkParent(Settings.DEFAULT_PLAYBACK_QUALITY, Settings.PLAYBACK_QUALITY, PatchFamily.PLAYBACK_QUALITY,

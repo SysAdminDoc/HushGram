@@ -1414,6 +1414,45 @@
       "options": []
     },
     {
+      "name": "Expand captions",
+      "description": "Shows the whole caption on posts in your feed, or as many lines as you pick, before \"more\". Reels and stories stay as they are. Starts off. Turn it on in HushGram settings > Feed.",
+      "category": "Interaction",
+      "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "456.0.0.53.78"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "456.0.0.53.78",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 386214574,
+                "ARMEABI_V7A": 386214562,
+                "X86": 386214575
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
       "name": "Explore without personalization",
       "description": "Opens Explore on the grid that isn't personalized every time and keeps it from switching back after ten minutes. Instagram only promises that grid in the EU. A second switch hides the EU menu button for it. Both start off. Turn them on in HushGram settings > Explore.",
       "category": "Privacy",

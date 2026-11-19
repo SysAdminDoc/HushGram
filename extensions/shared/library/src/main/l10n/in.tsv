@@ -1679,6 +1679,22 @@ Start reels muted	Mulai reel tanpa suara
 Every reel starts silent, wherever you open it from. The volume keys or the speaker icon unmute it. Wins over Start reels with sound.	Setiap reel dimulai tanpa suara, dari mana pun kamu membukanya. Tombol volume atau ikon speaker menyalakan suaranya. Mengalahkan Mulai reel dengan suara.
 Hide captions	Sembunyikan keterangan
 Takes the caption off posts in your feed and off reels. The post stays, and the comments sheet still shows it.	Menghapus keterangan dari kiriman di beranda dan dari reel. Kiriman tetap ada, dan lembar komentar masih menampilkannya.
+# context: "more" is the word Instagram puts at the end of a cut caption in the feed; use the word Instagram shows there in this language (#771)
+Expand captions	Bentangkan keterangan
+Shows more of a post's caption in your feed before "more", the whole caption to start. Reels and stories stay as they are.	Menampilkan lebih banyak keterangan kiriman di beranda sebelum "selengkapnya", seluruh keterangan pada awalnya. Reels dan cerita tetap seperti semula.
+Caption lines before more	Baris sebelum "selengkapnya"
+The whole caption shows, with no "more" to tap.	Seluruh keterangan ditampilkan, tanpa "selengkapnya" untuk diketuk.
+Captions longer than that end with "more", which opens the rest.	Keterangan yang lebih panjang diakhiri dengan "selengkapnya", yang membuka sisanya.
+Turn on Expand captions to use this choice.	Aktifkan Bentangkan keterangan untuk menggunakan pilihan ini.
+Whole caption	Seluruh keterangan
+1 line	1 baris
+2 lines	2 baris
+3 lines	3 baris
+4 lines	4 baris
+5 lines	5 baris
+6 lines	6 baris
+8 lines	8 baris
+10 lines	10 baris
 Keep Home's top bar	Tetap tampilkan bilah atas Beranda
 Keeps the Instagram logo and the buttons beside it at the top of Home while you scroll, instead of sliding them away.	Menjaga logo Instagram dan tombol di sampingnya tetap di atas Beranda saat Anda menggulir, tidak digeser hilang.
 # context: Feed settings: the See-through top bar switch, right under Keep Home's top bar (#418). It blurs the posts that scroll under Home's header, the bar with the Instagram logo.

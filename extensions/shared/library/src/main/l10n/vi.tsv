@@ -1621,6 +1621,22 @@ Start reels muted	Bắt đầu reel tắt tiếng
 Every reel starts silent, wherever you open it from. The volume keys or the speaker icon unmute it. Wins over Start reels with sound.	Mọi reel bắt đầu im lặng, dù mở từ đâu. Phím âm lượng hoặc biểu tượng loa sẽ bật tiếng. Được ưu tiên hơn Bắt đầu reel có tiếng.
 Hide captions	Ẩn chú thích
 Takes the caption off posts in your feed and off reels. The post stays, and the comments sheet still shows it.	Gỡ chú thích khỏi bài viết trong bảng feed và khỏi reel. Bài viết vẫn giữ, và bảng bình luận vẫn hiện chú thích.
+# context: "more" is the word Instagram puts at the end of a cut caption in the feed; use the word Instagram shows there in this language (#771)
+Expand captions	Mở rộng chú thích
+Shows more of a post's caption in your feed before "more", the whole caption to start. Reels and stories stay as they are.	Hiện nhiều chú thích hơn trên bài viết trong bảng feed trước "xem thêm", lúc đầu là toàn bộ chú thích. Reel và tin vẫn giữ nguyên.
+Caption lines before more	Số dòng trước "xem thêm"
+The whole caption shows, with no "more" to tap.	Hiện toàn bộ chú thích, không có "xem thêm" để nhấn.
+Captions longer than that end with "more", which opens the rest.	Chú thích dài hơn sẽ kết thúc bằng "xem thêm", nhấn vào để mở phần còn lại.
+Turn on Expand captions to use this choice.	Hãy bật Mở rộng chú thích để dùng lựa chọn này.
+Whole caption	Toàn bộ chú thích
+1 line	1 dòng
+2 lines	2 dòng
+3 lines	3 dòng
+4 lines	4 dòng
+5 lines	5 dòng
+6 lines	6 dòng
+8 lines	8 dòng
+10 lines	10 dòng
 Keep Home's top bar	Giữ thanh trên cùng của trang chủ
 Keeps the Instagram logo and the buttons beside it at the top of Home while you scroll, instead of sliding them away.	Giữ logo Instagram và các nút bên cạnh ở đầu trang chủ khi bạn cuộn, thay vì trượt đi.
 See-through top bar	Thanh trên cùng trong suốt

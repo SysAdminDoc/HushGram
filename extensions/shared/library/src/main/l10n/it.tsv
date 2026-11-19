@@ -1679,6 +1679,22 @@ Start reels muted	Avvia i reel senza audio
 Every reel starts silent, wherever you open it from. The volume keys or the speaker icon unmute it. Wins over Start reels with sound.	Ogni reel parte senza audio, da qualunque punto lo apri. I tasti del volume o l'icona dell'altoparlante lo riattivano. Ha la precedenza su Avvia i reel con l'audio.
 Hide captions	Nascondi le didascalie
 Takes the caption off posts in your feed and off reels. The post stays, and the comments sheet still shows it.	Toglie la didascalia dai post del feed e dai reel. Il post resta, e la schermata dei commenti la mostra ancora.
+# context: "more" is the word Instagram puts at the end of a cut caption in the feed; use the word Instagram shows there in this language (#771)
+Expand captions	Espandi le didascalie
+Shows more of a post's caption in your feed before "more", the whole caption to start. Reels and stories stay as they are.	Mostra una parte più lunga della didascalia dei post del feed prima di "altro", all'inizio la didascalia intera. Reel e storie restano come sono.
+Caption lines before more	Righe prima di "altro"
+The whole caption shows, with no "more" to tap.	La didascalia si vede intera, senza "altro" da toccare.
+Captions longer than that end with "more", which opens the rest.	Le didascalie più lunghe finiscono con "altro", che apre il resto.
+Turn on Expand captions to use this choice.	Attiva Espandi le didascalie per usare questa scelta.
+Whole caption	Didascalia intera
+1 line	1 riga
+2 lines	2 righe
+3 lines	3 righe
+4 lines	4 righe
+5 lines	5 righe
+6 lines	6 righe
+8 lines	8 righe
+10 lines	10 righe
 Keep Home's top bar	Fissa la barra in alto della Home
 Keeps the Instagram logo and the buttons beside it at the top of Home while you scroll, instead of sliding them away.	Tiene il logo di Instagram e i pulsanti accanto in cima alla Home mentre scorri, invece di farli scorrere via.
 # context: Feed settings: the See-through top bar switch, right under Keep Home's top bar (#418). It blurs the posts that scroll under Home's header, the bar with the Instagram logo.

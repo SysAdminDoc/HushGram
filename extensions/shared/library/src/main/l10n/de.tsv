@@ -1679,6 +1679,22 @@ Start reels muted	Reels stumm starten
 Every reel starts silent, wherever you open it from. The volume keys or the speaker icon unmute it. Wins over Start reels with sound.	Jedes Reel startet stumm, egal wo du es öffnest. Die Lautstärketasten oder das Lautsprechersymbol schalten den Ton ein. Hat Vorrang vor Reels mit Ton starten.
 Hide captions	Beschreibungen ausblenden
 Takes the caption off posts in your feed and off reels. The post stays, and the comments sheet still shows it.	Nimmt die Beschreibung von Beiträgen im Feed und von Reels weg. Der Beitrag bleibt, und die Kommentare zeigen sie weiterhin.
+# context: "more" is the word Instagram puts at the end of a cut caption in the feed; use the word Instagram shows there in this language (#771)
+Expand captions	Beschreibungen ausklappen
+Shows more of a post's caption in your feed before "more", the whole caption to start. Reels and stories stay as they are.	Zeigt im Feed mehr von der Beschreibung eines Beitrags vor „mehr“, zu Beginn die ganze Beschreibung. Reels und Stories bleiben, wie sie sind.
+Caption lines before more	Zeilen vor „mehr“
+The whole caption shows, with no "more" to tap.	Die ganze Beschreibung wird angezeigt, ohne „mehr“ zum Antippen.
+Captions longer than that end with "more", which opens the rest.	Längere Beschreibungen enden mit „mehr“, das den Rest öffnet.
+Turn on Expand captions to use this choice.	Aktiviere „Beschreibungen ausklappen“, um diese Auswahl zu nutzen.
+Whole caption	Ganze Beschreibung
+1 line	1 Zeile
+2 lines	2 Zeilen
+3 lines	3 Zeilen
+4 lines	4 Zeilen
+5 lines	5 Zeilen
+6 lines	6 Zeilen
+8 lines	8 Zeilen
+10 lines	10 Zeilen
 Keep Home's top bar	Obere Leiste der Startseite fixieren
 Keeps the Instagram logo and the buttons beside it at the top of Home while you scroll, instead of sliding them away.	Hält das Instagram-Logo und die Schaltflächen daneben beim Scrollen oben auf der Startseite, statt sie wegzuschieben.
 # context: Feed settings: the See-through top bar switch, right under Keep Home's top bar (#418). It blurs the posts that scroll under Home's header, the bar with the Instagram logo.

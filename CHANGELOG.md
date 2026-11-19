@@ -6,6 +6,7 @@ Every HushGram release, newest first.
 
 ### Improvements
 
+* `Expand captions` is a new patch under Feed. Posts in your feed show their whole caption, with no "more" to tap. Pick `Caption lines before more` to get a set number of lines instead, from one to ten, and a longer caption ends with "more" like before. Reels and stories keep Instagram's short captions. Starts off. Requested in #771.
 * `Hide the line under names` is a new patch under Feed. It takes the song, the place and Instagram's other labels off the line under the name on feed posts, so nothing slides there anymore and the name sits on its own. Reels get a switch of their own under Reels, `Hide the line under names on reels`, for the song and the labels that take turns under a reel's author. Sponsored and Paid partnership stay on both. Both start off. Requested in #771.
 * `Hide Followers and Following on profiles` is a new patch under Profiles with two switches. `Hide follower counts` takes the numbers off Followers and Following at the top of a profile and leaves the words, which still open the lists. `Hide Followers and Following` takes both buttons away and the row closes up, so there's no gap. The post count stays either way. Both start off. Requested in #771.
 * `Read messages without the seen receipt` gets a switch, `Mark a chat seen when you react`. Reacting to a reel, post or message someone sent you lets them see you read up to it. Whatever they sent after it stays unseen to them. Starts off. Requested in #772.

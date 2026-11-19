@@ -1669,6 +1669,22 @@ Start reels muted	เริ่มเล่นรีลส์แบบปิด�
 Every reel starts silent, wherever you open it from. The volume keys or the speaker icon unmute it. Wins over Start reels with sound.	รีลส์ทุกคลิปจะเริ่มเล่นแบบไม่มีเสียง ไม่ว่าจะเปิดจากที่ใดก็ตาม ปุ่มปรับระดับเสียงหรือไอคอนลำโพงจะเปิดเสียง การตั้งค่านี้จะมีความสำคัญเหนือกว่า "เริ่มเล่นรีลส์แบบมีเสียง"
 Hide captions	ซ่อนคำบรรยาย
 Takes the caption off posts in your feed and off reels. The post stays, and the comments sheet still shows it.	นำคำบรรยายออกจากโพสต์ในฟีดและรีลส์ของคุณ โดยโพสต์จะยังคงอยู่ และแผ่นข้อคิดเห็นจะยังคงแสดงคำบรรยายดังกล่าว
+# context: "more" is the word Instagram puts at the end of a cut caption in the feed; use the word Instagram shows there in this language (#771)
+Expand captions	ขยายคำบรรยาย
+Shows more of a post's caption in your feed before "more", the whole caption to start. Reels and stories stay as they are.	แสดงคำบรรยายของโพสต์ในฟีดได้มากขึ้นก่อน "เพิ่มเติม" โดยเริ่มต้นจะแสดงคำบรรยายทั้งหมด รีลส์และสตอรี่จะยังคงเหมือนเดิม
+Caption lines before more	จำนวนบรรทัดก่อน "เพิ่มเติม"
+The whole caption shows, with no "more" to tap.	แสดงคำบรรยายทั้งหมด โดยไม่มี "เพิ่มเติม" ให้แตะ
+Captions longer than that end with "more", which opens the rest.	คำบรรยายที่ยาวกว่านั้นจะจบด้วย "เพิ่มเติม" ซึ่งแตะเพื่อเปิดส่วนที่เหลือได้
+Turn on Expand captions to use this choice.	เปิด "ขยายคำบรรยาย" เพื่อใช้ตัวเลือกนี้
+Whole caption	คำบรรยายทั้งหมด
+1 line	1 บรรทัด
+2 lines	2 บรรทัด
+3 lines	3 บรรทัด
+4 lines	4 บรรทัด
+5 lines	5 บรรทัด
+6 lines	6 บรรทัด
+8 lines	8 บรรทัด
+10 lines	10 บรรทัด
 Keep Home's top bar	คงแถบด้านบนของหน้าหลักไว้
 Keeps the Instagram logo and the buttons beside it at the top of Home while you scroll, instead of sliding them away.	คงโลโก้ Instagram และปุ่มต่างๆ ข้างโลโก้ไว้ที่ด้านบนของหน้าหลักขณะที่คุณเลื่อน แทนที่จะเลื่อนหายไป
 # context: Feed settings: the See-through top bar switch, right under Keep Home's top bar (#418). It blurs the posts that scroll under Home's header, the bar with the Instagram logo.

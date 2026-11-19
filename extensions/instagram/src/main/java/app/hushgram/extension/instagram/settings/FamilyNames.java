@@ -141,6 +141,7 @@ public final class FamilyNames {
     public static final String WATCH_AGAIN = "Watch again in the feed";
     public static final String ACTIVITY_BUBBLES = "Hide activity bubbles";
     public static final String HIDE_CAPTIONS = "Hide captions";
+    public static final String EXPAND_CAPTIONS = "Expand captions";
     public static final String FEED_AUDIO_ICON = "Hide the audio icon on posts";
     public static final String FEED_AUTO_SCROLL = "Auto scroll in Home";
     public static final String HOME_TOP_BAR = "Keep Home's top bar";

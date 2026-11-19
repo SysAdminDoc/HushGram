@@ -1679,6 +1679,22 @@ Start reels muted	Iniciar reels sem som
 Every reel starts silent, wherever you open it from. The volume keys or the speaker icon unmute it. Wins over Start reels with sound.	Todo reel começa sem som, de onde quer que você o abra. As teclas de volume ou o ícone do alto-falante ativam o som. Tem prioridade sobre Iniciar reels com som.
 Hide captions	Ocultar legendas
 Takes the caption off posts in your feed and off reels. The post stays, and the comments sheet still shows it.	Tira a legenda das publicações do feed e dos reels. A publicação fica, e a folha de comentários ainda a mostra.
+# context: "more" is the word Instagram puts at the end of a cut caption in the feed; use the word Instagram shows there in this language (#771)
+Expand captions	Expandir legendas
+Shows more of a post's caption in your feed before "more", the whole caption to start. Reels and stories stay as they are.	Mostra mais da legenda das publicações do feed antes de "mais", a legenda inteira no começo. Reels e stories ficam como estão.
+Caption lines before more	Linhas antes de "mais"
+The whole caption shows, with no "more" to tap.	A legenda aparece inteira, sem "mais" para tocar.
+Captions longer than that end with "more", which opens the rest.	Legendas mais longas terminam com "mais", que abre o resto.
+Turn on Expand captions to use this choice.	Ative Expandir legendas para usar esta opção.
+Whole caption	Legenda inteira
+1 line	1 linha
+2 lines	2 linhas
+3 lines	3 linhas
+4 lines	4 linhas
+5 lines	5 linhas
+6 lines	6 linhas
+8 lines	8 linhas
+10 lines	10 linhas
 Keep Home's top bar	Fixar a barra de cima do Início
 Keeps the Instagram logo and the buttons beside it at the top of Home while you scroll, instead of sliding them away.	Mantém o logo do Instagram e os botões ao lado no topo do Início enquanto você rola, em vez de escondê-los.
 # context: Feed settings: the See-through top bar switch, right under Keep Home's top bar (#418). It blurs the posts that scroll under Home's header, the bar with the Instagram logo.

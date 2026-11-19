@@ -1678,6 +1678,22 @@ Start reels muted	릴스를 음소거로 시작
 Every reel starts silent, wherever you open it from. The volume keys or the speaker icon unmute it. Wins over Start reels with sound.	어디서 열든 모든 릴스가 소리 없이 시작됩니다. 볼륨 키나 스피커 아이콘으로 소리를 켤 수 있습니다. 릴스를 소리와 함께 시작보다 우선합니다.
 Hide captions	캡션 숨기기
 Takes the caption off posts in your feed and off reels. The post stays, and the comments sheet still shows it.	피드 게시물과 릴스에서 캡션을 없앱니다. 게시물은 그대로 두고, 댓글 창에는 캡션이 계속 보입니다.
+# context: "more" is the word Instagram puts at the end of a cut caption in the feed; use the word Instagram shows there in this language (#771)
+Expand captions	캡션 펼치기
+Shows more of a post's caption in your feed before "more", the whole caption to start. Reels and stories stay as they are.	피드 게시물의 캡션을 ‘더 보기’ 앞에서 더 많이 보여 줍니다. 처음에는 캡션 전체가 보입니다. 릴스와 스토리는 그대로 둡니다.
+Caption lines before more	‘더 보기’ 앞 줄 수
+The whole caption shows, with no "more" to tap.	캡션 전체가 보이고, 누를 ‘더 보기’가 없습니다.
+Captions longer than that end with "more", which opens the rest.	그보다 긴 캡션은 ‘더 보기’로 끝나며, 누르면 나머지가 열립니다.
+Turn on Expand captions to use this choice.	이 옵션을 사용하려면 ‘캡션 펼치기’를 켜세요
+Whole caption	캡션 전체
+1 line	1줄
+2 lines	2줄
+3 lines	3줄
+4 lines	4줄
+5 lines	5줄
+6 lines	6줄
+8 lines	8줄
+10 lines	10줄
 Keep Home's top bar	홈 상단 바 고정
 Keeps the Instagram logo and the buttons beside it at the top of Home while you scroll, instead of sliding them away.	스크롤할 때 Instagram 로고와 옆의 버튼을 밀어 올리지 않고 홈 맨 위에 그대로 둡니다.
 # context: Feed settings: the See-through top bar switch, right under Keep Home's top bar (#418). It blurs the posts that scroll under Home's header, the bar with the Instagram logo.

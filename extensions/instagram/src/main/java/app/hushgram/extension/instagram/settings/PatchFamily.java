@@ -251,6 +251,7 @@ public enum PatchFamily {
     WATCH_AGAIN(FamilyNames.WATCH_AGAIN, "watchAgain", null, Settings.WATCH_AGAIN_IN_FEED, Settings.HIDE_WATCH_MORE_REELS),
     ACTIVITY_BUBBLES(FamilyNames.ACTIVITY_BUBBLES, "activityBubbles", null, Settings.HIDE_ACTIVITY_BUBBLES),
     HIDE_CAPTIONS(FamilyNames.HIDE_CAPTIONS, "hideCaptions", null, Settings.HIDE_CAPTIONS),
+    EXPAND_CAPTIONS(FamilyNames.EXPAND_CAPTIONS, "expandCaptions", null, Settings.EXPAND_CAPTIONS),
     FEED_AUDIO_ICON(FamilyNames.FEED_AUDIO_ICON, "feedAudioIcon", null, Settings.HIDE_FEED_AUDIO_ICON,
             Settings.HIDE_FEED_TAG_ICON),
     FEED_AUTO_SCROLL(FamilyNames.FEED_AUTO_SCROLL, "feedAutoScroll", null, Settings.FEED_AUTO_SCROLL),

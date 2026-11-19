@@ -1682,6 +1682,22 @@ Start reels muted	Reels 預設靜音
 Every reel starts silent, wherever you open it from. The volume keys or the speaker icon unmute it. Wins over Start reels with sound.	無論從哪裡開啟，每則 Reels 都會靜音開始。音量鍵或喇叭圖示可取消靜音。優先於「Reels 預設開啟聲音」。
 Hide captions	隱藏說明文字
 Takes the caption off posts in your feed and off reels. The post stays, and the comments sheet still shows it.	移除動態貼文與 Reels 上的說明文字。貼文會保留，留言頁面頂端仍會顯示。
+# context: "more" is the word Instagram puts at the end of a cut caption in the feed; use the word Instagram shows there in this language (#771)
+Expand captions	展開說明文字
+Shows more of a post's caption in your feed before "more", the whole caption to start. Reels and stories stay as they are.	動態貼文的說明文字在「更多」之前會顯示更多內容，一開始顯示完整說明文字。Reels 和限時動態維持原樣。
+Caption lines before more	「更多」之前的行數
+The whole caption shows, with no "more" to tap.	顯示完整說明文字，不會出現可點擊的「更多」。
+Captions longer than that end with "more", which opens the rest.	超過的說明文字會以「更多」結尾，點擊即可展開其餘內容。
+Turn on Expand captions to use this choice.	請啟用「展開說明文字」以使用此選項。
+Whole caption	完整說明文字
+1 line	1 行
+2 lines	2 行
+3 lines	3 行
+4 lines	4 行
+5 lines	5 行
+6 lines	6 行
+8 lines	8 行
+10 lines	10 行
 Keep Home's top bar	固定首頁頂端列
 Keeps the Instagram logo and the buttons beside it at the top of Home while you scroll, instead of sliding them away.	捲動時讓 Instagram 標誌和旁邊的按鈕留在首頁頂端，不會滑走。
 # context: Feed settings: the See-through top bar switch, right under Keep Home's top bar (#418). It blurs the posts that scroll under Home's header, the bar with the Instagram logo.
