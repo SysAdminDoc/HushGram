@@ -95,6 +95,9 @@ public final class FeedTapPause {
     /** What {@link HookStatus} counts for each Reels opening Taps on feed videos stay in the feed ended, followed by its entry point's name. */
     static final String KEPT_FROM = "taps kept in the feed from ";
 
+    /** What {@link HookStatus} counts: Instagram's hand-offs of the playing video to Reels {@link #skipsHandoff} skipped. */
+    static final String HANDOFF_SKIPPED = "Reels hand-offs skipped";
+
     /** The entry point of a tap on a feed video, the one opening {@link #opening} pauses or plays in place of. */
     static final String VIDEO_TAP = "VIDEO_TAP";
 
@@ -106,6 +109,7 @@ public final class FeedTapPause {
     static final String PRESS = "feed press";
     static final String RELEASE = "feed press lift";
     static final String OPEN = "feed Reels opening";
+    static final String HANDOFF = "feed Reels hand-off";
 
     /** What {@link FeedPlayerReader}'s stubs return until the patch fills them in. */
     static final Object NOT_PATCHED = new Object();
@@ -341,6 +345,28 @@ public final class FeedTapPause {
         Function<Videos, Object> reach = feed -> feed.controllerOfLauncher(launcher);
         boolean handled = endsHold ? leftPlaying(reach, media, state, OPEN) : toggle(reach, media, state, OPEN);
         return handled || keeps && kept(VIDEO_TAP);
+    }
+
+    /**
+     * Asked by the feed video controller's tap right before it hands the playing video over to Reels, which some of
+     * Instagram's servers have it do before the Reels launcher runs. That hand-off pauses the feed's player and lets go
+     * of it, so a tap {@link #opening} then keeps in the feed left the video stopped on its cover, or playing under a
+     * play button (#706). True skips the hand-off while Taps on feed videos stay in the feed or the pause switch is on,
+     * since the launcher may then keep the tap. A tap that goes on to Reels opens it without the hand-off, the way it
+     * opens on servers that don't hand videos over. False leaves it to Instagram: both switches off, HushGram paused,
+     * the settings not ready, or something in here threw. Not counted as invoked, like the press. Never throws.
+     */
+    public static boolean skipsHandoff() {
+        try {
+            if (!switchedOn() && !(Utils.settingsReady() && Settings.FEED_TAPS_STAY_IN_FEED.get())) return false;
+            HookStatus.bound(FamilyNames.FEED_TAP_PAUSE, HANDOFF);
+            HookStatus.counted(FamilyNames.FEED_TAP_PAUSE, HANDOFF_SKIPPED);
+            Logger.printDebug(() -> "Feed video: skipped Instagram's hand-off to Reels");
+            return true;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.FEED_TAP_PAUSE, HANDOFF, failure);
+            return false;
+        }
     }
 
     /**

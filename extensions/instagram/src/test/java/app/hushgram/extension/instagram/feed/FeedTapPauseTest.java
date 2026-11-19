@@ -642,6 +642,32 @@ public class FeedTapPauseTest {
         assertTrue("and back", open(EntryPoint.VIDEO_TAP));
     }
 
+    /**
+     * #706: Instagram's hand-off of the playing video to Reels, which stops the feed's player before the launcher runs,
+     * is skipped while either switch is on, so a tap the launcher keeps leaves the video playing. With both off,
+     * HushGram paused or the settings not ready, it's left to Instagram, and nothing is paused, played or read.
+     */
+    @Test
+    public void theHandoffToReelsIsSkippedWhileATapMayStay() {
+        assertFalse("both off", FeedTapPause.skipsHandoff());
+        Settings.FEED_TAPS_STAY_IN_FEED.save(true);
+        assertTrue("taps stay in the feed", FeedTapPause.skipsHandoff());
+        Settings.FEED_TAPS_STAY_IN_FEED.save(false);
+        Settings.TAP_FEED_VIDEO_TO_PAUSE.save(true);
+        assertTrue("the pause", FeedTapPause.skipsHandoff());
+        Settings.FEED_TAPS_STAY_IN_FEED.save(true);
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertFalse("paused", FeedTapPause.skipsHandoff());
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        SettingsContextRule.withoutContext(() -> assertFalse("not ready", FeedTapPause.skipsHandoff()));
+        assertEquals("nothing paused or played", 0, feed.pauses + feed.starts);
+        assertEquals("nothing read", 0, feed.launcherAsked);
+        String report = report();
+        assertTrue(report, report.contains(FeedTapPause.HANDOFF_SKIPPED + " 2"));
+    }
+
     /** Any other opening goes on to Reels and is counted under its name; one with no enum is counted as it prints. */
     @Test
     public void otherOpeningsGoToReels() {

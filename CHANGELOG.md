@@ -56,6 +56,7 @@ Every HushGram release, newest first.
 * Reels that run behind the glass tab bar sit where they should again instead of up against the top of the screen with a black band under them. Reported in #763.
 * Unfolding a foldable with `Glass tab bar` on keeps every tab in Instagram's side rail now, lined up. Search and your profile used to go missing from it and the rest sat out of line. Reported in #764.
 * `Thicker story progress bar` makes the bar thicker again when you've picked a seek bar shape. 0.0.21 kept the shape at its own size so the waves wouldn't stretch, and that left the bar as thin as before. The shape's line now grows as much as the standard bar does, and its waves keep their size. Reported in #775.
+* With `Taps on feed videos stay in the feed` on, tapping a feed video no longer stops it on its cover or leaves it playing under a play button. On some accounts Instagram got the video ready for Reels before HushGram kept the tap, and that stopped the feed's player. Reported in #706.
 
 ## 0.0.21 (2026-11-18)
 

@@ -47,6 +47,9 @@ class TapFeedVideoToPauseHookTest {
     /** The instructions the launcher hook adds: four moves, the call, its answer, the test and the return. */
     private val launcherLength = 8
 
+    /** The instructions the hand-off hook adds in the controller's tap: the call, its answer and the test. */
+    private val handoffLength = 3
+
     /**
      * The hooks the patch writes are in the FeedTapPause the bundle ships, public and static: the tap's and the press's
      * take the handler, the post and the post's state as Objects, the release's those and whether it was a lift. Every
@@ -58,7 +61,7 @@ class TapFeedVideoToPauseHookTest {
         val declared = ExtensionDex.classDef(FEED_TAP_PAUSE).methods
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
-        for (hook in listOf(FEED_TAPPED, FEED_PRESSED, FEED_RELEASED, FEED_OPENING)) {
+        for (hook in listOf(FEED_TAPPED, FEED_PRESSED, FEED_RELEASED, FEED_OPENING, FEED_SKIPS_HANDOFF)) {
             assertTrue("$hook is not in the extension: $declared", hook.substringAfter("->") in declared)
         }
         val reader = ExtensionDex.classDef(FEED_PLAYER_READER)
@@ -121,17 +124,24 @@ class TapFeedVideoToPauseHookTest {
                     found.launcher.parameterTypes.map(Any::toString).subList(4, 6))
                 assertEquals("$what: the launcher's lazy field is its own", parts.launcher, found.launcherSupplier.definingClass)
                 assertEquals("$what: and is asked as the handler's is", found.supplierValue.toString(), found.launcherValue.toString())
+                assertEquals("$what: the controller's tap", parts.controller, found.tap.definingClass)
+                val handoff = found.handoff
+                assertNotNull("$what: the controller's tap hands the playing video over to Reels", handoff)
+                assertEquals("$what: the hand-off takes the module's name", listOf("Ljava/lang/String;"),
+                    handoff!!.call.parameterTypes.map(Any::toString))
                 if (apk.extension == "apks") {
                     // The declared build's own names, 386214574, the launcher's first, in one list so a
                     // run shows every name that moved. 451 paused with a string of its own, no Integer
                     // constant named. On 386214574 the player plays through A04 ("start"), tells A0x
                     // right after and pauses through A0K ("tapped"); Media->A3F answers the ad details.
+                    // The controller's tap A0R hands the video over to Reels through 06vI.A01 (#706).
                     assertEquals("$what: the pause reason", "tapped", found.reasonText)
                     assertEquals(
                         "$what: the names",
                         listOf(
                             "LX/01qY;", "A00", "A03",
                             "A07", "A06", "A0A", "A0C", "A0F", "A00", "A0n", "A03", "A00", "A0B", "A04", "A0K", "A0x", "A3F",
+                            "A0R", "LX/06vI;", "A01",
                         ),
                         listOf(
                             found.launcher.definingClass, found.launcher.name, found.launcherSupplier.name,
@@ -139,6 +149,7 @@ class TapFeedVideoToPauseHookTest {
                             found.controllerField.name, found.playerField.name, found.isPlaying.name, found.itemField.name,
                             found.shown.name, found.pageField.name, found.play.name, found.pause.name,
                             found.mark.name, found.adDetails.name,
+                            found.tap.name, handoff.call.definingClass, handoff.call.name,
                         ),
                     )
                 }
@@ -254,6 +265,25 @@ class TapFeedVideoToPauseHookTest {
                 assertEquals("$what: a no goes on to the launcher's first instruction", launcherLength,
                     (launcherCode[6] as BuilderOffsetInstruction).target.location.index)
 
+                // The controller's tap: asked right before its hand-off to Reels, which a yes steps over.
+                val skipping = hooked.flatMap { type ->
+                    context.mutableClassDefBy(type).methods.filter { m -> m.code().any { it.referenceText() == FEED_SKIPS_HANDOFF } }
+                }
+                assertEquals("$what: methods asking about the hand-off", listOf(parts.controller to found.tap.name),
+                    skipping.map { it.definingClass to it.name })
+                val skipper = skipping.single()
+                val skipCode = skipper.code()
+                assertEquals("$what: the hand-off is asked about once", 1, skipCode.count { it.referenceText() == FEED_SKIPS_HANDOFF })
+                val hookAt = skipCode.indexOfFirst { it.referenceText() == FEED_SKIPS_HANDOFF }
+                assertEquals("$what: the hand-off hook", listOf(Opcode.INVOKE_STATIC, Opcode.MOVE_RESULT, Opcode.IF_NEZ),
+                    skipCode.subList(hookAt, hookAt + handoffLength).map { it.opcode })
+                val answer = (skipCode[hookAt + 1] as OneRegisterInstruction).registerA
+                assertEquals("$what: the hand-off answer is tested where it lands", answer, (skipCode[hookAt + 2] as OneRegisterInstruction).registerA)
+                assertEquals("$what: right before the hand-off", handoff.call.toString(), skipCode[hookAt + handoffLength].referenceText())
+                assertFalse("$what: in a register the hand-off doesn't read", answer in skipCode[hookAt + handoffLength].arguments())
+                assertEquals("$what: a yes steps over the hand-off", hookAt + handoffLength + 1,
+                    (skipCode[hookAt + 2] as BuilderOffsetInstruction).target.location.index)
+
                 for ((method, original) in originals) {
                     val params = method.parameterTypes.map(Any::toString)
                     fun isThe(hooked: Method) = method.definingClass == hooked.definingClass && method.name == hooked.name &&
@@ -262,6 +292,7 @@ class TapFeedVideoToPauseHookTest {
                         isThe(handler) || isThe(press) -> (0 until hookLength).toSet()
                         isThe(release) -> (0 until releaseLength).toSet()
                         isThe(launcher) -> (0 until launcherLength).toSet()
+                        isThe(skipper) -> (hookAt until hookAt + handoffLength).toSet()
                         else -> emptySet()
                     }
                     original.assertPreserved("$what ${method.definingClass}->${method.name}", method, mine)
@@ -303,6 +334,31 @@ class TapFeedVideoToPauseHookTest {
                 m.code().any { it.referenceText() in listOf(FEED_TAPPED, FEED_PRESSED, FEED_RELEASED, FEED_OPENING) }
             })
         }
+    }
+
+    /**
+     * A build whose controller's tap hands nothing over to Reels, read here as 386214574 without the class the hand-off
+     * calls into, still gets its other hooks, and its tap keeps every instruction it had.
+     */
+    @Test
+    fun aTapWithoutTheHandoffIsLeftAsItIs() {
+        val apk = bundles().first()
+        val parts = parts(apk)
+        val classes = FixtureDex.classes(apk, parts.wanted).values + ExtensionDex.classDef(FEED_PLAYER_READER)
+        val handedTo = PatchContexts.of(classes).findFeedTap().handoff!!.call.definingClass
+        val context = PatchContexts.of(classes.filter { it.type != handedTo })
+        val found = context.findFeedTap()
+        assertEquals("no hand-off without its class", null, found.handoff)
+        val tap = context.mutableClassDefBy(parts.controller).methods.single { it.name == found.tap.name &&
+            it.parameterTypes.map(Any::toString) == found.tap.parameterTypes.map(Any::toString) }
+        val original = NeutralNativePath(tap)
+        context.apply { applyFeedTapPause(found) }
+        assertTrue("the other hooks still went in", context.mutableClassDefBy(parts.launcher).methods
+            .any { m -> m.code().any { it.referenceText() == FEED_OPENING } })
+        assertTrue("nothing asks about a hand-off", listOf(parts.handler, parts.controller, parts.launcher).all { type ->
+            context.mutableClassDefBy(type).methods.none { m -> m.code().any { it.referenceText() == FEED_SKIPS_HANDOFF } }
+        })
+        original.assertPreserved("the controller's tap", tap, emptySet())
     }
 
     private class Parts(
