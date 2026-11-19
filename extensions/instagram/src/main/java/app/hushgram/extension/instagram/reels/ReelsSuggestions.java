@@ -36,6 +36,9 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * Instagram titles "Catch up with friends" (#730). It has its own switch, so hiding suggested
  * accounts leaves it alone and the other way round.
  *
+ * <p>Threads comes as a unit of its own too ({@link #THREADS_KINDS}), the card Instagram puts
+ * between reels to bring people over to Threads (#765), under a third switch.
+ *
  * <p>Every unit that stays and isn't a reel or an ad is counted by its kind, and every netego unit
  * that stays by its type, under {@link #KEPT_ROUTE}. A screen of suggestions that still shows (#167)
  * then has its name in the reporter's Diagnostics, with or without Debug logging.
@@ -54,6 +57,9 @@ public final class ReelsSuggestions {
     /** The clips item kind of a page of friends' stories, by the name Instagram 456 gives it. */
     static final Set<String> STORY_KINDS = Collections.singleton("STORIES_IN_REELS");
 
+    /** The clips item kind of a Threads card, by the name Instagram 456 gives it. */
+    static final Set<String> THREADS_KINDS = Collections.singleton("NETEGO_THREADS_IN_REELS_UNIT_ACQUISITION");
+
     /** The netego unit types of friends and creators to follow. */
     static final Set<String> NETEGO_TYPES = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
             "friend_su_in_reels", "creators_in_reels")));
@@ -63,6 +69,9 @@ public final class ReelsSuggestions {
 
     /** The diagnostic counter route: the pages of stories seen, and the ones taken out. */
     static final String STORIES_ROUTE = "Stories in Reels";
+
+    /** The diagnostic counter route: the Threads cards seen, and the ones taken out. */
+    static final String THREADS_ROUTE = "Threads in Reels";
 
     /** The diagnostic counter route for the units kept that aren't reels or ads, by kind or netego type. */
     static final String KEPT_ROUTE = "Reels units kept";
@@ -83,11 +92,13 @@ public final class ReelsSuggestions {
 
     /**
      * Injected at each return of Instagram's Reels item converter. Answers null for a card of
-     * accounts or creators to follow while that switch is on, and for a page of stories while the
-     * stories switch is on, and [item] itself otherwise, or when anything goes wrong. Never throws.
+     * accounts or creators to follow while that switch is on, for a page of stories while the
+     * stories switch is on, for a Threads card while the Threads switch is on, and [item] itself
+     * otherwise, or when anything goes wrong. Never throws.
      */
     public static Object filter(Object item) {
-        return filter(item, ReelsSuggestions::kindOf, ReelsSuggestions::switchedOn, ReelsSuggestions::storiesSwitchedOn);
+        return filter(item, ReelsSuggestions::kindOf, ReelsSuggestions::switchedOn, ReelsSuggestions::storiesSwitchedOn,
+                ReelsSuggestions::threadsSwitchedOn);
     }
 
     static Object filter(Object item, KindReader reader, BooleanSupplier on) {
@@ -95,12 +106,18 @@ public final class ReelsSuggestions {
     }
 
     static Object filter(Object item, KindReader reader, BooleanSupplier on, BooleanSupplier storiesOn) {
+        return filter(item, reader, on, storiesOn, ReelsSuggestions::threadsSwitchedOn);
+    }
+
+    static Object filter(Object item, KindReader reader, BooleanSupplier on, BooleanSupplier storiesOn,
+            BooleanSupplier threadsOn) {
         if (item == null) return null;
         try {
             HookStatus.invoked(FamilyNames.REELS_SUGGESTIONS);
             String kind = reader.kindOf(item, KINDS, FamilyNames.REELS_SUGGESTIONS);
             if (kind == null) return item;
             if (STORY_KINDS.contains(kind)) return takeOut(item, kind, STORIES_ROUTE, storiesOn);
+            if (THREADS_KINDS.contains(kind)) return takeOut(item, kind, THREADS_ROUTE, threadsOn);
             if (!KINDS.contains(kind)) {
                 kept(kind);
                 return item;
@@ -200,5 +217,9 @@ public final class ReelsSuggestions {
 
     private static boolean storiesSwitchedOn() {
         return Utils.settingsReady() && Settings.HIDE_REELS_STORIES.get();
+    }
+
+    private static boolean threadsSwitchedOn() {
+        return Utils.settingsReady() && Settings.HIDE_REELS_THREADS.get();
     }
 }

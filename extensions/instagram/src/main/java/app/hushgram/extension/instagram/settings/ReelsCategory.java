@@ -58,6 +58,8 @@ final class ReelsCategory {
             reels.add(toggle(context, Settings.HIDE_REELS_STORIES, L10n.t("Hide stories in Reels"),
                     L10n.t("The Catch up with friends pages of stories that Instagram puts between reels. "
                             + "Stories stay at the top of Home.")));
+            reels.add(toggle(context, Settings.HIDE_REELS_THREADS, L10n.t("Hide Threads posts"),
+                    L10n.t("The cards that Instagram puts between reels to get you onto Threads.")));
         }
         if (build.contains(PatchFamily.PAID_PARTNERSHIP_REELS)) {
             reels.add(toggle(context, Settings.HIDE_PAID_PARTNERSHIP_REELS, L10n.t("Hide paid partnership Reels"),

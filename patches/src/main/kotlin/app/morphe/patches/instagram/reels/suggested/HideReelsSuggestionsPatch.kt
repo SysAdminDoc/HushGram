@@ -73,8 +73,11 @@ internal val SUGGESTED_KINDS = listOf(
 /** The clips item kind of a Catch up with friends page of stories, which ReelsSuggestions drops under its own switch (#730). */
 internal val STORY_KINDS = listOf("STORIES_IN_REELS")
 
+/** The clips item kind of a card bringing people over to Threads, which ReelsSuggestions drops under its own switch (#765). */
+internal val THREADS_KINDS = listOf("NETEGO_THREADS_IN_REELS_UNIT_ACQUISITION")
+
 /** Every kind ReelsSuggestions takes out, all named by the one enum field it reads. */
-internal val READ_KINDS = SUGGESTED_KINDS + STORY_KINDS
+internal val READ_KINDS = SUGGESTED_KINDS + STORY_KINDS + THREADS_KINDS
 
 private const val STRING = "Ljava/lang/String;"
 
@@ -86,9 +89,9 @@ private const val STRING = "Ljava/lang/String;"
 @Suppress("unused")
 val hideReelsSuggestionsPatch = bytecodePatch(
     name = "Hide suggested accounts in Reels",
-    description = "Leaves out the cards of accounts to follow that Instagram puts between reels, and on a second " +
-        "switch its Catch up with friends pages of stories. Every reel still plays. Starts off. Turn them on in " +
-        "HushGram settings > Reels.",
+    description = "Leaves out the cards of accounts to follow that Instagram puts between reels, and on switches of " +
+        "their own its Catch up with friends pages of stories and its Threads cards. Every reel still plays. " +
+        "Starts off. Turn them on in HushGram settings > Reels.",
 ) {
     category("Profiles")
     dependsOn(settingsPatch, instagramExtensionPatch)

@@ -6,6 +6,7 @@ Every HushGram release, newest first.
 
 ### Improvements
 
+* `Hide Threads posts` is new under Reels, right after `Hide stories in Reels`. It takes out the cards Instagram slips between reels to get you onto Threads. Every reel still plays. Starts off. Asked for in #765.
 * `Hide Not interested and Interested` is new under Reels and takes those two buttons off the bottom of a reel. `Hide 'Are you interested?' bubbles` under Feed covers Home only now. If you had it on, the Reels one starts on too, so nothing comes back after the update. Asked for in #769.
 * `Stop swipe to Messages` is new under Feed, right after `Stop swipe to create`. On the classic tab bar a swipe left on Home slides Messages in, and with this on it doesn't. The Messages button still opens it, and `Swipe left to open the profile` on Reels keeps working. Starts off. Asked for in #770.
 * `Expand captions` is a new patch under Feed. Posts in your feed show their whole caption, with no "more" to tap. Pick `Caption lines before more` to get a set number of lines instead, from one to ten, and a longer caption ends with "more" like before. Reels and stories keep Instagram's short captions. Starts off. Requested in #771.
