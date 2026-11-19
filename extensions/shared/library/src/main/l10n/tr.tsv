@@ -467,6 +467,8 @@ Turn on Start Home on Following to use this choice.	Bu seçimi kullanmak için A
 # context: Settings page: the summary of a greyed-out slider in place of its value; %1$s is the title of the switch it waits on, like Glass tab bar
 Turn on %1$s to use this slider.	Bu kaydırıcıyı kullanmak için %1$s seçeneğini açın.
 Turn on Story ring size to use this choice.	Bu seçimi kullanmak için Hikâye halkası boyutu seçeneğini açın.
+# context: Settings page, Reels: the line under the greyed-out Fill the screen switch while Show the whole reel is on
+Turn off Show the whole reel to use this choice.	Bu seçimi kullanmak için Reels videosunun tamamını göster seçeneğini kapatın.
 Turn on Default playback quality to use this choice.	Bu seçimi kullanmak için Varsayılan oynatma kalitesi seçeneğini açın.
 Updating remembered positions...	Kaydedilen konumlar güncelleniyor...
 Undo cleared positions	Silinen konumları geri yükle

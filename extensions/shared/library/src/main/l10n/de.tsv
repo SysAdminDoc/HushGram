@@ -467,6 +467,8 @@ Turn on Start Home on Following to use this choice.	Aktiviere „Startseite mit 
 # context: Settings page: the summary of a greyed-out slider in place of its value; %1$s is the title of the switch it waits on, like Glass tab bar
 Turn on %1$s to use this slider.	Aktiviere „%1$s“, um diesen Regler zu nutzen.
 Turn on Story ring size to use this choice.	Aktiviere „Größe der Story-Ringe“, um diese Auswahl zu nutzen.
+# context: Settings page, Reels: the line under the greyed-out Fill the screen switch while Show the whole reel is on
+Turn off Show the whole reel to use this choice.	Deaktiviere „Ganzes Reel zeigen“, um diese Auswahl zu nutzen.
 Turn on Default playback quality to use this choice.	Aktiviere „Standard-Wiedergabequalität“, um diese Auswahl zu nutzen.
 Updating remembered positions...	Gespeicherte Wiedergabepositionen werden aktualisiert...
 Undo cleared positions	Gelöschte Wiedergabepositionen wiederherstellen

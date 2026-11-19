@@ -467,6 +467,8 @@ Turn on Start Home on Following to use this choice.	Ative Abrir o Início em Seg
 # context: Settings page: the summary of a greyed-out slider in place of its value; %1$s is the title of the switch it waits on, like Glass tab bar
 Turn on %1$s to use this slider.	Ative %1$s para usar este controle deslizante.
 Turn on Story ring size to use this choice.	Ative Tamanho dos anéis dos stories para usar esta opção.
+# context: Settings page, Reels: the line under the greyed-out Fill the screen switch while Show the whole reel is on
+Turn off Show the whole reel to use this choice.	Desative Mostrar o reel inteiro para usar esta opção.
 Turn on Default playback quality to use this choice.	Ative Qualidade de reprodução padrão para usar esta opção.
 Updating remembered positions...	Atualizando posições salvas...
 Undo cleared positions	Restaurar posições apagadas

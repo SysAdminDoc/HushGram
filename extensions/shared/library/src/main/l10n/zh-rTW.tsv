@@ -472,6 +472,8 @@ Turn on Start Home on Following to use this choice.	請啟用「首頁預設顯�
 # context: Settings page: the summary of a greyed-out slider in place of its value; %1$s is the title of the switch it waits on, like Glass tab bar
 Turn on %1$s to use this slider.	請啟用「%1$s」以使用此滑桿。
 Turn on Story ring size to use this choice.	請啟用「限時動態光圈尺寸」以使用此選項。
+# context: Settings page, Reels: the line under the greyed-out Fill the screen switch while Show the whole reel is on
+Turn off Show the whole reel to use this choice.	請關閉「顯示完整的 Reels」以使用此選項。
 Turn on Default playback quality to use this choice.	請啟用「預設播放畫質」以使用此選項。
 Updating remembered positions...	正在更新記住的播放位置…
 Undo cleared positions	復原清除播放位置

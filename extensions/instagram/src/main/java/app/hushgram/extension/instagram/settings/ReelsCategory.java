@@ -38,6 +38,12 @@ import app.hushgram.extension.shared.L10n;
 final class ReelsCategory {
     private ReelsCategory() { }
 
+    /** What Fill the screen does, which its row shows again once Show the whole reel goes off (#755). */
+    static String fillSummary() {
+        return L10n.t("Reels that are nearly the screen's shape fill it, cut a little at the sides, instead of "
+                + "showing black bars above and below. Square and wide videos still fit.");
+    }
+
     static void add(HushgramPreferenceFragment page, PreferenceScreen screen, Context context, Set<PatchFamily> build) {
         List<Preference> reels = new ArrayList<>();
         if (build.contains(PatchFamily.FEED_REELS)) {
@@ -248,9 +254,7 @@ final class ReelsCategory {
                     L10n.t("Hides the status bar and the navigation bar while Reels shows. Swipe in from the edge to "
                             + "bring them back for a moment. Back and the keyboard work as usual.")));
             reels.add(hiddenBarsRow(context));
-            reels.add(toggle(context, Settings.FILL_REEL_SCREEN, L10n.t("Fill the screen"),
-                    L10n.t("Reels that are nearly the screen's shape fill it, cut a little at the sides, instead of "
-                            + "showing black bars above and below. Square and wide videos still fit.")));
+            reels.add(toggle(context, Settings.FILL_REEL_SCREEN, L10n.t("Fill the screen"), fillSummary()));
             reels.add(toggle(context, Settings.FIT_REEL_SCREEN, L10n.t("Show the whole reel"),
                     L10n.t("Every reel fits inside the screen, with black bars where its shape differs, so nothing is "
                             + "cut off at the sides. Works without Full screen Reels and wins over Fill the screen.")));

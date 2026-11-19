@@ -65,6 +65,9 @@ public class ChildControlAvailabilityTest {
         Settings.DOWNLOAD_REELS.resetToDefault();
         Settings.SHOW_STORY_TIME.resetToDefault();
         Settings.STORY_TIME_MODE.resetToDefault();
+        Settings.FULL_SCREEN_REELS.resetToDefault();
+        Settings.FILL_REEL_SCREEN.resetToDefault();
+        Settings.FIT_REEL_SCREEN.resetToDefault();
     }
 
     @Test public void followingKeepsItsSavedChoiceAcrossParentChanges() {
@@ -176,6 +179,38 @@ public class ChildControlAvailabilityTest {
         Settings.PLAYBACK_QUALITY.save(PlaybackQuality.HIGHEST);
         checkParent(Settings.DEFAULT_PLAYBACK_QUALITY, Settings.PLAYBACK_QUALITY, PatchFamily.PLAYBACK_QUALITY,
                 "Turn on Default playback quality to use this choice.", "HIGHEST");
+    }
+
+    @Test public void fillTheScreenRestsWhileShowTheWholeReelIsOn() {
+        // Show the whole reel wins over Fill the screen, so with both on Fill did nothing and nothing said why (#755).
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.FULL_SCREEN_BARS);
+        Settings.FULL_SCREEN_REELS.save(true);
+        Settings.FILL_REEL_SCREEN.save(true);
+        Settings.FIT_REEL_SCREEN.save(true);
+        String reason = L10n.t("Turn off Show the whole reel to use this choice.");
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            HushgramPreferenceFragment page = DownloadSettingsTest.pageIn(controller);
+            SwitchPreference fill = (SwitchPreference) page.findPreference(Settings.FILL_REEL_SCREEN.key);
+            SwitchPreference fit = (SwitchPreference) page.findPreference(Settings.FIT_REEL_SCREEN.key);
+            assertNotNull(fill);
+            assertFalse(fill.isEnabled());
+            assertEquals(reason, String.valueOf(fill.getSummary()));
+            assertTrue(fill.isChecked());
+            fit.setChecked(false);
+            ShadowLooper.idleMainLooper();
+            assertTrue(fill.isEnabled());
+            assertEquals(ReelsCategory.fillSummary(), String.valueOf(fill.getSummary()));
+            assertTrue(Settings.FILL_REEL_SCREEN.savedValue());
+            fit.setChecked(true);
+            ShadowLooper.idleMainLooper();
+            assertFalse(fill.isEnabled());
+            assertEquals(reason, String.valueOf(fill.getSummary()));
+            assertTrue(Settings.FILL_REEL_SCREEN.savedValue());
+            ((SwitchPreference) page.findPreference(Settings.FULL_SCREEN_REELS.key)).setChecked(false);
+            fit.setChecked(false);
+            ShadowLooper.idleMainLooper();
+            assertFalse(fill.isEnabled());
+        }
     }
 
     @Test @Config(qualifiers = "es")

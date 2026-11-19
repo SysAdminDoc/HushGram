@@ -58,7 +58,7 @@ public final class L10nTranslations {
     }
 
     private static Map<String, String> buildDe() {
-        Map<String, String> table = new HashMap<>(4328);
+        Map<String, String> table = new HashMap<>(4330);
         fillDe0(table);
         fillDe1(table);
         fillDe2(table);
@@ -4159,6 +4159,8 @@ public final class L10nTranslations {
     }
 
     private static void fillDe33(Map<String, String> table) {
+        table.put("Turn off Show the whole reel to use this choice.",
+                "Deaktiviere \u201eGanzes Reel zeigen\u201c, um diese Auswahl zu nutzen.");
         table.put("Turn off double tap to like",
                 "Doppeltippen zum Liken ausschalten");
         table.put("Turn on %1$s to use this slider.",
@@ -4277,11 +4279,11 @@ public final class L10nTranslations {
                 "Movies und Pictures verwenden");
         table.put("Use the HushGram setting",
                 "HushGram-Einstellung verwenden");
-        table.put("Use the highest refresh rate",
-                "H\u00f6chste Bildwiederholrate nutzen");
     }
 
     private static void fillDe34(Map<String, String> table) {
+        table.put("Use the highest refresh rate",
+                "H\u00f6chste Bildwiederholrate nutzen");
         table.put("Used to be @%s",
                 "Hie\u00df fr\u00fcher @%s");
         table.put("Username",
@@ -4400,11 +4402,11 @@ public final class L10nTranslations {
                 "Wenn ein Reel endet, wechselt Reels zum n\u00e4chsten, statt es noch einmal abzuspielen. Daf\u00fcr wird Instagrams eigenes automatisches Scrollen genutzt, auch bei Konten, denen Instagram es nicht anbietet. Solange es an ist, kann Instagrams eigener Schalter f\u00fcr automatisches Scrollen es nicht ausschalten. Starte Instagram neu, um die \u00c4nderung zu sehen.");
         table.put("When a reel in your feed ends, Watch again plays it over right there instead of opening Reels.",
                 "Wenn ein Reel in deinem Feed endet, spielt \u201eErneut ansehen\u201c es direkt dort noch einmal ab, statt Reels zu \u00f6ffnen.");
-        table.put("When the reel isn't on the first screen, the profile shows a Find the reel button instead of scrolling on its own.",
-                "Ist das Reel nicht auf dem ersten Bildschirm, zeigt das Profil eine Schaltfl\u00e4che \u201eReel finden\u201c, statt selbst zu scrollen.");
     }
 
     private static void fillDe35(Map<String, String> table) {
+        table.put("When the reel isn't on the first screen, the profile shows a Find the reel button instead of scrolling on its own.",
+                "Ist das Reel nicht auf dem ersten Bildschirm, zeigt das Profil eine Schaltfl\u00e4che \u201eReel finden\u201c, statt selbst zu scrollen.");
         table.put("Where the mention pill goes",
                 "Wo die Erw\u00e4hnungen stehen");
         table.put("Where videos wait",
@@ -4523,11 +4525,11 @@ public final class L10nTranslations {
                 "das von dir gew\u00e4hlte App-Symbol");
         table.put("the pure black dark mode",
                 "der rein schwarze Dunkelmodus");
-        table.put("the raised version code",
-                "der erh\u00f6hte Versionscode");
     }
 
     private static void fillDe36(Map<String, String> table) {
+        table.put("the raised version code",
+                "der erh\u00f6hte Versionscode");
         table.put("the re-signed build fix",
                 "der Fix f\u00fcr neu signierte Builds");
         table.put("the removed advertising ID permissions",
@@ -4539,7 +4541,7 @@ public final class L10nTranslations {
     }
 
     private static Map<String, String> buildEs() {
-        Map<String, String> table = new HashMap<>(4328);
+        Map<String, String> table = new HashMap<>(4330);
         fillEs0(table);
         fillEs1(table);
         fillEs2(table);
@@ -8640,6 +8642,8 @@ public final class L10nTranslations {
     }
 
     private static void fillEs33(Map<String, String> table) {
+        table.put("Turn off Show the whole reel to use this choice.",
+                "Desactiva \u00abMostrar el reel completo\u00bb para usar esta opci\u00f3n.");
         table.put("Turn off double tap to like",
                 "Desactivar tocar dos veces para dar Me gusta");
         table.put("Turn on %1$s to use this slider.",
@@ -8758,11 +8762,11 @@ public final class L10nTranslations {
                 "Usar Movies y Pictures");
         table.put("Use the HushGram setting",
                 "Usar el ajuste de HushGram");
-        table.put("Use the highest refresh rate",
-                "Usar la mayor tasa de refresco");
     }
 
     private static void fillEs34(Map<String, String> table) {
+        table.put("Use the highest refresh rate",
+                "Usar la mayor tasa de refresco");
         table.put("Used to be @%s",
                 "Antes era @%s");
         table.put("Username",
@@ -8881,11 +8885,11 @@ public final class L10nTranslations {
                 "Cuando termina un reel, Reels pasa al siguiente en lugar de reproducirlo otra vez. Usa el desplazamiento autom\u00e1tico de Instagram, incluso en cuentas a las que Instagram no se lo ofrece. Mientras est\u00e9 activado, el interruptor de desplazamiento autom\u00e1tico de Instagram no puede desactivarlo. Reinicia Instagram para ver el cambio.");
         table.put("When a reel in your feed ends, Watch again plays it over right there instead of opening Reels.",
                 "Cuando termina un reel en tu feed, Volver a ver lo reproduce otra vez ah\u00ed mismo en lugar de abrir Reels.");
-        table.put("When the reel isn't on the first screen, the profile shows a Find the reel button instead of scrolling on its own.",
-                "Si el reel no est\u00e1 en la primera pantalla, el perfil muestra un bot\u00f3n Buscar el reel en lugar de desplazarse solo.");
     }
 
     private static void fillEs35(Map<String, String> table) {
+        table.put("When the reel isn't on the first screen, the profile shows a Find the reel button instead of scrolling on its own.",
+                "Si el reel no est\u00e1 en la primera pantalla, el perfil muestra un bot\u00f3n Buscar el reel en lugar de desplazarse solo.");
         table.put("Where the mention pill goes",
                 "D\u00f3nde va la etiqueta de menciones");
         table.put("Where videos wait",
@@ -9004,11 +9008,11 @@ public final class L10nTranslations {
                 "el icono de la pantalla de inicio que elegiste");
         table.put("the pure black dark mode",
                 "el modo oscuro negro puro");
-        table.put("the raised version code",
-                "el c\u00f3digo de versi\u00f3n aumentado");
     }
 
     private static void fillEs36(Map<String, String> table) {
+        table.put("the raised version code",
+                "el c\u00f3digo de versi\u00f3n aumentado");
         table.put("the re-signed build fix",
                 "el arreglo para la nueva firma");
         table.put("the removed advertising ID permissions",
@@ -9020,7 +9024,7 @@ public final class L10nTranslations {
     }
 
     private static Map<String, String> buildIn() {
-        Map<String, String> table = new HashMap<>(4328);
+        Map<String, String> table = new HashMap<>(4330);
         fillIn0(table);
         fillIn1(table);
         fillIn2(table);
@@ -13121,6 +13125,8 @@ public final class L10nTranslations {
     }
 
     private static void fillIn33(Map<String, String> table) {
+        table.put("Turn off Show the whole reel to use this choice.",
+                "Nonaktifkan Tampilkan reel utuh untuk menggunakan pilihan ini.");
         table.put("Turn off double tap to like",
                 "Matikan ketuk dua kali untuk menyukai");
         table.put("Turn on %1$s to use this slider.",
@@ -13239,11 +13245,11 @@ public final class L10nTranslations {
                 "Gunakan Movies dan Pictures");
         table.put("Use the HushGram setting",
                 "Gunakan pengaturan HushGram");
-        table.put("Use the highest refresh rate",
-                "Gunakan refresh rate tertinggi");
     }
 
     private static void fillIn34(Map<String, String> table) {
+        table.put("Use the highest refresh rate",
+                "Gunakan refresh rate tertinggi");
         table.put("Used to be @%s",
                 "Dulunya @%s");
         table.put("Username",
@@ -13362,11 +13368,11 @@ public final class L10nTranslations {
                 "Saat sebuah reel selesai, Reels pindah ke reel berikutnya alih-alih memutarnya lagi. Fitur ini memakai gulir otomatis milik Instagram, bahkan di akun yang tidak ditawari fitur itu oleh Instagram. Selama aktif, sakelar gulir otomatis milik Instagram tidak bisa mematikannya. Mulai ulang Instagram untuk melihat perubahannya.");
         table.put("When a reel in your feed ends, Watch again plays it over right there instead of opening Reels.",
                 "Saat reel di feed kamu selesai, Tonton lagi memutarnya ulang di situ juga, bukan membuka Reels.");
-        table.put("When the reel isn't on the first screen, the profile shows a Find the reel button instead of scrolling on its own.",
-                "Jika reel tidak ada di layar pertama, profil menampilkan tombol Cari reel alih-alih menggulir sendiri.");
     }
 
     private static void fillIn35(Map<String, String> table) {
+        table.put("When the reel isn't on the first screen, the profile shows a Find the reel button instead of scrolling on its own.",
+                "Jika reel tidak ada di layar pertama, profil menampilkan tombol Cari reel alih-alih menggulir sendiri.");
         table.put("Where the mention pill goes",
                 "Letak label sebutan");
         table.put("Where videos wait",
@@ -13485,11 +13491,11 @@ public final class L10nTranslations {
                 "ikon layar utama yang kamu pilih");
         table.put("the pure black dark mode",
                 "mode gelap hitam pekat");
-        table.put("the raised version code",
-                "kode versi yang dinaikkan");
     }
 
     private static void fillIn36(Map<String, String> table) {
+        table.put("the raised version code",
+                "kode versi yang dinaikkan");
         table.put("the re-signed build fix",
                 "perbaikan build yang ditandatangani ulang");
         table.put("the removed advertising ID permissions",
@@ -13501,7 +13507,7 @@ public final class L10nTranslations {
     }
 
     private static Map<String, String> buildIt() {
-        Map<String, String> table = new HashMap<>(4328);
+        Map<String, String> table = new HashMap<>(4330);
         fillIt0(table);
         fillIt1(table);
         fillIt2(table);
@@ -17602,6 +17608,8 @@ public final class L10nTranslations {
     }
 
     private static void fillIt33(Map<String, String> table) {
+        table.put("Turn off Show the whole reel to use this choice.",
+                "Disattiva Mostra il reel intero per usare questa scelta.");
         table.put("Turn off double tap to like",
                 "Disattiva il doppio tocco per mettere Mi piace");
         table.put("Turn on %1$s to use this slider.",
@@ -17720,11 +17728,11 @@ public final class L10nTranslations {
                 "Usa Movies e Pictures");
         table.put("Use the HushGram setting",
                 "Usa l'impostazione di HushGram");
-        table.put("Use the highest refresh rate",
-                "Usa la frequenza di aggiornamento pi\u00f9 alta");
     }
 
     private static void fillIt34(Map<String, String> table) {
+        table.put("Use the highest refresh rate",
+                "Usa la frequenza di aggiornamento pi\u00f9 alta");
         table.put("Used to be @%s",
                 "Prima era @%s");
         table.put("Username",
@@ -17843,11 +17851,11 @@ public final class L10nTranslations {
                 "Quando un reel finisce, i reel passano al successivo invece di ripeterlo. Usa lo scorrimento automatico di Instagram, anche sugli account dove Instagram non lo offre. Finch\u00e9 \u00e8 attivo, l'interruttore Scorrimento automatico di Instagram non pu\u00f2 disattivarlo. Riavvia Instagram per vedere la modifica.");
         table.put("When a reel in your feed ends, Watch again plays it over right there instead of opening Reels.",
                 "Quando un reel nel tuo feed finisce, Guarda di nuovo lo riproduce di nuovo l\u00ec, invece di aprire Reels.");
-        table.put("When the reel isn't on the first screen, the profile shows a Find the reel button instead of scrolling on its own.",
-                "Quando il reel non \u00e8 nella prima schermata, il profilo mostra un pulsante Trova il reel invece di scorrere da solo.");
     }
 
     private static void fillIt35(Map<String, String> table) {
+        table.put("When the reel isn't on the first screen, the profile shows a Find the reel button instead of scrolling on its own.",
+                "Quando il reel non \u00e8 nella prima schermata, il profilo mostra un pulsante Trova il reel invece di scorrere da solo.");
         table.put("Where the mention pill goes",
                 "Dove va l'etichetta delle menzioni");
         table.put("Where videos wait",
@@ -17966,11 +17974,11 @@ public final class L10nTranslations {
                 "l'icona della schermata Home che hai scelto");
         table.put("the pure black dark mode",
                 "la modalit\u00e0 scura nero puro");
-        table.put("the raised version code",
-                "il codice versione aumentato");
     }
 
     private static void fillIt36(Map<String, String> table) {
+        table.put("the raised version code",
+                "il codice versione aumentato");
         table.put("the re-signed build fix",
                 "la correzione per la build firmata di nuovo");
         table.put("the removed advertising ID permissions",
@@ -17982,7 +17990,7 @@ public final class L10nTranslations {
     }
 
     private static Map<String, String> buildKo() {
-        Map<String, String> table = new HashMap<>(4328);
+        Map<String, String> table = new HashMap<>(4330);
         fillKo0(table);
         fillKo1(table);
         fillKo2(table);
@@ -22083,6 +22091,8 @@ public final class L10nTranslations {
     }
 
     private static void fillKo33(Map<String, String> table) {
+        table.put("Turn off Show the whole reel to use this choice.",
+                "\uc774 \uc635\uc158\uc744 \uc0ac\uc6a9\ud558\ub824\uba74 \u2018\ub9b4\uc2a4 \uc804\uccb4 \ubcf4\uae30\u2019\ub97c \ube44\ud65c\uc131\ud654\ud558\uc138\uc694");
         table.put("Turn off double tap to like",
                 "\ub450 \ubc88 \ud0ed\ud558\uc5ec \uc88b\uc544\uc694 \ud45c\uc2dc \ube44\ud65c\uc131\ud654");
         table.put("Turn on %1$s to use this slider.",
@@ -22201,11 +22211,11 @@ public final class L10nTranslations {
                 "Movies\uc640 Pictures \uc0ac\uc6a9");
         table.put("Use the HushGram setting",
                 "HushGram \uc124\uc815 \ub530\ub974\uae30");
-        table.put("Use the highest refresh rate",
-                "\uac00\uc7a5 \ub192\uc740 \uc8fc\uc0ac\uc728 \uc0ac\uc6a9");
     }
 
     private static void fillKo34(Map<String, String> table) {
+        table.put("Use the highest refresh rate",
+                "\uac00\uc7a5 \ub192\uc740 \uc8fc\uc0ac\uc728 \uc0ac\uc6a9");
         table.put("Used to be @%s",
                 "\uc774\uc804 \uc774\ub984 @%s");
         table.put("Username",
@@ -22324,11 +22334,11 @@ public final class L10nTranslations {
                 "\ub9b4\uc2a4\uac00 \ub05d\ub098\uba74 \ub2e4\uc2dc \uc7ac\uc0dd\ud558\uc9c0 \uc54a\uace0 \ub2e4\uc74c \ub9b4\uc2a4\ub85c \ub118\uc5b4\uac11\ub2c8\ub2e4. Instagram\uc758 \uc790\ub3d9 \uc2a4\ud06c\ub864\uc744 \uc0ac\uc6a9\ud558\uba70, Instagram\uc774 \uc774 \uae30\ub2a5\uc744 \uc81c\uacf5\ud558\uc9c0 \uc54a\ub294 \uacc4\uc815\uc5d0\uc11c\ub3c4 \uc791\ub3d9\ud569\ub2c8\ub2e4. \ucf1c\uc838 \uc788\ub294 \ub3d9\uc548\uc5d0\ub294 Instagram\uc758 \uc790\ub3d9 \uc2a4\ud06c\ub864 \uc2a4\uc704\uce58\ub85c \ub04c \uc218 \uc5c6\uc2b5\ub2c8\ub2e4. \ubcc0\uacbd \uc0ac\ud56d\uc744 \ubcf4\ub824\uba74 Instagram\uc744 \ub2e4\uc2dc \uc2dc\uc791\ud558\uc138\uc694.");
         table.put("When a reel in your feed ends, Watch again plays it over right there instead of opening Reels.",
                 "\ud53c\ub4dc\uc758 \ub9b4\uc2a4\uac00 \ub05d\ub0ac\uc744 \ub54c \ub2e4\uc2dc \ubcf4\uae30\ub97c \ub204\ub974\uba74 \ub9b4\uc2a4 \ud0ed\uc744 \uc5f4\uc9c0 \uc54a\uace0 \uadf8 \uc790\ub9ac\uc5d0\uc11c \ub2e4\uc2dc \uc7ac\uc0dd\ud569\ub2c8\ub2e4.");
-        table.put("When the reel isn't on the first screen, the profile shows a Find the reel button instead of scrolling on its own.",
-                "\ub9b4\uc2a4\uac00 \uccab \ud654\uba74\uc5d0 \uc5c6\uc73c\uba74 \ud504\ub85c\ud544\uc774 \uc9c1\uc811 \uc2a4\ud06c\ub864\ud558\ub294 \ub300\uc2e0 \ub9b4\uc2a4 \ucc3e\uae30 \ubc84\ud2bc\uc744 \ud45c\uc2dc\ud569\ub2c8\ub2e4.");
     }
 
     private static void fillKo35(Map<String, String> table) {
+        table.put("When the reel isn't on the first screen, the profile shows a Find the reel button instead of scrolling on its own.",
+                "\ub9b4\uc2a4\uac00 \uccab \ud654\uba74\uc5d0 \uc5c6\uc73c\uba74 \ud504\ub85c\ud544\uc774 \uc9c1\uc811 \uc2a4\ud06c\ub864\ud558\ub294 \ub300\uc2e0 \ub9b4\uc2a4 \ucc3e\uae30 \ubc84\ud2bc\uc744 \ud45c\uc2dc\ud569\ub2c8\ub2e4.");
         table.put("Where the mention pill goes",
                 "\uc5b8\uae09 \ud45c\uc2dc \uc704\uce58");
         table.put("Where videos wait",
@@ -22447,11 +22457,11 @@ public final class L10nTranslations {
                 "\uc120\ud0dd\ud55c \ud648 \ud654\uba74 \uc544\uc774\ucf58");
         table.put("the pure black dark mode",
                 "\uc21c\uc218 \uac80\uc815 \uc5b4\ub450\uc6b4 \ubaa8\ub4dc");
-        table.put("the raised version code",
-                "\ub192\uc778 \ubc84\uc804 \ucf54\ub4dc");
     }
 
     private static void fillKo36(Map<String, String> table) {
+        table.put("the raised version code",
+                "\ub192\uc778 \ubc84\uc804 \ucf54\ub4dc");
         table.put("the re-signed build fix",
                 "\ub2e4\uc2dc \uc11c\uba85\ub41c \ube4c\ub4dc \uc218\uc815");
         table.put("the removed advertising ID permissions",
@@ -22463,7 +22473,7 @@ public final class L10nTranslations {
     }
 
     private static Map<String, String> buildPt_rBR() {
-        Map<String, String> table = new HashMap<>(4328);
+        Map<String, String> table = new HashMap<>(4330);
         fillPt_rBR0(table);
         fillPt_rBR1(table);
         fillPt_rBR2(table);
@@ -26564,6 +26574,8 @@ public final class L10nTranslations {
     }
 
     private static void fillPt_rBR33(Map<String, String> table) {
+        table.put("Turn off Show the whole reel to use this choice.",
+                "Desative Mostrar o reel inteiro para usar esta op\u00e7\u00e3o.");
         table.put("Turn off double tap to like",
                 "Desativar toque duplo para curtir");
         table.put("Turn on %1$s to use this slider.",
@@ -26682,11 +26694,11 @@ public final class L10nTranslations {
                 "Usar Movies e Pictures");
         table.put("Use the HushGram setting",
                 "Usar a configura\u00e7\u00e3o do HushGram");
-        table.put("Use the highest refresh rate",
-                "Usar a maior taxa de atualiza\u00e7\u00e3o");
     }
 
     private static void fillPt_rBR34(Map<String, String> table) {
+        table.put("Use the highest refresh rate",
+                "Usar a maior taxa de atualiza\u00e7\u00e3o");
         table.put("Used to be @%s",
                 "Antes era @%s");
         table.put("Username",
@@ -26805,11 +26817,11 @@ public final class L10nTranslations {
                 "Quando um reel termina, o Reels passa para o pr\u00f3ximo em vez de toc\u00e1-lo de novo. Usa a rolagem autom\u00e1tica do pr\u00f3prio Instagram, mesmo em contas em que o Instagram n\u00e3o a oferece. Enquanto estiver ativado, o bot\u00e3o de rolagem autom\u00e1tica do pr\u00f3prio Instagram n\u00e3o consegue desativ\u00e1-lo. Reinicie o Instagram para ver a mudan\u00e7a.");
         table.put("When a reel in your feed ends, Watch again plays it over right there instead of opening Reels.",
                 "Quando um reel no seu feed termina, Assistir de novo toca ele outra vez ali mesmo, em vez de abrir o Reels.");
-        table.put("When the reel isn't on the first screen, the profile shows a Find the reel button instead of scrolling on its own.",
-                "Quando o reel n\u00e3o est\u00e1 na primeira tela, o perfil mostra um bot\u00e3o Encontrar o reel em vez de rolar sozinho.");
     }
 
     private static void fillPt_rBR35(Map<String, String> table) {
+        table.put("When the reel isn't on the first screen, the profile shows a Find the reel button instead of scrolling on its own.",
+                "Quando o reel n\u00e3o est\u00e1 na primeira tela, o perfil mostra um bot\u00e3o Encontrar o reel em vez de rolar sozinho.");
         table.put("Where the mention pill goes",
                 "Onde fica a etiqueta de men\u00e7\u00f5es");
         table.put("Where videos wait",
@@ -26928,11 +26940,11 @@ public final class L10nTranslations {
                 "o \u00edcone da tela inicial que voc\u00ea escolheu");
         table.put("the pure black dark mode",
                 "o modo escuro preto puro");
-        table.put("the raised version code",
-                "o c\u00f3digo de vers\u00e3o aumentado");
     }
 
     private static void fillPt_rBR36(Map<String, String> table) {
+        table.put("the raised version code",
+                "o c\u00f3digo de vers\u00e3o aumentado");
         table.put("the re-signed build fix",
                 "a corre\u00e7\u00e3o para vers\u00e3o reassinada");
         table.put("the removed advertising ID permissions",
@@ -26944,7 +26956,7 @@ public final class L10nTranslations {
     }
 
     private static Map<String, String> buildTh() {
-        Map<String, String> table = new HashMap<>(4328);
+        Map<String, String> table = new HashMap<>(4330);
         fillTh0(table);
         fillTh1(table);
         fillTh2(table);
@@ -31045,6 +31057,8 @@ public final class L10nTranslations {
     }
 
     private static void fillTh33(Map<String, String> table) {
+        table.put("Turn off Show the whole reel to use this choice.",
+                "\u0e1b\u0e34\u0e14\u0e43\u0e0a\u0e49\u0e07\u0e32\u0e19 \"\u0e41\u0e2a\u0e14\u0e07\u0e23\u0e35\u0e25\u0e2a\u0e4c\u0e17\u0e31\u0e49\u0e07\u0e04\u0e25\u0e34\u0e1b\" \u0e40\u0e1e\u0e37\u0e48\u0e2d\u0e43\u0e0a\u0e49\u0e15\u0e31\u0e27\u0e40\u0e25\u0e37\u0e2d\u0e01\u0e19\u0e35\u0e49");
         table.put("Turn off double tap to like",
                 "\u0e1b\u0e34\u0e14\u0e01\u0e32\u0e23\u0e41\u0e15\u0e30\u0e2a\u0e2d\u0e07\u0e04\u0e23\u0e31\u0e49\u0e07\u0e40\u0e1e\u0e37\u0e48\u0e2d\u0e01\u0e14\u0e16\u0e39\u0e01\u0e43\u0e08");
         table.put("Turn on %1$s to use this slider.",
@@ -31163,11 +31177,11 @@ public final class L10nTranslations {
                 "\u0e43\u0e0a\u0e49 Movies \u0e41\u0e25\u0e30 Pictures");
         table.put("Use the HushGram setting",
                 "\u0e43\u0e0a\u0e49\u0e01\u0e32\u0e23\u0e15\u0e31\u0e49\u0e07\u0e04\u0e48\u0e32\u0e02\u0e2d\u0e07 HushGram");
-        table.put("Use the highest refresh rate",
-                "\u0e43\u0e0a\u0e49\u0e2d\u0e31\u0e15\u0e23\u0e32\u0e23\u0e35\u0e40\u0e1f\u0e23\u0e0a\u0e2a\u0e39\u0e07\u0e2a\u0e38\u0e14");
     }
 
     private static void fillTh34(Map<String, String> table) {
+        table.put("Use the highest refresh rate",
+                "\u0e43\u0e0a\u0e49\u0e2d\u0e31\u0e15\u0e23\u0e32\u0e23\u0e35\u0e40\u0e1f\u0e23\u0e0a\u0e2a\u0e39\u0e07\u0e2a\u0e38\u0e14");
         table.put("Used to be @%s",
                 "\u0e40\u0e04\u0e22\u0e43\u0e0a\u0e49\u0e0a\u0e37\u0e48\u0e2d @%s");
         table.put("Username",
@@ -31286,11 +31300,11 @@ public final class L10nTranslations {
                 "\u0e40\u0e21\u0e37\u0e48\u0e2d\u0e23\u0e35\u0e25\u0e2a\u0e4c\u0e40\u0e25\u0e48\u0e19\u0e08\u0e1a \u0e23\u0e30\u0e1a\u0e1a\u0e08\u0e30\u0e40\u0e25\u0e48\u0e19\u0e23\u0e35\u0e25\u0e2a\u0e4c\u0e16\u0e31\u0e14\u0e44\u0e1b\u0e41\u0e17\u0e19\u0e17\u0e35\u0e48\u0e08\u0e30\u0e40\u0e25\u0e48\u0e19\u0e0b\u0e49\u0e33 \u0e42\u0e14\u0e22\u0e43\u0e0a\u0e49\u0e01\u0e32\u0e23\u0e40\u0e25\u0e37\u0e48\u0e2d\u0e19\u0e2d\u0e31\u0e15\u0e42\u0e19\u0e21\u0e31\u0e15\u0e34\u0e02\u0e2d\u0e07 Instagram \u0e40\u0e2d\u0e07 \u0e41\u0e21\u0e49\u0e01\u0e23\u0e30\u0e17\u0e31\u0e48\u0e07\u0e43\u0e19\u0e1a\u0e31\u0e0d\u0e0a\u0e35\u0e17\u0e35\u0e48 Instagram \u0e44\u0e21\u0e48\u0e21\u0e35\u0e1f\u0e35\u0e40\u0e08\u0e2d\u0e23\u0e4c\u0e19\u0e35\u0e49\u0e43\u0e2b\u0e49 \u0e43\u0e19\u0e23\u0e30\u0e2b\u0e27\u0e48\u0e32\u0e07\u0e17\u0e35\u0e48\u0e40\u0e1b\u0e34\u0e14\u0e43\u0e0a\u0e49\u0e07\u0e32\u0e19\u0e2d\u0e22\u0e39\u0e48 \u0e2a\u0e27\u0e34\u0e15\u0e0a\u0e4c\u0e01\u0e32\u0e23\u0e40\u0e25\u0e37\u0e48\u0e2d\u0e19\u0e2d\u0e31\u0e15\u0e42\u0e19\u0e21\u0e31\u0e15\u0e34\u0e02\u0e2d\u0e07 Instagram \u0e08\u0e30\u0e44\u0e21\u0e48\u0e2a\u0e32\u0e21\u0e32\u0e23\u0e16\u0e1b\u0e34\u0e14\u0e44\u0e14\u0e49 \u0e23\u0e35\u0e2a\u0e15\u0e32\u0e23\u0e4c\u0e17 Instagram \u0e40\u0e1e\u0e37\u0e48\u0e2d\u0e14\u0e39\u0e01\u0e32\u0e23\u0e40\u0e1b\u0e25\u0e35\u0e48\u0e22\u0e19\u0e41\u0e1b\u0e25\u0e07");
         table.put("When a reel in your feed ends, Watch again plays it over right there instead of opening Reels.",
                 "\u0e40\u0e21\u0e37\u0e48\u0e2d\u0e23\u0e35\u0e25\u0e2a\u0e4c\u0e43\u0e19\u0e1f\u0e35\u0e14\u0e02\u0e2d\u0e07\u0e04\u0e38\u0e13\u0e40\u0e25\u0e48\u0e19\u0e08\u0e1a \u0e1b\u0e38\u0e48\u0e21 \"\u0e14\u0e39\u0e2d\u0e35\u0e01\u0e04\u0e23\u0e31\u0e49\u0e07\" \u0e08\u0e30\u0e40\u0e25\u0e48\u0e19\u0e0b\u0e49\u0e33\u0e15\u0e23\u0e07\u0e19\u0e31\u0e49\u0e19\u0e17\u0e31\u0e19\u0e17\u0e35\u0e41\u0e17\u0e19\u0e17\u0e35\u0e48\u0e08\u0e30\u0e40\u0e1b\u0e34\u0e14\u0e41\u0e17\u0e47\u0e1a\u0e23\u0e35\u0e25\u0e2a\u0e4c");
-        table.put("When the reel isn't on the first screen, the profile shows a Find the reel button instead of scrolling on its own.",
-                "\u0e40\u0e21\u0e37\u0e48\u0e2d\u0e23\u0e35\u0e25\u0e2a\u0e4c\u0e44\u0e21\u0e48\u0e44\u0e14\u0e49\u0e2d\u0e22\u0e39\u0e48\u0e1a\u0e19\u0e2b\u0e19\u0e49\u0e32\u0e08\u0e2d\u0e41\u0e23\u0e01 \u0e42\u0e1b\u0e23\u0e44\u0e1f\u0e25\u0e4c\u0e08\u0e30\u0e41\u0e2a\u0e14\u0e07\u0e1b\u0e38\u0e48\u0e21 \"\u0e04\u0e49\u0e19\u0e2b\u0e32\u0e23\u0e35\u0e25\u0e2a\u0e4c\" \u0e41\u0e17\u0e19\u0e17\u0e35\u0e48\u0e08\u0e30\u0e40\u0e25\u0e37\u0e48\u0e2d\u0e19\u0e42\u0e14\u0e22\u0e2d\u0e31\u0e15\u0e42\u0e19\u0e21\u0e31\u0e15\u0e34");
     }
 
     private static void fillTh35(Map<String, String> table) {
+        table.put("When the reel isn't on the first screen, the profile shows a Find the reel button instead of scrolling on its own.",
+                "\u0e40\u0e21\u0e37\u0e48\u0e2d\u0e23\u0e35\u0e25\u0e2a\u0e4c\u0e44\u0e21\u0e48\u0e44\u0e14\u0e49\u0e2d\u0e22\u0e39\u0e48\u0e1a\u0e19\u0e2b\u0e19\u0e49\u0e32\u0e08\u0e2d\u0e41\u0e23\u0e01 \u0e42\u0e1b\u0e23\u0e44\u0e1f\u0e25\u0e4c\u0e08\u0e30\u0e41\u0e2a\u0e14\u0e07\u0e1b\u0e38\u0e48\u0e21 \"\u0e04\u0e49\u0e19\u0e2b\u0e32\u0e23\u0e35\u0e25\u0e2a\u0e4c\" \u0e41\u0e17\u0e19\u0e17\u0e35\u0e48\u0e08\u0e30\u0e40\u0e25\u0e37\u0e48\u0e2d\u0e19\u0e42\u0e14\u0e22\u0e2d\u0e31\u0e15\u0e42\u0e19\u0e21\u0e31\u0e15\u0e34");
         table.put("Where the mention pill goes",
                 "\u0e15\u0e33\u0e41\u0e2b\u0e19\u0e48\u0e07\u0e17\u0e35\u0e48\u0e41\u0e2a\u0e14\u0e07\u0e41\u0e16\u0e1a\u0e41\u0e04\u0e1b\u0e0b\u0e39\u0e25\u0e01\u0e32\u0e23\u0e1e\u0e39\u0e14\u0e16\u0e36\u0e07");
         table.put("Where videos wait",
@@ -31409,11 +31423,11 @@ public final class L10nTranslations {
                 "\u0e44\u0e2d\u0e04\u0e2d\u0e19\u0e2b\u0e19\u0e49\u0e32\u0e08\u0e2d\u0e2b\u0e25\u0e31\u0e01\u0e17\u0e35\u0e48\u0e04\u0e38\u0e13\u0e40\u0e25\u0e37\u0e2d\u0e01");
         table.put("the pure black dark mode",
                 "\u0e42\u0e2b\u0e21\u0e14\u0e21\u0e37\u0e14\u0e2a\u0e35\u0e14\u0e33\u0e2a\u0e19\u0e34\u0e17");
-        table.put("the raised version code",
-                "\u0e23\u0e2b\u0e31\u0e2a\u0e40\u0e27\u0e2d\u0e23\u0e4c\u0e0a\u0e31\u0e19\u0e17\u0e35\u0e48\u0e40\u0e1e\u0e34\u0e48\u0e21\u0e02\u0e36\u0e49\u0e19");
     }
 
     private static void fillTh36(Map<String, String> table) {
+        table.put("the raised version code",
+                "\u0e23\u0e2b\u0e31\u0e2a\u0e40\u0e27\u0e2d\u0e23\u0e4c\u0e0a\u0e31\u0e19\u0e17\u0e35\u0e48\u0e40\u0e1e\u0e34\u0e48\u0e21\u0e02\u0e36\u0e49\u0e19");
         table.put("the re-signed build fix",
                 "\u0e01\u0e32\u0e23\u0e41\u0e01\u0e49\u0e44\u0e02\u0e1b\u0e31\u0e0d\u0e2b\u0e32\u0e1a\u0e34\u0e25\u0e14\u0e4c\u0e17\u0e35\u0e48\u0e25\u0e07\u0e0a\u0e37\u0e48\u0e2d\u0e43\u0e2b\u0e21\u0e48");
         table.put("the removed advertising ID permissions",
@@ -31425,7 +31439,7 @@ public final class L10nTranslations {
     }
 
     private static Map<String, String> buildTr() {
-        Map<String, String> table = new HashMap<>(4328);
+        Map<String, String> table = new HashMap<>(4330);
         fillTr0(table);
         fillTr1(table);
         fillTr2(table);
@@ -35526,6 +35540,8 @@ public final class L10nTranslations {
     }
 
     private static void fillTr33(Map<String, String> table) {
+        table.put("Turn off Show the whole reel to use this choice.",
+                "Bu se\u00e7imi kullanmak i\u00e7in Reels videosunun tamam\u0131n\u0131 g\u00f6ster se\u00e7ene\u011fini kapat\u0131n.");
         table.put("Turn off double tap to like",
                 "Be\u011fenmek i\u00e7in \u00e7ift dokunmay\u0131 kapat");
         table.put("Turn on %1$s to use this slider.",
@@ -35644,11 +35660,11 @@ public final class L10nTranslations {
                 "Movies ve Pictures kullan");
         table.put("Use the HushGram setting",
                 "HushGram ayar\u0131n\u0131 kullan");
-        table.put("Use the highest refresh rate",
-                "En y\u00fcksek yenileme h\u0131z\u0131n\u0131 kullan");
     }
 
     private static void fillTr34(Map<String, String> table) {
+        table.put("Use the highest refresh rate",
+                "En y\u00fcksek yenileme h\u0131z\u0131n\u0131 kullan");
         table.put("Used to be @%s",
                 "Eskiden @%s idi");
         table.put("Username",
@@ -35767,11 +35783,11 @@ public final class L10nTranslations {
                 "Bir reel bitti\u011finde Reels onu yeniden oynatmak yerine sonrakine ge\u00e7er. Instagram'\u0131n kendi otomatik kayd\u0131rmas\u0131n\u0131 kullan\u0131r, Instagram'\u0131n bunu sunmad\u0131\u011f\u0131 hesaplarda bile. A\u00e7\u0131kken Instagram'\u0131n kendi otomatik kayd\u0131rma anahtar\u0131 bunu kapatamaz. De\u011fi\u015fikli\u011fi g\u00f6rmek i\u00e7in Instagram'\u0131 yeniden ba\u015flat.");
         table.put("When a reel in your feed ends, Watch again plays it over right there instead of opening Reels.",
                 "Ak\u0131\u015f\u0131ndaki bir reels bitti\u011finde Tekrar izle, Reels'i a\u00e7mak yerine onu orada yeniden oynat\u0131r.");
-        table.put("When the reel isn't on the first screen, the profile shows a Find the reel button instead of scrolling on its own.",
-                "Reel ilk ekranda de\u011filse profil kendi kayd\u0131rmak yerine bir Reel'i bul d\u00fc\u011fmesi g\u00f6sterir.");
     }
 
     private static void fillTr35(Map<String, String> table) {
+        table.put("When the reel isn't on the first screen, the profile shows a Find the reel button instead of scrolling on its own.",
+                "Reel ilk ekranda de\u011filse profil kendi kayd\u0131rmak yerine bir Reel'i bul d\u00fc\u011fmesi g\u00f6sterir.");
         table.put("Where the mention pill goes",
                 "Bahsetme etiketinin yeri");
         table.put("Where videos wait",
@@ -35890,11 +35906,11 @@ public final class L10nTranslations {
                 "se\u00e7ti\u011fin ana ekran simgesi");
         table.put("the pure black dark mode",
                 "saf siyah karanl\u0131k mod");
-        table.put("the raised version code",
-                "y\u00fckseltilmi\u015f s\u00fcr\u00fcm kodu");
     }
 
     private static void fillTr36(Map<String, String> table) {
+        table.put("the raised version code",
+                "y\u00fckseltilmi\u015f s\u00fcr\u00fcm kodu");
         table.put("the re-signed build fix",
                 "yeniden imzalanm\u0131\u015f s\u00fcr\u00fcm d\u00fczeltmesi");
         table.put("the removed advertising ID permissions",
@@ -35906,7 +35922,7 @@ public final class L10nTranslations {
     }
 
     private static Map<String, String> buildVi() {
-        Map<String, String> table = new HashMap<>(4328);
+        Map<String, String> table = new HashMap<>(4330);
         fillVi0(table);
         fillVi1(table);
         fillVi2(table);
@@ -40007,6 +40023,8 @@ public final class L10nTranslations {
     }
 
     private static void fillVi33(Map<String, String> table) {
+        table.put("Turn off Show the whole reel to use this choice.",
+                "H\u00e3y t\u1eaft Hi\u1ec7n to\u00e0n b\u1ed9 reel \u0111\u1ec3 d\u00f9ng l\u1ef1a ch\u1ecdn n\u00e0y.");
         table.put("Turn off double tap to like",
                 "T\u1eaft nh\u1ea5n \u0111\u00fap \u0111\u1ec3 th\u00edch");
         table.put("Turn on %1$s to use this slider.",
@@ -40125,11 +40143,11 @@ public final class L10nTranslations {
                 "D\u00f9ng Movies v\u00e0 Pictures");
         table.put("Use the HushGram setting",
                 "D\u00f9ng c\u00e0i \u0111\u1eb7t c\u1ee7a HushGram");
-        table.put("Use the highest refresh rate",
-                "D\u00f9ng t\u1ed1c \u0111\u1ed9 l\u00e0m m\u1edbi cao nh\u1ea5t");
     }
 
     private static void fillVi34(Map<String, String> table) {
+        table.put("Use the highest refresh rate",
+                "D\u00f9ng t\u1ed1c \u0111\u1ed9 l\u00e0m m\u1edbi cao nh\u1ea5t");
         table.put("Used to be @%s",
                 "T\u1eebng l\u00e0 @%s");
         table.put("Username",
@@ -40248,11 +40266,11 @@ public final class L10nTranslations {
                 "Khi reel k\u1ebft th\u00fac, Reels chuy\u1ec3n sang reel k\u1ebf ti\u1ebfp thay v\u00ec ph\u00e1t l\u1ea1i. D\u00f9ng t\u1ef1 \u0111\u1ed9ng cu\u1ed9n c\u1ee7a ch\u00ednh Instagram, k\u1ec3 c\u1ea3 tr\u00ean t\u00e0i kho\u1ea3n m\u00e0 Instagram kh\u00f4ng c\u00f3 t\u00ednh n\u0103ng n\u00e0y. Khi b\u1eadt, c\u00f4ng t\u1eafc T\u1ef1 \u0111\u1ed9ng cu\u1ed9n c\u1ee7a Instagram kh\u00f4ng t\u1eaft \u0111\u01b0\u1ee3c. H\u00e3y kh\u1edfi \u0111\u1ed9ng l\u1ea1i Instagram \u0111\u1ec3 th\u1ea5y thay \u0111\u1ed5i.");
         table.put("When a reel in your feed ends, Watch again plays it over right there instead of opening Reels.",
                 "Khi m\u1ed9t th\u01b0\u1edbc phim trong b\u1ea3ng feed k\u1ebft th\u00fac, Xem l\u1ea1i s\u1ebd ph\u00e1t l\u1ea1i ngay t\u1ea1i \u0111\u00f3 thay v\u00ec m\u1edf Reels.");
-        table.put("When the reel isn't on the first screen, the profile shows a Find the reel button instead of scrolling on its own.",
-                "Khi reel kh\u00f4ng \u1edf m\u00e0n h\u00ecnh \u0111\u1ea7u ti\u00ean, trang c\u00e1 nh\u00e2n hi\u1ec7n n\u00fat T\u00ecm reel thay v\u00ec t\u1ef1 cu\u1ed9n.");
     }
 
     private static void fillVi35(Map<String, String> table) {
+        table.put("When the reel isn't on the first screen, the profile shows a Find the reel button instead of scrolling on its own.",
+                "Khi reel kh\u00f4ng \u1edf m\u00e0n h\u00ecnh \u0111\u1ea7u ti\u00ean, trang c\u00e1 nh\u00e2n hi\u1ec7n n\u00fat T\u00ecm reel thay v\u00ec t\u1ef1 cu\u1ed9n.");
         table.put("Where the mention pill goes",
                 "V\u1ecb tr\u00ed nh\u00e3n l\u01b0\u1ee3t nh\u1eafc");
         table.put("Where videos wait",
@@ -40371,11 +40389,11 @@ public final class L10nTranslations {
                 "bi\u1ec3u t\u01b0\u1ee3ng m\u00e0n h\u00ecnh ch\u00ednh b\u1ea1n \u0111\u00e3 ch\u1ecdn");
         table.put("the pure black dark mode",
                 "ch\u1ebf \u0111\u1ed9 t\u1ed1i \u0111en ho\u00e0n to\u00e0n");
-        table.put("the raised version code",
-                "m\u00e3 phi\u00ean b\u1ea3n \u0111\u00e3 t\u0103ng");
     }
 
     private static void fillVi36(Map<String, String> table) {
+        table.put("the raised version code",
+                "m\u00e3 phi\u00ean b\u1ea3n \u0111\u00e3 t\u0103ng");
         table.put("the re-signed build fix",
                 "b\u1ea3n s\u1eeda cho b\u1ea3n d\u1ef1ng \u0111\u00e3 k\u00fd l\u1ea1i");
         table.put("the removed advertising ID permissions",
@@ -40387,7 +40405,7 @@ public final class L10nTranslations {
     }
 
     private static Map<String, String> buildZh() {
-        Map<String, String> table = new HashMap<>(4328);
+        Map<String, String> table = new HashMap<>(4330);
         fillZh0(table);
         fillZh1(table);
         fillZh2(table);
@@ -44488,6 +44506,8 @@ public final class L10nTranslations {
     }
 
     private static void fillZh33(Map<String, String> table) {
+        table.put("Turn off Show the whole reel to use this choice.",
+                "\u8bf7\u5173\u95ed\u201c\u663e\u793a\u5b8c\u6574\u7684 Reels\u201d\u4ee5\u4f7f\u7528\u6b64\u9009\u9879\u3002");
         table.put("Turn off double tap to like",
                 "\u7981\u7528\u53cc\u51fb\u70b9\u8d5e");
         table.put("Turn on %1$s to use this slider.",
@@ -44606,11 +44626,11 @@ public final class L10nTranslations {
                 "\u4f7f\u7528 Movies \u548c Pictures");
         table.put("Use the HushGram setting",
                 "\u4f7f\u7528 HushGram \u8bbe\u7f6e");
-        table.put("Use the highest refresh rate",
-                "\u4f7f\u7528\u6700\u9ad8\u66f4\u65b0\u7387");
     }
 
     private static void fillZh34(Map<String, String> table) {
+        table.put("Use the highest refresh rate",
+                "\u4f7f\u7528\u6700\u9ad8\u66f4\u65b0\u7387");
         table.put("Used to be @%s",
                 "\u4ee5\u524d\u662f @%s");
         table.put("Username",
@@ -44729,11 +44749,11 @@ public final class L10nTranslations {
                 "Reel \u7ed3\u675f\u540e\u4f1a\u5207\u6362\u81f3\u4e0b\u4e00\u5219\uff0c\u800c\u975e\u91cd\u64ad\u3002\u4f7f\u7528 Instagram \u672c\u8eab\u7684\u81ea\u52a8\u5377\u52a8\uff0c\u5373\u4f7f\u8d26\u6237\u672a\u63d0\u4f9b\u6b64\u529f\u80fd\u4e5f\u9002\u7528\u3002\u542f\u7528\u671f\u95f4\uff0cInstagram \u7684\u201c\u81ea\u52a8\u5377\u52a8\u201d\u5f00\u5173\u65e0\u6cd5\u5c06\u5176\u5173\u95ed\u3002\u8bf7\u91cd\u65b0\u542f\u52a8 Instagram \u4ee5\u5e94\u7528\u53d8\u66f4\u3002");
         table.put("When a reel in your feed ends, Watch again plays it over right there instead of opening Reels.",
                 "\u52a8\u6001\u4e2d\u7684 Reels \u64ad\u5b8c\u65f6\uff0c\u201c\u518d\u770b\u4e00\u6b21\u201d\u4f1a\u76f4\u63a5\u5728\u539f\u5904\u91cd\u64ad\uff0c\u4e0d\u4f1a\u6253\u5f00 Reels.");
-        table.put("When the reel isn't on the first screen, the profile shows a Find the reel button instead of scrolling on its own.",
-                "\u82e5\u7b2c\u4e00\u4e2a\u753b\u9762\u6ca1\u6709\u8be5 Reel\uff0c\u4e3b\u9875\u4f1a\u663e\u793a\u201c\u5bfb\u627e Reel\u201d\u6309\u94ae\uff0c\u800c\u975e\u81ea\u52a8\u5377\u52a8\u3002");
     }
 
     private static void fillZh35(Map<String, String> table) {
+        table.put("When the reel isn't on the first screen, the profile shows a Find the reel button instead of scrolling on its own.",
+                "\u82e5\u7b2c\u4e00\u4e2a\u753b\u9762\u6ca1\u6709\u8be5 Reel\uff0c\u4e3b\u9875\u4f1a\u663e\u793a\u201c\u5bfb\u627e Reel\u201d\u6309\u94ae\uff0c\u800c\u975e\u81ea\u52a8\u5377\u52a8\u3002");
         table.put("Where the mention pill goes",
                 "\u63d0\u53ca\u6807\u7b7e\u7684\u4f4d\u7f6e");
         table.put("Where videos wait",
@@ -44852,11 +44872,11 @@ public final class L10nTranslations {
                 "\u4f60\u9009\u62e9\u7684\u4e3b\u753b\u9762\u56fe\u6807");
         table.put("the pure black dark mode",
                 "\u7eaf\u9ed1\u6df1\u8272\u6a21\u5f0f");
-        table.put("the raised version code",
-                "\u63d0\u9ad8\u7248\u672c\u53f7\u7801");
     }
 
     private static void fillZh36(Map<String, String> table) {
+        table.put("the raised version code",
+                "\u63d0\u9ad8\u7248\u672c\u53f7\u7801");
         table.put("the re-signed build fix",
                 "\u91cd\u65b0\u7b7e\u7f72\u7248\u672c\u4fee\u6b63");
         table.put("the removed advertising ID permissions",
@@ -44868,7 +44888,7 @@ public final class L10nTranslations {
     }
 
     private static Map<String, String> buildZh_rTW() {
-        Map<String, String> table = new HashMap<>(4328);
+        Map<String, String> table = new HashMap<>(4330);
         fillZh_rTW0(table);
         fillZh_rTW1(table);
         fillZh_rTW2(table);
@@ -48969,6 +48989,8 @@ public final class L10nTranslations {
     }
 
     private static void fillZh_rTW33(Map<String, String> table) {
+        table.put("Turn off Show the whole reel to use this choice.",
+                "\u8acb\u95dc\u9589\u300c\u986f\u793a\u5b8c\u6574\u7684 Reels\u300d\u4ee5\u4f7f\u7528\u6b64\u9078\u9805\u3002");
         table.put("Turn off double tap to like",
                 "\u505c\u7528\u96d9\u64ca\u6309\u8b9a");
         table.put("Turn on %1$s to use this slider.",
@@ -49087,11 +49109,11 @@ public final class L10nTranslations {
                 "\u4f7f\u7528 Movies \u548c Pictures");
         table.put("Use the HushGram setting",
                 "\u4f7f\u7528 HushGram \u8a2d\u5b9a");
-        table.put("Use the highest refresh rate",
-                "\u4f7f\u7528\u6700\u9ad8\u66f4\u65b0\u7387");
     }
 
     private static void fillZh_rTW34(Map<String, String> table) {
+        table.put("Use the highest refresh rate",
+                "\u4f7f\u7528\u6700\u9ad8\u66f4\u65b0\u7387");
         table.put("Used to be @%s",
                 "\u4ee5\u524d\u662f @%s");
         table.put("Username",
@@ -49210,11 +49232,11 @@ public final class L10nTranslations {
                 "Reel \u7d50\u675f\u5f8c\u6703\u5207\u63db\u81f3\u4e0b\u4e00\u5247\uff0c\u800c\u975e\u91cd\u64ad\u3002\u4f7f\u7528 Instagram \u672c\u8eab\u7684\u81ea\u52d5\u6372\u52d5\uff0c\u5373\u4f7f\u5e33\u865f\u672a\u63d0\u4f9b\u6b64\u529f\u80fd\u4e5f\u9069\u7528\u3002\u555f\u7528\u671f\u9593\uff0cInstagram \u7684\u300c\u81ea\u52d5\u6372\u52d5\u300d\u958b\u95dc\u7121\u6cd5\u5c07\u5176\u95dc\u9589\u3002\u8acb\u91cd\u65b0\u555f\u52d5 Instagram \u4ee5\u5957\u7528\u8b8a\u66f4\u3002");
         table.put("When a reel in your feed ends, Watch again plays it over right there instead of opening Reels.",
                 "\u52d5\u614b\u4e2d\u7684 Reels \u64ad\u5b8c\u6642\uff0c\u300c\u518d\u770b\u4e00\u6b21\u300d\u6703\u76f4\u63a5\u5728\u539f\u8655\u91cd\u64ad\uff0c\u4e0d\u6703\u958b\u555f Reels.");
-        table.put("When the reel isn't on the first screen, the profile shows a Find the reel button instead of scrolling on its own.",
-                "\u82e5\u7b2c\u4e00\u500b\u756b\u9762\u6c92\u6709\u8a72 Reel\uff0c\u500b\u4eba\u6a94\u6848\u6703\u986f\u793a\u300c\u5c0b\u627e Reel\u300d\u6309\u9215\uff0c\u800c\u975e\u81ea\u52d5\u6372\u52d5\u3002");
     }
 
     private static void fillZh_rTW35(Map<String, String> table) {
+        table.put("When the reel isn't on the first screen, the profile shows a Find the reel button instead of scrolling on its own.",
+                "\u82e5\u7b2c\u4e00\u500b\u756b\u9762\u6c92\u6709\u8a72 Reel\uff0c\u500b\u4eba\u6a94\u6848\u6703\u986f\u793a\u300c\u5c0b\u627e Reel\u300d\u6309\u9215\uff0c\u800c\u975e\u81ea\u52d5\u6372\u52d5\u3002");
         table.put("Where the mention pill goes",
                 "\u63d0\u53ca\u6a19\u7c64\u7684\u4f4d\u7f6e");
         table.put("Where videos wait",
@@ -49333,11 +49355,11 @@ public final class L10nTranslations {
                 "\u4f60\u9078\u64c7\u7684\u4e3b\u756b\u9762\u5716\u793a");
         table.put("the pure black dark mode",
                 "\u7d14\u9ed1\u6df1\u8272\u6a21\u5f0f");
-        table.put("the raised version code",
-                "\u63d0\u9ad8\u7248\u672c\u865f\u78bc");
     }
 
     private static void fillZh_rTW36(Map<String, String> table) {
+        table.put("the raised version code",
+                "\u63d0\u9ad8\u7248\u672c\u865f\u78bc");
         table.put("the re-signed build fix",
                 "\u91cd\u65b0\u7c3d\u7f72\u7248\u672c\u4fee\u6b63");
         table.put("the removed advertising ID permissions",

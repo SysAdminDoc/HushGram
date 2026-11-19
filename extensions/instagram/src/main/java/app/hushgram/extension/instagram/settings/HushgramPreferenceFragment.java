@@ -7412,6 +7412,11 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     ? L10n.t("Removes For you from the choices at the top of Home, so it stays on Following or "
                             + "Favorites. Needs Start Home on Following. Restart Instagram to see the change.")
                     : L10n.t("Turn on Start Home on Following to use this choice."));
+        } else if (setting == Settings.FILL_REEL_SCREEN) {
+            // Show the whole reel wins over it, and with descriptions behind the info button nothing said so (#755).
+            preference.setSummary(Settings.FIT_REEL_SCREEN.savedValue()
+                    ? L10n.t("Turn off Show the whole reel to use this choice.")
+                    : ReelsCategory.fillSummary());
         } else if (setting == Settings.HIDDEN_MESSAGE_BOX_BUTTONS) {
             // Gallery and microphone in the plus menu changes what the bar shows, so its flip redoes this.
             preference.setSummary(messageBoxSummary(Settings.HIDDEN_MESSAGE_BOX_BUTTONS.savedValue()));

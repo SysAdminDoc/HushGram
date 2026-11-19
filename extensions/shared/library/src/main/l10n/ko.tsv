@@ -468,6 +468,8 @@ Turn on Start Home on Following to use this choice.	이 옵션을 사용하려�
 # context: Settings page: the summary of a greyed-out slider in place of its value; %1$s is the title of the switch it waits on, like Glass tab bar
 Turn on %1$s to use this slider.	이 슬라이더를 사용하려면 ‘%1$s’을(를) 활성화하세요.
 Turn on Story ring size to use this choice.	이 옵션을 사용하려면 ‘스토리 링 사이즈’를 활성화하세요
+# context: Settings page, Reels: the line under the greyed-out Fill the screen switch while Show the whole reel is on
+Turn off Show the whole reel to use this choice.	이 옵션을 사용하려면 ‘릴스 전체 보기’를 비활성화하세요
 Turn on Default playback quality to use this choice.	이 옵션을 사용하려면 ‘기본 재생 화질’을 활성화하세요
 Updating remembered positions...	저장된 위치를 업데이트하는 중...
 Undo cleared positions	위치 지우기 실행 취소

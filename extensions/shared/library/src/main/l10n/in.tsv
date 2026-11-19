@@ -467,6 +467,8 @@ Turn on Start Home on Following to use this choice.	Aktifkan Buka Beranda di Men
 # context: Settings page: the summary of a greyed-out slider in place of its value; %1$s is the title of the switch it waits on, like Glass tab bar
 Turn on %1$s to use this slider.	Aktifkan %1$s untuk menggunakan penggeser ini.
 Turn on Story ring size to use this choice.	Aktifkan Ukuran lingkaran cerita untuk menggunakan pilihan ini.
+# context: Settings page, Reels: the line under the greyed-out Fill the screen switch while Show the whole reel is on
+Turn off Show the whole reel to use this choice.	Nonaktifkan Tampilkan reel utuh untuk menggunakan pilihan ini.
 Turn on Default playback quality to use this choice.	Aktifkan Kualitas pemutaran default untuk menggunakan pilihan ini.
 Updating remembered positions...	Memperbarui posisi tersimpan...
 Undo cleared positions	Pulihkan posisi yang dihapus

@@ -1861,10 +1861,20 @@ public class Settings extends BaseSettings {
     /**
      * Under {@link #FULL_SCREEN_REELS}: a reel whose shape is close to the screen's fills it, cut a
      * little at the sides, instead of fitting with black bars above and below (#288,
-     * {@link app.hushgram.extension.instagram.reels.ReelFill}). Off to start.
+     * {@link app.hushgram.extension.instagram.reels.ReelFill}). Rests while {@link #FIT_REEL_SCREEN} is on,
+     * which wins over it, so the two can't both look on (#755). Off to start.
      */
     public static final BooleanSetting FILL_REEL_SCREEN =
-            new BooleanSetting("hushgram_fill_reel_screen", FALSE, parent(FULL_SCREEN_REELS));
+            new BooleanSetting("hushgram_fill_reel_screen", FALSE, new Setting.Availability() {
+                @Override public boolean isAvailable() {
+                    return FULL_SCREEN_REELS.savedValue() && FULL_SCREEN_REELS.isAvailable()
+                            && !Settings.FIT_REEL_SCREEN.savedValue();
+                }
+
+                @Override public List<Setting<?>> getParentSettings() {
+                    return Collections.singletonList(FULL_SCREEN_REELS);
+                }
+            });
 
     /**
      * Every reel fits inside the viewer, with bars where its shape differs from the screen's, so

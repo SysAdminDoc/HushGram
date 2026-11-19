@@ -467,6 +467,8 @@ Turn on Start Home on Following to use this choice.	Hãy bật Mở trang chủ 
 # context: Settings page: the summary of a greyed-out slider in place of its value; %1$s is the title of the switch it waits on, like Glass tab bar
 Turn on %1$s to use this slider.	Hãy bật %1$s để dùng thanh trượt này.
 Turn on Story ring size to use this choice.	Hãy bật Kích thước vòng tin để dùng lựa chọn này.
+# context: Settings page, Reels: the line under the greyed-out Fill the screen switch while Show the whole reel is on
+Turn off Show the whole reel to use this choice.	Hãy tắt Hiện toàn bộ reel để dùng lựa chọn này.
 Turn on Default playback quality to use this choice.	Hãy bật Chất lượng phát mặc định để dùng lựa chọn này.
 Updating remembered positions...	Đang cập nhật vị trí đã nhớ...
 Undo cleared positions	Hoàn tác việc xóa vị trí

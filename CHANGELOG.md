@@ -23,6 +23,7 @@ Every HushGram release, newest first.
 * The `Show if a profile follows you` label no longer lands on top of the post count on profiles with no name.
 * `Glass in chats` keeps the message bar's glass when Instagram switches the bar to its newer layout, and `Message bar tint` works on it again. Reported in #759.
 * Messages in a chat no longer jump and snap back while you type a long message with `Glass in chats` on. Reported in #757.
+* `Fill the screen` goes grey with a line saying why while `Show the whole reel` is on, since that switch wins and reels kept their side bars. Reported in #755.
 
 ## 0.0.21 (2026-11-18)
 

@@ -464,6 +464,8 @@ Turn on Start Home on Following to use this choice.	เปิดใช้งา�
 # context: Settings page: the summary of a greyed-out slider in place of its value; %1$s is the title of the switch it waits on, like Glass tab bar
 Turn on %1$s to use this slider.	เปิดใช้งาน %1$s เพื่อใช้แถบเลื่อนนี้
 Turn on Story ring size to use this choice.	เปิดใช้งาน "ขนาดวงแหวนสตอรี่" เพื่อใช้ตัวเลือกนี้
+# context: Settings page, Reels: the line under the greyed-out Fill the screen switch while Show the whole reel is on
+Turn off Show the whole reel to use this choice.	ปิดใช้งาน "แสดงรีลส์ทั้งคลิป" เพื่อใช้ตัวเลือกนี้
 Turn on Default playback quality to use this choice.	เปิดใช้งาน "คุณภาพการเล่นเริ่มต้น" เพื่อใช้ตัวเลือกนี้
 Updating remembered positions...	กำลังอัปเดตตำแหน่งที่จำไว้...
 Undo cleared positions	เลิกทำการล้างตำแหน่งที่จำไว้
