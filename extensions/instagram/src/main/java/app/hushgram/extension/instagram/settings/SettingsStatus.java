@@ -498,6 +498,11 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Rewritten by Hide comments when the heart and like count on a comment row were found too. */
+    public static boolean commentLikes() {
+        return false;
+    }
+
     public static boolean commentEmojiRow() {
         return false;
     }

@@ -744,6 +744,12 @@ Takes the Comment button and the comment count off the posts in your feed.	Akı�
 # context: Comments: a second Hide comments switch that takes the Reply button off each comment in a comment sheet (#619). Reply and View more replies are Instagram's own labels under a comment; use this language's Instagram words for them.
 Hide Reply on comments	Yorumlarda Yanıtla'yı gizle
 Takes Reply off each comment in a post's or reel's comments. View more replies stays, so you can still open them.	Bir gönderinin ya da reels videosunun yorumlarında her yorumdan Yanıtla'yı kaldırır. Diğer yanıtları gör yerinde kalır, yani yanıtları yine açabilirsin.
+# context: Comments: a Hide comments switch that takes the heart (the like button) and the like count under it off each comment in a comment sheet (#762).
+Hide likes on comments	Yorumlarda beğenileri gizle
+Takes the heart and the like count off each comment in a post's or reel's comments.	Bir gönderinin ya da reels videosunun yorumlarında her yorumdan kalbi ve beğeni sayısını kaldırır.
+# context: Comments: a Hide comments switch that takes the comment box off the bottom of a comment sheet (#762). Comment box is the field where you type a comment; Post is Instagram's own label on its send button, use this language's Instagram word for it.
+Hide the comment box	Yorum kutusunu gizle
+Takes the comment box, with your picture and Post, off the bottom of a post's or reel's comments. Turn it off when you want to comment.	Bir gönderinin ya da reels videosunun yorumlarının altındaki yorum kutusunu, fotoğrafın ve Paylaş ile birlikte kaldırır. Yorum yapmak istediğinde kapat.
 # context: Comments: the switch that hides the row of quick emoji above the comment box (#248). Comment box is the field where you type a comment.
 Hide the emoji row	Emoji satırını gizle
 Takes the row of quick emoji off above the comment box. The box itself stays.	Yorum kutusunun üstündeki hızlı emoji satırını kaldırır. Kutunun kendisi kalır.

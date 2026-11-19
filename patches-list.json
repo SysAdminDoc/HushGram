@@ -2273,7 +2273,7 @@
     },
     {
       "name": "Hide comments",
-      "description": "Takes the Comment button and the comment count off posts in your feed. A second switch takes Reply off each comment and keeps View more replies. Starts off. Turn it on in HushGram settings > Comments.",
+      "description": "Takes the Comment button and the comment count off posts in your feed. Other switches take Reply or the heart and like count off each comment, and the comment box off the comments. All start off. Turn them on in HushGram settings > Comments.",
       "category": "Interaction",
       "use": true,
       "dependencies": [

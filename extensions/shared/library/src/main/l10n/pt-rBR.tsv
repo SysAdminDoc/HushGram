@@ -744,6 +744,12 @@ Takes the Comment button and the comment count off the posts in your feed.	Tira 
 # context: Comments: a second Hide comments switch that takes the Reply button off each comment in a comment sheet (#619). Reply and View more replies are Instagram's own labels under a comment; use this language's Instagram words for them.
 Hide Reply on comments	Ocultar Responder nos comentários
 Takes Reply off each comment in a post's or reel's comments. View more replies stays, so you can still open them.	Tira o Responder de cada comentário de um post ou reel. Ver mais respostas continua, então você ainda pode abrir as respostas.
+# context: Comments: a Hide comments switch that takes the heart (the like button) and the like count under it off each comment in a comment sheet (#762).
+Hide likes on comments	Ocultar curtidas nos comentários
+Takes the heart and the like count off each comment in a post's or reel's comments.	Tira o coração e o número de curtidas de cada comentário de um post ou reel.
+# context: Comments: a Hide comments switch that takes the comment box off the bottom of a comment sheet (#762). Comment box is the field where you type a comment; Post is Instagram's own label on its send button, use this language's Instagram word for it.
+Hide the comment box	Ocultar a caixa de comentários
+Takes the comment box, with your picture and Post, off the bottom of a post's or reel's comments. Turn it off when you want to comment.	Tira a caixa de comentários, com sua foto e o Publicar, da parte de baixo dos comentários de um post ou reel. Desative quando quiser comentar.
 # context: Comments: the switch that hides the row of quick emoji above the comment box (#248). Comment box is the field where you type a comment.
 Hide the emoji row	Ocultar a linha de emojis
 Takes the row of quick emoji off above the comment box. The box itself stays.	Tira a linha de emojis rápidos acima da caixa de comentários. A caixa continua lá.

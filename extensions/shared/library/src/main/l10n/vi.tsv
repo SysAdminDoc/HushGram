@@ -741,6 +741,12 @@ Takes the Comment button and the comment count off the posts in your feed.	Gỡ 
 # context: Comments: a second Hide comments switch that takes the Reply button off each comment in a comment sheet (#619). Reply and View more replies are Instagram's own labels under a comment; use this language's Instagram words for them.
 Hide Reply on comments	Ẩn Trả lời trên bình luận
 Takes Reply off each comment in a post's or reel's comments. View more replies stays, so you can still open them.	Gỡ Trả lời khỏi từng bình luận của bài viết hoặc reel. Xem thêm câu trả lời vẫn còn, nên bạn vẫn mở được các câu trả lời.
+# context: Comments: a Hide comments switch that takes the heart (the like button) and the like count under it off each comment in a comment sheet (#762).
+Hide likes on comments	Ẩn lượt thích trên bình luận
+Takes the heart and the like count off each comment in a post's or reel's comments.	Gỡ trái tim và số lượt thích khỏi từng bình luận của bài viết hoặc reel.
+# context: Comments: a Hide comments switch that takes the comment box off the bottom of a comment sheet (#762). Comment box is the field where you type a comment; Post is Instagram's own label on its send button, use this language's Instagram word for it.
+Hide the comment box	Ẩn ô bình luận
+Takes the comment box, with your picture and Post, off the bottom of a post's or reel's comments. Turn it off when you want to comment.	Gỡ ô bình luận, cùng ảnh của bạn và nút Đăng, khỏi phía dưới phần bình luận của bài viết hoặc reel. Hãy tắt khi bạn muốn bình luận.
 Hide the emoji row	Ẩn hàng biểu tượng cảm xúc
 Takes the row of quick emoji off above the comment box. The box itself stays.	Gỡ hàng biểu tượng cảm xúc nhanh phía trên ô bình luận. Bản thân ô vẫn giữ.
 # context: Comments: the switch that takes GIFs and stickers out of a post's comments (#511). A comment that has words keeps its words and loses only the picture. A comment that's only a GIF disappears, and its replies with it. Comment box is the field where you type a comment.

@@ -41,6 +41,8 @@ public class HideCommentsSettingsTest {
         RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
         Settings.HIDE_COMMENTS.resetToDefault();
         Settings.HIDE_COMMENT_REPLY.resetToDefault();
+        Settings.HIDE_COMMENT_LIKES.resetToDefault();
+        Settings.HIDE_COMMENT_BOX.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         BaseSettings.SAFE_MODE.save(false);
@@ -51,8 +53,11 @@ public class HideCommentsSettingsTest {
         Utils.awaitBackgroundTasksForTests();
         PatchFamily.inBuildForTests = null;
         PatchFamily.commentReplyForTests = null;
+        PatchFamily.commentLikesForTests = null;
         Settings.HIDE_COMMENTS.resetToDefault();
         Settings.HIDE_COMMENT_REPLY.resetToDefault();
+        Settings.HIDE_COMMENT_LIKES.resetToDefault();
+        Settings.HIDE_COMMENT_BOX.resetToDefault();
         Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
     }
     private void open(boolean installed) throws Exception {
@@ -66,6 +71,8 @@ public class HideCommentsSettingsTest {
         open(false);
         assertNull(page.getPreferenceScreen().findPreference(Settings.HIDE_COMMENTS.key));
         assertNull(page.getPreferenceScreen().findPreference(Settings.HIDE_COMMENT_REPLY.key));
+        assertNull(page.getPreferenceScreen().findPreference(Settings.HIDE_COMMENT_LIKES.key));
+        assertNull(page.getPreferenceScreen().findPreference(Settings.HIDE_COMMENT_BOX.key));
     }
     @Test public void theSwitchSitsUnderCommentsAndStartsOff() throws Exception {
         open(true);
@@ -77,7 +84,8 @@ public class HideCommentsSettingsTest {
         assertEquals("Comments", section.getTitle().toString());
         assertFalse(row.isChecked());
         assertFalse(Settings.HIDE_COMMENTS.get());
-        assertEquals(Arrays.asList(Settings.HIDE_COMMENTS, Settings.HIDE_COMMENT_REPLY), PatchFamily.HIDE_COMMENTS.switches);
+        assertEquals(Arrays.asList(Settings.HIDE_COMMENTS, Settings.HIDE_COMMENT_REPLY, Settings.HIDE_COMMENT_LIKES,
+                Settings.HIDE_COMMENT_BOX), PatchFamily.HIDE_COMMENTS.switches);
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.HIDE_COMMENTS.key));
         row.setChecked(true);
         assertTrue(Settings.HIDE_COMMENTS.get());
@@ -114,6 +122,63 @@ public class HideCommentsSettingsTest {
         List<String> report = PatchFamily.reportLines(EnumSet.of(PatchFamily.HIDE_COMMENTS), false);
         assertTrue(report.toString(), report.contains(
                 "  Hide Reply on comments: not in this build (the line under a comment didn't match)"));
+    }
+    /** #762: the heart and like count get their own switch, right after Reply's, starting off. */
+    @Test public void theLikesSwitchFollowsReplyAndStartsOff() throws Exception {
+        open(true);
+        SwitchPreference row = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.HIDE_COMMENT_LIKES.key);
+        assertNotNull(row);
+        assertEquals("Hide likes on comments", row.getTitle().toString());
+        assertEquals("Takes the heart and the like count off each comment in a post's or reel's comments.",
+                row.getSummary().toString());
+        PreferenceCategory section = categoryHolding(page.getPreferenceScreen(), row);
+        assertNotNull(section);
+        assertEquals("Comments", section.getTitle().toString());
+        assertEquals("right after Hide Reply on comments", Settings.HIDE_COMMENT_REPLY.key,
+                section.getPreference(indexOf(section, row) - 1).getKey());
+        assertFalse(row.isChecked());
+        assertFalse(Settings.HIDE_COMMENT_LIKES.get());
+        assertFalse("each comment reads the switch as it's drawn, so no restart prompt", Settings.HIDE_COMMENT_LIKES.rebootApp);
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.HIDE_COMMENT_LIKES.key));
+        row.setChecked(true);
+        assertTrue(Settings.HIDE_COMMENT_LIKES.get());
+        assertFalse("Hide comments keeps its own value", Settings.HIDE_COMMENTS.get());
+        assertFalse("Reply keeps its own value", Settings.HIDE_COMMENT_REPLY.get());
+        List<String> report = PatchFamily.reportLines(EnumSet.of(PatchFamily.HIDE_COMMENTS), false);
+        for (String line : report) assertFalse(report.toString(), line.contains("Hide likes on comments: not in this build"));
+    }
+    /** A build whose comment heart moved keeps the other switches, leaves out the likes row and says so. */
+    @Test public void aBuildWithoutTheHeartKeepsTheRest() throws Exception {
+        PatchFamily.commentLikesForTests = false;
+        open(true);
+        assertNotNull(page.getPreferenceScreen().findPreference(Settings.HIDE_COMMENTS.key));
+        assertNotNull(page.getPreferenceScreen().findPreference(Settings.HIDE_COMMENT_REPLY.key));
+        assertNull(page.getPreferenceScreen().findPreference(Settings.HIDE_COMMENT_LIKES.key));
+        assertNotNull(page.getPreferenceScreen().findPreference(Settings.HIDE_COMMENT_BOX.key));
+        List<String> report = PatchFamily.reportLines(EnumSet.of(PatchFamily.HIDE_COMMENTS), false);
+        assertTrue(report.toString(), report.contains(
+                "  Hide likes on comments: not in this build (the comment row's heart didn't match)"));
+    }
+    /** #762: the comment box switch comes last in the group, starts off and needs no restart. */
+    @Test public void theCommentBoxSwitchFollowsLikesAndStartsOff() throws Exception {
+        open(true);
+        SwitchPreference row = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.HIDE_COMMENT_BOX.key);
+        assertNotNull(row);
+        assertEquals("Hide the comment box", row.getTitle().toString());
+        assertEquals("Takes the comment box, with your picture and Post, off the bottom of a post's or reel's comments. "
+                + "Turn it off when you want to comment.", row.getSummary().toString());
+        PreferenceCategory section = categoryHolding(page.getPreferenceScreen(), row);
+        assertNotNull(section);
+        assertEquals("Comments", section.getTitle().toString());
+        assertEquals("right after Hide likes on comments", Settings.HIDE_COMMENT_LIKES.key,
+                section.getPreference(indexOf(section, row) - 1).getKey());
+        assertFalse(row.isChecked());
+        assertFalse(Settings.HIDE_COMMENT_BOX.get());
+        assertFalse("the box hides as the sheet draws, so no restart prompt", Settings.HIDE_COMMENT_BOX.rebootApp);
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.HIDE_COMMENT_BOX.key));
+        row.setChecked(true);
+        assertTrue(Settings.HIDE_COMMENT_BOX.get());
+        assertFalse("the heart keeps its own value", Settings.HIDE_COMMENT_LIKES.get());
     }
     private static int indexOf(PreferenceGroup group, Preference row) {
         for (int i = 0; i < group.getPreferenceCount(); i++) if (group.getPreference(i) == row) return i;

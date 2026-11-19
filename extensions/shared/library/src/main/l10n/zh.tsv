@@ -748,6 +748,12 @@ Takes the Comment button and the comment count off the posts in your feed.	移�
 # context: Comments: a second Hide comments switch that takes the Reply button off each comment in a comment sheet (#619). Reply and View more replies are Instagram's own labels under a comment; use this language's Instagram words for them.
 Hide Reply on comments	隐藏评论的“回复”
 Takes Reply off each comment in a post's or reel's comments. View more replies stays, so you can still open them.	移除帖子或 Reels 评论中每则评论的“回复”。“查看更多回复”仍会保留，你还是可以展开回复。
+# context: Comments: a Hide comments switch that takes the heart (the like button) and the like count under it off each comment in a comment sheet (#762).
+Hide likes on comments	隐藏评论的赞
+Takes the heart and the like count off each comment in a post's or reel's comments.	移除帖子或 Reels 评论中每则评论的爱心和点赞数。
+# context: Comments: a Hide comments switch that takes the comment box off the bottom of a comment sheet (#762). Comment box is the field where you type a comment; Post is Instagram's own label on its send button, use this language's Instagram word for it.
+Hide the comment box	隐藏评论输入框
+Takes the comment box, with your picture and Post, off the bottom of a post's or reel's comments. Turn it off when you want to comment.	移除帖子或 Reels 评论底部的评论输入框，连同你的头像和“发布”。想评论时再关闭。
 # context: Comments: the switch that hides the row of quick emoji above the comment box (#248). Comment box is the field where you type a comment.
 Hide the emoji row	隐藏表情符号列
 Takes the row of quick emoji off above the comment box. The box itself stays.	移除评论输入框上方的快速表情符号列，输入框本身仍会保留。

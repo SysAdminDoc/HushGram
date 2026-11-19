@@ -43,6 +43,7 @@ import app.hushgram.extension.instagram.download.SaveLeftovers;
 import app.hushgram.extension.instagram.feed.AmbientLight;
 import app.hushgram.extension.instagram.feed.CarouselArrows;
 import app.hushgram.extension.instagram.feed.CarouselPeek;
+import app.hushgram.extension.instagram.feed.CommentBox;
 import app.hushgram.extension.instagram.feed.CommentEmojiRow;
 import app.hushgram.extension.instagram.feed.CommentGifs;
 import app.hushgram.extension.instagram.feed.FeedFollowButton;
@@ -174,6 +175,7 @@ public final class SettingsEntry {
         ProfileSaved.install(context);
         SavedFastScroll.install(context);
         CommentEmojiRow.install(context);
+        CommentBox.install(context);
         CommentGifs.install(context);
         FeedFollowButton.install(context);
         FeedSaveRow.install(context);

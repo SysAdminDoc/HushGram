@@ -3046,6 +3046,22 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_comment_reply", FALSE);
 
     /**
+     * A comment in a post's or reel's comments leaves out the heart and the like count beside its
+     * text (#762, {@link app.hushgram.extension.instagram.feed.CommentLikes}). Read as each comment
+     * row is built, so comments already on screen change the next time they're built. Off to start.
+     */
+    public static final BooleanSetting HIDE_COMMENT_LIKES =
+            new BooleanSetting("hushgram_hide_comment_likes", FALSE);
+
+    /**
+     * A post's or reel's comments leave out the comment box at the bottom (#762,
+     * {@link app.hushgram.extension.instagram.feed.CommentBox}). Read before each frame of a resumed
+     * screen, so it needs no restart. Off to start.
+     */
+    public static final BooleanSetting HIDE_COMMENT_BOX =
+            new BooleanSetting("hushgram_hide_comment_box", FALSE);
+
+    /**
      * The comment sheet leaves out the row of quick emoji above the comment box
      * ({@link app.hushgram.extension.instagram.feed.CommentEmojiRow}). Read before each frame of a
      * resumed screen, so it needs no restart. Off to start.

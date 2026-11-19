@@ -2375,6 +2375,16 @@ shared-call Lapp/hushgram/extension/instagram/share/RepostButton;->eligible(Ljav
 # wrote.
 once-call Lapp/hushgram/extension/instagram/feed/CommentReply;->hidden()Z in static (*)V sites 2 pooled holding row_comment_textview_reply_button
 once-call Lapp/hushgram/extension/instagram/feed/CommentReply;->hidden()Z in (LX/*;)LX/*; pooled holding row_comment_textview_reply_button
+# Hide likes on comments (#762), under Hide comments: every method that makes a heart-and-count
+# component asks CommentLikes.hidden once, in front of adding it to its column, and skips the add on
+# a yes. On 456 those are the comment row's text column (04EO.A00, the one taking an Integer, in the
+# class holding the Reply tag), the row's container (049u.A0p, holding row_comment_container) and a
+# second row (0aHz.A0p, holding itas-android and the group key 0xd312d3b0, which four sibling rows
+# holding itas-android and reading CENTER_CROP don't load). Left out, a heart stays on comments;
+# more often or elsewhere, it isn't the check the patch wrote.
+once-call Lapp/hushgram/extension/instagram/feed/CommentLikes;->hidden()Z in (Ljava/lang/Integer;)LX/*; pooled class-holding row_comment_textview_reply_button
+once-call Lapp/hushgram/extension/instagram/feed/CommentLikes;->hidden()Z in (LX/*;)LX/*; pooled holding row_comment_container
+once-call Lapp/hushgram/extension/instagram/feed/CommentLikes;->hidden()Z in (LX/*;)LX/*; holding itas-android const:0xd312d3b0
 # The download button on feed posts (#97) calls FeedDownloadButton.bind first thing in the Feed
 # view binder Hide the Repost button's view hide is in (0Bfq.A07 on 450's 385611438). No rule, for
 # the reason above: the binder is picked by resource IDs. DownloadVideoHookTest checks on every
