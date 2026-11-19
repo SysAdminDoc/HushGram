@@ -45,6 +45,8 @@ When a patch can't find its target in your Instagram file, patching stops with a
 
 Android's developer verification doesn't touch a patched Instagram yet. Since September 30, 2026, it only covers installs from a few participating stores in Brazil, Indonesia, Singapore and Thailand. Google plans to bring it to every certified phone in 2027. The patched app is signed with your own key, which no developer has registered, but you won't need to register anything. Once it reaches your phone, turn on Android's advanced flow (a one-time setup that makes you wait a day before you confirm it's you), then tap **Install Anyway** at the warning. When Android asks how long to keep it on, pick indefinitely rather than 7 days, because updates to unregistered apps fail once it's off. Installs over ADB aren't affected. Google's [verification FAQ](https://developer.android.com/developer-verification/guides/faq) has the details.
 
+There are Hush patch sources for other apps too: [Hushfacebook](https://github.com/SysAdminDoc/HushFacebook) for Facebook, [HushMessenger](https://github.com/SysAdminDoc/HushMessenger) for Messenger, [HushPine](https://github.com/SysAdminDoc/HushPine) for PineDrama, [HushPinterest](https://github.com/SysAdminDoc/HushPinterest) for Pinterest, [HushTelegram](https://github.com/SysAdminDoc/HushTelegram) for Telegram, [HushThreads](https://github.com/SysAdminDoc/HushThreads) for Threads, [Hushfeed](https://github.com/SysAdminDoc/HushFeed) for TikTok and [HushTumblr](https://github.com/SysAdminDoc/HushTumblr) for Tumblr. Each one is a separate source in Manager, so add only the ones for apps you patch.
+
 ## Before you sign in
 
 > [!WARNING]
