@@ -8,7 +8,7 @@ import static org.junit.Assert.*;
 import android.app.Activity;
 import android.preference.PreferenceGroup;
 import android.preference.SwitchPreference;
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.EnumSet;
 import org.junit.After;
 import org.junit.Before;
@@ -47,6 +47,7 @@ public class HeaderLineSettingsTest {
         Utils.awaitBackgroundTasksForTests();
         PatchFamily.inBuildForTests = null;
         Settings.HIDE_FEED_HEADER_LINE.resetToDefault();
+        Settings.HIDE_REEL_HEADER_LINE.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
@@ -86,8 +87,30 @@ public class HeaderLineSettingsTest {
         assertFalse(row.isChecked());
         assertFalse(Settings.HIDE_FEED_HEADER_LINE.get());
         assertFalse("each header reads the switch as it's built, so no restart prompt", Settings.HIDE_FEED_HEADER_LINE.rebootApp);
-        assertEquals(Collections.singletonList(Settings.HIDE_FEED_HEADER_LINE), PatchFamily.FEED_HEADER_LINE.switches);
+        assertEquals(Arrays.asList(Settings.HIDE_FEED_HEADER_LINE, Settings.HIDE_REEL_HEADER_LINE), PatchFamily.FEED_HEADER_LINE.switches);
         assertEquals("Hide the line under names", PatchFamily.FEED_HEADER_LINE.patchName);
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.HIDE_FEED_HEADER_LINE.key));
+    }
+    /** The reel switch sits in Reels with the same patch, before Clean up Reels' rows, off to start. */
+    @Test public void reelSwitchStartsOffInReelsBeforeCleanUp() throws Exception {
+        open(EnumSet.of(PatchFamily.FEED_HEADER_LINE, PatchFamily.LOW_VIEW_REELS, PatchFamily.REEL_DECLUTTER));
+        SwitchPreference row = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.HIDE_REEL_HEADER_LINE.key);
+        SwitchPreference follow = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.HIDE_REEL_FOLLOW_BUTTON.key);
+        assertNotNull(row);
+        assertEquals("Hide the line under names on reels", row.getTitle().toString());
+        assertEquals("Takes the song, the place and the other labels off the line under the name on reels. "
+                + "Sponsored and Paid partnership stay. Reels already on screen change when they load again.", row.getSummary().toString());
+        assertEquals("Reels", row.getParent().getTitle().toString());
+        assertSame(row.getParent(), follow.getParent());
+        assertEquals(row.getOrder() + 1, follow.getOrder());
+        assertFalse(row.isChecked());
+        assertFalse(Settings.HIDE_REEL_HEADER_LINE.get());
+        assertFalse("each reel's author row reads the switch as it's built, so no restart prompt", Settings.HIDE_REEL_HEADER_LINE.rebootApp);
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.HIDE_REEL_HEADER_LINE.key));
+    }
+    @Test public void reelSwitchNeedsThePatch() throws Exception {
+        open(EnumSet.of(PatchFamily.REEL_DECLUTTER));
+        assertNull(page.getPreferenceScreen().findPreference(Settings.HIDE_REEL_HEADER_LINE.key));
+        assertNotNull(page.getPreferenceScreen().findPreference(Settings.HIDE_REEL_FOLLOW_BUTTON.key));
     }
 }

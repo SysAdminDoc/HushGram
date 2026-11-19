@@ -3152,6 +3152,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_feed_header_line", FALSE);
 
     /**
+     * The line under a reel's author: the song, the place and the other labels taking turns there
+     * (#771, {@link app.hushgram.extension.instagram.feed.HeaderLine#reelLine}). Sponsored and Paid
+     * partnership stay. Read as each reel's author row is built, so it needs no restart. Off to start.
+     */
+    public static final BooleanSetting HIDE_REEL_HEADER_LINE =
+            new BooleanSetting("hushgram_hide_reel_header_line", FALSE);
+
+    /**
      * A Save row in a feed post's menu, or Remove from saved on a saved post (#569,
      * {@link app.hushgram.extension.instagram.feed.FeedSaveRow}). Read as the menu opens. Off to start.
      */

@@ -3287,7 +3287,7 @@
     },
     {
       "name": "Hide the line under names",
-      "description": "Takes the song, the place and the other labels off the line under the name on posts in your feed. Sponsored and Paid partnership stay. Starts off. Turn it on in HushGram settings > Feed.",
+      "description": "Takes the song, the place and the other labels off the line under the name on posts in your feed and on reels. Sponsored and Paid partnership stay. Starts off. Turn it on in HushGram settings > Feed and Reels.",
       "category": "Interaction",
       "use": true,
       "dependencies": [

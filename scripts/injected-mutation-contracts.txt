@@ -1848,11 +1848,16 @@ once-call Lapp/hushgram/extension/instagram/feed/FeedSaveRow;->allow(Ljava/util/
 # the author; twice or elsewhere, it isn't the hook the patch wrote.
 once-call Lapp/hushgram/extension/instagram/feed/EditsLabel;->labels(Ljava/util/List;)Ljava/util/List; in instance (Lcom/instagram/feed/media/Media;LX/*;LX/*;LX/*;Ljava/lang/Double;Ljava/lang/Double;Ljava/lang/Integer;Ljava/lang/Integer;Ljava/lang/Integer;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;ZZZZZZ)V class-holding LX/*;->*:Ljava/util/List;
 # Hide the line under names (#771) hands the feed header builder's label kinds list to
-# HeaderLine.kinds right where it counts them against 2 (00V3's static A06 on 456's 386214575,
-# the one method taking a Media that loads MediaHeaderInvalidUiState), then counts the answer.
-# Left out, the song and the place keep sliding under the author; twice or elsewhere, it isn't
-# the hook the patch wrote.
-once-call Lapp/hushgram/extension/instagram/feed/HeaderLine;->kinds(Ljava/util/List;)Ljava/util/List; in static (Landroid/content/Context;Lcom/instagram/feed/media/Media;*)L*; pooled holding MediaHeaderInvalidUiState
+# HeaderLine.kinds right where it counts them against 2 (00V3's A06 on 456's 386214575, an
+# instance method on every build, the one method taking a Media that loads
+# MediaHeaderInvalidUiState), then counts the answer. Left out, the song and the place keep
+# sliding under the author; twice or elsewhere, it isn't the hook the patch wrote.
+once-call Lapp/hushgram/extension/instagram/feed/HeaderLine;->kinds(Ljava/util/List;)Ljava/util/List; in instance (Landroid/content/Context;Lcom/instagram/feed/media/Media;*)L*; pooled holding MediaHeaderInvalidUiState
+# The same patch hands a reel's line to HeaderLine.reelLine first thing in the constructor of the
+# reel author row's props (0Amu's on 456's 386214534, the line its fifth value), past Sponsored and
+# Paid partnership. Left out, the song and the place keep sliding under a reel's author; twice or
+# elsewhere, it isn't the hook the patch wrote.
+once-call Lapp/hushgram/extension/instagram/feed/HeaderLine;->reelLine(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; in instance (LX/*;LX/*;LX/*;LX/*;LX/*;LX/*;LX/*;ZZ)V calling static Lapp/hushgram/extension/instagram/feed/HeaderLine;->reelLine(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; class-holding LX/*;->*:Z
 # Watch again in the feed (#568) hands the end card controller's in-place replay flag to
 # WatchAgain.inFeed in its constructor, right before it's stored (05Wa's A07 on 454's 386014758,
 # the class that loads continue_watching). Left out, Watch again keeps opening Reels; twice or

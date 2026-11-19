@@ -2129,6 +2129,9 @@ Takes the "Made with Edits" label out of the line under a post's author. The son
 # context: "Sponsored" and "Paid partnership" are Instagram's own labels on feed posts; use the text Instagram shows in this language (#771)
 Hide the line under names	隱藏名稱下方那一行
 Takes the song, the place and the other labels off the line under the name on posts in your feed. Sponsored and Paid partnership stay. Posts already on screen change when they load again.	移除動態消息貼文名稱下方那一行的歌曲、地點和其他標籤。「贊助」和「付費合作」會保留。畫面上已有的貼文會在重新載入時改變。
+# context: "Sponsored" and "Paid partnership" are Instagram's own labels on reels; use the text Instagram shows in this language (#771)
+Hide the line under names on reels	隱藏 Reels 名稱下方那一行
+Takes the song, the place and the other labels off the line under the name on reels. Sponsored and Paid partnership stay. Reels already on screen change when they load again.	移除 Reels 名稱下方那一行的歌曲、地點和其他標籤。「贊助」和「付費合作」會保留。畫面上已有的 Reels 會在重新載入時改變。
 # context: a switch on the Feed page; Save and Remove from saved are the rows it adds to a feed post's three-dot menu
 Save in the post menu	貼文選單中的儲存
 Adds Save to the menu behind a post's three dots, or Remove from saved when you saved it already.	在貼文三個點開啟的選單中加入「儲存」，已儲存的貼文則顯示「從已儲存移除」。

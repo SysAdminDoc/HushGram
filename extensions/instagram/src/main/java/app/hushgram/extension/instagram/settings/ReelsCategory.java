@@ -101,6 +101,11 @@ final class ReelsCategory {
             reels.add(minViewsRow(context));
             reels.add(minLikesRow(context));
         }
+        if (build.contains(PatchFamily.FEED_HEADER_LINE)) {
+            reels.add(toggle(context, Settings.HIDE_REEL_HEADER_LINE, L10n.t("Hide the line under names on reels"),
+                    L10n.t("Takes the song, the place and the other labels off the line under the name on reels. "
+                            + "Sponsored and Paid partnership stay. Reels already on screen change when they load again.")));
+        }
         if (build.contains(PatchFamily.REEL_DECLUTTER)) {
             reels.add(toggle(context, Settings.HIDE_REEL_FOLLOW_BUTTON, L10n.t("Hide the Follow button"),
                     L10n.t("The Follow and Subscribe buttons beside a reel's author. Their profile still has them.")));

@@ -50,6 +50,7 @@ public class HeaderLineTest {
     @After
     public void restore() {
         Settings.HIDE_FEED_HEADER_LINE.resetToDefault();
+        Settings.HIDE_REEL_HEADER_LINE.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -134,5 +135,138 @@ public class HeaderLineTest {
         assertNull(HeaderLine.kinds(null));
         List<Kind> none = Collections.emptyList();
         assertSame(none, HeaderLine.kinds(none));
+    }
+
+    /** A reel line's kinds, named the way Instagram 456 names them. */
+    enum ReelKind { MUSIC, SUGGESTED_IN_TOPIC, AIGM_ACCOUNT_LABEL, SPONSORED_LABEL, PAID_PARTNERSHIP }
+
+    /** Stand-ins for the reel line's shapes on 456: an interface, an empty object, one label, a sliding line. */
+    interface ReelLine { }
+
+    static final class NoLine implements ReelLine { }
+
+    static final class Song implements ReelLine {
+        final Object state = "song state";
+    }
+
+    static final class Partnership implements ReelLine {
+        final Object state = "paid partnership state";
+    }
+
+    static final class Turn {
+        final ReelKind kind;
+        final Object line;
+
+        Turn(ReelKind kind, Object line) {
+            this.kind = kind;
+            this.line = line;
+        }
+    }
+
+    static final class Sliding implements ReelLine {
+        static final Object SHARED = "a static field isn't read";
+        final Object state = "cyclic state";
+        final List<Turn> turns;
+
+        Sliding(Turn... turns) {
+            this.turns = Arrays.asList(turns);
+        }
+    }
+
+    private final NoLine noLine = new NoLine();
+
+    private void reelOn() {
+        Settings.HIDE_REEL_HEADER_LINE.save(true);
+    }
+
+    @Test
+    public void theReelSwitchStartsOffAndIsItsOwn() {
+        Settings.HIDE_REEL_HEADER_LINE.resetToDefault();
+        Song song = new Song();
+        assertSame("the feed switch doesn't touch reels", song, HeaderLine.reelLine(song, noLine));
+        Settings.HIDE_FEED_HEADER_LINE.save(false);
+        reelOn();
+        assertSame("and the reel switch works alone", noLine, HeaderLine.reelLine(song, noLine));
+    }
+
+    /** A reel's song line becomes Instagram's empty line, so the name sits alone. */
+    @Test
+    public void aReelsSongBecomesTheEmptyLine() {
+        reelOn();
+        assertSame(noLine, HeaderLine.reelLine(new Song(), noLine));
+        String report = String.join("\n", HookStatus.report());
+        assertTrue(report, report.contains(HeaderLine.COUNT_REEL_HIDDEN));
+        assertTrue(HookStatus.missing(FamilyNames.FEED_HEADER_LINE).toString(),
+                HookStatus.missing(FamilyNames.FEED_HEADER_LINE).isEmpty());
+    }
+
+    /** The song and "Suggested for you" taking turns stop sliding, with nothing left. */
+    @Test
+    public void aSlidingLineWithoutADisclosureBecomesTheEmptyLine() {
+        reelOn();
+        Sliding sliding = new Sliding(new Turn(ReelKind.MUSIC, new Song()), new Turn(ReelKind.SUGGESTED_IN_TOPIC, new Song()),
+                new Turn(ReelKind.AIGM_ACCOUNT_LABEL, new Song()));
+        assertSame(noLine, HeaderLine.reelLine(sliding, noLine));
+    }
+
+    /** A paid partnership's turn is all that stays of a sliding line, as a line of its own. */
+    @Test
+    public void aSlidingLineKeepsItsPaidPartnershipTurn() {
+        reelOn();
+        Partnership partnership = new Partnership();
+        Sliding sliding = new Sliding(new Turn(ReelKind.MUSIC, new Song()), new Turn(ReelKind.PAID_PARTNERSHIP, partnership));
+
+        assertSame(partnership, HeaderLine.reelLine(sliding, noLine));
+        String report = String.join("\n", HookStatus.report());
+        assertTrue(report, report.contains(HeaderLine.COUNT_REEL_KEPT));
+    }
+
+    /** A disclosure turn showing something that isn't a reel line can't stand in for one, so the line goes. */
+    @Test
+    public void aDisclosureTurnThatIsntALineIsntKept() {
+        reelOn();
+        Sliding sliding = new Sliding(null, new Turn(ReelKind.SPONSORED_LABEL, "not a line"), new Turn(ReelKind.MUSIC, new Song()));
+        assertSame(noLine, HeaderLine.reelLine(sliding, noLine));
+        assertTrue(HeaderLine.sameKind(new Song(), noLine));
+        assertTrue(!HeaderLine.sameKind("text", noLine) && !HeaderLine.sameKind(null, noLine)
+                && !HeaderLine.sameKind(new Song(), new Object()));
+    }
+
+    @Test
+    public void theEmptyLineAndNullStayAsTheyCame() {
+        reelOn();
+        assertSame(noLine, HeaderLine.reelLine(noLine, noLine));
+        assertNull(HeaderLine.reelLine(null, noLine));
+        Song song = new Song();
+        assertSame("with no empty line to give, the line stays", song, HeaderLine.reelLine(song, null));
+    }
+
+    /** Off, paused or before the settings are read, a reel keeps its line. */
+    @Test
+    public void offPausedAndUnreadyKeepTheReelLine() {
+        Song song = new Song();
+        Settings.HIDE_REEL_HEADER_LINE.save(false);
+        assertSame(song, HeaderLine.reelLine(song, noLine));
+        reelOn();
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertSame(song, HeaderLine.reelLine(song, noLine));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+
+        SettingsContextRule.withoutContext(() -> assertSame(song, HeaderLine.reelLine(song, noLine)));
+        assertSame(noLine, HeaderLine.reelLine(song, noLine));
+    }
+
+    /** A switch that throws keeps the reel's line and says which hook threw. */
+    @Test
+    public void aThrowingReelSwitchKeepsTheLineAndIsReported() {
+        Song song = new Song();
+        assertSame(song, HeaderLine.reelLine(song, noLine, () -> {
+            throw new IllegalStateException("broken switch");
+        }));
+        String missing = HookStatus.missing(FamilyNames.FEED_HEADER_LINE).toString();
+        assertTrue(missing, missing.contains(HeaderLine.REEL_HOOK));
     }
 }

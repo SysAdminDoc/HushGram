@@ -6,7 +6,7 @@ Every HushGram release, newest first.
 
 ### Improvements
 
-* `Hide the line under names` is a new patch under Feed. It takes the song, the place and Instagram's other labels off the line under the name on feed posts, so nothing slides there anymore and the name sits on its own. Sponsored and Paid partnership stay. Starts off. Requested in #771.
+* `Hide the line under names` is a new patch under Feed. It takes the song, the place and Instagram's other labels off the line under the name on feed posts, so nothing slides there anymore and the name sits on its own. Reels get a switch of their own under Reels, `Hide the line under names on reels`, for the song and the labels that take turns under a reel's author. Sponsored and Paid partnership stay on both. Both start off. Requested in #771.
 * `Read messages without the seen receipt` gets a switch, `Mark a chat seen when you react`. Reacting to a reel, post or message someone sent you lets them see you read up to it. Whatever they sent after it stays unseen to them. Starts off. Requested in #772.
 * The viewing history page has a grid button next to Clear. It shows what you watched as big pictures, three across, so a reel is easier to spot by its cover. Tap the button again for the list. The page remembers which one you used, and tabs, search, tap and hold work the same in both. Requested in #773.
 * `Auto scroll in the reel menu` under Reels puts Turn on auto scroll or Turn off auto scroll in a reel's three-dot menu. It works on accounts where Instagram doesn't offer auto scroll too. Requested in #768.

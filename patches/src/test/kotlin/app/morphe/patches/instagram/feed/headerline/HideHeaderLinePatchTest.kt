@@ -8,18 +8,24 @@ import app.morphe.ExtensionDex
 import app.morphe.Fixtures
 import app.morphe.PatchContexts
 import app.morphe.patches.instagram.FixtureDex
+import app.morphe.patches.instagram.misc.extension.classesLoadingString
+import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.formats.Instruction35c
+import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
+import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -38,7 +44,82 @@ class HideHeaderLinePatchTest {
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
         assertTrue("$HEADER_LINE_KINDS is not in the extension: $declared", HEADER_LINE_KINDS.substringAfter("->") in declared)
+        assertTrue("$REEL_LINE is not in the extension: $declared", REEL_LINE.substringAfter("->") in declared)
     }
+
+    /**
+     * On every build the reel author row's props constructor first lets Sponsored and Paid partnership
+     * lines through, then hands any other line to the extension with Instagram's empty line, and takes
+     * the answer, cast back to a line, in the line's own register before Instagram's code runs.
+     */
+    @Test
+    fun eachBuildHandsTheReelLineOverFirstThingInTheRowsProps() {
+        var checked = 0
+        for (bundle in bundles()) {
+            val context = PatchContexts.of(reelClasses(bundle))
+            val site = context.findReelLine()
+            val stock = context.constructor(site).code()
+
+            // The register is the line's own: Instagram stores it in a field of the line's type.
+            val stored = stock.filter { it.opcode == Opcode.IPUT_OBJECT && (it as TwoRegisterInstruction).registerA == site.line }
+                .map { (it.reference() as FieldReference).type }
+            assertEquals("${bundle.name}: v${site.line} is the line", listOf(site.lineType), stored)
+            assertEquals("${bundle.name}: Sponsored and Paid partnership", 2, site.kept.size)
+            assertTrue("${bundle.name}: nothing branches onto the first instruction", branchesOnto(stock, 0).isEmpty())
+
+            context.hideReelLine(site)
+            val code = context.constructor(site).code()
+            val first = 2 * site.kept.size + 4
+            site.kept.forEachIndexed { index, kept ->
+                val check = code[2 * index]
+                assertEquals("${bundle.name}: asks whether it's a $kept", Opcode.INSTANCE_OF, check.opcode)
+                assertEquals("${bundle.name}: of the line", site.line, (check as TwoRegisterInstruction).registerB)
+                assertEquals("${bundle.name}: the kind", kept, (check.reference() as TypeReference).type)
+                val pass = code[2 * index + 1]
+                assertEquals("${bundle.name}: and lets it through", Opcode.IF_NEZ, pass.opcode)
+                assertEquals("${bundle.name}: on the answer", check.registerA, (pass as OneRegisterInstruction).registerA)
+                assertEquals("${bundle.name}: to Instagram's first instruction", unit(code, first) - unit(code, 2 * index + 1), (pass as OffsetInstruction).codeOffset)
+            }
+            val none = code[first - 4]
+            assertEquals("${bundle.name}: the empty line", site.none, (none.reference() as FieldReference).let { "${it.definingClass}->${it.name}:${it.type}" })
+            val hook = code[first - 3]
+            assertEquals("${bundle.name}: reaches the extension", REEL_LINE, hook.reference().toString())
+            val passed = (hook as Instruction35c).let { listOf(it.registerC, it.registerD).take(it.registerCount) }
+            assertEquals("${bundle.name}: with the line and the empty line", listOf(site.line, (none as OneRegisterInstruction).registerA), passed)
+            assertEquals("${bundle.name}: the answer", site.line, (code[first - 2] as OneRegisterInstruction).registerA)
+            assertEquals("${bundle.name}: takes the line's place", Opcode.MOVE_RESULT_OBJECT, code[first - 2].opcode)
+            assertEquals("${bundle.name}: as a line", site.lineType, (code[first - 1].reference() as TypeReference).type)
+            assertEquals("${bundle.name}: the hook is there once", 1, code.count { it.reference()?.toString() == REEL_LINE })
+            assertStockKept(bundle.name, stock, code.subList(first, code.size))
+            checked++
+        }
+        assertEquals("every build of ${Fixtures.VERSION} is read", Fixtures.BUILDS, checked)
+    }
+
+    /** The reel line's shapes and the row builder's classes, then every class the builder reads or makes. */
+    private fun reelClasses(bundle: File): Collection<ClassDef> {
+        val found = FixtureDex.classesLoadingAny(bundle, setOf(REEL_LINE_BUILDER, CYCLIC_LINE, SPONSORED_LINE, PAID_LINE))
+            .associateByTo(LinkedHashMap()) { it.type }
+        val first = PatchContexts.of(found.values)
+        val touched = first.classesLoadingString(REEL_LINE_BUILDER).flatMap { it.methods }.filter { method ->
+            first.loadsString(method, REEL_LINE_BUILDER)
+        }.flatMap { method ->
+            method.code().mapNotNull { instruction ->
+                when (val reference = instruction.reference()) {
+                    is FieldReference -> reference.definingClass
+                    is MethodReference -> reference.definingClass
+                    else -> null
+                }
+            }
+        }.toSet()
+        for ((type, classDef) in FixtureDex.classes(bundle, touched - found.keys)) found[type] = classDef
+        return found.values
+    }
+
+    private fun unit(code: List<Instruction>, at: Int) = code.take(at).sumOf { it.codeUnits }
+
+    private fun app.morphe.patcher.patch.BytecodePatchContext.constructor(site: ReelLineSite): Method =
+        mutableClassDefBy(site.owner).methods.single { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" == site.constructor }
 
     @Test
     fun eachBuildHandsTheKindsOverBeforeTheyAreCounted() {

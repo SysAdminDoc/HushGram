@@ -2126,6 +2126,9 @@ Takes the "Made with Edits" label out of the line under a post's author. The son
 # context: "Sponsored" and "Paid partnership" are Instagram's own labels on feed posts; use the text Instagram shows in this language (#771)
 Hide the line under names	Ocultar a linha abaixo dos nomes
 Takes the song, the place and the other labels off the line under the name on posts in your feed. Sponsored and Paid partnership stay. Posts already on screen change when they load again.	Tira a música, o local e os outros rótulos da linha abaixo do nome nos posts do seu feed. "Patrocinado" e "Parceria paga" ficam. Posts que já estão na tela mudam quando carregam de novo.
+# context: "Sponsored" and "Paid partnership" are Instagram's own labels on reels; use the text Instagram shows in this language (#771)
+Hide the line under names on reels	Ocultar a linha abaixo dos nomes nos reels
+Takes the song, the place and the other labels off the line under the name on reels. Sponsored and Paid partnership stay. Reels already on screen change when they load again.	Tira a música, o local e os outros rótulos da linha abaixo do nome nos reels. "Patrocinado" e "Parceria paga" ficam. Reels que já estão na tela mudam quando carregam de novo.
 # context: a switch on the Feed page; Save and Remove from saved are the rows it adds to a feed post's three-dot menu
 Save in the post menu	Salvar no menu do post
 Adds Save to the menu behind a post's three dots, or Remove from saved when you saved it already.	Adiciona Salvar ao menu dos três pontos de um post, ou Remover dos salvos quando você já salvou.
