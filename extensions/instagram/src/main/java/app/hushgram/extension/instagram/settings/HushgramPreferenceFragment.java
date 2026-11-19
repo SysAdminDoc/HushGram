@@ -140,6 +140,7 @@ import app.hushgram.extension.instagram.stories.StoryTimeMode;
 import app.hushgram.extension.instagram.stories.TrayBadge;
 import app.hushgram.extension.instagram.profile.FollowerHistory;
 import app.hushgram.extension.instagram.profile.FollowLabelPlace;
+import app.hushgram.extension.instagram.profile.NotificationKinds;
 import app.hushgram.extension.instagram.profile.ProfileTabs;
 import app.hushgram.extension.instagram.misc.GlassCorners;
 import app.hushgram.extension.instagram.misc.GlassHeight;
@@ -920,6 +921,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     belongs |= family == PatchFamily.APP_ICON && Settings.APP_ICON.key.equals(key);
                     belongs |= family == PatchFamily.SETTINGS_ROWS && Settings.HIDDEN_SETTINGS_ROWS.key.equals(key);
                     belongs |= family == PatchFamily.NOTIFICATION_GROUPS && Settings.MUTED_NOTIFICATION_CHANNELS.key.equals(key);
+                    belongs |= family == PatchFamily.PROFILE_SUGGESTIONS && Settings.HIDDEN_NOTIFICATION_KINDS.key.equals(key);
                     belongs |= family == PatchFamily.SHARE_SHEET && Settings.HIDDEN_SHARE_SHEET_BUTTONS.key.equals(key);
                     belongs |= family == PatchFamily.PROFILE_TABS && (Settings.HIDDEN_PROFILE_TABS.key.equals(key)
                             || Settings.HIDDEN_OWN_PROFILE_TABS.key.equals(key));
@@ -6651,6 +6653,81 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             Settings.MUTED_NOTIFICATION_CHANNELS.save("");
             row.setSummary(mutedChannelsSummary(""));
             for (int i = 0; i < channels.size(); i++) {
+                ticked[i] = false;
+                dialog.getListView().setItemChecked(i, false);
+            }
+        });
+    }
+
+    /** The row that opens the list of notification kinds to take off your notifications (#756). Its summary says how many are. */
+    Row hiddenKindsRow(Context context) {
+        Row row = new Row(context);
+        row.setKey(Settings.HIDDEN_NOTIFICATION_KINDS.key);
+        row.setPersistent(false);
+        row.setTitle(L10n.t("Hide notifications by type"));
+        row.setSummary(hiddenKindsSummary(Settings.HIDDEN_NOTIFICATION_KINDS.savedValue()));
+        row.setOnPreferenceClickListener(tapped -> {
+            showHiddenKinds(row);
+            return true;
+        });
+        return row;
+    }
+
+    /** What the notification kinds hidden in [saved] mean, for the row's summary. */
+    static String hiddenKindsSummary(String saved) {
+        int hidden = NotificationKinds.parse(saved).size();
+        if (hidden == 0) {
+            return L10n.t("Takes the kinds of notifications you tick off the Notifications page. The list fills in "
+                    + "as Instagram sends them.");
+        }
+        return L10n.quantity(hidden, "%1$d kind of notification is hidden.", "%1$d kinds of notification are hidden.", hidden);
+    }
+
+    /**
+     * The kinds of notification this phone has seen, each with a check, ticked while hidden, with a line
+     * from one of them and the server's name for the kind. A change saves at once and shows on the next
+     * load of the notifications. Until the notifications have loaded once there's nothing to list, and the
+     * list says so.
+     */
+    void showHiddenKinds(Row row) {
+        Context context = getActivity();
+        if (context == null) return;
+        Set<String> hidden = NotificationKinds.parse(Settings.HIDDEN_NOTIFICATION_KINDS.savedValue());
+        List<String[]> kinds = NotificationKinds.offered(context, hidden);
+        AlertDialog.Builder builder = new AlertDialog.Builder(context).setTitle(L10n.t("Hide notifications by type"));
+        if (kinds.isEmpty()) {
+            show(builder.setMessage(L10n.t("No notifications seen yet. Open your notifications in Instagram once, "
+                    + "then come back here.")).setPositiveButton(L10n.t("OK"), null));
+            return;
+        }
+        CharSequence[] names = new CharSequence[kinds.size()];
+        boolean[] ticked = new boolean[kinds.size()];
+        for (int i = 0; i < names.length; i++) {
+            names[i] = kinds.get(i)[1];
+            ticked[i] = hidden.contains(kinds.get(i)[0]);
+        }
+        // The dialog keeps [ticked] and re-applies its checks at each layout, so every change to a check changes it too.
+        builder.setMultiChoiceItems(names, ticked, (dialog, which, on) -> {
+            if (!allowMutation(row, true)) {
+                ticked[which] = hidden.contains(kinds.get(which)[0]);
+                setChecked((AlertDialog) dialog, which, ticked[which]);
+                return;
+            }
+            if (on) hidden.add(kinds.get(which)[0]);
+            else hidden.remove(kinds.get(which)[0]);
+            Settings.HIDDEN_NOTIFICATION_KINDS.save(NotificationKinds.join(hidden));
+            row.setSummary(hiddenKindsSummary(Settings.HIDDEN_NOTIFICATION_KINDS.savedValue()));
+        });
+        AlertDialog dialog = show(builder.setNeutralButton(L10n.t("Show all"), null)
+                .setPositiveButton(L10n.t("OK"), null));
+        if (dialog == null) return;
+        // A click listener of its own, so Show all clears every check without closing the list.
+        dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener(tapped -> {
+            if (!allowMutation(row, true)) return;
+            hidden.clear();
+            Settings.HIDDEN_NOTIFICATION_KINDS.save("");
+            row.setSummary(hiddenKindsSummary(""));
+            for (int i = 0; i < kinds.size(); i++) {
                 ticked[i] = false;
                 dialog.getListView().setItemChecked(i, false);
             }

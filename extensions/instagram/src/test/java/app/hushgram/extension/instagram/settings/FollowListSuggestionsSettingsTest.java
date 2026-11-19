@@ -6,8 +6,12 @@ package app.hushgram.extension.instagram.settings;
 
 import static org.junit.Assert.*;
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.Context;
 import android.preference.PreferenceGroup;
+import android.widget.ListView;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.EnumSet;
 import org.junit.After;
 import org.junit.Before;
@@ -19,6 +23,9 @@ import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
 import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.Config;
+import org.robolectric.shadows.ShadowAlertDialog;
+import org.robolectric.shadows.ShadowLooper;
+import app.hushgram.extension.instagram.profile.NotificationKinds;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.settings.BaseSettings;
@@ -40,10 +47,16 @@ public class FollowListSuggestionsSettingsTest {
         Settings.HIDE_PROFILE_COMPLETION.resetToDefault();
         Settings.HIDE_FOLLOW_BACK_SUGGESTIONS.resetToDefault();
         Settings.HIDE_NOTIFICATION_SUGGESTIONS.resetToDefault();
+        Settings.HIDDEN_NOTIFICATION_KINDS.resetToDefault();
+        forgetKinds();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         BaseSettings.SAFE_MODE.save(false);
         Settings.SIGN_IN_NOTICE_HIDDEN.save(true);
+    }
+    private static void forgetKinds() {
+        RuntimeEnvironment.getApplication().getSharedPreferences(NotificationKinds.STORE, Context.MODE_PRIVATE).edit().clear().commit();
+        NotificationKinds.forgetForTests();
     }
     @After public void close() throws Exception {
         if (controller != null) controller.close();
@@ -53,6 +66,8 @@ public class FollowListSuggestionsSettingsTest {
         Settings.HIDE_PROFILE_COMPLETION.resetToDefault();
         Settings.HIDE_FOLLOW_BACK_SUGGESTIONS.resetToDefault();
         Settings.HIDE_NOTIFICATION_SUGGESTIONS.resetToDefault();
+        Settings.HIDDEN_NOTIFICATION_KINDS.resetToDefault();
+        forgetKinds();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
@@ -129,7 +144,8 @@ public class FollowListSuggestionsSettingsTest {
         assertEquals(Arrays.asList(Settings.GROUP_NOTIFICATIONS.key, Settings.GROUP_NOTIFICATIONS_BY_TYPE.key,
                 Settings.MUTED_NOTIFICATION_CHANNELS.key, Settings.HIDE_FOLLOW_BACK_SUGGESTIONS.key,
                 Settings.HIDE_NOTIFICATION_SUGGESTIONS.key, Settings.HIDE_NOTIFICATION_CHANNEL_INVITES.key,
-                Settings.HIDE_NOTIFICATION_FEATURED.key, Settings.HIDE_FEATURED_DOT.key), Arrays.asList(keys));
+                Settings.HIDE_NOTIFICATION_FEATURED.key, Settings.HIDDEN_NOTIFICATION_KINDS.key,
+                Settings.HIDE_FEATURED_DOT.key), Arrays.asList(keys));
         assertEquals("Group or mute Instagram's notifications, and take suggestions off the Notifications page.",
                 ((HushgramPreferenceFragment.Heading) notifications).intro);
     }
@@ -180,6 +196,93 @@ public class FollowListSuggestionsSettingsTest {
         assertFalse(Settings.HIDE_NOTIFICATION_CHANNEL_INVITES.get());
         assertTrue(PatchFamily.PROFILE_SUGGESTIONS.switches.contains(Settings.HIDE_NOTIFICATION_CHANNEL_INVITES));
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.HIDE_NOTIFICATION_CHANNEL_INVITES.key));
+    }
+    /** #756: Hide notifications by type comes after Hide Featured in notifications, hides nothing to start, is kept in a backup and shows in the report. */
+    @Test public void hideByTypeFollowsFeaturedAndStartsEmpty() throws Exception {
+        open(EnumSet.of(PatchFamily.PROFILE_SUGGESTIONS));
+        android.preference.Preference row = kindsRow();
+        assertNotNull(row);
+        assertEquals("Hide notifications by type", row.getTitle().toString());
+        assertEquals("Takes the kinds of notifications you tick off the Notifications page. The list fills in as Instagram sends them.",
+                row.getSummary().toString());
+        PreferenceGroup notifications = row.getParent();
+        assertEquals("Notifications", notifications.getTitle().toString());
+        String[] keys = new String[notifications.getPreferenceCount()];
+        for (int i = 0; i < keys.length; i++) keys[i] = notifications.getPreference(i).getKey();
+        assertEquals(Arrays.toString(keys), Settings.HIDE_NOTIFICATION_FEATURED.key,
+                keys[Arrays.asList(keys).indexOf(Settings.HIDDEN_NOTIFICATION_KINDS.key) - 1]);
+        assertEquals("", Settings.HIDDEN_NOTIFICATION_KINDS.get());
+        assertEquals(Collections.singletonList(Settings.HIDDEN_NOTIFICATION_KINDS), PatchFamily.PROFILE_SUGGESTIONS.choices());
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.HIDDEN_NOTIFICATION_KINDS.key));
+        assertEquals("comment_like,user_followed", ConfigurationBackup.accepted(Settings.HIDDEN_NOTIFICATION_KINDS,
+                "string", "comment_like,user_followed"));
+        assertEquals("", ConfigurationBackup.accepted(Settings.HIDDEN_NOTIFICATION_KINDS, "string", ""));
+        assertNull("out of order", ConfigurationBackup.accepted(Settings.HIDDEN_NOTIFICATION_KINDS, "string",
+                "user_followed,comment_like"));
+        assertNull("not a kind", ConfigurationBackup.accepted(Settings.HIDDEN_NOTIFICATION_KINDS, "string", "bad name"));
+        for (app.hushgram.extension.shared.settings.BooleanSetting each : PatchFamily.PROFILE_SUGGESTIONS.switches) each.save(false);
+        try {
+            String report = PatchFamily.reportLines(EnumSet.of(PatchFamily.PROFILE_SUGGESTIONS), false).get(0);
+            assertTrue(report, report.contains(": disabled by its switch ("));
+            Settings.HIDDEN_NOTIFICATION_KINDS.save("user_followed");
+            report = PatchFamily.reportLines(EnumSet.of(PatchFamily.PROFILE_SUGGESTIONS), false).get(0);
+            assertTrue("a ticked kind acts with every switch off: " + report, report.contains(": on ("));
+            assertTrue(report, report.contains(Settings.HIDDEN_NOTIFICATION_KINDS.key + "=user_followed"));
+        } finally {
+            for (app.hushgram.extension.shared.settings.BooleanSetting each : PatchFamily.PROFILE_SUGGESTIONS.switches) each.resetToDefault();
+        }
+    }
+    /** #756: before the notifications have loaded, the list says to open them once. */
+    @Test public void hideByTypeWithNothingSeenSaysToOpenTheNotifications() throws Exception {
+        open(EnumSet.of(PatchFamily.PROFILE_SUGGESTIONS));
+        AlertDialog dialog = openKinds();
+        assertTrue(dialog.isShowing());
+        assertEquals("No notifications seen yet. Open your notifications in Instagram once, then come back here.",
+                org.robolectric.Shadows.shadowOf(dialog).getMessage().toString());
+    }
+    /** #756: the list offers each kind seen with its line, saves a tick at once, and Show all clears it without closing. */
+    @Test public void tickingAKindHidesItAndShowAllClears() throws Exception {
+        open(EnumSet.of(PatchFamily.PROFILE_SUGGESTIONS));
+        RuntimeEnvironment.getApplication().getSharedPreferences(NotificationKinds.STORE, Context.MODE_PRIVATE).edit()
+                .putString("user_followed", "carol started following you.")
+                .putString("comment_subscribed", "dana also commented on erin's post: so true")
+                .commit();
+        NotificationKinds.forgetForTests();
+        AlertDialog dialog = openKinds();
+        ListView list = dialog.getListView();
+        assertEquals(2, list.getCount());
+        assertEquals("dana also commented on erin's post: so true\ncomment_subscribed", list.getItemAtPosition(0).toString());
+        assertEquals("carol started following you.\nuser_followed", list.getItemAtPosition(1).toString());
+        assertFalse(list.isItemChecked(0));
+
+        tap(list, 0);
+        assertEquals("comment_subscribed", Settings.HIDDEN_NOTIFICATION_KINDS.get());
+        tap(list, 1);
+        assertEquals("comment_subscribed,user_followed", Settings.HIDDEN_NOTIFICATION_KINDS.get());
+        assertEquals("2 kinds of notification are hidden.", kindsRow().getSummary().toString());
+        tap(list, 1);
+        assertEquals("1 kind of notification is hidden.", kindsRow().getSummary().toString());
+
+        assertEquals("Show all", dialog.getButton(AlertDialog.BUTTON_NEUTRAL).getText().toString());
+        dialog.getButton(AlertDialog.BUTTON_NEUTRAL).performClick();
+        ShadowLooper.idleMainLooper();
+        assertEquals("", Settings.HIDDEN_NOTIFICATION_KINDS.get());
+        assertFalse(list.isItemChecked(0));
+        assertTrue(dialog.isShowing());
+        assertTrue(kindsRow().getSummary().toString(), kindsRow().getSummary().toString().startsWith("Takes the kinds"));
+    }
+    private android.preference.Preference kindsRow() {
+        return page.getPreferenceScreen().findPreference(Settings.HIDDEN_NOTIFICATION_KINDS.key);
+    }
+    private AlertDialog openKinds() {
+        android.preference.Preference row = kindsRow();
+        row.getOnPreferenceClickListener().onPreferenceClick(row);
+        ShadowLooper.idleMainLooper();
+        return ShadowAlertDialog.getLatestAlertDialog();
+    }
+    private static void tap(ListView list, int at) {
+        assertTrue(list.performItemClick(list.getAdapter().getView(at, null, list), at, list.getItemIdAtPosition(at)));
+        ShadowLooper.idleMainLooper();
     }
     @Test public void aSavedSwitchAnswersOffWhilePaused() throws Exception {
         open(EnumSet.of(PatchFamily.PROFILE_SUGGESTIONS));

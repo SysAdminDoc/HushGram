@@ -833,6 +833,8 @@ public enum PatchFamily {
         anyOn |= this == SHARE_SHEET && !Settings.HIDDEN_SHARE_SHEET_BUTTONS.savedValue().trim().isEmpty();
         // Muted notification types act with the group switch off.
         anyOn |= this == NOTIFICATION_GROUPS && !Settings.MUTED_NOTIFICATION_CHANNELS.savedValue().trim().isEmpty();
+        // Notification kinds picked to hide act with every switch of the family off (#756).
+        anyOn |= this == PROFILE_SUGGESTIONS && !Settings.HIDDEN_NOTIFICATION_KINDS.savedValue().trim().isEmpty();
         line.append(paused ? "disabled while paused (saved " : anyOn ? "on (" : "disabled by its switch (");
         for (int i = 0; i < switches.size(); i++) {
             if (i > 0) line.append(", ");
@@ -878,6 +880,8 @@ public enum PatchFamily {
                 return Collections.singletonList(Settings.HIDDEN_MENU_ITEMS);
             case NOTIFICATION_GROUPS:
                 return Collections.singletonList(Settings.MUTED_NOTIFICATION_CHANNELS);
+            case PROFILE_SUGGESTIONS:
+                return Collections.singletonList(Settings.HIDDEN_NOTIFICATION_KINDS);
             case PROFILE_TABS:
                 return Arrays.asList(Settings.HIDDEN_OWN_PROFILE_TABS, Settings.HIDDEN_PROFILE_TABS);
             case PLAYBACK_QUALITY:

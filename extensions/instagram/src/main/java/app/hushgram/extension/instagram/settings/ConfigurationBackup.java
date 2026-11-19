@@ -34,6 +34,7 @@ import app.hushgram.extension.instagram.download.SaveFolder;
 import app.hushgram.extension.instagram.download.SavedProfiles;
 import app.hushgram.extension.instagram.direct.MessageBox;
 import app.hushgram.extension.instagram.feed.MenuItems;
+import app.hushgram.extension.instagram.profile.NotificationKinds;
 import app.hushgram.extension.instagram.profile.ProfileTabs;
 import app.hushgram.extension.instagram.misc.GlassBlur;
 import app.hushgram.extension.instagram.misc.GlassOpacity;
@@ -194,6 +195,7 @@ public final class ConfigurationBackup {
             settings.put(Settings.HEADER_TEXT_FONT.key, Settings.HEADER_TEXT_FONT);
             settings.put(Settings.HEADER_TEXT_CENTER.key, Settings.HEADER_TEXT_CENTER);
         }
+        if (PatchFamily.PROFILE_SUGGESTIONS.inBuild()) settings.put(Settings.HIDDEN_NOTIFICATION_KINDS.key, Settings.HIDDEN_NOTIFICATION_KINDS);
         if (PatchFamily.NOTIFICATION_GROUPS.inBuild()) {
             settings.put(Settings.GROUP_NOTIFICATIONS_BY_TYPE.key, Settings.GROUP_NOTIFICATIONS_BY_TYPE);
             settings.put(Settings.MUTED_NOTIFICATION_CHANNELS.key, Settings.MUTED_NOTIFICATION_CHANNELS);
@@ -549,7 +551,8 @@ public final class ConfigurationBackup {
         int longest = setting == Settings.REELS_BLOCKED_WORDS || setting == Settings.REELS_KEPT_LANGUAGES
                 || setting == Settings.STORY_PRIORITY_ACCOUNTS || setting == Settings.FRIENDS_TAB_PICKS
                 || setting == Settings.CALL_BLOCK_ACCOUNTS || setting == Settings.HIDDEN_SETTINGS_ROWS
-                || setting == Settings.MUTED_NOTIFICATION_CHANNELS ? MAX_WORDS_TEXT : MAX_TEXT;
+                || setting == Settings.MUTED_NOTIFICATION_CHANNELS || setting == Settings.HIDDEN_NOTIFICATION_KINDS
+                ? MAX_WORDS_TEXT : MAX_TEXT;
         if (!(value instanceof String) || ((String) value).length() > longest) return null;
         if (fallback instanceof Enum) {
             if (!"enum".equals(declared)) return null;
@@ -627,6 +630,8 @@ public final class ConfigurationBackup {
         if (setting == Settings.MUTED_NOTIFICATION_CHANNELS) {
             return text.equals(NotificationGroups.joinChannels(NotificationGroups.mutedChannels(text)));
         }
+        // The notification kinds hidden, as the server's names for them with commas between, in name order.
+        if (setting == Settings.HIDDEN_NOTIFICATION_KINDS) return text.equals(NotificationKinds.join(NotificationKinds.parse(text)));
         // The profile tabs left off, as Instagram's keys with commas between, in the order the dialog lists them.
         if (setting == Settings.HIDDEN_PROFILE_TABS) return text.equals(ProfileTabs.join(ProfileTabs.parse(text)));
         // The same for your own profile, or the mark that it still follows other profiles.

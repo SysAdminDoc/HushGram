@@ -2497,3 +2497,13 @@ Matches: %1$d of %2$d blocked accounts	Khớp: %1$d trên %2$d tài khoản đã
 Long press a profile picture to view it	Nhấn giữ ảnh đại diện để xem
 # context: that switch summary (#737)
 Long press the picture at the top of a profile to open the whole square picture at full size, with Save under it, instead of Instagram's own preview. A tap works as before.	Nhấn giữ ảnh ở đầu trang cá nhân để mở toàn bộ ảnh vuông ở kích thước đầy đủ, có nút Lưu bên dưới, thay cho bản xem trước của Instagram. Nhấn bình thường vẫn như cũ.
+# context: Notifications settings: row that opens a list of the kinds of notification rows this phone has seen, to tick the ones to hide (#756)
+Hide notifications by type	Ẩn thông báo theo loại
+# context: that row's summary while nothing is ticked (#756)
+Takes the kinds of notifications you tick off the Notifications page. The list fills in as Instagram sends them.	Gỡ các loại thông báo bạn đánh dấu khỏi trang Thông báo. Danh sách sẽ đầy dần khi Instagram gửi chúng.
+# context: that row's summary, one kind ticked (#756)
+%1$d kind of notification is hidden.	Đã ẩn %1$d loại thông báo.
+# context: that row's summary, several kinds ticked (#756)
+%1$d kinds of notification are hidden.	Đã ẩn %1$d loại thông báo.
+# context: message in that list's dialog before the Notifications page has loaded once (#756)
+No notifications seen yet. Open your notifications in Instagram once, then come back here.	Chưa thấy thông báo nào. Hãy mở thông báo của bạn trong Instagram một lần, rồi quay lại đây.

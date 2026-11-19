@@ -2582,3 +2582,13 @@ Matches: %1$d of %2$d blocked accounts	Cocok: %1$d dari %2$d akun yang diblokir
 Long press a profile picture to view it	Tekan lama foto profil untuk melihatnya
 # context: that switch summary (#737)
 Long press the picture at the top of a profile to open the whole square picture at full size, with Save under it, instead of Instagram's own preview. A tap works as before.	Tekan lama foto di bagian atas profil untuk membuka seluruh foto persegi dalam ukuran penuh, dengan Simpan di bawahnya, menggantikan pratinjau Instagram sendiri. Ketukan tetap berfungsi seperti biasa.
+# context: Notifications settings: row that opens a list of the kinds of notification rows this phone has seen, to tick the ones to hide (#756)
+Hide notifications by type	Sembunyikan notifikasi menurut jenis
+# context: that row's summary while nothing is ticked (#756)
+Takes the kinds of notifications you tick off the Notifications page. The list fills in as Instagram sends them.	Menghapus jenis notifikasi yang Anda centang dari halaman Notifikasi. Daftarnya terisi saat Instagram mengirimnya.
+# context: that row's summary, one kind ticked (#756)
+%1$d kind of notification is hidden.	%1$d jenis notifikasi disembunyikan.
+# context: that row's summary, several kinds ticked (#756)
+%1$d kinds of notification are hidden.	%1$d jenis notifikasi disembunyikan.
+# context: message in that list's dialog before the Notifications page has loaded once (#756)
+No notifications seen yet. Open your notifications in Instagram once, then come back here.	Belum ada notifikasi yang terlihat. Buka notifikasi Anda di Instagram sekali, lalu kembali ke sini.

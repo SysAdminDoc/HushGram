@@ -2579,3 +2579,13 @@ Matches: %1$d of %2$d blocked accounts	ตรงกัน %1$d จาก %2$d �
 Long press a profile picture to view it	กดค้างที่รูปโปรไฟล์เพื่อดู
 # context: that switch summary (#737)
 Long press the picture at the top of a profile to open the whole square picture at full size, with Save under it, instead of Instagram's own preview. A tap works as before.	กดค้างที่รูปด้านบนของโปรไฟล์เพื่อเปิดรูปสี่เหลี่ยมจัตุรัสทั้งรูปในขนาดเต็ม พร้อมปุ่มบันทึกด้านล่าง แทนตัวอย่างของ Instagram เอง การแตะยังทำงานเหมือนเดิม
+# context: Notifications settings: row that opens a list of the kinds of notification rows this phone has seen, to tick the ones to hide (#756)
+Hide notifications by type	ซ่อนการแจ้งเตือนตามประเภท
+# context: that row's summary while nothing is ticked (#756)
+Takes the kinds of notifications you tick off the Notifications page. The list fills in as Instagram sends them.	นำการแจ้งเตือนประเภทที่คุณเลือกออกจากหน้าการแจ้งเตือน รายการจะเพิ่มขึ้นเมื่อ Instagram ส่งการแจ้งเตือนมา
+# context: that row's summary, one kind ticked (#756)
+%1$d kind of notification is hidden.	ซ่อนการแจ้งเตือน %1$d ประเภทแล้ว
+# context: that row's summary, several kinds ticked (#756)
+%1$d kinds of notification are hidden.	ซ่อนการแจ้งเตือน %1$d ประเภทแล้ว
+# context: message in that list's dialog before the Notifications page has loaded once (#756)
+No notifications seen yet. Open your notifications in Instagram once, then come back here.	ยังไม่เห็นการแจ้งเตือนใดเลย โปรดเปิดการแจ้งเตือนใน Instagram สักหนึ่งครั้ง แล้วกลับมาที่นี่

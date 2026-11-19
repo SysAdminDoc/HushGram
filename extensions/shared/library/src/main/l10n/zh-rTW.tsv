@@ -2585,3 +2585,13 @@ Matches: %1$d of %2$d blocked accounts	相符 %1$d 個，共 %2$d 個已封鎖�
 Long press a profile picture to view it	長按個人檔案相片即可檢視
 # context: that switch summary (#737)
 Long press the picture at the top of a profile to open the whole square picture at full size, with Save under it, instead of Instagram's own preview. A tap works as before.	長按個人檔案頂端的相片，即可開啟完整的正方形相片原尺寸檢視，下方附有「儲存」，取代 Instagram 本身的預覽。點一下的操作不變.
+# context: Notifications settings: row that opens a list of the kinds of notification rows this phone has seen, to tick the ones to hide (#756)
+Hide notifications by type	依類型隱藏通知
+# context: that row's summary while nothing is ticked (#756)
+Takes the kinds of notifications you tick off the Notifications page. The list fills in as Instagram sends them.	從通知頁面移除你勾選的通知類型。清單會隨著 Instagram 傳來的通知逐漸填入。
+# context: that row's summary, one kind ticked (#756)
+%1$d kind of notification is hidden.	已隱藏 %1$d 種通知類型。
+# context: that row's summary, several kinds ticked (#756)
+%1$d kinds of notification are hidden.	已隱藏 %1$d 種通知類型。
+# context: message in that list's dialog before the Notifications page has loaded once (#756)
+No notifications seen yet. Open your notifications in Instagram once, then come back here.	尚未看到任何通知。請先在 Instagram 開啟通知一次，再回到這裡。

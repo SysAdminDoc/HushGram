@@ -2612,6 +2612,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_notification_featured", FALSE);
 
     /**
+     * The kinds of notification row taken off your notifications, as the server's names for them with
+     * commas between ({@link app.hushgram.extension.instagram.profile.NotificationKinds#parse}, #756). The
+     * list offers the kinds this phone has seen. Nothing named is the start. Read as each row is parsed, so
+     * a change shows on the next load, and paused, every row is back.
+     */
+    public static final StringSetting HIDDEN_NOTIFICATION_KINDS =
+            new StringSetting("hushgram_hidden_notification_kinds", "");
+
+    /**
      * The red dot on the heart when nothing but Featured is behind it: the badge's dot count is
      * answered 0 while no like, comment, follow or tag is counted
      * ({@link app.hushgram.extension.instagram.profile.ProfileSuggestions#featuredDot}, #189). Read

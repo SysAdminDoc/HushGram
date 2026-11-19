@@ -170,18 +170,24 @@ public final class ProfileSuggestions {
     /** The start of the name of "<name> invited you to join their channel" rows on Instagram 454 (#259). */
     static final String CHANNEL_CREATED = "igd_broadcast_chat_creat";
 
+    /** What's counted when Hide notifications by type takes a row off (#756). */
+    static final String CHOSEN_KINDS = "notification kinds you hid";
+
     /** A row the parser just read: what it is, and the switches that take it out of the list. */
     private static final class Marked {
         final WeakReference<Object> row;
         final boolean suggestion;
         final boolean featured;
         final boolean invite;
+        /** Its kind is one ticked under Hide notifications by type. */
+        final boolean chosen;
 
-        Marked(Object row, boolean suggestion, boolean featured, boolean invite) {
+        Marked(Object row, boolean suggestion, boolean featured, boolean invite, boolean chosen) {
             this.row = new WeakReference<>(row);
             this.suggestion = suggestion;
             this.featured = featured;
             this.invite = invite;
+            this.chosen = chosen;
         }
     }
 
@@ -422,18 +428,21 @@ public final class ProfileSuggestions {
 
     /**
      * Injected right before the notifications' row parser hands back a row, with the row and the
-     * server's name for its kind (#181). Counts the name for the diagnostic report, and remembers a
-     * row that only suggests something, so {@link #keepNotification} can leave it out of the list.
-     * Never throws.
+     * server's name for its kind (#181). Counts the name for the diagnostic report, keeps the kind for
+     * Hide notifications by type's list (#756), and remembers a row that only suggests something or is
+     * of a kind you hid, so {@link #keepNotification} can leave it out of the list. Never throws.
      */
     public static void notificationParsed(Object row, String type) {
         try {
             HookStatus.invoked(FamilyNames.PROFILE_SUGGESTIONS);
             FeedFilterCounters.sawKind(NOTIFICATIONS, type == null ? NO_TYPE : type);
+            NotificationKinds.saw(type, row);
             boolean suggestion = row != null && isSuggestion(type);
             boolean featured = row != null && isFeaturedNudge(type);
             boolean invite = row != null && isChannelInvite(type);
-            lastSuggestion.set(suggestion || featured || invite ? new Marked(row, suggestion, featured, invite) : null);
+            boolean chosen = row != null && NotificationKinds.hidden(type);
+            lastSuggestion.set(suggestion || featured || invite || chosen
+                    ? new Marked(row, suggestion, featured, invite, chosen) : null);
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.PROFILE_SUGGESTIONS, SUGGESTION_ROWS, failure);
         }
@@ -494,9 +503,9 @@ public final class ProfileSuggestions {
      * Injected where the notifications' reply adds each row it parsed to its list, the null check
      * right after. Answers null, which that check skips, for a row {@link #notificationParsed} found
      * to be a suggestion while Hide suggestions in notifications is on, a Threads nudge while Hide
-     * Featured in notifications is on, or a channel invite while Hide channel invites in notifications
-     * is on. Any other row, the switch off, paused or unready, or anything going wrong, answers [row] as
-     * it came. Never throws.
+     * Featured in notifications is on, a channel invite while Hide channel invites in notifications
+     * is on, or a row of a kind ticked under Hide notifications by type. Any other row, the switch off,
+     * paused or unready, or anything going wrong, answers [row] as it came. Never throws.
      */
     public static Object keepNotification(Object row) {
         return keepNotification(row, ProfileSuggestions::notificationSuggestionsOn, ProfileSuggestions::featuredOn,
@@ -525,6 +534,8 @@ public final class ProfileSuggestions {
         if (marked.suggestion && decides(SUGGESTION_ROWS, on)) return null;
         if (marked.featured && decides(FEATURED, featuredOn)) return null;
         if (marked.invite && decides(CHANNEL_INVITES, invitesOn)) return null;
+        // The kind was checked against the list, paused included, as the row was parsed.
+        if (marked.chosen && decides(CHOSEN_KINDS, () -> true)) return null;
         return row;
     }
 

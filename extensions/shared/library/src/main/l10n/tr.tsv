@@ -2582,3 +2582,13 @@ Matches: %1$d of %2$d blocked accounts	Eşleşen: %2$d engellenen hesaptan %1$d
 Long press a profile picture to view it	Görmek için profil fotoğrafına uzun bas
 # context: that switch summary (#737)
 Long press the picture at the top of a profile to open the whole square picture at full size, with Save under it, instead of Instagram's own preview. A tap works as before.	Bir profilin üstündeki fotoğrafa uzun basarak, Instagram'ın kendi önizlemesi yerine kare fotoğrafın tamamını tam boyutta, altında Kaydet ile aç. Dokunma eskisi gibi çalışır.
+# context: Notifications settings: row that opens a list of the kinds of notification rows this phone has seen, to tick the ones to hide (#756)
+Hide notifications by type	Bildirimleri türe göre gizle
+# context: that row's summary while nothing is ticked (#756)
+Takes the kinds of notifications you tick off the Notifications page. The list fills in as Instagram sends them.	İşaretlediğin bildirim türlerini Bildirimler sayfasından kaldırır. Liste, Instagram bunları gönderdikçe dolar.
+# context: that row's summary, one kind ticked (#756)
+%1$d kind of notification is hidden.	%1$d bildirim türü gizli.
+# context: that row's summary, several kinds ticked (#756)
+%1$d kinds of notification are hidden.	%1$d bildirim türü gizli.
+# context: message in that list's dialog before the Notifications page has loaded once (#756)
+No notifications seen yet. Open your notifications in Instagram once, then come back here.	Henüz bildirim görülmedi. Instagram'da bildirimlerini bir kez aç, sonra buraya geri dön.

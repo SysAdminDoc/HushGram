@@ -2581,3 +2581,13 @@ Matches: %1$d of %2$d blocked accounts	일치: 차단된 계정 %2$d개 중 %1$d
 Long press a profile picture to view it	프로필 사진을 길게 눌러 보기
 # context: that switch summary (#737)
 Long press the picture at the top of a profile to open the whole square picture at full size, with Save under it, instead of Instagram's own preview. A tap works as before.	프로필 상단의 사진을 길게 누르면 Instagram 자체 미리보기 대신 정사각형 사진 전체가 원본 크기로 열리고 아래에 저장 버튼이 표시됩니다. 탭은 이전과 같이 작동합니다.
+# context: Notifications settings: row that opens a list of the kinds of notification rows this phone has seen, to tick the ones to hide (#756)
+Hide notifications by type	유형별로 알림 숨기기
+# context: that row's summary while nothing is ticked (#756)
+Takes the kinds of notifications you tick off the Notifications page. The list fills in as Instagram sends them.	체크한 유형의 알림을 알림 페이지에서 없앱니다. 목록은 Instagram이 알림을 보내는 대로 채워집니다.
+# context: that row's summary, one kind ticked (#756)
+%1$d kind of notification is hidden.	알림 유형 %1$d개가 숨겨져 있습니다.
+# context: that row's summary, several kinds ticked (#756)
+%1$d kinds of notification are hidden.	알림 유형 %1$d개가 숨겨져 있습니다.
+# context: message in that list's dialog before the Notifications page has loaded once (#756)
+No notifications seen yet. Open your notifications in Instagram once, then come back here.	아직 본 알림이 없습니다. Instagram에서 알림을 한 번 연 다음 여기로 돌아오세요.

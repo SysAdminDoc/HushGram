@@ -2582,3 +2582,13 @@ Matches: %1$d of %2$d blocked accounts	Resultados: %1$d de %2$d contas bloqueada
 Long press a profile picture to view it	Mantenha uma foto do perfil pressionada para vê-la
 # context: that switch summary (#737)
 Long press the picture at the top of a profile to open the whole square picture at full size, with Save under it, instead of Instagram's own preview. A tap works as before.	Mantenha pressionada a foto no topo de um perfil para abrir a foto quadrada inteira em tamanho real, com Salvar embaixo, no lugar da prévia do próprio Instagram. Um toque funciona como antes.
+# context: Notifications settings: row that opens a list of the kinds of notification rows this phone has seen, to tick the ones to hide (#756)
+Hide notifications by type	Ocultar notificações por tipo
+# context: that row's summary while nothing is ticked (#756)
+Takes the kinds of notifications you tick off the Notifications page. The list fills in as Instagram sends them.	Tira da página de notificações os tipos de notificação que você marcar. A lista vai se preenchendo conforme o Instagram os envia.
+# context: that row's summary, one kind ticked (#756)
+%1$d kind of notification is hidden.	%1$d tipo de notificação está oculto.
+# context: that row's summary, several kinds ticked (#756)
+%1$d kinds of notification are hidden.	%1$d tipos de notificação estão ocultos.
+# context: message in that list's dialog before the Notifications page has loaded once (#756)
+No notifications seen yet. Open your notifications in Instagram once, then come back here.	Nenhuma notificação vista ainda. Abra suas notificações no Instagram uma vez e depois volte aqui.

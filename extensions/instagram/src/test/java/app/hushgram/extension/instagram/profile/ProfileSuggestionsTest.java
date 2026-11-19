@@ -60,6 +60,8 @@ public class ProfileSuggestionsTest {
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         Settings.HIDE_PROFILE_SUGGESTIONS.save(true);
+        context.getSharedPreferences(NotificationKinds.STORE, Context.MODE_PRIVATE).edit().clear().commit();
+        NotificationKinds.forgetForTests();
         HookStatus.clear();
         FeedFilterCounters.clear();
     }
@@ -73,6 +75,9 @@ public class ProfileSuggestionsTest {
         Settings.HIDE_NOTIFICATION_SUGGESTIONS.resetToDefault();
         Settings.HIDE_NOTIFICATION_FEATURED.resetToDefault();
         Settings.HIDE_NOTIFICATION_CHANNEL_INVITES.resetToDefault();
+        Settings.HIDDEN_NOTIFICATION_KINDS.resetToDefault();
+        context.getSharedPreferences(NotificationKinds.STORE, Context.MODE_PRIVATE).edit().clear().commit();
+        NotificationKinds.forgetForTests();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -1000,6 +1005,41 @@ public class ProfileSuggestionsTest {
         Settings.HIDE_NOTIFICATION_CHANNEL_INVITES.save(false);
         ProfileSuggestions.notificationParsed(invite, "igd_broadcast_chat_creation");
         assertSame("off", invite, ProfileSuggestions.keepNotification(invite));
+    }
+
+    /**
+     * #756: a row of a kind ticked under Hide notifications by type leaves the list with every switch
+     * off, other kinds stay, and paused or unticked it's back. Each kind parsed is kept for the list.
+     */
+    @Test
+    public void aKindTickedUnderHideByTypeLeavesTheList() {
+        Object mention = new Object();
+        Object follow = new Object();
+        ProfileSuggestions.notificationParsed(mention, "mentioned_comment");
+        assertSame("nothing ticked", mention, ProfileSuggestions.keepNotification(mention));
+
+        Settings.HIDDEN_NOTIFICATION_KINDS.save("mentioned_comment");
+        ProfileSuggestions.notificationParsed(mention, "mentioned_comment");
+        assertNull(ProfileSuggestions.keepNotification(mention));
+        ProfileSuggestions.notificationParsed(follow, "user_followed");
+        assertSame(follow, ProfileSuggestions.keepNotification(follow));
+        String report = FeedFilterCounters.report().toString();
+        assertTrue(report, report.contains(ProfileSuggestions.CHOSEN_KINDS + " 1"));
+
+        java.util.List<String[]> kept = NotificationKinds.offered(context, java.util.Collections.emptySet());
+        assertEquals(2, kept.size());
+        assertEquals("mentioned_comment", kept.get(0)[0]);
+        assertEquals("user_followed", kept.get(1)[0]);
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        ProfileSuggestions.notificationParsed(mention, "mentioned_comment");
+        assertSame("paused", mention, ProfileSuggestions.keepNotification(mention));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        Settings.HIDDEN_NOTIFICATION_KINDS.save("");
+        ProfileSuggestions.notificationParsed(mention, "mentioned_comment");
+        assertSame("unticked", mention, ProfileSuggestions.keepNotification(mention));
     }
 
     /** #259: the list builder skips a row tagged priority_stories only while the Featured switch is on. */

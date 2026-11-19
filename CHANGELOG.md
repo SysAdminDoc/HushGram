@@ -6,6 +6,7 @@ Every HushGram release, newest first.
 
 ### Improvements
 
+* `Hide notifications by type` under Notifications lists the kinds of notifications Instagram has sent you, each with a line from one, and takes the ones you tick off the page. Requested in #756.
 * Saving a reel gets its picture and sound at the same time now, instead of one after the other, so saves finish sooner. Asked about in #493.
 * A feed post's three-dot menu can now show Block and Playback speed. Turn on `Block in a post's menu` and `Speed in a post's menu` under Downloads. Requested in #743.
 * Press and hold the Download button on a story to pick `Download` or `Save all`, which saves every story in the set you're watching. It comes with `Download button on stories`. Requested in #745.
