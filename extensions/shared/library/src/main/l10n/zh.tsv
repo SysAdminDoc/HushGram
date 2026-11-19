@@ -52,6 +52,8 @@ Loading older messages. %1$d message so far.	正在加载较旧的消息。目�
 Loading older messages. %1$d messages so far.	正在加载较旧的消息。目前 %1$d 则。
 Lock these settings	锁定这些设置
 Mark a chat seen when you reply	回复时将聊天标示为已读
+Mark a chat seen when you react	回应时将聊天标示为已读
+Reacting to a message in a chat lets the other person see that you've read up to that message. What they sent after it stays unseen to them.	在聊天中对消息发送心情回应后，对方会看到你已读到该条消息。之后传来的内容，对方仍看不到已读。
 No messages found to save.	没有可保存的消息。
 Pick a wait from 1 to 72 hours. Locked, nothing here changes until you ask to unlock and the wait is over.	选择 1 至 72 小时的等待时间。锁定后，必须提出解锁申请并等待时间结束，才能变更此处的设置。
 Ask to unlock	请求解锁

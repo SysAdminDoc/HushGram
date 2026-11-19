@@ -90,6 +90,7 @@ public class ThreadSeenTest {
         Settings.VIEW_DM_MEDIA_ANONYMOUSLY.resetToDefault();
         Settings.SEEN_PER_CHAT.resetToDefault();
         Settings.MARK_SEEN_ON_REPLY.resetToDefault();
+        Settings.MARK_SEEN_ON_REACTION.resetToDefault();
         Settings.MARK_READ_IN_CHAT.resetToDefault();
         MessagesLock.resetForTests();
         Settings.LOCK_MESSAGES.resetToDefault();
@@ -1097,6 +1098,99 @@ public class ThreadSeenTest {
         HookStatus.clear();
         ThreadSeen.replied(SESSION, new Composer("t1"), true, ON, chats, clock);
         assertEquals(List.of("a1:t1/m1/s1"), chats.sent);
+    }
+
+    /** Holds a receipt with only Mark a chat seen when you react on (#772). */
+    private boolean holdForReaction(Receipt receipt, Session session) {
+        return ThreadSeen.hold(receipt, session, ON, () -> false, OFF, OFF, ON, chats, clock);
+    }
+
+    private void react(Session session, String thread, String item, String sender, boolean created, BooleanSupplier on) {
+        ThreadSeen.reacted(session, new Key(thread), sender == null ? null : new Message(item, sender), item, created, on,
+                chats, clock);
+    }
+
+    @Test
+    public void aReactionToTheHeldMessageLetsItsReceiptGo() {
+        assertTrue(holdForReaction(receipt("t1", "m1"), SESSION));
+        assertTrue(chats.sent.isEmpty());
+        react(SESSION, "t1", "m1", "s1", true, ON);
+        assertEquals(List.of("a1:t1/m1/s1"), chats.sent);
+        assertEquals("the chat's unread mark comes off", 1, chats.cleared.size());
+        assertFalse("nothing left held", ThreadSeen.hasHeld("a1", "t1", 0));
+        assertNothingReported();
+    }
+
+    @Test
+    public void aReactionToAnOlderMessageMarksTheChatSeenUpToItAlone() {
+        assertTrue(holdForReaction(receipt("t1", "m2"), SESSION));
+        react(SESSION, "t1", "m1", "s1", true, ON);
+        assertEquals(List.of("a1:t1/m1/s1"), chats.sent);
+        assertTrue("the chat stays unread", chats.cleared.isEmpty());
+        assertTrue("the newer message's receipt stays held", ThreadSeen.hasHeld("a1", "t1", 0));
+        assertFalse("the older message's own receipt goes through",
+                holdForReaction(receipt("t1", "m1"), SESSION));
+        assertTrue("the newer one is still held back", holdForReaction(receipt("t1", "m2"), SESSION));
+        assertNothingReported();
+    }
+
+    @Test
+    public void aReactionWithNothingHeldStillMarksSeenUpToIt() {
+        react(SESSION, "t1", "m1", "s2", true, ON);
+        assertEquals(List.of("a1:t1/m1/s2"), chats.sent);
+        assertTrue(chats.cleared.isEmpty());
+        assertFalse(holdForReaction(new Receipt("t1", "m1", "s2"), SESSION));
+    }
+
+    @Test
+    public void aReactionInAnotherChatLeavesThisOneHeld() {
+        assertTrue(holdForReaction(receipt("t1", "m1"), SESSION));
+        react(SESSION, "t2", "m9", "s2", true, ON);
+        assertEquals(List.of("a1:t2/m9/s2"), chats.sent);
+        assertTrue(ThreadSeen.hasHeld("a1", "t1", 0));
+    }
+
+    @Test
+    public void ownMessagesTakenBackReactionsAndASwitchedOffReactionSendNothing() {
+        assertTrue(holdForReaction(receipt("t1", "m2"), SESSION));
+        react(SESSION, "t1", "m1", "a1", true, ON);
+        react(SESSION, "t1", "m1", "s1", false, ON);
+        react(SESSION, "t1", "m2", "s1", false, ON);
+        react(SESSION, "t1", "m1", "s1", true, OFF);
+        react(SESSION, "t1", "m1", null, true, ON);
+        react(SESSION, "t1", "", "s1", true, ON);
+        ThreadSeen.reacted(SESSION, new Object(), new Message("m1", "s1"), "m1", true, ON, chats, clock);
+        assertTrue(chats.sent.isEmpty());
+        assertTrue(ThreadSeen.hasHeld("a1", "t1", 0));
+        assertNothingReported();
+    }
+
+    @Test
+    public void theReactionSwitchDecidesWhenTheHookAsks() {
+        assertTrue(holdForReaction(receipt("t1", "m1"), SESSION));
+        react(SESSION, "t1", "m1", "s1", true, ThreadSeen::marksOnReaction);
+        assertTrue("off to start", chats.sent.isEmpty());
+        Settings.MARK_SEEN_ON_REACTION.save(true);
+        react(SESSION, "t1", "m1", "s1", true, ThreadSeen::marksOnReaction);
+        assertEquals(List.of("a1:t1/m1/s1"), chats.sent);
+    }
+
+    @Test
+    public void aFailedReactionSendTakesItsMarkBack() {
+        chats.sendThrows = true;
+        react(SESSION, "t1", "m1", "s1", true, ON);
+        assertTrue(chats.sent.isEmpty());
+        assertTrue("the receipt is held back again", holdForReaction(receipt("t1", "m1"), SESSION));
+        chats.sendThrows = false;
+        HookStatus.clear();
+        react(SESSION, "t1", "m1", "s1", true, ON);
+        assertEquals("the held receipt goes on the next reaction", List.of("a1:t1/m1/s1"), chats.sent);
+    }
+
+    @Test
+    public void aReceiptHeldWithEveryLetGoSwitchOffIsntKept() {
+        assertTrue(ThreadSeen.hold(receipt("t1", "m1"), SESSION, ON, () -> false, OFF, OFF, OFF, chats, clock));
+        assertFalse(ThreadSeen.hasHeld("a1", "t1", 0));
     }
 
     /** Holds a receipt with Mark a chat seen when you reply off and the header's check mark on (#458). */

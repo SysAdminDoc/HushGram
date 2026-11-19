@@ -47,6 +47,8 @@ Loading older messages. %1$d message so far.	Đang tải tin nhắn cũ hơn. Đ
 Loading older messages. %1$d messages so far.	Đang tải tin nhắn cũ hơn. Đã có %1$d tin nhắn.
 Lock these settings	Khóa các cài đặt này
 Mark a chat seen when you reply	Đánh dấu đã xem khi bạn trả lời
+Mark a chat seen when you react	Đánh dấu đã xem khi bạn bày tỏ cảm xúc
+Reacting to a message in a chat lets the other person see that you've read up to that message. What they sent after it stays unseen to them.	Khi bạn bày tỏ cảm xúc với một tin nhắn trong cuộc trò chuyện, người kia sẽ thấy bạn đã đọc đến tin nhắn đó. Những gì họ gửi sau đó vẫn chưa được xem.
 No messages found to save.	Không có tin nhắn nào để lưu.
 Pick a wait from 1 to 72 hours. Locked, nothing here changes until you ask to unlock and the wait is over.	Chọn thời gian chờ từ 1 đến 72 giờ. Khi đã khóa, không có gì ở đây thay đổi được cho đến khi bạn yêu cầu mở khóa và hết thời gian chờ.
 Ask to unlock	Yêu cầu mở khóa

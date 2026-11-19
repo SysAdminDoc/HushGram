@@ -48,6 +48,8 @@ Loading older messages. %1$d message so far.	กำลังโหลดข้�
 Loading older messages. %1$d messages so far.	กำลังโหลดข้อความก่อนหน้า โหลดแล้ว %1$d ข้อความ
 Lock these settings	ล็อกการตั้งค่าเหล่านี้
 Mark a chat seen when you reply	ทำเครื่องหมายว่าอ่านแชทแล้วเมื่อคุณตอบกลับ
+Mark a chat seen when you react	ทำเครื่องหมายว่าอ่านแชทแล้วเมื่อคุณแสดงความรู้สึก
+Reacting to a message in a chat lets the other person see that you've read up to that message. What they sent after it stays unseen to them.	การแสดงความรู้สึกต่อข้อความในแชทจะทำให้อีกฝ่ายเห็นว่าคุณได้อ่านถึงข้อความนั้นแล้ว ส่วนข้อความที่พวกเขาส่งมาหลังจากนั้นจะยังคงไม่ขึ้นว่าอ่านแล้วสำหรับพวกเขา
 No messages found to save.	ไม่พบข้อความที่จะบันทึก
 Pick a wait from 1 to 72 hours. Locked, nothing here changes until you ask to unlock and the wait is over.	เลือกระยะเวลารอตั้งแต่ 1 ถึง 72 ชั่วโมง เมื่อล็อกแล้ว จะไม่สามารถเปลี่ยนสิ่งใดที่นี่ได้จนกว่าคุณจะขอปลดล็อกและระยะเวลารอสิ้นสุดลง
 Ask to unlock	ขอปลดล็อก

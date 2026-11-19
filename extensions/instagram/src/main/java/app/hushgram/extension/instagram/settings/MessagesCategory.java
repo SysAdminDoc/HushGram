@@ -109,6 +109,10 @@ final class MessagesCategory {
                         L10n.t("Mark a chat seen when you reply"),
                         L10n.t("Sending a message in a chat lets the other person see that you've read what they "
                                 + "sent before it. Chats you don't answer stay unseen to them.")));
+                messages.addPreference(toggle(context, Settings.MARK_SEEN_ON_REACTION,
+                        L10n.t("Mark a chat seen when you react"),
+                        L10n.t("Reacting to a message in a chat lets the other person see that you've read up to that "
+                                + "message. What they sent after it stays unseen to them.")));
                 if (build.contains(PatchFamily.MESSAGES_LOCK)) {
                     // Both buttons learn which chat is open from the lock patch's ChatLocks, the only
                     // hook that reads a chat's thread, so a build without it would show two dead rows.

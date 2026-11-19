@@ -48,6 +48,8 @@ Loading older messages. %1$d message so far.	이전 메시지를 불러오는 �
 Loading older messages. %1$d messages so far.	이전 메시지를 불러오는 중입니다. 지금까지 %1$d개입니다.
 Lock these settings	이 설정 잠그기
 Mark a chat seen when you reply	답장하면 채팅을 읽음으로 표시
+Mark a chat seen when you react	반응하면 채팅을 읽음으로 표시
+Reacting to a message in a chat lets the other person see that you've read up to that message. What they sent after it stays unseen to them.	채팅에서 메시지에 반응하면 상대가 그 메시지까지 읽었다는 것을 볼 수 있습니다. 그 뒤에 보낸 메시지는 상대에게 읽지 않은 상태로 남습니다.
 No messages found to save.	저장할 메시지가 없어요.
 Pick a wait from 1 to 72 hours. Locked, nothing here changes until you ask to unlock and the wait is over.	1~72시간 중 대기 시간을 고르세요. 잠기면 잠금 해제를 요청하고 대기 시간이 끝날 때까지 여기서 아무것도 바뀌지 않습니다.
 Ask to unlock	잠금 해제 요청

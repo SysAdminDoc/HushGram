@@ -47,6 +47,8 @@ Loading older messages. %1$d message so far.	Ältere Nachrichten werden geladen.
 Loading older messages. %1$d messages so far.	Ältere Nachrichten werden geladen. Bisher %1$d Nachrichten.
 Lock these settings	Diese Einstellungen sperren
 Mark a chat seen when you reply	Chat als gesehen markieren, wenn du antwortest
+Mark a chat seen when you react	Chat als gesehen markieren, wenn du reagierst
+Reacting to a message in a chat lets the other person see that you've read up to that message. What they sent after it stays unseen to them.	Wenn du in einem Chat auf eine Nachricht reagierst, sieht die andere Person, dass du bis zu dieser Nachricht gelesen hast. Was sie danach gesendet hat, bleibt für sie ungesehen.
 No messages found to save.	Keine Nachrichten zum Speichern.
 Pick a wait from 1 to 72 hours. Locked, nothing here changes until you ask to unlock and the wait is over.	Wähle eine Wartezeit von 1 bis 72 Stunden. Gesperrt ändert sich hier nichts, bis du das Entsperren anforderst und die Wartezeit vorbei ist.
 Ask to unlock	Entsperren anfordern

@@ -79,7 +79,9 @@ class NativeMarkReadTest {
         val answer = read.unread.visualCode()
         val check = read.seen.visualCode()
         assertEquals("the summary's own check, taking the account's id, the item's and its sender's", read.unread.definingClass, read.seen.definingClass)
-        val hooked = listOf(seen.handler, found.builder, found.action, found.together, unread.lifecycle, read.unread, read.seen)
+        // The reaction sender sits in this slice on some builds; NativeReactSeenTest checks its hook.
+        val react = context.findReactSeen(found)?.send
+        val hooked = listOfNotNull(seen.handler, found.builder, found.action, found.together, unread.lifecycle, read.unread, read.seen, react)
             .map { "${it.definingClass}->${it.name}(" }
         val before = classes.mapValues { snapshot(it.value.methods) }
         context.readWithoutSeenReceipt()

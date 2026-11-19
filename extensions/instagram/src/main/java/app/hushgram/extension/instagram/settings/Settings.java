@@ -847,6 +847,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_mark_seen_on_reply", FALSE, parentsAny(READ_WITHOUT_SEEN_RECEIPT, SEEN_PER_CHAT));
 
     /**
+     * Under {@link #READ_WITHOUT_SEEN_RECEIPT}: reacting to a message in a chat whose receipts are
+     * held tells the other person you've seen up to that message, and no further (#772). Read each
+     * time a reaction is sent, so a change applies to the next one. Off to start.
+     */
+    public static final BooleanSetting MARK_SEEN_ON_REACTION =
+            new BooleanSetting("hushgram_mark_seen_on_reaction", FALSE, parentsAny(READ_WITHOUT_SEEN_RECEIPT, SEEN_PER_CHAT));
+
+    /**
      * Under {@link #READ_WITHOUT_SEEN_RECEIPT}: a check mark in a chat's header, beside the call
      * buttons, while a receipt of that chat is held. Tapping it lets that receipt go, so the other
      * person sees Seen (#458). Read each time a chat comes to the front and each time a receipt is

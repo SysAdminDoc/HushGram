@@ -201,6 +201,13 @@ once-call Lapp/hushgram/extension/instagram/direct/ThreadSeen;->keepUnread(Ljava
 # out, a reply never lets the held receipt go; twice or elsewhere, it isn't the hook the patch wrote.
 # NativeReplySeenTest checks on every 453 fixture where it lands.
 once-call Lapp/hushgram/extension/instagram/direct/ThreadSeen;->replied(Ljava/lang/Object;Ljava/lang/Object;I)V in instance (Landroid/text/Editable;Ljava/lang/Long;Ljava/lang/String;)Z pooled holding direct_composer_send_text direct_schedule_message
+# Mark a chat seen when you react (#772) hands ThreadSeen.reacted(Object, Object, Object, String, I)
+# the account, the chat key, the message, its id and whether the reaction is added, right after the
+# reaction sender looks the message up by the key and the id (05Fg.A0b on 386214575), the one
+# instance method ending in that flag which logs all three names below. Left out, a reaction never
+# marks its chat seen; twice or elsewhere, it isn't the hook the patch wrote. NativeReactSeenTest
+# checks on every 456 fixture where it lands.
+once-call Lapp/hushgram/extension/instagram/direct/ThreadSeen;->reacted(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/String;I)V in instance (L*;Lcom/instagram/model/direct/DirectThreadKey;L*;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Z)V pooled holding like item created
 # Hide that you're typing (#13) hands TypingStatus.hold(I) the typing flag first in Instagram's typing
 # status service (01MY.A06 on 450), the one (boolean) method holding the trace name and flag below.
 # Left out, the other person sees you typing with the switch on; twice or elsewhere, it isn't the

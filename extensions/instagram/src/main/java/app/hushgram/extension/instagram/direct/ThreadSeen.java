@@ -86,6 +86,7 @@ public final class ThreadSeen {
     static final String UNREAD = "chat kept unread";
     static final String READ = "chat kept read";
     static final String REPLY = "chat marked seen by a reply";
+    static final String REACT = "chat marked seen by a reaction";
     static final String OPEN_CHAT = "chat marked read from its header";
     static final String CHOICE = "chat's own seen choice";
     static final String LOCKED = "receipt kept for the lock";
@@ -286,6 +287,12 @@ public final class ThreadSeen {
 
     static boolean hold(Object receipt, Object session, BooleanSupplier on, BooleanSupplier here,
                         BooleanSupplier replies, BooleanSupplier button, Chats chats, LongSupplier clock) {
+        return hold(receipt, session, on, here, replies, button, ThreadSeen::marksOnReaction, chats, clock);
+    }
+
+    static boolean hold(Object receipt, Object session, BooleanSupplier on, BooleanSupplier here,
+                        BooleanSupplier replies, BooleanSupplier button, BooleanSupplier reactions, Chats chats,
+                        LongSupplier clock) {
         try {
             HookStatus.invoked(FamilyNames.THREAD_SEEN);
             if (MessagesLock.receiptsWait() && waitsForLock(receipt, session, chats, clock, true)) return true;
@@ -300,7 +307,8 @@ public final class ThreadSeen {
             if (hold) keepRead(receipt, session, chatSwitch(own, account, thread, here, ThreadSeen::readsHereByChoice),
                     chats, clock);
             if (hold) remember(receipt, session, chatSwitch(own, account, thread, replies, Settings.MARK_SEEN_ON_REPLY::get),
-                    chatSwitch(own, account, thread, button, Settings.MARK_READ_IN_CHAT::get), chats, clock);
+                    chatSwitch(own, account, thread, button, Settings.MARK_READ_IN_CHAT::get),
+                    chatSwitch(own, account, thread, reactions, Settings.MARK_SEEN_ON_REACTION::get), chats, clock);
             if (hold && !logged) {
                 logged = true;
                 Logger.printDebug(() -> "Messages: held back a seen receipt");
@@ -347,6 +355,72 @@ public final class ThreadSeen {
             Logger.printDebug(() -> "Messages: a reply marked its chat seen");
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.THREAD_SEEN, REPLY, t);
+        }
+    }
+
+    /**
+     * Called as Instagram sends a reaction, with the account's session, the chat's key, the message
+     * Instagram found on this phone for it (null when there's none), the id of the message reacted
+     * to and whether the reaction is being added (non-zero) rather than taken back. With Mark a chat
+     * seen when you react on, tells the other person you've seen up to that message and no further.
+     * A reaction to the message whose receipt is held lets that receipt go and takes the chat's
+     * unread mark off, as a reply does. A reaction to an older one sends a receipt for that message
+     * alone, so the newer ones stay unseen and the chat stays unread. Your own messages and anything
+     * that can't be read send nothing. Never throws.
+     */
+    public static void reacted(Object session, Object key, Object message, String item, int created) {
+        reacted(session, key, message, item, created != 0, ThreadSeen::marksOnReaction, INSTAGRAM, CLOCK);
+    }
+
+    static void reacted(Object session, Object key, Object message, String item, boolean created, BooleanSupplier on,
+                        Chats chats, LongSupplier clock) {
+        ReadMarks waiting = null;
+        String account = null;
+        String thread = null;
+        long now = 0;
+        try {
+            HookStatus.invoked(FamilyNames.THREAD_SEEN);
+            if (!created || isEmpty(item)) return;
+            SeenChoices own = chosen();
+            if (!on.getAsBoolean() && !anyHeld(own)) return;
+            account = chats.accountId(session);
+            thread = chats.threadId(key);
+            if (isEmpty(account) || isEmpty(thread)) return;
+            if (!forChat(own, account, thread, on, Settings.MARK_SEEN_ON_REACTION::get)) return;
+            String id = account + "\n" + thread;
+            Pending held;
+            synchronized (LOCK) {
+                held = PENDING.get(id);
+                if (held != null && item.equals(held.message)) PENDING.remove(id);
+                else held = null;
+            }
+            if (held != null) {
+                if (letGo(id, held, session, chats, clock, REACT)) {
+                    Logger.printDebug(() -> "Messages: a reaction to the newest message marked its chat seen");
+                }
+                return;
+            }
+            String sender = message == null ? null : chats.senderId(message);
+            // A reaction to your own message has nobody to tell.
+            if (isEmpty(sender) || sender.equals(account)) return;
+            ReadMarks marks = marks();
+            if (marks == null) return;
+            now = clock.getAsLong();
+            boolean fresh = !marks.allows(account, thread, item, now);
+            marks.allow(account, thread, item, now);
+            if (fresh) waiting = marks;
+            chats.sendSeen(session, thread, item, sender);
+            waiting = null;
+            Logger.printDebug(() -> "Messages: a reaction marked its chat seen up to that message");
+        } catch (Throwable t) {
+            if (waiting != null) {
+                try {
+                    waiting.revoke(account, thread, item, now);
+                } catch (Throwable ignored) {
+                    // The mark stays, and so does the failure reported below.
+                }
+            }
+            HookStatus.threw(FamilyNames.THREAD_SEEN, REACT, t);
         }
     }
 
@@ -454,16 +528,16 @@ public final class ThreadSeen {
     }
 
     /**
-     * Keeps what a reply or the header's check mark needs to let [receipt] go: its message, who sent it,
-     * the chat's key and the account's session. Kept only while one of them is on, and a reply only
-     * lets go what was kept while its own switch was on.
+     * Keeps what a reply, a reaction or the header's check mark needs to let [receipt] go: its
+     * message, who sent it, the chat's key and the account's session. Kept only while one of them is
+     * on, and a reply only lets go what was kept while its own switch was on.
      */
     private static void remember(Object receipt, Object session, BooleanSupplier replies, BooleanSupplier button,
-                                 Chats chats, LongSupplier clock) {
+                                 BooleanSupplier reactions, Chats chats, LongSupplier clock) {
         boolean reply = false;
         try {
             reply = replies.getAsBoolean();
-            if (!reply && !button.getAsBoolean()) return;
+            if (!reply && !button.getAsBoolean() && !reactions.getAsBoolean()) return;
             String account = chats.accountId(session);
             Object key = chats.receiptKey(receipt);
             String thread = chats.threadId(key);
@@ -1237,6 +1311,11 @@ public final class ThreadSeen {
     /** The switch on and Mark a chat seen when you reply on: a sent message lets its chat's held receipt go. */
     static boolean marksOnReply() {
         return switchedOn() && Settings.MARK_SEEN_ON_REPLY.get();
+    }
+
+    /** The switch on and Mark a chat seen when you react on: a reaction tells the chat you've seen up to it. */
+    static boolean marksOnReaction() {
+        return switchedOn() && Settings.MARK_SEEN_ON_REACTION.get();
     }
 
     /** The switch on and Mark as read in a chat's header on: the check mark shows while a receipt is held. */

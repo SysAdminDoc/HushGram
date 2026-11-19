@@ -54,6 +54,7 @@ internal fun BytecodePatchContext.readWithoutSeenReceipt() {
     val unread = findKeepUnread(seen)
     val read = findReadHere(marks.chat)
     val reply = findReplySeen(seen)
+    val react = findReactSeen(marks)
     val cursor = findLocalCursor(marks.messageClass)
     val button = findMarkReadButton()
     holdBackThreadSeen(seen)
@@ -62,6 +63,7 @@ internal fun BytecodePatchContext.readWithoutSeenReceipt() {
     keepChatsRead(read)
     if (cursor != null) keepCursorLocal(cursor)
     if (reply != null) writeReplySeen(reply)
+    if (react != null) writeReactSeen(react)
     if (button != null) hookMarkReadButton(button)
 }
 

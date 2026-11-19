@@ -47,6 +47,8 @@ Loading older messages. %1$d message so far.	Caricamento dei messaggi più vecch
 Loading older messages. %1$d messages so far.	Caricamento dei messaggi più vecchi. Finora %1$d messaggi.
 Lock these settings	Blocca queste impostazioni
 Mark a chat seen when you reply	Segna una chat come vista quando rispondi
+Mark a chat seen when you react	Segna una chat come vista quando reagisci
+Reacting to a message in a chat lets the other person see that you've read up to that message. What they sent after it stays unseen to them.	Quando reagisci a un messaggio in una chat, l'altra persona vede che hai letto fino a quel messaggio. Quello che ti ha scritto dopo resta non visualizzato per lei.
 No messages found to save.	Nessun messaggio da salvare.
 Pick a wait from 1 to 72 hours. Locked, nothing here changes until you ask to unlock and the wait is over.	Scegli un'attesa da 1 a 72 ore. Con il blocco, qui non cambia niente finché non chiedi di sbloccare e l'attesa non è finita.
 Ask to unlock	Chiedi di sbloccare

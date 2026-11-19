@@ -149,6 +149,8 @@ internal data class MarkReadTargets(
     val chat: String,
     /** The class of a chat's message, the one the id bridge reads. */
     val messageClass: String,
+    /** The class the sender bridge reads a message's sender off. */
+    val senderClass: String,
 )
 
 private fun refuse(why: String): Nothing = throw PatchException("$THREAD_SEEN_PATCH: $why")
@@ -318,7 +320,7 @@ internal fun BytecodePatchContext.findMarkRead(seen: ThreadSeenTargets): MarkRea
         """,
     ))
     return MarkReadTargets(markAsRead, builder, rows, offerAt, offerRegister, action, chosen, thread, key, session,
-        tapAt, tapRegisters, together, togetherAt, bridges, accountId, chat, pick.id.definingClass)
+        tapAt, tapRegisters, together, togetherAt, bridges, accountId, chat, pick.id.definingClass, pick.sender.definingClass)
 }
 
 private const val JAVA_OBJECT_TYPE = "Ljava/lang/Object;"
@@ -632,7 +634,7 @@ private fun receiptMessage(seen: ThreadSeenTargets, receipt: ClassDef, classes: 
 }
 
 /** [type] is [ancestor] or extends it, through the classes this build declares. */
-private fun extends(type: String, ancestor: String, classes: Map<String, ClassDef>): Boolean {
+internal fun extends(type: String, ancestor: String, classes: Map<String, ClassDef>): Boolean {
     var current: String? = type
     val visited = mutableSetOf<String>()
     while (current != null && visited.add(current)) {

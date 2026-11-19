@@ -47,6 +47,8 @@ Loading older messages. %1$d message so far.	Eski mesajlar yükleniyor. Şimdili
 Loading older messages. %1$d messages so far.	Eski mesajlar yükleniyor. Şimdilik %1$d mesaj.
 Lock these settings	Bu ayarları kilitle
 Mark a chat seen when you reply	Yanıt verdiğinde sohbeti görüldü olarak işaretle
+Mark a chat seen when you react	Tepki verdiğinde sohbeti görüldü olarak işaretle
+Reacting to a message in a chat lets the other person see that you've read up to that message. What they sent after it stays unseen to them.	Bir sohbette bir mesaja tepki vermen, karşı tarafın o mesaja kadar okuduğunu görmesini sağlar. Sonrasında yazdıkları onlar için görülmemiş kalır.
 No messages found to save.	Kaydedilecek mesaj yok.
 Pick a wait from 1 to 72 hours. Locked, nothing here changes until you ask to unlock and the wait is over.	1 ile 72 saat arasında bir bekleme seç. Kilitliyken, kilidi açmayı isteyip bekleme bitene kadar burada hiçbir şey değişmez.
 Ask to unlock	Kilidi açmayı iste
