@@ -24,6 +24,7 @@ Every HushGram release, newest first.
 * `Glass in chats` keeps the message bar's glass when Instagram switches the bar to its newer layout, and `Message bar tint` works on it again. Reported in #759.
 * Messages in a chat no longer jump and snap back while you type a long message with `Glass in chats` on. Reported in #757.
 * `Fill the screen` goes grey with a line saying why while `Show the whole reel` is on, since that switch wins and reels kept their side bars. Reported in #755.
+* `Hide captions` no longer leaves an empty gap under the username on reels. The username row moves down into the caption's room. Reported in #680.
 
 ## 0.0.21 (2026-11-18)
 

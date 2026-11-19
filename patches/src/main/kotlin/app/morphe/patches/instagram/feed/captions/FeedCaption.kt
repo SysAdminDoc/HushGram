@@ -25,6 +25,13 @@ private const val PATCH = "Hide captions"
 
 internal const val HIDE_CAPTIONS = "$EXTENSION_PACKAGE/feed/HideCaptions;"
 internal const val HIDE_FEED_CAPTION = "$HIDE_CAPTIONS->hideFeedCaption()Z"
+internal const val HIDE_REEL_CAPTION = "$HIDE_CAPTIONS->hideReelCaption()Z"
+
+/**
+ * The key a reel's caption keeps its expanded state under, which only the reel caption's renders load
+ * (on 456, LX/0aex->A0p and LX/0Ee1->A0p, the two looks Instagram picks between).
+ */
+internal const val REEL_CAPTION_EXPANDED = "is_reels_caption_expanded"
 
 /**
  * The tag Instagram 453's feed caption gives its text. It only lives in the component's modifier,
@@ -37,12 +44,18 @@ internal const val FEED_CAPTION_TAG = "row_feed_comment_textview_layout"
 internal const val CAPTION_TRANSITION = "caption_expand_collapse_transition"
 
 /**
- * The feed caption's render, found: the instance method of a declarative component taking its
- * render scope and returning what to draw, or null for nothing, which it already returns on a path
- * of its own. [write] puts a call to HideCaptions.hideFeedCaption() at its start, and a yes returns
- * that null, so the caption isn't drawn and the rows around it close up.
+ * A caption's render, found: the instance method of a declarative component taking its render scope
+ * and returning what to draw, or null for nothing. [write] puts a call to [hook] (one of
+ * HideCaptions' questions) at its start, and a yes returns that null, so the caption isn't laid out
+ * and the rows around it close up.
  */
-internal class FeedCaption(val type: String, val name: String, val parameter: String, val returnType: String) {
+internal class CaptionRender(
+    val type: String,
+    val name: String,
+    val parameter: String,
+    val returnType: String,
+    val hook: String = HIDE_FEED_CAPTION,
+) {
     fun write(context: BytecodePatchContext) {
         val method = context.mutableClassDefBy(type).methods.single {
             it.name == name && it.returnType == returnType && it.parameterTypes.map(CharSequence::toString) == listOf(parameter)
@@ -51,7 +64,7 @@ internal class FeedCaption(val type: String, val name: String, val parameter: St
         method.addInstructionsWithLabels(
             0,
             """
-                invoke-static { }, $HIDE_FEED_CAPTION
+                invoke-static { }, $hook
                 move-result v0
                 if-eqz v0, :instagram
                 const/4 v0, 0x0
@@ -69,7 +82,7 @@ internal class FeedCaption(val type: String, val name: String, val parameter: St
  * comment rows (LX/08FS->A0o there) carry the tag without the animation and are left alone. Anything
  * else is an update this patch hasn't seen, and it stops.
  */
-internal fun BytecodePatchContext.findFeedCaption(): FeedCaption {
+internal fun BytecodePatchContext.findFeedCaption(): CaptionRender {
     val found = mutableListOf<Method>()
     val animated = classesLoadingString(CAPTION_TRANSITION).mapTo(HashSet()) { it.type }
     classesLoadingString(FEED_CAPTION_TAG).filter { it.type in animated }.forEach { classDef ->
@@ -90,7 +103,36 @@ internal fun BytecodePatchContext.findFeedCaption(): FeedCaption {
     }
     val code = method.implementation!!.instructions.toList()
     if (!returnsNull(code)) refuse("$where never returns null, so leaving its caption out could break what calls it")
-    return FeedCaption(method.definingClass, method.name, parameters[0], method.returnType)
+    return CaptionRender(method.definingClass, method.name, parameters[0], method.returnType)
+}
+
+/**
+ * Finds the reel caption's renders (#680): every method loading [REEL_CAPTION_EXPANDED], on 456's
+ * 386214574 LX/0aex->A0p and LX/0Ee1->A0p. Their caption host is a view the extension can set gone,
+ * but the layout had already kept its room, so a hidden caption left an empty strip under the
+ * username. Asking at the render leaves no room at all. Each must override the very render [feed]
+ * overrides, on the same parent component, which returns null itself, so what calls them takes a
+ * null. Anything else is an update this patch hasn't seen, and it stops.
+ */
+internal fun BytecodePatchContext.findReelCaptions(feed: CaptionRender): List<CaptionRender> {
+    val parent = classDefBy(feed.type).superclass
+    val found = classesLoadingString(REEL_CAPTION_EXPANDED).flatMap { classDef ->
+        classDef.methods.filter { method ->
+            val code = method.implementation?.instructions?.toList() ?: return@filter false
+            code.indices.any { stringLoadedAt(code, it) == REEL_CAPTION_EXPANDED }
+        }.map { classDef.superclass to it }
+    }
+    if (found.isEmpty()) refuseReel("expected a render holding $REEL_CAPTION_EXPANDED, found 0")
+    return found.map { (superclass, method) ->
+        val where = "${method.definingClass}->${method.name}"
+        val parameters = method.parameterTypes.map(CharSequence::toString)
+        if (AccessFlags.STATIC.isSet(method.accessFlags) || superclass != parent || method.name != feed.name ||
+            parameters != listOf(feed.parameter) || method.returnType != feed.returnType
+        ) {
+            refuseReel("$where isn't the render ${feed.type}->${feed.name} overrides on $parent")
+        }
+        CaptionRender(method.definingClass, method.name, parameters[0], method.returnType, HIDE_REEL_CAPTION)
+    }
 }
 
 /**
@@ -110,3 +152,5 @@ private fun Instruction.writes(register: Int): Boolean =
     this is OneRegisterInstruction && registerA == register || this is TwoRegisterInstruction && registerA == register
 
 private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: the feed caption: $detail")
+
+private fun refuseReel(detail: String): Nothing = throw PatchException("$PATCH: the reel caption: $detail")

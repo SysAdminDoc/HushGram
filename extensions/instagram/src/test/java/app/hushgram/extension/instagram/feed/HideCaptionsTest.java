@@ -195,4 +195,29 @@ public class HideCaptionsTest {
         String report = HookStatus.report().toString();
         assertTrue(report, report.contains(HideCaptions.COUNT_HIDDEN + " 1"));
     }
+
+    /**
+     * A reel's caption render asks too (#680), so a hidden caption leaves no room under the username;
+     * off, paused or unready it draws as Instagram does.
+     */
+    @Test
+    public void aReelCaptionFollowsTheSwitchAtItsRender() {
+        assertFalse("off to start", HideCaptions.hideReelCaption());
+
+        Settings.HIDE_CAPTIONS.save(true);
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertFalse("paused", HideCaptions.hideReelCaption());
+
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        SettingsContextRule.withoutContext(() -> assertFalse("unready", HideCaptions.hideReelCaption()));
+
+        assertTrue(HideCaptions.hideReelCaption());
+        assertTrue(HideCaptions.hideReelCaption());
+        String report = HookStatus.report().toString();
+        assertTrue(report, report.contains(HideCaptions.COUNT_HIDDEN + " 2"));
+        assertTrue(HookStatus.missing(FamilyNames.HIDE_CAPTIONS).toString(),
+                HookStatus.missing(FamilyNames.HIDE_CAPTIONS).isEmpty());
+    }
 }

@@ -22,9 +22,11 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  *
  * <p>Instagram 453 draws a feed post's caption as a declarative component with no view of its own,
  * so the patch asks {@link #hideFeedCaption} at the start of each caption render, and a yes draws
- * nothing. {@link ViewHider} sets the caption hosts that are views gone before a frame shows them,
- * wherever Instagram puts them, so the rows around them close up. With the switch off or HushGram
- * paused the views are left alone and the next bind brings them back.
+ * nothing. A reel's caption is declarative too: its host is a view, but setting that gone left the
+ * room the layout gave it, an empty strip under the username (#680), so its renders ask
+ * {@link #hideReelCaption} and a yes leaves no room. {@link ViewHider} still sets any caption host
+ * it finds gone before a frame shows it. With the switch off or HushGram paused the views are left
+ * alone and the next bind brings them back.
  */
 public final class HideCaptions {
     /** The caption host of a feed post and of a reel in the Reels viewer, as Instagram 453 names them. */
@@ -50,13 +52,25 @@ public final class HideCaptions {
      * settings are ready, with the switch off, or if anything throws. Never throws.
      */
     public static boolean hideFeedCaption() {
+        return hide("feed caption");
+    }
+
+    /**
+     * True leaves a reel's caption out: the patched render draws nothing, so the username row moves
+     * down into its room (#680). Fails open like {@link #hideFeedCaption}. Never throws.
+     */
+    public static boolean hideReelCaption() {
+        return hide("reel caption");
+    }
+
+    private static boolean hide(String what) {
         try {
             HookStatus.invoked(FamilyNames.HIDE_CAPTIONS);
             if (!Utils.settingsReady() || !Settings.HIDE_CAPTIONS.get()) return false;
             HookStatus.counted(FamilyNames.HIDE_CAPTIONS, COUNT_HIDDEN);
             return true;
         } catch (Throwable failure) {
-            HookStatus.threw(FamilyNames.HIDE_CAPTIONS, "feed caption", failure);
+            HookStatus.threw(FamilyNames.HIDE_CAPTIONS, what, failure);
             return false;
         }
     }
