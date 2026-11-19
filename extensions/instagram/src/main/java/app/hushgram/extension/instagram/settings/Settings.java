@@ -4388,6 +4388,16 @@ public class Settings extends BaseSettings {
             new EnumSetting<>("hushgram_playback_quality", PlaybackQuality.AUTO, parent(DEFAULT_PLAYBACK_QUALITY));
 
     /**
+     * While {@link #DEFAULT_PLAYBACK_QUALITY} keeps a video to the chosen quality, a video that keeps
+     * loading slower than it plays drops a rung, and new videos start no higher for two minutes
+     * (#599, {@link app.hushgram.extension.instagram.media.QualityChoice}). Off, the chosen quality
+     * stays whatever the connection does (#761). Read as each video starts. On to start, so a slow
+     * connection doesn't stall.
+     */
+    public static final BooleanSetting PLAYBACK_QUALITY_STEPS_DOWN =
+            new BooleanSetting("hushgram_playback_quality_steps_down", TRUE, parent(DEFAULT_PLAYBACK_QUALITY));
+
+    /**
      * Photos in the feed, carousels and posts opened from a profile load at the largest size the
      * server sent instead of the one Instagram picks for the screen
      * ({@link app.hushgram.extension.instagram.feed.FullResolution}). Read as each photo is bound,

@@ -200,6 +200,7 @@ public final class ConfigurationBackup {
         }
         if (PatchFamily.PLAYBACK_QUALITY.inBuild()) {
             settings.put(Settings.PLAYBACK_QUALITY.key, Settings.PLAYBACK_QUALITY);
+            settings.put(Settings.PLAYBACK_QUALITY_STEPS_DOWN.key, Settings.PLAYBACK_QUALITY_STEPS_DOWN);
             settings.put(Settings.QUALITY_TAB_TARGET.key, Settings.QUALITY_TAB_TARGET);
         }
         if (PatchFamily.DATA_SAVER.inBuild()) {

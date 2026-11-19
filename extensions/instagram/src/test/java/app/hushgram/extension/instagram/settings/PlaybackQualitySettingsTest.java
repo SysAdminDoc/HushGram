@@ -53,6 +53,7 @@ public class PlaybackQualitySettingsTest {
         PauseForTests.resume();
         Settings.DEFAULT_PLAYBACK_QUALITY.resetToDefault();
         Settings.PLAYBACK_QUALITY.resetToDefault();
+        Settings.PLAYBACK_QUALITY_STEPS_DOWN.resetToDefault();
     }
 
     @Test
@@ -73,9 +74,11 @@ public class PlaybackQualitySettingsTest {
             }
             assertNotNull(section);
             assertEquals("Playback", String.valueOf(section.getTitle()));
-            // Tap to play first with its choice of where and Wait after auto scroll, then the switch, its list and the tab that opens the list.
-            assertEquals(6, section.getPreferenceCount());
-            assertEquals(Settings.QUALITY_TAB_TARGET.key, section.getPreference(5).getKey());
+            // Tap to play first with its choice of where and Wait after auto scroll, then the switch, its list,
+            // Drop quality to keep playing and the tab that opens the list.
+            assertEquals(7, section.getPreferenceCount());
+            assertEquals(Settings.PLAYBACK_QUALITY_STEPS_DOWN.key, section.getPreference(5).getKey());
+            assertEquals(Settings.QUALITY_TAB_TARGET.key, section.getPreference(6).getKey());
             assertEquals(Settings.TAP_TO_PLAY.key, section.getPreference(0).getKey());
             assertEquals(Settings.TAP_TO_PLAY_SCOPE.key, section.getPreference(1).getKey());
             assertEquals(Settings.TAP_TO_PLAY_AUTO_SCROLL_WAITS.key, section.getPreference(2).getKey());
@@ -84,9 +87,28 @@ public class PlaybackQualitySettingsTest {
             assertTrue(sw instanceof SwitchPreference);
             assertTrue("picking the patch is the choice to use it", ((SwitchPreference) sw).isChecked());
             assertEquals("Default playback quality", String.valueOf(sw.getTitle()));
-            assertEquals("Videos, reels and stories play at the quality below, starting with the next one you open."
-                    + " When your connection can't keep up, a video drops to the next lower quality.",
+            assertEquals("Videos, reels and stories play at the quality below, starting with the next one you open.",
                     String.valueOf(sw.getSummary()));
+
+            // #761: the step-down (#599) is its own switch, on to start, so the picked quality can stay.
+            Preference drop = rows.get(toggle + 2);
+            assertTrue(drop instanceof SwitchPreference);
+            assertEquals(Settings.PLAYBACK_QUALITY_STEPS_DOWN.key, drop.getKey());
+            assertEquals("Drop quality to keep playing", String.valueOf(drop.getTitle()));
+            assertEquals("When your connection can't keep up, a video drops to the next lower quality instead of"
+                    + " stalling. Turn this off to keep the quality you picked.", String.valueOf(drop.getSummary()));
+            assertTrue(((SwitchPreference) drop).isChecked());
+            assertTrue(drop.isEnabled());
+            ((SwitchPreference) drop).setChecked(false);
+            ShadowLooper.idleMainLooper();
+            assertFalse(Settings.PLAYBACK_QUALITY_STEPS_DOWN.get());
+            ((SwitchPreference) sw).setChecked(false);
+            ShadowLooper.idleMainLooper();
+            assertFalse("waits for Default playback quality", drop.isEnabled());
+            ((SwitchPreference) sw).setChecked(true);
+            ShadowLooper.idleMainLooper();
+            assertTrue(drop.isEnabled());
+            assertTrue(ConfigurationBackup.eligible().containsKey(Settings.PLAYBACK_QUALITY_STEPS_DOWN.key));
             assertTrue(rows.get(toggle + 1) instanceof HushgramPreferenceFragment.PlaybackQualityRow);
             HushgramPreferenceFragment.PlaybackQualityRow quality =
                     (HushgramPreferenceFragment.PlaybackQualityRow) rows.get(toggle + 1);

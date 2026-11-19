@@ -44,8 +44,8 @@ val defaultPlaybackQualityPatch = bytecodePatch(
     name = "Default playback quality",
     description = "Plays videos, reels and video stories at the quality you choose, instead of the one Instagram " +
         "picks as it plays. When your connection can't keep up, a video drops to the next lower quality instead " +
-        "of stalling. Nothing changes until you pick a quality. On by default. Turn it off in HushGram " +
-        "settings > Playback.",
+        "of stalling, unless you turn off Drop quality to keep playing. Nothing changes until you pick a quality. " +
+        "On by default. Turn it off in HushGram settings > Playback.",
     default = true,
 ) {
     category("Playback")

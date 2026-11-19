@@ -90,9 +90,12 @@ final class PlaybackCategory {
             }
             if (build.contains(PatchFamily.PLAYBACK_QUALITY)) {
                 playback.addPreference(toggle(context, Settings.DEFAULT_PLAYBACK_QUALITY, L10n.t("Default playback quality"),
-                        L10n.t("Videos, reels and stories play at the quality below, starting with the next one you open."
-                                + " When your connection can't keep up, a video drops to the next lower quality.")));
+                        L10n.t("Videos, reels and stories play at the quality below, starting with the next one you open.")));
                 playback.addPreference(playbackQualityRow(context));
+                playback.addPreference(toggle(context, Settings.PLAYBACK_QUALITY_STEPS_DOWN,
+                        L10n.t("Drop quality to keep playing"),
+                        L10n.t("When your connection can't keep up, a video drops to the next lower quality instead of"
+                                + " stalling. Turn this off to keep the quality you picked.")));
                 playback.addPreference(qualityTabRow(context));
             }
             if (build.contains(PatchFamily.DATA_SAVER)) {

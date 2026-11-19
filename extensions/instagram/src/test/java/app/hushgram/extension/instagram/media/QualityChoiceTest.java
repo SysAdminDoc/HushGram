@@ -132,6 +132,7 @@ public class QualityChoiceTest {
         PauseForTests.resume();
         Settings.DEFAULT_PLAYBACK_QUALITY.resetToDefault();
         Settings.PLAYBACK_QUALITY.resetToDefault();
+        Settings.PLAYBACK_QUALITY_STEPS_DOWN.resetToDefault();
         HookStatus.clear();
         LogBufferManager.clearLogBuffer();
     }
@@ -347,6 +348,35 @@ public class QualityChoiceTest {
         Settings.PLAYBACK_QUALITY.save(PlaybackQuality.HIGHEST);
         assertEquals("640p", firstChoice(new Evaluator(REEL), 4000 + QualityChoice.HELD_DOWN_MS - 1));
         assertEquals("then the highest again", "1080p", firstChoice(new Evaluator(REEL), 4000 + QualityChoice.HELD_DOWN_MS));
+    }
+
+    /**
+     * The acceptance (#761): with Drop quality to keep playing off, Highest stays Highest on the
+     * same slow connection, and a step down taken while it was on no longer holds new videos
+     * under it. Turned back on, the hold that's still recent applies again.
+     */
+    @Test
+    public void withTheStepDownOffTheChosenQualityStays() {
+        assertTrue("starts on, so #599's fix holds", Settings.PLAYBACK_QUALITY_STEPS_DOWN.get());
+        Settings.PLAYBACK_QUALITY.save(PlaybackQuality.HIGHEST);
+        Evaluator stepped = new Evaluator(REEL);
+        assertEquals("1080p", firstChoice(stepped, 0));
+        assertEquals("1080p", choice(stepped, 0, 0, 2000));
+        assertEquals("1080p", choice(stepped, 1000, 1000, 1600));
+        assertEquals("stepped down while it was on", "720p", choice(stepped, 2000, 2000, 1200));
+
+        Settings.PLAYBACK_QUALITY_STEPS_DOWN.save(false);
+        Evaluator video = new Evaluator(REEL);
+        assertEquals("no hold from the earlier step down", "1080p", firstChoice(video, 3000));
+        assertEquals("1080p", choice(video, 3000, 0, 2000));
+        for (int second = 1; second <= 4; second++) {
+            assertEquals("behind at " + second + " s", "1080p", choice(video, 3000 + second * 1000L, second * 1000L, 2000 - second * 400L));
+        }
+        assertEquals("even stalling", "1080p", choice(video, 20000, 5000, 100));
+        assertTrue(statusLine(), statusLine().contains(QualityChoice.STEPPED_DOWN + " 1"));
+
+        Settings.PLAYBACK_QUALITY_STEPS_DOWN.save(true);
+        assertEquals("the recent hold is back once it's on", "720p", firstChoice(new Evaluator(REEL), 21000));
     }
 
     /**

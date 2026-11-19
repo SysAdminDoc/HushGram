@@ -253,8 +253,12 @@ Turn on Tap to play to use this choice.	Activa «Toca para reproducir» para usa
 Resume long videos	Reanudar videos largos
 Videos and reels over two minutes pick up where you left off. Seek to start elsewhere. Live videos and ads start as usual.	Los videos y reels de más de dos minutos siguen donde los dejaste. Usa la barra para cambiar el inicio. Los directos y los anuncios empiezan como siempre.
 Default playback quality	Calidad de reproducción predeterminada
-# context: description of the Default playback quality switch on the Playback page, with the list of qualities below it. A video that keeps stalling because the connection is too slow for its quality switches to the next lower quality that video offers (#599)
-Videos, reels and stories play at the quality below, starting with the next one you open. When your connection can't keep up, a video drops to the next lower quality.	Los videos, reels e historias se reproducen en la calidad de abajo, a partir del próximo que abras. Cuando tu conexión no da abasto, el video baja a la calidad inmediatamente inferior.
+# context: description of the Default playback quality switch on the Playback page, with the list of qualities below it
+Videos, reels and stories play at the quality below, starting with the next one you open.	Los videos, reels e historias se reproducen en la calidad de abajo, a partir del próximo que abras.
+# context: title of a switch under Default playback quality on the Playback page. On, a video that keeps stalling because the connection is too slow for its quality switches to the next lower quality that video offers (#599); off, it keeps the quality picked (#761)
+Drop quality to keep playing	Bajar la calidad para seguir reproduciendo
+# context: description of the Drop quality to keep playing switch
+When your connection can't keep up, a video drops to the next lower quality instead of stalling. Turn this off to keep the quality you picked.	Cuando tu conexión no da abasto, el video baja a la calidad inmediatamente inferior en vez de detenerse. Desactívalo para mantener la calidad que elegiste.
 Playback quality	Calidad de reproducción
 Auto	Automática
 Data saver	Ahorro de datos

@@ -858,7 +858,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     belongs |= family == PatchFamily.REEL_SCROLLING && (Settings.SCROLL_BREAK.key.equals(key)
                             || Settings.SCROLL_BREAK_LENGTH.key.equals(key)
                             || Settings.REEL_CAP_COUNT.key.equals(key) || Settings.REEL_CAP_BREAK.key.equals(key));
-                    belongs |= family == PatchFamily.PLAYBACK_QUALITY && Settings.PLAYBACK_QUALITY.key.equals(key);
+                    belongs |= family == PatchFamily.PLAYBACK_QUALITY && (Settings.PLAYBACK_QUALITY.key.equals(key)
+                            || Settings.PLAYBACK_QUALITY_STEPS_DOWN.key.equals(key));
                     belongs |= family == PatchFamily.PLAYBACK_QUALITY && Settings.QUALITY_TAB_TARGET.key.equals(key);
                     belongs |= family == PatchFamily.TAP_TO_PLAY && (Settings.TAP_TO_PLAY_SCOPE.key.equals(key)
                             || Settings.TAP_TO_PLAY_AUTO_SCROLL_WAITS.key.equals(key));

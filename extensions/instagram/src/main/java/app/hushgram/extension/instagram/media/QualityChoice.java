@@ -47,7 +47,9 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * loading slower than it plays while little is buffered, the next choice takes the rung below, and
  * so on while it still can't keep up. For {@link #HELD_DOWN_MS} after a step down, new videos start
  * no higher than the rung it took, so a slow connection stalls one video and not each one, and then
- * at the chosen quality again. Data saver's lowest rung has nothing below it to take.
+ * at the chosen quality again. Data saver's lowest rung has nothing below it to take. With
+ * {@link Settings#PLAYBACK_QUALITY_STEPS_DOWN} off, a video keeps the chosen quality however the
+ * connection does, and no hold applies (#761).
  *
  * <p>It fails open: with the patch not in the build, the switch off, HushGram paused, the settings
  * not ready yet, Auto chosen, or a failure in here, Instagram picks the quality as it plays. A
@@ -153,7 +155,7 @@ public final class QualityChoice {
     private static final class Pin {
         /** The label of the rung kept now. */
         String label;
-        /** False for data saver's lowest rung, which stays. */
+        /** False for data saver's lowest rung, which stays, and while the step-down switch is off. */
         final boolean stepsDown;
         boolean played;
         int behind;
@@ -239,7 +241,9 @@ public final class QualityChoice {
             List<String> labels = labels(access.formats(evaluator));
             String wanted = quality.pick(labels);
             if (wanted == null) return;
-            int held = saving ? 0 : heldUnder(nowMs);
+            // Asked only once a quality was found, so the settings are ready.
+            boolean stepsDown = !saving && Settings.PLAYBACK_QUALITY_STEPS_DOWN.get();
+            int held = stepsDown ? heldUnder(nowMs) : 0;
             String picked = held > 0 && PlaybackQuality.qualityOf(wanted) > held ? PlaybackQuality.atMost(labels, held) : wanted;
             access.setCustomQuality(evaluator, picked);
             if (access.customTrack(evaluator) == null) {
@@ -250,7 +254,7 @@ public final class QualityChoice {
             }
             HookStatus.bound(FAMILY, "labelled tracks");
             HookStatus.counted(FAMILY, APPLIED);
-            pins.put(evaluator, new Pin(picked, !saving));
+            pins.put(evaluator, new Pin(picked, stepsDown));
             if (saving) DataSaver.countVideo();
             log(quality.fileValue + " started a video at " + picked + " of " + String.join(", ", labels)
                     + (picked.equals(wanted) ? "." : ", held under " + held + "p since a step down."));
