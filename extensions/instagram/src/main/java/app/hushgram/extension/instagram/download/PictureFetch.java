@@ -90,6 +90,18 @@ public final class PictureFetch {
         }
     }
 
+    /** [file]'s shorter side in pixels as a picture, or 0 when it isn't one or can't be read. Never throws. */
+    static int side(File file) {
+        try {
+            BitmapFactory.Options bounds = new BitmapFactory.Options();
+            bounds.inJustDecodeBounds = true;
+            decodeFile(file, bounds);
+            return Math.max(Math.min(bounds.outWidth, bounds.outHeight), 0);
+        } catch (IOException | RuntimeException failure) {
+            return 0;
+        }
+    }
+
     /** [file]'s width in pixels as a picture, or 0 when it isn't one or can't be read. Never throws. */
     static int width(File file) {
         try {

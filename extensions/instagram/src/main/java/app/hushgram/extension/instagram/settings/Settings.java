@@ -4724,6 +4724,13 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_viewing_history", FALSE);
 
     /**
+     * Whether the viewing history page shows its rows as a grid of big pictures, from the button
+     * on the page (#773). Not a control of its own, so it stays out of backups.
+     */
+    public static final BooleanSetting VIEWING_HISTORY_GRID =
+            new BooleanSetting("hushgram_viewing_history_grid", FALSE, false, false);
+
+    /**
      * Remembers, only on this phone, the username, bio and profile picture of each profile opened,
      * and says so when one changed since the last visit (#590, #611). It reads what Instagram
      * already loaded for the profile screen and fetches nothing but the picture shown. Old values

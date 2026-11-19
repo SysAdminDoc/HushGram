@@ -1685,6 +1685,9 @@ Find a post, reel, story or profile you saw before.	Finde einen Beitrag, ein Ree
 Recently seen	Zuletzt gesehen
 Open profile	Profil öffnen
 Remove from history	Aus dem Verlauf entfernen
+# context: the viewing history page's button that switches its rows to a grid of big pictures, then back
+Show as grid	Als Raster anzeigen
+Show as list	Als Liste anzeigen
 Viewing history	Verlauf der angesehenen Inhalte
 Nothing here yet. With Keep a viewing history on, what you look at shows up here.	Noch nichts da. Ist „Verlauf der angesehenen Inhalte führen“ an, erscheint hier, was du dir ansiehst.
 Post	Beitrag

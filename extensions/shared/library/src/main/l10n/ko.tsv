@@ -1684,6 +1684,9 @@ Find a post, reel, story or profile you saw before.	전에 본 게시물, 릴스
 Recently seen	최근에 본 항목
 Open profile	프로필 열기
 Remove from history	기록에서 삭제
+# context: the viewing history page's button that switches its rows to a grid of big pictures, then back
+Show as grid	격자로 보기
+Show as list	목록으로 보기
 Viewing history	본 기록
 Nothing here yet. With Keep a viewing history on, what you look at shows up here.	아직 아무것도 없습니다. 본 기록 남기기를 켜면 보신 항목이 여기에 표시됩니다.
 Post	게시물

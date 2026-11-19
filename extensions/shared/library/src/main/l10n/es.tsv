@@ -1685,6 +1685,9 @@ Find a post, reel, story or profile you saw before.	Encuentra una publicación, 
 Recently seen	Visto recientemente
 Open profile	Abrir perfil
 Remove from history	Quitar del historial
+# context: the viewing history page's button that switches its rows to a grid of big pictures, then back
+Show as grid	Ver como cuadrícula
+Show as list	Ver como lista
 Viewing history	Historial de lo visto
 Nothing here yet. With Keep a viewing history on, what you look at shows up here.	Aún no hay nada. Con «Guardar un historial de lo visto» activado, aquí aparece lo que miras.
 Post	Publicación

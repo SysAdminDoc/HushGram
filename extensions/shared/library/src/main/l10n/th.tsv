@@ -1675,6 +1675,9 @@ Find a post, reel, story or profile you saw before.	ค้นหาโพสต�
 Recently seen	ดูล่าสุด
 Open profile	เปิดโปรไฟล์
 Remove from history	ลบออกจากประวัติ
+# context: the viewing history page's button that switches its rows to a grid of big pictures, then back
+Show as grid	แสดงแบบตาราง
+Show as list	แสดงแบบรายการ
 Viewing history	ประวัติการรับชม
 Nothing here yet. With Keep a viewing history on, what you look at shows up here.	ยังไม่มีข้อมูลที่นี่ เมื่อเปิด "บันทึกประวัติการรับชม" สิ่งที่คุณดูจะปรากฏขึ้นที่นี่
 Post	โพสต์

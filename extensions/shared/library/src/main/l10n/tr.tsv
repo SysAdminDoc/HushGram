@@ -1685,6 +1685,9 @@ Find a post, reel, story or profile you saw before.	Daha önce gördüğün bir 
 Recently seen	Son görülenler
 Open profile	Profili aç
 Remove from history	Geçmişten kaldır
+# context: the viewing history page's button that switches its rows to a grid of big pictures, then back
+Show as grid	Izgara olarak göster
+Show as list	Liste olarak göster
 Viewing history	Görüntüleme geçmişi
 Nothing here yet. With Keep a viewing history on, what you look at shows up here.	Henüz bir şey yok. Görüntüleme geçmişi tut açıkken baktıkların burada görünür.
 Post	Gönderi

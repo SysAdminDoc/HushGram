@@ -115,8 +115,17 @@ public final class ViewingHistory {
 
     static Fetch fetch = PictureFetch::fetch;
 
-    /** The size a row's picture is chosen at: the smallest Instagram lists that's at least this wide. */
-    static final int THUMB_PX = 160;
+    /**
+     * The size a row's picture is chosen and kept at: the smallest Instagram lists that's at least
+     * this wide, about a grid tile's width on a phone (#773).
+     */
+    static final int THUMB_PX = 320;
+
+    /**
+     * The rows whose small kept copy was fetched again at a grid tile's size since Instagram
+     * started, by kind and id, so a picture that's only that small to begin with is fetched once.
+     */
+    private static final java.util.Set<String> FETCHED_BIGGER = java.util.concurrent.ConcurrentHashMap.newKeySet();
 
     /** The most rows kept. The oldest go first. */
     static final int MAX_ENTRIES = 500;
@@ -308,6 +317,7 @@ public final class ViewingHistory {
                 loadedFrom = file;
                 File work = new File(file.getParentFile(), FILE + ".tmp");
                 if (work.exists() && !work.delete()) return false;
+                FETCHED_BIGGER.clear();
                 boolean pictures = forgetPictures(application);
                 return (!file.exists() || file.delete()) && pictures;
             } catch (Throwable failure) {
@@ -361,23 +371,31 @@ public final class ViewingHistory {
     /**
      * [row]'s picture, [size] pixels across or a little more: the copy kept on the phone, or else
      * fetched from its address and kept, while the row is still in the list. Instagram's addresses
-     * stop working after some days, so the copy is what keeps an older row's picture. Null when
-     * there's none. Blocks on the network: call it on a worker thread. Never throws.
+     * stop working after some days, so the copy is what keeps an older row's picture. The copy is
+     * kept at least {@link #THUMB_PX} across where the picture is that big, so the grid's tiles and
+     * the list's small pictures both come from it (#773). A copy kept smaller, by a version that
+     * kept the list's size, is fetched again once at the grid's size while its address works. Null
+     * when there's none. Blocks on the network: call it on a worker thread. Never throws.
      */
     @Nullable
     public static Bitmap picture(Context context, Row row, int size) {
         try {
             Context application = context.getApplicationContext() != null ? context.getApplicationContext() : context;
             File kept = pictureFile(application, row);
-            if (kept.isFile()) {
+            boolean small = kept.isFile() && PictureFetch.side(kept) < Math.min(size, THUMB_PX);
+            if (kept.isFile() && !(small && !row.picture.isEmpty() && FETCHED_BIGGER.add(row.kind.name() + "\t" + row.id))) {
                 Bitmap bitmap = PictureFetch.decode(kept, size);
                 if (bitmap != null) return bitmap;
             }
-            if (row.picture.isEmpty()) return null;
-            Bitmap fetched = fetch.fetch(application, row.picture, size);
-            if (fetched == null) return null;
+            Bitmap fetched = row.picture.isEmpty() ? null : fetch.fetch(application, row.picture, Math.max(size, THUMB_PX));
+            if (fetched == null) return kept.isFile() ? PictureFetch.decode(kept, size) : null;
             synchronized (LOCK) {
                 if (holds(row)) keep(kept, fetched);
+            }
+            // Kept at the grid's size, but a small picture in the list needn't hold all of it.
+            if (Math.min(fetched.getWidth(), fetched.getHeight()) / 2 >= size && kept.isFile()) {
+                Bitmap shown = PictureFetch.decode(kept, size);
+                if (shown != null) return shown;
             }
             return fetched;
         } catch (Throwable failure) {
@@ -474,6 +492,7 @@ public final class ViewingHistory {
         synchronized (LOCK) {
             ROWS.clear();
             loadedFrom = null;
+            FETCHED_BIGGER.clear();
         }
     }
 }

@@ -39,6 +39,7 @@ import android.view.inputmethod.EditorInfo;
 import android.widget.BaseAdapter;
 import android.widget.EditText;
 import android.widget.FrameLayout;
+import android.widget.GridView;
 import android.widget.HorizontalScrollView;
 import android.widget.ImageButton;
 import android.widget.ImageView;
@@ -66,19 +67,28 @@ import app.hushgram.extension.shared.ui.Dim;
  * The viewing history's own page (#228): a tab for each kind, a search box and every row kept,
  * newest first. Tapping a row opens it again in Instagram: a post or a reel by its id, anything
  * else by the person who posted it, since a story is gone in a day and has no link of its own.
+ * The button by Clear shows the rows as a grid of big pictures instead, and the page opens the way
+ * it was left (#773).
  */
 @SuppressWarnings("deprecation") // Preference is what the settings page builds on.
 final class ViewingHistoryPage {
     /** The tabs in order. Null is everything. */
     private static final Kind[] TABS = {null, Kind.POST, Kind.REEL, Kind.STORY, Kind.PROFILE};
 
+    /** How many tiles the grid shows across, as Instagram's own grids do. */
+    static final int GRID_COLUMNS = 3;
+
     final Dialog dialog;
     final TextView[] tabs = new TextView[TABS.length];
     final EditText search;
     final ListView list;
+    final GridView grid;
+    /** Show as grid, or Show as list while the grid shows. */
+    final ImageButton layout;
     final TextView empty;
     private final ScreenColors palette = ScreenColors.current();
     private final Rows rows;
+    private final Tiles tiles;
     private final Drawable nothingYet;
     private final Drawable nothingMatches;
     /** The settings row the page opened from, which the settings lock goes by. */
@@ -106,6 +116,9 @@ final class ViewingHistoryPage {
         title.setPaddingRelative(Dim.dp(8), 0, 0, 0);
         title.setAccessibilityHeading(true);
         bar.addView(title, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+        layout = iconButton(context, palette, SettingsIcons.GRID, L10n.t(context, "Show as grid"), v -> showAsGrid(!asGrid()));
+        paintLayoutButton();
+        bar.addView(layout, new LinearLayout.LayoutParams(Dim.dp(48), Dim.dp(48)));
         bar.addView(iconButton(context, palette, SettingsIcons.DELETE, L10n.t(context, "Clear viewing history"), v ->
                 HushgramPreferenceFragment.clearViewingHistory(row, row, this::read)),
                 new LinearLayout.LayoutParams(Dim.dp(48), Dim.dp(48)));
@@ -169,6 +182,23 @@ final class ViewingHistoryPage {
         });
         body.addView(list, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        grid = new GridView(context);
+        grid.setNumColumns(GRID_COLUMNS);
+        grid.setStretchMode(GridView.STRETCH_COLUMN_WIDTH);
+        grid.setHorizontalSpacing(Dim.dp(2));
+        grid.setVerticalSpacing(Dim.dp(2));
+        grid.setCacheColorHint(Color.TRANSPARENT);
+        // Each tile draws its own press ripple over its picture.
+        grid.setSelector(new ColorDrawable(Color.TRANSPARENT));
+        tiles = new Tiles(context, palette, tileSize(context));
+        grid.setAdapter(tiles);
+        grid.setOnItemClickListener((parent, view, position, id) -> open(context, tiles.get(position)));
+        grid.setOnItemLongClickListener((parent, view, position, id) -> {
+            options(view, tiles.get(position));
+            return true;
+        });
+        body.addView(grid, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         empty = new TextView(context);
         empty.setTextColor(palette.summary);
         empty.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
@@ -179,9 +209,10 @@ final class ViewingHistoryPage {
         // before anything's been seen, the magnifier when a search or tab leaves nothing.
         nothingYet = emptyMark(context, SettingsIcons.UPDATES);
         nothingMatches = emptyMark(context, SettingsIcons.SEARCH);
+        // Shown in place of the list or the grid by show(): an AdapterView's own empty view sets
+        // that view visible whenever it has rows, so the list and the grid can't both have one.
         body.addView(empty, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP));
-        list.setEmptyView(empty);
         root.addView(body, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
 
         search.addTextChangedListener(new TextWatcher() {
@@ -243,9 +274,32 @@ final class ViewingHistoryPage {
         show();
     }
 
+    /** Whether the page shows the grid, as it was last left. A pause leaves it as it was. */
+    static boolean asGrid() {
+        return Settings.VIEWING_HISTORY_GRID.savedValue();
+    }
+
+    private void showAsGrid(boolean tiled) {
+        Settings.VIEWING_HISTORY_GRID.save(tiled);
+        paintLayoutButton();
+        show();
+    }
+
+    /** The button shows the way the page isn't showing, and says it. */
+    private void paintLayoutButton() {
+        boolean tiled = asGrid();
+        paintIcon(layout, palette, tiled ? SettingsIcons.LIST : SettingsIcons.GRID,
+                L10n.t(dialog.getContext(), tiled ? "Show as list" : "Show as grid"));
+    }
+
     private void show() {
         List<ViewingHistory.Row> shown = matching(all, kind, String.valueOf(search.getText()));
         rows.set(shown);
+        tiles.set(shown);
+        boolean tiled = asGrid();
+        list.setVisibility(!shown.isEmpty() && !tiled ? View.VISIBLE : View.GONE);
+        grid.setVisibility(!shown.isEmpty() && tiled ? View.VISIBLE : View.GONE);
+        empty.setVisibility(shown.isEmpty() ? View.VISIBLE : View.GONE);
         Context context = dialog.getContext();
         empty.setText(all.isEmpty() ? HushgramPreferenceFragment.viewingHistorySummary(all, System.currentTimeMillis())
                 : L10n.t(context, "Nothing matches."));
@@ -321,7 +375,7 @@ final class ViewingHistoryPage {
             case REMOVE:
                 if (!HushgramPreferenceFragment.viewingHistoryChangeAllowed(origin)) return true;
                 ViewingHistory.remove(context, row.kind, row.id);
-                PICTURES.remove(key(row));
+                forgetPicture(row);
                 // Off the page at once. The file catches up off the main thread.
                 List<ViewingHistory.Row> left = new ArrayList<>(all);
                 left.remove(row);
@@ -391,37 +445,59 @@ final class ViewingHistoryPage {
 
     private static ImageButton iconButton(Context context, ScreenColors palette, String icon, String label, View.OnClickListener tap) {
         ImageButton button = new ImageButton(context);
-        android.graphics.drawable.Drawable drawable = SettingsIcons.icon(context, icon, palette.title);
-        drawable.setBounds(0, 0, Dim.dp(24), Dim.dp(24));
-        button.setImageDrawable(drawable);
+        paintIcon(button, palette, icon, label);
         button.setPadding(Dim.dp(12), Dim.dp(12), Dim.dp(12), Dim.dp(12));
         button.setBackground(ripple(palette));
-        button.setContentDescription(label);
         button.setOnClickListener(tap);
         return button;
     }
 
-    /** The row pictures shown lately, by row, up to about 8 MB. */
-    private static final LruCache<String, Bitmap> PICTURES = new LruCache<String, Bitmap>(8 * 1024 * 1024) {
+    private static void paintIcon(ImageButton button, ScreenColors palette, String icon, String label) {
+        Drawable drawable = SettingsIcons.icon(button.getContext(), icon, palette.title);
+        drawable.setBounds(0, 0, Dim.dp(24), Dim.dp(24));
+        button.setImageDrawable(drawable);
+        button.setContentDescription(label);
+    }
+
+    /** How many pixels across the grid's pictures are read at: a third of the screen. */
+    static int tileSize(Context context) {
+        return Math.max(1, context.getResources().getDisplayMetrics().widthPixels / GRID_COLUMNS);
+    }
+
+    /**
+     * The pictures shown lately, by row and size, in an eighth of the memory Instagram may use,
+     * from 8 MB up to 32 MB: a screen of the grid's tiles takes about 12 MB.
+     */
+    private static final LruCache<String, Bitmap> PICTURES = new LruCache<String, Bitmap>(cacheBytes()) {
         @Override protected int sizeOf(String key, Bitmap value) {
             return value.getByteCount();
         }
     };
 
-    /** A lock per row, so two views of one row share one load. */
+    static int cacheBytes() {
+        long eighth = Runtime.getRuntime().maxMemory() / 8;
+        return (int) Math.max(8L << 20, Math.min(eighth, 32L << 20));
+    }
+
+    /** A lock per row, so two views of one row share one load, the list's and the grid's included. */
     private static final ConcurrentHashMap<String, Object> LOADING = new ConcurrentHashMap<>();
 
     private static String key(ViewingHistory.Row row) {
         return row.kind.name() + "\t" + row.id;
     }
 
+    private static String key(ViewingHistory.Row row, int size) {
+        return key(row) + "\t" + size;
+    }
+
     /**
-     * Reads or fetches [row]'s picture once. A second view of the row waits for the first load and
-     * shows its picture, instead of fetching again or reading back the copy the first one saved.
+     * Reads or fetches [row]'s picture once at [size]. A second view of the row waits for the first
+     * load and shows its picture, instead of fetching again or reading back the copy the first one saved.
      */
     @Nullable
-    private static Bitmap load(Context application, ViewingHistory.Row row, String key, int size) {
-        synchronized (LOADING.computeIfAbsent(key, ignored -> new Object())) {
+    private static Bitmap load(Context application, ViewingHistory.Row row, int size) {
+        synchronized (LOADING.computeIfAbsent(key(row), ignored -> new Object())) {
+            String key = key(row, size);
             Bitmap cached = PICTURES.get(key);
             if (cached != null) return cached;
             Bitmap bitmap = ViewingHistory.picture(application, row, size);
@@ -433,6 +509,47 @@ final class ViewingHistoryPage {
     /** Forgets the pictures shown, for Clear viewing history. */
     static void forgetPictures() {
         PICTURES.evictAll();
+    }
+
+    /** Forgets [row]'s pictures shown, at every size, for Remove from history. */
+    static void forgetPicture(ViewingHistory.Row row) {
+        String held = key(row) + "\t";
+        for (String key : PICTURES.snapshot().keySet()) {
+            if (key.startsWith(held)) PICTURES.remove(key);
+        }
+    }
+
+    /**
+     * Shows [row]'s picture in [view], read at [size] pixels: at once when it was shown lately,
+     * else its kind's icon [inset] from the edges while the picture is read or fetched off the
+     * main thread. A recycled view that has moved on to another row by then keeps that row's.
+     */
+    private static void showPicture(Context context, ScreenColors palette, ImageView view, ViewingHistory.Row row,
+                                    int size, int inset) {
+        String key = key(row, size);
+        view.setTag(key);
+        Bitmap cached = PICTURES.get(key);
+        if (cached != null) {
+            fill(view, cached);
+            return;
+        }
+        view.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        view.setPadding(inset, inset, inset, inset);
+        view.setImageDrawable(SettingsIcons.icon(context, kindIcon(row.kind), palette.summary));
+        Context application = context.getApplicationContext() != null ? context.getApplicationContext() : context;
+        Utils.runOnBackgroundThread(() -> {
+            Bitmap bitmap = load(application, row, size);
+            if (bitmap == null) return;
+            Utils.runOnMainThread(() -> {
+                if (key.equals(view.getTag())) fill(view, bitmap);
+            });
+        });
+    }
+
+    private static void fill(ImageView view, Bitmap bitmap) {
+        view.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        view.setPadding(0, 0, 0, 0);
+        view.setImageBitmap(bitmap);
     }
 
     /** The icon a row shows until its picture comes, or when it has none. */
@@ -486,7 +603,7 @@ final class ViewingHistoryPage {
             LinearLayout words = texts(row);
             ((TextView) words.getChildAt(0)).setText(seen.owner.isEmpty() ? label : "@" + seen.owner);
             ((TextView) words.getChildAt(1)).setText(seen.owner.isEmpty() ? ago : label + ", " + ago);
-            show(picture(row), seen);
+            showPicture(context, palette, picture(row), seen, Dim.dp(PICTURE_DP), Dim.dp(12));
             return row;
         }
 
@@ -498,39 +615,6 @@ final class ViewingHistoryPage {
         /** A row's two lines of words. */
         static LinearLayout texts(LinearLayout row) {
             return (LinearLayout) row.getChildAt(1);
-        }
-
-        /**
-         * Shows [row]'s picture in [view]: at once when it was shown lately, else its kind's icon
-         * while the picture is read or fetched off the main thread. A recycled view that has moved
-         * on to another row by then keeps that row's.
-         */
-        private void show(ImageView view, ViewingHistory.Row row) {
-            String key = key(row);
-            view.setTag(key);
-            Bitmap cached = PICTURES.get(key);
-            if (cached != null) {
-                fill(view, cached);
-                return;
-            }
-            view.setScaleType(ImageView.ScaleType.FIT_CENTER);
-            view.setPadding(Dim.dp(12), Dim.dp(12), Dim.dp(12), Dim.dp(12));
-            view.setImageDrawable(SettingsIcons.icon(context, kindIcon(row.kind), palette.summary));
-            Context application = context.getApplicationContext() != null ? context.getApplicationContext() : context;
-            int size = Dim.dp(PICTURE_DP);
-            Utils.runOnBackgroundThread(() -> {
-                Bitmap bitmap = load(application, row, key, size);
-                if (bitmap == null) return;
-                Utils.runOnMainThread(() -> {
-                    if (key.equals(view.getTag())) fill(view, bitmap);
-                });
-            });
-        }
-
-        private static void fill(ImageView view, Bitmap bitmap) {
-            view.setScaleType(ImageView.ScaleType.CENTER_CROP);
-            view.setPadding(0, 0, 0, 0);
-            view.setImageBitmap(bitmap);
         }
 
         private LinearLayout make() {
@@ -577,4 +661,119 @@ final class ViewingHistoryPage {
 
     /** How big a row's picture is. */
     static final int PICTURE_DP = 48;
+
+    /**
+     * The grid's tiles (#773): the picture filling a square, who posted it over its foot and its
+     * kind's icon in a corner, read out as the list's row is.
+     */
+    static final class Tiles extends BaseAdapter {
+        private final Context context;
+        private final ScreenColors palette;
+        private final int size;
+        private List<ViewingHistory.Row> shown = Collections.emptyList();
+
+        Tiles(Context context, ScreenColors palette, int size) {
+            this.context = context;
+            this.palette = palette;
+            this.size = size;
+        }
+
+        void set(List<ViewingHistory.Row> rows) {
+            shown = rows;
+            notifyDataSetChanged();
+        }
+
+        ViewingHistory.Row get(int position) {
+            return shown.get(position);
+        }
+
+        @Override public int getCount() {
+            return shown.size();
+        }
+
+        @Override public Object getItem(int position) {
+            return shown.get(position);
+        }
+
+        @Override public long getItemId(int position) {
+            return position;
+        }
+
+        @Override public View getView(int position, View reused, ViewGroup parent) {
+            Tile tile = reused instanceof Tile ? (Tile) reused : make();
+            ViewingHistory.Row seen = shown.get(position);
+            String label = HushgramPreferenceFragment.viewingKindLabel(seen.kind);
+            String ago = DateUtils.getRelativeTimeSpanString(seen.time, System.currentTimeMillis(),
+                    DateUtils.MINUTE_IN_MILLIS).toString();
+            String who = seen.owner.isEmpty() ? label : "@" + seen.owner;
+            caption(tile).setText(who);
+            tile.setContentDescription(seen.owner.isEmpty() ? label + ", " + ago : who + ", " + label + ", " + ago);
+            badge(tile).setImageDrawable(SettingsIcons.icon(context, kindIcon(seen.kind), Color.WHITE));
+            showPicture(context, palette, picture(tile), seen, size, size / 3);
+            return tile;
+        }
+
+        /** A tile's picture. */
+        static ImageView picture(FrameLayout tile) {
+            return (ImageView) tile.getChildAt(0);
+        }
+
+        /** Who posted a tile's picture. */
+        static TextView caption(FrameLayout tile) {
+            return (TextView) tile.getChildAt(1);
+        }
+
+        /** A tile's kind. */
+        static ImageView badge(FrameLayout tile) {
+            return (ImageView) tile.getChildAt(2);
+        }
+
+        private Tile make() {
+            Tile tile = new Tile(context);
+            tile.setBackgroundColor(palette.card);
+            tile.setForeground(ripple(palette));
+
+            // The tile's own words say what it is, so its parts aren't read on their own.
+            ImageView picture = new ImageView(context);
+            picture.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+            tile.addView(picture, new FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+
+            TextView caption = new TextView(context);
+            caption.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+            caption.setTextColor(Color.WHITE);
+            caption.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+            caption.setSingleLine(true);
+            caption.setEllipsize(TextUtils.TruncateAt.END);
+            caption.setPaddingRelative(Dim.dp(6), Dim.dp(14), Dim.dp(6), Dim.dp(5));
+            // A shade under the name, so it reads over a light picture too.
+            caption.setBackground(new GradientDrawable(GradientDrawable.Orientation.BOTTOM_TOP,
+                    new int[]{0x99000000, 0x00000000}));
+            tile.addView(caption, new FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM));
+
+            ImageView badge = new ImageView(context);
+            badge.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+            GradientDrawable dot = new GradientDrawable();
+            dot.setShape(GradientDrawable.OVAL);
+            dot.setColor(0x66000000);
+            badge.setBackground(dot);
+            badge.setPadding(Dim.dp(4), Dim.dp(4), Dim.dp(4), Dim.dp(4));
+            FrameLayout.LayoutParams corner = new FrameLayout.LayoutParams(Dim.dp(24), Dim.dp(24), Gravity.TOP | Gravity.END);
+            corner.setMargins(Dim.dp(6), Dim.dp(6), Dim.dp(6), Dim.dp(6));
+            tile.addView(badge, corner);
+            return tile;
+        }
+    }
+
+    /** A grid tile, as tall as the column is wide. */
+    static final class Tile extends FrameLayout {
+        Tile(Context context) {
+            super(context);
+        }
+
+        @Override protected void onMeasure(int widthSpec, int heightSpec) {
+            super.onMeasure(widthSpec, widthSpec);
+        }
+    }
 }

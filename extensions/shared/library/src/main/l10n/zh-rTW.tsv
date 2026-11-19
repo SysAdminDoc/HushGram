@@ -1688,6 +1688,9 @@ Find a post, reel, story or profile you saw before.	找回你看過的貼文、R
 Recently seen	最近看過
 Open profile	開啟個人檔案
 Remove from history	從紀錄中移除
+# context: the viewing history page's button that switches its rows to a grid of big pictures, then back
+Show as grid	以網格顯示
+Show as list	以清單顯示
 Viewing history	瀏覽紀錄
 Nothing here yet. With Keep a viewing history on, what you look at shows up here.	目前還沒有內容。開啟保留瀏覽紀錄後，你看過的內容會顯示在這裡。
 Post	貼文

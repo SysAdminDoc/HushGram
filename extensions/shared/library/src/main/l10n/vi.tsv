@@ -1626,6 +1626,9 @@ Find a post, reel, story or profile you saw before.	Tìm lại bài viết, reel
 Recently seen	Đã xem gần đây
 Open profile	Mở trang cá nhân
 Remove from history	Xóa khỏi lịch sử
+# context: the viewing history page's button that switches its rows to a grid of big pictures, then back
+Show as grid	Hiển thị dạng lưới
+Show as list	Hiển thị dạng danh sách
 Viewing history	Lịch sử đã xem
 Nothing here yet. With Keep a viewing history on, what you look at shows up here.	Chưa có gì. Khi Giữ lịch sử đã xem bật, những gì bạn xem sẽ hiện ở đây.
 # context: the kind of item in the viewing history list: Post, Reel, Story

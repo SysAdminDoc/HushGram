@@ -6,6 +6,7 @@ Every HushGram release, newest first.
 
 ### Improvements
 
+* The viewing history page has a grid button next to Clear. It shows what you watched as big pictures, three across, so a reel is easier to spot by its cover. Tap the button again for the list. The page remembers which one you used, and tabs, search, tap and hold work the same in both. Requested in #773.
 * `Auto scroll in the reel menu` under Reels puts Turn on auto scroll or Turn off auto scroll in a reel's three-dot menu. It works on accounts where Instagram doesn't offer auto scroll too. Requested in #768.
 * `Hide notifications by type` under Notifications lists the kinds of notifications Instagram has sent you, each with a line from one, and takes the ones you tick off the page. Requested in #756.
 * Saving a reel gets its picture and sound at the same time now, instead of one after the other, so saves finish sooner. Asked about in #493.

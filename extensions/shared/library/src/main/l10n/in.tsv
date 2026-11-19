@@ -1685,6 +1685,9 @@ Find a post, reel, story or profile you saw before.	Temukan lagi kiriman, reel, 
 Recently seen	Baru dilihat
 Open profile	Buka profil
 Remove from history	Hapus dari riwayat
+# context: the viewing history page's button that switches its rows to a grid of big pictures, then back
+Show as grid	Tampilkan sebagai kisi
+Show as list	Tampilkan sebagai daftar
 Viewing history	Riwayat tontonan
 Nothing here yet. With Keep a viewing history on, what you look at shows up here.	Belum ada apa-apa. Setelah Simpan riwayat tontonan diaktifkan, yang kamu lihat akan muncul di sini.
 Post	Kiriman

@@ -170,14 +170,17 @@ public class ViewingHistoryTest {
         }
     };
 
-    /** #228: a row's picture is the smallest size Instagram lists that's still sharp in the row. */
+    /** #228, #773: a row's picture is the smallest size Instagram lists that's still sharp in a grid tile. */
     @Test public void thePictureIsTheSmallestSizeThatStillFills() {
         ViewingHistory.Sizes original = ViewingHistory.sizes;
         ViewingHistory.sizes = FAKE;
         try {
             Media reel = new Media(java.util.Arrays.asList(new Size("w1080", 1080), new Size("w240", 240),
-                    new Size("w150", 150), new Size("w640", 640)), null);
-            assertEquals("w240", ViewingHistory.picture(reel));
+                    new Size("w150", 150), new Size("w640", 640), new Size("w320", 320)), null);
+            assertEquals("a third of a phone's width, not the list's 240", "w320", ViewingHistory.picture(reel));
+            Media older = new Media(java.util.Arrays.asList(new Size("w1080", 1080), new Size("w240", 240),
+                    new Size("w640", 640)), null);
+            assertEquals("w640", ViewingHistory.picture(older));
 
             Media small = new Media(java.util.Arrays.asList(new Size("w100", 100), new Size("w120", 120)), null);
             assertEquals("nothing big enough, so the biggest", "w120", ViewingHistory.picture(small));
@@ -270,6 +273,70 @@ public class ViewingHistoryTest {
             assertFalse("Clear takes the pictures too", kept.exists());
         } finally {
             ViewingHistory.fetch = original;
+        }
+    }
+
+    /**
+     * #773: the copy is kept at a grid tile's size, so the grid's big pictures and the list's
+     * small ones both come from it. A copy an older version kept at the list's size is fetched
+     * again once for the grid, and a fetch that fails falls back to it.
+     */
+    @Test
+    @org.robolectric.annotation.GraphicsMode(org.robolectric.annotation.GraphicsMode.Mode.NATIVE)
+    public void thePictureIsKeptBigEnoughForTheGridAndASmallOldCopyIsFetchedOnceMore() throws Exception {
+        ViewingHistory.Fetch original = ViewingHistory.fetch;
+        List<Integer> askedAt = new java.util.ArrayList<>();
+        int[] answer = {400};
+        ViewingHistory.fetch = (ctx, url, size) -> {
+            askedAt.add(size);
+            if (answer[0] == 0) return null;
+            return android.graphics.Bitmap.createBitmap(answer[0], answer[0], android.graphics.Bitmap.Config.ARGB_8888);
+        };
+        try {
+            ViewingHistory.add(context, Kind.REEL, "4_4", "cy", "https://scontent.cdninstagram.com/c.jpg", 1_000L);
+            ViewingHistory.Row row = ViewingHistory.entries(context).get(0);
+            android.graphics.Bitmap small = ViewingHistory.picture(context, row, 48);
+            assertEquals("fetched at a tile's size even for the list", java.util.Collections.singletonList(ViewingHistory.THUMB_PX), askedAt);
+            File kept = ViewingHistory.pictureFile(context, row);
+            assertEquals("and kept that big", 400, PictureFetch.side(kept));
+            assertTrue("the list's picture needn't hold all of it: " + small.getWidth(), small.getWidth() >= 48 && small.getWidth() < 400);
+
+            android.graphics.Bitmap tile = ViewingHistory.picture(context, row, 360);
+            assertEquals("the grid reads the same copy", 1, askedAt.size());
+            assertEquals(400, tile.getWidth());
+
+            // Under twice the list's 48, so shown whole: what an older version kept for the list.
+            answer[0] = 90;
+            ViewingHistory.add(context, Kind.POST, "5_5", "dee", "https://scontent.cdninstagram.com/d.jpg", 2_000L);
+            ViewingHistory.Row old = ViewingHistory.entries(context).get(0);
+            assertEquals(90, ViewingHistory.picture(context, old, 48).getWidth());
+            File oldKept = ViewingHistory.pictureFile(context, old);
+            assertEquals("a picture that's only this small to begin with", 90, PictureFetch.side(oldKept));
+            assertEquals(90, ViewingHistory.picture(context, old, 48).getWidth());
+            assertEquals("big enough for the list, so not fetched again", 2, askedAt.size());
+
+            answer[0] = 400;
+            assertEquals("too small for a tile, so fetched once more", 400, ViewingHistory.picture(context, old, 360).getWidth());
+            assertEquals(Integer.valueOf(360), askedAt.get(askedAt.size() - 1));
+            assertEquals("and kept at the bigger size", 400, PictureFetch.side(oldKept));
+
+            answer[0] = 90;
+            ViewingHistory.add(context, Kind.POST, "6_6", "eve", "https://scontent.cdninstagram.com/e.jpg", 3_000L);
+            ViewingHistory.Row tiny = ViewingHistory.entries(context).get(0);
+            ViewingHistory.picture(context, tiny, 48);
+            int before = askedAt.size();
+            assertEquals(90, ViewingHistory.picture(context, tiny, 360).getWidth());
+            assertEquals(90, ViewingHistory.picture(context, tiny, 360).getWidth());
+            assertEquals("a picture that's small at its address too is fetched once more, not every time", before + 1, askedAt.size());
+
+            ViewingHistory.forgetForTests();
+            answer[0] = 0;
+            android.graphics.Bitmap gone = ViewingHistory.picture(context, tiny, 360);
+            assertEquals("a new run tries once more", before + 2, askedAt.size());
+            assertTrue("an address that stopped working keeps the copy", gone != null && gone.getWidth() == 90);
+        } finally {
+            ViewingHistory.fetch = original;
+            ViewingHistory.clear(context);
         }
     }
 }
