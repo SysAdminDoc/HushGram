@@ -1910,6 +1910,8 @@ Open a chat, tap the clock button next to the call buttons at the top, or long p
 Instagram stopped loading older messages.	Instagram eski mesajları yüklemeyi bıraktı.
 Black settings page	Siyah ayarlar sayfası
 Black rows and dialogs, with HushGram's name at the top.	Siyah satırlar ve pencereler, üstte HushGram adıyla.
+Light settings page	Açık ayarlar sayfası
+White rows and dialogs, with HushGram's name at the top. Takes the place of Black settings page while it's on.	Beyaz satırlar ve pencereler, üstte HushGram adıyla. Açıkken Siyah ayarlar sayfasının yerini alır.
 Mark as read	Okundu olarak işaretle
 Nothing to mark as read	Okundu yapılacak bir şey yok
 Mark as read button in chats	Sohbetlerde Okundu olarak işaretle düğmesi

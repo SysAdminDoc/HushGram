@@ -359,7 +359,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     private final List<CategoryGroups.Label> groupLabels = new ArrayList<>();
     /** The group whose chip was picked, which the list of categories shows alone, or -1 for all. */
     private int shownGroup = -1;
-    /** HushGram's name over the page while the black look is on and nothing is searched (#455). */
+    /** HushGram's name over the page while the black or the light look is on (#455, #762). */
     @Nullable private Preference header;
     /** Before you sign in, while no tap has hidden it. The home page's, like the status card. */
     @Nullable private Preference beforeSignIn;
@@ -645,7 +645,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         Settings.HIDE_ADS.get();
 
         // Every row inflates with the theme of the context it was built with. Instagram's activity
-        // theme can be light, and its near-black text would vanish on this screen's black page.
+        // theme can be light or dark, and the wrong one's text would vanish on this screen's page.
         ScreenColors.shown = null;
         Context context = themed(getContext());
         PreferenceScreen screen = getPreferenceManager().createPreferenceScreen(context);
@@ -823,6 +823,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     aliases.append(" amoled oled black theme");
                 }
                 if (Settings.SETTINGS_BLACK_LOOK.key.equals(key)) aliases.append(" amoled oled dark theme layout");
+                if (Settings.SETTINGS_LIGHT_LOOK.key.equals(key)) aliases.append(" white bright day theme layout");
                 if (NotificationsCategory.movedFromProfiles(key)) aliases.append(' ').append(L10n.t("Profiles"));
                 if (Settings.HIDE_REELS_TAB.key.equals(key) || Settings.SHOW_REELS_TAB.key.equals(key)) {
                     aliases.append(' ').append(L10n.t("Reels"));
@@ -1266,8 +1267,14 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         if (list != null) list.invalidateViews();
     }
 
-    /** Black settings page shows at once: the header, the category lines and every row's colours (#455). */
+    /**
+     * Black or Light settings page shows at once: the header, the category lines, every row's
+     * colours, and the page, bar and Restart now around them (#455, #762).
+     */
     void applyLook() {
+        ListView list = listView();
+        if (list != null) list.setBackgroundColor(ScreenColors.current().background);
+        if (getParentFragment() instanceof SettingsDialog) ((SettingsDialog) getParentFragment()).repaint();
         filterSettings();
         rebindRows();
     }
@@ -1827,7 +1834,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         PreferenceCategory under = pages ? shownPage() : null;
         PreferenceCategory page = listing ? under : null;
         boolean own = listing && ownPages();
-        boolean black = Settings.SETTINGS_BLACK_LOOK.savedValue();
+        // Either look puts HushGram's name at the top (#455, #762).
+        boolean named = Settings.SETTINGS_BLACK_LOOK.savedValue() || Settings.SETTINGS_LIGHT_LOOK.savedValue();
         for (Preference top : new Preference[]{header, statusCard, beforeSignIn, viewToggle, gridToggle, search}) {
             if (top == null) continue;
             // A tap hid the notice for good and took it off the screen. It stays off.
@@ -1835,7 +1843,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             // The header stays while searching. Taking a row off above the field moved the field's
             // place in the list mid-word, and a hardware keyboard's next key was dropped.
             boolean hidden = under != null && top != search || (top == statusCard ? !HushgramPause.isPaused()
-                    : top == gridToggle ? !listing : top == header && !black);
+                    : top == gridToggle ? !listing : top == header && !named);
             if (hidden) {
                 if (top.getParent() == screen) screen.removePreference(top);
             } else if (top.getParent() != screen) screen.addPreference(top);
@@ -1912,7 +1920,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     else if (!expanded && lastCarouselSave.getParent() == group) group.removePreference(lastCarouselSave);
                 }
             }
-            if (group instanceof Heading) ((Heading) group).display(listing && !held && page == null, expanded, black);
+            if (group instanceof Heading) ((Heading) group).display(listing && !held && page == null, expanded, named);
             boolean tile = gridOn && filled && group instanceof Heading && !outside;
             if (tile) tiles.add((Heading) group);
             if (page != null && filled && group instanceof Heading && !outside) chips.add((Heading) group);
@@ -3258,6 +3266,9 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         filterSettings();
     }
 
+    /** Marks the search row's clear cross, so a repaint finds it. */
+    private static final String SEARCH_CLEAR = "hushgram-settings-search-clear";
+
     /** Inline input. Its query is local to this page and never becomes a stored setting. */
     private final class SearchRow extends Preference {
         SearchRow(Context context) { super(context); }
@@ -3288,18 +3299,10 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             // The whole search row owns the surface, including its clear action.
             field.setBackground(null);
             field.setPaddingRelative(0, Math.round(10 * density), 0, Math.round(10 * density));
-            field.setTextColor(ScreenColors.DEFAULT.title);
             field.setHint(L10n.t("Search settings"));
             field.setContentDescription(L10n.t("Search settings"));
             // The hint and the query start by the magnifier, on the right in a right-to-left layout.
             field.setTextAlignment(View.TEXT_ALIGNMENT_VIEW_START);
-            // A magnifier at the field's start, as every row starts with an icon. A screen reader
-            // already hears the field's name, and a compound drawable isn't read.
-            android.graphics.drawable.Drawable glass = SettingsIcons.icon(context, SettingsIcons.SEARCH,
-                    ScreenColors.DEFAULT.summary);
-            int glassSize = Math.round(20 * context.getResources().getDisplayMetrics().density);
-            glass.setBounds(0, 0, glassSize, glassSize);
-            field.setCompoundDrawablesRelative(glass, null, null, null);
             field.setCompoundDrawablePadding(Math.round(12 * context.getResources().getDisplayMetrics().density));
             field.setMinimumHeight(touch);
             field.setText(searchQuery);
@@ -3308,16 +3311,11 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             row.addOnAttachStateChangeListener(focus);
             row.addView(field, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
             Button clear = new Button(context);
+            clear.setTag(SEARCH_CLEAR);
             clear.setText("");
             clear.setAllCaps(false);
             clear.setTextSize(24);
-            clear.setTextColor(ScreenColors.DEFAULT.heading);
-            android.graphics.drawable.Drawable cross = SettingsIcons.icon(context, SettingsIcons.CLOSE,
-                    ScreenColors.DEFAULT.heading);
             int crossSize = Math.round(20 * density);
-            cross.setBounds(0, 0, crossSize, crossSize);
-            clear.setCompoundDrawablesRelative(cross, null, null, null);
-            ScreenColors.styleIconAction(clear);
             clear.setContentDescription(L10n.t("Clear search"));
             clear.setTooltipText(L10n.t("Clear search"));
             int crossPadding = (touch - crossSize) / 2;
@@ -3355,7 +3353,38 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     clear.setVisibility(text.length() == 0 ? View.INVISIBLE : View.VISIBLE);
                 }
             });
+            paintSearch(row);
             return row;
+        }
+
+        /**
+         * The query, its placeholder, the magnifier at the field's start and the clear cross, in the
+         * colours on show, so a flip of Light settings page repaints them with the card (#762).
+         */
+        private void paintSearch(View row) {
+            ScreenColors colors = ScreenColors.current();
+            Context context = row.getContext();
+            int size = Math.round(20 * context.getResources().getDisplayMetrics().density);
+            View found = row.findViewWithTag("hushgram-settings-search");
+            if (found instanceof EditText) {
+                EditText field = (EditText) found;
+                field.setTextColor(colors.title);
+                field.setHintTextColor(ScreenColors.dimmedWhenDisabled(colors.hint));
+                field.setHighlightColor(ScreenColors.half(colors.accent));
+                // A magnifier at the field's start, as every row starts with an icon. A screen reader
+                // already hears the field's name, and a compound drawable isn't read.
+                android.graphics.drawable.Drawable glass = SettingsIcons.icon(context, SettingsIcons.SEARCH, colors.summary);
+                glass.setBounds(0, 0, size, size);
+                field.setCompoundDrawablesRelative(glass, null, null, null);
+            }
+            View clear = row.findViewWithTag(SEARCH_CLEAR);
+            if (clear instanceof Button) {
+                ((Button) clear).setTextColor(colors.heading);
+                android.graphics.drawable.Drawable cross = SettingsIcons.icon(context, SettingsIcons.CLOSE, colors.heading);
+                cross.setBounds(0, 0, size, size);
+                ((Button) clear).setCompoundDrawablesRelative(cross, null, null, null);
+                ScreenColors.styleIconAction(clear);
+            }
         }
 
         /**
@@ -3390,7 +3419,9 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
          */
         @Override protected void onBindView(View view) {
             super.onBindView(view);
-            if (!Integer.valueOf(ScreenColors.current().card).equals(view.getTag())) paint(view);
+            if (Integer.valueOf(ScreenColors.current().card).equals(view.getTag())) return;
+            paint(view);
+            paintSearch(view);
         }
     }
 
@@ -3456,7 +3487,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         card.setPersistent(false);
         card.setEnabled(!resumingFromOverview);
         boolean paused = HushgramPause.isPaused();
-        ScreenColors palette = ScreenColors.DEFAULT;
+        ScreenColors palette = ScreenColors.current();
         card.setIcon(SettingsIcons.icon(context, paused ? SettingsIcons.PAUSE : SettingsIcons.PATCHED,
                 paused ? palette.summary : palette.heading));
         statusCard = card;
@@ -3487,7 +3518,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         Row notice = new Row(context);
         notice.setPersistent(false);
         notice.setKey(SIGN_IN_NOTICE_KEY);
-        notice.setIcon(SettingsIcons.icon(context, SettingsIcons.ABOUT, ScreenColors.DEFAULT.heading));
+        notice.setIcon(SettingsIcons.icon(context, SettingsIcons.ABOUT, ScreenColors.current().heading));
         notice.setTitle(L10n.t("Before you sign in"));
         notice.setSummary(L10n.t("Nobody outside Meta knows what gets an account suspended. A patched Instagram "
                 + "can't pass Google's check that it came from the Play Store, and no patch changes that. If you'd "
@@ -3673,7 +3704,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         return "Android/data/" + packageName + "/files";
     }
 
-    /** The dark Material theme every row and dialog on this screen is built with. */
+    /** The Material theme every row and dialog on this screen is built with: the light one under the light look. */
     static Context themed(Context base) {
         return new ContextThemeWrapper(base, ScreenColors.themeFor(base));
     }
@@ -7875,7 +7906,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     }
 
     static Preference mark(Preference row, String icon) {
-        row.setIcon(SettingsIcons.icon(row.getContext(), icon, ScreenColors.DEFAULT.heading));
+        row.setIcon(SettingsIcons.icon(row.getContext(), icon, ScreenColors.current().heading));
         return row;
     }
 
@@ -10906,8 +10937,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         text.setLineSpacing(Math.round(2 * context.getResources().getDisplayMetrics().density), 1.04f);
         ScrollView scroll = new ScrollView(context);
         scroll.addView(text);
-        text.setTextColor(ScreenColors.DEFAULT.summary);
-        text.setLinkTextColor(ScreenColors.DEFAULT.heading);
+        text.setTextColor(ScreenColors.current().summary);
+        text.setLinkTextColor(ScreenColors.current().heading);
         Linkify.addLinks(text, Linkify.WEB_URLS);
         show(new AlertDialog.Builder(context)
                 .setTitle(L10n.t("Licenses"))

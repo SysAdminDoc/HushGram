@@ -48,7 +48,18 @@ public final class ShimmerTitle implements Runnable, View.OnAttachStateChangeLis
      * where needed so it reads at 7:1 or better on the black bar.
      */
     static final int[] COLORS = {0xFFFEDA75, 0xFFFA7E1E, 0xFFFF5C9A, 0xFFC77DFF, 0xFF85A1FF};
+    /**
+     * The same gradient on the light look's white (#762), orange through raspberry and purple to
+     * blue, each stop darkened to 7:1 or better on it. Yellow can't read on white, so it starts at
+     * the orange.
+     */
+    static final int[] LIGHT_COLORS = {0xFF9A3412, 0xFFA01E50, 0xFF8E1A9A, 0xFF7520C0, 0xFF3346D3};
     private static final int[] SHEEN = {0x00FFFFFF, 0xB3FFFFFF, 0x00FFFFFF};
+    /**
+     * The sheen on the light look: fainter, since white over dark text on a white page fades it.
+     * At its peak every light stop still reads at 3:1, the mark for a title this size.
+     */
+    static final int[] LIGHT_SHEEN = {0x00FFFFFF, 0x4DFFFFFF, 0x00FFFFFF};
     /**
      * The titles wearing the gradient, so painting one twice doesn't run two loops. The loop is held
      * weakly too: it holds its title, and a value that holds its key keeps the entry, and with it
@@ -60,6 +71,8 @@ public final class ShimmerTitle implements Runnable, View.OnAttachStateChangeLis
     private final Matrix move = new Matrix();
     private final Matrix across = new Matrix();
     private LinearGradient colors;
+    /** The stops {@link #colors} was made from, so a flip of the look remakes it. */
+    private int[] shadedWith;
     private LinearGradient sheen;
     private float shadedWidth = -1f;
     private float shadedHeight = -1f;
@@ -152,9 +165,12 @@ public final class ShimmerTitle implements Runnable, View.OnAttachStateChangeLis
         float width = Math.max(1f, right - left);
         float height = Math.max(1f, layout.getHeight());
         float band = height * 1.6f;
-        if (colors == null || width != shadedWidth || height != shadedHeight) {
-            colors = new LinearGradient(0f, 0f, width, 0f, COLORS, null, Shader.TileMode.MIRROR);
-            sheen = new LinearGradient(0f, 0f, band, band * 0.35f, SHEEN, null, Shader.TileMode.CLAMP);
+        int[] stops = stops();
+        if (colors == null || width != shadedWidth || height != shadedHeight || stops != shadedWith) {
+            colors = new LinearGradient(0f, 0f, width, 0f, stops, null, Shader.TileMode.MIRROR);
+            shadedWith = stops;
+            sheen = new LinearGradient(0f, 0f, band, band * 0.35f,
+                    stops == LIGHT_COLORS ? LIGHT_SHEEN : SHEEN, null, Shader.TileMode.CLAMP);
             shadedWidth = width;
             shadedHeight = height;
         }
@@ -166,6 +182,11 @@ public final class ShimmerTitle implements Runnable, View.OnAttachStateChangeLis
         sheen.setLocalMatrix(across);
         // Built afresh each frame: a ComposeShader keeps the matrices its parts had when it was made.
         return new ComposeShader(colors, sheen, PorterDuff.Mode.SRC_OVER);
+    }
+
+    /** The gradient for the colours on show: {@link #LIGHT_COLORS} on the light look, else {@link #COLORS}. */
+    static int[] stops() {
+        return ScreenColors.current().light ? LIGHT_COLORS : COLORS;
     }
 
     /**

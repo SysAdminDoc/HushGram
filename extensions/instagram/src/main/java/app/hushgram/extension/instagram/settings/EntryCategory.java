@@ -71,5 +71,13 @@ final class EntryCategory {
             return true;
         });
         entry.addPreference(black);
+        SwitchPreference light = toggle(context, Settings.SETTINGS_LIGHT_LOOK, L10n.t("Light settings page"),
+                L10n.t("White rows and dialogs, with HushGram's name at the top. Takes the place of Black settings page while it's on."));
+        light.setOnPreferenceChangeListener((preference, value) -> {
+            // Posted, so the page redraws with the value this change saves.
+            Utils.runOnMainThread(page::applyLook);
+            return true;
+        });
+        entry.addPreference(light);
     }
 }

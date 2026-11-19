@@ -19,6 +19,7 @@ Every HushGram release, newest first.
 * Hide comments has two more switches under Comments. `Hide likes on comments` takes the heart and its like count off every comment in a post's or reel's comments. `Hide the comment box` takes the box at the bottom away (your picture, the text field and Post), so the comments get that space too. Turn it back off when you want to write one. Both from #762.
 * Tap to play's `Where videos wait` can treat Explore on its own now. Four new picks: `Everywhere but Explore`, `Only in Explore`, `Reels and Explore` and `Everywhere but Reels and Explore`. A reel you open from Explore goes with Reels, and the three picks you had before work the same as always. Asked for in #762.
 * The video under the HushGram settings pauses while they're open, so it stops playing and loading where you can't see it. Closing the settings plays it again, and a video you'd tapped with Tap to play on stays tapped. Asked for in #762.
+* `Light settings page` sits under `Black settings page` in Settings entry. It turns the HushGram settings white, with dark text, dark status bar icons and the name at the top in deeper colors that read on white. The history and saved profile pages you open from there follow it, and the rest of Instagram keeps its own look. Flipping it repaints the page right away. Asked for in #762.
 * **Tooling:** The GitHub release notes leave out the Tooling bullets and the What was checked part now. They're still here in the changelog, and Manager's notes keep their Validation line.
 
 ### Bug Fixes

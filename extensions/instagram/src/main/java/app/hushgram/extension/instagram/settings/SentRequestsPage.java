@@ -76,7 +76,7 @@ public final class SentRequestsPage {
 
     private SentRequestsPage(Context context, Preference row) {
         origin = row;
-        dialog = new Dialog(context, android.R.style.Theme_Material_NoActionBar);
+        dialog = new Dialog(context, palette.theme());
         LinearLayout root = new LinearLayout(context);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setBackgroundColor(palette.background);
@@ -163,6 +163,7 @@ public final class SentRequestsPage {
         Window window = dialog.getWindow();
         if (window != null) {
             window.setBackgroundDrawable(new ColorDrawable(palette.background));
+            palette.paintBars(window);
             window.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) window.setNavigationBarContrastEnforced(false);
             window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE

@@ -1909,6 +1909,8 @@ Open a chat, tap the clock button next to the call buttons at the top, or long p
 Instagram stopped loading older messages.	Instagram이 이전 메시지 불러오기를 멈췄습니다.
 Black settings page	검은색 설정 페이지
 Black rows and dialogs, with HushGram's name at the top.	검은색 행과 대화상자, 맨 위에 HushGram 이름.
+Light settings page	밝은 설정 페이지
+White rows and dialogs, with HushGram's name at the top. Takes the place of Black settings page while it's on.	흰색 행과 대화상자, 맨 위에 HushGram 이름. 켜져 있는 동안 검은색 설정 페이지 대신 사용됩니다.
 Mark as read	읽음으로 표시
 Nothing to mark as read	읽음으로 표시할 항목이 없습니다
 Mark as read button in chats	채팅의 읽음으로 표시 버튼

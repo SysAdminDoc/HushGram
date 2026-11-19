@@ -104,6 +104,23 @@ public class ScreenColorsAccessibilityTest {
         readable(ScreenColors.DEFAULT);
     }
 
+    @Test public void theLightPageKeepsEveryPartReadableOnWhite() {
+        ScreenColors light = ScreenColors.LIGHT;
+        assertTrue(light.light);
+        assertEquals(Color.WHITE, light.background);
+        assertEquals(Color.WHITE, light.dialog);
+        contrast("card on the page", light.card, light.background, 1.05);
+        readable(light);
+        ColorStateList summary = light.disabledSummary();
+        int reason = color(summary, false, false);
+        assertTrue("The reason line still looks unavailable", Color.alpha(reason) < 0xFF);
+        assertNotEquals(light.summary, reason);
+        for (int surface : new int[]{light.background, light.card, light.dialog}) {
+            contrast("disabled summary", over(reason, surface), surface, 4.5);
+        }
+        assertEquals(light.summary, color(summary, true, false));
+    }
+
     @Test public void pureBlackTurnsCardsAndDialogsBlackAndKeepsTheirOutlines() {
         ScreenColors black = new ScreenColors(true);
         assertEquals(Color.BLACK, black.card);
@@ -117,12 +134,15 @@ public class ScreenColorsAccessibilityTest {
     }
 
     @Test public void anEmptyFieldsPlaceholderStaysReadableAndQuieterThanSavedText() {
-        for (ScreenColors colors : new ScreenColors[]{ScreenColors.DEFAULT, new ScreenColors(true), new ScreenColors(false)}) {
+        for (ScreenColors colors : new ScreenColors[]{ScreenColors.DEFAULT, new ScreenColors(true), new ScreenColors(false),
+                ScreenColors.LIGHT}) {
             for (int surface : new int[]{colors.background, colors.card, colors.dialog}) {
                 contrast("placeholder", colors.hint, surface, 4.5);
             }
-            assertTrue("A placeholder must read quieter than a saved summary",
-                    luminance(colors.hint) < luminance(colors.summary));
+            // Quieter means closer to the surface: darker on the dark looks, lighter on the white one.
+            assertTrue("A placeholder must read quieter than a saved summary", colors.light
+                    ? luminance(colors.hint) > luminance(colors.summary)
+                    : luminance(colors.hint) < luminance(colors.summary));
         }
         EditText field = new EditText(controller.get());
         field.setHint("Your words");

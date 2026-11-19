@@ -52,6 +52,22 @@ public class ShimmerTitleTest {
         }
     }
 
+    /** #762: the light look's stops read at 7:1 on white, and at 3:1 under the sheen's brightest point. */
+    @Test
+    public void everyLightStopReadsOnTheWhitePageEvenUnderTheSheen() {
+        int page = ScreenColors.LIGHT.background;
+        int peak = ShimmerTitle.LIGHT_SHEEN[1];
+        float alpha = Color.alpha(peak) / 255f;
+        for (int color : ShimmerTitle.LIGHT_COLORS) {
+            assertTrue(Integer.toHexString(color), contrast(color, page) >= 7.0);
+            int swept = Color.rgb(
+                    Math.round(Color.red(color) * (1 - alpha) + Color.red(peak) * alpha),
+                    Math.round(Color.green(color) * (1 - alpha) + Color.green(peak) * alpha),
+                    Math.round(Color.blue(color) * (1 - alpha) + Color.blue(peak) * alpha));
+            assertTrue("under the sheen " + Integer.toHexString(color), contrast(swept, page) >= 3.0);
+        }
+    }
+
     @Test
     public void aSweepRunsAsTheTitleOpensAndOnceEachPeriod() {
         assertEquals(0f, ShimmerTitle.sweep(0L), 0f);

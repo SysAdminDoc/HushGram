@@ -6,7 +6,6 @@ package app.hushgram.extension.instagram.settings;
 
 import android.app.Activity;
 import android.app.Dialog;
-import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.SystemClock;
@@ -20,11 +19,11 @@ import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.Utils;
 
 /**
- * A plain black cover over the Instagram screen the launcher shortcut lands on, from the moment
+ * A plain cover over the Instagram screen the launcher shortcut lands on, from the moment
  * the shortcut's intent arrives until the settings have drawn over it. Without it the tab Instagram
  * starts on, often a playing reel, shows for about a second while the settings build.
  *
- * <p>The cover is a drawable in the window's overlay, the same black as the settings' window, so
+ * <p>The cover is a drawable in the window's overlay, the same colour as the settings' page, so
  * nothing is laid out for it, it takes no touches, and neither Instagram nor the lock's cover sees
  * a new view. It comes off a moment after the settings' first frame, as soon as the screen under it
  * pauses, and after {@link #COVER_MAX_MS} without settings, or {@link #DRAW_WAIT_MS} after the
@@ -73,7 +72,8 @@ final class ShortcutCover {
             }
             coverWhenStarted = null;
             take(cover, "a new request");
-            final Drawable shown = new ColorDrawable(Color.BLACK);
+            // The settings' own page colour: white under Light settings page (#762).
+            final Drawable shown = new ColorDrawable(ScreenColors.settingsPage().background);
             shown.setBounds(0, 0, SIDE, SIDE);
             decor.getOverlay().add(shown);
             cover = shown;

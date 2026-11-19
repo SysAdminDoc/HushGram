@@ -298,6 +298,7 @@ A few rows to know about:
 - **Settings backup** exports your choices to a JSON file and brings them back later, on this install or another. Saved profiles come along, and an import adds back any that are missing. Your Instagram login, signing keys and playback history aren't included.
 - **Descriptions behind an info button**, under Settings entry, keeps each switch to its name. Tap the small i beside a name to read what it does. It starts on, and a screen reader always gets the full text.
 - **Black settings page**, also under Settings entry, makes the cards and dialogs black, and puts HushGram's name and version at the top. It starts on, and turning it off brings back the old charcoal page.
+- **Light settings page**, right under it, makes the HushGram settings white with dark text instead. It takes the place of the black look while it's on, and only the settings change.
 - **Date in backup file names**, under Settings backup, adds the current date and time to the suggested export name. It starts off.
 - **Pause and diagnostics** copies a quick report or saves the full one to Download/Morphe. Links, IDs, cookies and sign-in tokens are left out, but read it over for other private text before you share it. A source build also shows an `hg1:` build identity under Version in About and in the report.
 

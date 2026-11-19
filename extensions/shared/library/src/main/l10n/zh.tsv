@@ -1913,6 +1913,8 @@ Open a chat, tap the clock button next to the call buttons at the top, or long p
 Instagram stopped loading older messages.	Instagram 已停止加载较旧的消息。
 Black settings page	黑色设置页面
 Black rows and dialogs, with HushGram's name at the top.	黑色的列和对话框，顶端显示 HushGram 名称。
+Light settings page	浅色设置页面
+White rows and dialogs, with HushGram's name at the top. Takes the place of Black settings page while it's on.	白色的列和对话框，顶端显示 HushGram 名称。开启时取代黑色设置页面。
 Mark as read	标示为已读
 Nothing to mark as read	没有可标示为已读的内容
 Mark as read button in chats	聊天中的“标示为已读”按钮

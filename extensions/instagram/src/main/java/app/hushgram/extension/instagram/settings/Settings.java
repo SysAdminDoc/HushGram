@@ -173,6 +173,15 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting SETTINGS_BLACK_LOOK =
             new BooleanSetting("hushgram_settings_black_look", TRUE);
 
+    /**
+     * The white look for HushGram's page (#762): white rows and dialogs while the settings show,
+     * with HushGram's name at the top. It takes the place of the black look while it's on, and the
+     * dialogs over Instagram's own screens keep theirs. Off to start. A settings-page choice, read
+     * saved even during Pause.
+     */
+    public static final BooleanSetting SETTINGS_LIGHT_LOOK =
+            new BooleanSetting("hushgram_settings_light_look", FALSE);
+
     /** A settings-page choice, read saved even during Pause. Existing backup names stay the default. */
     public static final BooleanSetting DATE_SETTINGS_EXPORT =
             new BooleanSetting("hushgram_date_settings_export", FALSE);
