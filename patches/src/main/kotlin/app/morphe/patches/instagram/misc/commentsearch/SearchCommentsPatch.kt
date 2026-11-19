@@ -47,7 +47,7 @@ val searchCommentsPatch = bytecodePatch(
         "Turn it on in HushGram settings > Comments.",
     default = true,
 ) {
-    category("Interaction")
+    category("Comments")
     dependsOn(settingsPatch, instagramExtensionPatch)
     compatibleWith(*AppCompatibilities.instagram())
     execute {

@@ -75,7 +75,7 @@ Four patches stay out of simple mode. Tick them in Manager's patch list (Expert 
 - **Pure black dark mode** rewrites Instagram's colors when you patch and has no switch to turn it off.
 - **View DM photos and videos anonymously** is a test feature until the sender's side is checked with two accounts.
 
-In Expert mode the patches are grouped under Ads, Ghost mode, Privacy, Messages, Feed, Stories, Reels, Playback, Interaction, Profiles, Interface, Downloads, Updates, Fixes and Settings, and most of those match a section in HushGram settings.
+In Expert mode the patches are grouped under Ads, Ghost mode, Privacy, Messages, Feed, Stories, Reels, Playback, Interaction, Comments, Profiles, Interface, Downloads, Updates, Fixes and Settings, and most of those match a section in HushGram settings.
 
 | Patch | What it does | Simple mode |
 |---|---|---|

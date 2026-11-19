@@ -335,7 +335,7 @@ val hideCommentGifsPatch = bytecodePatch(
         "A comment with words keeps them. One that's only a GIF goes, along with its replies. Starts off. " +
         "Turn it on in HushGram settings > Comments.",
 ) {
-    category("Interaction")
+    category("Comments")
     dependsOn(settingsPatch, instagramExtensionPatch)
     compatibleWith(*AppCompatibilities.instagram())
 

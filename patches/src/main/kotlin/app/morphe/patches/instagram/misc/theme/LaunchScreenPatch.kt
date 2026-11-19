@@ -320,7 +320,7 @@ val launchScreenPatch = bytecodePatch(
         "HushGram settings > Layout.",
     default = true,
 ) {
-    category("Interface")
+    category("Settings")
     dependsOn(settingsPatch, instagramExtensionPatch, launchThemePatch)
     compatibleWith(*AppCompatibilities.instagram())
 

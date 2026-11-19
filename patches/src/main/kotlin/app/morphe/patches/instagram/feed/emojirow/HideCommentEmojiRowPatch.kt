@@ -145,7 +145,7 @@ val hideCommentEmojiRowPatch = bytecodePatch(
     description = "Takes the row of quick emoji off above the comment box. The box itself stays. Starts off. " +
         "Turn it on in HushGram settings > Comments.",
 ) {
-    category("Interaction")
+    category("Comments")
     dependsOn(settingsPatch, instagramExtensionPatch)
     compatibleWith(*AppCompatibilities.instagram())
 

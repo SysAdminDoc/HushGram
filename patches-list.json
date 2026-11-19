@@ -866,7 +866,7 @@
     {
       "name": "Copy comment",
       "description": "Adds Copy and Copy username to the menu you get on a comment, so you can copy its text or the commenter's username. Starts off. Turn it on in HushGram settings > Comments.",
-      "category": "Interaction",
+      "category": "Comments",
       "use": true,
       "dependencies": [
         "BytecodePatch",
@@ -1923,7 +1923,7 @@
     {
       "name": "Hide GIFs in comments",
       "description": "Takes GIFs and stickers out of comments, and the GIF button off the comment box. A comment with words keeps them. One that's only a GIF goes, along with its replies. Starts off. Turn it on in HushGram settings > Comments.",
-      "category": "Interaction",
+      "category": "Comments",
       "use": true,
       "dependencies": [
         "BytecodePatch",
@@ -2352,7 +2352,7 @@
     {
       "name": "Hide comments",
       "description": "Takes the Comment button and the comment count off posts in your feed. Other switches take Reply or the heart and like count off each comment, and the comment box off the comments. All start off. Turn them on in HushGram settings > Comments.",
-      "category": "Interaction",
+      "category": "Comments",
       "use": true,
       "dependencies": [
         "BytecodePatch",
@@ -3288,7 +3288,7 @@
     {
       "name": "Hide the comment emoji row",
       "description": "Takes the row of quick emoji off above the comment box. The box itself stays. Starts off. Turn it on in HushGram settings > Comments.",
-      "category": "Interaction",
+      "category": "Comments",
       "use": true,
       "dependencies": [
         "BytecodePatch",
@@ -3639,7 +3639,7 @@
     {
       "name": "HushGram launch screen",
       "description": "Shows HushGram's logo instead of Instagram's on the screen you see while Instagram starts, on Android 13 and newer, and can fill that screen with your accent color. Starts off. Turn it on in HushGram settings > Layout.",
-      "category": "Interface",
+      "category": "Settings",
       "use": true,
       "dependencies": [
         "BytecodePatch",
@@ -4565,7 +4565,7 @@
     {
       "name": "Open comments without the keyboard",
       "description": "Comments open with the keyboard down. A tap in the comment box, or on Reply, still brings it up. Starts off. Turn it on in HushGram settings > Comments.",
-      "category": "Interaction",
+      "category": "Comments",
       "use": true,
       "dependencies": [
         "BytecodePatch",
@@ -5426,7 +5426,7 @@
     {
       "name": "Search comments",
       "description": "Adds a search box above a post's comments. Type a word or a name and the comments scroll to the next one that has it, loading more as they go. The arrows step forward and back through the matches. Replies you haven't opened aren't searched. Starts off. Turn it on in HushGram settings > Comments.",
-      "category": "Interaction",
+      "category": "Comments",
       "use": true,
       "dependencies": [
         "BytecodePatch",

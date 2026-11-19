@@ -180,7 +180,7 @@ val commentKeyboardPatch = bytecodePatch(
     description = "Comments open with the keyboard down. A tap in the comment box, or on Reply, still brings it up. " +
         "Starts off. Turn it on in HushGram settings > Comments.",
 ) {
-    category("Interaction")
+    category("Comments")
     dependsOn(settingsPatch, instagramExtensionPatch)
     compatibleWith(*AppCompatibilities.instagram())
 

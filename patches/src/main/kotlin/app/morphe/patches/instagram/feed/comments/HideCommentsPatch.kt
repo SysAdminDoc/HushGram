@@ -50,7 +50,7 @@ val hideCommentsPatch = bytecodePatch(
         "All start off. Turn them on in HushGram settings > Comments.",
     default = true,
 ) {
-    category("Interaction")
+    category("Comments")
     dependsOn(settingsPatch, instagramExtensionPatch)
     compatibleWith(*AppCompatibilities.instagram())
 
