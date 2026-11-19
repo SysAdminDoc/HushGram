@@ -1423,6 +1423,9 @@ Once Burn-in guard fades the buttons, they stay faded on Reels whatever you tap 
 # context: Profiles: switches next to Hide the Threads button. Create is the plus at the top of your own profile (#254); Share profile and Edit profile are Instagram's own button names (#253)
 Hide the Create button	隱藏建立按鈕
 Takes the plus for new posts off the top of your own profile. The other buttons stay where they were.	移除自己個人檔案頂端用來建立貼文的加號。其他按鈕仍留在原位。
+# context: switch on the Profiles page after Hide the Create button; the prompt is the big picture, heading and Create button Instagram shows in place of the grid on your own profile before your first post (#762)
+Hide the empty profile prompt	隱藏空白個人檔案的提示
+Takes the big prompt for your first post off your own profile while it has no posts. Other people's profiles stay as they are.	在自己的個人檔案還沒有貼文時，移除邀你發第一則貼文的大型提示。其他人的個人檔案維持原樣。
 Hide Share profile	隱藏分享個人檔案
 Takes the Share profile button off your profile, and Edit profile stretches to fill the space.	移除個人檔案上的「分享個人檔案」按鈕，並將「編輯個人檔案」加寬以填滿空間。
 # context: Profiles: switches that hide Subscribe and the arrow at the end of the action buttons on someone's profile, which opens a menu of the buttons that didn't fit (#248). Subscribe is Instagram's own button label, as in the Feed switch that hides Follow and Subscribe.

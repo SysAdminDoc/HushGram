@@ -215,6 +215,10 @@ final class ProfilesCategory {
                 profiles.addPreference(toggle(context, Settings.HIDE_CREATE_BUTTON, L10n.t("Hide the Create button"),
                         L10n.t("Takes the plus for new posts off the top of your own profile. The other buttons "
                                 + "stay where they were.")));
+                profiles.addPreference(toggle(context, Settings.HIDE_EMPTY_PROFILE_PROMPT,
+                        L10n.t("Hide the empty profile prompt"),
+                        L10n.t("Takes the big prompt for your first post off your own profile while it has no "
+                                + "posts. Other people's profiles stay as they are.")));
                 profiles.addPreference(toggle(context, Settings.HIDE_SHARE_PROFILE_BUTTON, L10n.t("Hide Share profile"),
                         L10n.t("Takes the Share profile button off your profile, and Edit profile stretches to fill "
                                 + "the space.")));

@@ -27,8 +27,8 @@ import app.hushgram.extension.shared.settings.HushgramPause;
 import app.hushgram.extension.shared.settings.PauseForTests;
 
 /**
- * Hide the Threads button's switches: Threads, Create (#254) and Share profile (#253), under Profiles
- * after Hide highlights, off to start, off while paused.
+ * Hide the Threads button's switches: Threads, Create (#254), the empty profile prompt (#762) and
+ * Share profile (#253), under Profiles after Hide highlights, off to start, off while paused.
  */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = {28, 37})
@@ -45,6 +45,7 @@ public class ThreadsButtonSettingsTest {
         Settings.HIDE_SHARE_PROFILE_BUTTON.resetToDefault();
         Settings.HIDE_SUBSCRIBE_PROFILE_BUTTON.resetToDefault();
         Settings.HIDE_PROFILE_OVERFLOW_BUTTON.resetToDefault();
+        Settings.HIDE_EMPTY_PROFILE_PROMPT.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         BaseSettings.SAFE_MODE.save(false);
@@ -59,6 +60,7 @@ public class ThreadsButtonSettingsTest {
         Settings.HIDE_SHARE_PROFILE_BUTTON.resetToDefault();
         Settings.HIDE_SUBSCRIBE_PROFILE_BUTTON.resetToDefault();
         Settings.HIDE_PROFILE_OVERFLOW_BUTTON.resetToDefault();
+        Settings.HIDE_EMPTY_PROFILE_PROMPT.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
@@ -95,13 +97,13 @@ public class ThreadsButtonSettingsTest {
         String[] keys = new String[profiles.getPreferenceCount()];
         for (int i = 0; i < keys.length; i++) keys[i] = profiles.getPreference(i).getKey();
         assertEquals(Arrays.asList(Settings.HIDE_HIGHLIGHTS.key, Settings.HIDE_THREADS_BUTTON.key,
-                Settings.HIDE_CREATE_BUTTON.key, Settings.HIDE_SHARE_PROFILE_BUTTON.key,
+                Settings.HIDE_CREATE_BUTTON.key, Settings.HIDE_EMPTY_PROFILE_PROMPT.key, Settings.HIDE_SHARE_PROFILE_BUTTON.key,
                 Settings.HIDE_SUBSCRIBE_PROFILE_BUTTON.key, Settings.HIDE_PROFILE_OVERFLOW_BUTTON.key), Arrays.asList(keys));
         assertFalse(row.isChecked());
         assertFalse(Settings.HIDE_THREADS_BUTTON.get());
         assertEquals(Arrays.asList(Settings.HIDE_THREADS_BUTTON, Settings.HIDE_CREATE_BUTTON,
                 Settings.HIDE_SHARE_PROFILE_BUTTON, Settings.HIDE_SUBSCRIBE_PROFILE_BUTTON,
-                Settings.HIDE_PROFILE_OVERFLOW_BUTTON), PatchFamily.THREADS_BUTTON.switches);
+                Settings.HIDE_PROFILE_OVERFLOW_BUTTON, Settings.HIDE_EMPTY_PROFILE_PROMPT), PatchFamily.THREADS_BUTTON.switches);
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.HIDE_THREADS_BUTTON.key));
 
         Settings.HIDE_THREADS_BUTTON.save(true);
@@ -134,13 +136,24 @@ public class ThreadsButtonSettingsTest {
         assertEquals("Hide the arrow at the end of the buttons", arrow.getTitle().toString());
         assertEquals("Takes the arrow off the end of a profile's row of buttons, along with the menu it opens, "
                 + "and the other buttons stretch to fill the space.", arrow.getSummary().toString());
+        SwitchPreference prompt = (SwitchPreference) page.getPreferenceScreen()
+                .findPreference(Settings.HIDE_EMPTY_PROFILE_PROMPT.key);
+        assertEquals("Hide the empty profile prompt", prompt.getTitle().toString());
+        assertEquals("Takes the big prompt for your first post off your own profile while it has no posts. Other "
+                + "people's profiles stay as they are.", prompt.getSummary().toString());
+        assertSame(create.getParent(), prompt.getParent());
+        assertEquals(create.getOrder() + 1, prompt.getOrder());
         assertFalse(create.isChecked());
         assertFalse(share.isChecked());
         assertFalse(subscribe.isChecked());
         assertFalse(arrow.isChecked());
+        assertFalse(prompt.isChecked());
+        assertFalse("the grid reads the switch each time it decides, so no restart prompt",
+                Settings.HIDE_EMPTY_PROFILE_PROMPT.rebootApp);
         for (app.hushgram.extension.shared.settings.BooleanSetting setting
                 : Arrays.asList(Settings.HIDE_CREATE_BUTTON, Settings.HIDE_SHARE_PROFILE_BUTTON,
-                        Settings.HIDE_SUBSCRIBE_PROFILE_BUTTON, Settings.HIDE_PROFILE_OVERFLOW_BUTTON)) {
+                        Settings.HIDE_SUBSCRIBE_PROFILE_BUTTON, Settings.HIDE_PROFILE_OVERFLOW_BUTTON,
+                        Settings.HIDE_EMPTY_PROFILE_PROMPT)) {
             assertEquals(Boolean.FALSE, setting.defaultValue);
             assertTrue(ConfigurationBackup.eligible().containsKey(setting.key));
             setting.save(true);

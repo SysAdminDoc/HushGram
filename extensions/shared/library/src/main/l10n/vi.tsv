@@ -1385,6 +1385,9 @@ Stay dim when I tap	Giữ mờ khi tôi nhấn
 Once Burn-in guard fades the buttons, they stay faded on Reels whatever you tap or swipe, the next reel too. They still work. Leaving Reels brings them back.	Khi Chống ám màn hình làm mờ các nút, chúng vẫn mờ trên Reels bất kể bạn nhấn hay vuốt gì, reel kế tiếp cũng vậy. Chúng vẫn dùng được. Rời Reels sẽ đưa chúng trở lại.
 Hide the Create button	Ẩn nút Tạo
 Takes the plus for new posts off the top of your own profile. The other buttons stay where they were.	Gỡ dấu cộng tạo bài viết mới khỏi đầu trang cá nhân của bạn. Các nút khác vẫn ở chỗ cũ.
+# context: switch on the Profiles page after Hide the Create button; the prompt is the big picture, heading and Create button Instagram shows in place of the grid on your own profile before your first post (#762)
+Hide the empty profile prompt	Ẩn lời nhắc trên trang cá nhân trống
+Takes the big prompt for your first post off your own profile while it has no posts. Other people's profiles stay as they are.	Gỡ lời nhắc lớn về bài viết đầu tiên khỏi trang cá nhân của bạn khi chưa có bài viết nào. Trang cá nhân của người khác vẫn giữ nguyên.
 Hide Share profile	Ẩn Chia sẻ trang cá nhân
 Takes the Share profile button off your profile, and Edit profile stretches to fill the space.	Gỡ nút Chia sẻ trang cá nhân khỏi trang cá nhân của bạn và Chỉnh sửa trang cá nhân giãn ra lấp chỗ trống.
 Hide Subscribe on profiles	Ẩn Đăng ký trên trang cá nhân

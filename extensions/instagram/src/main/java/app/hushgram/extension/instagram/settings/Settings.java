@@ -2629,6 +2629,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_create_button", FALSE);
 
     /**
+     * The "Create your first post" prompt filling your own profile's grid while it has no posts, with
+     * its picture and Create button ({@link app.hushgram.extension.instagram.profile.ThreadsButton},
+     * #762). Read each time the grid decides whether to show it, so a change shows on the next profile
+     * opened. Other people's empty profiles keep theirs. Off to start.
+     */
+    public static final BooleanSetting HIDE_EMPTY_PROFILE_PROMPT =
+            new BooleanSetting("hushgram_hide_empty_profile_prompt", FALSE);
+
+    /**
      * The Share profile button in your profile's row of action buttons, with Edit profile taking its
      * space ({@link app.hushgram.extension.instagram.profile.ShareProfileButton}, #253). Read each time
      * Instagram builds the row, so a change shows on the next profile opened. Off to start.

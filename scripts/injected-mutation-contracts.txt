@@ -2762,6 +2762,19 @@ once-call Lapp/hushgram/extension/instagram/profile/ThreadsButton;->hideBanner()
 # on every fixture that it lands before each builder's return.
 once-call Lapp/hushgram/extension/instagram/profile/ShareProfileButton;->button(Landroid/view/View;Ljava/lang/Object;)V in static (L*;L*;L*;Ljava/lang/Integer;IZ)Landroid/view/View; calling instance Lcom/instagram/igds/components/button/IgdsButton;->setIconPadding(I)V holding generic
 once-call Lapp/hushgram/extension/instagram/profile/ShareProfileButton;->button(Landroid/view/View;Ljava/lang/Object;)V in static (L*;L*;L*;Ljava/util/List;)Landroid/view/View; sites 2 class-holding generic
+# Its empty profile prompt switch works in each of a profile's two grid adapters' updates, the ones
+# logging ProfileGridItemTabAdapter.updateItemsWithEmptyState and
+# ProfileMediaTabAdapter.updateItemsWithEmptyState (0IQM.A12 and 0IMn.A12 on 456) (#762). Each hands
+# ThreadsButton.firstPostPrompt the config right after filling it as the "Create your first post"
+# prompt, and hands ThreadsButton.emptyRow the config right before testing it for null to add the
+# empty row. Each hook goes in both updates once, so each rule is held per update, and shared-call
+# lets the other update make the same call. Left out of either, that grid keeps the prompt; twice,
+# it isn't the hook the patch wrote. EmptyProfilePromptHookTest checks on every fixture that the
+# first lands right after the fill and the second right on the test.
+shared-call Lapp/hushgram/extension/instagram/profile/ThreadsButton;->firstPostPrompt(Ljava/lang/Object;)V in instance ()V pooled holding ProfileGridItemTabAdapter.updateItemsWithEmptyState
+shared-call Lapp/hushgram/extension/instagram/profile/ThreadsButton;->firstPostPrompt(Ljava/lang/Object;)V in instance ()V pooled holding ProfileMediaTabAdapter.updateItemsWithEmptyState
+shared-call Lapp/hushgram/extension/instagram/profile/ThreadsButton;->emptyRow(Ljava/lang/Object;)Ljava/lang/Object; in instance ()V pooled holding ProfileGridItemTabAdapter.updateItemsWithEmptyState
+shared-call Lapp/hushgram/extension/instagram/profile/ThreadsButton;->emptyRow(Ljava/lang/Object;)Ljava/lang/Object; in instance ()V pooled holding ProfileMediaTabAdapter.updateItemsWithEmptyState
 # Hide the Reels tab's Home header switches hand the list of buttons Home's header draws from to
 # HomeHeader.buttons first thing in the constructor of the header's state (03iJ on 450), the one
 # (List, int, boolean, boolean, boolean) constructor keeping that list in A01, which

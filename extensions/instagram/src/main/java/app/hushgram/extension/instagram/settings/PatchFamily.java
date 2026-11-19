@@ -212,7 +212,7 @@ public enum PatchFamily {
     PROFILE_TABS(FamilyNames.PROFILE_TABS, "profileTabs", null),
     THREADS_BUTTON(FamilyNames.THREADS_BUTTON, "threadsButton", null, Settings.HIDE_THREADS_BUTTON,
             Settings.HIDE_CREATE_BUTTON, Settings.HIDE_SHARE_PROFILE_BUTTON, Settings.HIDE_SUBSCRIBE_PROFILE_BUTTON,
-            Settings.HIDE_PROFILE_OVERFLOW_BUTTON),
+            Settings.HIDE_PROFILE_OVERFLOW_BUTTON, Settings.HIDE_EMPTY_PROFILE_PROMPT),
     PROFILE_NOTES(FamilyNames.PROFILE_NOTES, "profileNotes", null, Settings.HIDE_PROFILE_NOTES),
     PROFILE_BANNERS(FamilyNames.PROFILE_BANNERS, "profileBanners", null, Settings.HIDE_PROFILE_THREADS_BADGE,
             Settings.HIDE_PROFILE_FACEBOOK_LINKS, Settings.HIDE_PROFILE_WHATSAPP_LINK, Settings.HIDE_PROFILE_SONG,

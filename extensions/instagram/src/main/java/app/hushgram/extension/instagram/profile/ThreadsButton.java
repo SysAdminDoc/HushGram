@@ -7,6 +7,7 @@ package app.hushgram.extension.instagram.profile;
 import android.content.Context;
 import android.content.res.Resources;
 
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -40,9 +41,15 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * not from that list. The action bar asks {@link #hideCreateInBar} before it adds the button and
  * skips it when it says so.
  *
+ * <p>A profile with no posts fills its grid with a "Create your first post" prompt when it's yours
+ * (#762). The grid fills the prompt's config, hands it to {@link #firstPostPrompt}, and later asks
+ * {@link #emptyRow} for the config to add as its empty row. With Hide the empty profile prompt on,
+ * that answer is null for the prompt, and the grid adds no row, as it does when there's nothing to
+ * show. Other people's empty profiles fill a different config, which goes through.
+ *
  * <p>The hooks fail open: with the switches off, HushGram paused, the settings not read yet, an icon
- * that can't be named or anything thrown, the list goes through as it came and the chip and the plus
- * are added.
+ * that can't be named or anything thrown, the list goes through as it came and the chip, the plus and
+ * the prompt are added.
  */
 public final class ThreadsButton {
     /** The start of the resource name of each of Instagram's Threads icons. */
@@ -60,8 +67,14 @@ public final class ThreadsButton {
     /** What's counted for each Threads chip left off a profile's header. */
     static final String CHIP_LEFT_OUT = "Threads chip left out";
 
+    /** What's counted each time the empty profile prompt is left off your own profile. */
+    static final String PROMPT_LEFT_OUT = "empty profile prompt left out";
+
     /** Icon resource names already looked up, "" for an id with no resource. */
     private static final Map<Integer, String> NAMES = new ConcurrentHashMap<>();
+
+    /** The config a profile grid last filled as the "Create your first post" prompt. */
+    private static volatile WeakReference<Object> firstPost = new WeakReference<>(null);
 
     private ThreadsButton() {
     }
@@ -178,5 +191,42 @@ public final class ThreadsButton {
      */
     public static int icon(Object button) {
         return 0;
+    }
+
+    /**
+     * Injected right after a profile grid fills [config] as the "Create your first post" prompt,
+     * which Instagram only does on your own empty profile. Remembers it for {@link #emptyRow}.
+     * Never throws.
+     */
+    public static void firstPostPrompt(Object config) {
+        try {
+            firstPost = new WeakReference<>(config);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.THREADS_BUTTON, "empty profile prompt", failure);
+        }
+    }
+
+    /**
+     * Injected where a profile grid checks whether it has an empty state to add, with that state's
+     * [config] (null for none). Answers null for the prompt {@link #firstPostPrompt} last saw when
+     * Hide the empty profile prompt is on, so the grid adds no empty row, and [config] otherwise,
+     * which keeps "No posts yet" on other people's profiles. Never throws.
+     */
+    public static Object emptyRow(Object config) {
+        try {
+            HookStatus.invoked(FamilyNames.THREADS_BUTTON);
+            if (config == null || !Utils.settingsReady() || !Settings.HIDE_EMPTY_PROFILE_PROMPT.get()) return config;
+            return left(config, firstPost.get());
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.THREADS_BUTTON, "empty profile prompt", failure);
+            return config;
+        }
+    }
+
+    /** Null when [config] is [prompt], the one filled as the prompt, and [config] otherwise. */
+    static Object left(Object config, Object prompt) {
+        if (config != prompt) return config;
+        HookStatus.counted(FamilyNames.THREADS_BUTTON, PROMPT_LEFT_OUT);
+        return null;
     }
 }

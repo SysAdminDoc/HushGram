@@ -54,8 +54,10 @@ public class ThreadsButtonTest {
     public void prepare() {
         Settings.HIDE_THREADS_BUTTON.resetToDefault();
         Settings.HIDE_CREATE_BUTTON.resetToDefault();
+        Settings.HIDE_EMPTY_PROFILE_PROMPT.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
+        ThreadsButton.firstPostPrompt(null);
         HookStatus.clear();
     }
 
@@ -63,9 +65,70 @@ public class ThreadsButtonTest {
     public void restore() {
         Settings.HIDE_THREADS_BUTTON.resetToDefault();
         Settings.HIDE_CREATE_BUTTON.resetToDefault();
+        Settings.HIDE_EMPTY_PROFILE_PROMPT.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
+        ThreadsButton.firstPostPrompt(null);
         HookStatus.clear();
+    }
+
+    /**
+     * Hide the empty profile prompt (#762): off to start, and with it off, paused or unready the
+     * grid's own empty row goes through, the prompt included.
+     */
+    @Test
+    public void theEmptyRowGoesThroughUntilTheSwitchIsOn() {
+        Object prompt = new Object();
+        ThreadsButton.firstPostPrompt(prompt);
+        assertEquals(Boolean.FALSE, Settings.HIDE_EMPTY_PROFILE_PROMPT.defaultValue);
+        assertFalse("the next profile opened shows a change", Settings.HIDE_EMPTY_PROFILE_PROMPT.rebootApp);
+        assertSame(prompt, ThreadsButton.emptyRow(prompt));
+        assertNull(ThreadsButton.emptyRow(null));
+
+        Settings.HIDE_EMPTY_PROFILE_PROMPT.save(true);
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertSame(prompt, ThreadsButton.emptyRow(prompt));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        SettingsContextRule.withoutContext(() -> assertSame(prompt, ThreadsButton.emptyRow(prompt)));
+        assertFalse(HookStatus.report().toString(), HookStatus.report().toString().contains(ThreadsButton.PROMPT_LEFT_OUT));
+    }
+
+    /**
+     * With the switch on, only the config last filled as the prompt goes: another empty state, like
+     * "No posts yet" on someone else's profile, stays, and so does everything before any prompt.
+     */
+    @Test
+    public void onlyThePromptLeavesTheGrid() {
+        Settings.HIDE_EMPTY_PROFILE_PROMPT.save(true);
+        Object noPostsYet = new Object();
+        assertSame("nothing filled as a prompt yet", noPostsYet, ThreadsButton.emptyRow(noPostsYet));
+
+        Object prompt = new Object();
+        ThreadsButton.firstPostPrompt(prompt);
+        assertNull(ThreadsButton.emptyRow(prompt));
+        assertSame(noPostsYet, ThreadsButton.emptyRow(noPostsYet));
+        assertNull(ThreadsButton.emptyRow(null));
+
+        Object refilled = new Object();
+        ThreadsButton.firstPostPrompt(refilled);
+        assertNull(ThreadsButton.emptyRow(refilled));
+        assertSame("an older prompt is someone else's config by now", prompt, ThreadsButton.emptyRow(prompt));
+        assertEquals(List.of(FamilyNames.THREADS_BUTTON + ": invoked 6, 0 found, 0 missing. Counted: "
+                + ThreadsButton.PROMPT_LEFT_OUT + " 2"), HookStatus.report());
+    }
+
+    /** Equal configs aren't the prompt: Instagram's config compares by value, so only the same one counts. */
+    @Test
+    public void onlyTheSameConfigIsThePrompt() {
+        Object prompt = List.of("Create your first post");
+        Object equal = List.of("Create your first post");
+        assertNull(ThreadsButton.left(prompt, prompt));
+        assertSame(equal, ThreadsButton.left(equal, prompt));
+        assertSame(prompt, ThreadsButton.left(prompt, null));
+        assertEquals(List.of(FamilyNames.THREADS_BUTTON + ": invoked 0, 0 found, 0 missing. Counted: "
+                + ThreadsButton.PROMPT_LEFT_OUT + " 1"), HookStatus.report());
     }
 
     /** Off to start, so the bar gets Instagram's own list until the switch goes on. */
