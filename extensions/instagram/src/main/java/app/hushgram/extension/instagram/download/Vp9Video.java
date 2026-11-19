@@ -75,4 +75,16 @@ public final class Vp9Video {
     private static boolean switchedOn() {
         return Utils.settingsReady() && Settings.ASK_FOR_VP9.get();
     }
+
+    /**
+     * Whether a save whose manifest is AV1 asks Instagram's website for VP9 ({@link WebManifest}):
+     * the switch, read on the save's worker. False when it can't be read.
+     */
+    static boolean asked() {
+        try {
+            return switchedOn();
+        } catch (Throwable t) {
+            return false;
+        }
+    }
 }

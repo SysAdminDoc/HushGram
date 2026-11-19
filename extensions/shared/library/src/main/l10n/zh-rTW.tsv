@@ -2459,7 +2459,8 @@ Keeps the message Instagram shows when you lock a reel's speed, and when the loc
 Remove hidden data from saved photos	移除已儲存照片中的隱藏資料
 Takes Meta's FBMD tracking tag out of each photo you save, along with any camera, place and time details. The picture and its colors stay the same. With Add the source on, the source still goes in afterward. JPEG photos only.	從你儲存的每張照片中移除 Meta 的 FBMD 追蹤標記，以及相機、地點和時間等資訊。圖片和色彩保持不變。開啟「在儲存的照片和影片中加入來源資訊」時，之後仍會寫入來源。僅適用於 JPEG 照片。
 Ask for VP9 instead of AV1	改要求 VP9 而非 AV1
-Tells Instagram your phone has no AV1 decoder. Instagram doesn't always listen, so videos can still come as AV1. If they do, Convert to keep the full size gives you H.264. Takes a restart.	告訴 Instagram 你的手機沒有 AV1 解碼器。Instagram 不一定會照做，影片仍可能以 AV1 傳來。遇到這種情況，轉換格式以保留完整尺寸可以給你 H.264。需要重新啟動。
+# context: summary under Ask for VP9 instead of AV1 in HushGram settings > Downloads; Convert to keep the full size is the switch of that name a few rows up (#546)
+Tells Instagram your phone has no AV1 decoder, which takes a restart. A post or reel that still comes as AV1 is saved as VP9 from Instagram's website when it offers one. Stories can still be AV1, and Convert to keep the full size turns those into H.264.	告訴 Instagram 你的手機沒有 AV1 解碼器，需要重新啟動。仍以 AV1 傳來的貼文或 Reels，會在 Instagram 網站提供時改從網站儲存為 VP9。限時動態仍可能是 AV1，轉換格式以保留完整尺寸會把它們轉成 H.264。
 # context: Summary of Show the skip arrows under Double tap to skip on feed videos in Feed settings (#562)
 Two arrows flash on the side you double tapped, with the seconds skipped under them.	在你點兩下的那一側閃現兩個箭頭，下方顯示跳過的秒數.
 # context: Feed settings: choice under Seek bar shape that gives the seek bar on feed videos a shape of its own (#567)

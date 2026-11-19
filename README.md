@@ -87,7 +87,7 @@ In Expert mode the patches are grouped under Ads, Ghost mode, Privacy, Messages,
 | `Ask before a follow` | Asks you to confirm before a Follow or Follow back button follows someone or sends them a request, so a stray tap on a profile or in a Followers or Following list doesn't do it for you. Starts off. Turn it on in HushGram settings > Profiles. | Included |
 | `Ask before a like` | Asks you to confirm before the Like button under a post, on a reel or on a comment likes or unlikes it, so a stray tap doesn't do it for you. Starts off. Turn it on in HushGram settings > Feed. | Included |
 | `Ask before a refresh` | Asks you to confirm before pulling down, or tapping the tab you're on again, refreshes Home, Reels or another list, so an accidental pull or tap doesn't replace what you were reading. Starts off. Turn it on in HushGram settings > Feed. | Included |
-| `Ask for VP9 instead of AV1` | Tells Instagram your phone has no AV1 decoder. Instagram doesn't always listen, so videos can still come as AV1. If they do, Convert to keep the full size gives you H.264. Takes a restart. Starts off. Turn it on in HushGram settings > Downloads. | Included |
+| `Ask for VP9 instead of AV1` | Tells Instagram your phone has no AV1 decoder, which takes a restart. A post or reel that still comes as AV1 is saved as VP9 from Instagram's website when it offers one. Stories can still be AV1, and Convert to keep the full size turns those into H.264. Starts off. Turn it on in HushGram settings > Downloads. | Included |
 | `Auto scroll in Home` | Moves Home on to the next post by itself. A video moves on when it ends, a photo or carousel after the time you pick. Touching the screen holds it. Starts off. Turn it on in HushGram settings > Feed. | Included |
 | `Back leaves Home` | Makes Back on Home leave Instagram at once, instead of first scrolling the feed to the top and reloading it or saying "Tap again to exit". Starts off. Turn it on in HushGram settings > Feed. | Included |
 | `Blur the bars around Reels` | Shows a blurred copy of a reel above and below it, or beside it, where Instagram would leave black bars. Starts off. Turn it on in HushGram settings > Reels. | Included |
@@ -372,12 +372,12 @@ On Windows, `Get-FileHash -Algorithm SHA256 .\patches-<version>.mpp` prints the 
 
 ## Privacy
 
-HushGram doesn't collect anything and has no server. It opens connections itself in two places. One fetches media you ask for, like a save, a picture you open with View profile picture, the small pictures in See who a story mentions or the picture strip behind a seek bar's preview. That all comes over HTTPS from Meta's media servers (`cdninstagram.com`, `fbcdn.net` and `fbsbx.com`), and an address anywhere else is refused. The other downloads an emoji pack when you pick one under Emoji style, once, from its maker's own release on GitHub, and keeps it only if its size and SHA-256 match the file HushGram names. Apart from that, its code names four addresses:
+HushGram doesn't collect anything and has no server. It opens connections itself in three places. One fetches media you ask for, like a save, a picture you open with View profile picture, the small pictures in See who a story mentions or the picture strip behind a seek bar's preview. That all comes over HTTPS from Meta's media servers (`cdninstagram.com`, `fbcdn.net` and `fbsbx.com`), and an address anywhere else is refused. The other downloads an emoji pack when you pick one under Emoji style, once, from its maker's own release on GitHub, and keeps it only if its size and SHA-256 match the file HushGram names. The third only runs with `Ask for VP9 instead of AV1` on. When you save a post or reel that Instagram still handed over as AV1, it asks Instagram's website, logged out, whether it has that video as VP9. It sends the post's number and nothing from your account. Apart from that, its code names four addresses:
 
 - `github.com`, for the link to this page in settings. It opens in your browser, only when you tap it. The Twemoji and Blobmoji packs download from their release pages there.
 - `raw.githubusercontent.com`, where the OpenMoji pack downloads from, only when you pick it.
 - `ko-fi.com`, for the Support HushGram row at the end of settings, again only when you tap it.
-- `www.instagram.com`, in the link Send downloads to another app hands to the app you pick, and in the profile links See who a story mentions opens inside Instagram.
+- `www.instagram.com`, in the link Send downloads to another app hands to the app you pick, in the profile links See who a story mentions opens inside Instagram, and for the VP9 question above.
 
 The diagnostic report stays on your phone until you copy or share it yourself.
 

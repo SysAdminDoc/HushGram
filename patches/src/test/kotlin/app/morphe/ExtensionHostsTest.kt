@@ -13,7 +13,7 @@ import org.junit.Test
 
 /**
  * What the README's Privacy section says about the extension, held to its source: which web
- * addresses the code names, and the two places that open a connection by themselves. The save
+ * addresses the code names, and the three places that open a connection by themselves. The save
  * pipeline's Downloader fetches only what the person saves, opens in View profile picture or sees
  * in See who a story mentions' list, and only from Meta's media servers (MediaUrlPolicy).
  * EmojiFonts downloads the emoji pack the person picks, from its maker's release.
@@ -115,11 +115,14 @@ class ExtensionHostsTest {
         /**
          * The files that may open a connection. The save pipeline's Downloader fetches what the
          * person saves or views, from Meta's media servers only, and EmojiFonts downloads the emoji
-         * pack picked under Emoji style, keeping it only when its size and SHA-256 match (#166). The
+         * pack picked under Emoji style, keeping it only when its size and SHA-256 match (#166).
+         * WebManifest asks Instagram's website, logged out, for the VP9 manifest of a public post or
+         * reel a save would take as AV1, only with Ask for VP9 instead of AV1 on (#546). The
          * README's Privacy section has to say so once a patch calls it.
          */
         val TRANSPORTS = listOf(
             "extensions/instagram/src/main/java/app/hushgram/extension/instagram/download/Downloader.java",
+            "extensions/instagram/src/main/java/app/hushgram/extension/instagram/download/WebManifest.java",
             "extensions/instagram/src/main/java/app/hushgram/extension/instagram/misc/EmojiFonts.java",
         )
         val URL = Regex("""(?:https?|wss?)://([A-Za-z0-9.-]+)""")

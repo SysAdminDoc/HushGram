@@ -622,9 +622,10 @@ public class DownloadSettingsTest {
             assertTrue(row instanceof SwitchPreference);
             assertFalse(((SwitchPreference) row).isChecked());
             assertEquals("Ask for VP9 instead of AV1", String.valueOf(row.getTitle()));
-            assertEquals("Tells Instagram your phone has no AV1 decoder. Instagram doesn't always listen, so videos "
-                    + "can still come as AV1. If they do, Convert to keep the full size gives you H.264. Takes a "
-                    + "restart.", String.valueOf(row.getSummary()));
+            assertEquals("Tells Instagram your phone has no AV1 decoder, which takes a restart. A post or reel that "
+                    + "still comes as AV1 is saved as VP9 from Instagram's website when it offers one. Stories can "
+                    + "still be AV1, and Convert to keep the full size turns those into H.264.",
+                    String.valueOf(row.getSummary()));
             assertTrue(ConfigurationBackup.eligible().containsKey(Settings.ASK_FOR_VP9.key));
         }
 

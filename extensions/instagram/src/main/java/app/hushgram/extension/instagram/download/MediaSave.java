@@ -326,7 +326,7 @@ public final class MediaSave {
                                 : page.manifest == null
                                 ? singleJob(application, page.renditions, page.video, !page.video, quality)
                                 : (into, progress) -> saveDash(application, "the carousel page", page.manifest,
-                                        page.renditions, into, progress, quality, compatible, convert);
+                                        page.renditions, page.details, into, progress, quality, compatible, convert);
                         result = job == null ? Downloader.Result.fail(Downloader.Status.BUILD_ERROR, "nothing to save")
                                 : job.run(writer, save);
                     } catch (Throwable failure) {
@@ -1146,17 +1146,19 @@ public final class MediaSave {
         DownloadQuality quality = quality();
         boolean compatible = compatibleSaves();
         boolean convert = convertSaves();
-        return start(safe, true, details, (writer, progress) -> saveDash(safe, label, manifest, candidates, writer,
-                progress, quality, compatible, convert)) != null;
+        return start(safe, true, details, (writer, progress) -> saveDash(safe, label, manifest, candidates, details,
+                writer, progress, quality, compatible, convert)) != null;
     }
 
     /**
      * {@link #beginDash}'s save, on the worker: the manifest's tracks or the single file. The
      * quality, compatibility and conversion choices were read on the tap and are passed to every
      * helper, so a later setting change can't judge the fallback against a different quality.
+     * With Ask for VP9 instead of AV1 on, a manifest whose best picture is AV1 gets the website's
+     * VP9 of the post [details] names (#546, {@link WebManifest}).
      */
     private static Downloader.Result saveDash(Context application, String label, String manifest,
-            List<Rendition> renditions, MediaStoreWriter writer, Downloader.Progress progress,
+            List<Rendition> renditions, PostDetails details, MediaStoreWriter writer, Downloader.Progress progress,
             DownloadQuality quality, boolean compatible, boolean convert) {
         if (!DashManifest.withinLimits(manifest)) {
             info(() -> "the manifest of " + label + " is over the limits a save reads (" + manifest.length()
@@ -1164,10 +1166,11 @@ public final class MediaSave {
             return saveSingleVideo(application, renditions, Collections.emptyList(), Dash.SINGLE_FILE,
                 "the manifest is over the limits a save reads", null, quality, writer, progress);
         }
-        List<DashManifest.Track> tracks = new ArrayList<>();
+        List<DashManifest.Track> parsed = new ArrayList<>();
         for (DashManifest.Track track : DashManifest.parse(manifest)) {
-            if (MediaUrlPolicy.shapeRefusal(track.url) == null) tracks.add(track);
+            if (MediaUrlPolicy.shapeRefusal(track.url) == null) parsed.add(track);
         }
+        List<DashManifest.Track> tracks = Vp9Video.asked() ? WebManifest.withVp9(label, parsed, details) : parsed;
         renditions = metaOnly(renditions);
         boolean skipAv1 = skipsAv1();
         boolean skipHdr = skipsHdr();

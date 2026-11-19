@@ -35,7 +35,7 @@ public final class ExternalDownload {
     static final String SENT = "sent to another app";
 
     /** The digits of a short code, 0 to 63. */
-    private static final String ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+    static final String ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
 
     private static final String SITE = "https://www.instagram.com/";
 
