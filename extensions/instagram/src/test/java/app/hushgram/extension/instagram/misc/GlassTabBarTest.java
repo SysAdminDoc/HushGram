@@ -3876,7 +3876,7 @@ public class GlassTabBarTest {
         assertEquals("the video and its cover, not the play button or inside the video",
                 java.util.Arrays.asList(video, cover), media);
 
-        Map<View, Integer> given = new HashMap<>();
+        Map<ViewGroup.LayoutParams, Integer> given = new java.util.WeakHashMap<>();
         for (View view : media) assertTrue(GlassTabBar.placeReelMedia(view, true, true, 250, given));
         layOutReel(viewer);
         assertEquals(45, video.getTop());
@@ -3895,6 +3895,45 @@ public class GlassTabBarTest {
         assertEquals("Instagram's own margin kept under ours", 135, ((FrameLayout.LayoutParams) cover.getLayoutParams()).bottomMargin);
         assertTrue(GlassTabBar.placeReelMedia(cover, false, true, 250, given));
         assertEquals(10, ((FrameLayout.LayoutParams) cover.getLayoutParams()).bottomMargin);
+    }
+
+    /**
+     * #763: Instagram 456's reel binder gives a reel's video and its cover one layout params object. Placing
+     * both behind a 250 pixel slot gives that object half the slot once, so the reel sits at 45 as a viewer
+     * stopped at the slot has it, not a whole slot up at the viewer's top, and it stays there look after look
+     * and goes back to 170 when the reel no longer runs behind.
+     */
+    @Test
+    public void aVideoAndCoverSharingParamsMoveUpOnce() {
+        Context context = RuntimeEnvironment.getApplication();
+        FrameLayout viewer = new FrameLayout(context);
+        FrameLayout item = new FrameLayout(context);
+        viewer.addView(item, new FrameLayout.LayoutParams(1080, ViewGroup.LayoutParams.MATCH_PARENT));
+        FrameLayout.LayoutParams shared = new FrameLayout.LayoutParams(1080, 1920, Gravity.CENTER);
+        ImageView cover = new ImageView(context);
+        item.addView(cover, shared);
+        View video = new com.instagram.ui.simplevideolayout.SimpleVideoLayout(context);
+        item.addView(video, shared);
+        layOutReel(viewer);
+
+        java.util.List<View> media = new java.util.ArrayList<>();
+        GlassTabBar.reelMedia(viewer, media, 0);
+        assertEquals(2, media.size());
+
+        Map<ViewGroup.LayoutParams, Integer> given = new java.util.WeakHashMap<>();
+        for (int look = 0; look < 3; look++) {
+            for (View view : media) GlassTabBar.placeReelMedia(view, true, true, 250, given);
+            layOutReel(viewer);
+            assertEquals("half the slot, given once", 125, shared.bottomMargin);
+            assertEquals(45, video.getTop());
+            assertEquals(45, cover.getTop());
+        }
+
+        for (View view : media) GlassTabBar.placeReelMedia(view, true, false, 250, given);
+        layOutReel(viewer);
+        assertEquals(0, shared.bottomMargin);
+        assertEquals(170, video.getTop());
+        assertTrue(given.isEmpty());
     }
 
     private static void layOutReel(View view) {

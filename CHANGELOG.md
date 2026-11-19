@@ -38,6 +38,7 @@ Every HushGram release, newest first.
 * `Hide captions` no longer leaves an empty gap under the username on reels. The username row moves down into the caption's room. Reported in #680.
 * The seek bar on reels no longer sits under the floating tab bar after you come back from picture in picture. Reported in #450.
 * Logging in with Facebook no longer stops on Facebook's "link may be broken" page and a spinner that never ends. The Facebook app turns away a patched Instagram, so the login goes through your browser now. Reported in #760.
+* Reels that run behind the glass tab bar sit where they should again instead of up against the top of the screen with a black band under them. Reported in #763.
 
 ## 0.0.21 (2026-11-18)
 

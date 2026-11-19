@@ -363,20 +363,23 @@ public final class GlassTabBar {
     /**
      * Gives [view], a reel's video or cover, the bottom margin {@link #reelsMediaMargin} works out for its
      * parent's room, on top of the margin it had before this gave it one, which [given] remembers. Says
-     * whether that changed it.
+     * whether that changed it. [given] is keyed by the layout params, not the view: Instagram's reel binder
+     * hands the video and its cover one params object, so a margin kept per view read the half slot the
+     * video just got as the cover's own and gave it again, a whole slot that put the reel up at the top (#763).
      */
-    static boolean placeReelMedia(View view, boolean keep, boolean behind, int slot, Map<View, Integer> given) {
+    static boolean placeReelMedia(View view, boolean keep, boolean behind, int slot,
+                                  Map<ViewGroup.LayoutParams, Integer> given) {
         if (!(view.getLayoutParams() instanceof FrameLayout.LayoutParams) || !(view.getParent() instanceof View)) {
             return false;
         }
         FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) view.getLayoutParams();
         View parent = (View) view.getParent();
-        Integer before = given.get(view);
+        Integer before = given.get(params);
         int own = before != null ? before : params.bottomMargin;
         int room = parent.getHeight() - parent.getPaddingTop() - parent.getPaddingBottom();
         int margin = parent.getHeight() <= 0 ? 0 : reelsMediaMargin(keep, behind, slot, room, params.height, params.gravity);
-        if (margin == 0) given.remove(view);
-        else given.put(view, own);
+        if (margin == 0) given.remove(params);
+        else given.put(params, own);
         if (params.bottomMargin == own + margin) return false;
         params.bottomMargin = own + margin;
         view.setLayoutParams(params);
@@ -1895,8 +1898,11 @@ public final class GlassTabBar {
         private final WeakHashMap<View, View> bands = new WeakHashMap<>();
         /** The footers laid over a reel's bottom (#260), each with the top margin it was given. */
         private final WeakHashMap<View, Integer> overlapped = new WeakHashMap<>();
-        /** The reel videos and covers moved up for a reel behind the pill (#450), each with the margin it had before. */
-        private final WeakHashMap<View, Integer> mediaMargins = new WeakHashMap<>();
+        /**
+         * The layout params of the reel videos and covers moved up for a reel behind the pill (#450), each
+         * with the margin it had before. A video and its cover share one (#763).
+         */
+        private final WeakHashMap<ViewGroup.LayoutParams, Integer> mediaMargins = new WeakHashMap<>();
         private final java.util.ArrayList<View> media = new java.util.ArrayList<>();
         private final java.util.ArrayList<View> anchors = new java.util.ArrayList<>();
         private final java.util.ArrayList<View> footerViews = new java.util.ArrayList<>();
