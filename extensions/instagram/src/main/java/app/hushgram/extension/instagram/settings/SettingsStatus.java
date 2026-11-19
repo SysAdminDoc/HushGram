@@ -363,6 +363,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean profileFollowCounts() {
+        return false;
+    }
+
     public static boolean messageBox() {
         return false;
     }

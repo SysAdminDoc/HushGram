@@ -469,6 +469,11 @@ Keep Featured off the heart's dot	Jangan nyalakan titik hati karena Unggulan
 Stops the red dot on the heart from showing up for Featured alone. Likes, comments and new followers still light it.	Mencegah titik merah di ikon hati muncul hanya karena Unggulan. Suka, komentar, dan pengikut baru tetap menyalakannya.
 Hide highlights	Sembunyikan sorotan
 Takes the row of story highlights off profiles, yours included. Bios, counts and posts stay, and so does Add to highlight on your stories.	Menghapus baris sorotan cerita dari profil, termasuk profilmu. Bio, jumlah, dan postingan tetap ada, begitu juga Tambahkan ke sorotan di ceritamu.
+# context: "Followers" and "Following" are the two buttons under a profile's name, beside the post count; use the words Instagram shows there in this language (#771)
+Hide follower counts	Sembunyikan jumlah pengikut
+Takes the numbers off Followers and Following at the top of profiles, yours included. The words stay, and a tap still opens the list.	Menghapus angka pada pengikut dan mengikuti di bagian atas profil, termasuk profilmu. Katanya tetap ada, dan ketukan tetap membuka daftarnya.
+Hide Followers and Following	Sembunyikan pengikut dan mengikuti
+Takes the Followers and Following buttons off the top of profiles, yours included, with no gap left. The post count stays.	Menghapus tombol pengikut dan mengikuti dari bagian atas profil, termasuk profilmu, tanpa menyisakan celah. Jumlah postingan tetap ada.
 Hide the Threads button	Sembunyikan tombol Threads
 Takes the Threads button off the top of profiles, yours included. The menu and the other buttons stay where they were.	Menghapus tombol Threads dari bagian atas profil, termasuk profilmu. Menu dan tombol lainnya tetap di tempatnya.
 Show profile posts as a list	Tampilkan postingan profil sebagai daftar

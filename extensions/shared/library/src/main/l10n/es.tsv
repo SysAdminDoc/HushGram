@@ -469,6 +469,11 @@ Keep Featured off the heart's dot	Que Destacado no encienda el punto del corazó
 Stops the red dot on the heart from showing up for Featured alone. Likes, comments and new followers still light it.	Evita que el punto rojo del corazón aparezca solo por Destacado. Los me gusta, los comentarios y los seguidores nuevos lo siguen encendiendo.
 Hide highlights	Ocultar historias destacadas
 Takes the row of story highlights off profiles, yours included. Bios, counts and posts stay, and so does Add to highlight on your stories.	Quita la fila de historias destacadas de los perfiles, incluido el tuyo. Las biografías, los contadores y las publicaciones se quedan, y también Añadir a destacadas en tus historias.
+# context: "Followers" and "Following" are the two buttons under a profile's name, beside the post count; use the words Instagram shows there in this language (#771)
+Hide follower counts	Ocultar el número de seguidores
+Takes the numbers off Followers and Following at the top of profiles, yours included. The words stay, and a tap still opens the list.	Quita los números de seguidores y seguidos de la parte de arriba de los perfiles, incluido el tuyo. Las palabras se quedan y al tocarlas se sigue abriendo la lista.
+Hide Followers and Following	Ocultar seguidores y seguidos
+Takes the Followers and Following buttons off the top of profiles, yours included, with no gap left. The post count stays.	Quita los botones de seguidores y seguidos de la parte de arriba de los perfiles, incluido el tuyo, sin dejar hueco. El número de publicaciones se queda.
 Hide the Threads button	Ocultar el botón de Threads
 Takes the Threads button off the top of profiles, yours included. The menu and the other buttons stay where they were.	Quita el botón de Threads de la parte de arriba de los perfiles, incluido el tuyo. El menú y los demás botones se quedan donde estaban.
 Show profile posts as a list	Mostrar las publicaciones del perfil como lista

@@ -469,6 +469,11 @@ Keep Featured off the heart's dot	Không để Nổi bật làm sáng chấm tr�
 Stops the red dot on the heart from showing up for Featured alone. Likes, comments and new followers still light it.	Ngăn chấm đỏ trên biểu tượng trái tim hiện lên chỉ vì Nổi bật. Lượt thích, bình luận và người theo dõi mới vẫn làm chấm sáng.
 Hide highlights	Ẩn tin nổi bật
 Takes the row of story highlights off profiles, yours included. Bios, counts and posts stay, and so does Add to highlight on your stories.	Gỡ hàng tin nổi bật khỏi trang cá nhân, kể cả của bạn. Tiểu sử, số liệu và bài viết vẫn giữ, Thêm vào tin nổi bật trên tin của bạn cũng vậy.
+# context: "Followers" and "Following" are the two buttons under a profile's name, beside the post count; use the words Instagram shows there in this language (#771)
+Hide follower counts	Ẩn số người theo dõi
+Takes the numbers off Followers and Following at the top of profiles, yours included. The words stay, and a tap still opens the list.	Bỏ con số khỏi Người theo dõi và Đang theo dõi ở đầu trang cá nhân, kể cả trang của bạn. Chữ vẫn giữ lại, và chạm vào vẫn mở danh sách.
+Hide Followers and Following	Ẩn Người theo dõi và Đang theo dõi
+Takes the Followers and Following buttons off the top of profiles, yours included, with no gap left. The post count stays.	Bỏ nút Người theo dõi và Đang theo dõi khỏi đầu trang cá nhân, kể cả trang của bạn, không để lại khoảng trống. Số bài viết vẫn giữ lại.
 Hide the Threads button	Ẩn nút Threads
 Takes the Threads button off the top of profiles, yours included. The menu and the other buttons stay where they were.	Gỡ nút Threads khỏi đầu trang cá nhân, kể cả của bạn. Menu và các nút khác vẫn ở chỗ cũ.
 Show profile posts as a list	Hiện bài viết trên trang cá nhân dạng danh sách

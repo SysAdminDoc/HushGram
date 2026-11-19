@@ -18,6 +18,7 @@ import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragme
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.followerHistoryRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.followLabelPlaceRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.mark;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.onFlip;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.onlineHistoryRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.profileHistoryRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.savedProfilesRow;
@@ -33,6 +34,7 @@ import android.preference.PreferenceScreen;
 
 import java.util.Set;
 
+import app.hushgram.extension.instagram.feed.ProfileFollowCounts;
 import app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.Row;
 import app.hushgram.extension.shared.L10n;
 
@@ -42,7 +44,8 @@ final class ProfilesCategory {
 
     static void add(HushgramPreferenceFragment page, PreferenceScreen screen, Context context, Set<PatchFamily> build) {
         if (build.contains(PatchFamily.FRIENDSHIP_STATUS) || build.contains(PatchFamily.PROFILE_SUGGESTIONS)
-                || build.contains(PatchFamily.PROFILE_HIGHLIGHTS) || build.contains(PatchFamily.THREADS_BUTTON)
+                || build.contains(PatchFamily.PROFILE_HIGHLIGHTS) || build.contains(PatchFamily.PROFILE_FOLLOW_COUNTS)
+                || build.contains(PatchFamily.THREADS_BUTTON)
                 || build.contains(PatchFamily.PROFILE_NOTES) || build.contains(PatchFamily.PROFILE_BANNERS)
                 || build.contains(PatchFamily.PROFILE_PICTURE) || build.contains(PatchFamily.ONLINE_HISTORY)
                 || build.contains(PatchFamily.PROFILE_TABS)
@@ -195,6 +198,18 @@ final class ProfilesCategory {
                 profiles.addPreference(toggle(context, Settings.HIDE_HIGHLIGHTS, L10n.t("Hide highlights"),
                         L10n.t("Takes the row of story highlights off profiles, yours included. Bios, counts and "
                                 + "posts stay, and so does Add to highlight on your stories.")));
+            }
+            if (build.contains(PatchFamily.PROFILE_FOLLOW_COUNTS)) {
+                profiles.addPreference(onFlip(toggle(context, Settings.HIDE_PROFILE_FOLLOW_COUNTS,
+                        L10n.t("Hide follower counts"),
+                        L10n.t("Takes the numbers off Followers and Following at the top of profiles, yours included. "
+                                + "The words stay, and a tap still opens the list.")),
+                        ProfileFollowCounts::switchChanged));
+                profiles.addPreference(onFlip(toggle(context, Settings.HIDE_PROFILE_FOLLOW_BUTTONS,
+                        L10n.t("Hide Followers and Following"),
+                        L10n.t("Takes the Followers and Following buttons off the top of profiles, yours included, "
+                                + "with no gap left. The post count stays.")),
+                        ProfileFollowCounts::switchChanged));
             }
             if (build.contains(PatchFamily.PROFILE_TABS)) {
                 profiles.addPreference(page.ownProfileTabsRow(context));

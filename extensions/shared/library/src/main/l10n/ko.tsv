@@ -470,6 +470,11 @@ Keep Featured off the heart's dot	주요 항목 때문에 하트에 점이 뜨�
 Stops the red dot on the heart from showing up for Featured alone. Likes, comments and new followers still light it.	주요 항목만으로 하트에 빨간 점이 나타나지 않게 합니다. 좋아요, 댓글, 새 팔로워는 계속 점을 표시합니다.
 Hide highlights	하이라이트 숨기기
 Takes the row of story highlights off profiles, yours included. Bios, counts and posts stay, and so does Add to highlight on your stories.	모든 프로필에서 스토리 하이라이트 목록을 숨깁니다. 내 프로필에도 적용됩니다. 프로필 소개, 팔로워 & 팔로잉 수 및 게시물은 그대로 유지되며, 내 스토리의 ‘하이라이트에 추가’ 기능도 그대로 사용할 수 있습니다
+# context: "Followers" and "Following" are the two buttons under a profile's name, beside the post count; use the words Instagram shows there in this language (#771)
+Hide follower counts	팔로워 수 숨기기
+Takes the numbers off Followers and Following at the top of profiles, yours included. The words stay, and a tap still opens the list.	프로필 위쪽의 팔로워와 팔로잉에서 숫자를 없앱니다. 내 프로필도 포함됩니다. 글자는 그대로 있고, 누르면 여전히 목록이 열립니다.
+Hide Followers and Following	팔로워 및 팔로잉 숨기기
+Takes the Followers and Following buttons off the top of profiles, yours included, with no gap left. The post count stays.	프로필 위쪽의 팔로워와 팔로잉 버튼을 빈 공간 없이 없앱니다. 내 프로필도 포함됩니다. 게시물 수는 그대로 둡니다.
 Hide the Threads button	Threads 버튼 숨기기
 Takes the Threads button off the top of profiles, yours included. The menu and the other buttons stay where they were.	모든 프로필 상단에서 Threads 버튼을 숨깁니다. 내 프로필에도 적용됩니다. 메뉴와 다른 버튼은 원래 자리에 그대로 있습니다.
 Show profile posts as a list	프로필 게시물을 목록으로 보기

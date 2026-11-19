@@ -474,6 +474,11 @@ Keep Featured off the heart's dot	不讓精選內容點亮愛心上的紅點
 Stops the red dot on the heart from showing up for Featured alone. Likes, comments and new followers still light it.	避免愛心上的紅點只因精選內容而出現。按讚、留言和新追蹤者仍會讓它亮起。
 Hide highlights	隱藏限時動態精選
 Takes the row of story highlights off profiles, yours included. Bios, counts and posts stay, and so does Add to highlight on your stories.	移除個人檔案的限時動態精選橫列，自己的個人檔案也適用。個人簡介、各項數量與貼文仍會保留，限時動態中的「新增至精選」也不受影響。
+# context: "Followers" and "Following" are the two buttons under a profile's name, beside the post count; use the words Instagram shows there in this language (#771)
+Hide follower counts	隱藏粉絲人數
+Takes the numbers off Followers and Following at the top of profiles, yours included. The words stay, and a tap still opens the list.	移除個人檔案上方粉絲和追蹤中的數字，自己的個人檔案也適用。文字仍會保留，點一下仍可開啟名單。
+Hide Followers and Following	隱藏粉絲和追蹤中
+Takes the Followers and Following buttons off the top of profiles, yours included, with no gap left. The post count stays.	移除個人檔案上方的粉絲和追蹤中按鈕，不留空隙，自己的個人檔案也適用。貼文數仍會保留。
 Hide the Threads button	隱藏 Threads 按鈕
 Takes the Threads button off the top of profiles, yours included. The menu and the other buttons stay where they were.	移除個人檔案頂端的 Threads 按鈕，自己的個人檔案也適用。選單與其他按鈕仍會保留在原位。
 Show profile posts as a list	以清單顯示個人檔案貼文

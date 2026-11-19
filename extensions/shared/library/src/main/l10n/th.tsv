@@ -466,6 +466,11 @@ Keep Featured off the heart's dot	ไม่ให้รายการแนะ�
 Stops the red dot on the heart from showing up for Featured alone. Likes, comments and new followers still light it.	ป้องกันไม่ให้จุดสีแดงบนรูปหัวใจแสดงขึ้นมาสำหรับรายการแนะนำเพียงอย่างเดียว ทั้งนี้การกดถูกใจ ความคิดเห็น และผู้ติดตามใหม่จะยังคงทำให้จุดแสดงอยู่
 Hide highlights	ซ่อนไฮไลท์
 Takes the row of story highlights off profiles, yours included. Bios, counts and posts stay, and so does Add to highlight on your stories.	นำแถวไฮไลท์สตอรี่ออกจากโปรไฟล์ รวมถึงโปรไฟล์ของคุณด้วย ทั้งนี้ประวัติย่อ จำนวนต่างๆ และโพสต์จะยังคงอยู่ รวมถึง "เพิ่มลงในไฮไลท์" บนสตอรี่ของคุณด้วย
+# context: "Followers" and "Following" are the two buttons under a profile's name, beside the post count; use the words Instagram shows there in this language (#771)
+Hide follower counts	ซ่อนจำนวนผู้ติดตาม
+Takes the numbers off Followers and Following at the top of profiles, yours included. The words stay, and a tap still opens the list.	นำตัวเลขออกจากผู้ติดตามและกำลังติดตามที่ด้านบนของโปรไฟล์ รวมถึงโปรไฟล์ของคุณ คำยังคงอยู่ และแตะเพื่อเปิดรายการได้เหมือนเดิม
+Hide Followers and Following	ซ่อนผู้ติดตามและกำลังติดตาม
+Takes the Followers and Following buttons off the top of profiles, yours included, with no gap left. The post count stays.	นำปุ่มผู้ติดตามและกำลังติดตามออกจากด้านบนของโปรไฟล์ รวมถึงโปรไฟล์ของคุณ โดยไม่เหลือช่องว่าง จำนวนโพสต์ยังคงอยู่
 Hide the Threads button	ซ่อนปุ่ม Threads
 Takes the Threads button off the top of profiles, yours included. The menu and the other buttons stay where they were.	นำปุ่ม Threads ออกจากด้านบนของโปรไฟล์ รวมถึงโปรไฟล์ของคุณด้วย ทั้งนี้เมนูและปุ่มอื่นๆ จะยังคงอยู่ที่เดิม
 Show profile posts as a list	แสดงโพสต์บนโปรไฟล์เป็นรายการ

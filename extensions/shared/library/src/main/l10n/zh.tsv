@@ -474,6 +474,11 @@ Keep Featured off the heart's dot	不让精选内容点亮爱心上的红点
 Stops the red dot on the heart from showing up for Featured alone. Likes, comments and new followers still light it.	避免爱心上的红点只因精选内容而出现。点赞、评论和新粉丝仍会让它亮起。
 Hide highlights	隐藏精选快拍
 Takes the row of story highlights off profiles, yours included. Bios, counts and posts stay, and so does Add to highlight on your stories.	移除主页的精选快拍栏，自己的主页也适用。个人简介、各项数量与帖子仍会保留，快拍中的“添加至精选”也不受影响。
+# context: "Followers" and "Following" are the two buttons under a profile's name, beside the post count; use the words Instagram shows there in this language (#771)
+Hide follower counts	隐藏粉丝数
+Takes the numbers off Followers and Following at the top of profiles, yours included. The words stay, and a tap still opens the list.	移除主页上方粉丝和关注的数字，自己的主页也适用。文字仍会保留，点一下仍可打开列表。
+Hide Followers and Following	隐藏粉丝和关注
+Takes the Followers and Following buttons off the top of profiles, yours included, with no gap left. The post count stays.	移除主页上方的粉丝和关注按钮，不留空隙，自己的主页也适用。帖子数仍会保留。
 Hide the Threads button	隐藏 Threads 按钮
 Takes the Threads button off the top of profiles, yours included. The menu and the other buttons stay where they were.	移除主页顶端的 Threads 按钮，自己的主页也适用。菜单与其他按钮仍会保留在原位。
 Show profile posts as a list	以清单显示主页帖子

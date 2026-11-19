@@ -469,6 +469,11 @@ Keep Featured off the heart's dot	Niente puntino sul cuore per In evidenza
 Stops the red dot on the heart from showing up for Featured alone. Likes, comments and new followers still light it.	Impedisce che il puntino rosso sul cuore compaia solo per In evidenza. Mi piace, commenti e nuovi follower continuano ad accenderlo.
 Hide highlights	Nascondi In evidenza
 Takes the row of story highlights off profiles, yours included. Bios, counts and posts stay, and so does Add to highlight on your stories.	Toglie la riga delle storie in evidenza dai profili, compreso il tuo. Bio, conteggi e post restano, e così Aggiungi a In evidenza sulle tue storie.
+# context: "Followers" and "Following" are the two buttons under a profile's name, beside the post count; use the words Instagram shows there in this language (#771)
+Hide follower counts	Nascondi il numero di follower
+Takes the numbers off Followers and Following at the top of profiles, yours included. The words stay, and a tap still opens the list.	Toglie i numeri da follower e seguiti in alto nei profili, anche nel tuo. Le parole restano e un tocco apre ancora l'elenco.
+Hide Followers and Following	Nascondi follower e seguiti
+Takes the Followers and Following buttons off the top of profiles, yours included, with no gap left. The post count stays.	Toglie i pulsanti follower e seguiti in alto nei profili, anche nel tuo, senza lasciare spazi vuoti. Il numero di post resta.
 Hide the Threads button	Nascondi il pulsante Threads
 Takes the Threads button off the top of profiles, yours included. The menu and the other buttons stay where they were.	Toglie il pulsante Threads dalla parte alta dei profili, compreso il tuo. Il menu e gli altri pulsanti restano dove erano.
 Show profile posts as a list	Mostra i post del profilo come elenco

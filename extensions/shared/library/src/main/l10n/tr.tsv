@@ -469,6 +469,11 @@ Keep Featured off the heart's dot	Öne Çıkanlar kalpteki noktayı yakmasın
 Stops the red dot on the heart from showing up for Featured alone. Likes, comments and new followers still light it.	Kalpteki kırmızı noktanın yalnızca Öne Çıkanlar yüzünden görünmesini engeller. Beğeniler, yorumlar ve yeni takipçiler noktayı yakmaya devam eder.
 Hide highlights	Öne çıkanları gizle
 Takes the row of story highlights off profiles, yours included. Bios, counts and posts stay, and so does Add to highlight on your stories.	Hikaye öne çıkanları satırını profillerden, seninki dahil, kaldırır. Biyografiler, sayılar ve gönderiler kalır, hikayelerindeki Öne çıkanlara ekle de kalır.
+# context: "Followers" and "Following" are the two buttons under a profile's name, beside the post count; use the words Instagram shows there in this language (#771)
+Hide follower counts	Takipçi sayılarını gizle
+Takes the numbers off Followers and Following at the top of profiles, yours included. The words stay, and a tap still opens the list.	Profillerin üstündeki takipçi ve takip alanlarından sayıları kaldırır, seninki de dahil. Yazılar kalır ve dokununca liste yine açılır.
+Hide Followers and Following	Takipçi ve takibi gizle
+Takes the Followers and Following buttons off the top of profiles, yours included, with no gap left. The post count stays.	Profillerin üstündeki takipçi ve takip düğmelerini boşluk bırakmadan kaldırır, seninki de dahil. Gönderi sayısı kalır.
 Hide the Threads button	Threads düğmesini gizle
 Takes the Threads button off the top of profiles, yours included. The menu and the other buttons stay where they were.	Threads düğmesini profillerin üstünden, seninki dahil, kaldırır. Menü ve diğer düğmeler oldukları yerde kalır.
 Show profile posts as a list	Profil gönderilerini liste olarak göster
