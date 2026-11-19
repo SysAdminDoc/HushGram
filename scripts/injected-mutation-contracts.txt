@@ -2357,6 +2357,15 @@ shared-call Lapp/hushgram/extension/instagram/share/RepostButton;->eligible(Ljav
 # through FeedSaveRow.likeCountState right before the constructor stores it. No rule, like the
 # Comment and Repost hooks beside it in that constructor. FeedLikeCountHookTest checks on every 454
 # build that it lands right before its write, with the comment and Repost hooks in place too.
+# Hide counts on posts (#762), under Save in the post menu, passes the same state's comment, share
+# and repost count flags through FeedSaveRow.countState right before the constructor stores each,
+# after Hide comments' and the Share and Repost hooks. No rule, for the same reason: it's called
+# three times there. FeedCountsHookTest checks on every build that each lands right before its write.
+# Hide Liked by (#762), under Save in the post menu: the render method of each component drawing the
+# likes row from a state of its own (the type a post's media state prints after ", likesRowUiState=")
+# hands every row it returns through FeedSaveRow.likesRow and returns the answer, cast back. No rule:
+# the answer's move-result and cast sit between the call and each return, which a returns rule
+# doesn't take. LikesRowHookTest checks on every build that each return goes through the hook.
 # Hide Reply on comments (#619), under Hide comments: the composable drawing the line under a
 # comment (0IEk.A04 on 454, the static one of the two methods holding the Reply button's tag below)
 # asks CommentReply.hidden in front of the Reply button and in front of the reply icon newer

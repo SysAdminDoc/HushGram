@@ -76,6 +76,9 @@ public final class FeedSaveRow {
             COUNT_LIKE_HIDDEN, () -> Settings.HIDE_FEED_LIKE_BUTTON.get(), BUTTONS, LIKE_BUTTON, LIKE_COUNT)
             .holders();
     static final String COUNT_LIKE_COUNT_OFF = "feed like counts left out";
+    /** Hide counts on posts and Hide Liked by (#762). */
+    static final String COUNT_COUNTS_OFF = "feed post counts left out";
+    static final String COUNT_LIKES_ROW_OFF = "feed likes rows left out";
 
     private FeedSaveRow() {
     }
@@ -123,18 +126,61 @@ public final class FeedSaveRow {
      * Never throws.
      */
     public static boolean likeCountState(int shown) {
-        return likeCountState(shown != 0, () -> Utils.settingsReady() && Settings.HIDE_FEED_LIKE_BUTTON.get());
+        return likeCountState(shown != 0, () -> Utils.settingsReady()
+                && (Settings.HIDE_FEED_LIKE_BUTTON.get() || Settings.HIDE_FEED_COUNTS.get()));
     }
 
     static boolean likeCountState(boolean shown, BooleanSupplier hide) {
+        return countOff(shown, hide, COUNT_LIKE_COUNT_OFF);
+    }
+
+    /**
+     * Injected right before the same state stores whether its row shows the comment, share or
+     * repost count, after any hook Hide comments or the Share or Repost button's patch put there
+     * (#762). Answers no while Hide counts on posts is on, so the buttons stay and the numbers go,
+     * and the answer it was handed otherwise. Never throws.
+     */
+    public static boolean countState(int shown) {
+        return countState(shown != 0, () -> Utils.settingsReady() && Settings.HIDE_FEED_COUNTS.get());
+    }
+
+    static boolean countState(boolean shown, BooleanSupplier hide) {
+        return countOff(shown, hide, COUNT_COUNTS_OFF);
+    }
+
+    private static boolean countOff(boolean shown, BooleanSupplier hide, String count) {
         try {
             HookStatus.invoked(FamilyNames.FEED_SAVE);
             if (!shown || !hide.getAsBoolean()) return shown;
-            HookStatus.counted(FamilyNames.FEED_SAVE, COUNT_LIKE_COUNT_OFF);
+            HookStatus.counted(FamilyNames.FEED_SAVE, count);
             return false;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.FEED_SAVE, HOOK, failure);
             return shown;
+        }
+    }
+
+    /**
+     * Injected before each return of the render methods that draw the likes row under a feed post,
+     * "Liked by" someone "and others" or a number of likes (#762). Answers null, which those methods
+     * hand back themselves for a post with nothing to show there, while Hide Liked by is on, and the
+     * row it was handed otherwise. Never throws.
+     */
+    @Nullable
+    public static Object likesRow(@Nullable Object row) {
+        return likesRow(row, () -> Utils.settingsReady() && Settings.HIDE_LIKED_BY.get());
+    }
+
+    @Nullable
+    static Object likesRow(@Nullable Object row, BooleanSupplier hide) {
+        try {
+            HookStatus.invoked(FamilyNames.FEED_SAVE);
+            if (row == null || !hide.getAsBoolean()) return row;
+            HookStatus.counted(FamilyNames.FEED_SAVE, COUNT_LIKES_ROW_OFF);
+            return null;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.FEED_SAVE, HOOK, failure);
+            return row;
         }
     }
 

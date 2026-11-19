@@ -2088,6 +2088,11 @@ Hide the Save button	隱藏儲存按鈕
 Takes the Save button off the bottom of posts in your feed, so a stray tap can't save one.	移除動態中貼文底部的儲存按鈕，避免誤觸而儲存貼文。
 Hide the Like button	隱藏讚按鈕
 Takes the heart and the like count off the bottom of posts in your feed. Double tap still likes a post.	移除動態消息貼文底部的愛心與讚數。仍可點兩下對貼文按讚。
+# context: two switches on the Feed page under Hide the Like button; Liked by is the line under a feed post naming who liked it (#762)
+Hide counts on posts	隱藏貼文上的數字
+Takes the like, comment, share and repost numbers off posts in your feed. The buttons stay. Posts already on screen change when they load again.	移除動態消息貼文上的讚、留言、分享和轉發次數。按鈕會保留。已在畫面上的貼文重新載入後才會改變。
+Hide Liked by	隱藏「說讚的人」
+Takes the "Liked by" line off posts in your feed.	移除動態消息貼文上顯示誰說讚的那一行。
 # context: the row in a feed post's three-dot menu for a post you already saved, and the row that takes an account off Saved profiles, on its profile's menu and on the Saved profiles page (#629)
 Remove from saved	從已儲存移除
 # context: a switch on the Reels page

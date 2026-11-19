@@ -2085,6 +2085,11 @@ Hide the Save button	Kaydet düğmesini gizle
 Takes the Save button off the bottom of posts in your feed, so a stray tap can't save one.	Akışındaki gönderilerin altındaki Kaydet düğmesini kaldırır, böylece yanlışlıkla bir dokunuş hiçbir şeyi kaydetmez.
 Hide the Like button	Beğen düğmesini gizle
 Takes the heart and the like count off the bottom of posts in your feed. Double tap still likes a post.	Akışındaki gönderilerin altından kalbi ve beğeni sayısını kaldırır. Çift dokunarak gönderiyi yine beğenebilirsin.
+# context: two switches on the Feed page under Hide the Like button; Liked by is the line under a feed post naming who liked it (#762)
+Hide counts on posts	Gönderilerdeki sayıları gizle
+Takes the like, comment, share and repost numbers off posts in your feed. The buttons stay. Posts already on screen change when they load again.	Akışındaki gönderilerden beğeni, yorum, paylaşım ve yeniden paylaşım sayılarını kaldırır. Düğmeler kalır. Ekranda olan gönderiler yeniden yüklendiğinde değişir.
+Hide Liked by	Beğenenler satırını gizle
+Takes the "Liked by" line off posts in your feed.	Akışındaki gönderilerden kimlerin beğendiğini gösteren satırı kaldırır.
 # context: the row in a feed post's three-dot menu for a post you already saved, and the row that takes an account off Saved profiles, on its profile's menu and on the Saved profiles page (#629)
 Remove from saved	Kaydedilenlerden kaldır
 # context: a switch on the Reels page

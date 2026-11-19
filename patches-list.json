@@ -5113,7 +5113,7 @@
     },
     {
       "name": "Save in the post menu",
-      "description": "Adds Save to the menu behind the three dots on posts in your feed, and switches that take the Save button or the Like button off them. Starts off. Turn them on in HushGram settings > Feed.",
+      "description": "Adds Save to the menu behind the three dots on posts in your feed, and switches that take the Save button, the Like button, the counts or the \"Liked by\" line off them. Starts off. Turn them on in HushGram settings > Feed.",
       "category": "Fixes",
       "use": true,
       "dependencies": [

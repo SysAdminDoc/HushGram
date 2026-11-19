@@ -2085,6 +2085,11 @@ Hide the Save button	Ocultar el botón Guardar
 Takes the Save button off the bottom of posts in your feed, so a stray tap can't save one.	Quita el botón Guardar de la parte inferior de las publicaciones de tu feed, para que un toque por error no guarde ninguna.
 Hide the Like button	Ocultar el botón Me gusta
 Takes the heart and the like count off the bottom of posts in your feed. Double tap still likes a post.	Quita el corazón y el número de Me gusta de la parte de abajo de las publicaciones de tu feed. Con un doble toque aún le das Me gusta a una publicación.
+# context: two switches on the Feed page under Hide the Like button; Liked by is the line under a feed post naming who liked it (#762)
+Hide counts on posts	Ocultar los números en las publicaciones
+Takes the like, comment, share and repost numbers off posts in your feed. The buttons stay. Posts already on screen change when they load again.	Quita los números de Me gusta, comentarios, envíos y republicaciones de las publicaciones de tu feed. Los botones se quedan. Las publicaciones que ya están en pantalla cambian cuando vuelven a cargarse.
+Hide Liked by	Ocultar "Les gusta a"
+Takes the "Liked by" line off posts in your feed.	Quita la línea "Les gusta a" de las publicaciones de tu feed.
 # context: the row in a feed post's three-dot menu for a post you already saved, and the row that takes an account off Saved profiles, on its profile's menu and on the Saved profiles page (#629)
 Remove from saved	Quitar de guardados
 # context: a switch on the Reels page

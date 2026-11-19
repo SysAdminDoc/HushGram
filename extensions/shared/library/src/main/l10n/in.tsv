@@ -2085,6 +2085,11 @@ Hide the Save button	Sembunyikan tombol Simpan
 Takes the Save button off the bottom of posts in your feed, so a stray tap can't save one.	Menghapus tombol Simpan dari bagian bawah postingan di feed kamu, agar ketukan tak sengaja tidak menyimpannya.
 Hide the Like button	Sembunyikan tombol Suka
 Takes the heart and the like count off the bottom of posts in your feed. Double tap still likes a post.	Menghapus ikon hati dan jumlah suka dari bagian bawah postingan di feed kamu. Ketuk dua kali tetap menyukai postingan.
+# context: two switches on the Feed page under Hide the Like button; Liked by is the line under a feed post naming who liked it (#762)
+Hide counts on posts	Sembunyikan angka di postingan
+Takes the like, comment, share and repost numbers off posts in your feed. The buttons stay. Posts already on screen change when they load again.	Menghapus angka suka, komentar, bagikan, dan posting ulang dari postingan di feed kamu. Tombolnya tetap ada. Postingan yang sudah tampil di layar berubah saat dimuat ulang.
+Hide Liked by	Sembunyikan "Disukai oleh"
+Takes the "Liked by" line off posts in your feed.	Menghapus baris "Disukai oleh" dari postingan di feed kamu.
 # context: the row in a feed post's three-dot menu for a post you already saved, and the row that takes an account off Saved profiles, on its profile's menu and on the Saved profiles page (#629)
 Remove from saved	Hapus dari tersimpan
 # context: a switch on the Reels page

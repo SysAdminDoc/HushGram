@@ -72,6 +72,8 @@ public class FeedSaveRowTest {
         Settings.SAVE_IN_POST_MENU.save(true);
         Settings.HIDE_FEED_SAVE_BUTTON.resetToDefault();
         Settings.HIDE_FEED_LIKE_BUTTON.resetToDefault();
+        Settings.HIDE_FEED_COUNTS.resetToDefault();
+        Settings.HIDE_LIKED_BY.resetToDefault();
         HookStatus.clear();
 
         controller = Robolectric.buildActivity(Activity.class).setup().visible();
@@ -121,6 +123,8 @@ public class FeedSaveRowTest {
         Settings.SAVE_IN_POST_MENU.resetToDefault();
         Settings.HIDE_FEED_SAVE_BUTTON.resetToDefault();
         Settings.HIDE_FEED_LIKE_BUTTON.resetToDefault();
+        Settings.HIDE_FEED_COUNTS.resetToDefault();
+        Settings.HIDE_LIKED_BY.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -460,6 +464,71 @@ public class FeedSaveRowTest {
         PauseForTests.resume();
 
         assertTrue("a switch that throws", FeedSaveRow.likeCountState(true, () -> {
+            throw new IllegalStateException("broken switch");
+        }));
+        String missing = HookStatus.missing(FamilyNames.FEED_SAVE).toString();
+        assertTrue(missing, missing.contains(FeedSaveRow.HOOK));
+    }
+
+    /**
+     * Hide counts on posts (#762): the comment, share and repost counts go through the same state,
+     * left out while the switch is on, the answer handed over otherwise. The like count answers for
+     * it too, with the Like button left where it is.
+     */
+    @Test
+    public void theCountsAreLeftOutOfTheRowWhileTheirSwitchIsOn() {
+        assertTrue("off to start", FeedSaveRow.countState(1));
+        assertFalse("Instagram's own no stays", FeedSaveRow.countState(0));
+        Settings.HIDE_FEED_LIKE_BUTTON.save(true);
+        assertTrue("Hide the Like button leaves the other counts", FeedSaveRow.countState(1));
+        Settings.HIDE_FEED_LIKE_BUTTON.save(false);
+
+        Settings.HIDE_FEED_COUNTS.save(true);
+        assertFalse(FeedSaveRow.countState(1));
+        assertFalse(FeedSaveRow.countState(0));
+        assertFalse("the like count goes with them", FeedSaveRow.likeCountState(1));
+        String report = String.join("\n", HookStatus.report());
+        assertTrue(report, report.contains(FeedSaveRow.COUNT_COUNTS_OFF));
+
+        FeedSaveRow.likeHider().watch(activity);
+        assertFalse("the Like button stays", FeedSaveRow.likeHider().listeningForTests(activity));
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertTrue("paused", FeedSaveRow.countState(1));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+
+        assertTrue("a switch that throws", FeedSaveRow.countState(true, () -> {
+            throw new IllegalStateException("broken switch");
+        }));
+        String missing = HookStatus.missing(FamilyNames.FEED_SAVE).toString();
+        assertTrue(missing, missing.contains(FeedSaveRow.HOOK));
+    }
+
+    /**
+     * Hide Liked by (#762): the likes row's render answers null while the switch is on, which the
+     * render hands back itself for a post with nothing to show, and the row it was handed otherwise.
+     */
+    @Test
+    public void theLikesRowIsLeftOutWhileItsSwitchIsOn() {
+        Object row = new Object();
+        assertSame("off to start", row, FeedSaveRow.likesRow(row));
+        assertNull("no row stays no row", FeedSaveRow.likesRow(null));
+
+        Settings.HIDE_LIKED_BY.save(true);
+        assertNull(FeedSaveRow.likesRow(row));
+        assertNull(FeedSaveRow.likesRow(null));
+        String report = String.join("\n", HookStatus.report());
+        assertTrue(report, report.contains(FeedSaveRow.COUNT_LIKES_ROW_OFF));
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertSame("paused", row, FeedSaveRow.likesRow(row));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+
+        assertSame("a switch that throws", row, FeedSaveRow.likesRow(row, () -> {
             throw new IllegalStateException("broken switch");
         }));
         String missing = HookStatus.missing(FamilyNames.FEED_SAVE).toString();

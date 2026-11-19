@@ -109,7 +109,7 @@ public class MenuItemsSettingsTest {
         String[] keys = new String[feed.getPreferenceCount()];
         for (int i = 0; i < keys.length; i++) keys[i] = feed.getPreference(i).getKey();
         int at = Arrays.asList(keys).indexOf(Settings.HIDDEN_MENU_ITEMS.key);
-        assertEquals(Arrays.toString(keys), Settings.HIDE_FEED_LIKE_BUTTON.key, keys[at - 1]);
+        assertEquals(Arrays.toString(keys), Settings.HIDE_LIKED_BY.key, keys[at - 1]);
         assertEquals(Collections.singletonList(Settings.HIDDEN_MENU_ITEMS), PatchFamily.MENU_ITEMS.choices());
         assertEquals("Three-dot menu items", PatchFamily.MENU_ITEMS.patchName);
         assertEquals("", Settings.HIDDEN_MENU_ITEMS.get());

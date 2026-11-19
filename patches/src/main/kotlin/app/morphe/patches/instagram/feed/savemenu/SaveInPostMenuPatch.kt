@@ -20,18 +20,25 @@ import app.morphe.patches.instagram.download.video.helperAt
 import app.morphe.patches.instagram.download.video.mutable
 import app.morphe.patches.instagram.download.video.postBridge
 import app.morphe.patches.instagram.feed.FeedStateWrite
+import app.morphe.patches.instagram.feed.comments.COMMENT_COUNT_LABEL
 import app.morphe.patches.instagram.feed.feedRowState
 import app.morphe.patches.instagram.feed.flagWrites
+import app.morphe.patches.instagram.feed.holdsString
 import app.morphe.patches.instagram.feed.isToString
 import app.morphe.patches.instagram.feed.prepareFlagWrites
 import app.morphe.patches.instagram.feed.printedFlag
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.instagram.misc.extension.classesHolding
+import app.morphe.patches.instagram.misc.extension.classesReadingType
 import app.morphe.patches.instagram.misc.extension.classesTouching
 import app.morphe.patches.instagram.misc.extension.enableStatus
+import app.morphe.patches.instagram.misc.extension.filterReturnAt
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.patchLog
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.settings.settingsPatch
+import app.morphe.patches.instagram.share.REPOST_COUNT_LABEL
+import app.morphe.patches.instagram.share.SHARE_COUNT_LABEL
 import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.util.addInstructionsAtControlFlowLabel
 import com.android.tools.smali.dexlib2.AccessFlags
@@ -50,9 +57,24 @@ internal const val OFFER_SAVE = "$SAVE_ROW->offer(Ljava/lang/Object;Ljava/util/A
 internal const val ALLOW_SAVE = "$SAVE_ROW->allow(Ljava/util/List;)Ljava/util/List;"
 internal const val SETTLE_SAVE = "$SAVE_ROW->settle(Ljava/lang/Object;)V"
 internal const val LIKE_COUNT_STATE = "$SAVE_ROW->likeCountState(I)Z"
+internal const val COUNT_STATE = "$SAVE_ROW->countState(I)Z"
+internal const val LIKES_ROW = "$SAVE_ROW->likesRow(Ljava/lang/Object;)Ljava/lang/Object;"
 
 /** The label Feed's action-row state prints whether the row shows the like count under (#668). */
 internal const val LIKE_COUNT_LABEL = ", shouldShowLikeCountInUfi="
+
+/**
+ * The labels the same state prints whether the row shows the comment, share and repost counts
+ * under (#762), with what each is called in a warning.
+ */
+internal val OTHER_COUNT_LABELS = listOf(
+    COMMENT_COUNT_LABEL to "comment count",
+    SHARE_COUNT_LABEL to "share count",
+    REPOST_COUNT_LABEL to "repost count",
+)
+
+/** The label a feed post's media state prints the likes row's own state under, "Liked by" and all (#762). */
+internal const val LIKES_ROW_LABEL = ", likesRowUiState="
 
 /** Instagram's own Save and Unsave options, which its feed menu handles a tap on itself. */
 internal const val SAVE_OPTION = "$OPTION->SAVE:$OPTION"
@@ -228,14 +250,183 @@ internal fun BytecodePatchContext.findFeedSaveRow(): FeedSaveRowHooks {
  * through [LIKE_COUNT_STATE], so a state built while Hide the Like button is on lays the row out
  * with no count at all (#668). Hidden as a view instead, the count left its space and its tap.
  */
-internal fun BytecodePatchContext.findFeedLikeCount(): FeedLikeCount {
-    val state = feedRowState(PATCH, LIKE_COUNT_LABEL)
-    val flag = state.methods.single { it.isToString() }.printedFlag(PATCH, state.type, LIKE_COUNT_LABEL)
+internal fun BytecodePatchContext.findFeedLikeCount(): FeedLikeCount =
+    findFeedCount(LIKE_COUNT_LABEL, "like count", LIKE_COUNT_STATE)
+
+/**
+ * The flag Feed's action-row state prints after [label], every write of it found, and [hook] put
+ * right before each when [FeedLikeCount.write] is called. [what] names the flag in a refusal.
+ */
+internal fun BytecodePatchContext.findFeedCount(label: String, what: String, hook: String): FeedLikeCount {
+    val state = feedRowState(PATCH, label)
+    val flag = state.methods.single { it.isToString() }.printedFlag(PATCH, state.type, label)
     val writes = flagWrites(PATCH, mutableClassDefBy(state.type), flag).ifEmpty {
-        refuse("${state.type}'s constructor never sets what it prints as \"$LIKE_COUNT_LABEL\"")
+        refuse("${state.type}'s constructor never sets what it prints as \"$label\"")
     }
-    return FeedLikeCount(state.type, writes, prepareFlagWrites(PATCH, state.type, "like count", writes, LIKE_COUNT_STATE))
+    return FeedLikeCount(state.type, writes, prepareFlagWrites(PATCH, state.type, what, writes, hook))
 }
+
+/**
+ * Hide counts on posts (#762): the comment, share and repost count flags of the same state, each
+ * passed through [COUNT_STATE] right before the constructor stores it, so a state built while the
+ * switch is on lays the row out with the buttons and no numbers. The like count goes through
+ * [LIKE_COUNT_STATE], which answers for this switch too. Hide comments, Hide the Share button and
+ * Hide the Repost button may have hooked the same writes already, and the hook goes in after theirs.
+ * Each flag is found right before it's hooked, since a hook in the constructor moves the writes
+ * after it, and one that moved only leaves its own count showing, with a warning. Answers how many
+ * of the three were hooked.
+ */
+internal fun BytecodePatchContext.hideFeedCounts(): Int = OTHER_COUNT_LABELS.count { (label, what) ->
+    try {
+        findFeedCount(label, what, COUNT_STATE).write()
+        true
+    } catch (refusal: PatchException) {
+        patchLog.warning("${refusal.message}. $PATCH goes in leaving the $what on feed posts.")
+        false
+    }
+}
+
+/**
+ * The likes row under a feed post, "Liked by" someone "and others" or a number of likes (#762): the
+ * render method of each component that draws it from a state of its own, found by that state's
+ * type, which a post's media state prints after [LIKES_ROW_LABEL]. On 456 that's the row with
+ * Instagram's likes test tag and the newer one with friends' pictures beside the line. Each
+ * component's class keeps the state in a field and its render method, the one taking one argument
+ * and answering a type the class is, reads it. Nothing is changed until [LikesRows.write].
+ */
+internal fun BytecodePatchContext.findLikesRows(): LikesRows {
+    val state = likesRowState()
+    val renders = classesReadingType(state).mapNotNull { classDef ->
+        val own = classDef.fields.filter { it.type == state && !AccessFlags.STATIC.isSet(it.accessFlags) }.map { it.name }
+        if (own.isEmpty()) return@mapNotNull null
+        val ancestors = ancestorsOf(classDef)
+        classDef.methods.singleOrNull { method ->
+            !AccessFlags.STATIC.isSet(method.accessFlags) && method.parameterTypes.size == 1 &&
+                method.returnType in ancestors && method.readsOwnField(classDef.type, state, own)
+        }?.let { classDef.type to it }
+    }
+    if (renders.isEmpty()) refuse("no component draws the likes row from its own $state")
+    val methods = renders.map { (type, method) ->
+        mutableClassDefBy(type).methods.single {
+            it.name == method.name && it.returnType == method.returnType &&
+                it.parameterTypes.map(CharSequence::toString) == method.parameterTypes.map(CharSequence::toString)
+        }
+    }
+    for (method in methods) {
+        if (method.implementation?.instructions?.none { it.opcode == Opcode.RETURN_OBJECT } != false) {
+            refuse("${method.definingClass}->${method.name}, a likes row's render method, never hands back its row")
+        }
+    }
+    return LikesRows(methods)
+}
+
+/** The type of the likes row's state: what the one media state printing [LIKES_ROW_LABEL] prints after it. */
+internal fun BytecodePatchContext.likesRowState(): String {
+    val holders = classesHolding(LIKES_ROW_LABEL).filter { classDef ->
+        classDef.methods.any { it.isToString() && it.holdsString(LIKES_ROW_LABEL) }
+    }
+    val holder = holders.singleOrNull()
+        ?: refuse("expected one media state printing \"$LIKES_ROW_LABEL\", found ${holders.size}")
+    return printedObjectType(holder, LIKES_ROW_LABEL)
+}
+
+/** The likes rows' render methods, each of whose returns passes through [LIKES_ROW] when [write] is called. */
+internal class LikesRows(val methods: List<MutableMethod>) {
+    fun write() {
+        for (method in methods) {
+            val code = method.implementation!!.instructions
+            // Locations follow their instruction as code goes in ahead of it, so they're taken first.
+            val returns = code.filter { it.opcode == Opcode.RETURN_OBJECT }.map { it.location }
+            for (location in returns.asReversed()) method.filterReturnAt(PATCH, location.index, LIKES_ROW, method.returnType)
+        }
+    }
+}
+
+/** [findLikesRows], or null with a warning, so Save and the other switches still go in. */
+internal fun BytecodePatchContext.findLikesRowsOrWarn(): LikesRows? = try {
+    findLikesRows()
+} catch (refusal: PatchException) {
+    patchLog.warning("${refusal.message}. $PATCH goes in leaving the \"Liked by\" line under feed posts.")
+    null
+}
+
+/**
+ * The type of the object [holder]'s toString prints after [label]: the field of its own whose value
+ * the next `append(Object)` hands over. 456 reads every field into a register at the top and copies
+ * it back right before appending it, so the value is followed back through those copies.
+ */
+private fun printedObjectType(holder: com.android.tools.smali.dexlib2.iface.ClassDef, label: String): String {
+    val code = holder.methods.single { it.isToString() }.code()
+    val loads = code.indices.filter {
+        (code[it].opcode == Opcode.CONST_STRING || code[it].opcode == Opcode.CONST_STRING_JUMBO) &&
+            ((code[it] as ReferenceInstruction).reference as com.android.tools.smali.dexlib2.iface.reference.StringReference).string == label
+    }
+    val load = loads.singleOrNull() ?: refuse("${holder.type}->toString loads \"$label\" ${loads.size} times")
+    // The label's own append, then the value's.
+    val appends = (load + 1 until minOf(code.size, load + 5)).filter { code[it].appendedObject() != null }
+    val append = appends.firstOrNull { code[it].appendedObject()!!.second == "Ljava/lang/Object;" }
+        ?: refuse("${holder.type}->toString prints something other than an object after \"$label\"")
+    var register = code[append].appendedObject()!!.first
+    var at = append
+    repeat(COPY_REACH) {
+        val writer = (at - 1 downTo 0).firstOrNull { code[it].writesRegister(register) }
+            ?: refuse("${holder.type}->toString prints \"$label\" from a value it never loads")
+        val write = code[writer]
+        when (write.opcode) {
+            Opcode.MOVE_OBJECT, Opcode.MOVE_OBJECT_FROM16, Opcode.MOVE_OBJECT_16 -> {
+                register = (write as com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction).registerB
+                at = writer
+            }
+            Opcode.IGET_OBJECT -> {
+                val field = (write as ReferenceInstruction).reference as com.android.tools.smali.dexlib2.iface.reference.FieldReference
+                if (field.definingClass != holder.type || !field.type.startsWith("L")) {
+                    refuse("${holder.type}->toString prints \"$label\" from something other than an object field of its own")
+                }
+                return field.type
+            }
+            else -> refuse("${holder.type}->toString prints \"$label\" from something other than a field")
+        }
+    }
+    refuse("${holder.type}->toString copies what it prints as \"$label\" more than $COPY_REACH times")
+}
+
+private const val COPY_REACH = 4
+private const val STRING_BUILDER = "Ljava/lang/StringBuilder;"
+
+/** The register and parameter type this hands to `StringBuilder.append`, or null when it's no such call. */
+private fun Instruction.appendedObject(): Pair<Int, String>? {
+    if (opcode != Opcode.INVOKE_VIRTUAL && opcode != Opcode.INVOKE_VIRTUAL_RANGE) return null
+    val called = (this as ReferenceInstruction).reference as MethodReference
+    if (called.definingClass != STRING_BUILDER || called.name != "append" || called.parameterTypes.size != 1) return null
+    val register = when (this) {
+        is FiveRegisterInstruction -> registerD
+        is RegisterRangeInstruction -> startRegister + 1
+        else -> return null
+    }
+    return register to called.parameterTypes.single().toString()
+}
+
+private fun Instruction.writesRegister(register: Int): Boolean {
+    if (!opcode.setsRegister()) return false
+    val destination = (this as? OneRegisterInstruction)?.registerA ?: return false
+    return destination == register || (opcode.setsWideRegister() && destination + 1 == register)
+}
+
+/** [classDef]'s type and every superclass's the app holds. */
+private fun BytecodePatchContext.ancestorsOf(classDef: com.android.tools.smali.dexlib2.iface.ClassDef): Set<String> {
+    val types = linkedSetOf(classDef.type)
+    var superclass = classDef.superclass
+    while (superclass != null && types.add(superclass)) superclass = classDefByOrNull(superclass)?.superclass
+    return types
+}
+
+/** Whether this reads one of [owner]'s fields [names] holding a [type]. */
+private fun Method.readsOwnField(owner: String, type: String, names: List<String>): Boolean =
+    implementation?.instructions?.any { instruction ->
+        val field = (instruction as? ReferenceInstruction)?.reference as? com.android.tools.smali.dexlib2.iface.reference.FieldReference
+        instruction.opcode == Opcode.IGET_OBJECT && field != null && field.definingClass == owner && field.type == type &&
+            field.name in names
+    } == true
 
 /** The like count flag's writes in Feed's action-row state of [type], hooked when [write] is called. */
 internal class FeedLikeCount(val type: String, val writes: List<FeedStateWrite>, private val change: () -> Unit) {
@@ -267,13 +458,16 @@ private fun Instruction.firstArgument(): Int? = when (this) {
  * Instagram's own options, which its menu already handles, added where anyone else's rows start and
  * kept by the short menu. The same patch lets the extension take the Save button off feed posts,
  * and the Like button with its count (#668), the count through the row's own state so the row is
- * laid out without it. In the default selection with every switch off.
+ * laid out without it. Hide counts on posts takes the like, comment, share and repost counts off
+ * with the buttons kept, and Hide Liked by the likes row under a post (#762). In the default
+ * selection with every switch off.
  */
 @Suppress("unused")
 val saveInPostMenuPatch = bytecodePatch(
     name = "Save in the post menu",
     description = "Adds Save to the menu behind the three dots on posts in your feed, and switches that take the " +
-        "Save button or the Like button off them. Starts off. Turn them on in HushGram settings > Feed.",
+        "Save button, the Like button, the counts or the \"Liked by\" line off them. Starts off. Turn them on in " +
+        "HushGram settings > Feed.",
 ) {
     category("Fixes")
     dependsOn(settingsPatch, instagramExtensionPatch)
@@ -283,8 +477,11 @@ val saveInPostMenuPatch = bytecodePatch(
         requireStatusMethod(FEED_SAVE_STATUS)
         val row = findFeedSaveRow()
         val likeCount = findFeedLikeCountOrWarn()
+        val likesRows = findLikesRowsOrWarn()
         row.write()
         likeCount?.write()
+        hideFeedCounts()
+        likesRows?.write()
         enableStatus(FEED_SAVE_STATUS)
     }
 }

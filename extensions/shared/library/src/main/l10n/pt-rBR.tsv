@@ -2085,6 +2085,11 @@ Hide the Save button	Ocultar o botão Salvar
 Takes the Save button off the bottom of posts in your feed, so a stray tap can't save one.	Tira o botão Salvar da parte de baixo dos posts do seu feed, para um toque sem querer não salvar nada.
 Hide the Like button	Ocultar o botão Curtir
 Takes the heart and the like count off the bottom of posts in your feed. Double tap still likes a post.	Tira o coração e o número de curtidas da parte de baixo dos posts do seu feed. Tocar duas vezes ainda curte um post.
+# context: two switches on the Feed page under Hide the Like button; Liked by is the line under a feed post naming who liked it (#762)
+Hide counts on posts	Ocultar os números nos posts
+Takes the like, comment, share and repost numbers off posts in your feed. The buttons stay. Posts already on screen change when they load again.	Tira os números de curtidas, comentários, compartilhamentos e repostagens dos posts do seu feed. Os botões continuam. Posts que já estão na tela mudam quando carregam de novo.
+Hide Liked by	Ocultar "Curtido por"
+Takes the "Liked by" line off posts in your feed.	Tira a linha "Curtido por" dos posts do seu feed.
 # context: the row in a feed post's three-dot menu for a post you already saved, and the row that takes an account off Saved profiles, on its profile's menu and on the Saved profiles page (#629)
 Remove from saved	Remover dos salvos
 # context: a switch on the Reels page

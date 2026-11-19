@@ -194,6 +194,13 @@ internal fun BytecodePatchContext.classesReadingObjects(definingClass: String, t
     classesMatching(Fingerprint(filters = listOf(fieldAccess(definingClass = definingClass, type = type, opcode = Opcode.IGET_OBJECT))))
 
 /**
+ * The classes outside the extension whose code reads a field of any class holding a [type]
+ * (iget-object), in the app's order, by the same index.
+ */
+internal fun BytecodePatchContext.classesReadingType(type: String): List<ClassDef> =
+    classesMatching(Fingerprint(filters = listOf(fieldAccess(type = type, opcode = Opcode.IGET_OBJECT))))
+
+/**
  * The types of the classes outside the extension holding a purge marker (see [markers]) named one
  * of [names]. A marker named X is an android_purge_ string ending in `_X`, so a class this leaves
  * out holds none. Filter a class walk by it to keep the app's order.

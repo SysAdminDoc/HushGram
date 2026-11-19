@@ -2084,6 +2084,11 @@ Hide the Save button	저장 버튼 숨기기
 Takes the Save button off the bottom of posts in your feed, so a stray tap can't save one.	피드 게시물 아래쪽의 저장 버튼을 없애서 실수로 눌러 저장되는 일이 없게 합니다.
 Hide the Like button	좋아요 버튼 숨기기
 Takes the heart and the like count off the bottom of posts in your feed. Double tap still likes a post.	피드 게시물 아래쪽에서 하트와 좋아요 수를 없앱니다. 두 번 탭하면 여전히 게시물에 좋아요를 누를 수 있습니다.
+# context: two switches on the Feed page under Hide the Like button; Liked by is the line under a feed post naming who liked it (#762)
+Hide counts on posts	게시물의 숫자 숨기기
+Takes the like, comment, share and repost numbers off posts in your feed. The buttons stay. Posts already on screen change when they load again.	피드 게시물에서 좋아요, 댓글, 공유, 리포스트 수를 없앱니다. 버튼은 그대로 있습니다. 이미 화면에 있는 게시물은 다시 불러올 때 바뀝니다.
+Hide Liked by	좋아요 누른 사람 줄 숨기기
+Takes the "Liked by" line off posts in your feed.	피드 게시물에서 누가 좋아요를 눌렀는지 보여 주는 줄을 없앱니다.
 # context: the row in a feed post's three-dot menu for a post you already saved, and the row that takes an account off Saved profiles, on its profile's menu and on the Saved profiles page (#629)
 Remove from saved	저장됨에서 삭제
 # context: a switch on the Reels page

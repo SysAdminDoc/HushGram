@@ -2085,6 +2085,11 @@ Hide the Save button	Nascondi il pulsante Salva
 Takes the Save button off the bottom of posts in your feed, so a stray tap can't save one.	Toglie il pulsante Salva dal fondo dei post nel tuo feed, così un tocco per sbaglio non ne salva nessuno.
 Hide the Like button	Nascondi il pulsante Mi piace
 Takes the heart and the like count off the bottom of posts in your feed. Double tap still likes a post.	Toglie il cuore e il numero di Mi piace dalla parte bassa dei post nel tuo feed. Il doppio tocco mette ancora Mi piace a un post.
+# context: two switches on the Feed page under Hide the Like button; Liked by is the line under a feed post naming who liked it (#762)
+Hide counts on posts	Nascondi i numeri sui post
+Takes the like, comment, share and repost numbers off posts in your feed. The buttons stay. Posts already on screen change when they load again.	Toglie i numeri di Mi piace, commenti, condivisioni e repost dai post nel tuo feed. I pulsanti restano. I post già sullo schermo cambiano quando si ricaricano.
+Hide Liked by	Nascondi "Piace a"
+Takes the "Liked by" line off posts in your feed.	Toglie la riga "Piace a" dai post nel tuo feed.
 # context: the row in a feed post's three-dot menu for a post you already saved, and the row that takes an account off Saved profiles, on its profile's menu and on the Saved profiles page (#629)
 Remove from saved	Rimuovi dagli elementi salvati
 # context: a switch on the Reels page

@@ -238,7 +238,7 @@ public enum PatchFamily {
     FEED_FOLLOW(FamilyNames.FEED_FOLLOW, "feedFollow", null, Settings.HIDE_FEED_FOLLOW, Settings.HIDE_FEED_SUBSCRIBE),
     EDITS_LABEL(FamilyNames.EDITS_LABEL, "editsLabel", null, Settings.HIDE_EDITS_LABEL),
     FEED_SAVE(FamilyNames.FEED_SAVE, "feedSave", null, Settings.SAVE_IN_POST_MENU, Settings.HIDE_FEED_SAVE_BUTTON,
-            Settings.HIDE_FEED_LIKE_BUTTON),
+            Settings.HIDE_FEED_LIKE_BUTTON, Settings.HIDE_FEED_COUNTS, Settings.HIDE_LIKED_BY),
     MENU_ITEMS(FamilyNames.MENU_ITEMS, "menuItems", null),
     WATCH_AGAIN(FamilyNames.WATCH_AGAIN, "watchAgain", null, Settings.WATCH_AGAIN_IN_FEED, Settings.HIDE_WATCH_MORE_REELS),
     ACTIVITY_BUBBLES(FamilyNames.ACTIVITY_BUBBLES, "activityBubbles", null, Settings.HIDE_ACTIVITY_BUBBLES),

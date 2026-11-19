@@ -381,6 +381,11 @@ final class FeedCategory {
             feed.addPreference(onFlip(toggle(context, Settings.HIDE_FEED_LIKE_BUTTON, L10n.t("Hide the Like button"),
                     L10n.t("Takes the heart and the like count off the bottom of posts in your feed. Double tap still likes a post.")),
                     FeedSaveRow::switchChanged));
+            feed.addPreference(toggle(context, Settings.HIDE_FEED_COUNTS, L10n.t("Hide counts on posts"),
+                    L10n.t("Takes the like, comment, share and repost numbers off posts in your feed. The buttons stay. "
+                            + "Posts already on screen change when they load again.")));
+            feed.addPreference(toggle(context, Settings.HIDE_LIKED_BY, L10n.t("Hide Liked by"),
+                    L10n.t("Takes the \"Liked by\" line off posts in your feed.")));
         }
         if (menuItems) feed.addPreference(page.menuItemsRow(context));
         if (activityBubbles) {

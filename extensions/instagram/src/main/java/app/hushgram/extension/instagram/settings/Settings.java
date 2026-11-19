@@ -3092,6 +3092,22 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_feed_like_button", FALSE);
 
     /**
+     * The like, comment, share and repost counts beside the buttons under a feed post, the buttons
+     * kept (#762, {@link app.hushgram.extension.instagram.feed.FeedSaveRow}). Read as Feed builds a
+     * post's row, so posts already built change when they load again. Off to start.
+     */
+    public static final BooleanSetting HIDE_FEED_COUNTS =
+            new BooleanSetting("hushgram_hide_feed_counts", FALSE);
+
+    /**
+     * The likes row under a feed post, "Liked by" someone "and others" or a number of likes (#762,
+     * {@link app.hushgram.extension.instagram.feed.FeedSaveRow}). Read as the row is drawn. Off to
+     * start.
+     */
+    public static final BooleanSetting HIDE_LIKED_BY =
+            new BooleanSetting("hushgram_hide_liked_by", FALSE);
+
+    /**
      * The items left out of the menus behind the three dots on posts, reels and stories
      * ({@link app.hushgram.extension.instagram.feed.MenuItems}, #697, #707), with commas between: any
      * of REPORT, MUTE, UNFOLLOW, NOT_INTERESTED, INTERESTED, WHY, PLAYBACK_SPEED and PLAYBACK. Nothing

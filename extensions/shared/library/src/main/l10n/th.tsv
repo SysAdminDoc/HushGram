@@ -2072,6 +2072,11 @@ Hide the Save button	ซ่อนปุ่มบันทึก
 Takes the Save button off the bottom of posts in your feed, so a stray tap can't save one.	นำปุ่มบันทึกออกจากด้านล่างของโพสต์ในฟีดของคุณ เพื่อป้องกันการแตะโดนโดยไม่ตั้งใจจนบันทึกโพสต์
 Hide the Like button	ซ่อนปุ่มถูกใจ
 Takes the heart and the like count off the bottom of posts in your feed. Double tap still likes a post.	นำรูปหัวใจและจำนวนถูกใจออกจากด้านล่างของโพสต์ในฟีดของคุณ คุณยังแตะสองครั้งเพื่อกดถูกใจโพสต์ได้อยู่
+# context: two switches on the Feed page under Hide the Like button; Liked by is the line under a feed post naming who liked it (#762)
+Hide counts on posts	ซ่อนตัวเลขบนโพสต์
+Takes the like, comment, share and repost numbers off posts in your feed. The buttons stay. Posts already on screen change when they load again.	นำตัวเลขถูกใจ ความคิดเห็น การแชร์ และการรีโพสต์ออกจากโพสต์ในฟีดของคุณ ปุ่มต่างๆ ยังอยู่ โพสต์ที่แสดงบนหน้าจออยู่แล้วจะเปลี่ยนเมื่อโหลดใหม่
+Hide Liked by	ซ่อน "ถูกใจโดย"
+Takes the "Liked by" line off posts in your feed.	นำบรรทัด "ถูกใจโดย" ออกจากโพสต์ในฟีดของคุณ
 # context: the row in a feed post's three-dot menu for a post you already saved, and the row that takes an account off Saved profiles, on its profile's menu and on the Saved profiles page (#629)
 Remove from saved	ลบออกจากรายการที่บันทึกไว้
 # context: a switch on the Reels page

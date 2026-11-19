@@ -2085,6 +2085,11 @@ Hide the Save button	Speichern-Button ausblenden
 Takes the Save button off the bottom of posts in your feed, so a stray tap can't save one.	Entfernt den Speichern-Button unten an Beiträgen in deinem Feed, damit ein versehentliches Tippen nichts speichert.
 Hide the Like button	Gefällt-mir-Button ausblenden
 Takes the heart and the like count off the bottom of posts in your feed. Double tap still likes a post.	Nimmt das Herz und die Zahl der Likes unten von Beiträgen in deinem Feed. Ein Doppeltipp gibt einem Beitrag weiterhin ein Like.
+# context: two switches on the Feed page under Hide the Like button; Liked by is the line under a feed post naming who liked it (#762)
+Hide counts on posts	Zahlen an Beiträgen ausblenden
+Takes the like, comment, share and repost numbers off posts in your feed. The buttons stay. Posts already on screen change when they load again.	Nimmt die Zahlen für Likes, Kommentare, Teilen und Reposts von Beiträgen in deinem Feed. Die Buttons bleiben. Beiträge, die schon angezeigt werden, ändern sich, wenn sie neu laden.
+Hide Liked by	„Gefällt“-Zeile ausblenden
+Takes the "Liked by" line off posts in your feed.	Nimmt die Zeile „Gefällt …“ von Beiträgen in deinem Feed.
 # context: the row in a feed post's three-dot menu for a post you already saved, and the row that takes an account off Saved profiles, on its profile's menu and on the Saved profiles page (#629)
 Remove from saved	Aus Gespeichertem entfernen
 # context: a switch on the Reels page
