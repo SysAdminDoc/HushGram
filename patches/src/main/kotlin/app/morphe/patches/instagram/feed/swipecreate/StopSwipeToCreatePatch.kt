@@ -74,17 +74,18 @@ private const val STRING = "Ljava/lang/String;"
 internal const val HOME_LEFT_SWIPE = "$EXTENSION_PACKAGE/feed/HomeLeftSwipe;->touch(Landroid/app/Activity;Landroid/view/MotionEvent;)Z"
 
 /**
- * Stops a sideways swipe on Home from opening the camera, and lets a swipe left on Home open
- * Messages the way Instagram used to. Included in the default selection with both switches
- * initially off, so either is the user's pick. The + button and every other way into the camera
+ * Stops a sideways swipe on Home from opening the camera, or Messages where the classic tab bar
+ * puts the inbox past Home's other edge (#770), and lets a swipe left on Home open Messages the
+ * way Instagram used to. Included in the default selection with every switch initially off, so
+ * each is the user's pick. The + button, the Messages button and every other way into either
  * still open it.
  */
 @Suppress("unused")
 val stopSwipeToCreatePatch = bytecodePatch(
     name = "Stop swipe to create",
-    description = "Stops a sideways swipe on Home from opening the camera. The + button still opens it. It can also " +
-        "open Messages when you swipe left on Home, like Instagram used to. Both start off. Turn them on in " +
-        "HushGram settings > Feed.",
+    description = "Stops a sideways swipe on Home from opening the camera, or from opening Messages. The + and " +
+        "Messages buttons still work. It can also open Messages when you swipe left on Home, like Instagram used " +
+        "to. All start off. Turn them on in HushGram settings > Feed.",
     default = true,
 ) {
     category("Feed")

@@ -80,6 +80,7 @@ public class HomeLeftSwipeTest {
         HomeLeftSwipe.forgetForTests();
         on = () -> true;
         Settings.SWIPE_LEFT_MESSAGES.resetToDefault();
+        Settings.STOP_SWIPE_TO_MESSAGES.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -413,6 +414,25 @@ public class HomeLeftSwipeTest {
         PauseForTests.pause(HushgramPause.Reason.SWITCH);
         HomeLeftSwipe.touch(screen, down);
         assertEquals("paused", HomeLeftSwipe.IDLE, HomeLeftSwipe.stateForTests());
+    }
+
+    /** Stop swipe to Messages wins over this switch: a swipe asked not to open Messages doesn't (#770). */
+    @Test
+    public void stopSwipeToMessagesTurnsTheLeftSwipeOff() {
+        InstagramMainActivity screen = screen(InstagramMainActivity.class);
+        float[] from = centerOf(screen.post);
+        MotionEvent down = MotionEvent.obtain(1000, 1000, MotionEvent.ACTION_DOWN, from[0], from[1], 0);
+        Settings.SWIPE_LEFT_MESSAGES.save(true);
+        assertTrue(HomeLeftSwipe.switchedOn());
+
+        Settings.STOP_SWIPE_TO_MESSAGES.save(true);
+        assertFalse(HomeLeftSwipe.switchedOn());
+        HomeLeftSwipe.touch(screen, down);
+        assertEquals("both on", HomeLeftSwipe.IDLE, HomeLeftSwipe.stateForTests());
+
+        Settings.STOP_SWIPE_TO_MESSAGES.save(false);
+        HomeLeftSwipe.touch(screen, down);
+        assertEquals("Stop off again", HomeLeftSwipe.ARMED, HomeLeftSwipe.stateForTests());
     }
 
     /** With no Messages tab on the bar, the inbox button at the top of Home opens it. */

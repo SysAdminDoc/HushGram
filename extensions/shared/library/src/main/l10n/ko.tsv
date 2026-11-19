@@ -342,6 +342,10 @@ Stop swipe to create	스와이프하여 만들기 정지
 Full resolution photos	원본 해상도 사진
 Loads photos in your feed, carousels and opened posts at the largest size Instagram offers. This can use more data.	피드, 여러 장 게시물, 열어 본 게시물의 사진을 Instagram이 제공하는 가장 큰 크기로 불러옵니다. 데이터를 더 많이 쓸 수 있습니다.
 A sideways swipe on Home no longer opens the camera. The + button and every other way into the camera still work.	홈 화면에서 옆으로 스와이프해도 더 이상 만들기가 실행되지 않습니다. + 버튼을 누르거나 다른 방법으로 만들기를 실행하는 기능은 그대로 작동합니다
+# context: a switch in HushGram settings > Feed, right after Stop swipe to create; Messages is Instagram's inbox, named as in Swipe left for Messages (#770)
+Stop swipe to Messages	스와이프하여 메시지 열기 정지
+# context: summary under Stop swipe to Messages; the Messages button is the inbox button at the top of Home or on the tab bar (#770)
+A swipe left on Home no longer opens Messages. The Messages button still does.	홈 화면에서 왼쪽으로 스와이프해도 더 이상 메시지가 열리지 않습니다. 메시지 버튼은 그대로 작동합니다.
 Swipe left for Messages	왼쪽으로 스와이프해 메시지 열기
 Swiping left on Home opens Messages, like Instagram used to. Carousels and the stories row still slide as before.	홈 화면에서 왼쪽으로 스와이프하면 예전 Instagram처럼 메시지가 열립니다. 여러 장 게시물과 스토리 목록은 전처럼 넘길 수 있습니다.
 Meta AI	Meta AI

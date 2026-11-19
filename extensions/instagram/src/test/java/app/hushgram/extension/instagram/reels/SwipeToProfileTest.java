@@ -492,6 +492,25 @@ public class SwipeToProfileTest {
         assertFalse(SwipeToProfile.reelsOpen(() -> true));
     }
 
+    /** Stop swipe to Messages asks this: the reel's profile is on the right only on Reels with the switch on (#770). */
+    @Test
+    public void theProfileIsOnTheRightOnlyOnReelsWithTheSwitchOn() {
+        FakePanels panels = new FakePanels();
+        assertFalse("no tab change yet", SwipeToProfile.profileOnRight());
+
+        SwipeToProfile.tabChanged(HOST, panels, () -> true);
+        assertTrue("on Reels", SwipeToProfile.profileOnRight());
+        Settings.REEL_SWIPE_TO_PROFILE.save(false);
+        assertFalse("the switch off", SwipeToProfile.profileOnRight());
+        Settings.REEL_SWIPE_TO_PROFILE.save(true);
+
+        SwipeToProfile.tabChanging(panels);
+        assertFalse("leaving Reels", SwipeToProfile.profileOnRight());
+        panels.tab = panels.home;
+        SwipeToProfile.tabChanged(HOST, panels, () -> true);
+        assertFalse("on Home", SwipeToProfile.profileOnRight());
+    }
+
     /** With the switch off Instagram walks the views, and the pagers HushGram held get their input back. */
     @Test
     public void offLeavesTheWalkToInstagramAndGivesHeldPagersBack() {

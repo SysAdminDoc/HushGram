@@ -47,6 +47,7 @@ public class SwipeToCreateSettingsTest {
         PatchFamily.inBuildForTests = null;
         PatchFamily.homeLeftSwipeForTests = null;
         Settings.STOP_SWIPE_TO_CREATE.resetToDefault();
+        Settings.STOP_SWIPE_TO_MESSAGES.resetToDefault();
         Settings.SWIPE_LEFT_MESSAGES.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
@@ -70,7 +71,8 @@ public class SwipeToCreateSettingsTest {
         assertEquals("Stop swipe to create", row.getTitle().toString());
         assertFalse(row.isChecked());
         assertFalse(Settings.STOP_SWIPE_TO_CREATE.get());
-        assertEquals(java.util.Arrays.asList(Settings.STOP_SWIPE_TO_CREATE, Settings.SWIPE_LEFT_MESSAGES), PatchFamily.SWIPE_TO_CREATE.switches);
+        assertEquals(java.util.Arrays.asList(Settings.STOP_SWIPE_TO_CREATE, Settings.STOP_SWIPE_TO_MESSAGES,
+                Settings.SWIPE_LEFT_MESSAGES), PatchFamily.SWIPE_TO_CREATE.switches);
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.STOP_SWIPE_TO_CREATE.key));
 
         Settings.STOP_SWIPE_TO_CREATE.save(true);
@@ -83,6 +85,37 @@ public class SwipeToCreateSettingsTest {
         PauseForTests.resume();
         assertTrue(Settings.STOP_SWIPE_TO_CREATE.get());
         assertEquals(37, RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion);
+    }
+    @Test public void missingPatchHasNoStopSwipeToMessagesSwitch() throws Exception {
+        open(false);
+        assertNull(page.getPreferenceScreen().findPreference(Settings.STOP_SWIPE_TO_MESSAGES.key));
+    }
+    /** Stop swipe to Messages (#770) sits right after Stop swipe to create, starts off and honors the pause. */
+    @Test public void stopSwipeToMessagesSitsAfterStopSwipeStartsOffAndHonorsPause() throws Exception {
+        open(true);
+        SwitchPreference row = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.STOP_SWIPE_TO_MESSAGES.key);
+        assertNotNull(row);
+        assertEquals("Stop swipe to Messages", row.getTitle().toString());
+        assertEquals("A swipe left on Home no longer opens Messages. The Messages button still does.",
+                row.getSummary().toString());
+        assertFalse(row.isChecked());
+        assertFalse(Settings.STOP_SWIPE_TO_MESSAGES.get());
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.STOP_SWIPE_TO_MESSAGES.key));
+        android.preference.Preference stop = page.getPreferenceScreen().findPreference(Settings.STOP_SWIPE_TO_CREATE.key);
+        assertSame("both in one group", stop.getParent(), row.getParent());
+        assertEquals("right after Stop swipe to create", stop.getOrder() + 1, row.getOrder());
+        android.preference.Preference left = page.getPreferenceScreen().findPreference(Settings.SWIPE_LEFT_MESSAGES.key);
+        assertTrue("before Swipe left for Messages", row.getOrder() < left.getOrder());
+
+        Settings.STOP_SWIPE_TO_MESSAGES.save(true);
+        assertTrue(Settings.STOP_SWIPE_TO_MESSAGES.get());
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertFalse(Settings.STOP_SWIPE_TO_MESSAGES.get());
+        assertTrue(Settings.STOP_SWIPE_TO_MESSAGES.savedValue());
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        assertTrue(Settings.STOP_SWIPE_TO_MESSAGES.get());
     }
     @Test public void missingPatchHasNoLeftSwipeSwitch() throws Exception {
         open(false);

@@ -349,7 +349,8 @@ public final class HomeLeftSwipe {
         }
     }
 
-    private static boolean switchedOn() {
-        return Utils.settingsReady() && Settings.SWIPE_LEFT_MESSAGES.get();
+    /** On, unless Stop swipe to Messages is on too (#770): a swipe that's asked not to open Messages doesn't. */
+    static boolean switchedOn() {
+        return Utils.settingsReady() && Settings.SWIPE_LEFT_MESSAGES.get() && !Settings.STOP_SWIPE_TO_MESSAGES.get();
     }
 }

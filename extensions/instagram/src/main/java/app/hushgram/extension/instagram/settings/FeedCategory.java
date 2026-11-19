@@ -185,6 +185,8 @@ final class FeedCategory {
             feed.addPreference(toggle(context, Settings.STOP_SWIPE_TO_CREATE, L10n.t("Stop swipe to create"),
                     L10n.t("A sideways swipe on Home no longer opens the camera. The + button and every other way "
                             + "into the camera still work.")));
+            feed.addPreference(toggle(context, Settings.STOP_SWIPE_TO_MESSAGES, L10n.t("Stop swipe to Messages"),
+                    L10n.t("A swipe left on Home no longer opens Messages. The Messages button still does.")));
             feed.addPreference(homeSwipeRow(context));
             if (PatchFamily.homeLeftSwipeInBuild()) {
                 feed.addPreference(toggle(context, Settings.SWIPE_LEFT_MESSAGES, L10n.t("Swipe left for Messages"),

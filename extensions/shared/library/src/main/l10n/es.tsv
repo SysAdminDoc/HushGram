@@ -341,6 +341,10 @@ Stop swipe to create	Desactivar deslizar para crear
 Full resolution photos	Fotos a resolución completa
 Loads photos in your feed, carousels and opened posts at the largest size Instagram offers. This can use more data.	Carga las fotos de tu feed, de los carruseles y de las publicaciones abiertas en el mayor tamaño que ofrece Instagram. Puede gastar más datos.
 A sideways swipe on Home no longer opens the camera. The + button and every other way into the camera still work.	Deslizar de lado en Inicio ya no abre la cámara. El botón + y las demás formas de abrir la cámara siguen funcionando.
+# context: a switch in HushGram settings > Feed, right after Stop swipe to create; Messages is Instagram's inbox, named as in Swipe left for Messages (#770)
+Stop swipe to Messages	Desactivar deslizar a Mensajes
+# context: summary under Stop swipe to Messages; the Messages button is the inbox button at the top of Home or on the tab bar (#770)
+A swipe left on Home no longer opens Messages. The Messages button still does.	Deslizar a la izquierda en Inicio ya no abre Mensajes. El botón de Mensajes sigue funcionando.
 Swipe left for Messages	Desliza a la izquierda para Mensajes
 Swiping left on Home opens Messages, like Instagram used to. Carousels and the stories row still slide as before.	Deslizar a la izquierda en Inicio abre Mensajes, como antes en Instagram. Los carruseles y la fila de historias se siguen deslizando como siempre.
 Meta AI	Meta AI

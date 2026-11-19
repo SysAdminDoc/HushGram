@@ -15,6 +15,7 @@ import java.util.function.BooleanSupplier;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import app.hushgram.extension.instagram.reels.SwipeToProfile;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.Logger;
@@ -41,8 +42,15 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * how far that step went, so the steps add up to the swipe. A tab that isn't on the bar leaves the swipe
  * to the switch, as if none were picked.
  *
- * <p>The hook fails open: with the switch off, no tab picked, HushGram paused, the settings not read yet
- * or anything thrown, the move goes where Instagram sent it.
+ * <p>On the classic tab bar the panel past Home's other edge is Messages' inbox, and a swipe left on
+ * Home slides it in. With {@code Stop swipe to Messages} on (#770), a drag from Home or the camera
+ * toward it is held at Home the same way. Messages' button sends its own reason, and a swipe that
+ * starts in the inbox (back to Home) starts above 0, so both go on. On Reels with {@code Swipe left
+ * to open the profile} on, that panel is the reel's profile ({@code SwipeToProfile}), and it's left
+ * alone.
+ *
+ * <p>The hook fails open: with the switches off, no tab picked, HushGram paused, the settings not read
+ * yet or anything thrown, the move goes where Instagram sent it.
  */
 public final class SwipeToCreate {
     /** The reason Instagram gives every move a finger makes. */
@@ -77,7 +85,7 @@ public final class SwipeToCreate {
     /** Before any added native getter or reason read, decide whether this hook can act. */
     public static int enabled() {
         try {
-            return enabled(() -> switchedOn() || picked() != HomeSwipe.CAMERA);
+            return enabled(() -> switchedOn() || picked() != HomeSwipe.CAMERA || messagesStopped());
         } catch (Throwable failure) {
             // Even constructing the stateless supplier must leave the native setter alone.
             HookStatus.threw(FamilyNames.SWIPE_TO_CREATE, "swipe gate", failure);
@@ -97,14 +105,16 @@ public final class SwipeToCreate {
     /**
      * Injected in the container's move, after the target is clamped and before the panels slide.
      * Answers 1, hold at Home, for a finger's move toward the camera that starts at Home or past it
-     * while the switch is on, and 0 otherwise, or when anything goes wrong. Never throws.
+     * while the switch is on, or toward Messages that starts at Home or before it while Stop swipe to
+     * Messages is on, and 0 otherwise, or when anything goes wrong. Never throws.
      *
-     * @param target  where the move ends: below 0 is toward the camera
+     * @param target  where the move ends: below 0 is toward the camera, above 0 toward Messages
      * @param current where the panels are now
      * @param reason  why the move happens
      */
     public static int hold(float target, float current, String reason) {
-        return hold(target, current, reason, SwipeToCreate::switchedOn, SwipeToCreate::picked, SwipeToCreate::buttonFor);
+        return hold(target, current, reason, SwipeToCreate::switchedOn, SwipeToCreate::picked, SwipeToCreate::buttonFor,
+                SwipeToCreate::messagesStopped);
     }
 
     static int hold(float target, float current, String reason, BooleanSupplier on) {
@@ -113,10 +123,21 @@ public final class SwipeToCreate {
 
     static int hold(float target, float current, String reason, BooleanSupplier on, Supplier<HomeSwipe> tab,
             Function<HomeSwipe, View> buttons) {
+        return hold(target, current, reason, on, tab, buttons, () -> false);
+    }
+
+    static int hold(float target, float current, String reason, BooleanSupplier on, Supplier<HomeSwipe> tab,
+            Function<HomeSwipe, View> buttons, BooleanSupplier messages) {
         try {
             HookStatus.invoked(FamilyNames.SWIPE_TO_CREATE);
-            // NaN fails both comparisons, so a broken position is left alone.
-            if (!DRAG.equals(reason) || !(target < 0f) || !(current >= 0f)) return 0;
+            if (!DRAG.equals(reason)) return 0;
+            // NaN fails every comparison, so a broken position is left alone.
+            if (target > 0f && current <= 0f) {
+                if (!messages.getAsBoolean()) return 0;
+                Logger.printDebug(() -> "Swipe to create: held a swipe toward Messages at Home");
+                return 1;
+            }
+            if (!(target < 0f) || !(current >= 0f)) return 0;
             if (openTab(target, current, tab.get(), buttons)) return 1;
             if (!on.getAsBoolean()) return 0;
             Logger.printDebug(() -> "Swipe to create: held a swipe toward the camera at Home");
@@ -184,6 +205,19 @@ public final class SwipeToCreate {
 
     private static boolean switchedOn() {
         return Utils.settingsReady() && Settings.STOP_SWIPE_TO_CREATE.get();
+    }
+
+    /**
+     * Whether a swipe toward the panel past Home's other edge is held: Stop swipe to Messages on, and
+     * that panel isn't the reel's profile Swipe left to open the profile put there.
+     */
+    static boolean messagesStopped() {
+        return messagesStopped(() -> Utils.settingsReady() && Settings.STOP_SWIPE_TO_MESSAGES.get(),
+                SwipeToProfile::profileOnRight);
+    }
+
+    static boolean messagesStopped(BooleanSupplier on, BooleanSupplier profileOnRight) {
+        return on.getAsBoolean() && !profileOnRight.getAsBoolean();
     }
 
     private static HomeSwipe picked() {

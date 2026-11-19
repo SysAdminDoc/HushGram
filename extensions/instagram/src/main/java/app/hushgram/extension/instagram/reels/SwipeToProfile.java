@@ -984,6 +984,20 @@ public final class SwipeToProfile {
         return reelsOpen(SwipeToProfile::switchedOn);
     }
 
+    /**
+     * Whether the swipe container's right panel is the reel's profile now: the last tab change
+     * landed on Reels with the switch on. Stop swipe to Messages leaves that panel's swipe alone.
+     * Never throws.
+     */
+    public static boolean profileOnRight() {
+        try {
+            return reelsOpen();
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.SWIPE_TO_PROFILE, PANEL, t);
+            return false;
+        }
+    }
+
     /** Whether the last tab change landed on Reels and the switch is on. */
     static boolean reelsOpen(BooleanSupplier on) {
         return onReels && on.getAsBoolean();

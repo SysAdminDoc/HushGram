@@ -338,6 +338,10 @@ Stop swipe to create	หยุดการปัดเพื่อสร้า�
 Full resolution photos	รูปภาพความละเอียดเต็ม
 Loads photos in your feed, carousels and opened posts at the largest size Instagram offers. This can use more data.	โหลดรูปภาพในฟีดของคุณ, โพสต์แบบเลื่อนดูหลายรูป (Carousel) และโพสต์ที่เปิดดูด้วยขนาดที่ใหญ่ที่สุดที่ Instagram มีให้อยู่ ซึ่งอาจใช้อินเทอร์เน็ตมากขึ้น
 A sideways swipe on Home no longer opens the camera. The + button and every other way into the camera still work.	การปัดหน้าจอไปด้านข้างในหน้าหลักจะไม่เปิดกล้องอีกต่อไป โดยปุ่ม + และวิธีอื่นๆ ในการเข้าถึงกล้องจะยังคงใช้งานได้ตามปกติ
+# context: a switch in HushGram settings > Feed, right after Stop swipe to create; Messages is Instagram's inbox, named as in Swipe left for Messages (#770)
+Stop swipe to Messages	หยุดการปัดเพื่อเปิดข้อความ
+# context: summary under Stop swipe to Messages; the Messages button is the inbox button at the top of Home or on the tab bar (#770)
+A swipe left on Home no longer opens Messages. The Messages button still does.	การปัดซ้ายในหน้าหลักจะไม่เปิดข้อความอีกต่อไป ปุ่มข้อความยังใช้งานได้
 Swipe left for Messages	ปัดซ้ายเพื่อเปิดข้อความ
 Swiping left on Home opens Messages, like Instagram used to. Carousels and the stories row still slide as before.	การปัดซ้ายในหน้าหลักจะเปิดข้อความ เหมือน Instagram แบบเดิม โพสต์แบบเลื่อนดูหลายรูปและแถวสตอรี่ยังคงปัดได้ตามปกติ
 Meta AI	Meta AI

@@ -5,6 +5,7 @@
 package app.hushgram.extension.instagram.feed;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
@@ -54,6 +55,7 @@ public class SwipeToCreateTest {
     @After
     public void restore() {
         Settings.STOP_SWIPE_TO_CREATE.resetToDefault();
+        Settings.STOP_SWIPE_TO_MESSAGES.resetToDefault();
         Settings.HOME_SWIPE_OPENS.resetToDefault();
         SwipeToCreate.forgetSwipeForTests();
         BaseSettings.PAUSED.save(false);
@@ -116,6 +118,70 @@ public class SwipeToCreateTest {
         String missing = HookStatus.missing(FamilyNames.SWIPE_TO_CREATE).toString();
         assertTrue(missing, missing.contains("'" + SwipeToCreate.DRAG + "'"));
         assertTrue(missing, missing.contains(IllegalStateException.class.getName()));
+    }
+
+    private static int toMessages(float target, float current, String reason, BooleanSupplier messages) {
+        return SwipeToCreate.hold(target, current, reason, () -> false, () -> HomeSwipe.CAMERA, picked -> null, messages);
+    }
+
+    /** With Stop swipe to Messages on, a finger's move from Home, or from the camera's side, toward Messages is held (#770). */
+    @Test
+    public void withStopSwipeToMessagesOnASwipeTowardMessagesIsHeld() {
+        assertEquals(1, toMessages(0.05f, 0f, "swipe", () -> true));
+        assertEquals(1, toMessages(1f, 0f, "swipe", () -> true));
+        assertEquals(1, toMessages(0.2f, -0.3f, "swipe", () -> true));
+    }
+
+    /** Off, a button, a swipe back from the inbox or a broken position: the move toward Messages goes on. */
+    @Test
+    public void everyOtherMoveTowardMessagesGoesOn() {
+        assertEquals("off", 0, toMessages(1f, 0f, "swipe", () -> false));
+        assertEquals("a button", 0, toMessages(1f, 0f, "direct_action_bar_button", () -> true));
+        assertEquals("back to Home from the inbox", 0, toMessages(0.6f, 1f, "swipe", () -> true));
+        assertEquals("back to Home from the inbox", 0, toMessages(0f, 0.4f, "swipe", () -> true));
+        assertEquals("a broken target", 0, toMessages(Float.NaN, 0f, "swipe", () -> true));
+        assertEquals("a broken position", 0, toMessages(1f, Float.NaN, "swipe", () -> true));
+        assertEquals("the camera's side is the other switch's", 0, toMessages(-1f, 0f, "swipe", () -> true));
+    }
+
+    /** A Messages switch that throws lets the swipe go and says the hook threw. */
+    @Test
+    public void aThrowingMessagesSwitchLetsTheSwipeGoAndIsReported() {
+        assertEquals(0, toMessages(1f, 0f, "swipe", THROWS));
+        String missing = HookStatus.missing(FamilyNames.SWIPE_TO_CREATE).toString();
+        assertTrue(missing, missing.contains(IllegalStateException.class.getName()));
+    }
+
+    /** The real switch starts off, opens the gate on its own, and paused or unready lets the swipe go. */
+    @Test
+    public void theMessagesSwitchStartsOffAndOpensTheGateOnItsOwn() {
+        Settings.STOP_SWIPE_TO_CREATE.save(false);
+        assertEquals(Boolean.FALSE, Settings.STOP_SWIPE_TO_MESSAGES.defaultValue);
+        assertEquals(0, SwipeToCreate.enabled());
+        assertEquals(0, SwipeToCreate.hold(1f, 0f, "swipe"));
+
+        Settings.STOP_SWIPE_TO_MESSAGES.save(true);
+        assertEquals(1, SwipeToCreate.enabled());
+        assertEquals(1, SwipeToCreate.hold(1f, 0f, "swipe"));
+        assertEquals("the camera's side stays the other switch's", 0, SwipeToCreate.hold(-1f, 0f, "swipe"));
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertEquals(0, SwipeToCreate.enabled());
+        assertEquals(0, SwipeToCreate.hold(1f, 0f, "swipe"));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+
+        SettingsContextRule.withoutContext(() -> assertEquals(0, SwipeToCreate.hold(1f, 0f, "swipe")));
+        assertEquals(1, SwipeToCreate.hold(1f, 0f, "swipe"));
+    }
+
+    /** On Reels with the reel's profile on the right, that swipe is Swipe left to open the profile's and goes on. */
+    @Test
+    public void theReelsProfilePanelIsLeftAlone() {
+        assertTrue(SwipeToCreate.messagesStopped(() -> true, () -> false));
+        assertFalse(SwipeToCreate.messagesStopped(() -> true, () -> true));
+        assertFalse(SwipeToCreate.messagesStopped(() -> false, () -> false));
     }
 
     private final Context context = RuntimeEnvironment.getApplication();

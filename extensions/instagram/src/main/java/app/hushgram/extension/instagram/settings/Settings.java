@@ -2834,6 +2834,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_stop_swipe_to_create", FALSE);
 
     /**
+     * A swipe left on Home that would open Messages, the inbox Instagram slides in past Home on the
+     * classic tab bar, and Swipe left for Messages' own swipe (#770). Read at each step of a swipe,
+     * so a change shows on the next one. Off to start.
+     */
+    public static final BooleanSetting STOP_SWIPE_TO_MESSAGES =
+            new BooleanSetting("hushgram_stop_swipe_to_messages", FALSE);
+
+    /**
      * What a swipe right on Home opens ({@link app.hushgram.extension.instagram.feed.HomeSwipe}), the camera
      * to start. Read at each step of a swipe, so a change shows on the next one.
      */
