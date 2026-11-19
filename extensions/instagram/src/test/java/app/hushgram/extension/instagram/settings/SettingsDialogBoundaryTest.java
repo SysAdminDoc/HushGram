@@ -44,6 +44,7 @@ import org.robolectric.shadows.ShadowLooper;
 import org.robolectric.shadows.ShadowAlertDialog;
 import org.robolectric.shadows.ShadowAudioManager;
 
+import app.hushgram.extension.instagram.media.SettingsPauseForTests;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.Utils;
 
@@ -153,6 +154,41 @@ public class SettingsDialogBoundaryTest {
         assertSame("closing the page gives the sound back", asked.audioFocusRequest,
                 shadowAudio.getLastAbandonedAudioFocusRequest());
         dialog = null;
+    }
+
+    /**
+     * The video under the page kept playing and loading where nobody saw it (#762). It pauses while
+     * the page is open, a start under it pauses too, and closing the page plays it again.
+     */
+    @Test @Config(sdk = 37)
+    public void theVideoUnderThePagePausesUntilItCloses() {
+        SettingsPauseForTests.Players players = SettingsPauseForTests.install();
+        try {
+            Object video = new Object();
+            players.start(video);
+            controller = Robolectric.buildActivity(Activity.class).setup().visible();
+            dialog = new SettingsDialog();
+            dialog.show(controller.get().getFragmentManager(), "boundary_settings");
+            controller.get().getFragmentManager().executePendingTransactions();
+            ShadowLooper.idleMainLooper();
+            assertFalse("paused while the page is open", players.isPlaying(video));
+
+            // Home and back: Instagram stops under the page, then plays the feed again as it returns.
+            controller.pause().stop();
+            controller.start().resume();
+            players.start(video);
+            ShadowLooper.idleMainLooper();
+            assertFalse("still paused once Instagram is back under the page", players.isPlaying(video));
+
+            dialog.dismissAllowingStateLoss();
+            controller.get().getFragmentManager().executePendingTransactions();
+            ShadowLooper.idleMainLooper();
+            assertTrue("closing the page plays it again", players.isPlaying(video));
+            assertEquals(1, players.played.size());
+            dialog = null;
+        } finally {
+            SettingsPauseForTests.forget();
+        }
     }
 
     /**

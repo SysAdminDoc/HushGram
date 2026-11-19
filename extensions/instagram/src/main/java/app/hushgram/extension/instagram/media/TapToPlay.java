@@ -195,13 +195,14 @@ public final class TapToPlay {
     /**
      * The hook, first thing in IgGrootPlayer's pause. A paused player waits for a tap again, unless
      * the pause is one of the {@link #MOMENTARY} ones Instagram plays on from by itself, or the
-     * slider's {@link #DRAG_PAUSE} in the middle of a drag.
+     * slider's {@link #DRAG_PAUSE} in the middle of a drag. A pause under the HushGram settings
+     * ({@link SettingsPause}) plays on when they close, so the tapped video stays tapped.
      */
     public static void paused(@Nullable Object player, @Nullable String reason) {
         try {
             HookStatus.invoked(FamilyNames.TAP_TO_PLAY);
             HookStatus.bound(FamilyNames.TAP_TO_PLAY, "player pause");
-            boolean momentary = reason != null
+            boolean momentary = SettingsPause.showing() || reason != null
                     && (MOMENTARY.contains(reason) || DRAG_PAUSE.equals(reason) && TapClock.dragging());
             if (!momentary && ARMED.remove(player)) {
                 PlayButtons.ended(player);

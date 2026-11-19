@@ -39,6 +39,7 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 
 import app.hushgram.extension.instagram.direct.MessagesLock;
+import app.hushgram.extension.instagram.media.SettingsPause;
 import app.hushgram.extension.instagram.misc.Fonts;
 import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.Logger;
@@ -371,6 +372,7 @@ public final class SettingsDialog extends DialogFragment {
         watchLock();
         watchFont();
         quietFeed();
+        SettingsPause.opened();
         ShortcutCover.offOnceDrawn(getDialog());
     }
 
@@ -379,6 +381,13 @@ public final class SettingsDialog extends DialogFragment {
         unwatchLock();
         unwatchFont();
         unquietFeed();
+        // The video under the settings plays again once they close (#762). A stop under them
+        // (Home, another app) keeps it paused for when they close, and a finishing screen has
+        // nothing left to play.
+        Activity activity = getActivity();
+        if (isRemoving()) SettingsPause.closed();
+        else if (activity == null || activity.isFinishing()) SettingsPause.dropped();
+        else SettingsPause.hidden();
         super.onStop();
     }
 

@@ -290,6 +290,7 @@ public final class BackgroundPlay {
             }
             // Read once Instagram's start is done: a start another patch holds back plays nothing.
             if (ours) Utils.runOnMainThread(() -> afterStart(player, place, true));
+            SettingsPause.started(player);
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.BACKGROUND_PLAY, "player start", t);
         }
@@ -1295,6 +1296,30 @@ public final class BackgroundPlay {
         }
     }
 
+    /** The recently started players, newest first, for {@link SettingsPause}. */
+    static List<Object> recentPlayers() {
+        List<Object> players = new ArrayList<>();
+        synchronized (LOCK) {
+            for (WeakReference<Object> ref : recent) {
+                Object player = ref.get();
+                if (player != null) players.add(player);
+            }
+        }
+        return players;
+    }
+
+    static boolean playingNow(Object player) {
+        return isPlaying(player);
+    }
+
+    static void pauseUnderSettings(Object player) {
+        pauseOther(player);
+    }
+
+    static void playAgain(Object player) {
+        playThrough(player);
+    }
+
     @Nullable
     private static Object engineOf(Object player) {
         try {
@@ -1356,6 +1381,7 @@ public final class BackgroundPlay {
             endingNow = false;
         }
         SpringSteps.resetForTests();
+        SettingsPause.resetForTests();
         // Each test has an application of its own to watch.
         watching = false;
         controlForTests = null;
