@@ -19,15 +19,17 @@ internal const val EXPAND_CAPTIONS_STATUS = "expandCaptions"
  * Instagram builds a caption's text in one place for every surface and cuts it with a helper that
  * takes the line count to stop at, one or two lines depending on the feed. The patch asks the
  * extension for that count right before the cut, with the surface the post shows on, so the feeds
- * get the count picked in settings and Reels and stories keep Instagram's (see [findCaptionTrim]).
+ * get the count picked in settings, reels the whole caption on their own switch (#752), and stories
+ * keep Instagram's (see [findCaptionTrim]).
  * The patch switches the status method on, and the settings screen then offers the switch. In the
  * default selection with its switch off.
  */
 @Suppress("unused")
 val expandCaptionsPatch = bytecodePatch(
     name = "Expand captions",
-    description = "Shows the whole caption on posts in your feed, or as many lines as you pick, before \"more\". " +
-        "Reels and stories stay as they are. Starts off. Turn it on in HushGram settings > Feed.",
+    description = "Shows the whole caption on posts in your feed, or as many lines as you pick, before \"more\", " +
+        "and on a switch of its own the whole caption on reels. Stories stay as they are. Starts off. " +
+        "Turn them on in HushGram settings > Feed and Reels.",
 ) {
     category("Interaction")
     dependsOn(settingsPatch, instagramExtensionPatch)

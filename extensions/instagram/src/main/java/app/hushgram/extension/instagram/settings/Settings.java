@@ -3324,6 +3324,14 @@ public class Settings extends BaseSettings {
             new EnumSetting<>("hushgram_caption_lines", CaptionLines.WHOLE, true, parent(EXPAND_CAPTIONS));
 
     /**
+     * The whole caption on reels, in the Reels tab and wherever else a reel plays (#752,
+     * {@link app.hushgram.extension.instagram.feed.CaptionLength}), on a switch apart from the feeds'.
+     * Instagram keeps captions it has laid out, so it takes a restart. Off to start.
+     */
+    public static final BooleanSetting EXPAND_REEL_CAPTIONS =
+            new BooleanSetting("hushgram_expand_reel_captions", FALSE, true);
+
+    /**
      * The small speaker icon in the corner of a feed video
      * ({@link app.hushgram.extension.instagram.feed.FeedAudioIcon}). Read as each post's state is
      * built, so a post already on screen changes when Instagram builds it again. Off to start.

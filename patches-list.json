@@ -1415,7 +1415,7 @@
     },
     {
       "name": "Expand captions",
-      "description": "Shows the whole caption on posts in your feed, or as many lines as you pick, before \"more\". Reels and stories stay as they are. Starts off. Turn it on in HushGram settings > Feed.",
+      "description": "Shows the whole caption on posts in your feed, or as many lines as you pick, before \"more\", and on a switch of its own the whole caption on reels. Stories stay as they are. Starts off. Turn them on in HushGram settings > Feed and Reels.",
       "category": "Interaction",
       "use": true,
       "dependencies": [

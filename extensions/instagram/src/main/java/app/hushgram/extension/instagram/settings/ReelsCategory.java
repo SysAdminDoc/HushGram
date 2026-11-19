@@ -103,6 +103,10 @@ final class ReelsCategory {
             reels.add(minViewsRow(context));
             reels.add(minLikesRow(context));
         }
+        if (build.contains(PatchFamily.EXPAND_CAPTIONS)) {
+            reels.add(toggle(context, Settings.EXPAND_REEL_CAPTIONS, L10n.t("Expand captions on reels"),
+                    L10n.t("Reels show their whole caption, with no \"more\" to tap. A long caption covers more of the video.")));
+        }
         if (build.contains(PatchFamily.FEED_HEADER_LINE)) {
             reels.add(toggle(context, Settings.HIDE_REEL_HEADER_LINE, L10n.t("Hide the line under names on reels"),
                     L10n.t("Takes the song, the place and the other labels off the line under the name on reels. "
