@@ -227,28 +227,32 @@ final class SeekShapeDrawable extends Drawable {
      * A thin line has square ends, the others round ones. The wave draws an opaque segment, the part
      * played, as a wavy line whose waves follow on from one segment to the next, and the others flat.
      * Segments have no handle, so the expressive shape draws its rounded track. A bar its view
-     * stretches [stretch] times taller (#689) has the canvas squeezed back about [rect]'s middle, so
-     * the shape keeps its own size there. [box] and [wave] are the caller's to reuse; [rect], [paint]
-     * and the canvas are left as they were.
+     * stretches [stretch] times taller (Thicker story progress bar) has the canvas squeezed back about
+     * [rect]'s middle, so the shape's waves and ends keep their own size there (#689), and its track
+     * grows by as much as the stretch adds to Instagram's own segment, so the bar still comes out
+     * thicker (#775). [box] and [wave] are the caller's to reuse; [rect], [paint] and the canvas are
+     * left as they were.
      */
     static void segment(Canvas canvas, RectF rect, Paint paint, SeekShape shape, float density, float stretch,
             RectF box, Path wave) {
         if (!(rect.right > rect.left)) return;
         if (!(stretch > 0f) || stretch == 1f || Float.isInfinite(stretch)) {
-            segmentAt(canvas, rect, paint, shape, density, box, wave);
+            segmentAt(canvas, rect, paint, shape, density, 0f, box, wave);
             return;
         }
+        float grown = Math.max(0f, rect.height() * (stretch - 1f));
         int saved = canvas.save();
         try {
             canvas.scale(1f, 1f / stretch, rect.centerX(), rect.centerY());
-            segmentAt(canvas, rect, paint, shape, density, box, wave);
+            segmentAt(canvas, rect, paint, shape, density, grown, box, wave);
         } finally {
             canvas.restoreToCount(saved);
         }
     }
 
-    private static void segmentAt(Canvas canvas, RectF rect, Paint paint, SeekShape shape, float density, RectF box,
-            Path wave) {
+    /** [segment] once the canvas is back to the shape's own size, with [grown] pixels added to the track. */
+    private static void segmentAt(Canvas canvas, RectF rect, Paint paint, SeekShape shape, float density, float grown,
+            RectF box, Path wave) {
         float thick;
         switch (shape) {
             case ROUNDED:
@@ -263,7 +267,7 @@ final class SeekShapeDrawable extends Drawable {
             default:
                 thick = LINE_DP;
         }
-        thick *= density;
+        thick = thick * density + grown;
         float middle = rect.centerY();
         if (shape != SeekShape.WAVE || paint.getAlpha() < PLAYED_ALPHA) {
             float radius = shape == SeekShape.LINE ? 0f : Math.min(thick, rect.width()) / 2f;

@@ -132,7 +132,10 @@ public final class SeekShapes {
     /** The shape the story progress bar drawing now takes, read at the top of its onDraw, and the screen's density. */
     private static SeekShape storyShape = SeekShape.STANDARD;
     private static float storyDensity = 1f;
-    /** How many times thicker Thicker story progress bar draws the bar this frame, which a shape undoes (#689). */
+    /**
+     * How many times thicker Thicker story progress bar draws the bar this frame. A shape undoes the
+     * stretch on its waves (#689) and adds what it would add to Instagram's segment to its track (#775).
+     */
     private static float storyStretch = 1f;
     private static final RectF SEGMENT = new RectF();
     private static final Path SEGMENT_WAVE = new Path();
@@ -301,8 +304,8 @@ public final class SeekShapes {
      * First thing in the story progress bar's onDraw (#630): reads the shape its segments take this
      * frame and, while it isn't {@link SeekShape#STANDARD}, lets [bar] draw past its few pixels of
      * height into the header around it, which a thicker shape needs. Back on standard the header
-     * clips again as it did. A shape keeps its own size on a bar Thicker story progress bar
-     * stretches (#689), so it reads that stretch too. Never throws.
+     * clips again as it did. On a bar Thicker story progress bar stretches, a shape keeps its waves
+     * their own size (#689) and still draws thicker (#775), so it reads that stretch too. Never throws.
      */
     public static void storyBar(View bar) {
         try {

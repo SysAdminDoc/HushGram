@@ -197,25 +197,31 @@ public class SeekShapesTest {
     /**
      * #689: Thicker story progress bar stretches the bar's view, and with it every segment a shape
      * draws, so a bar three times thicker drew the wave three times as tall, over the name under it.
-     * A shape draws its segments at its own size however far the bar is stretched.
+     * #775: undoing the whole stretch left a shape exactly as thin as without the switch. A shape's
+     * track now grows by what the stretch adds to Instagram's 2 px segment (4 px at three times,
+     * 2 px at twice), and its waves and ends stay their own size.
      */
     @Test
     @GraphicsMode(GraphicsMode.Mode.NATIVE)
     @Config(qualifiers = "xxhdpi")
-    public void aShapeKeepsItsOwnSizeOnAThickerStoryBar() {
+    public void aShapeGrowsLikeTheStandardBarOnAThickerStoryBar() {
         FrameLayout header = new FrameLayout(RuntimeEnvironment.getApplication());
         View progress = new View(RuntimeEnvironment.getApplication());
         header.addView(progress);
         for (SeekShape shape : new SeekShape[] {SeekShape.WAVE, SeekShape.ROUNDED, SeekShape.LINE}) {
-            Settings.SEEK_BAR_SHAPE.save(shape);
-            int plain = drawnHeight(progress);
-            StoryProgressBar.stretchForTests(progress, 3f);
-            assertEquals(3f, progress.getScaleY(), 0f);
-            int thicker = drawnHeight(progress);
-            StoryProgressBar.resetForTests();
-            progress.setScaleY(1f);
-            assertTrue(shape + " draws something: " + plain, plain > 0);
-            assertEquals(shape + " keeps its own size on a thicker bar", plain, thicker, 2);
+            for (float stretch : new float[] {3f, 2f}) {
+                Settings.SEEK_BAR_SHAPE.save(shape);
+                int plain = drawnHeight(progress);
+                StoryProgressBar.stretchForTests(progress, stretch);
+                assertEquals(stretch, progress.getScaleY(), 0f);
+                int thicker = drawnHeight(progress);
+                StoryProgressBar.resetForTests();
+                progress.setScaleY(1f);
+                assertTrue(shape + " draws something: " + plain, plain > 0);
+                int added = Math.round(2 * (stretch - 1f));
+                assertEquals(shape + " at " + stretch + " grows by what the standard bar grows by, not "
+                        + stretch + " times", plain + added, thicker, 1);
+            }
         }
     }
 
