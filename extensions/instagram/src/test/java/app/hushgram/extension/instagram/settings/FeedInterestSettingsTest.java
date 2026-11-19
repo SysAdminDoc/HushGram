@@ -36,6 +36,7 @@ public class FeedInterestSettingsTest {
     @Before public void prepare() {
         RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
         Settings.HIDE_FEED_INTEREST.resetToDefault();
+        Settings.HIDE_REEL_INTEREST.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         BaseSettings.SAFE_MODE.save(false);
@@ -46,6 +47,7 @@ public class FeedInterestSettingsTest {
         Utils.awaitBackgroundTasksForTests();
         PatchFamily.inBuildForTests = null;
         Settings.HIDE_FEED_INTEREST.resetToDefault();
+        Settings.HIDE_REEL_INTEREST.resetToDefault();
         Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
     }
     private void open(EnumSet<PatchFamily> build) throws Exception {
@@ -75,8 +77,33 @@ public class FeedInterestSettingsTest {
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.HIDE_FEED_INTEREST.key));
         assertTrue(PatchFamily.FEED_SUGGESTIONS.switches.contains(Settings.HIDE_FEED_INTEREST));
     }
+    // A reel's Not interested and Interested buttons have their own switch on the Reels page, right
+    // after the line under names and before the Follow button, since nobody looks under Feed for them (#769).
+    @Test public void theReelsOneIsOnTheReelsPageAfterTheLineUnderNames() throws Exception {
+        open(EnumSet.of(PatchFamily.FEED_SUGGESTIONS, PatchFamily.FEED_HEADER_LINE, PatchFamily.REEL_DECLUTTER));
+        Preference row = page.getPreferenceScreen().findPreference(Settings.HIDE_REEL_INTEREST.key);
+        assertNotNull(row);
+        assertEquals("Hide Not interested and Interested", row.getTitle().toString());
+        assertTrue(row.getSummary().toString(), row.getSummary().toString().contains("bottom of a reel"));
+        PreferenceGroup reels = (PreferenceGroup) row.getParent();
+        assertEquals("Reels", reels.getTitle().toString());
+        int at = -1, lineAt = -1, followAt = -1;
+        for (int i = 0; i < reels.getPreferenceCount(); i++) {
+            String key = reels.getPreference(i).getKey();
+            if (Settings.HIDE_REEL_INTEREST.key.equals(key)) at = i;
+            if (Settings.HIDE_REEL_HEADER_LINE.key.equals(key)) lineAt = i;
+            if (Settings.HIDE_REEL_FOLLOW_BUTTON.key.equals(key)) followAt = i;
+        }
+        assertTrue("the line under names is on Reels", lineAt >= 0);
+        assertEquals("right after the line under names", lineAt + 1, at);
+        assertEquals("right before the Follow button", at + 1, followAt);
+        assertFalse(Settings.HIDE_REEL_INTEREST.get());
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.HIDE_REEL_INTEREST.key));
+        assertTrue(PatchFamily.FEED_SUGGESTIONS.switches.contains(Settings.HIDE_REEL_INTEREST));
+    }
     @Test public void withoutHideSuggestedPostsThereIsNoSwitch() throws Exception {
         open(EnumSet.noneOf(PatchFamily.class));
         assertNull(page.getPreferenceScreen().findPreference(Settings.HIDE_FEED_INTEREST.key));
+        assertNull(page.getPreferenceScreen().findPreference(Settings.HIDE_REEL_INTEREST.key));
     }
 }

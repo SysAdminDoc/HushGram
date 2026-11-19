@@ -106,6 +106,11 @@ final class ReelsCategory {
                     L10n.t("Takes the song, the place and the other labels off the line under the name on reels. "
                             + "Sponsored and Paid partnership stay. Reels already on screen change when they load again.")));
         }
+        if (build.contains(PatchFamily.FEED_SUGGESTIONS)) {
+            reels.add(toggle(context, Settings.HIDE_REEL_INTEREST, L10n.t("Hide Not interested and Interested"),
+                    L10n.t("Hides the Not interested and Interested buttons at the bottom of a reel. Nothing is "
+                            + "answered for you.")));
+        }
         if (build.contains(PatchFamily.REEL_DECLUTTER)) {
             reels.add(toggle(context, Settings.HIDE_REEL_FOLLOW_BUTTON, L10n.t("Hide the Follow button"),
                     L10n.t("The Follow and Subscribe buttons beside a reel's author. Their profile still has them.")));

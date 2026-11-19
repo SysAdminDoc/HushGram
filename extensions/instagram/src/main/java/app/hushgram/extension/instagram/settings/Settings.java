@@ -31,6 +31,8 @@ import app.hushgram.extension.instagram.stories.StoryRingSize;
 import app.hushgram.extension.instagram.stories.StoryRingThickness;
 import app.hushgram.extension.instagram.stories.StoryTimeMode;
 import app.hushgram.extension.instagram.stories.TrayBadge;
+import app.hushgram.extension.shared.Logger;
+import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.settings.BaseSettings;
 import app.hushgram.extension.shared.settings.BooleanSetting;
 import app.hushgram.extension.shared.settings.EnumSetting;
@@ -1340,11 +1342,43 @@ public class Settings extends BaseSettings {
 
     /**
      * The "Are you interested in this post?" bubble with Not interested and Interested buttons that
-     * Instagram adds under a post in Home's feed and under a reel (#131). Left out, never answered.
-     * Off to start.
+     * Instagram adds under a post in Home's feed (#131). Left out, never answered. Off to start. Reels
+     * have their own switch, {@link #HIDE_REEL_INTEREST}.
      */
     public static final BooleanSetting HIDE_FEED_INTEREST =
             new BooleanSetting("hushgram_hide_feed_interest", FALSE);
+
+    /**
+     * The Not interested and Interested buttons Instagram shows at the bottom of a reel, the question
+     * Home asks in a bubble (#769). Left out, never answered. Off to start. Builds before this switch
+     * hid them with {@link #HIDE_FEED_INTEREST}, so that switch carries over once
+     * ({@link #carryOverReelInterest}).
+     */
+    public static final BooleanSetting HIDE_REEL_INTEREST =
+            new BooleanSetting("hushgram_hide_reel_interest", FALSE);
+
+    /** Saved once {@link #HIDE_FEED_INTEREST} has been carried over to {@link #HIDE_REEL_INTEREST}. */
+    static final String REEL_INTEREST_CARRIED_KEY = "hushgram_reel_interest_carried";
+
+    static {
+        carryOverReelInterest();
+    }
+
+    /**
+     * Once, in the main process: when Home's switch was on, the reels switch comes on too, so a reel's
+     * buttons stay hidden for whoever hid them before Reels had a switch of its own. After that the two
+     * are apart, and turning the reels switch off stays off. A second process can't save, so it leaves
+     * this for the main one.
+     */
+    static void carryOverReelInterest() {
+        if (!Utils.isMainProcess() || Setting.preferences.getBoolean(REEL_INTEREST_CARRIED_KEY, false)) return;
+        try {
+            if (HIDE_FEED_INTEREST.savedValue() && !HIDE_REEL_INTEREST.save(true)) return;
+            Setting.preferences.saveBoolean(REEL_INTEREST_CARRIED_KEY, true);
+        } catch (IllegalStateException failure) {
+            Logger.printInfo(() -> "Could not carry Hide 'Are you interested?' over to Reels", failure);
+        }
+    }
 
     /** The rows of products and live shopping in the home feed. */
     public static final BooleanSetting HIDE_FEED_SHOPPING =

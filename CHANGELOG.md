@@ -6,6 +6,7 @@ Every HushGram release, newest first.
 
 ### Improvements
 
+* `Hide Not interested and Interested` is new under Reels and takes those two buttons off the bottom of a reel. `Hide 'Are you interested?' bubbles` under Feed covers Home only now. If you had it on, the Reels one starts on too, so nothing comes back after the update. Asked for in #769.
 * `Stop swipe to Messages` is new under Feed, right after `Stop swipe to create`. On the classic tab bar a swipe left on Home slides Messages in, and with this on it doesn't. The Messages button still opens it, and `Swipe left to open the profile` on Reels keeps working. Starts off. Asked for in #770.
 * `Expand captions` is a new patch under Feed. Posts in your feed show their whole caption, with no "more" to tap. Pick `Caption lines before more` to get a set number of lines instead, from one to ten, and a longer caption ends with "more" like before. Reels and stories keep Instagram's short captions. Starts off. Requested in #771.
 * `Hide the line under names` is a new patch under Feed. It takes the song, the place and Instagram's other labels off the line under the name on feed posts, so nothing slides there anymore and the name sits on its own. Reels get a switch of their own under Reels, `Hide the line under names on reels`, for the song and the labels that take turns under a reel's author. Sponsored and Paid partnership stay on both. Both start off. Requested in #771.

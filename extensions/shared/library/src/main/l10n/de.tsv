@@ -2154,6 +2154,10 @@ Takes the song, the place and the other labels off the line under the name on po
 # context: "Sponsored" and "Paid partnership" are Instagram's own labels on reels; use the text Instagram shows in this language (#771)
 Hide the line under names on reels	Zeile unter Namen auf Reels ausblenden
 Takes the song, the place and the other labels off the line under the name on reels. Sponsored and Paid partnership stay. Reels already on screen change when they load again.	Entfernt Song, Ort und die anderen Hinweise aus der Zeile unter dem Namen auf Reels. „Gesponsert“ und „Bezahlte Partnerschaft“ bleiben. Reels, die schon zu sehen sind, ändern sich, wenn sie neu laden.
+# context: a switch in HushGram settings > Reels; Not interested and Interested are the two buttons Instagram shows under a reel, named as in the Feed row's 'Are you interested?' summary (#769)
+Hide Not interested and Interested	„Kein Interesse“ und „Interessiert“ ausblenden
+# context: summary under Hide Not interested and Interested on the Reels page (#769)
+Hides the Not interested and Interested buttons at the bottom of a reel. Nothing is answered for you.	Blendet die Schaltflächen „Kein Interesse“ und „Interessiert“ unten auf einem Reel aus. Für dich wird nichts beantwortet.
 # context: a switch on the Feed page; Save and Remove from saved are the rows it adds to a feed post's three-dot menu
 Save in the post menu	Speichern im Beitragsmenü
 Adds Save to the menu behind a post's three dots, or Remove from saved when you saved it already.	Fügt „Speichern“ zum Menü hinter den drei Punkten eines Beitrags hinzu, oder „Aus Gespeichertem entfernen“, wenn du ihn schon gespeichert hast.

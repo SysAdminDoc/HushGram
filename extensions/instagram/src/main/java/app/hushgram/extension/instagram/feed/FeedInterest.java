@@ -8,6 +8,7 @@ import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
+import app.hushgram.extension.shared.settings.BooleanSetting;
 
 /**
  * Hide 'Are you interested?' bubbles, a switch of the "Hide suggested posts" patch.
@@ -24,7 +25,8 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * <p>Reels ask it too, in the footer under a reel: the footer's use case picks the reel's control
  * (the server's, or a fallback of its own) and hands it to the row's component, which draws nothing
  * without one (#131). The patch passes that control through {@link #reelsControl} right before it's
- * handed over.
+ * handed over. Reels have their own switch, Hide Not interested and Interested on the Reels page
+ * (#769), since nobody looks for a reel's buttons under Feed.
  *
  * <p>The hooks fail open: until the settings are ready, while HushGram is paused, with the switch
  * off, or if anything throws, Instagram adds its row. Only a row left out is counted, in
@@ -39,24 +41,27 @@ public final class FeedInterest {
 
     /** True leaves the question's row out of Home. Never throws. */
     public static boolean hide() {
+        return hide(Settings.HIDE_FEED_INTEREST);
+    }
+
+    /**
+     * The control the Reels footer's question row gets: {@code control} itself, or null to leave the
+     * row out, by the reels switch. No control has no row, and isn't counted. Never throws.
+     */
+    public static Object reelsControl(Object control) {
+        if (control == null) return null;
+        return hide(Settings.HIDE_REEL_INTEREST) ? null : control;
+    }
+
+    private static boolean hide(BooleanSetting setting) {
         try {
             HookStatus.invoked(FamilyNames.FEED_SUGGESTIONS);
-            if (!Utils.settingsReady() || !Settings.HIDE_FEED_INTEREST.get()) return false;
+            if (!Utils.settingsReady() || !setting.get()) return false;
             HookStatus.counted(FamilyNames.FEED_SUGGESTIONS, COUNT_HIDDEN);
             return true;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.FEED_SUGGESTIONS, "interest question", failure);
             return false;
         }
-    }
-
-    /**
-     * The control the Reels footer's question row gets: {@code control} itself, or null to leave the
-     * row out, the same answer {@link #hide} gives. No control has no row, and isn't counted. Never
-     * throws.
-     */
-    public static Object reelsControl(Object control) {
-        if (control == null) return null;
-        return hide() ? null : control;
     }
 }

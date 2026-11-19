@@ -482,6 +482,11 @@ public final class ConfigurationBackup {
                 }
                 updates.put(setting, value);
             }
+            // A file from before the Reels switch had one switch for both questions, and every later
+            // export writes the Reels one, so a file without it gives Reels the Home answer (#769).
+            Object home = updates.get(Settings.HIDE_FEED_INTEREST);
+            if (home != null && allowed.get(Settings.HIDE_REEL_INTEREST.key) == Settings.HIDE_REEL_INTEREST
+                    && !values.has(Settings.HIDE_REEL_INTEREST.key)) updates.put(Settings.HIDE_REEL_INTEREST, home);
             if (listed) {
                 // An entry that isn't an account is a file of the wrong shape. One the list couldn't
                 // have saved is left out, and so is the whole list without Saved profiles in the build.

@@ -2153,6 +2153,10 @@ Takes the song, the place and the other labels off the line under the name on po
 # context: "Sponsored" and "Paid partnership" are Instagram's own labels on reels; use the text Instagram shows in this language (#771)
 Hide the line under names on reels	릴스의 이름 아래 줄 숨기기
 Takes the song, the place and the other labels off the line under the name on reels. Sponsored and Paid partnership stay. Reels already on screen change when they load again.	릴스에서 이름 아래 줄의 노래, 장소 및 기타 표시를 없앱니다. '광고'와 '유료 광고 포함'은 그대로 둡니다. 이미 화면에 있는 릴스는 다시 불러올 때 바뀝니다.
+# context: a switch in HushGram settings > Reels; Not interested and Interested are the two buttons Instagram shows under a reel, named as in the Feed row's 'Are you interested?' summary (#769)
+Hide Not interested and Interested	관심 없음 및 관심 있음 숨기기
+# context: summary under Hide Not interested and Interested on the Reels page (#769)
+Hides the Not interested and Interested buttons at the bottom of a reel. Nothing is answered for you.	릴스 하단의 관심 없음과 관심 있음 버튼을 숨깁니다. 대신 답해 주지는 않습니다.
 # context: a switch on the Feed page; Save and Remove from saved are the rows it adds to a feed post's three-dot menu
 Save in the post menu	게시물 메뉴에 저장 추가
 Adds Save to the menu behind a post's three dots, or Remove from saved when you saved it already.	게시물의 점 세 개 메뉴에 저장을 추가합니다. 이미 저장한 게시물에는 저장됨에서 삭제가 표시됩니다.

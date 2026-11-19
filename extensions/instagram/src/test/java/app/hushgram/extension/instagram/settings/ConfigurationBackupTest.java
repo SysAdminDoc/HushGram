@@ -587,6 +587,51 @@ public class ConfigurationBackupTest {
         assertFalse("standard saves nothing", original.contains(Settings.GLASS_TAB_BAR_OPACITY.key));
     }
 
+    // Hide 'Are you interested?' covered reels too before the Reels page got its own switch, so the
+    // first load of this build turns the Reels one on for anyone who had it on, once (#769).
+    @Test public void interestSwitchSavedByAnOlderBuildCarriesOverOnceToReels() {
+        try {
+            original.edit().remove(Settings.REEL_INTEREST_CARRIED_KEY).commit();
+            Settings.HIDE_FEED_INTEREST.save(true);
+            Settings.carryOverReelInterest();
+            assertTrue(Settings.HIDE_REEL_INTEREST.savedValue());
+            assertTrue(original.getBoolean(Settings.REEL_INTEREST_CARRIED_KEY, false));
+
+            Settings.HIDE_REEL_INTEREST.save(false);
+            Settings.carryOverReelInterest();
+            assertFalse("turned off on the Reels page, it stays off", Settings.HIDE_REEL_INTEREST.savedValue());
+
+            Settings.HIDE_FEED_INTEREST.resetToDefault();
+            original.edit().remove(Settings.REEL_INTEREST_CARRIED_KEY).commit();
+            Settings.carryOverReelInterest();
+            assertFalse(Settings.HIDE_REEL_INTEREST.savedValue());
+            assertTrue("nothing to carry still marks it done", original.getBoolean(Settings.REEL_INTEREST_CARRIED_KEY, false));
+        } finally {
+            Settings.HIDE_FEED_INTEREST.resetToDefault();
+            Settings.HIDE_REEL_INTEREST.resetToDefault();
+            original.edit().putBoolean(Settings.REEL_INTEREST_CARRIED_KEY, true).commit();
+        }
+    }
+
+    // A file exported before the Reels switch has only the Feed one, so Reels takes its answer. Every
+    // export now writes both, and a file with both keeps each as it was (#769).
+    @Test public void aFileFromBeforeTheReelsSwitchGivesReelsTheHomeAnswer() throws Exception {
+        JSONObject values = new JSONObject(new String(ConfigurationBackup.export(), StandardCharsets.UTF_8)).getJSONObject("settings");
+        assertTrue(values.has(Settings.HIDE_FEED_INTEREST.key));
+        assertTrue(values.has(Settings.HIDE_REEL_INTEREST.key));
+
+        ConfigurationBackup.Result old = ConfigurationBackup.restore(file(entry(Settings.HIDE_FEED_INTEREST.key, "boolean", true)));
+        assertEquals(2, old.applied);
+        assertTrue(Settings.HIDE_FEED_INTEREST.savedValue());
+        assertTrue(Settings.HIDE_REEL_INTEREST.savedValue());
+        ConfigurationBackup.forgetUndo();
+
+        ConfigurationBackup.restore(file(entry(Settings.HIDE_FEED_INTEREST.key, "boolean", true)
+                + "," + entry(Settings.HIDE_REEL_INTEREST.key, "boolean", false)));
+        assertTrue(Settings.HIDE_FEED_INTEREST.savedValue());
+        assertFalse(Settings.HIDE_REEL_INTEREST.savedValue());
+    }
+
     @Test public void documentedRestartChoicesShareMetadataWithRowAndImportFeedback() throws Exception {
         Setting<?>[] choices = {Settings.START_ON_FOLLOWING, Settings.ONLY_FOLLOWING,
                 Settings.STORY_RING, Settings.STORY_RING_SCALE, Settings.STORY_RING_COLOR, Settings.STORY_RING_THICKNESS,

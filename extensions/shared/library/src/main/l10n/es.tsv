@@ -2154,6 +2154,10 @@ Takes the song, the place and the other labels off the line under the name on po
 # context: "Sponsored" and "Paid partnership" are Instagram's own labels on reels; use the text Instagram shows in this language (#771)
 Hide the line under names on reels	Ocultar la línea bajo los nombres en reels
 Takes the song, the place and the other labels off the line under the name on reels. Sponsored and Paid partnership stay. Reels already on screen change when they load again.	Quita la canción, el lugar y las demás etiquetas de la línea bajo el nombre en los reels. «Publicidad» y «Colaboración pagada» se quedan. Los reels que ya están en pantalla cambian cuando se vuelven a cargar.
+# context: a switch in HushGram settings > Reels; Not interested and Interested are the two buttons Instagram shows under a reel, named as in the Feed row's 'Are you interested?' summary (#769)
+Hide Not interested and Interested	Ocultar No me interesa y Me interesa
+# context: summary under Hide Not interested and Interested on the Reels page (#769)
+Hides the Not interested and Interested buttons at the bottom of a reel. Nothing is answered for you.	Oculta los botones No me interesa y Me interesa en la parte inferior de un reel. No se responde nada por ti.
 # context: a switch on the Feed page; Save and Remove from saved are the rows it adds to a feed post's three-dot menu
 Save in the post menu	Guardar en el menú de la publicación
 Adds Save to the menu behind a post's three dots, or Remove from saved when you saved it already.	Añade Guardar al menú de los tres puntos de una publicación, o Quitar de guardados si ya la guardaste.

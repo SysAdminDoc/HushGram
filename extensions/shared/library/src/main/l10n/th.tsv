@@ -2141,6 +2141,10 @@ Takes the song, the place and the other labels off the line under the name on po
 # context: "Sponsored" and "Paid partnership" are Instagram's own labels on reels; use the text Instagram shows in this language (#771)
 Hide the line under names on reels	ซ่อนบรรทัดใต้ชื่อบนรีลส์
 Takes the song, the place and the other labels off the line under the name on reels. Sponsored and Paid partnership stay. Reels already on screen change when they load again.	นำเพลง สถานที่ และป้ายอื่นๆ ออกจากบรรทัดใต้ชื่อบนรีลส์ "ได้รับการสนับสนุน" และ "พาร์ทเนอร์ชิพแบบชำระเงิน" ยังคงอยู่ รีลส์ที่แสดงอยู่แล้วจะเปลี่ยนเมื่อโหลดใหม่
+# context: a switch in HushGram settings > Reels; Not interested and Interested are the two buttons Instagram shows under a reel, named as in the Feed row's 'Are you interested?' summary (#769)
+Hide Not interested and Interested	ซ่อนไม่สนใจและสนใจ
+# context: summary under Hide Not interested and Interested on the Reels page (#769)
+Hides the Not interested and Interested buttons at the bottom of a reel. Nothing is answered for you.	ซ่อนปุ่มไม่สนใจและสนใจที่ด้านล่างของรีลส์ โดยจะไม่มีการตอบแทนคุณแต่อย่างใด
 # context: a switch on the Feed page; Save and Remove from saved are the rows it adds to a feed post's three-dot menu
 Save in the post menu	บันทึกในเมนูโพสต์
 Adds Save to the menu behind a post's three dots, or Remove from saved when you saved it already.	เพิ่ม "บันทึก" ลงในเมนูใต้จุดสามจุดของโพสต์ หรือ "ลบออกจากรายการที่บันทึกไว้" เมื่อคุณได้บันทึกไว้แล้ว
