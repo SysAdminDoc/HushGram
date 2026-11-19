@@ -4918,7 +4918,7 @@
     },
     {
       "name": "Restore trust on re-signed builds",
-      "description": "Lets Instagram's own checks of who signed the app pass on a patched build, so the parts that need them keep working. Threads, Facebook and Messenger patched with the same key work too. Works as soon as you patch it in, with no switch.",
+      "description": "Lets Instagram's own checks of who signed the app pass on a patched build, so the parts that need them keep working. Threads, Facebook and Messenger patched with the same key work too. Facebook login goes through your browser instead of the Facebook app, which turns a patched Instagram away. Works as soon as you patch it in, with no switch.",
       "category": "Fixes",
       "use": true,
       "dependencies": [

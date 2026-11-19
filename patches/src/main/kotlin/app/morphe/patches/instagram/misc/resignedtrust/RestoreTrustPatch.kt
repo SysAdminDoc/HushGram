@@ -28,8 +28,9 @@ private const val ORIGINAL_SIGNERS = "Lapp/hushgram/extension/instagram/misc/Ins
 val restoreTrustPatch = bytecodePatch(
     name = "Restore trust on re-signed builds",
     description = "Lets Instagram's own checks of who signed the app pass on a patched build, so the parts that " +
-        "need them keep working. Threads, Facebook and Messenger patched with the same key work too. Works as " +
-        "soon as you patch it in, with no switch.",
+        "need them keep working. Threads, Facebook and Messenger patched with the same key work too. Facebook " +
+        "login goes through your browser instead of the Facebook app, which turns a patched Instagram away. Works " +
+        "as soon as you patch it in, with no switch.",
     default = true,
 ) {
     category("Fixes")
@@ -64,7 +65,10 @@ val restoreTrustPatch = bytecodePatch(
             }
         }
         val providerDecisions = sameKeyProviderDecisions(providerRoles)
+        val facebookLogin = facebookAppLoginHandler()
         method.answerOriginalSigners(packageInfo, signers)
+        mutableClassDefBy(facebookLogin.definingClass).methods.single { it.toString() == facebookLogin.toString() }
+            .lookUpFacebookAppThroughExtension()
         providerDecisions.forEach { target ->
             mutableClassDefBy(target.method.definingClass).methods.single {
                 it.name == target.method.name && it.parameterTypes.isEmpty() && it.returnType == "V"

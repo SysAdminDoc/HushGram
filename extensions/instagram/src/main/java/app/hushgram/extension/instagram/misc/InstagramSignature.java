@@ -255,6 +255,27 @@ public final class InstagramSignature {
         }
     }
 
+    /**
+     * Whether this build carries a key of its own rather than one of Instagram's two Meta
+     * certificates, going by its current signers: the ones kept from a record the uid proved is
+     * this app, or else the ones [packages] reports, which the patch doesn't touch. False when
+     * neither can be read, so the caller keeps Instagram's own path. A Root Mount install still
+     * has Meta's key and gets false.
+     */
+    static boolean isReSigned(@Nullable PackageManager packages) throws PackageManager.NameNotFoundException {
+        Signature[] ours = ownSigners;
+        if (ours == null && packages != null) {
+            ours = copyOf(currentSigners(packages.getPackageInfo(OwnPackage.name(), PackageManager.GET_SIGNING_CERTIFICATES)));
+            if (ours != null) ownSigners = ours;
+        }
+        Set<ByteBuffer> own = certificates(ours);
+        if (own.isEmpty()) return false;
+        for (Signature instagram : instagram()) {
+            if (own.contains(ByteBuffer.wrap(instagram.toByteArray()))) return false;
+        }
+        return true;
+    }
+
     /** The system's package name and uid must agree with the principal being checked. */
     private static boolean packageUid(@Nullable PackageInfo info, String name, int uid) {
         ApplicationInfo app = info == null ? null : info.applicationInfo;

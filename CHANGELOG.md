@@ -26,6 +26,7 @@ Every HushGram release, newest first.
 * `Fill the screen` goes grey with a line saying why while `Show the whole reel` is on, since that switch wins and reels kept their side bars. Reported in #755.
 * `Hide captions` no longer leaves an empty gap under the username on reels. The username row moves down into the caption's room. Reported in #680.
 * The seek bar on reels no longer sits under the floating tab bar after you come back from picture in picture. Reported in #450.
+* Logging in with Facebook no longer stops on Facebook's "link may be broken" page and a spinner that never ends. The Facebook app turns away a patched Instagram, so the login goes through your browser now. Reported in #760.
 
 ## 0.0.21 (2026-11-18)
 
