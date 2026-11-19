@@ -528,6 +528,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean feedHeaderLine() {
+        return false;
+    }
+
     public static boolean feedSave() {
         return false;
     }

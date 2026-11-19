@@ -2122,6 +2122,9 @@ Puts the seek bar right on the bottom edge of the video, so it's harder to touch
 # context: "Made with Edits" is the label Instagram shows under a post's author for a video made in Meta's Edits app; it stays in English here
 Hide Made with Edits	"Made with Edits" 숨기기
 Takes the "Made with Edits" label out of the line under a post's author. The song, the place and the other labels keep taking turns there.	게시물 작성자 아래 줄에서 "Made with Edits" 라벨을 없앱니다. 노래, 장소와 다른 라벨은 계속 번갈아 표시됩니다.
+# context: "Sponsored" and "Paid partnership" are Instagram's own labels on feed posts; use the text Instagram shows in this language (#771)
+Hide the line under names	이름 아래 줄 숨기기
+Takes the song, the place and the other labels off the line under the name on posts in your feed. Sponsored and Paid partnership stay. Posts already on screen change when they load again.	피드 게시물에서 이름 아래 줄의 노래, 장소 및 기타 표시를 없앱니다. '광고'와 '유료 광고 포함'은 그대로 둡니다. 이미 화면에 있는 게시물은 다시 불러올 때 바뀝니다.
 # context: a switch on the Feed page; Save and Remove from saved are the rows it adds to a feed post's three-dot menu
 Save in the post menu	게시물 메뉴에 저장 추가
 Adds Save to the menu behind a post's three dots, or Remove from saved when you saved it already.	게시물의 점 세 개 메뉴에 저장을 추가합니다. 이미 저장한 게시물에는 저장됨에서 삭제가 표시됩니다.

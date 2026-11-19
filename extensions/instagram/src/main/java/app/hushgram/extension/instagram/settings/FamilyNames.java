@@ -134,6 +134,7 @@ public final class FamilyNames {
     public static final String COMMENT_SEARCH = "Search comments";
     public static final String FEED_FOLLOW = "Hide Follow on feed posts";
     public static final String EDITS_LABEL = "Hide Made with Edits";
+    public static final String FEED_HEADER_LINE = "Hide the line under names";
     public static final String FEED_SAVE = "Save in the post menu";
     public static final String MENU_ITEMS = "Three-dot menu items";
     public static final String WATCH_AGAIN = "Watch again in the feed";

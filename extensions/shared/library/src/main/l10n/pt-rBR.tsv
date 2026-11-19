@@ -2123,6 +2123,9 @@ Puts the seek bar right on the bottom edge of the video, so it's harder to touch
 # context: "Made with Edits" is the label Instagram shows under a post's author for a video made in Meta's Edits app; it stays in English here
 Hide Made with Edits	Ocultar "Made with Edits"
 Takes the "Made with Edits" label out of the line under a post's author. The song, the place and the other labels keep taking turns there.	Tira a etiqueta "Made with Edits" da linha embaixo do autor de um post. A música, o local e as outras etiquetas continuam se revezando ali.
+# context: "Sponsored" and "Paid partnership" are Instagram's own labels on feed posts; use the text Instagram shows in this language (#771)
+Hide the line under names	Ocultar a linha abaixo dos nomes
+Takes the song, the place and the other labels off the line under the name on posts in your feed. Sponsored and Paid partnership stay. Posts already on screen change when they load again.	Tira a música, o local e os outros rótulos da linha abaixo do nome nos posts do seu feed. "Patrocinado" e "Parceria paga" ficam. Posts que já estão na tela mudam quando carregam de novo.
 # context: a switch on the Feed page; Save and Remove from saved are the rows it adds to a feed post's three-dot menu
 Save in the post menu	Salvar no menu do post
 Adds Save to the menu behind a post's three dots, or Remove from saved when you saved it already.	Adiciona Salvar ao menu dos três pontos de um post, ou Remover dos salvos quando você já salvou.

@@ -3286,6 +3286,45 @@
       "options": []
     },
     {
+      "name": "Hide the line under names",
+      "description": "Takes the song, the place and the other labels off the line under the name on posts in your feed. Sponsored and Paid partnership stay. Starts off. Turn it on in HushGram settings > Feed.",
+      "category": "Interaction",
+      "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "456.0.0.53.78"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "456.0.0.53.78",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 386214574,
+                "ARMEABI_V7A": 386214562,
+                "X86": 386214575
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
       "name": "Hide the notes row",
       "description": "Takes the row of notes, and the Map bubble in it, off the top of your messages. Your chats stay. A second switch takes only the Map bubble. Both start off. Turn them on in HushGram settings > Messages.",
       "category": "Messages",

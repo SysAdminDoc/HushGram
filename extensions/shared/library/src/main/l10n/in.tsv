@@ -2123,6 +2123,9 @@ Puts the seek bar right on the bottom edge of the video, so it's harder to touch
 # context: "Made with Edits" is the label Instagram shows under a post's author for a video made in Meta's Edits app; it stays in English here
 Hide Made with Edits	Sembunyikan "Made with Edits"
 Takes the "Made with Edits" label out of the line under a post's author. The song, the place and the other labels keep taking turns there.	Menghapus label "Made with Edits" dari baris di bawah pembuat postingan. Lagu, lokasi, dan label lainnya tetap bergantian di sana.
+# context: "Sponsored" and "Paid partnership" are Instagram's own labels on feed posts; use the text Instagram shows in this language (#771)
+Hide the line under names	Sembunyikan baris di bawah nama
+Takes the song, the place and the other labels off the line under the name on posts in your feed. Sponsored and Paid partnership stay. Posts already on screen change when they load again.	Menghapus lagu, tempat, dan label lain dari baris di bawah nama pada postingan di feed Anda. "Bersponsor" dan "Kemitraan berbayar" tetap ada. Postingan yang sudah tampil berubah saat dimuat ulang.
 # context: a switch on the Feed page; Save and Remove from saved are the rows it adds to a feed post's three-dot menu
 Save in the post menu	Simpan di menu postingan
 Adds Save to the menu behind a post's three dots, or Remove from saved when you saved it already.	Menambahkan Simpan ke menu di balik tiga titik postingan, atau Hapus dari tersimpan jika kamu sudah menyimpannya.

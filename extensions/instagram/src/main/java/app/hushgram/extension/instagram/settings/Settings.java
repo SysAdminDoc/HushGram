@@ -3144,6 +3144,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_edits_label", FALSE);
 
     /**
+     * The line under a feed post's author: the song, the place and the other labels
+     * taking turns there (#771, {@link app.hushgram.extension.instagram.feed.HeaderLine}). Sponsored and
+     * Paid partnership stay. Read as each post's header is built, so it needs no restart. Off to start.
+     */
+    public static final BooleanSetting HIDE_FEED_HEADER_LINE =
+            new BooleanSetting("hushgram_hide_feed_header_line", FALSE);
+
+    /**
      * A Save row in a feed post's menu, or Remove from saved on a saved post (#569,
      * {@link app.hushgram.extension.instagram.feed.FeedSaveRow}). Read as the menu opens. Off to start.
      */

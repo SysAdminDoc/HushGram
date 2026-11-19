@@ -67,6 +67,7 @@ final class FeedCategory {
         boolean fullScreen = build.contains(PatchFamily.FULL_SCREEN_BARS);
         boolean feedFollow = build.contains(PatchFamily.FEED_FOLLOW);
         boolean editsLabel = build.contains(PatchFamily.EDITS_LABEL);
+        boolean headerLine = build.contains(PatchFamily.FEED_HEADER_LINE);
         boolean feedSave = build.contains(PatchFamily.FEED_SAVE);
         boolean menuItems = build.contains(PatchFamily.MENU_ITEMS);
         boolean watchAgain = build.contains(PatchFamily.WATCH_AGAIN);
@@ -79,7 +80,7 @@ final class FeedCategory {
         PreferenceCategory feed = suggestions || following || swipe || fullResolution || homeFeed || feedViewHistory || tabSwipe
                 || askLike || askRefresh || saveTray || postTime || hiddenLikes || backHome || homePlace || feedSound || feedTapPause || feedHoldFast || feedSeekBar || longPressZoom
                 || roundedCorners || carouselArrows || ambientLight
-                || fullScreen || feedFollow || editsLabel || feedSave || watchAgain || hideCaptions || feedAudioIcon || feedAutoScroll || homeTopBar
+                || fullScreen || feedFollow || editsLabel || headerLine || feedSave || watchAgain || hideCaptions || feedAudioIcon || feedAutoScroll || homeTopBar
                 || activityBubbles || menuItems
                 ? category(screen, L10n.t("Feed"), SettingsIcons.FEED,
                         L10n.t("Choose what Home shows and how it behaves.")) : null;
@@ -371,6 +372,12 @@ final class FeedCategory {
             feed.addPreference(toggle(context, Settings.HIDE_EDITS_LABEL, L10n.t("Hide Made with Edits"),
                     L10n.t("Takes the \"Made with Edits\" label out of the line under a post's author. The song, the "
                             + "place and the other labels keep taking turns there.")));
+        }
+        if (headerLine) {
+            feed.addPreference(toggle(context, Settings.HIDE_FEED_HEADER_LINE, L10n.t("Hide the line under names"),
+                    L10n.t("Takes the song, the place and the other labels off the line under the "
+                            + "name on posts in your feed. Sponsored and Paid partnership stay. Posts already on screen "
+                            + "change when they load again.")));
         }
         if (feedSave) {
             feed.addPreference(toggle(context, Settings.SAVE_IN_POST_MENU, L10n.t("Save in the post menu"),
