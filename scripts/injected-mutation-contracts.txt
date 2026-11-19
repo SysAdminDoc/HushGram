@@ -3975,6 +3975,13 @@ once-call Lapp/hushgram/extension/instagram/feed/FeedHoldSpeed;->lifted(Ljava/ut
 # 385713117 asks a string pool for the argument (pooled, 00R1.A00 there).
 start-call Lapp/hushgram/extension/instagram/feed/FeedTapPause;->opening(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Z in instance (Landroid/view/View;L*;L*;L*;Lcom/instagram/feed/media/Media;L*;Ljava/util/List;ZZ)V pooled holding ContextualFeedFragment.ARGUMENT_HOST_PROFILE_USER_ID
 once-call Lapp/hushgram/extension/instagram/feed/FeedTapPause;->opening(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Z in instance (Landroid/view/View;L*;L*;L*;Lcom/instagram/feed/media/Media;L*;Ljava/util/List;ZZ)V pooled holding ContextualFeedFragment.ARGUMENT_HOST_PROFILE_USER_ID
+# On 456 the controller's own tap, the one instance (Media, four objects, int, boolean) boolean method
+# of the class loading the feed's volume crash name (03hQ.A0R on 386214574), hands the playing video
+# over to Reels under its module's name (06vI.A01) before it asks the launcher, and that pauses and
+# lets go of the feed's player (#706). It asks FeedTapPause.skipsHandoff right before that call and
+# steps over it on a yes. Left out, a tap kept in the feed leaves the video stopped on its frame or
+# playing under a play button; twice or elsewhere, it isn't the guard the patch wrote.
+once-call Lapp/hushgram/extension/instagram/feed/FeedTapPause;->skipsHandoff()Z in instance (Lcom/instagram/feed/media/Media;L*;L*;L*;L*;IZ)Z class-holding feed_video_crash_when_adjusting_volume
 # Seek bar on feed videos (#389) hands the feed video player's progress callback, the one instance
 # (int, int, boolean) void method holding the player's persistent cover report (05cP.G3c on
 # 453.0.0.57.79's 385914557, 05nU on 385914510), to FeedSeekBar.progress first thing.
