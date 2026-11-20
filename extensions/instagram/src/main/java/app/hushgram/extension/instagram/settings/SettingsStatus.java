@@ -811,6 +811,11 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Rewritten by the Center names in chats patch. */
+    public static boolean centerChatName() {
+        return false;
+    }
+
     public static boolean askBeforeLike() {
         return false;
     }

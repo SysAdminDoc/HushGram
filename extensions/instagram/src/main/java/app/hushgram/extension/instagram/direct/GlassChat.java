@@ -174,7 +174,7 @@ public final class GlassChat {
         return Utils.settingsReady() && Settings.GLASS_STORY_REPLY_BOX.get();
     }
 
-    private static int id(Context context, String name) {
+    static int id(Context context, String name) {
         Map<String, Integer> forTests = idsForTests;
         if (forTests != null) {
             Integer id = forTests.get(name);

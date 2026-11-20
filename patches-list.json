@@ -164,7 +164,7 @@
     {
       "name": "Ask before a call",
       "description": "Asks you to confirm before a call starts from a chat, so a stray tap on the call button doesn't ring anyone, and can take the call buttons, Blend and the back arrow off the top of a chat. All start off. Turn them on in HushGram settings > Messages.",
-      "category": "Messages",
+      "category": "Interaction",
       "use": true,
       "dependencies": [
         "BytecodePatch",
@@ -516,6 +516,45 @@
       "name": "Carousel arrows",
       "description": "Puts a back and a next arrow on a post's carousel in Home and Following, so a tap moves to the next photo or video without a swipe, can move its page dots onto a round pill over the photo, and can take away the page number like 3/5. The pill can be solid, see-through or frosted glass. All of them start off. Turn them on in HushGram settings > Feed.",
       "category": "Feed",
+      "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "456.0.0.53.78"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "456.0.0.53.78",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 386214574,
+                "ARMEABI_V7A": 386214562,
+                "X86": 386214575
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
+      "name": "Center names in chats",
+      "description": "Puts the name and username at the top of a chat in the middle of the bar, or as near the middle as the call buttons leave room for. Starts off. Turn it on in HushGram settings > Messages.",
+      "category": "Messages",
       "use": true,
       "dependencies": [
         "BytecodePatch",

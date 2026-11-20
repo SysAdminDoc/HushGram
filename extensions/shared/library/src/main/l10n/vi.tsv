@@ -1795,6 +1795,8 @@ Couldn't read that picture.	Không đọc được ảnh đó.
 This launcher can't add it.	Launcher này không thêm được.
 Glass in chats	Kính trong trò chuyện
 Gives a chat's top bar and message bar frosted glass and puts the back, call and video buttons on round glass circles. It shows the next time you open a chat. Needs Android 12 or newer for the blur.	Làm thanh trên cùng và thanh tin nhắn của cuộc trò chuyện có hiệu ứng kính mờ và đặt các nút quay lại, gọi và video lên những vòng tròn kính. Hiện ở lần mở cuộc trò chuyện tiếp theo. Hiệu ứng làm mờ cần Android 12 trở lên.
+Center names in chats	Căn giữa tên trong đoạn chat
+Puts the name and username at the top of a chat in the middle of the bar. A long name sits as near the middle as the call buttons leave room for.	Đặt tên và tên người dùng ở đầu đoạn chat vào giữa thanh. Tên dài sẽ nằm gần giữa nhất trong khoảng trống các nút gọi chừa lại.
 Glass top bar in chats	Kính ở thanh trên cùng của cuộc trò chuyện
 Turn it off to leave a chat's top bar as Instagram draws it, with no frosted band behind it. The round glass buttons and the glass message bar stay.	Tắt để thanh trên cùng của cuộc trò chuyện giữ nguyên như Instagram vẽ, không có dải kính mờ phía sau. Các nút kính tròn và thanh tin nhắn kính vẫn giữ nguyên.
 Top bar tint in chats	Độ đậm màu thanh trên cùng trong cuộc trò chuyện

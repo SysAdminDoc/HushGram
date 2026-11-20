@@ -61,6 +61,7 @@ import app.hushgram.extension.instagram.misc.GlassTabBar;
 import app.hushgram.extension.instagram.misc.PureBlackNav;
 import app.hushgram.extension.instagram.misc.StoryBands;
 import app.hushgram.extension.instagram.misc.TabIcons;
+import app.hushgram.extension.instagram.direct.CenterChatName;
 import app.hushgram.extension.instagram.direct.GlassChat;
 import app.hushgram.extension.instagram.reels.BurnInGuard;
 import app.hushgram.extension.instagram.reels.FullScreenBars;
@@ -165,6 +166,7 @@ public final class SettingsEntry {
         }
         GlassTabBar.install(context);
         GlassChat.install(context);
+        CenterChatName.install(context);
         FullScreenBars.install(context);
         RefreshRate.install(context);
         ReelsTopBar.install(context);

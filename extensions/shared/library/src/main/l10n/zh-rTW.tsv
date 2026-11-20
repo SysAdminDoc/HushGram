@@ -1883,6 +1883,8 @@ Couldn't read that picture.	無法讀取這張圖片。
 This launcher can't add it.	這個啟動器無法加入。
 Glass in chats	聊天室玻璃效果
 Gives a chat's top bar and message bar frosted glass and puts the back, call and video buttons on round glass circles. It shows the next time you open a chat. Needs Android 12 or newer for the blur.	讓聊天室頂端列和訊息列呈現毛玻璃效果，並把返回、通話和視訊按鈕放在圓形玻璃圈上。下次開啟聊天室時生效。模糊效果需要 Android 12 或更新版本。
+Center names in chats	聊天室名稱置中
+Puts the name and username at the top of a chat in the middle of the bar. A long name sits as near the middle as the call buttons leave room for.	把聊天室頂端的名稱和使用者名稱放在頂端列中間。名稱較長時，會在通話按鈕留出的空間內盡量靠近中間。
 Glass top bar in chats	聊天室頂端列玻璃效果
 Turn it off to leave a chat's top bar as Instagram draws it, with no frosted band behind it. The round glass buttons and the glass message bar stay.	關閉後聊天室頂端列保持 Instagram 原本的樣子，後方沒有毛玻璃色帶。圓形玻璃按鈕和玻璃訊息列會保留。
 Top bar tint in chats	聊天室頂端列染色

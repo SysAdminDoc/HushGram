@@ -1880,6 +1880,8 @@ Couldn't read that picture.	Das Bild ließ sich nicht lesen.
 This launcher can't add it.	Dieser Launcher kann es nicht hinzufügen.
 Glass in chats	Glas in Chats
 Gives a chat's top bar and message bar frosted glass and puts the back, call and video buttons on round glass circles. It shows the next time you open a chat. Needs Android 12 or newer for the blur.	Gibt der oberen Leiste und der Nachrichtenleiste eines Chats Milchglas und setzt die Buttons für Zurück, Anruf und Video auf runde Glaskreise. Sichtbar beim nächsten Öffnen eines Chats. Der Weichzeichner braucht Android 12 oder neuer.
+Center names in chats	Namen in Chats zentrieren
+Puts the name and username at the top of a chat in the middle of the bar. A long name sits as near the middle as the call buttons leave room for.	Setzt den Namen und den Benutzernamen oben in einem Chat in die Mitte der Leiste. Ein langer Name rückt so nah an die Mitte, wie die Anruf-Buttons Platz lassen.
 Glass top bar in chats	Glas in der oberen Leiste von Chats
 Turn it off to leave a chat's top bar as Instagram draws it, with no frosted band behind it. The round glass buttons and the glass message bar stay.	Schalte es aus, damit die obere Leiste eines Chats so bleibt, wie Instagram sie zeichnet, ohne Milchglasband dahinter. Die runden Glasbuttons und die Glas-Nachrichtenleiste bleiben.
 Top bar tint in chats	Tönung der oberen Leiste in Chats

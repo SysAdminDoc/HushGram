@@ -12,6 +12,7 @@ import app.morphe.patches.instagram.direct.reminder.hideKindnessReminderPatch
 import app.morphe.patches.instagram.direct.calls.callBlockerPatch
 import app.morphe.patches.instagram.direct.messagebox.messageBoxPatch
 import app.morphe.patches.instagram.direct.glass.glassChatPatch
+import app.morphe.patches.instagram.direct.header.centerChatNamePatch
 import app.morphe.patches.instagram.direct.plusmenu.chatPlusMenuPatch
 import app.morphe.patches.instagram.feed.confirm.askBeforeLikePatch
 import app.morphe.patches.instagram.feed.confirm.askBeforeRefreshPatch
@@ -271,6 +272,7 @@ class DefaultCatalogTest {
         messageBoxPatch,
         chatPlusMenuPatch,
         glassChatPatch,
+        centerChatNamePatch,
         hideProfileSuggestionsPatch,
         hideReelsSuggestionsPatch,
         hidePaidPartnershipReelsPatch,
@@ -415,7 +417,7 @@ class DefaultCatalogTest {
     }
 
     @Test fun initiallyNeutralControlsAreAvailableInSimpleMode() {
-        assertEquals(169, neutral.size)
+        assertEquals(170, neutral.size)
         neutral.forEach { assertEquals(it.name, true, it.default) }
     }
 
@@ -427,7 +429,7 @@ class DefaultCatalogTest {
     @Test fun generatedCatalogMatchesAllReviewedDeclarations() {
         val all = prior + neutral + optIn
         val declarations = all.associate { it.name!! to it.default }
-        assertEquals("every named patch needs one reviewed decision", 191, all.size)
+        assertEquals("every named patch needs one reviewed decision", 192, all.size)
         assertEquals("the review must not name a patch twice", all.size, declarations.size)
         val file = File("patches-list.json").takeIf(File::isFile) ?: File("../patches-list.json")
         val rows = JsonParser.parseString(file.readText()).asJsonObject.getAsJsonArray("patches")

@@ -1880,6 +1880,8 @@ Couldn't read that picture.	Bu resim okunamadı.
 This launcher can't add it.	Bu başlatıcı ekleyemiyor.
 Glass in chats	Sohbetlerde cam
 Gives a chat's top bar and message bar frosted glass and puts the back, call and video buttons on round glass circles. It shows the next time you open a chat. Needs Android 12 or newer for the blur.	Bir sohbetin üst çubuğuna ve mesaj çubuğuna buzlu cam efekti verir ve geri, arama ve video düğmelerini yuvarlak cam dairelere koyar. Sohbeti bir sonraki açışında görünür. Bulanıklık için Android 12 veya daha yenisi gerekir.
+Center names in chats	Sohbetlerde adları ortala
+Puts the name and username at the top of a chat in the middle of the bar. A long name sits as near the middle as the call buttons leave room for.	Bir sohbetin üstündeki adı ve kullanıcı adını çubuğun ortasına koyar. Uzun bir ad, arama düğmelerinin bıraktığı yer kadar ortaya yakın durur.
 Glass top bar in chats	Sohbetlerde üst çubukta cam
 Turn it off to leave a chat's top bar as Instagram draws it, with no frosted band behind it. The round glass buttons and the glass message bar stay.	Kapatınca sohbetin üst çubuğu Instagram'ın çizdiği gibi kalır, arkasında buzlu cam şerit olmaz. Yuvarlak cam düğmeler ve cam mesaj çubuğu kalır.
 Top bar tint in chats	Sohbetlerde üst çubuk renk tonu

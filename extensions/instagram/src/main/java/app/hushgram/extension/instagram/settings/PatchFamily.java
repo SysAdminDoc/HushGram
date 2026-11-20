@@ -126,6 +126,7 @@ public enum PatchFamily {
             Settings.HIDE_PLUS_DRAW, Settings.MOVE_TO_PLUS_MENU),
     GLASS_CHAT(FamilyNames.GLASS_CHAT, "glassChat", null, Settings.GLASS_CHAT, Settings.GLASS_CHAT_TOP_BAR,
             Settings.GLASS_STORY_REPLY_BOX),
+    CENTER_CHAT_NAME(FamilyNames.CENTER_CHAT_NAME, "centerChatName", null, Settings.CENTER_CHAT_NAME),
     ASK_BEFORE_LIKE(FamilyNames.ASK_BEFORE_LIKE, "askBeforeLike", null, Settings.ASK_BEFORE_LIKE),
     ASK_BEFORE_REFRESH(FamilyNames.ASK_BEFORE_REFRESH, "askBeforeRefresh", null, Settings.ASK_BEFORE_REFRESH),
     ASK_BEFORE_FOLLOW(FamilyNames.ASK_BEFORE_FOLLOW, "askBeforeFollow", null, Settings.ASK_BEFORE_FOLLOW),

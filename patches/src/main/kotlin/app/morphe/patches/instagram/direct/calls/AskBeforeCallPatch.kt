@@ -86,7 +86,9 @@ val askBeforeCallPatch = bytecodePatch(
         "All start off. Turn them on in HushGram settings > Messages.",
     default = true,
 ) {
-    category("Messages")
+    // In Interaction beside Ask before a like, since Messages is at the limit (#779). Its switches stay on the
+    // Messages settings page.
+    category("Interaction")
     dependsOn(settingsPatch, instagramExtensionPatch)
     compatibleWith(*AppCompatibilities.instagram())
 

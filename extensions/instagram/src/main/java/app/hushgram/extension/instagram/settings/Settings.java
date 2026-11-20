@@ -1156,6 +1156,11 @@ public class Settings extends BaseSettings {
                     .withRange(0, 150);
     /** The Send message box on other people's stories takes the same glass, as a pill (#391). Off to start. */
     public static final BooleanSetting GLASS_STORY_REPLY_BOX = new BooleanSetting("hushgram_glass_story_reply_box", FALSE);
+    /**
+     * A chat's name and username sit in the middle of its top bar, or as near it as the call buttons leave
+     * room for ({@link app.hushgram.extension.instagram.direct.CenterChatName}, #779). Off to start.
+     */
+    public static final BooleanSetting CENTER_CHAT_NAME = new BooleanSetting("hushgram_center_chat_name", FALSE);
 
     /** The message bar's gallery and microphone buttons move into the plus menu. Off to start. */
     public static final BooleanSetting MOVE_TO_PLUS_MENU = new BooleanSetting("hushgram_move_to_plus_menu", FALSE);
