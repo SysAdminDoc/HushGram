@@ -1860,7 +1860,7 @@ That isn't a picture.	Đó không phải là ảnh.
 That picture is over %1$d MB.	Ảnh đó lớn hơn %1$d MB.
 Couldn't save the picture.	Không lưu được ảnh.
 Open a chat, tap the clock button next to the call buttons at the top, or long press the chat's name, and pick Jump to the first message or Jump to a date. The chat loads its older messages on its own, with a count and a Cancel button.	Mở một cuộc trò chuyện, nhấn nút đồng hồ cạnh các nút gọi ở đầu màn hình, hoặc nhấn giữ tên cuộc trò chuyện, rồi chọn Chuyển đến tin nhắn đầu tiên hoặc Chuyển đến một ngày. Cuộc trò chuyện tự tải các tin nhắn cũ hơn, có hiển thị số lượng và nút Hủy.
-Open a chat, tap the clock button next to the call buttons at the top, or long press the chat's name, and pick Export chat. The whole chat is saved as a text file in Downloads, HushGram folder, one line per message.	Mở một cuộc trò chuyện, nhấn nút đồng hồ cạnh các nút gọi ở đầu màn hình, hoặc nhấn giữ tên cuộc trò chuyện, rồi chọn Xuất cuộc trò chuyện. Toàn bộ cuộc trò chuyện được lưu thành tệp văn bản trong thư mục HushGram của Downloads, mỗi tin nhắn một dòng.
+Open a chat, tap the clock button next to the call buttons at the top, or long press the chat's name, and pick Export chat. The whole chat is saved as a text file in Downloads, HushGram folder, one line per message. Select messages in the same menu lets you tick messages to copy, share or save.	Mở một cuộc trò chuyện, nhấn nút đồng hồ cạnh các nút gọi ở đầu màn hình, hoặc nhấn giữ tên cuộc trò chuyện, rồi chọn Xuất cuộc trò chuyện. Toàn bộ cuộc trò chuyện được lưu thành tệp văn bản trong thư mục HushGram của Downloads, mỗi tin nhắn một dòng. Chọn tin nhắn trong cùng menu cho phép bạn đánh dấu tin nhắn để sao chép, chia sẻ hoặc lưu.
 Instagram stopped loading older messages.	Instagram đã ngừng tải tin nhắn cũ hơn.
 Black settings page	Trang cài đặt màu đen
 Black rows and dialogs, with HushGram's name at the top.	Hàng và hộp thoại màu đen, tên HushGram ở trên cùng.
@@ -2621,3 +2621,19 @@ Newest first	Mới nhất trước
 Puts each page of reels in the order they were posted, newest on top.	Sắp xếp mỗi trang reel theo thời gian đăng, mới nhất ở trên cùng.
 # context: summary of the Also on Home switch under those rows; the posts it leaves out are Home's suggested posts (#780)
 Leaves out suggested posts on Home outside the same numbers too. Pull down on Home to refresh after changing it.	Cũng bỏ các bài viết được đề xuất trên trang chủ nằm ngoài cùng các con số đó. Hãy kéo xuống trên trang chủ để làm mới sau khi thay đổi.
+# context: the chat menu's entry that opens a list of the chat's messages to tick, and that list's title
+Select messages	Chọn tin nhắn
+# context: Select messages' title switch; it ticks every message
+Select all	Chọn tất cả
+# context: the same switch once every message is ticked; it unticks them all
+Clear	Bỏ chọn tất cả
+# context: a button of Select messages; it copies the ticked messages to the clipboard
+Copy	Sao chép
+# context: a button of Select messages; it opens Android's share sheet with the ticked messages
+Share	Chia sẻ
+# context: a toast when Copy, Share or Save is tapped with no message ticked
+Pick a message first.	Hãy chọn một tin nhắn trước.
+# context: a toast after Copy in Select messages when the count is exactly one; %1$d is the number
+Copied %1$d message.	Đã sao chép %1$d tin nhắn.
+# context: the same toast for any other count; %1$d is how many
+Copied %1$d messages.	Đã sao chép %1$d tin nhắn.

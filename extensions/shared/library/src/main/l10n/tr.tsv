@@ -1945,7 +1945,7 @@ That isn't a picture.	Bu bir resim değil.
 That picture is over %1$d MB.	Bu resim %1$d MB'tan büyük.
 Couldn't save the picture.	Resim kaydedilemedi.
 Open a chat, tap the clock button next to the call buttons at the top, or long press the chat's name, and pick Jump to the first message or Jump to a date. The chat loads its older messages on its own, with a count and a Cancel button.	Bir sohbet aç, üstte arama düğmelerinin yanındaki saat düğmesine dokun ya da sohbetin adına uzun bas, sonra İlk mesaja atla veya Bir tarihe atla seçeneğini seç. Sohbet eski mesajlarını kendisi yükler, bir sayaç ve İptal düğmesi gösterir.
-Open a chat, tap the clock button next to the call buttons at the top, or long press the chat's name, and pick Export chat. The whole chat is saved as a text file in Downloads, HushGram folder, one line per message.	Bir sohbet aç, üstte arama düğmelerinin yanındaki saat düğmesine dokun ya da sohbetin adına uzun bas, sonra Sohbeti dışa aktar seçeneğini seç. Sohbetin tamamı İndirilenler içindeki HushGram klasörüne metin dosyası olarak kaydedilir, her mesaj bir satırdır.
+Open a chat, tap the clock button next to the call buttons at the top, or long press the chat's name, and pick Export chat. The whole chat is saved as a text file in Downloads, HushGram folder, one line per message. Select messages in the same menu lets you tick messages to copy, share or save.	Bir sohbet aç, üstte arama düğmelerinin yanındaki saat düğmesine dokun ya da sohbetin adına uzun bas, sonra Sohbeti dışa aktar seçeneğini seç. Sohbetin tamamı İndirilenler içindeki HushGram klasörüne metin dosyası olarak kaydedilir, her mesaj bir satırdır. Aynı menüdeki Mesajları seç ile kopyalamak, paylaşmak veya kaydetmek için mesajları işaretleyebilirsin.
 Instagram stopped loading older messages.	Instagram eski mesajları yüklemeyi bıraktı.
 Black settings page	Siyah ayarlar sayfası
 Black rows and dialogs, with HushGram's name at the top.	Siyah satırlar ve pencereler, üstte HushGram adıyla.
@@ -2706,3 +2706,19 @@ Newest first	En yeniler önce
 Puts each page of reels in the order they were posted, newest on top.	Her reel sayfasını paylaşıldıkları zamana göre, en yenileri üstte olacak şekilde sıralar.
 # context: summary of the Also on Home switch under those rows; the posts it leaves out are Home's suggested posts (#780)
 Leaves out suggested posts on Home outside the same numbers too. Pull down on Home to refresh after changing it.	Ana Sayfa'da aynı sayıların dışında kalan önerilen gönderileri de gizler. Değiştirdikten sonra yenilemek için Ana Sayfa'yı aşağı çek.
+# context: the chat menu's entry that opens a list of the chat's messages to tick, and that list's title
+Select messages	Mesajları seç
+# context: Select messages' title switch; it ticks every message
+Select all	Tümünü seç
+# context: the same switch once every message is ticked; it unticks them all
+Clear	Seçimi temizle
+# context: a button of Select messages; it copies the ticked messages to the clipboard
+Copy	Kopyala
+# context: a button of Select messages; it opens Android's share sheet with the ticked messages
+Share	Paylaş
+# context: a toast when Copy, Share or Save is tapped with no message ticked
+Pick a message first.	Önce bir mesaj seç.
+# context: a toast after Copy in Select messages when the count is exactly one; %1$d is the number
+Copied %1$d message.	%1$d mesaj kopyalandı.
+# context: the same toast for any other count; %1$d is how many
+Copied %1$d messages.	%1$d mesaj kopyalandı.

@@ -205,7 +205,7 @@ public class ChatPagerTest {
     /** Stand-ins for Instagram's glyphs, which the test app doesn't have. */
     private static void glyphs() {
         Map<String, Drawable> icons = new HashMap<>();
-        for (String[] names : new String[][] {ChatPager.BUTTON_ICONS, ChatPager.DATE_ICONS, ChatPager.EXPORT_ICONS}) {
+        for (String[] names : new String[][] {ChatPager.BUTTON_ICONS, ChatPager.DATE_ICONS, ChatPager.EXPORT_ICONS, ChatPager.SELECT_ICONS}) {
             icons.put(names[0], new ColorDrawable(Color.WHITE));
         }
         ChatPager.iconsForTests = icons;
@@ -239,7 +239,7 @@ public class ChatPagerTest {
 
         assertTrue("the name didn't get the long press", screen.name.hasOnLongClickListeners());
         assertTrue(screen.name.performLongClick());
-        assertEquals(3, menuOpened().size());
+        assertEquals(4, menuOpened().size());
         String missing = HookStatus.missing(FamilyNames.CHAT_HISTORY).toString();
         assertFalse(missing, missing.contains("view id"));
     }
@@ -1086,7 +1086,7 @@ public class ChatPagerTest {
 
         assertTrue(ours.performClick());
         Menu menu = menuOpened();
-        assertEquals(3, menu.size());
+        assertEquals(4, menu.size());
         for (int i = 0; i < menu.size(); i++) assertNotNull("line " + i + " has no glyph", menu.getItem(i).getIcon());
     }
 
@@ -1102,11 +1102,48 @@ public class ChatPagerTest {
 
         assertTrue(ours.performClick());
         PopupMenu popup = ShadowPopupMenu.getLatestPopupMenu();
-        assertEquals(1, popup.getMenu().size());
+        assertEquals(2, popup.getMenu().size());
         Shadows.shadowOf(popup).getOnMenuItemClickListener().onMenuItemClick(popup.getMenu().getItem(0));
         ShadowLooper.idleMainLooper();
 
         assertEquals("Couldn't find this chat's messages.", ShadowToast.getTextOfLatestToast());
+    }
+
+    /**
+     * Select messages (#778) sits under Export chat and goes with it. In a chat with no messages to
+     * find it says so and opens no picker.
+     */
+    @Test public void selectMessagesComesWithExportAndSaysSoWhenThereAreNoMessages() {
+        screen = new Screen();
+        screen.buttonRow();
+        glyphs();
+        Settings.EXPORT_CHAT.save(true);
+        ChatPager.opened(screen.fragment);
+        View ours = screen.actionBar.findViewWithTag(ChatPager.BUTTON_TAG);
+
+        assertTrue(ours.performClick());
+        PopupMenu popup = ShadowPopupMenu.getLatestPopupMenu();
+        assertEquals("Export chat", String.valueOf(popup.getMenu().getItem(0).getTitle()));
+        assertEquals("Select messages", String.valueOf(popup.getMenu().getItem(1).getTitle()));
+        assertNotNull(popup.getMenu().getItem(1).getIcon());
+        Shadows.shadowOf(popup).getOnMenuItemClickListener().onMenuItemClick(popup.getMenu().getItem(1));
+        ShadowLooper.idleMainLooper();
+
+        assertEquals("Couldn't find this chat's messages.", ShadowToast.getTextOfLatestToast());
+        assertNull("a picker opened with nothing in it", ShadowAlertDialog.getLatestAlertDialog());
+    }
+
+    /** With only Jump in chat on, the menu has no Select messages. */
+    @Test public void selectMessagesStaysOffWithExport() {
+        screen = new Screen();
+        Settings.JUMP_IN_CHAT.save(true);
+        ChatPager.opened(screen.fragment);
+
+        assertTrue(screen.name.performLongClick());
+        Menu menu = menuOpened();
+        for (int i = 0; i < menu.size(); i++) {
+            assertFalse(String.valueOf(menu.getItem(i).getTitle()).equals("Select messages"));
+        }
     }
 
     /** Instagram empties the row while the chat is up, and the button comes back. */

@@ -77,7 +77,8 @@ private fun refuse(why: String): Nothing = throw PatchException("$CHAT_HISTORY_P
 val chatHistoryPatch = bytecodePatch(
     name = "Chat history tools",
     description = "Tap the clock button at the top of a chat, or long press its name, to jump to its first message " +
-        "or to a date, or to save the chat as a text file. The chat loads its older messages on its own, with a count " +
+        "or to a date, or to save the chat as a text file. Select messages there ticks messages to copy, share or save. " +
+        "The chat loads its older messages on its own, with a count " +
         "and a Cancel button. Both start off. Turn them on in HushGram settings > Messages.",
 ) {
     category("Messages")

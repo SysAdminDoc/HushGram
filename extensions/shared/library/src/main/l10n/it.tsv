@@ -1945,7 +1945,7 @@ That isn't a picture.	Questa non è un'immagine.
 That picture is over %1$d MB.	L'immagine supera %1$d MB.
 Couldn't save the picture.	Impossibile salvare l'immagine.
 Open a chat, tap the clock button next to the call buttons at the top, or long press the chat's name, and pick Jump to the first message or Jump to a date. The chat loads its older messages on its own, with a count and a Cancel button.	Apri una chat, tocca il pulsante dell'orologio accanto ai pulsanti di chiamata in alto, o tieni premuto il nome della chat, e scegli Vai al primo messaggio o Vai a una data. La chat carica da sola i messaggi più vecchi, con un conteggio e un pulsante Annulla.
-Open a chat, tap the clock button next to the call buttons at the top, or long press the chat's name, and pick Export chat. The whole chat is saved as a text file in Downloads, HushGram folder, one line per message.	Apri una chat, tocca il pulsante dell'orologio accanto ai pulsanti di chiamata in alto, o tieni premuto il nome della chat, e scegli Esporta chat. L'intera chat viene salvata come file di testo in Download, cartella HushGram, con una riga per messaggio.
+Open a chat, tap the clock button next to the call buttons at the top, or long press the chat's name, and pick Export chat. The whole chat is saved as a text file in Downloads, HushGram folder, one line per message. Select messages in the same menu lets you tick messages to copy, share or save.	Apri una chat, tocca il pulsante dell'orologio accanto ai pulsanti di chiamata in alto, o tieni premuto il nome della chat, e scegli Esporta chat. L'intera chat viene salvata come file di testo in Download, cartella HushGram, con una riga per messaggio. Con Seleziona messaggi, nello stesso menu, spunti i messaggi da copiare, condividere o salvare.
 Instagram stopped loading older messages.	Instagram non carica più i messaggi vecchi.
 Black settings page	Pagina delle impostazioni nera
 Black rows and dialogs, with HushGram's name at the top.	Righe e finestre nere, con il nome di HushGram in alto.
@@ -2706,3 +2706,19 @@ Newest first	Prima i più recenti
 Puts each page of reels in the order they were posted, newest on top.	Ordina ogni pagina di reel in base a quando sono stati pubblicati, con i più recenti in alto.
 # context: summary of the Also on Home switch under those rows; the posts it leaves out are Home's suggested posts (#780)
 Leaves out suggested posts on Home outside the same numbers too. Pull down on Home to refresh after changing it.	Toglie anche dalla Home i post suggeriti fuori dagli stessi numeri. Tira verso il basso nella Home per aggiornare dopo averlo cambiato.
+# context: the chat menu's entry that opens a list of the chat's messages to tick, and that list's title
+Select messages	Seleziona messaggi
+# context: Select messages' title switch; it ticks every message
+Select all	Seleziona tutto
+# context: the same switch once every message is ticked; it unticks them all
+Clear	Deseleziona tutto
+# context: a button of Select messages; it copies the ticked messages to the clipboard
+Copy	Copia
+# context: a button of Select messages; it opens Android's share sheet with the ticked messages
+Share	Condividi
+# context: a toast when Copy, Share or Save is tapped with no message ticked
+Pick a message first.	Scegli prima un messaggio.
+# context: a toast after Copy in Select messages when the count is exactly one; %1$d is the number
+Copied %1$d message.	%1$d messaggio copiato.
+# context: the same toast for any other count; %1$d is how many
+Copied %1$d messages.	%1$d messaggi copiati.

@@ -1944,7 +1944,7 @@ That isn't a picture.	이미지가 아닙니다.
 That picture is over %1$d MB.	이미지가 %1$dMB를 넘습니다.
 Couldn't save the picture.	이미지를 저장하지 못했습니다.
 Open a chat, tap the clock button next to the call buttons at the top, or long press the chat's name, and pick Jump to the first message or Jump to a date. The chat loads its older messages on its own, with a count and a Cancel button.	채팅을 열고 위쪽 통화 버튼 옆의 시계 버튼을 누르거나 채팅 이름을 길게 누른 뒤 첫 메시지로 이동 또는 날짜로 이동을 고르세요. 채팅이 이전 메시지를 스스로 불러오며, 개수와 취소 버튼이 표시됩니다.
-Open a chat, tap the clock button next to the call buttons at the top, or long press the chat's name, and pick Export chat. The whole chat is saved as a text file in Downloads, HushGram folder, one line per message.	채팅을 열고 위쪽 통화 버튼 옆의 시계 버튼을 누르거나 채팅 이름을 길게 누른 뒤 채팅 내보내기를 고르세요. 채팅 전체가 다운로드의 HushGram 폴더에 텍스트 파일로 저장되며, 메시지 한 개가 한 줄입니다.
+Open a chat, tap the clock button next to the call buttons at the top, or long press the chat's name, and pick Export chat. The whole chat is saved as a text file in Downloads, HushGram folder, one line per message. Select messages in the same menu lets you tick messages to copy, share or save.	채팅을 열고 위쪽 통화 버튼 옆의 시계 버튼을 누르거나 채팅 이름을 길게 누른 뒤 채팅 내보내기를 고르세요. 채팅 전체가 다운로드의 HushGram 폴더에 텍스트 파일로 저장되며, 메시지 한 개가 한 줄입니다. 같은 메뉴의 메시지 선택에서 복사, 공유, 저장할 메시지를 고를 수 있어요.
 Instagram stopped loading older messages.	Instagram이 이전 메시지 불러오기를 멈췄습니다.
 Black settings page	검은색 설정 페이지
 Black rows and dialogs, with HushGram's name at the top.	검은색 행과 대화상자, 맨 위에 HushGram 이름.
@@ -2705,3 +2705,19 @@ Newest first	최신순
 Puts each page of reels in the order they were posted, newest on top.	릴스의 각 페이지를 게시된 순서대로, 최신 릴스가 위에 오도록 정렬합니다.
 # context: summary of the Also on Home switch under those rows; the posts it leaves out are Home's suggested posts (#780)
 Leaves out suggested posts on Home outside the same numbers too. Pull down on Home to refresh after changing it.	같은 숫자 범위를 벗어난 홈의 추천 게시물도 숨깁니다. 바꾼 뒤에는 홈을 아래로 당겨 새로고침하세요.
+# context: the chat menu's entry that opens a list of the chat's messages to tick, and that list's title
+Select messages	메시지 선택
+# context: Select messages' title switch; it ticks every message
+Select all	모두 선택
+# context: the same switch once every message is ticked; it unticks them all
+Clear	선택 해제
+# context: a button of Select messages; it copies the ticked messages to the clipboard
+Copy	복사
+# context: a button of Select messages; it opens Android's share sheet with the ticked messages
+Share	공유
+# context: a toast when Copy, Share or Save is tapped with no message ticked
+Pick a message first.	먼저 메시지를 골라 주세요.
+# context: a toast after Copy in Select messages when the count is exactly one; %1$d is the number
+Copied %1$d message.	메시지 %1$d개를 복사했어요.
+# context: the same toast for any other count; %1$d is how many
+Copied %1$d messages.	메시지 %1$d개를 복사했어요.

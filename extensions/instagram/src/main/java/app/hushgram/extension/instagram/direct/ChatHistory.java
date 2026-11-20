@@ -503,6 +503,24 @@ public final class ChatHistory {
      * account id when several did (a group).
      */
     static String document(List<Entry> entries, String title, String you) {
+        return document(entries, names(entries, title, you), title);
+    }
+
+    /** The export of [entries] with each one's name in [names], at the same place. */
+    static String document(List<Entry> entries, List<String> names, String title) {
+        StringBuilder out = new StringBuilder();
+        out.append("Chat with ").append(other(title)).append('\n');
+        out.append(entries.size()).append(entries.size() == 1 ? " message" : " messages").append("\n\n");
+        for (int i = 0; i < entries.size(); i++) out.append(line(entries.get(i), names.get(i))).append('\n');
+        return out.toString();
+    }
+
+    /**
+     * What each of [entries] is signed with in an export, at the same place: [you] for the signed-in
+     * account's, [title] for the other side's when only one other account wrote, and the sender's id
+     * when several did (a group).
+     */
+    static List<String> names(List<Entry> entries, String title, String you) {
         String viewerId = null;
         for (Entry entry : entries) {
             if (entry.viewer && entry.sender != null) {
@@ -515,18 +533,18 @@ public final class ChatHistory {
             boolean mine = entry.viewer || (viewerId != null && viewerId.equals(entry.sender));
             if (!mine && entry.sender != null) others.add(entry.sender);
         }
-        String other = title == null || title.trim().isEmpty() ? "Them" : title.trim();
-        StringBuilder out = new StringBuilder();
-        out.append("Chat with ").append(other).append('\n');
-        out.append(entries.size()).append(entries.size() == 1 ? " message" : " messages").append("\n\n");
+        String other = other(title);
+        List<String> names = new ArrayList<>(entries.size());
         for (Entry entry : entries) {
             boolean mine = entry.viewer || (viewerId != null && viewerId.equals(entry.sender));
-            String name;
-            if (mine) name = you;
-            else if (others.size() > 1 && entry.sender != null) name = entry.sender;
-            else name = other;
-            out.append(line(entry, name)).append('\n');
+            if (mine) names.add(you);
+            else if (others.size() > 1 && entry.sender != null) names.add(entry.sender);
+            else names.add(other);
         }
-        return out.toString();
+        return names;
+    }
+
+    private static String other(String title) {
+        return title == null || title.trim().isEmpty() ? "Them" : title.trim();
     }
 }

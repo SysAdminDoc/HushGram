@@ -1948,7 +1948,7 @@ That isn't a picture.	這不是圖片。
 That picture is over %1$d MB.	這張圖片超過 %1$d MB。
 Couldn't save the picture.	無法儲存圖片。
 Open a chat, tap the clock button next to the call buttons at the top, or long press the chat's name, and pick Jump to the first message or Jump to a date. The chat loads its older messages on its own, with a count and a Cancel button.	開啟聊天，點一下上方通話按鈕旁的時鐘按鈕，或長按聊天名稱，選擇「跳到第一則訊息」或「跳到某個日期」。聊天會自動載入較舊的訊息，並顯示數量和取消按鈕。
-Open a chat, tap the clock button next to the call buttons at the top, or long press the chat's name, and pick Export chat. The whole chat is saved as a text file in Downloads, HushGram folder, one line per message.	開啟聊天，點一下上方通話按鈕旁的時鐘按鈕，或長按聊天名稱，選擇「匯出聊天」。整個聊天會存成文字檔，放在「下載」的 HushGram 資料夾，每則訊息一行。
+Open a chat, tap the clock button next to the call buttons at the top, or long press the chat's name, and pick Export chat. The whole chat is saved as a text file in Downloads, HushGram folder, one line per message. Select messages in the same menu lets you tick messages to copy, share or save.	開啟聊天，點一下上方通話按鈕旁的時鐘按鈕，或長按聊天名稱，選擇「匯出聊天」。整個聊天會存成文字檔，放在「下載」的 HushGram 資料夾，每則訊息一行。 同一選單中的「選取訊息」可讓你勾選訊息來複製、分享或儲存。
 Instagram stopped loading older messages.	Instagram 已停止載入較舊的訊息。
 Black settings page	黑色設定頁面
 Black rows and dialogs, with HushGram's name at the top.	黑色的列和對話框，頂端顯示 HushGram 名稱。
@@ -2709,3 +2709,19 @@ Newest first	最新的優先
 Puts each page of reels in the order they were posted, newest on top.	將每一頁 Reels 依發佈時間排序，最新的在最上面。
 # context: summary of the Also on Home switch under those rows; the posts it leaves out are Home's suggested posts (#780)
 Leaves out suggested posts on Home outside the same numbers too. Pull down on Home to refresh after changing it.	也略過首頁中超出相同數字範圍的推薦貼文。變更後請下拉重新整理首頁。
+# context: the chat menu's entry that opens a list of the chat's messages to tick, and that list's title
+Select messages	選取訊息
+# context: Select messages' title switch; it ticks every message
+Select all	全選
+# context: the same switch once every message is ticked; it unticks them all
+Clear	取消全選
+# context: a button of Select messages; it copies the ticked messages to the clipboard
+Copy	複製
+# context: a button of Select messages; it opens Android's share sheet with the ticked messages
+Share	分享
+# context: a toast when Copy, Share or Save is tapped with no message ticked
+Pick a message first.	請先選一則訊息。
+# context: a toast after Copy in Select messages when the count is exactly one; %1$d is the number
+Copied %1$d message.	已複製 %1$d 則訊息。
+# context: the same toast for any other count; %1$d is how many
+Copied %1$d messages.	已複製 %1$d 則訊息。

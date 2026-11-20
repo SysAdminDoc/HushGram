@@ -1945,7 +1945,7 @@ That isn't a picture.	Itu bukan gambar.
 That picture is over %1$d MB.	Gambar itu lebih dari %1$d MB.
 Couldn't save the picture.	Gambar tidak bisa disimpan.
 Open a chat, tap the clock button next to the call buttons at the top, or long press the chat's name, and pick Jump to the first message or Jump to a date. The chat loads its older messages on its own, with a count and a Cancel button.	Buka obrolan, ketuk tombol jam di samping tombol panggilan di bagian atas, atau tekan lama nama obrolan, lalu pilih Lompat ke pesan pertama atau Lompat ke tanggal. Obrolan memuat pesan lamanya sendiri, dengan hitungan dan tombol Batal.
-Open a chat, tap the clock button next to the call buttons at the top, or long press the chat's name, and pick Export chat. The whole chat is saved as a text file in Downloads, HushGram folder, one line per message.	Buka obrolan, ketuk tombol jam di samping tombol panggilan di bagian atas, atau tekan lama nama obrolan, lalu pilih Ekspor obrolan. Seluruh obrolan disimpan sebagai berkas teks di Download, folder HushGram, satu baris per pesan.
+Open a chat, tap the clock button next to the call buttons at the top, or long press the chat's name, and pick Export chat. The whole chat is saved as a text file in Downloads, HushGram folder, one line per message. Select messages in the same menu lets you tick messages to copy, share or save.	Buka obrolan, ketuk tombol jam di samping tombol panggilan di bagian atas, atau tekan lama nama obrolan, lalu pilih Ekspor obrolan. Seluruh obrolan disimpan sebagai berkas teks di Download, folder HushGram, satu baris per pesan. Dengan Pilih pesan di menu yang sama, kamu bisa mencentang pesan untuk disalin, dibagikan, atau disimpan.
 Instagram stopped loading older messages.	Instagram berhenti memuat pesan lama.
 Black settings page	Halaman pengaturan hitam
 Black rows and dialogs, with HushGram's name at the top.	Baris dan dialog hitam, dengan nama HushGram di atas.
@@ -2706,3 +2706,19 @@ Newest first	Terbaru dulu
 Puts each page of reels in the order they were posted, newest on top.	Mengurutkan setiap halaman reel menurut waktu diposting, yang terbaru di atas.
 # context: summary of the Also on Home switch under those rows; the posts it leaves out are Home's suggested posts (#780)
 Leaves out suggested posts on Home outside the same numbers too. Pull down on Home to refresh after changing it.	Juga menyembunyikan postingan yang disarankan di Beranda yang berada di luar angka yang sama. Tarik Beranda ke bawah untuk menyegarkan setelah mengubahnya.
+# context: the chat menu's entry that opens a list of the chat's messages to tick, and that list's title
+Select messages	Pilih pesan
+# context: Select messages' title switch; it ticks every message
+Select all	Pilih semua
+# context: the same switch once every message is ticked; it unticks them all
+Clear	Batalkan semua
+# context: a button of Select messages; it copies the ticked messages to the clipboard
+Copy	Salin
+# context: a button of Select messages; it opens Android's share sheet with the ticked messages
+Share	Bagikan
+# context: a toast when Copy, Share or Save is tapped with no message ticked
+Pick a message first.	Pilih pesan dulu.
+# context: a toast after Copy in Select messages when the count is exactly one; %1$d is the number
+Copied %1$d message.	%1$d pesan disalin.
+# context: the same toast for any other count; %1$d is how many
+Copied %1$d messages.	%1$d pesan disalin.
