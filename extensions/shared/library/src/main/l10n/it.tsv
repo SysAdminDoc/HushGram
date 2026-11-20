@@ -2733,3 +2733,19 @@ Chat bubbles	Bolle delle chat
 A chat's message notification gets Android's bubble button, so the chat can float over other apps. Hidden and locked chats never get one. Needs Android 11 or newer.	La notifica di un messaggio in chat riceve il pulsante bolla di Android, così la chat può fluttuare sopra le altre app. Le chat nascoste e bloccate non lo ricevono mai. Richiede Android 11 o successivo.
 # context: the Notifications category's summary when Chat bubbles is the only patch in it (#747)
 Let a chat's notifications open as a bubble over other apps.	Fai aprire le notifiche di una chat come bolla sopra le altre app.
+# context: the switch under HushGram settings > Messages that puts a Record button on Instagram's call screen (#732)
+Record calls	Registra le chiamate
+# context: that switch's summary; Record is the button's own label, the next row (#732)
+Adds a Record button to the call screen. It saves the call's sound, both sides, as an audio file on your phone. Some places require everyone on the call to agree to being recorded.	Aggiunge un pulsante Registra alla schermata della chiamata. Salva l'audio della chiamata, da entrambe le parti, come file audio sul telefono. In alcuni luoghi tutti i partecipanti alla chiamata devono acconsentire alla registrazione.
+# context: the button over Instagram's call screen that starts recording the call, a verb, kept short (#732)
+Record	Registra
+# context: what a screen reader says for that button before a recording starts (#732)
+Record this call	Registra questa chiamata
+# context: what a screen reader says for that button while it records; its text is then a dot and the time (#732)
+Stop recording	Interrompi la registrazione
+# context: a toast when the Record button can't start a recording (#732)
+Couldn't start recording this call	Impossibile registrare la chiamata
+# context: a toast when a finished call recording can't be saved to the phone (#732)
+Couldn't save the call recording	Impossibile salvare la registrazione della chiamata
+# context: a toast when a recording ends with no sound in it (#732)
+Nothing was recorded	Non è stato registrato nulla

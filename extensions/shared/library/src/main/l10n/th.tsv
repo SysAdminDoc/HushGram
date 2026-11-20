@@ -2730,3 +2730,19 @@ Chat bubbles	บับเบิลแชท
 A chat's message notification gets Android's bubble button, so the chat can float over other apps. Hidden and locked chats never get one. Needs Android 11 or newer.	การแจ้งเตือนข้อความแชทจะมีปุ่มบับเบิลของ Android เพื่อให้แชทลอยอยู่เหนือแอปอื่นได้ แชทที่ซ่อนอยู่และแชทที่ล็อคไว้จะไม่ได้รับปุ่มนี้ ต้องใช้ Android 11 ขึ้นไป
 # context: the Notifications category's summary when Chat bubbles is the only patch in it (#747)
 Let a chat's notifications open as a bubble over other apps.	ให้การแจ้งเตือนของแชทเปิดเป็นบับเบิลเหนือแอปอื่น
+# context: the switch under HushGram settings > Messages that puts a Record button on Instagram's call screen (#732)
+Record calls	บันทึกเสียงการโทร
+# context: that switch's summary; Record is the button's own label, the next row (#732)
+Adds a Record button to the call screen. It saves the call's sound, both sides, as an audio file on your phone. Some places require everyone on the call to agree to being recorded.	เพิ่มปุ่มบันทึกในหน้าจอการโทร ปุ่มนี้จะบันทึกเสียงของการโทรทั้งสองฝ่ายเป็นไฟล์เสียงในโทรศัพท์ของคุณ บางพื้นที่กำหนดให้ทุกคนในสายต้องยินยอมให้บันทึก
+# context: the button over Instagram's call screen that starts recording the call, a verb, kept short (#732)
+Record	บันทึก
+# context: what a screen reader says for that button before a recording starts (#732)
+Record this call	บันทึกการโทรนี้
+# context: what a screen reader says for that button while it records; its text is then a dot and the time (#732)
+Stop recording	หยุดบันทึก
+# context: a toast when the Record button can't start a recording (#732)
+Couldn't start recording this call	ไม่สามารถเริ่มบันทึกการโทรนี้ได้
+# context: a toast when a finished call recording can't be saved to the phone (#732)
+Couldn't save the call recording	ไม่สามารถบันทึกไฟล์เสียงการโทรได้
+# context: a toast when a recording ends with no sound in it (#732)
+Nothing was recorded	ไม่มีเสียงที่บันทึกไว้

@@ -50,6 +50,7 @@ final class MessagesCategory {
                 || build.contains(PatchFamily.PREVIEW_CHATS)
                 || build.contains(PatchFamily.ASK_BEFORE_CALL)
                 || build.contains(PatchFamily.CALL_BLOCKER)
+                || build.contains(PatchFamily.CALL_RECORDER)
                 || build.contains(PatchFamily.KINDNESS_REMINDER)
                 || build.contains(PatchFamily.MESSAGE_BOX)
                 || build.contains(PatchFamily.PLUS_MENU)
@@ -236,6 +237,12 @@ final class MessagesCategory {
                 messages.addPreference(toggle(context, Settings.CALL_BLOCK_DECLINE, L10n.t("Decline calls that don't ring"),
                         L10n.t("Calls kept quiet by Who can call you are also declined, the same as tapping Decline, "
                                 + "instead of being left unanswered.")));
+            }
+            if (build.contains(PatchFamily.CALL_RECORDER)) {
+                messages.addPreference(toggle(context, Settings.CALL_RECORDER, L10n.t("Record calls"),
+                        L10n.t("Adds a Record button to the call screen. It saves the call's sound, both sides, as an "
+                                + "audio file on your phone. Some places require everyone on the call to agree to "
+                                + "being recorded.")));
             }
             if (build.contains(PatchFamily.KINDNESS_REMINDER)) {
                 messages.addPreference(toggle(context, Settings.HIDE_KINDNESS_REMINDER, L10n.t("Hide the Community Standards reminder"),

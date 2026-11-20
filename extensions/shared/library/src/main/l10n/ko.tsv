@@ -2732,3 +2732,19 @@ Chat bubbles	채팅 대화창
 A chat's message notification gets Android's bubble button, so the chat can float over other apps. Hidden and locked chats never get one. Needs Android 11 or newer.	채팅 메시지 알림에 Android 대화창 버튼이 생겨서 채팅을 다른 앱 위에 띄울 수 있습니다. 숨긴 채팅과 잠긴 채팅에는 생기지 않습니다. Android 11 이상이 필요합니다.
 # context: the Notifications category's summary when Chat bubbles is the only patch in it (#747)
 Let a chat's notifications open as a bubble over other apps.	채팅 알림을 다른 앱 위에 대화창으로 열 수 있게 합니다.
+# context: the switch under HushGram settings > Messages that puts a Record button on Instagram's call screen (#732)
+Record calls	통화 녹음
+# context: that switch's summary; Record is the button's own label, the next row (#732)
+Adds a Record button to the call screen. It saves the call's sound, both sides, as an audio file on your phone. Some places require everyone on the call to agree to being recorded.	통화 화면에 녹음 버튼을 추가합니다. 통화 소리를 양쪽 모두 오디오 파일로 휴대폰에 저장합니다. 일부 지역에서는 통화에 참여한 모든 사람이 녹음에 동의해야 합니다.
+# context: the button over Instagram's call screen that starts recording the call, a verb, kept short (#732)
+Record	녹음
+# context: what a screen reader says for that button before a recording starts (#732)
+Record this call	이 통화 녹음
+# context: what a screen reader says for that button while it records; its text is then a dot and the time (#732)
+Stop recording	녹음 중지
+# context: a toast when the Record button can't start a recording (#732)
+Couldn't start recording this call	통화 녹음을 시작하지 못했어요
+# context: a toast when a finished call recording can't be saved to the phone (#732)
+Couldn't save the call recording	통화 녹음을 저장하지 못했어요
+# context: a toast when a recording ends with no sound in it (#732)
+Nothing was recorded	녹음된 내용이 없어요

@@ -2736,3 +2736,19 @@ Chat bubbles	聊天對話框
 A chat's message notification gets Android's bubble button, so the chat can float over other apps. Hidden and locked chats never get one. Needs Android 11 or newer.	聊天訊息的通知會加上 Android 的對話框按鈕，讓聊天浮在其他應用程式上方。已隱藏和已鎖定的聊天永遠不會加上。需要 Android 11 或更新版本。
 # context: the Notifications category's summary when Chat bubbles is the only patch in it (#747)
 Let a chat's notifications open as a bubble over other apps.	讓聊天的通知以對話框形式開在其他應用程式上方。
+# context: the switch under HushGram settings > Messages that puts a Record button on Instagram's call screen (#732)
+Record calls	通話錄音
+# context: that switch's summary; Record is the button's own label, the next row (#732)
+Adds a Record button to the call screen. It saves the call's sound, both sides, as an audio file on your phone. Some places require everyone on the call to agree to being recorded.	在通話畫面加上錄音按鈕，把通話雙方的聲音存成手機上的音訊檔。有些地方規定通話中的所有人都要同意被錄音。
+# context: the button over Instagram's call screen that starts recording the call, a verb, kept short (#732)
+Record	錄音
+# context: what a screen reader says for that button before a recording starts (#732)
+Record this call	錄下這通電話
+# context: what a screen reader says for that button while it records; its text is then a dot and the time (#732)
+Stop recording	停止錄音
+# context: a toast when the Record button can't start a recording (#732)
+Couldn't start recording this call	無法開始錄製這通電話
+# context: a toast when a finished call recording can't be saved to the phone (#732)
+Couldn't save the call recording	無法儲存通話錄音
+# context: a toast when a recording ends with no sound in it (#732)
+Nothing was recorded	沒有錄到任何聲音

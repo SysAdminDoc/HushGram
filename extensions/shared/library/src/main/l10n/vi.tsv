@@ -2648,3 +2648,19 @@ Chat bubbles	Bong bóng chat
 A chat's message notification gets Android's bubble button, so the chat can float over other apps. Hidden and locked chats never get one. Needs Android 11 or newer.	Thông báo tin nhắn của một cuộc trò chuyện có nút bong bóng của Android, để cuộc trò chuyện nổi trên các ứng dụng khác. Cuộc trò chuyện đã ẩn và đã khóa không bao giờ có nút này. Cần Android 11 trở lên.
 # context: the Notifications category's summary when Chat bubbles is the only patch in it (#747)
 Let a chat's notifications open as a bubble over other apps.	Cho thông báo của cuộc trò chuyện mở thành bong bóng trên các ứng dụng khác.
+# context: the switch under HushGram settings > Messages that puts a Record button on Instagram's call screen (#732)
+Record calls	Ghi âm cuộc gọi
+# context: that switch's summary; Record is the button's own label, the next row (#732)
+Adds a Record button to the call screen. It saves the call's sound, both sides, as an audio file on your phone. Some places require everyone on the call to agree to being recorded.	Thêm nút Ghi âm vào màn hình cuộc gọi. Nút này lưu âm thanh của cuộc gọi, cả hai phía, thành tệp âm thanh trên điện thoại của bạn. Ở một số nơi, mọi người trong cuộc gọi phải đồng ý được ghi âm.
+# context: the button over Instagram's call screen that starts recording the call, a verb, kept short (#732)
+Record	Ghi âm
+# context: what a screen reader says for that button before a recording starts (#732)
+Record this call	Ghi âm cuộc gọi này
+# context: what a screen reader says for that button while it records; its text is then a dot and the time (#732)
+Stop recording	Dừng ghi âm
+# context: a toast when the Record button can't start a recording (#732)
+Couldn't start recording this call	Không thể bắt đầu ghi âm cuộc gọi
+# context: a toast when a finished call recording can't be saved to the phone (#732)
+Couldn't save the call recording	Không lưu được bản ghi âm cuộc gọi
+# context: a toast when a recording ends with no sound in it (#732)
+Nothing was recorded	Không ghi âm được gì

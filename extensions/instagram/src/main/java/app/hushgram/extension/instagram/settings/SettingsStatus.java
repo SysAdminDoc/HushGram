@@ -838,6 +838,11 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Rewritten by the Record calls patch. */
+    public static boolean callRecorder() {
+        return false;
+    }
+
     /** Rewritten by the Skip the collections tray patch. */
     public static boolean saveTray() {
         return false;

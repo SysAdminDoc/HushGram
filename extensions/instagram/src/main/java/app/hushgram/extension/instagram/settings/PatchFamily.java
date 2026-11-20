@@ -120,6 +120,7 @@ public enum PatchFamily {
     ASK_BEFORE_CALL(FamilyNames.ASK_BEFORE_CALL, "askBeforeCall", null, Settings.ASK_BEFORE_CALL,
             Settings.HIDE_CALL_BUTTONS, Settings.HIDE_CHAT_BLEND, Settings.HIDE_CHAT_BACK_BUTTON),
     CALL_BLOCKER(FamilyNames.CALL_BLOCKER, "callBlocker", null),
+    CALL_RECORDER(FamilyNames.CALL_RECORDER, "callRecorder", null, Settings.CALL_RECORDER),
     KINDNESS_REMINDER(FamilyNames.KINDNESS_REMINDER, "kindnessReminder", null, Settings.HIDE_KINDNESS_REMINDER),
     MESSAGE_BOX(FamilyNames.MESSAGE_BOX, "messageBox", null),
     PLUS_MENU(FamilyNames.PLUS_MENU, "plusMenu", null, Settings.HIDE_PLUS_SAVED, Settings.HIDE_PLUS_AI_IMAGES,

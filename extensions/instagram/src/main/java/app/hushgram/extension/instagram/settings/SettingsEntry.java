@@ -63,6 +63,7 @@ import app.hushgram.extension.instagram.misc.StoryBands;
 import app.hushgram.extension.instagram.misc.TabIcons;
 import app.hushgram.extension.instagram.direct.CenterChatName;
 import app.hushgram.extension.instagram.direct.GlassChat;
+import app.hushgram.extension.instagram.download.CallRecorder;
 import app.hushgram.extension.instagram.reels.BurnInGuard;
 import app.hushgram.extension.instagram.reels.FullScreenBars;
 import app.hushgram.extension.instagram.reels.ReelsTopBar;
@@ -167,6 +168,7 @@ public final class SettingsEntry {
         GlassTabBar.install(context);
         GlassChat.install(context);
         CenterChatName.install(context);
+        CallRecorder.install(context);
         FullScreenBars.install(context);
         RefreshRate.install(context);
         ReelsTopBar.install(context);

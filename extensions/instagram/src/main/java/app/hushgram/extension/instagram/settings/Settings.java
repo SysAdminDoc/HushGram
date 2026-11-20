@@ -1273,6 +1273,13 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting CHAT_BUBBLES = new BooleanSetting("hushgram_chat_bubbles", FALSE);
 
     /**
+     * Puts a Record button on the call screen that saves both sides of the call
+     * ({@link app.hushgram.extension.instagram.download.CallRecorder}, #732). Read each time the call
+     * screen shows, so no restart. Off to start.
+     */
+    public static final BooleanSetting CALL_RECORDER = new BooleanSetting("hushgram_record_calls", FALSE);
+
+    /**
      * Saving a post or reel shows the Saved message instead of the tray that asks you to start a
      * collection, which Instagram shows some accounts on every save (piko #2210,
      * {@link app.hushgram.extension.instagram.feed.SaveTray}). Off to start.

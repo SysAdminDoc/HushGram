@@ -250,6 +250,14 @@ once-call Lapp/hushgram/extension/instagram/direct/ChatLocks;->track(Landroid/ap
 # action, both thread ids and the account it came for. Left out, no chat's notification gets a
 # bubble; twice or elsewhere, it isn't the hook the patch wrote.
 once-call Lapp/hushgram/extension/instagram/direct/ChatBubbles;->offer(Landroid/app/Notification;Landroid/app/Notification;Ljava/util/Map;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V in instance (L*;L*;Ljava/lang/Runnable;Ljava/lang/String;I)V holding is_alert_only_once notification_displayed
+# Record calls (#732) hands the call engine's audio API to CallRecorder.audioApi right before its
+# constructor returns, the one constructor storing the engine's native holder, and every state of
+# a call to CallRecorder.callModel right before CallModel's constructor returns, the one storing
+# the person you are on the call. Both constructors return once on 456. Left out, the Record
+# button can't start: it has no engine to add its sinks to, or no call to name the people by;
+# twice or elsewhere, it isn't the hook the patch wrote.
+once-call Lapp/hushgram/extension/instagram/download/CallRecorder;->audioApi(Ljava/lang/Object;)V in instance (Lcom/facebook/simplejni/NativeHolder;)V holding Lcom/facebook/rsys/audio/gen/AudioApi$CProxy;->mNativeHolder:Lcom/facebook/simplejni/NativeHolder;
+once-call Lapp/hushgram/extension/instagram/download/CallRecorder;->callModel(Ljava/lang/Object;)V in instance (IJJJJZZII*)V holding Lcom/facebook/rsys/call/gen/CallModel;->selfParticipant:Lcom/facebook/rsys/call/gen/CallParticipant;
 # The locked and hidden chats are kept for each account apart, so every screen hands itself to
 # ChatAccounts.resumed first in Instagram's base screen's onResume (IgFragment, 0Dij on 450), the
 # one method logging IgFragment.onResume, which reads the account off the screen's own session.
