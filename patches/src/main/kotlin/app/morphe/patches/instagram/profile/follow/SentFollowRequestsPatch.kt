@@ -22,9 +22,11 @@ import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.util.addInstructionsAtControlFlowLabel
+import app.morphe.util.getFreeRegisterProvider
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Field
+import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
@@ -84,6 +86,7 @@ internal class SentRequestTargets(
     val user: String,
     val returns: List<Int>,
     val header: HeaderStatus,
+    val shown: ShownStatus,
     val tree: Field,
     val stringGetter: MethodReference,
     val treeOf: MutableMethod,
@@ -94,6 +97,16 @@ internal class SentRequestTargets(
 
 /** A profile header's status method, where its hook goes, and the session's, the account's and the answer's registers there. */
 internal class HeaderStatus(val method: MutableMethod, val at: Int, val session: Int, val model: Int, val status: Int)
+
+/** The helper's method that shows a button its status, and the hook at each place it does. */
+internal class ShownStatus(val method: MutableMethod, val hooks: List<ShownHook>)
+
+/**
+ * One place a button is shown its status: the call's index, the session's and the account's
+ * parameter registers, the status register the call reads, and the two free registers below v16
+ * the session and the account are copied into for the hook.
+ */
+internal class ShownHook(val at: Int, val session: Int, val model: Int, val status: Int, val sessionCopy: Int, val modelCopy: Int)
 
 private fun publicFlag(flags: Int) = AccessFlags.PUBLIC.isSet(flags)
 private fun staticFlag(flags: Int) = AccessFlags.STATIC.isSet(flags)
@@ -107,7 +120,8 @@ private fun staticFlag(flags: Int) = AccessFlags.STATIC.isSet(flags)
  * account still in their parameter registers there. The account's ID, username and name come from
  * its model's field tree, through the (int) string getter the helper calls right after loading
  * "username".hashCode(). The signed-in account is the session's kept userId field. A profile
- * header's button skips the status read and asks its resolver itself ([findHeaderStatus]).
+ * header's button skips the status read and asks its resolver itself ([findHeaderStatus]), and on
+ * 456 it skips both, so the status is handed over where every button is shown it ([findShownStatus]).
  */
 internal fun BytecodePatchContext.findSentRequests(): SentRequestTargets {
     val base = classDefByOrNull(FOLLOW_BUTTON_BASE) ?: refuseSent("the app has no $FOLLOW_BUTTON_BASE")
@@ -166,6 +180,7 @@ internal fun BytecodePatchContext.findSentRequests(): SentRequestTargets {
     mutable.requireParameterIntact(SENT_PATCH, 0, returns)
     mutable.requireParameterIntact(SENT_PATCH, 1, returns)
     val header = findHeaderStatus(helperType, user, status.returnType, code, returns)
+    val shown = findShownStatus(helperType, user, status.returnType)
 
     val extension = classDefByOrNull(SENT_REQUESTS) ?: refuseSent("the extension has no $SENT_REQUESTS")
     extension.publicStatic(SENT_SEEN) ?: refuseSent("the extension has no public static $SENT_SEEN")
@@ -178,7 +193,54 @@ internal fun BytecodePatchContext.findSentRequests(): SentRequestTargets {
         ?: refuseSent("$SENT_REQUESTS has no static String $OWNER_OF_STUB(Object)")
     // Pictures come through the account bridges, checked here and written with the rest.
     val bridges = accountBridges(SENT_PATCH)
-    return SentRequestTargets(mutable, user, returns, header, tree, getter, treeOf, fieldOf, ownerOf, bridges)
+    return SentRequestTargets(mutable, user, returns, header, shown, tree, getter, treeOf, fieldOf, ownerOf, bridges)
+}
+
+/**
+ * Where a follow button is shown the status it draws: the helper's one instance method taking the
+ * status first and the session and the account once each that hands a status to the button's own
+ * (status)V method, 04Hj.A06 on 456. A profile header calls it through A07 with the status its
+ * profile fetch read, so neither the status read nor [findHeaderStatus] sees that button (#690).
+ * The hook goes right before each of those calls with the status the button is about to show,
+ * after the app has squared it with what the account did since. The session and the account sit
+ * past v15 there, so they're copied into two registers below v16 that nothing reads again before
+ * writing. Nothing there may sit in a try block, where a handler could read what the copies took.
+ */
+private fun BytecodePatchContext.findShownStatus(helperType: String, user: String, statusType: String): ShownStatus {
+    fun Instruction.shows(): Boolean {
+        val call = (this as? ReferenceInstruction)?.reference as? MethodReference ?: return false
+        return opcode == Opcode.INVOKE_INTERFACE && call.returnType == "V" && call.parameterTypes.map(Any::toString) == listOf(statusType)
+    }
+    val methods = mutableClassDefBy(helperType).methods.filter { method ->
+        val types = method.parameterTypes.map(Any::toString)
+        !staticFlag(method.accessFlags) && method.returnType == "V" && types.firstOrNull() == statusType &&
+            types.count { it == SENT_SESSION } == 1 && types.count { it == user } == 1 &&
+            method.implementation?.instructions?.any { it.shows() } == true
+    }
+    val method = methods.singleOrNull()
+        ?: refuseSent("expected one instance (status, session, account) method in $helperType showing a button its status, found ${methods.size}")
+    val where = "$helperType->${method.name}"
+    val implementation = method.implementation!!
+    if (implementation.tryBlocks.isNotEmpty()) refuseSent("$where has a try block, where a handler could read what the hook's copies took")
+    val code = implementation.instructions.toList()
+    val calls = code.indices.filter { code[it].shows() }
+    val types = method.parameterTypes.map(Any::toString)
+    val sessionAt = types.indexOf(SENT_SESSION)
+    val modelAt = types.indexOf(user)
+    method.requireParameterIntact(SENT_PATCH, sessionAt, calls)
+    method.requireParameterIntact(SENT_PATCH, modelAt, calls)
+    val session = method.parameterRegisterNumber(sessionAt)
+    val model = method.parameterRegisterNumber(modelAt)
+    val hooks = calls.map { at ->
+        val call = code[at] as? FiveRegisterInstruction
+        if (call == null || call.registerCount != 2) refuseSent("$where shows a button its status at $at in a form the hook can't read")
+        val copies = runCatching {
+            val free = method.getFreeRegisterProvider(at, 2, call.registerC, call.registerD, session, model)
+            listOf(free.getFreeRegister4Bit(), free.getFreeRegister4Bit())
+        }.getOrElse { refuseSent("$where has no two free registers below v16 where it shows a button its status at $at") }
+        ShownHook(at, session, model, call.registerD, copies[0], copies[1])
+    }
+    return ShownStatus(method, hooks)
 }
 
 /**
@@ -273,7 +335,8 @@ private fun statusAnswerAt(read: List<Instruction>, at: Int, statusType: String)
  * Fills the stubs, writes the picture bridges, then hands the session, the account and the status to
  * the extension at each return of the status read, the return's own label taking the call so a
  * branch to it passes through too, and the same three in the profile header's status method right
- * after its resolver answers. Each stub works in its parameters' registers alone.
+ * after its resolver answers, and once more right before the helper shows a button its status,
+ * through copies of the session and the account. Each stub works in its parameters' registers alone.
  */
 internal fun sentRequests(found: SentRequestTargets) {
     val user = found.user
@@ -320,4 +383,15 @@ internal fun sentRequests(found: SentRequestTargets) {
     }
     val header = found.header
     header.method.addInstructions(header.at, "invoke-static { v${header.session}, v${header.model}, v${header.status} }, $SENT_SEEN")
+    val shown = found.shown
+    shown.hooks.sortedByDescending { it.at }.forEach { hook ->
+        shown.method.addInstructionsAtControlFlowLabel(
+            hook.at,
+            """
+                move-object/from16 v${hook.sessionCopy}, v${hook.session}
+                move-object/from16 v${hook.modelCopy}, v${hook.model}
+                invoke-static { v${hook.sessionCopy}, v${hook.modelCopy}, v${hook.status} }, $SENT_SEEN
+            """,
+        )
+    }
 }

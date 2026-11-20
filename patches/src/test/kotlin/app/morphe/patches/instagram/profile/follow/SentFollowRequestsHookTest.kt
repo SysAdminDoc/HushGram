@@ -29,6 +29,7 @@ import com.android.tools.smali.dexlib2.immutable.ImmutableExceptionHandler
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
 import com.android.tools.smali.dexlib2.immutable.ImmutableTryBlock
+import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertThrows
@@ -40,7 +41,8 @@ import java.io.File
  * Sent follow requests (#690): on every build of the declared version, each object return of the
  * follow button helper's status read hands SentRequests.seen the session, the account and the
  * status, right before it returns, with any branch to that return passing through the call too.
- * The extension's stubs reach the account's field tree, its string fields and the session's
+ * The helper's method that shows every button its status, a profile header's too, hands it over
+ * right before each time it does. The extension's stubs reach the account's field tree, its string fields and the session's
  * account, and the picture bridges are written. A full User is one of the trees an account holds.
  */
 class SentFollowRequestsHookTest {
@@ -108,6 +110,34 @@ class SentFollowRequestsHookTest {
         val context = PatchContexts.of(sliced.classes.values.map { if (it.type == helper.type) changed else it } + extension())
         val refused = assertThrows(PatchException::class.java) { context.findSentRequests() }
         assertTrue(refused.message, refused.message!!.contains("try block"))
+    }
+
+    /** A handler in the method that shows a button its status could read what the hook's copies took, so it stops the patch. */
+    @Test
+    fun aTryBlockWhereAButtonIsShownItsStatusStopsThePatch() {
+        val bundle = Fixtures.files { it.extension == "apks" && it.name.contains("-${Fixtures.VERSION}-") }.first()
+        val sliced = slice(bundle)
+        val name = PatchContexts.of(sliced.classes.values + extension()).findSentRequests().shown.method.toString()
+        val helper = sliced.classes.getValue(sliced.status.definingClass)
+        val shown = helper.methods.single { it.toString() == name }
+        val implementation = shown.implementation!!
+        val covered = ImmutableMethod(
+            shown.definingClass, shown.name, shown.parameters, shown.returnType, shown.accessFlags,
+            shown.annotations, shown.hiddenApiRestrictions,
+            ImmutableMethodImplementation(
+                implementation.registerCount, implementation.instructions,
+                implementation.tryBlocks + ImmutableTryBlock(0, implementation.instructions.first().codeUnits,
+                    listOf(ImmutableExceptionHandler(null, 0))),
+                implementation.debugItems,
+            ),
+        )
+        val changed = ImmutableClassDef(
+            helper.type, helper.accessFlags, helper.superclass, helper.interfaces, helper.sourceFile, helper.annotations,
+            helper.fields, helper.methods.map { if (it == shown) covered else it },
+        )
+        val context = PatchContexts.of(sliced.classes.values.map { if (it.type == helper.type) changed else it } + extension())
+        val refused = assertThrows(PatchException::class.java) { context.findSentRequests() }
+        assertTrue(refused.message, refused.message!!.contains("has a try block"))
     }
 
     private class Slice(val classes: Map<String, ClassDef>, val status: Method)
@@ -228,6 +258,54 @@ class SentFollowRequestsHookTest {
         assertEquals("$label: Instagram's own header code is kept", kinds(headerStock.instructions()),
             kinds(headerCode.filterNot { it.calls(SENT_SEEN) }))
 
+        // Every button is shown its status through the helper, a 456 profile header's too, and the
+        // status goes over right before each of those calls, with the session and the account
+        // copied below v16 (#690).
+        val statusType = found.status.returnType
+        fun Instruction.shows() = opcode == Opcode.INVOKE_INTERFACE &&
+            ((this as ReferenceInstruction).reference as MethodReference).let { call ->
+                call.returnType == "V" && call.parameterTypes.map(Any::toString) == listOf(statusType)
+            }
+        val shown = found.shown.method
+        val shownStock = sliced.classes.getValue(shown.definingClass).methods.single { it.toString() == shown.toString() }
+        assertFalse("$label: ${shown.name} is an instance method", AccessFlags.STATIC.isSet(shownStock.accessFlags))
+        val shownTypes = shownStock.parameterTypes.map(Any::toString)
+        val shownLocals = shownStock.implementation!!.registerCount - 1 - shownTypes.sumOf(::width)
+        fun shownRegister(type: String) = shownLocals + 1 + shownTypes.take(shownTypes.indexOf(type)).sumOf(::width)
+        val shows = shownStock.instructions().count { it.shows() }
+        assertTrue("$label: ${shown.name} shows a button its status", shows > 0)
+        val shownCode = shown.instructions()
+        val hooked = shownCode.indices.filter { shownCode[it].calls(SENT_SEEN) }
+        assertEquals("$label: once before each status ${shown.name} shows", shows, hooked.size)
+        val added = HashSet<Int>()
+        for (at in hooked) {
+            val call = shownCode[at] as FiveRegisterInstruction
+            val session = shownCode[at - 2] as TwoRegisterInstruction
+            val model = shownCode[at - 1] as TwoRegisterInstruction
+            val next = shownCode[at + 1]
+            assertEquals(label, Opcode.MOVE_OBJECT_FROM16, shownCode[at - 2].opcode)
+            assertEquals(label, Opcode.MOVE_OBJECT_FROM16, shownCode[at - 1].opcode)
+            assertEquals("$label: the session's copy", shownRegister(USER_SESSION), session.registerB)
+            assertEquals("$label: the account's copy", shownRegister(found.user), model.registerB)
+            assertEquals(label, 3, call.registerCount)
+            assertEquals(label, session.registerA, call.registerC)
+            assertEquals(label, model.registerA, call.registerD)
+            assertTrue("$label: the copies sit below v16", call.registerC < 16 && call.registerD < 16 && call.registerC != call.registerD)
+            assertTrue("$label: right before the button is shown its status", next.shows())
+            val button = next as FiveRegisterInstruction
+            assertEquals("$label: the status the button is shown", button.registerD, call.registerE)
+            assertFalse("$label: the copies leave the button and its status alone",
+                setOf(button.registerC, button.registerD).any { it == call.registerC || it == call.registerD })
+            added += listOf(at - 2, at - 1, at)
+        }
+        // The call's own label moves onto the first copy, so a branch to the button runs the hook too.
+        val skipped = hooked.flatMap { listOf(it - 1, it, it + 1) }.toSet()
+        for (branch in shownCode.filterIsInstance<BuilderOffsetInstruction>()) {
+            assertFalse("$label: a branch skips the hook onto the button", branch.target.location.index in skipped)
+        }
+        assertEquals("$label: Instagram's own ${shown.name} code is kept", kinds(shownStock.instructions()),
+            kinds(shownCode.filterIndexed { index, _ -> index !in added }))
+
         val tree = "${found.tree.definingClass}->${found.tree.name}:${found.tree.type}"
         val treeOf = context.stub(TREE_OF_STUB)
         assertEquals(label, listOf(Opcode.CHECK_CAST, Opcode.IGET_OBJECT, Opcode.RETURN_OBJECT), treeOf.take(3).map { it.opcode })
@@ -243,7 +321,7 @@ class SentFollowRequestsHookTest {
 
         // The pictures and the Follow removal need the tree to be a full User, so User has to be one of its kinds.
         assertTrue("$label: a User can be the account's tree", reaches(bundle, USER, found.tree.type))
-        println("$label: ${found.status.definingClass}->${found.status.name} hands over $returns statuses, ${header.name} the header's; account ${found.user}, " +
+        println("$label: ${found.status.definingClass}->${found.status.name} hands over $returns statuses, ${header.name} the header's, ${shown.name} the $shows shown; account ${found.user}, " +
             "tree $tree, getter ${found.stringGetter.definingClass}->${found.stringGetter.name}")
     }
 
