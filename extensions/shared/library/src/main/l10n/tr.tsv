@@ -1888,9 +1888,9 @@ Top bar tint in chats	Sohbetlerde üst çubuk renk tonu
 Message bar tint	Mesaj çubuğu renk tonu
 # context: Reels switch Hide reels with few views, its summary, the Minimum views row, its dialog message and the row's summary, then the Minimum likes row, its dialog message, its summary and its summary at 0; %1$s is a number with thousands separators (#444)
 Hide reels with few views	Az izlenen reelleri gizle
-Leaves out reels in the Reels tab with fewer views or likes than the numbers below. Reels from accounts you follow, reels sent to you and reels with no count still play.	Reels sekmesinde izlenmesi veya beğenisi aşağıdaki sayılardan az olan reelleri çıkarır. Takip ettiğin hesapların reelleri, sana gönderilen reeller ve sayısı olmayan reeller oynamaya devam eder.
+Leaves out reels in the Reels tab outside the numbers below. Reels from accounts you follow, reels sent to you and reels that don't show a number still play.	Reels sekmesinde aşağıdaki sayıların dışında kalan reelleri çıkarır. Takip ettiğin hesapların reelleri, sana gönderilen reeller ve sayı göstermeyen reeller oynamaya devam eder.
 Minimum views	En az izlenme
-Reels with fewer views than this are left out. Type a whole number.	Bundan az izlenen reeller çıkarılır. Tam sayı yaz.
+Reels with fewer views than this are left out. Type a whole number, or 0 to not look at views.	Bundan az izlenen reeller çıkarılır. Tam sayı yaz ya da izlenmelere bakılmasın diye 0 yaz.
 Fewer than %1$s views	%1$s izlenmeden az
 Minimum likes	En az beğeni
 Reels with fewer likes than this are left out. Type a whole number, or 0 to not look at likes.	Bundan az beğenisi olan reeller çıkarılır. Tam sayı yaz ya da beğenilere bakılmasın diye 0 yaz.
@@ -2667,3 +2667,42 @@ Auto scroll didn't change	Otomatik kaydırma değişmedi
 The cards that Instagram puts between reels to get you onto Threads.	Instagram'ın seni Threads'e çekmek için reeller arasına koyduğu kartlar.
 Expand captions on reels	Reel açıklamalarını genişlet
 Reels show their whole caption, with no "more" to tap. A long caption covers more of the video.	Reel'ler açıklamalarının tamamını gösterir, dokunulacak bir "devamı" kalmaz. Uzun bir açıklama videonun daha fazlasını kapatır.
+# context: summary of the Minimum views row under HushGram settings > Reels > Hide reels with few views when it's set to 0 (#780)
+Views aren't looked at	İzlenmelere bakılmıyor
+# context: next row under Hide reels with few views: its title, its number dialog's message, and its summary for 0 and for a number (#780)
+Maximum views	En çok izlenme
+Reels with more views than this are left out. Type a whole number, or 0 for no maximum.	Bundan çok izlenen reeller çıkarılır. Tam sayı yaz ya da üst sınır olmasın diye 0 yaz.
+No maximum	Üst sınır yok
+More than %1$s views	%1$s izlenmeden fazla
+# context: next row: how many likes a reel needs for each 1,000 views; Not looked at is its summary for 0 (#780)
+Likes per 1,000 views	1.000 izlenme başına beğeni
+Reels with fewer likes than this for every 1,000 views are left out. Only reels that show their views are checked. Type a whole number, or 0 to not look at it.	Her 1.000 izlenmede bundan az beğenisi olan reeller çıkarılır. Yalnızca izlenmesini gösteren reellere bakılır. Tam sayı yaz ya da buna bakılmasın diye 0 yaz.
+Not looked at	Bakılmıyor
+Fewer than %1$s likes per 1,000 views	1.000 izlenme başına %1$s beğeniden az
+# context: next row, the same for comments (#780)
+Comments per 1,000 views	1.000 izlenme başına yorum
+Reels with fewer comments than this for every 1,000 views are left out. Only reels that show their views are checked. Type a whole number, or 0 to not look at it.	Her 1.000 izlenmede bundan az yorumu olan reeller çıkarılır. Yalnızca izlenmesini gösteren reellere bakılır. Tam sayı yaz ya da buna bakılmasın diye 0 yaz.
+Fewer than %1$s comments per 1,000 views	1.000 izlenme başına %1$s yorumdan az
+# context: next row: the shortest video length in seconds; its summary for 0, then for one second and for more (#780)
+Shortest video	En kısa video
+Reels shorter than this many seconds are left out. Type a whole number, or 0 for no shortest.	Bu kadar saniyeden kısa reeller çıkarılır. Tam sayı yaz ya da alt sınır olmasın diye 0 yaz.
+No shortest	Alt sınır yok
+Shorter than %1$s second	%1$s saniyeden kısa
+Shorter than %1$s seconds	%1$s saniyeden kısa
+# context: next row: the longest video length in seconds; its summary for 0, then for one second and for more (#780)
+Longest video	En uzun video
+Reels longer than this many seconds are left out. Type a whole number, or 0 for no longest.	Bu kadar saniyeden uzun reeller çıkarılır. Tam sayı yaz ya da süre sınırı olmasın diye 0 yaz.
+No longest	Süre sınırı yok
+Longer than %1$s second	%1$s saniyeden uzun
+Longer than %1$s seconds	%1$s saniyeden uzun
+# context: next row: how many days old a reel can be; its summary for 0, then for one day and for more (#780)
+Oldest post	En eski gönderi
+Reels posted more than this many days ago are left out. Type a whole number, or 0 for any age.	Bu kadar günden daha önce paylaşılan reeller çıkarılır. Tam sayı yaz ya da tarih sınırı olmasın diye 0 yaz.
+Any age	Tarih sınırı yok
+Posted more than %1$s day ago	%1$s günden daha önce paylaşıldı
+Posted more than %1$s days ago	%1$s günden daha önce paylaşıldı
+# context: switch under those rows that puts each page of reels in the order they were posted (#780)
+Newest first	En yeniler önce
+Puts each page of reels in the order they were posted, newest on top.	Her reel sayfasını paylaşıldıkları zamana göre, en yenileri üstte olacak şekilde sıralar.
+# context: summary of the Also on Home switch under those rows; the posts it leaves out are Home's suggested posts (#780)
+Leaves out suggested posts on Home outside the same numbers too. Pull down on Home to refresh after changing it.	Ana Sayfa'da aynı sayıların dışında kalan önerilen gönderileri de gizler. Değiştirdikten sonra yenilemek için Ana Sayfa'yı aşağı çek.

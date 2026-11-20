@@ -942,7 +942,11 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                             || Settings.HIDE_CAPTION_WORD_HOME.key.equals(key)
                             || Settings.REELS_KEPT_LANGUAGES.key.equals(key) || Settings.HIDE_OTHER_LANGUAGE_HOME.key.equals(key));
                     belongs |= family == PatchFamily.LOW_VIEW_REELS
-                            && (Settings.MIN_REEL_VIEWS.key.equals(key) || Settings.MIN_REEL_LIKES.key.equals(key));
+                            && (Settings.MIN_REEL_VIEWS.key.equals(key) || Settings.MIN_REEL_LIKES.key.equals(key)
+                            || Settings.MAX_REEL_VIEWS.key.equals(key) || Settings.MIN_REEL_LIKES_PER_1000.key.equals(key)
+                            || Settings.MIN_REEL_COMMENTS_PER_1000.key.equals(key) || Settings.MIN_REEL_SECONDS.key.equals(key)
+                            || Settings.MAX_REEL_SECONDS.key.equals(key) || Settings.MAX_REEL_AGE_DAYS.key.equals(key)
+                            || Settings.REELS_NEWEST_FIRST.key.equals(key) || Settings.HIDE_LOW_VIEW_HOME.key.equals(key));
                     belongs |= family == PatchFamily.STORY_UPLOAD_QUALITY && (Settings.UPLOAD_QUALITY_APPLIES_TO.key.equals(key)
                             || Settings.UPLOAD_VIDEO_BITRATE.key.equals(key) || Settings.UPLOAD_VIDEO_RESOLUTION.key.equals(key)
                             || Settings.UPLOAD_FRAME_RATE.key.equals(key) || Settings.UPLOAD_PHOTO_QUALITY.key.equals(key)
@@ -8596,16 +8600,54 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         }
     }
 
-    /** The view count Hide reels with few views keeps a reel at, typed as a number (#444). */
+    /** The view count Hide reels with few views keeps a reel at, typed as a number, 0 leaving views alone (#444, #780). */
     static MinCountRow minViewsRow(Context context) {
         return minCountRow(context, Settings.MIN_REEL_VIEWS, L10n.t("Minimum views"),
-                L10n.t("Reels with fewer views than this are left out. Type a whole number."));
+                L10n.t("Reels with fewer views than this are left out. Type a whole number, or 0 to not look at views."));
     }
 
     /** The like count it keeps a reel at, typed as a number, 0 leaving likes alone (#444). */
     static MinCountRow minLikesRow(Context context) {
         return minCountRow(context, Settings.MIN_REEL_LIKES, L10n.t("Minimum likes"),
                 L10n.t("Reels with fewer likes than this are left out. Type a whole number, or 0 to not look at likes."));
+    }
+
+    /** The most views a reel can have and stay, 0 for no maximum (#780). */
+    static MinCountRow maxViewsRow(Context context) {
+        return minCountRow(context, Settings.MAX_REEL_VIEWS, L10n.t("Maximum views"),
+                L10n.t("Reels with more views than this are left out. Type a whole number, or 0 for no maximum."));
+    }
+
+    /** The likes a reel needs for each 1,000 views, 0 leaving it alone (#780). */
+    static MinCountRow likesPerThousandRow(Context context) {
+        return minCountRow(context, Settings.MIN_REEL_LIKES_PER_1000, L10n.t("Likes per 1,000 views"),
+                L10n.t("Reels with fewer likes than this for every 1,000 views are left out. Only reels that show "
+                        + "their views are checked. Type a whole number, or 0 to not look at it."));
+    }
+
+    /** The comments a reel needs for each 1,000 views, 0 leaving it alone (#780). */
+    static MinCountRow commentsPerThousandRow(Context context) {
+        return minCountRow(context, Settings.MIN_REEL_COMMENTS_PER_1000, L10n.t("Comments per 1,000 views"),
+                L10n.t("Reels with fewer comments than this for every 1,000 views are left out. Only reels that show "
+                        + "their views are checked. Type a whole number, or 0 to not look at it."));
+    }
+
+    /** The shortest video a reel can be, in seconds, 0 for no shortest (#780). */
+    static MinCountRow shortestReelRow(Context context) {
+        return minCountRow(context, Settings.MIN_REEL_SECONDS, L10n.t("Shortest video"),
+                L10n.t("Reels shorter than this many seconds are left out. Type a whole number, or 0 for no shortest."));
+    }
+
+    /** The longest video a reel can be, in seconds, 0 for no longest (#780). */
+    static MinCountRow longestReelRow(Context context) {
+        return minCountRow(context, Settings.MAX_REEL_SECONDS, L10n.t("Longest video"),
+                L10n.t("Reels longer than this many seconds are left out. Type a whole number, or 0 for no longest."));
+    }
+
+    /** The most days since a reel went up, 0 for any age (#780). */
+    static MinCountRow oldestReelRow(Context context) {
+        return minCountRow(context, Settings.MAX_REEL_AGE_DAYS, L10n.t("Oldest post"),
+                L10n.t("Reels posted more than this many days ago are left out. Type a whole number, or 0 for any age."));
     }
 
     private static MinCountRow minCountRow(Context context, IntegerSetting setting, String title, String message) {
@@ -8624,17 +8666,40 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         return row;
     }
 
-    /** What a minimum row says under its title, the count written in Instagram's language. */
+    /** What a count row says under its title, the count written in Instagram's language, and what 0 means. */
     static String minCountSummary(IntegerSetting setting, String stored) {
         int count = MinCountRow.valueOf(setting, stored);
         String number = java.text.NumberFormat.getIntegerInstance(L10n.locale()).format(count);
-        if (setting != Settings.MIN_REEL_LIKES) return L10n.f("Fewer than %1$s views", number);
-        return count == 0 ? L10n.t("Likes aren't looked at") : L10n.f("Fewer than %1$s likes", number);
+        if (setting == Settings.MIN_REEL_LIKES) {
+            return count == 0 ? L10n.t("Likes aren't looked at") : L10n.f("Fewer than %1$s likes", number);
+        }
+        if (setting == Settings.MAX_REEL_VIEWS) {
+            return count == 0 ? L10n.t("No maximum") : L10n.f("More than %1$s views", number);
+        }
+        if (setting == Settings.MIN_REEL_LIKES_PER_1000) {
+            return count == 0 ? L10n.t("Not looked at") : L10n.f("Fewer than %1$s likes per 1,000 views", number);
+        }
+        if (setting == Settings.MIN_REEL_COMMENTS_PER_1000) {
+            return count == 0 ? L10n.t("Not looked at") : L10n.f("Fewer than %1$s comments per 1,000 views", number);
+        }
+        if (setting == Settings.MIN_REEL_SECONDS) {
+            return count == 0 ? L10n.t("No shortest")
+                    : L10n.quantity(count, "Shorter than %1$s second", "Shorter than %1$s seconds", number);
+        }
+        if (setting == Settings.MAX_REEL_SECONDS) {
+            return count == 0 ? L10n.t("No longest")
+                    : L10n.quantity(count, "Longer than %1$s second", "Longer than %1$s seconds", number);
+        }
+        if (setting == Settings.MAX_REEL_AGE_DAYS) {
+            return count == 0 ? L10n.t("Any age")
+                    : L10n.quantity(count, "Posted more than %1$s day ago", "Posted more than %1$s days ago", number);
+        }
+        return count == 0 ? L10n.t("Views aren't looked at") : L10n.f("Fewer than %1$s views", number);
     }
 
     /**
-     * A minimum count row (views or likes), a number typed in a dialog. Its text is always a whole
-     * number inside its setting's range, and its summary follows it, whoever sets it.
+     * A count row (views, likes, length or age), a number typed in a dialog. Its text is always a
+     * whole number inside its setting's range, and its summary follows it, whoever sets it.
      */
     static final class MinCountRow extends EditTextPreference {
         final IntegerSetting setting;

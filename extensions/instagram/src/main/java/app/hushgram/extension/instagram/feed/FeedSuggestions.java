@@ -21,6 +21,7 @@ import app.hushgram.extension.instagram.download.InstagramMedia;
 import app.hushgram.extension.instagram.reels.CaptionLanguage;
 import app.hushgram.extension.instagram.reels.CaptionWordReels;
 import app.hushgram.extension.instagram.reels.FeedReels;
+import app.hushgram.extension.instagram.reels.LowViewReels;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.PatchFamily;
 import app.hushgram.extension.instagram.settings.Settings;
@@ -139,6 +140,9 @@ public final class FeedSuggestions {
 
     /** The report's count of posts taken out of Home for a caption in another language. */
     static final String OTHER_LANGUAGE_REMOVED = "other language posts removed";
+
+    /** The report's count of posts Also on Home of Hide reels with few views took out of Home (#780). */
+    static final String NUMBERS_REMOVED = "posts removed for their numbers";
 
     /** The report's count of Suggested for you titles {@link #sectionTitle} left off a header with nothing under it. */
     static final String SECTION_TITLE_DROPPED = "suggested section titles left off with nothing under them";
@@ -333,7 +337,7 @@ public final class FeedSuggestions {
         return Settings.HIDE_FEED_VIDEOS.get() || Settings.HIDE_FEED_PHOTOS.get()
                 || Settings.HIDE_FEED_CAROUSELS.get() || Settings.HIDE_FEED_LIKED.get()
                 || Settings.HIDE_FEED_PROFESSIONAL.get() || !HiddenAccounts.hidden().isEmpty() || !CaptionWordReels.homeWordsWhenOn().isEmpty()
-                || CaptionLanguage.homeRuleWhenOn() != null;
+                || CaptionLanguage.homeRuleWhenOn() != null || LowViewReels.homeOn();
     }
 
     /** Whether any switch {@link #filter} takes items out for is on. */
@@ -648,6 +652,12 @@ public final class FeedSuggestions {
     static Object homeItem(Object item, ToIntFunction<Object> typeOf, ToIntFunction<Object> likedOf,
             Function<Object, String> authorOf, Function<Object, String> captionOf,
             ToIntFunction<Object> professionalOf) {
+        return homeItem(item, typeOf, likedOf, authorOf, captionOf, professionalOf, FeedSuggestions::numbersReason);
+    }
+
+    static Object homeItem(Object item, ToIntFunction<Object> typeOf, ToIntFunction<Object> likedOf,
+            Function<Object, String> authorOf, Function<Object, String> captionOf,
+            ToIntFunction<Object> professionalOf, Function<Object, String> numbersOf) {
         boolean lost = Boolean.TRUE.equals(JUST_TOOK_OUT.get());
         JUST_TOOK_OUT.remove();
         int[] page = PAGE.get();
@@ -669,7 +679,8 @@ public final class FeedSuggestions {
         Object kept = byType(item, typeOf) == null ? null
                 : byLiked(item, likedOf) == null ? null
                 : byAuthor(item, authorOf) == null ? null
-                : byProfessional(item, professionalOf) == null ? null : byCaption(item, captionOf);
+                : byProfessional(item, professionalOf) == null ? null
+                : byCaption(item, captionOf) == null ? null : byNumbers(item, numbersOf);
         if (kept == null && page != null) page[1]++;
         if (kept != null && page != null && "MEDIA".equals(kind)) {
             try {
@@ -709,6 +720,32 @@ public final class FeedSuggestions {
             HookStatus.threw(FamilyNames.FEED_SUGGESTIONS, CAPTION_WORD, failure);
             return item;
         }
+    }
+
+    /**
+     * [item], or null while Also on Home of Hide reels with few views is on and its post is outside
+     * one of that switch's numbers (#780). A post from an account you follow, one that doesn't
+     * carry what a number looks at, or an item with no post, stays.
+     */
+    private static Object byNumbers(Object item, Function<Object, String> numbersOf) {
+        try {
+            String why = numbersOf.apply(item);
+            if (why == null) return item;
+            FeedFilterCounters.removed(TYPES_ROUTE, 1, why);
+            HookStatus.counted(FamilyNames.FEED_SUGGESTIONS, NUMBERS_REMOVED);
+            typesTookOut = true;
+            Logger.printDebug(() -> "Feed suggestions: took a post out of Home, " + why);
+            return null;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.FEED_SUGGESTIONS, "post numbers", failure);
+            return item;
+        }
+    }
+
+    /** Which number of Hide reels with few views the post in [item] is outside, or null. */
+    static String numbersReason(Object item) {
+        if (!LowViewReels.homeOn()) return null;
+        return LowViewReels.homeReason(homePost(item));
     }
 
     /**

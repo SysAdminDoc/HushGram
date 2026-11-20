@@ -1891,9 +1891,9 @@ Top bar tint in chats	聊天室頂端列染色
 Message bar tint	訊息列染色
 # context: Reels switch Hide reels with few views, its summary, the Minimum views row, its dialog message and the row's summary, then the Minimum likes row, its dialog message, its summary and its summary at 0; %1$s is a number with thousands separators (#444)
 Hide reels with few views	隱藏觀看次數少的 Reels
-Leaves out reels in the Reels tab with fewer views or likes than the numbers below. Reels from accounts you follow, reels sent to you and reels with no count still play.	在 Reels 分頁中略過觀看次數或按讚數低於下方數字的 Reels。你追蹤的帳號、別人傳給你的 Reels，以及沒有數字的 Reels 仍會播放。
+Leaves out reels in the Reels tab outside the numbers below. Reels from accounts you follow, reels sent to you and reels that don't show a number still play.	在 Reels 分頁中略過超出下方數字範圍的 Reels。你追蹤的帳號、別人傳給你的 Reels，以及沒有顯示數字的 Reels 仍會播放。
 Minimum views	最低觀看次數
-Reels with fewer views than this are left out. Type a whole number.	觀看次數低於此數字的 Reels 會被略過。請輸入整數。
+Reels with fewer views than this are left out. Type a whole number, or 0 to not look at views.	觀看次數低於此數字的 Reels 會被略過。請輸入整數，或輸入 0 不看觀看次數。
 Fewer than %1$s views	觀看次數低於 %1$s
 Minimum likes	最低按讚數
 Reels with fewer likes than this are left out. Type a whole number, or 0 to not look at likes.	按讚數低於此數字的 Reels 會被略過。請輸入整數，或輸入 0 不看按讚數。
@@ -2670,3 +2670,42 @@ Auto scroll didn't change	自動捲動未變更
 The cards that Instagram puts between reels to get you onto Threads.	隱藏 Instagram 在 Reels 之間放入、引導你前往 Threads 的卡片。
 Expand captions on reels	展開 Reels 的說明文字
 Reels show their whole caption, with no "more" to tap. A long caption covers more of the video.	Reels 會顯示完整說明文字，不必點「更多」。說明文字很長時會蓋住更多影片畫面。
+# context: summary of the Minimum views row under HushGram settings > Reels > Hide reels with few views when it's set to 0 (#780)
+Views aren't looked at	不看觀看次數
+# context: next row under Hide reels with few views: its title, its number dialog's message, and its summary for 0 and for a number (#780)
+Maximum views	最高觀看次數
+Reels with more views than this are left out. Type a whole number, or 0 for no maximum.	觀看次數高於此數字的 Reels 會被略過。請輸入整數，或輸入 0 不設上限。
+No maximum	不設上限
+More than %1$s views	觀看次數高於 %1$s
+# context: next row: how many likes a reel needs for each 1,000 views; Not looked at is its summary for 0 (#780)
+Likes per 1,000 views	每 1,000 次觀看的按讚數
+Reels with fewer likes than this for every 1,000 views are left out. Only reels that show their views are checked. Type a whole number, or 0 to not look at it.	每 1,000 次觀看的按讚數低於此數字的 Reels 會被略過。只會檢查有顯示觀看次數的 Reels。請輸入整數，或輸入 0 不看這項。
+Not looked at	不看這項
+Fewer than %1$s likes per 1,000 views	每 1,000 次觀看的按讚數低於 %1$s
+# context: next row, the same for comments (#780)
+Comments per 1,000 views	每 1,000 次觀看的留言數
+Reels with fewer comments than this for every 1,000 views are left out. Only reels that show their views are checked. Type a whole number, or 0 to not look at it.	每 1,000 次觀看的留言數低於此數字的 Reels 會被略過。只會檢查有顯示觀看次數的 Reels。請輸入整數，或輸入 0 不看這項。
+Fewer than %1$s comments per 1,000 views	每 1,000 次觀看的留言數低於 %1$s
+# context: next row: the shortest video length in seconds; its summary for 0, then for one second and for more (#780)
+Shortest video	最短影片
+Reels shorter than this many seconds are left out. Type a whole number, or 0 for no shortest.	短於此秒數的 Reels 會被略過。請輸入整數，或輸入 0 不設下限。
+No shortest	不設下限
+Shorter than %1$s second	短於 %1$s 秒
+Shorter than %1$s seconds	短於 %1$s 秒
+# context: next row: the longest video length in seconds; its summary for 0, then for one second and for more (#780)
+Longest video	最長影片
+Reels longer than this many seconds are left out. Type a whole number, or 0 for no longest.	長於此秒數的 Reels 會被略過。請輸入整數，或輸入 0 不設長度上限。
+No longest	不設長度上限
+Longer than %1$s second	長於 %1$s 秒
+Longer than %1$s seconds	長於 %1$s 秒
+# context: next row: how many days old a reel can be; its summary for 0, then for one day and for more (#780)
+Oldest post	最舊貼文
+Reels posted more than this many days ago are left out. Type a whole number, or 0 for any age.	發佈超過此天數的 Reels 會被略過。請輸入整數，或輸入 0 不限時間。
+Any age	不限時間
+Posted more than %1$s day ago	發佈超過 %1$s 天
+Posted more than %1$s days ago	發佈超過 %1$s 天
+# context: switch under those rows that puts each page of reels in the order they were posted (#780)
+Newest first	最新的優先
+Puts each page of reels in the order they were posted, newest on top.	將每一頁 Reels 依發佈時間排序，最新的在最上面。
+# context: summary of the Also on Home switch under those rows; the posts it leaves out are Home's suggested posts (#780)
+Leaves out suggested posts on Home outside the same numbers too. Pull down on Home to refresh after changing it.	也略過首頁中超出相同數字範圍的推薦貼文。變更後請下拉重新整理首頁。

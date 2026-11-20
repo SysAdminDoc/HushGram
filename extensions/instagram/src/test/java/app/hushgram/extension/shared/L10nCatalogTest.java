@@ -281,7 +281,7 @@ public class L10nCatalogTest {
     @Test
     public void pluralRowsHaveToBelongToAnActualOtherForm() throws IOException {
         Set<String> others = quantityOthersInCode();
-        assertEquals("the source quantity scan must find each call", 17, others.size());
+        assertEquals("the source quantity scan must find each call", 20, others.size());
         assertTrue("notification counts have a quantity form", others.contains("%d notifications"));
         assertTrue("hidden notification kinds have a quantity form",
                 others.contains("%1$d kinds of notification are hidden."));

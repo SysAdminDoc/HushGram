@@ -16,6 +16,8 @@ import app.morphe.patches.instagram.misc.extension.localRegisterCount
 import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
 import app.morphe.patches.instagram.reels.cleanup.FRIEND_LANE_PICKS
 import app.morphe.patches.instagram.reels.cleanup.FRIEND_PICKS_ADDED
+import app.morphe.patches.instagram.reels.lowviews.LOW_VIEW_ADDED_FILTER
+import app.morphe.patches.instagram.reels.lowviews.LOW_VIEW_REELS
 import app.morphe.patches.instagram.reels.suggested.TO_CLIPS_ITEM
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
@@ -372,6 +374,37 @@ class HideLiveReelsHookTest {
         val bare = PatchContexts.of(dataSourceClasses(extension = false))
         val failure = assertThrows(PatchException::class.java) { bare.findReelsItemInserts("Clean up Reels", FRIEND_LANE_PICKS) }
         assertEquals("Clean up Reels: the extension has no static added(List, String, int)List", failure.message)
+    }
+
+    /**
+     * Hide reels with few views hooks the same add and insert too (#780), since a page where every reel
+     * goes is kept whole at the network join. The last patch's hook lands first, each reads the list from
+     * the parameter, and a build whose extension lacks its filter is refused under its own name.
+     */
+    @Test
+    fun theFewViewsFilterHooksTheSameAddAndInsertAheadOfTheOthers() {
+        val context = PatchContexts.of(
+            dataSourceClasses() + ExtensionDex.classDef(FRIEND_LANE_PICKS) + ExtensionDex.classDef(LOW_VIEW_REELS),
+        )
+        context.filterReelsItemInserts(context.findReelsItemInserts())
+        context.filterReelsItemInserts(context.findReelsItemInserts("Clean up Reels", FRIEND_LANE_PICKS), FRIEND_PICKS_ADDED)
+        val fewViews = context.findReelsItemInserts("Hide reels with few views", LOW_VIEW_REELS)
+        context.filterReelsItemInserts(fewViews, LOW_VIEW_ADDED_FILTER)
+
+        assertEquals(listOf("add($listType)V" to 0, "insert(I$listType)Z" to 1), fewViews.inserts)
+        val patched = context.mutableClassDefBy(dataSource).methods
+        for ((descriptor, _) in fewViews.inserts) {
+            val code = patched.single { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" == descriptor }.code()
+            assertEquals(
+                "$descriptor: the few views filter first, then the friends, then the lives",
+                listOf(LOW_VIEW_ADDED_FILTER, FRIEND_PICKS_ADDED, LIVE_ADDED_FILTER),
+                code.take(24).filter { it.opcode == Opcode.INVOKE_STATIC }.map { it.referenceText() },
+            )
+        }
+
+        val bare = PatchContexts.of(dataSourceClasses(extension = false))
+        val failure = assertThrows(PatchException::class.java) { bare.findReelsItemInserts("Hide reels with few views", LOW_VIEW_REELS) }
+        assertEquals("Hide reels with few views: the extension has no static added(List, String, int)List", failure.message)
     }
 
     /** A data source the patch can't read fails at patch time, saying what it found, before anything is written. */

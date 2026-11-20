@@ -1803,9 +1803,9 @@ Top bar tint in chats	Độ đậm màu thanh trên cùng trong cuộc trò chuy
 Message bar tint	Độ đậm màu thanh tin nhắn
 # context: Reels switch Hide reels with few views, its summary, the Minimum views row, its dialog message and the row's summary, then the Minimum likes row, its dialog message, its summary and its summary at 0; %1$s is a number with thousands separators (#444)
 Hide reels with few views	Ẩn reel có ít lượt xem
-Leaves out reels in the Reels tab with fewer views or likes than the numbers below. Reels from accounts you follow, reels sent to you and reels with no count still play.	Bỏ qua các reel trong tab Reels có lượt xem hoặc lượt thích ít hơn các con số bên dưới. Reel của tài khoản bạn theo dõi, reel được gửi cho bạn và reel không có con số vẫn phát bình thường.
+Leaves out reels in the Reels tab outside the numbers below. Reels from accounts you follow, reels sent to you and reels that don't show a number still play.	Bỏ qua các reel trong tab Reels nằm ngoài các con số bên dưới. Reel của tài khoản bạn theo dõi, reel được gửi cho bạn và reel không hiện con số vẫn phát bình thường.
 Minimum views	Số lượt xem tối thiểu
-Reels with fewer views than this are left out. Type a whole number.	Reel có ít lượt xem hơn số này sẽ bị bỏ qua. Nhập một số nguyên.
+Reels with fewer views than this are left out. Type a whole number, or 0 to not look at views.	Reel có ít lượt xem hơn số này sẽ bị bỏ qua. Nhập một số nguyên, hoặc 0 để không xét lượt xem.
 Fewer than %1$s views	Dưới %1$s lượt xem
 Minimum likes	Số lượt thích tối thiểu
 Reels with fewer likes than this are left out. Type a whole number, or 0 to not look at likes.	Reel có ít lượt thích hơn số này sẽ bị bỏ qua. Nhập một số nguyên, hoặc 0 để không xét lượt thích.
@@ -2582,3 +2582,42 @@ Auto scroll didn't change	Không đổi được tự động cuộn
 The cards that Instagram puts between reels to get you onto Threads.	Các thẻ Instagram chèn giữa các reel để kéo bạn sang Threads.
 Expand captions on reels	Mở rộng chú thích trên reel
 Reels show their whole caption, with no "more" to tap. A long caption covers more of the video.	Reel hiện toàn bộ chú thích, không cần chạm "xem thêm". Chú thích dài sẽ che nhiều video hơn.
+# context: summary of the Minimum views row under HushGram settings > Reels > Hide reels with few views when it's set to 0 (#780)
+Views aren't looked at	Không xét lượt xem
+# context: next row under Hide reels with few views: its title, its number dialog's message, and its summary for 0 and for a number (#780)
+Maximum views	Số lượt xem tối đa
+Reels with more views than this are left out. Type a whole number, or 0 for no maximum.	Reel có nhiều lượt xem hơn số này sẽ bị bỏ qua. Nhập một số nguyên, hoặc 0 để không đặt mức tối đa.
+No maximum	Không có mức tối đa
+More than %1$s views	Trên %1$s lượt xem
+# context: next row: how many likes a reel needs for each 1,000 views; Not looked at is its summary for 0 (#780)
+Likes per 1,000 views	Lượt thích trên 1.000 lượt xem
+Reels with fewer likes than this for every 1,000 views are left out. Only reels that show their views are checked. Type a whole number, or 0 to not look at it.	Reel có ít lượt thích hơn số này cho mỗi 1.000 lượt xem sẽ bị bỏ qua. Chỉ kiểm tra những reel hiện lượt xem. Nhập một số nguyên, hoặc 0 để không xét.
+Not looked at	Không xét
+Fewer than %1$s likes per 1,000 views	Dưới %1$s lượt thích trên 1.000 lượt xem
+# context: next row, the same for comments (#780)
+Comments per 1,000 views	Bình luận trên 1.000 lượt xem
+Reels with fewer comments than this for every 1,000 views are left out. Only reels that show their views are checked. Type a whole number, or 0 to not look at it.	Reel có ít bình luận hơn số này cho mỗi 1.000 lượt xem sẽ bị bỏ qua. Chỉ kiểm tra những reel hiện lượt xem. Nhập một số nguyên, hoặc 0 để không xét.
+Fewer than %1$s comments per 1,000 views	Dưới %1$s bình luận trên 1.000 lượt xem
+# context: next row: the shortest video length in seconds; its summary for 0, then for one second and for more (#780)
+Shortest video	Video ngắn nhất
+Reels shorter than this many seconds are left out. Type a whole number, or 0 for no shortest.	Reel ngắn hơn số giây này sẽ bị bỏ qua. Nhập một số nguyên, hoặc 0 để không đặt độ dài tối thiểu.
+No shortest	Không có độ dài tối thiểu
+Shorter than %1$s second	Ngắn hơn %1$s giây
+Shorter than %1$s seconds	Ngắn hơn %1$s giây
+# context: next row: the longest video length in seconds; its summary for 0, then for one second and for more (#780)
+Longest video	Video dài nhất
+Reels longer than this many seconds are left out. Type a whole number, or 0 for no longest.	Reel dài hơn số giây này sẽ bị bỏ qua. Nhập một số nguyên, hoặc 0 để không đặt độ dài tối đa.
+No longest	Không có độ dài tối đa
+Longer than %1$s second	Dài hơn %1$s giây
+Longer than %1$s seconds	Dài hơn %1$s giây
+# context: next row: how many days old a reel can be; its summary for 0, then for one day and for more (#780)
+Oldest post	Bài đăng cũ nhất
+Reels posted more than this many days ago are left out. Type a whole number, or 0 for any age.	Reel đăng cách đây hơn số ngày này sẽ bị bỏ qua. Nhập một số nguyên, hoặc 0 để không giới hạn thời gian.
+Any age	Không giới hạn thời gian
+Posted more than %1$s day ago	Đăng cách đây hơn %1$s ngày
+Posted more than %1$s days ago	Đăng cách đây hơn %1$s ngày
+# context: switch under those rows that puts each page of reels in the order they were posted (#780)
+Newest first	Mới nhất trước
+Puts each page of reels in the order they were posted, newest on top.	Sắp xếp mỗi trang reel theo thời gian đăng, mới nhất ở trên cùng.
+# context: summary of the Also on Home switch under those rows; the posts it leaves out are Home's suggested posts (#780)
+Leaves out suggested posts on Home outside the same numbers too. Pull down on Home to refresh after changing it.	Cũng bỏ các bài viết được đề xuất trên trang chủ nằm ngoài cùng các con số đó. Hãy kéo xuống trên trang chủ để làm mới sau khi thay đổi.

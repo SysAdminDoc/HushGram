@@ -1888,9 +1888,9 @@ Top bar tint in chats	Tinte de la barra superior de los chats
 Message bar tint	Tinte de la barra de mensajes
 # context: Reels switch Hide reels with few views, its summary, the Minimum views row, its dialog message and the row's summary, then the Minimum likes row, its dialog message, its summary and its summary at 0; %1$s is a number with thousands separators (#444)
 Hide reels with few views	Ocultar reels con pocas reproducciones
-Leaves out reels in the Reels tab with fewer views or likes than the numbers below. Reels from accounts you follow, reels sent to you and reels with no count still play.	Omite en la pestaña Reels los reels con menos reproducciones o Me gusta que los números de abajo. Los reels de cuentas que sigues, los que te envían y los que no muestran cifras se siguen viendo.
+Leaves out reels in the Reels tab outside the numbers below. Reels from accounts you follow, reels sent to you and reels that don't show a number still play.	Omite en la pestaña Reels los reels que quedan fuera de los números de abajo. Los reels de cuentas que sigues, los que te envían y los que no muestran cifras se siguen viendo.
 Minimum views	Mínimo de reproducciones
-Reels with fewer views than this are left out. Type a whole number.	Se omiten los reels con menos reproducciones que esto. Escribe un número entero.
+Reels with fewer views than this are left out. Type a whole number, or 0 to not look at views.	Se omiten los reels con menos reproducciones que esto. Escribe un número entero, o 0 para no tener en cuenta las reproducciones.
 Fewer than %1$s views	Menos de %1$s reproducciones
 Minimum likes	Mínimo de Me gusta
 Reels with fewer likes than this are left out. Type a whole number, or 0 to not look at likes.	Se omiten los reels con menos Me gusta que esto. Escribe un número entero, o 0 para no tener en cuenta los Me gusta.
@@ -2667,3 +2667,42 @@ Auto scroll didn't change	El desplazamiento automático no cambió
 The cards that Instagram puts between reels to get you onto Threads.	Las tarjetas que Instagram pone entre los reels para llevarte a Threads.
 Expand captions on reels	Expandir descripciones en reels
 Reels show their whole caption, with no "more" to tap. A long caption covers more of the video.	Los reels muestran su descripción entera, sin «más» que tocar. Una descripción larga tapa más parte del video.
+# context: summary of the Minimum views row under HushGram settings > Reels > Hide reels with few views when it's set to 0 (#780)
+Views aren't looked at	No se tienen en cuenta las reproducciones
+# context: next row under Hide reels with few views: its title, its number dialog's message, and its summary for 0 and for a number (#780)
+Maximum views	Máximo de reproducciones
+Reels with more views than this are left out. Type a whole number, or 0 for no maximum.	Se omiten los reels con más reproducciones que esto. Escribe un número entero, o 0 para no poner máximo.
+No maximum	Sin máximo
+More than %1$s views	Más de %1$s reproducciones
+# context: next row: how many likes a reel needs for each 1,000 views; Not looked at is its summary for 0 (#780)
+Likes per 1,000 views	Me gusta por cada 1.000 reproducciones
+Reels with fewer likes than this for every 1,000 views are left out. Only reels that show their views are checked. Type a whole number, or 0 to not look at it.	Se omiten los reels con menos Me gusta que esto por cada 1.000 reproducciones. Solo se revisan los reels que muestran sus reproducciones. Escribe un número entero, o 0 para no tenerlo en cuenta.
+Not looked at	No se tiene en cuenta
+Fewer than %1$s likes per 1,000 views	Menos de %1$s Me gusta por cada 1.000 reproducciones
+# context: next row, the same for comments (#780)
+Comments per 1,000 views	Comentarios por cada 1.000 reproducciones
+Reels with fewer comments than this for every 1,000 views are left out. Only reels that show their views are checked. Type a whole number, or 0 to not look at it.	Se omiten los reels con menos comentarios que esto por cada 1.000 reproducciones. Solo se revisan los reels que muestran sus reproducciones. Escribe un número entero, o 0 para no tenerlo en cuenta.
+Fewer than %1$s comments per 1,000 views	Menos de %1$s comentarios por cada 1.000 reproducciones
+# context: next row: the shortest video length in seconds; its summary for 0, then for one second and for more (#780)
+Shortest video	Video más corto
+Reels shorter than this many seconds are left out. Type a whole number, or 0 for no shortest.	Se omiten los reels que duran menos de estos segundos. Escribe un número entero, o 0 para no poner mínimo.
+No shortest	Sin mínimo
+Shorter than %1$s second	Menos de %1$s segundo
+Shorter than %1$s seconds	Menos de %1$s segundos
+# context: next row: the longest video length in seconds; its summary for 0, then for one second and for more (#780)
+Longest video	Video más largo
+Reels longer than this many seconds are left out. Type a whole number, or 0 for no longest.	Se omiten los reels que duran más de estos segundos. Escribe un número entero, o 0 para no poner límite de duración.
+No longest	Sin límite de duración
+Longer than %1$s second	Más de %1$s segundo
+Longer than %1$s seconds	Más de %1$s segundos
+# context: next row: how many days old a reel can be; its summary for 0, then for one day and for more (#780)
+Oldest post	Publicación más antigua
+Reels posted more than this many days ago are left out. Type a whole number, or 0 for any age.	Se omiten los reels publicados hace más de estos días. Escribe un número entero, o 0 para cualquier antigüedad.
+Any age	Cualquier antigüedad
+Posted more than %1$s day ago	Publicado hace más de %1$s día
+Posted more than %1$s days ago	Publicado hace más de %1$s días
+# context: switch under those rows that puts each page of reels in the order they were posted (#780)
+Newest first	Más recientes primero
+Puts each page of reels in the order they were posted, newest on top.	Ordena cada página de reels según cuándo se publicaron, con los más recientes arriba.
+# context: summary of the Also on Home switch under those rows; the posts it leaves out are Home's suggested posts (#780)
+Leaves out suggested posts on Home outside the same numbers too. Pull down on Home to refresh after changing it.	Quita también de Inicio las publicaciones sugeridas que quedan fuera de los mismos números. Desliza Inicio hacia abajo para actualizar después de cambiarlo.

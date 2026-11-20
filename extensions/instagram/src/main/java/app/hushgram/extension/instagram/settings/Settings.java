@@ -2994,21 +2994,29 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_other_language_home", FALSE, parent(HIDE_OTHER_LANGUAGE_REELS));
 
     /**
-     * Reels in the Reels tab with fewer views than {@link #MIN_REEL_VIEWS} or fewer likes than
-     * {@link #MIN_REEL_LIKES}, unless their author is followed
+     * Reels in the Reels tab outside the numbers under it (views, likes, likes and comments for
+     * each 1,000 views, video length, age), unless their author is followed
      * ({@link app.hushgram.extension.instagram.reels.LowViewReels}). Read as each page of
-     * reels arrives, so a change shows from the next page. Off to start (#444).
+     * reels arrives, so a change shows from the next page. Off to start (#444, #780).
      */
     public static final BooleanSetting HIDE_LOW_VIEW_REELS =
             new BooleanSetting("hushgram_hide_low_view_reels", FALSE);
 
     /**
-     * Under {@link #HIDE_LOW_VIEW_REELS}: the view count a reel needs to stay, typed as a number.
-     * Starts at 1,000. A value control, not a switch.
+     * Under {@link #HIDE_LOW_VIEW_REELS}: the view count a reel needs to stay, typed as a number,
+     * and 0 to leave views alone. Starts at 1,000. A value control, not a switch.
      */
     public static final IntegerSetting MIN_REEL_VIEWS =
             new IntegerSetting("hushgram_min_reel_views", 1000, false, parent(HIDE_LOW_VIEW_REELS))
-                    .withRange(1, 100_000_000);
+                    .withRange(0, 100_000_000);
+
+    /**
+     * Under {@link #HIDE_LOW_VIEW_REELS}: the most views a reel can have and stay, and 0 for no
+     * maximum, the start (#780). A value control, not a switch.
+     */
+    public static final IntegerSetting MAX_REEL_VIEWS =
+            new IntegerSetting("hushgram_max_reel_views", 0, false, parent(HIDE_LOW_VIEW_REELS))
+                    .withRange(0, 999_999_999);
 
     /**
      * Under {@link #HIDE_LOW_VIEW_REELS}: the like count a reel needs to stay, typed as a number, and
@@ -3018,6 +3026,60 @@ public class Settings extends BaseSettings {
     public static final IntegerSetting MIN_REEL_LIKES =
             new IntegerSetting("hushgram_min_reel_likes", 10, false, parent(HIDE_LOW_VIEW_REELS))
                     .withRange(0, 100_000_000);
+
+    /**
+     * Under {@link #HIDE_LOW_VIEW_REELS}: the likes a reel needs for each 1,000 of its views, and 0
+     * to leave this alone, the start. Only reels that carry a view count are judged by it (#780).
+     */
+    public static final IntegerSetting MIN_REEL_LIKES_PER_1000 =
+            new IntegerSetting("hushgram_min_reel_likes_per_1000", 0, false, parent(HIDE_LOW_VIEW_REELS))
+                    .withRange(0, 1000);
+
+    /**
+     * Under {@link #HIDE_LOW_VIEW_REELS}: the comments a reel needs for each 1,000 of its views, and
+     * 0 to leave this alone, the start. Only reels that carry a view count are judged by it (#780).
+     */
+    public static final IntegerSetting MIN_REEL_COMMENTS_PER_1000 =
+            new IntegerSetting("hushgram_min_reel_comments_per_1000", 0, false, parent(HIDE_LOW_VIEW_REELS))
+                    .withRange(0, 1000);
+
+    /**
+     * Under {@link #HIDE_LOW_VIEW_REELS}: the shortest video, in seconds, a reel can be and stay,
+     * and 0 for no shortest, the start (#780).
+     */
+    public static final IntegerSetting MIN_REEL_SECONDS =
+            new IntegerSetting("hushgram_min_reel_seconds", 0, false, parent(HIDE_LOW_VIEW_REELS))
+                    .withRange(0, 86_400);
+
+    /**
+     * Under {@link #HIDE_LOW_VIEW_REELS}: the longest video, in seconds, a reel can be and stay,
+     * and 0 for no longest, the start (#780).
+     */
+    public static final IntegerSetting MAX_REEL_SECONDS =
+            new IntegerSetting("hushgram_max_reel_seconds", 0, false, parent(HIDE_LOW_VIEW_REELS))
+                    .withRange(0, 86_400);
+
+    /**
+     * Under {@link #HIDE_LOW_VIEW_REELS}: the most days since a reel went up for it to stay, and 0
+     * for any age, the start (#780).
+     */
+    public static final IntegerSetting MAX_REEL_AGE_DAYS =
+            new IntegerSetting("hushgram_max_reel_age_days", 0, false, parent(HIDE_LOW_VIEW_REELS))
+                    .withRange(0, 3650);
+
+    /**
+     * Under {@link #HIDE_LOW_VIEW_REELS}: each Reels tab page's reels in the order they went up,
+     * newest first. Off to start (#780).
+     */
+    public static final BooleanSetting REELS_NEWEST_FIRST =
+            new BooleanSetting("hushgram_reels_newest_first", FALSE, parent(HIDE_LOW_VIEW_REELS));
+
+    /**
+     * Under {@link #HIDE_LOW_VIEW_REELS}: the same numbers for the suggested posts on Home. Off to
+     * start (#780).
+     */
+    public static final BooleanSetting HIDE_LOW_VIEW_HOME =
+            new BooleanSetting("hushgram_hide_low_view_home", FALSE, parent(HIDE_LOW_VIEW_REELS));
 
     /** An explicit Copy action for original comment text. Off until enabled. */
     public static final BooleanSetting COPY_COMMENTS =

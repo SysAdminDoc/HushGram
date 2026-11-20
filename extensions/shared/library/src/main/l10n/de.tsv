@@ -1888,9 +1888,9 @@ Top bar tint in chats	Tönung der oberen Leiste in Chats
 Message bar tint	Tönung der Nachrichtenleiste
 # context: Reels switch Hide reels with few views, its summary, the Minimum views row, its dialog message and the row's summary, then the Minimum likes row, its dialog message, its summary and its summary at 0; %1$s is a number with thousands separators (#444)
 Hide reels with few views	Reels mit wenigen Aufrufen ausblenden
-Leaves out reels in the Reels tab with fewer views or likes than the numbers below. Reels from accounts you follow, reels sent to you and reels with no count still play.	Lässt im Reels-Tab Reels weg, die weniger Aufrufe oder Likes haben als die Zahlen unten. Reels von Konten, denen du folgst, Reels, die man dir schickt, und Reels ohne Zahl laufen weiter.
+Leaves out reels in the Reels tab outside the numbers below. Reels from accounts you follow, reels sent to you and reels that don't show a number still play.	Lässt im Reels-Tab Reels weg, die außerhalb der Zahlen unten liegen. Reels von Konten, denen du folgst, Reels, die man dir schickt, und Reels, die keine Zahl zeigen, laufen weiter.
 Minimum views	Mindestaufrufe
-Reels with fewer views than this are left out. Type a whole number.	Reels mit weniger Aufrufen werden weggelassen. Gib eine ganze Zahl ein.
+Reels with fewer views than this are left out. Type a whole number, or 0 to not look at views.	Reels mit weniger Aufrufen werden weggelassen. Gib eine ganze Zahl ein, oder 0, damit Aufrufe nicht zählen.
 Fewer than %1$s views	Weniger als %1$s Aufrufe
 Minimum likes	Mindest-Likes
 Reels with fewer likes than this are left out. Type a whole number, or 0 to not look at likes.	Reels mit weniger Likes werden weggelassen. Gib eine ganze Zahl ein, oder 0, damit Likes nicht zählen.
@@ -2667,3 +2667,42 @@ Auto scroll didn't change	Automatisches Scrollen nicht geändert
 The cards that Instagram puts between reels to get you onto Threads.	Die Karten, die Instagram zwischen Reels einblendet, um dich zu Threads zu holen.
 Expand captions on reels	Beschreibungen bei Reels ausklappen
 Reels show their whole caption, with no "more" to tap. A long caption covers more of the video.	Reels zeigen ihre ganze Beschreibung, ohne „mehr“ zum Antippen. Eine lange Beschreibung verdeckt mehr vom Video.
+# context: summary of the Minimum views row under HushGram settings > Reels > Hide reels with few views when it's set to 0 (#780)
+Views aren't looked at	Aufrufe zählen nicht
+# context: next row under Hide reels with few views: its title, its number dialog's message, and its summary for 0 and for a number (#780)
+Maximum views	Höchstaufrufe
+Reels with more views than this are left out. Type a whole number, or 0 for no maximum.	Reels mit mehr Aufrufen werden weggelassen. Gib eine ganze Zahl ein, oder 0 für kein Maximum.
+No maximum	Kein Maximum
+More than %1$s views	Mehr als %1$s Aufrufe
+# context: next row: how many likes a reel needs for each 1,000 views; Not looked at is its summary for 0 (#780)
+Likes per 1,000 views	Likes pro 1.000 Aufrufe
+Reels with fewer likes than this for every 1,000 views are left out. Only reels that show their views are checked. Type a whole number, or 0 to not look at it.	Reels mit weniger Likes pro 1.000 Aufrufe werden weggelassen. Geprüft werden nur Reels, die ihre Aufrufe zeigen. Gib eine ganze Zahl ein, oder 0, damit es nicht zählt.
+Not looked at	Zählt nicht
+Fewer than %1$s likes per 1,000 views	Weniger als %1$s Likes pro 1.000 Aufrufe
+# context: next row, the same for comments (#780)
+Comments per 1,000 views	Kommentare pro 1.000 Aufrufe
+Reels with fewer comments than this for every 1,000 views are left out. Only reels that show their views are checked. Type a whole number, or 0 to not look at it.	Reels mit weniger Kommentaren pro 1.000 Aufrufe werden weggelassen. Geprüft werden nur Reels, die ihre Aufrufe zeigen. Gib eine ganze Zahl ein, oder 0, damit es nicht zählt.
+Fewer than %1$s comments per 1,000 views	Weniger als %1$s Kommentare pro 1.000 Aufrufe
+# context: next row: the shortest video length in seconds; its summary for 0, then for one second and for more (#780)
+Shortest video	Kürzestes Video
+Reels shorter than this many seconds are left out. Type a whole number, or 0 for no shortest.	Reels, die kürzer als so viele Sekunden sind, werden weggelassen. Gib eine ganze Zahl ein, oder 0, wenn die Länge egal ist.
+No shortest	Beliebig kurz
+Shorter than %1$s second	Kürzer als %1$s Sekunde
+Shorter than %1$s seconds	Kürzer als %1$s Sekunden
+# context: next row: the longest video length in seconds; its summary for 0, then for one second and for more (#780)
+Longest video	Längstes Video
+Reels longer than this many seconds are left out. Type a whole number, or 0 for no longest.	Reels, die länger als so viele Sekunden sind, werden weggelassen. Gib eine ganze Zahl ein, oder 0, wenn die Länge egal ist.
+No longest	Beliebig lang
+Longer than %1$s second	Länger als %1$s Sekunde
+Longer than %1$s seconds	Länger als %1$s Sekunden
+# context: next row: how many days old a reel can be; its summary for 0, then for one day and for more (#780)
+Oldest post	Ältester Beitrag
+Reels posted more than this many days ago are left out. Type a whole number, or 0 for any age.	Reels, die vor mehr als so vielen Tagen gepostet wurden, werden weggelassen. Gib eine ganze Zahl ein, oder 0 für jedes Alter.
+Any age	Jedes Alter
+Posted more than %1$s day ago	Vor mehr als %1$s Tag gepostet
+Posted more than %1$s days ago	Vor mehr als %1$s Tagen gepostet
+# context: switch under those rows that puts each page of reels in the order they were posted (#780)
+Newest first	Neueste zuerst
+Puts each page of reels in the order they were posted, newest on top.	Sortiert jede Seite mit Reels danach, wann sie gepostet wurden, die neuesten oben.
+# context: summary of the Also on Home switch under those rows; the posts it leaves out are Home's suggested posts (#780)
+Leaves out suggested posts on Home outside the same numbers too. Pull down on Home to refresh after changing it.	Blendet auch vorgeschlagene Beiträge auf der Startseite aus, die außerhalb derselben Zahlen liegen. Ziehe die Startseite nach dem Ändern nach unten, um sie zu aktualisieren.

@@ -2906,9 +2906,10 @@ once-call Lapp/hushgram/extension/instagram/reels/CaptionWordReels;->page(Ljava/
 once-call Lapp/hushgram/extension/instagram/reels/HiddenSounds;->page(Ljava/util/List;Ljava/lang/String;)Ljava/util/List; in instance (L*;)V holding clips_delivery_prefetch
 
 # Hide reels with few views hands the same pages, at the same join, to LowViewReels.page, once
-# (#444). Its stubs read the post's play counts and whether the author is followed through
-# getters HideLowViewReelsHookTest finds on every retained build; the join itself is checked by
-# HidePaidPartnershipReelsHookTest.
+# (#444). Its stubs read the post's play, like and comment counts, its video length and post time
+# (#780), and whether the author is followed, through getters HideLowViewReelsHookTest finds on
+# every retained build; the join itself is checked by HidePaidPartnershipReelsHookTest. Also on
+# Home adds no call: it rides FeedSuggestions.homeItem.
 once-call Lapp/hushgram/extension/instagram/reels/LowViewReels;->page(Ljava/util/List;Ljava/lang/String;)Ljava/util/List; in instance (L*;)V holding clips_delivery_prefetch
 
 # Hold the Friends tab to pick friends hands the same pages, at the same join, to
@@ -2922,9 +2923,10 @@ once-call Lapp/hushgram/extension/instagram/reels/FriendLanePicks;->page(Ljava/u
 # HideLiveReelsHookTest finds on every build of 454.
 once-call Lapp/hushgram/extension/instagram/reels/LiveReels;->page(Ljava/util/List;Ljava/lang/String;)Ljava/util/List; in instance (L*;)V holding clips_delivery_prefetch
 
-# Both also filter what the Reels viewer's data source takes in later, after the first page: its
-# addItems (List)V and insertItemsGranular (int, List)Z each hand the list they take to LiveReels.added
-# and FriendLanePicks.added first thing, once, with the source's module name and size, and use the
+# Hide lives, the Friends tab picks and Hide reels with few views (#780) also filter what the Reels
+# viewer's data source takes in later, after the first page: its addItems (List)V and
+# insertItemsGranular (int, List)Z each hand the list they take to LiveReels.added, FriendLanePicks.added
+# and LowViewReels.added first thing, once, with the source's module name and size, and use the
 # list answered in the parameter's place. One rule per method and filter, so a retarget that drops
 # the hook from either method, or puts it in twice, fails here. 456 dropped the purge markers both
 # methods held: the insert loads its trace name, and the add is the (List)V of the class holding that
@@ -2934,6 +2936,8 @@ shared-call Lapp/hushgram/extension/instagram/reels/LiveReels;->added(Ljava/util
 shared-call Lapp/hushgram/extension/instagram/reels/LiveReels;->added(Ljava/util/List;Ljava/lang/String;I)Ljava/util/List; in instance (ILjava/util/List;)Z holding ClipsStandaloneAdapterDataSource:insertItemsGranular
 shared-call Lapp/hushgram/extension/instagram/reels/FriendLanePicks;->added(Ljava/util/List;Ljava/lang/String;I)Ljava/util/List; in instance (Ljava/util/List;)V calling instance LX/*;->*(Lcom/instagram/common/session/UserSession;)Z class-holding ClipsStandaloneAdapterDataSource:insertItemsGranular addItemInternal()
 shared-call Lapp/hushgram/extension/instagram/reels/FriendLanePicks;->added(Ljava/util/List;Ljava/lang/String;I)Ljava/util/List; in instance (ILjava/util/List;)Z holding ClipsStandaloneAdapterDataSource:insertItemsGranular
+shared-call Lapp/hushgram/extension/instagram/reels/LowViewReels;->added(Ljava/util/List;Ljava/lang/String;I)Ljava/util/List; in instance (Ljava/util/List;)V calling instance LX/*;->*(Lcom/instagram/common/session/UserSession;)Z class-holding ClipsStandaloneAdapterDataSource:insertItemsGranular addItemInternal()
+shared-call Lapp/hushgram/extension/instagram/reels/LowViewReels;->added(Ljava/util/List;Ljava/lang/String;I)Ljava/util/List; in instance (ILjava/util/List;)Z holding ClipsStandaloneAdapterDataSource:insertItemsGranular
 
 # Hide lives in Reels also asks about each item the Reels adapter inserts on its own (#566): its
 # insertItem and insertItemGranular (item, int)Z each hand the item to LiveReels.single first thing,

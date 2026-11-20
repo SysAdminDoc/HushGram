@@ -1875,9 +1875,9 @@ Top bar tint in chats	โทนสีของแถบด้านบนใน�
 Message bar tint	โทนสีของแถบข้อความ
 # context: Reels switch Hide reels with few views, its summary, the Minimum views row, its dialog message and the row's summary, then the Minimum likes row, its dialog message, its summary and its summary at 0; %1$s is a number with thousands separators (#444)
 Hide reels with few views	ซ่อนรีลส์ที่มียอดดูน้อย
-Leaves out reels in the Reels tab with fewer views or likes than the numbers below. Reels from accounts you follow, reels sent to you and reels with no count still play.	ละเว้นรีลส์ในแท็บรีลส์ที่มียอดดูหรือยอดถูกใจน้อยกว่าจำนวนด้านล่างนี้ โดยรีลส์จากบัญชีที่คุณติดตาม รีลส์ที่ส่งถึงคุณ และรีลส์ที่ไม่มีจำนวนนับจะยังคงเล่นตามปกติ
+Leaves out reels in the Reels tab outside the numbers below. Reels from accounts you follow, reels sent to you and reels that don't show a number still play.	ละเว้นรีลส์ในแท็บรีลส์ที่อยู่นอกจำนวนด้านล่างนี้ โดยรีลส์จากบัญชีที่คุณติดตาม รีลส์ที่ส่งถึงคุณ และรีลส์ที่ไม่แสดงจำนวนจะยังคงเล่นตามปกติ
 Minimum views	ยอดดูขั้นต่ำ
-Reels with fewer views than this are left out. Type a whole number.	รีลส์ที่มียอดดูน้อยกว่านี้จะถูกละเว้น พิมพ์จำนวนเต็ม
+Reels with fewer views than this are left out. Type a whole number, or 0 to not look at views.	รีลส์ที่มียอดดูน้อยกว่านี้จะถูกละเว้น พิมพ์จำนวนเต็ม หรือพิมพ์ 0 หากไม่ต้องการพิจารณายอดดู
 Fewer than %1$s views	ยอดดูน้อยกว่า %1$s ครั้ง
 Minimum likes	ยอดถูกใจขั้นต่ำ
 Reels with fewer likes than this are left out. Type a whole number, or 0 to not look at likes.	รีลส์ที่มียอดถูกใจน้อยกว่านี้จะถูกละเว้น พิมพ์จำนวนเต็ม หรือพิมพ์ 0 หากไม่ต้องการพิจารณายอดถูกใจ
@@ -2664,3 +2664,42 @@ Auto scroll didn't change	การเลื่อนอัตโนมัติ
 The cards that Instagram puts between reels to get you onto Threads.	การ์ดที่ Instagram แทรกไว้ระหว่างรีลส์เพื่อชวนคุณไปใช้ Threads
 Expand captions on reels	ขยายคำบรรยายในรีลส์
 Reels show their whole caption, with no "more" to tap. A long caption covers more of the video.	รีลส์จะแสดงคำบรรยายทั้งหมดโดยไม่ต้องแตะ "เพิ่มเติม" คำบรรยายที่ยาวจะบังวิดีโอมากขึ้น
+# context: summary of the Minimum views row under HushGram settings > Reels > Hide reels with few views when it's set to 0 (#780)
+Views aren't looked at	ไม่พิจารณายอดดู
+# context: next row under Hide reels with few views: its title, its number dialog's message, and its summary for 0 and for a number (#780)
+Maximum views	ยอดดูสูงสุด
+Reels with more views than this are left out. Type a whole number, or 0 for no maximum.	รีลส์ที่มียอดดูมากกว่านี้จะถูกละเว้น พิมพ์จำนวนเต็ม หรือพิมพ์ 0 หากไม่ต้องการกำหนดค่าสูงสุด
+No maximum	ไม่มีค่าสูงสุด
+More than %1$s views	ยอดดูมากกว่า %1$s ครั้ง
+# context: next row: how many likes a reel needs for each 1,000 views; Not looked at is its summary for 0 (#780)
+Likes per 1,000 views	ยอดถูกใจต่อยอดดู 1,000 ครั้ง
+Reels with fewer likes than this for every 1,000 views are left out. Only reels that show their views are checked. Type a whole number, or 0 to not look at it.	รีลส์ที่มียอดถูกใจน้อยกว่านี้ต่อยอดดูทุก 1,000 ครั้งจะถูกละเว้น โดยจะตรวจเฉพาะรีลส์ที่แสดงยอดดู พิมพ์จำนวนเต็ม หรือพิมพ์ 0 หากไม่ต้องการพิจารณา
+Not looked at	ไม่พิจารณา
+Fewer than %1$s likes per 1,000 views	ยอดถูกใจน้อยกว่า %1$s ครั้งต่อยอดดู 1,000 ครั้ง
+# context: next row, the same for comments (#780)
+Comments per 1,000 views	ความคิดเห็นต่อยอดดู 1,000 ครั้ง
+Reels with fewer comments than this for every 1,000 views are left out. Only reels that show their views are checked. Type a whole number, or 0 to not look at it.	รีลส์ที่มีความคิดเห็นน้อยกว่านี้ต่อยอดดูทุก 1,000 ครั้งจะถูกละเว้น โดยจะตรวจเฉพาะรีลส์ที่แสดงยอดดู พิมพ์จำนวนเต็ม หรือพิมพ์ 0 หากไม่ต้องการพิจารณา
+Fewer than %1$s comments per 1,000 views	ความคิดเห็นน้อยกว่า %1$s รายการต่อยอดดู 1,000 ครั้ง
+# context: next row: the shortest video length in seconds; its summary for 0, then for one second and for more (#780)
+Shortest video	วิดีโอที่สั้นที่สุด
+Reels shorter than this many seconds are left out. Type a whole number, or 0 for no shortest.	รีลส์ที่สั้นกว่าจำนวนวินาทีนี้จะถูกละเว้น พิมพ์จำนวนเต็ม หรือพิมพ์ 0 หากไม่ต้องการกำหนดความยาวขั้นต่ำ
+No shortest	ไม่มีความยาวขั้นต่ำ
+Shorter than %1$s second	สั้นกว่า %1$s วินาที
+Shorter than %1$s seconds	สั้นกว่า %1$s วินาที
+# context: next row: the longest video length in seconds; its summary for 0, then for one second and for more (#780)
+Longest video	วิดีโอที่ยาวที่สุด
+Reels longer than this many seconds are left out. Type a whole number, or 0 for no longest.	รีลส์ที่ยาวกว่าจำนวนวินาทีนี้จะถูกละเว้น พิมพ์จำนวนเต็ม หรือพิมพ์ 0 หากไม่ต้องการกำหนดความยาวสูงสุด
+No longest	ไม่มีความยาวสูงสุด
+Longer than %1$s second	ยาวกว่า %1$s วินาที
+Longer than %1$s seconds	ยาวกว่า %1$s วินาที
+# context: next row: how many days old a reel can be; its summary for 0, then for one day and for more (#780)
+Oldest post	โพสต์ที่เก่าที่สุด
+Reels posted more than this many days ago are left out. Type a whole number, or 0 for any age.	รีลส์ที่โพสต์ไว้นานกว่าจำนวนวันนี้จะถูกละเว้น พิมพ์จำนวนเต็ม หรือพิมพ์ 0 หากไม่จำกัดอายุโพสต์
+Any age	ไม่จำกัดอายุ
+Posted more than %1$s day ago	โพสต์ไว้นานกว่า %1$s วัน
+Posted more than %1$s days ago	โพสต์ไว้นานกว่า %1$s วัน
+# context: switch under those rows that puts each page of reels in the order they were posted (#780)
+Newest first	ใหม่สุดก่อน
+Puts each page of reels in the order they were posted, newest on top.	เรียงรีลส์แต่ละหน้าตามเวลาที่โพสต์ โดยให้รีลส์ใหม่สุดอยู่ด้านบน
+# context: summary of the Also on Home switch under those rows; the posts it leaves out are Home's suggested posts (#780)
+Leaves out suggested posts on Home outside the same numbers too. Pull down on Home to refresh after changing it.	ละเว้นโพสต์แนะนำบนหน้าหลักที่อยู่นอกจำนวนเดียวกันด้วย เลื่อนหน้าหลักลงเพื่อรีเฟรชหลังจากเปลี่ยนแปลงการตั้งค่า

@@ -17,6 +17,7 @@ import app.morphe.patches.instagram.profile.friendship.RELATIONSHIP
 import app.morphe.patches.instagram.reels.partnership.ReelsPageSites
 import app.morphe.patches.instagram.reels.partnership.fillReelsItemMedia
 import app.morphe.patches.instagram.reels.partnership.fillStub
+import app.morphe.patches.instagram.reels.time.TAKEN_AT_FIELD
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.iface.Method
@@ -41,10 +42,12 @@ class HideLowViewReelsHookTest {
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
         for (wanted in listOf(
-            LOW_VIEW_PAGE_FILTER.substringAfter("->"), "media(Ljava/lang/Object;)Ljava/lang/Object;",
+            LOW_VIEW_PAGE_FILTER.substringAfter("->"), LOW_VIEW_ADDED_FILTER.substringAfter("->"),
+            "media(Ljava/lang/Object;)Ljava/lang/Object;",
             "playCount(Ljava/lang/Object;)Ljava/lang/Integer;", "igPlayCount(Ljava/lang/Object;)Ljava/lang/Integer;",
             "viewCount(Ljava/lang/Object;)Ljava/lang/Integer;", "likeCount(Ljava/lang/Object;)Ljava/lang/Integer;",
-            "followed(Ljava/lang/Object;)Ljava/lang/Boolean;",
+            "followed(Ljava/lang/Object;)Ljava/lang/Boolean;", "commentCount(Ljava/lang/Object;)Ljava/lang/Integer;",
+            "videoLength(Ljava/lang/Object;)Ljava/lang/Double;", "postedAt(Ljava/lang/Object;)Ljava/lang/Long;",
         )) {
             assertTrue("$wanted is not in the extension: $declared", wanted in declared)
         }
@@ -72,6 +75,14 @@ class HideLowViewReelsHookTest {
             assertTrue("${bundle.name}: view_count", views.getterLoading(context, MEDIA, VIEW_COUNT_FIELD.hashCode()))
             val likes = context.stub("likeCount")
             assertTrue("${bundle.name}: like_count", likes.getterLoading(context, MEDIA, LIKE_COUNT_FIELD.hashCode()))
+            val comments = context.stub("commentCount")
+            assertTrue("${bundle.name}: comment_count", comments.getterLoading(context, MEDIA, COMMENT_COUNT_FIELD.hashCode()))
+            val length = context.stub("videoLength")
+            assertTrue("${bundle.name}: video_duration", length.getterLoading(context, MEDIA, VIDEO_DURATION_FIELD.hashCode()))
+            assertTrue("${bundle.name}: the length is a Double", length.any { it.text()?.endsWith(")Ljava/lang/Double;") == true })
+            val posted = context.stub("postedAt")
+            assertTrue("${bundle.name}: taken_at", posted.getterLoading(context, MEDIA, TAKEN_AT_FIELD.hashCode()))
+            assertTrue("${bundle.name}: the time is a Long", posted.any { it.text()?.endsWith(")Ljava/lang/Long;") == true })
             val followed = context.stub("followed").mapNotNull { it.text() }
             assertTrue("${bundle.name}: the author is read: $followed", followed.any { it.startsWith("$MEDIA->") && it.endsWith(")$USER") })
             assertTrue("${bundle.name}: the status is read: $followed", followed.any { it.startsWith("$USER->") && it.endsWith(")$RELATIONSHIP") })
@@ -107,6 +118,9 @@ class HideLowViewReelsHookTest {
         fillStub(LOW_VIEW_REELS, "viewCount", "Ljava/lang/Integer;", 1, reads.viewCount)
         fillStub(LOW_VIEW_REELS, "likeCount", "Ljava/lang/Integer;", 1, reads.likeCount)
         fillStub(LOW_VIEW_REELS, "followed", "Ljava/lang/Boolean;", 2, reads.followed)
+        fillStub(LOW_VIEW_REELS, "commentCount", "Ljava/lang/Integer;", 1, reads.commentCount)
+        fillStub(LOW_VIEW_REELS, "videoLength", "Ljava/lang/Double;", 1, reads.videoLength)
+        fillStub(LOW_VIEW_REELS, "postedAt", "Ljava/lang/Long;", 1, reads.postedAt)
     }
 
     private fun BytecodePatchContext.stub(name: String): List<Instruction> =

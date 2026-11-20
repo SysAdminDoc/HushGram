@@ -180,6 +180,15 @@ public final class ConfigurationBackup {
         if (PatchFamily.LOW_VIEW_REELS.inBuild()) {
             settings.put(Settings.MIN_REEL_VIEWS.key, Settings.MIN_REEL_VIEWS);
             settings.put(Settings.MIN_REEL_LIKES.key, Settings.MIN_REEL_LIKES);
+            settings.put(Settings.MAX_REEL_VIEWS.key, Settings.MAX_REEL_VIEWS);
+            settings.put(Settings.MIN_REEL_LIKES_PER_1000.key, Settings.MIN_REEL_LIKES_PER_1000);
+            settings.put(Settings.MIN_REEL_COMMENTS_PER_1000.key, Settings.MIN_REEL_COMMENTS_PER_1000);
+            settings.put(Settings.MIN_REEL_SECONDS.key, Settings.MIN_REEL_SECONDS);
+            settings.put(Settings.MAX_REEL_SECONDS.key, Settings.MAX_REEL_SECONDS);
+            settings.put(Settings.MAX_REEL_AGE_DAYS.key, Settings.MAX_REEL_AGE_DAYS);
+            settings.put(Settings.REELS_NEWEST_FIRST.key, Settings.REELS_NEWEST_FIRST);
+            // Also on Home: its row shows only with Home's reads in the build.
+            if (PatchFamily.feedTypesInBuild()) settings.put(Settings.HIDE_LOW_VIEW_HOME.key, Settings.HIDE_LOW_VIEW_HOME);
         }
         if (PatchFamily.STORY_PRIORITY.inBuild()) settings.put(Settings.STORY_PRIORITY_ACCOUNTS.key, Settings.STORY_PRIORITY_ACCOUNTS);
         if (PatchFamily.CALL_BLOCKER.inBuild()) {

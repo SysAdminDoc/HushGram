@@ -1887,9 +1887,9 @@ Top bar tint in chats	채팅 상단 바 색조
 Message bar tint	메시지 입력 바 색조
 # context: Reels switch Hide reels with few views, its summary, the Minimum views row, its dialog message and the row's summary, then the Minimum likes row, its dialog message, its summary and its summary at 0; %1$s is a number with thousands separators (#444)
 Hide reels with few views	조회수가 적은 릴스 숨기기
-Leaves out reels in the Reels tab with fewer views or likes than the numbers below. Reels from accounts you follow, reels sent to you and reels with no count still play.	조회수나 좋아요 수가 아래 숫자보다 적은 릴스를 릴스 탭에서 숨깁니다. 팔로우하는 계정의 릴스, 받은 릴스, 숫자가 없는 릴스는 그대로 재생됩니다.
+Leaves out reels in the Reels tab outside the numbers below. Reels from accounts you follow, reels sent to you and reels that don't show a number still play.	아래 숫자 범위를 벗어난 릴스를 릴스 탭에서 숨깁니다. 팔로우하는 계정의 릴스, 받은 릴스, 숫자가 표시되지 않는 릴스는 그대로 재생됩니다.
 Minimum views	최소 조회수
-Reels with fewer views than this are left out. Type a whole number.	이보다 조회수가 적은 릴스는 숨겨집니다. 정수를 입력하세요.
+Reels with fewer views than this are left out. Type a whole number, or 0 to not look at views.	이보다 조회수가 적은 릴스는 숨겨집니다. 정수를 입력하거나, 조회수를 보지 않으려면 0을 입력하세요.
 Fewer than %1$s views	조회수 %1$s회 미만
 Minimum likes	최소 좋아요 수
 Reels with fewer likes than this are left out. Type a whole number, or 0 to not look at likes.	이보다 좋아요가 적은 릴스는 숨겨집니다. 정수를 입력하거나, 좋아요를 보지 않으려면 0을 입력하세요.
@@ -2666,3 +2666,42 @@ Auto scroll didn't change	자동 스크롤이 바뀌지 않았습니다
 The cards that Instagram puts between reels to get you onto Threads.	릴스 사이에 표시되어 Threads로 안내하는 Instagram 카드를 숨깁니다
 Expand captions on reels	릴스 캡션 펼치기
 Reels show their whole caption, with no "more" to tap. A long caption covers more of the video.	릴스에서 ‘더 보기’를 누르지 않아도 캡션 전체를 보여 줍니다. 캡션이 길면 동영상을 더 많이 가립니다
+# context: summary of the Minimum views row under HushGram settings > Reels > Hide reels with few views when it's set to 0 (#780)
+Views aren't looked at	조회수를 보지 않음
+# context: next row under Hide reels with few views: its title, its number dialog's message, and its summary for 0 and for a number (#780)
+Maximum views	최대 조회수
+Reels with more views than this are left out. Type a whole number, or 0 for no maximum.	이보다 조회수가 많은 릴스는 숨겨집니다. 정수를 입력하거나, 최대값을 두지 않으려면 0을 입력하세요.
+No maximum	최대값 없음
+More than %1$s views	조회수 %1$s회 초과
+# context: next row: how many likes a reel needs for each 1,000 views; Not looked at is its summary for 0 (#780)
+Likes per 1,000 views	조회수 1,000회당 좋아요
+Reels with fewer likes than this for every 1,000 views are left out. Only reels that show their views are checked. Type a whole number, or 0 to not look at it.	조회수 1,000회당 좋아요가 이보다 적은 릴스는 숨겨집니다. 조회수가 표시되는 릴스만 확인합니다. 정수를 입력하거나, 보지 않으려면 0을 입력하세요.
+Not looked at	보지 않음
+Fewer than %1$s likes per 1,000 views	조회수 1,000회당 좋아요 %1$s개 미만
+# context: next row, the same for comments (#780)
+Comments per 1,000 views	조회수 1,000회당 댓글
+Reels with fewer comments than this for every 1,000 views are left out. Only reels that show their views are checked. Type a whole number, or 0 to not look at it.	조회수 1,000회당 댓글이 이보다 적은 릴스는 숨겨집니다. 조회수가 표시되는 릴스만 확인합니다. 정수를 입력하거나, 보지 않으려면 0을 입력하세요.
+Fewer than %1$s comments per 1,000 views	조회수 1,000회당 댓글 %1$s개 미만
+# context: next row: the shortest video length in seconds; its summary for 0, then for one second and for more (#780)
+Shortest video	가장 짧은 동영상
+Reels shorter than this many seconds are left out. Type a whole number, or 0 for no shortest.	이 초보다 짧은 릴스는 숨겨집니다. 정수를 입력하거나, 최소 길이를 두지 않으려면 0을 입력하세요.
+No shortest	최소 길이 없음
+Shorter than %1$s second	%1$s초 미만
+Shorter than %1$s seconds	%1$s초 미만
+# context: next row: the longest video length in seconds; its summary for 0, then for one second and for more (#780)
+Longest video	가장 긴 동영상
+Reels longer than this many seconds are left out. Type a whole number, or 0 for no longest.	이 초보다 긴 릴스는 숨겨집니다. 정수를 입력하거나, 최대 길이를 두지 않으려면 0을 입력하세요.
+No longest	최대 길이 없음
+Longer than %1$s second	%1$s초 초과
+Longer than %1$s seconds	%1$s초 초과
+# context: next row: how many days old a reel can be; its summary for 0, then for one day and for more (#780)
+Oldest post	가장 오래된 게시물
+Reels posted more than this many days ago are left out. Type a whole number, or 0 for any age.	이 일수보다 오래전에 게시된 릴스는 숨겨집니다. 정수를 입력하거나, 기간을 두지 않으려면 0을 입력하세요.
+Any age	기간 제한 없음
+Posted more than %1$s day ago	게시된 지 %1$s일 초과
+Posted more than %1$s days ago	게시된 지 %1$s일 초과
+# context: switch under those rows that puts each page of reels in the order they were posted (#780)
+Newest first	최신순
+Puts each page of reels in the order they were posted, newest on top.	릴스의 각 페이지를 게시된 순서대로, 최신 릴스가 위에 오도록 정렬합니다.
+# context: summary of the Also on Home switch under those rows; the posts it leaves out are Home's suggested posts (#780)
+Leaves out suggested posts on Home outside the same numbers too. Pull down on Home to refresh after changing it.	같은 숫자 범위를 벗어난 홈의 추천 게시물도 숨깁니다. 바꾼 뒤에는 홈을 아래로 당겨 새로고침하세요.

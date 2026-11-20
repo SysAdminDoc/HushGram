@@ -8,8 +8,14 @@ package app.hushgram.extension.instagram.settings;
 
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.blockedWordsRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.keptLanguagesRow;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.commentsPerThousandRow;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.likesPerThousandRow;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.longestReelRow;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.maxViewsRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.minLikesRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.minViewsRow;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.oldestReelRow;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.shortestReelRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.burnInGuardRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.burnInWaitRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.category;
@@ -98,10 +104,23 @@ final class ReelsCategory {
         }
         if (build.contains(PatchFamily.LOW_VIEW_REELS)) {
             reels.add(toggle(context, Settings.HIDE_LOW_VIEW_REELS, L10n.t("Hide reels with few views"),
-                    L10n.t("Leaves out reels in the Reels tab with fewer views or likes than the numbers below. "
-                            + "Reels from accounts you follow, reels sent to you and reels with no count still play.")));
+                    L10n.t("Leaves out reels in the Reels tab outside the numbers below. Reels from accounts you "
+                            + "follow, reels sent to you and reels that don't show a number still play.")));
             reels.add(minViewsRow(context));
+            reels.add(maxViewsRow(context));
             reels.add(minLikesRow(context));
+            reels.add(likesPerThousandRow(context));
+            reels.add(commentsPerThousandRow(context));
+            reels.add(shortestReelRow(context));
+            reels.add(longestReelRow(context));
+            reels.add(oldestReelRow(context));
+            reels.add(toggle(context, Settings.REELS_NEWEST_FIRST, L10n.t("Newest first"),
+                    L10n.t("Puts each page of reels in the order they were posted, newest on top.")));
+            if (PatchFamily.feedTypesInBuild()) {
+                reels.add(toggle(context, Settings.HIDE_LOW_VIEW_HOME, L10n.t("Also on Home"),
+                        L10n.t("Leaves out suggested posts on Home outside the same numbers too. "
+                                + "Pull down on Home to refresh after changing it.")));
+            }
         }
         if (build.contains(PatchFamily.EXPAND_CAPTIONS)) {
             reels.add(toggle(context, Settings.EXPAND_REEL_CAPTIONS, L10n.t("Expand captions on reels"),
