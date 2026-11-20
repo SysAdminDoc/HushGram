@@ -3442,6 +3442,12 @@ once-call Lapp/hushgram/extension/instagram/profile/SentRequests;->seen(Ljava/la
 # hashes. Left out, a request sent from a profile's header is never listed; twice or elsewhere, it
 # isn't the hook the patch wrote.
 once-call Lapp/hushgram/extension/instagram/profile/SentRequests;->seen(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V in static (LX/*;Lcom/instagram/common/session/UserSession;LX/*;LX/*;ZZ)V calling static LX/*;->*(LX/*;Lcom/instagram/common/session/UserSession;LX/*;)LX/*; class-holding const:0xd1b const:0x46ae0f6e
+# On 456 the profile header skips both of those: the helper's instance (status, view, session,
+# account, ...) method that shows each follow button its status (04Hj.A06 on 386214574, with six
+# strings and three flags after the account) gets the same call right before it hands the button the
+# status, with the session and account copied into two free low registers. Left out, a request sent
+# from someone's profile on 456 is never listed; twice or elsewhere, it isn't the hook the patch wrote.
+once-call Lapp/hushgram/extension/instagram/profile/SentRequests;->seen(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V in instance (LX/*;LX/*;Lcom/instagram/common/session/UserSession;LX/*;LX/*;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZZZ)V class-holding const:0xd1b const:0x46ae0f6e
 # Download voice messages (#20) hands VoiceMessage.offer the answer to whether a message's kind can be
 # saved, and the message, right after the menu model's builder asks it (09xN.invoke on 450, the
 # lambda building the long-press menu's model, the one method of this shape loading these strings
