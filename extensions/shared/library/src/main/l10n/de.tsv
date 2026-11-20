@@ -692,7 +692,7 @@ Download full song	Ganzen Song herunterladen
 Adds Download full song under Download on reels that use a song from Instagram's music, and a Download icon beside Save on a song's page. Both save the whole song as an audio file, not only the part the reel plays.	Fügt bei Reels mit einem Song aus der Instagram-Musik unter Herunterladen den Eintrag Ganzen Song herunterladen hinzu und auf der Seite eines Songs ein Herunterladen-Symbol neben Speichern. Beide speichern den ganzen Song als Audiodatei, nicht nur den Teil, den das Reel spielt.
 After the reels you pick below, swiping in Reels stops until Instagram has been in the background for the time you pick. A reel you open from a message or a post still plays.	Nach der unten gewählten Zahl Reels hört das Wischen in Reels auf, bis Instagram so lange im Hintergrund war, wie du wählst. Ein Reel, das du aus einer Nachricht oder einem Beitrag öffnest, läuft trotzdem.
 Find the reel you came from	Das Reel finden, von dem du kamst
-Open a creator's profile from a reel, then their Reels tab, and it scrolls to that reel and outlines it for a moment. A photo reel is found in their posts. Stop looking ends the search where it is.	Öffne aus einem Reel das Profil des Creators und dann seinen Reels-Tab, und der Tab scrollt zu diesem Reel und rahmt es kurz ein. Ein Foto-Reel wird in seinen Beiträgen gefunden. „Suche beenden“ beendet die Suche dort, wo sie gerade ist.
+Open a creator's profile from a reel, then their Reels tab, and it scrolls to that reel and labels it You just watched for a few seconds. A photo reel is found in their posts. Stop looking ends the search where it is.	Öffne aus einem Reel das Profil des Creators und dann seinen Reels-Tab, und der Tab scrollt zu diesem Reel und markiert es einige Sekunden lang mit „Gerade angesehen“. Ein Foto-Reel wird in seinen Beiträgen gefunden. „Suche beenden“ beendet die Suche dort, wo sie gerade ist.
 Wait for a tap to find it	Erst auf Tippen suchen
 When the reel isn't on the first screen, the profile shows a Find the reel button instead of scrolling on its own.	Ist das Reel nicht auf dem ersten Bildschirm, zeigt das Profil eine Schaltfläche „Reel finden“, statt selbst zu scrollen.
 Find the reel	Reel finden
@@ -700,6 +700,7 @@ Stop looking	Suche beenden
 Couldn't find the reel you came from	Das Reel, von dem du kamst, wurde nicht gefunden
 That's a trial reel, so it isn't on their profile	Ein Test-Reel, deshalb nicht im Profil
 That reel isn't on their profile. It might be a trial reel.	Das Reel ist nicht im Profil. Vielleicht ist es ein Test-Reel.
+You just watched	Gerade angesehen
 Clear saved copies now	Gespeicherte Kopien jetzt löschen
 Clear the media cache	Medien-Cache leeren
 Couldn't clear the saved copies. Try again.	Gespeicherte Kopien nicht gelöscht. Erneut versuchen.

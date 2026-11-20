@@ -692,7 +692,7 @@ Download full song	Tải cả bài hát
 Adds Download full song under Download on reels that use a song from Instagram's music, and a Download icon beside Save on a song's page. Both save the whole song as an audio file, not only the part the reel plays.	Thêm Tải cả bài hát bên dưới Tải xuống trên các reel dùng bài hát từ nhạc của Instagram, và biểu tượng Tải xuống cạnh Lưu trên trang của một bài hát. Cả hai đều lưu toàn bộ bài hát thành tệp âm thanh, không chỉ đoạn mà reel phát.
 After the reels you pick below, swiping in Reels stops until Instagram has been in the background for the time you pick. A reel you open from a message or a post still plays.	Sau số reel bạn chọn bên dưới, việc vuốt trong Reels dừng cho đến khi Instagram ở chế độ nền đủ thời gian bạn chọn. Reel bạn mở từ tin nhắn hoặc bài viết vẫn phát.
 Find the reel you came from	Tìm reel bạn đã đến từ đó
-Open a creator's profile from a reel, then their Reels tab, and it scrolls to that reel and outlines it for a moment. A photo reel is found in their posts. Stop looking ends the search where it is.	Mở trang cá nhân của nhà sáng tạo từ một reel, rồi tab Reels của họ, trang sẽ cuộn đến reel đó và viền nó trong giây lát. Reel ảnh sẽ được tìm trong bài viết của họ. Dừng tìm kết thúc việc tìm tại chỗ đang dừng.
+Open a creator's profile from a reel, then their Reels tab, and it scrolls to that reel and labels it You just watched for a few seconds. A photo reel is found in their posts. Stop looking ends the search where it is.	Mở trang cá nhân của nhà sáng tạo từ một reel, rồi tab Reels của họ, trang sẽ cuộn đến reel đó và gắn nhãn Bạn vừa xem cho nó trong vài giây. Reel ảnh sẽ được tìm trong bài viết của họ. Dừng tìm kết thúc việc tìm tại chỗ đang dừng.
 Wait for a tap to find it	Chờ nhấn mới tìm
 When the reel isn't on the first screen, the profile shows a Find the reel button instead of scrolling on its own.	Khi reel không ở màn hình đầu tiên, trang cá nhân hiện nút Tìm reel thay vì tự cuộn.
 Find the reel	Tìm reel
@@ -700,6 +700,7 @@ Stop looking	Dừng tìm
 Couldn't find the reel you came from	Không tìm thấy reel bạn đã đến từ đó
 That's a trial reel, so it isn't on their profile	Đây là reel thử nghiệm nên không có trên trang cá nhân
 That reel isn't on their profile. It might be a trial reel.	Reel đó không có trên trang cá nhân của họ. Có thể đó là reel thử nghiệm.
+You just watched	Bạn vừa xem
 Clear saved copies now	Xóa bản đã lưu ngay
 Clear the media cache	Xóa bộ nhớ đệm phương tiện
 Couldn't clear the saved copies. Try again.	Không xóa được bản đã lưu. Hãy thử lại.

@@ -35,6 +35,7 @@ Every HushGram release, newest first.
 * The video under the HushGram settings pauses while they're open, so it stops playing and loading where you can't see it. Closing the settings plays it again, and a video you'd tapped with Tap to play on stays tapped. Asked for in #762.
 * `Light settings page` sits under `Black settings page` in Settings entry. It turns the HushGram settings and the pages they open white, with dark text and status bar icons. The rest of Instagram keeps its own look. Asked for in #762.
 * A song's own page, the one you get to by tapping a reel's song, has a Download icon beside Save now. It saves the whole song as an audio file, the same as `Download full song` in a reel's menu, and it follows that switch. Asked for in #741.
+* `Find the reel you came from` labels the reel it finds with You just watched now, over a dimmed tile with a colored edge, and keeps it there for a few seconds. The old white outline was easy to miss on a pale thumbnail. Asked for in #781.
 * In Manager's Expert mode the six comment patches have a Comments group of their own now, like the Comments page in HushGram settings, and `HushGram launch screen` moved to Settings. Interaction and Interface were getting too long to scan.
 * **Tooling:** The GitHub release notes leave out the Tooling bullets and the What was checked part now. They're still here in the changelog, and Manager's notes keep their Validation line.
 

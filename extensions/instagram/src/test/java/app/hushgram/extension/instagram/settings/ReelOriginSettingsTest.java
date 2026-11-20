@@ -84,7 +84,8 @@ public class ReelOriginSettingsTest {
         assertNotNull(row);
         assertEquals("Find the reel you came from", row.getTitle().toString());
         assertEquals("Open a creator's profile from a reel, then their Reels tab, and it scrolls to that reel and "
-                + "outlines it for a moment. A photo reel is found in their posts. Stop looking ends the search where it is.",
+                + "labels it You just watched for a few seconds. A photo reel is found in their posts. Stop looking ends "
+                + "the search where it is.",
                 row.getSummary().toString());
         PreferenceGroup reels = row.getParent();
         assertEquals("Reels", reels.getTitle().toString());

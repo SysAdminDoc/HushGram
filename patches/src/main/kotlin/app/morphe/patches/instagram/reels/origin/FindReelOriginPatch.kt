@@ -21,14 +21,15 @@ internal const val REEL_ORIGIN_PATCH = "Find the reel you came from"
 /**
  * Takes you back to the reel you were watching from its creator's profile (#30). Opening a profile
  * from a reel remembers the reel, and the profile's Reels tab scrolls its grid to that reel's tile
- * and outlines it, or for a photo reel the profile's posts grid does (#225). In the default
- * selection with its switch off.
+ * and labels it You just watched (#781), or for a photo reel the profile's posts grid does (#225).
+ * In the default selection with its switch off.
  */
 @Suppress("unused")
 val findReelOriginPatch = bytecodePatch(
     name = "Find the reel you came from",
     description = "Open a creator's profile from a reel, then their Reels tab, and it scrolls to that reel and " +
-        "outlines it for a moment. A photo reel is found in their posts. Stop looking ends the search, and Wait " +
+        "labels it You just watched for a few seconds. A photo reel is found in their posts. Stop looking ends " +
+        "the search, and Wait " +
         "for a tap to find it holds it until you tap Find the reel. Starts off. Turn it on in HushGram settings > Reels.",
 ) {
     category("Reels")

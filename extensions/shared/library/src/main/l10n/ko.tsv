@@ -691,7 +691,7 @@ Download full song	전체 노래 다운로드
 Adds Download full song under Download on reels that use a song from Instagram's music, and a Download icon beside Save on a song's page. Both save the whole song as an audio file, not only the part the reel plays.	Instagram 음악의 노래를 쓰는 릴스에서 다운로드 아래에 전체 노래 다운로드를 추가하고, 노래 페이지의 저장 옆에 다운로드 아이콘을 추가합니다. 둘 다 릴스에서 재생되는 부분만이 아니라 노래 전체를 오디오 파일로 저장합니다.
 After the reels you pick below, swiping in Reels stops until Instagram has been in the background for the time you pick. A reel you open from a message or a post still plays.	아래에서 고른 개수만큼 릴스를 보면 Instagram이 고른 시간 동안 백그라운드에 있을 때까지 릴스 스와이프가 멈춥니다. 메시지나 게시물에서 연 릴스는 계속 재생됩니다.
 Find the reel you came from	보던 릴스 찾기
-Open a creator's profile from a reel, then their Reels tab, and it scrolls to that reel and outlines it for a moment. A photo reel is found in their posts. Stop looking ends the search where it is.	릴스에서 크리에이터의 프로필을 연 다음 릴스 탭을 열면 그 릴스로 스크롤하고 잠깐 테두리를 표시합니다. 사진 릴스는 게시물에서 찾습니다. 찾기 중지를 누르면 그 자리에서 찾기를 멈춥니다.
+Open a creator's profile from a reel, then their Reels tab, and it scrolls to that reel and labels it You just watched for a few seconds. A photo reel is found in their posts. Stop looking ends the search where it is.	릴스에서 크리에이터의 프로필을 연 다음 릴스 탭을 열면 그 릴스로 스크롤하고 몇 초 동안 방금 시청함이라고 표시합니다. 사진 릴스는 게시물에서 찾습니다. 찾기 중지를 누르면 그 자리에서 찾기를 멈춥니다.
 Wait for a tap to find it	탭할 때까지 기다렸다 찾기
 When the reel isn't on the first screen, the profile shows a Find the reel button instead of scrolling on its own.	릴스가 첫 화면에 없으면 프로필이 직접 스크롤하는 대신 릴스 찾기 버튼을 표시합니다.
 Find the reel	릴스 찾기
@@ -699,6 +699,7 @@ Stop looking	찾기 중지
 Couldn't find the reel you came from	보던 릴스를 찾지 못했습니다
 That's a trial reel, so it isn't on their profile	체험 릴스라서 프로필에 없습니다
 That reel isn't on their profile. It might be a trial reel.	그 릴스는 프로필에 없습니다. 체험 릴스일 수 있습니다.
+You just watched	방금 시청함
 Clear saved copies now	저장된 사본 지금 삭제
 Clear the media cache	미디어 캐시 지우기
 Couldn't clear the saved copies. Try again.	저장된 사본을 삭제하지 못했습니다. 다시 시도하세요.

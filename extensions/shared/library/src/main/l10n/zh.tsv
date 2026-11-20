@@ -697,7 +697,7 @@ Download full song	下载完整歌曲
 Adds Download full song under Download on reels that use a song from Instagram's music, and a Download icon beside Save on a song's page. Both save the whole song as an audio file, not only the part the reel plays.	在使用 Instagram 音乐歌曲的 Reel 上，于“下载”下方添加“下载完整歌曲”，并在歌曲页面的“保存”旁添加下载图标，两者都会将整首歌保存为音频文件，而不只是 Reel 播放的片段。
 After the reels you pick below, swiping in Reels stops until Instagram has been in the background for the time you pick. A reel you open from a message or a post still plays.	观看下方选择的 Reels 数量后会禁用 Reels 滑动，直到 Instagram 在背景停留你选择的时间。从消息或帖子打开的 Reel 仍会播放。
 Find the reel you came from	寻找刚才的 Reel
-Open a creator's profile from a reel, then their Reels tab, and it scrolls to that reel and outlines it for a moment. A photo reel is found in their posts. Stop looking ends the search where it is.	从 Reel 打开创作者主页，再打开其 Reels 标签页时，会卷动至该 Reel 并短暂加框标示。照片 Reel 会在帖子中寻找。“停止寻找”会在目前位置结束搜索。
+Open a creator's profile from a reel, then their Reels tab, and it scrolls to that reel and labels it You just watched for a few seconds. A photo reel is found in their posts. Stop looking ends the search where it is.	从 Reel 打开创作者主页，再打开其 Reels 标签页时，会卷动至该 Reel 并以“你刚看过”标示几秒钟。照片 Reel 会在帖子中寻找。“停止寻找”会在目前位置结束搜索。
 Wait for a tap to find it	点击后才寻找
 When the reel isn't on the first screen, the profile shows a Find the reel button instead of scrolling on its own.	若第一个画面没有该 Reel，主页会显示“寻找 Reel”按钮，而非自动卷动。
 Find the reel	寻找 Reel
@@ -1624,6 +1624,7 @@ Rows in Instagram's settings	Instagram 设置中的项目
 That file isn't a usable font. Nothing was added.	HushGram 无法使用此字库，因此未添加任何内容。
 That file isn't a usable font. Emoji didn't change.	HushGram 无法使用此字库，快拍的表情符号字体未变更。
 That reel isn't on their profile. It might be a trial reel.	该 Reel 不在对方的主页中，可能是测试用 Reel。
+You just watched	你刚看过
 The red dots and counts for new messages and notifications take the color you picked. Restart Instagram to see the change.	新消息和通知的红点与数字会改用你选择的颜色。请重新启动 Instagram 以应用变更。
 Icons in the accent color	图标使用强调色
 Instagram's icons on the top bar, the tab bar and under posts take the color you picked. Text stays as it is. Restart Instagram to see the change.	顶部栏、标签栏和帖子下方的 Instagram 图标会改用你选择的颜色。文字保持不变。请重新启动 Instagram 以应用变更。

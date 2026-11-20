@@ -689,7 +689,7 @@ Download full song	ดาวน์โหลดเพลงเต็ม
 Adds Download full song under Download on reels that use a song from Instagram's music, and a Download icon beside Save on a song's page. Both save the whole song as an audio file, not only the part the reel plays.	เพิ่ม "ดาวน์โหลดเพลงเต็ม" ใต้ "ดาวน์โหลด" ในรีลส์ที่ใช้เพลงจากคลังเพลงของ Instagram และเพิ่มไอคอนดาวน์โหลดข้าง "บันทึก" ในหน้าของเพลง ทั้งสองแบบจะบันทึกทั้งเพลงเป็นไฟล์เสียง ไม่ใช่แค่ส่วนที่รีลส์เล่น
 After the reels you pick below, swiping in Reels stops until Instagram has been in the background for the time you pick. A reel you open from a message or a post still plays.	หลังจากดูรีลส์ตามจำนวนที่คุณเลือกด้านล่าง การปัดในรีลส์จะหยุดลงจนกว่า Instagram จะทำงานในเบื้องหลังตามระยะเวลาที่คุณเลือก ทั้งนี้รีลส์ที่คุณเปิดจากข้อความหรือโพสต์จะยังคงเล่นได้ตามปกติ
 Find the reel you came from	ค้นหารีลส์ที่คุณเปิดมา
-Open a creator's profile from a reel, then their Reels tab, and it scrolls to that reel and outlines it for a moment. A photo reel is found in their posts. Stop looking ends the search where it is.	เปิดโปรไฟล์ของครีเอเตอร์จากรีลส์ จากนั้นไปที่แท็บรีลส์ของพวกเขา แล้วระบบจะเลื่อนไปยังรีลส์นั้นพร้อมทั้งเน้นเส้นขอบไว้ครู่หนึ่ง รีลส์ที่เป็นรูปภาพจะพบได้ในโพสต์ของพวกเขา การแตะ "หยุดค้นหา" จะสิ้นสุดการค้นหา ณ ตำแหน่งนั้น
+Open a creator's profile from a reel, then their Reels tab, and it scrolls to that reel and labels it You just watched for a few seconds. A photo reel is found in their posts. Stop looking ends the search where it is.	เปิดโปรไฟล์ของครีเอเตอร์จากรีลส์ จากนั้นไปที่แท็บรีลส์ของพวกเขา แล้วระบบจะเลื่อนไปยังรีลส์นั้นพร้อมทั้งติดป้าย "เพิ่งดูไป" ไว้สองสามวินาที รีลส์ที่เป็นรูปภาพจะพบได้ในโพสต์ของพวกเขา การแตะ "หยุดค้นหา" จะสิ้นสุดการค้นหา ณ ตำแหน่งนั้น
 Wait for a tap to find it	รอการแตะก่อนจึงค้นหา
 When the reel isn't on the first screen, the profile shows a Find the reel button instead of scrolling on its own.	เมื่อรีลส์ไม่ได้อยู่บนหน้าจอแรก โปรไฟล์จะแสดงปุ่ม "ค้นหารีลส์" แทนที่จะเลื่อนโดยอัตโนมัติ
 Find the reel	ค้นหารีลส์
@@ -697,6 +697,7 @@ Stop looking	หยุดค้นหา
 Couldn't find the reel you came from	ไม่พบรีลส์ที่คุณเปิดมา
 That's a trial reel, so it isn't on their profile	นั่นเป็นรีลส์ทดลอง จึงไม่ได้อยู่บนโปรไฟล์ของพวกเขา
 That reel isn't on their profile. It might be a trial reel.	รีลส์นั้นไม่ได้อยู่บนโปรไฟล์ของพวกเขา อาจเป็นรีลส์ทดลอง
+You just watched	เพิ่งดูไป
 Clear saved copies now	ล้างสำเนาที่บันทึกไว้ตอนนี้
 Clear the media cache	ล้างแคชสื่อ
 Couldn't clear the saved copies. Try again.	ไม่สามารถล้างสำเนาที่บันทึกไว้ได้ โปรดลองอีกครั้ง

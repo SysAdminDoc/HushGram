@@ -4235,7 +4235,7 @@ public class Settings extends BaseSettings {
 
     /**
      * A profile opened from a reel scrolls its Reels tab to that reel, or its posts grid for a photo
-     * reel, and outlines its tile for a moment ({@link app.hushgram.extension.instagram.reels.ReelOrigin}).
+     * reel, and labels its tile You just watched for a few seconds ({@link app.hushgram.extension.instagram.reels.ReelOrigin}).
      * Read as the profile opens and each time its Reels tab or posts grid comes up, so a change shows on
      * the next profile opened. Off to start.
      */

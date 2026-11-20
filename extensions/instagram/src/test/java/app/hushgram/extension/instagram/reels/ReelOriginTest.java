@@ -264,9 +264,11 @@ public class ReelOriginTest {
         assertTrue("nothing was dragged", grid.drags.isEmpty());
         assertTrue("nothing was scrolled", grid.scrolls.isEmpty());
         Tile tile = tile(REEL);
-        assertEquals("outlined", 1, outlines(tile));
+        assertEquals("marked", 1, outlines(tile));
         idleSeconds(2);
-        assertEquals("the outline goes after a moment", 0, outlines(tile));
+        assertEquals("still marked two seconds on, long enough to spot", 1, outlines(tile));
+        idleSeconds(ReelOrigin.OUTLINE_MS / 1000 + 1);
+        assertEquals("the mark fades after a few seconds", 0, outlines(tile));
         assertNull("the reel is dropped once found", ReelOrigin.heldForTests());
 
         // Back to the tab later: found once, it isn't looked for again.
@@ -277,6 +279,95 @@ public class ReelOriginTest {
         assertTrue(report, report.contains(ReelOrigin.REMEMBERED + " 1"));
         assertTrue(report, report.contains(ReelOrigin.FOUND + " 1"));
         assertTrue(HookStatus.missing(FamilyNames.REEL_ORIGIN).toString(), HookStatus.missing(FamilyNames.REEL_ORIGIN).isEmpty());
+    }
+
+    /**
+     * The found tile reads You just watched over a dimmed thumbnail inside an accent edge, so it shows
+     * on a white thumbnail, where the old white outline vanished (#781).
+     */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    public void theFoundTileSaysYouJustWatchedOverAWhiteThumbnail() {
+        ReelOrigin.opening(new Reel(REEL), ON);
+        openProfile(List.of("3000_7", REEL, "2900_7"), null);
+        ReelOrigin.reelsTabResumed(new Tab(profile, grid, AUTHOR), ON);
+        ShadowLooper.idleMainLooper();
+        Tile tile = tile(REEL);
+        ReelOrigin.Mark mark = mark(tile);
+        assertEquals("You just watched", mark.label);
+        assertEquals(ScreenColors.current().accent, mark.accent);
+        assertNotNull("the label is laid out for the tile", mark.lines());
+        for (int line = 0; line < mark.lines().getLineCount(); line++) {
+            assertTrue("each line fits the tile", mark.lines().getLineWidth(line) <= tile.getWidth());
+        }
+
+        Bitmap pixels = drawOnWhite(tile, mark);
+        try {
+            int corner = pixels.getPixel(1, 1);
+            assertTrue("the edge is the accent, not white: " + Integer.toHexString(corner),
+                    Color.blue(corner) > Color.red(corner) + 60);
+            int dimmed = pixels.getPixel(tile.getWidth() / 2, tile.getHeight() - 20);
+            assertTrue("a white thumbnail is dimmed: " + Integer.toHexString(dimmed),
+                    Color.red(dimmed) < 170 && Color.red(dimmed) > 100);
+            int brightest = 0;
+            int middle = tile.getHeight() / 2;
+            for (int y = middle - 20; y < middle + 20; y++) {
+                for (int x = 0; x < tile.getWidth(); x++) brightest = Math.max(brightest, Color.red(pixels.getPixel(x, y)));
+            }
+            assertTrue("the label shows white over the dim layer: " + brightest, brightest > 230);
+        } finally {
+            pixels.recycle();
+        }
+    }
+
+    /**
+     * The mark never labels another reel: a tile Instagram binds to a different reel draws nothing,
+     * and a tile that leaves the window drops the mark at once.
+     */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    public void theMarkLeavesWithItsReel() {
+        ReelOrigin.opening(new Reel(REEL), ON);
+        openProfile(List.of("3000_7", REEL, "2900_7"), null);
+        ReelOrigin.reelsTabResumed(new Tab(profile, grid, AUTHOR), ON);
+        ShadowLooper.idleMainLooper();
+        Tile tile = tile(REEL);
+        ReelOrigin.Mark mark = mark(tile);
+
+        tile.setTransitionName("2700_" + AUTHOR);
+        Bitmap pixels = drawOnWhite(tile, mark);
+        try {
+            assertEquals("rebound to another reel, the tile shows as it is", Color.WHITE,
+                    pixels.getPixel(tile.getWidth() / 2, tile.getHeight() / 2));
+            assertEquals(Color.WHITE, pixels.getPixel(1, 1));
+        } finally {
+            pixels.recycle();
+        }
+
+        tile.setTransitionName(REEL);
+        assertTrue(tile.isAttachedToWindow());
+        ((android.view.ViewGroup) tile.getParent()).removeView(tile);
+        assertEquals("gone with the tile", 0, outlines(tile));
+        idleSeconds(ReelOrigin.OUTLINE_MS / 1000 + 1);
+        assertEquals(0, outlines(tile));
+    }
+
+    /** The mark on [tile]'s overlay. */
+    private static ReelOrigin.Mark mark(View tile) {
+        Object group = ReflectionHelpers.getField(tile.getOverlay(), "mOverlayViewGroup");
+        List<?> drawables = ReflectionHelpers.getField(group, "mDrawables");
+        assertNotNull("nothing on the tile", drawables);
+        assertEquals(1, drawables.size());
+        return (ReelOrigin.Mark) drawables.get(0);
+    }
+
+    /** [mark] drawn over a white thumbnail the size of [tile]. */
+    private static Bitmap drawOnWhite(View tile, ReelOrigin.Mark mark) {
+        Bitmap pixels = Bitmap.createBitmap(tile.getWidth(), tile.getHeight(), Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(pixels);
+        canvas.drawColor(Color.WHITE);
+        mark.draw(canvas);
+        return pixels;
     }
 
     /**
