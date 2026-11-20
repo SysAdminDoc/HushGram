@@ -219,6 +219,12 @@ final class ReelsCategory {
             reels.add(toggle(context, Settings.CLEAR_MODE_SEEK_BAR, L10n.t("Always show seek bar in clear mode"),
                     L10n.t("Keeps the seek bar on a reel in clear mode, and you can still drag it, while the other "
                             + "buttons stay hidden. Short reels get a bar too, in clear mode or not.")));
+            reels.add(toggle(context, Settings.PINCH_CLEAR_MODE, L10n.t("Pinch for clear mode"),
+                    L10n.t("Pinch a reel with two fingers to turn clear mode on, and pinch again to leave it. While "
+                            + "Pinch to zoom is on, two fingers zoom instead.")));
+            reels.add(toggle(context, Settings.HIDE_CLEAR_MODE_EXIT_BUTTON, L10n.t("Hide the exit button in clear mode"),
+                    L10n.t("Takes away the round button a reel shows in clear mode, so a pinch is how you leave it. "
+                            + "The button stays while Pinch to zoom is on.")));
         }
         if (build.contains(PatchFamily.KEEP_REELS_TOP_BAR)) {
             reels.add(toggle(context, Settings.KEEP_REELS_TOP_BAR, L10n.t("Keep the Reels top bar"),

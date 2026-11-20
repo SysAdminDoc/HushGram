@@ -51,8 +51,8 @@ import kotlin.jvm.functions.Function1;
 public class ReelClearModeTest {
     @Rule public final SettingsContextRule settingsContext = new SettingsContextRule();
 
-    /** The reasons Instagram's handler is given, named as Instagram 450 names them. */
-    private enum Reason { EXIT_BUTTON, OVERFLOW_MENU, REELS_VIEWER_SWIPE_OR_EXIT }
+    /** The reasons Instagram's handler is given, named as Instagram 450 and 456 name them. */
+    private enum Reason { EXIT_BUTTON, OVERFLOW_MENU, REELS_VIEWER_SWIPE_OR_EXIT, PINCH_TO_ZOOM_IN, PINCH_TO_ZOOM_OUT }
 
     /** The pager's scroll states, named as Instagram 452 names them. */
     private enum Scroll { IDLE, DRAGGING, SETTLING }
@@ -161,6 +161,27 @@ public class ReelClearModeTest {
         @Override
         public Object reason(Object handler) {
             return menuReason;
+        }
+
+        /** Reasons this handler's build doesn't have, by name. */
+        final List<String> missingReasons = new ArrayList<>();
+
+        @Override
+        public Object reason(Object handler, String name) {
+            if (ReelClearMode.MENU.equals(name)) return reason(handler);
+            if (missingReasons.contains(name)) return null;
+            return Reason.valueOf(name);
+        }
+
+        /** The turn-offs asked for, as the reel's id and the reason. */
+        final List<String> leaves = new ArrayList<>();
+        /** While set, the handler's turn-off has no action, so it runs nothing and its hook isn't reached. */
+        boolean leaveRunsNothing;
+
+        @Override
+        public void leave(Object handler, Object item, Object reason) {
+            leaves.add(((Reel) item).id + " " + reason);
+            if (!leaveRunsNothing) ReelClearMode.left(handler, item, reason);
         }
 
         /** The turn-on action each handler holds, as Instagram 456's handler holds one. */
@@ -1577,6 +1598,187 @@ public class ReelClearModeTest {
         tapClearMode();
         assertEquals(List.of("reel 0 OVERFLOW_MENU"), viewer.turnedOn);
         assertTrue(ReelClearMode.wanted());
+    }
+
+    // ------------------------------------------------------------------ a pinch (#744)
+
+    private static boolean pinchedIn(int times) {
+        return HookStatus.report().toString().contains(ReelClearMode.PINCHED_IN + " " + times);
+    }
+
+    private static boolean pinchedOut(int times) {
+        return HookStatus.report().toString().contains(ReelClearMode.PINCHED_OUT + " " + times);
+    }
+
+    @Test
+    public void aPinchPutsItsReelInClearModeAndASecondTakesItOut() {
+        Reel first = reel("reel 0");
+        viewer.page = first;
+        ReelClearMode.ready(viewer.handler);
+        assertTrue(ReelClearMode.pinched(first));
+        assertEquals("Instagram's turn-on, with the pinch's reason", List.of("reel 0 PINCH_TO_ZOOM_IN"), viewer.turnedOn);
+        assertTrue(HookStatus.report().toString(), pinchedIn(1));
+        assertTrue("Keep clear mode on carries it like your own", ReelClearMode.wanted());
+
+        assertTrue(ReelClearMode.pinched(first));
+        assertEquals("the handler that put it in takes it out", List.of("reel 0 PINCH_TO_ZOOM_OUT"), viewer.leaves);
+        assertEquals("nothing else turned on", 1, viewer.turnedOn.size());
+        assertTrue(HookStatus.report().toString(), pinchedOut(1));
+        assertFalse("leaving it by a pinch forgets Keep clear mode on", ReelClearMode.wanted());
+
+        assertTrue(ReelClearMode.pinched(first));
+        assertEquals("a third pinch puts it back", List.of("reel 0 PINCH_TO_ZOOM_IN", "reel 0 PINCH_TO_ZOOM_IN"), viewer.turnedOn);
+        assertTrue(pinchedIn(2));
+    }
+
+    @Test
+    public void aPinchTakesOutAReelYouPutInClearModeOrKeepCarriedTo() {
+        Reel first = reel("reel 0");
+        viewer.page = first;
+        ReelClearMode.ready(viewer.handler);
+        tapClearMode();
+        assertTrue(ReelClearMode.pinched(first));
+        assertEquals("from the menu", List.of("reel 0 PINCH_TO_ZOOM_OUT"), viewer.leaves);
+        assertFalse(ReelClearMode.wanted());
+
+        tapClearMode();
+        Reel second = reel("reel 1");
+        swipe(first, second);
+        assertEquals(List.of("reel 0 OVERFLOW_MENU", "reel 0 OVERFLOW_MENU", "reel 1 OVERFLOW_MENU"), viewer.turnedOn);
+        assertTrue(ReelClearMode.pinched(second));
+        assertEquals("carried to", List.of("reel 0 PINCH_TO_ZOOM_OUT", "reel 1 PINCH_TO_ZOOM_OUT"), viewer.leaves);
+        assertFalse(ReelClearMode.wanted());
+    }
+
+    @Test
+    public void withKeepOffASwipeEndsItSoTheNextReelsPinchTurnsItOn() {
+        Settings.KEEP_REEL_CLEAR_MODE.save(false);
+        Reel first = reel("reel 0");
+        viewer.page = first;
+        ReelClearMode.ready(viewer.handler);
+        assertTrue(ReelClearMode.pinched(first));
+        assertFalse("Keep clear mode on is off", ReelClearMode.wanted());
+
+        Reel second = reel("reel 1");
+        swipe(first, second);
+        assertEquals("the next reel shows its buttons", 1, viewer.turnedOn.size());
+        assertTrue(ReelClearMode.pinched(second));
+        assertEquals("a reel that isn't in it gets turned on", List.of("reel 0 PINCH_TO_ZOOM_IN", "reel 1 PINCH_TO_ZOOM_IN"), viewer.turnedOn);
+        assertTrue("nothing was turned off", viewer.leaves.isEmpty());
+
+        // A reel other than the one in clear mode is put in it too, not taken out.
+        Reel third = reel("reel 2");
+        viewer.page = third;
+        assertTrue(ReelClearMode.pinched(third));
+        assertEquals("reel 2 PINCH_TO_ZOOM_IN", viewer.turnedOn.get(2));
+        assertTrue(viewer.leaves.isEmpty());
+    }
+
+    @Test
+    public void aTurnOffThatRunsNothingLeavesTheNextPinchToTurnItOn() {
+        Reel first = reel("reel 0");
+        viewer.page = first;
+        ReelClearMode.ready(viewer.handler);
+        tapClearMode();
+        viewer.leaveRunsNothing = true;
+        assertFalse("Instagram's own write goes through", ReelClearMode.pinched(first));
+        assertEquals(List.of("reel 0 PINCH_TO_ZOOM_OUT"), viewer.leaves);
+        assertFalse(pinchedOut(1));
+
+        assertTrue(ReelClearMode.pinched(first));
+        assertEquals(List.of("reel 0 OVERFLOW_MENU", "reel 0 PINCH_TO_ZOOM_IN"), viewer.turnedOn);
+        assertEquals("not asked to turn off again", 1, viewer.leaves.size());
+    }
+
+    @Test
+    public void aBuildWithoutThePinchsReasonsUsesTheMenuAndTheExitButtons() {
+        viewer.missingReasons.addAll(List.of(ReelClearMode.PINCH_IN, ReelClearMode.PINCH_OUT));
+        Reel first = reel("reel 0");
+        viewer.page = first;
+        ReelClearMode.ready(viewer.handler);
+        assertTrue(ReelClearMode.pinched(first));
+        assertEquals(List.of("reel 0 OVERFLOW_MENU"), viewer.turnedOn);
+        assertTrue(ReelClearMode.pinched(first));
+        assertEquals(List.of("reel 0 EXIT_BUTTON"), viewer.leaves);
+
+        viewer.missingReasons.add(ReelClearMode.EXIT_BUTTON);
+        assertTrue(ReelClearMode.pinched(first));
+        assertFalse("no reason to turn it off with: Instagram's own write goes through", ReelClearMode.pinched(first));
+        assertEquals(1, viewer.leaves.size());
+    }
+
+    @Test
+    public void noViewerPausedUnreadyOrFailingThePinchIsInstagrams() {
+        Reel first = reel("reel 0");
+        viewer.page = first;
+        assertFalse("no viewer yet", ReelClearMode.pinched(first));
+        assertFalse(ReelClearMode.pinched(null));
+        assertEquals(0, viewer.asked);
+
+        ReelClearMode.ready(viewer.handler);
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertFalse("paused", ReelClearMode.pinched(first));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        SettingsContextRule.withoutContext(() -> assertFalse("unready", ReelClearMode.pinched(first)));
+        assertEquals(0, viewer.asked);
+
+        Reel unreadable = reel("unreadable");
+        viewer.unreadable = unreadable;
+        assertFalse(ReelClearMode.pinched(unreadable));
+        assertTrue(reported("pinch for clear mode"));
+        assertEquals(0, viewer.asked);
+    }
+
+    /**
+     * The hook in place of the pinch's write: with Pinch for clear mode on, the pinch goes through
+     * the handler. Off, nothing is asked and the write goes through as Instagram has it.
+     */
+    @Test
+    public void thePinchsWriteGoesThroughTheHandlerOnlyWithTheSwitchOn() {
+        try {
+            Reel first = reel("reel 0");
+            viewer.page = first;
+            ReelClearMode.ready(viewer.handler);
+            Object target = new Object();
+            ReelPinchClearMode.turn(target, first, 1);
+            assertEquals("off, nothing is asked", 0, viewer.asked);
+
+            Settings.PINCH_CLEAR_MODE.save(true);
+            ReelPinchClearMode.turn(target, first, 1);
+            assertEquals(List.of("reel 0 PINCH_TO_ZOOM_IN"), viewer.turnedOn);
+            ReelPinchClearMode.turn(target, first, 0);
+            assertEquals(List.of("reel 0 PINCH_TO_ZOOM_OUT"), viewer.leaves);
+            ReelPinchClearMode.turn(target, null, 1);
+            assertEquals("no reel asks nothing", 1, viewer.turnedOn.size());
+        } finally {
+            Settings.PINCH_CLEAR_MODE.resetToDefault();
+        }
+    }
+
+    /** Builds whose pinch writes through the store's static write (386214562, 386214575) go the same way through {@link ReelPinchClearMode#write}. */
+    @Test
+    public void theStaticWriteOfAPinchGoesThroughTheHandlerToo() {
+        try {
+            Reel first = reel("reel 0");
+            viewer.page = first;
+            ReelClearMode.ready(viewer.handler);
+            Object key = new Object();
+            Object store = new Object();
+            ReelPinchClearMode.write(first, key, store, Boolean.TRUE, 1);
+            assertEquals("off, nothing is asked", 0, viewer.asked);
+
+            Settings.PINCH_CLEAR_MODE.save(true);
+            ReelPinchClearMode.write(first, key, store, Boolean.TRUE, 1);
+            assertEquals(List.of("reel 0 PINCH_TO_ZOOM_IN"), viewer.turnedOn);
+            ReelPinchClearMode.write(first, key, store, Boolean.FALSE, 1);
+            assertEquals(List.of("reel 0 PINCH_TO_ZOOM_OUT"), viewer.leaves);
+            ReelPinchClearMode.write(null, key, store, Boolean.TRUE, 1);
+            assertEquals("no reel asks nothing", 1, viewer.turnedOn.size());
+        } finally {
+            Settings.PINCH_CLEAR_MODE.resetToDefault();
+        }
     }
 
     /**

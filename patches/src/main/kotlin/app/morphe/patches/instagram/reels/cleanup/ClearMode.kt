@@ -65,6 +65,7 @@ internal const val CLEAR_MODE_ID_STUB = "reelId"
 internal const val CLEAR_MODE_ACTION_STUB = "turnOnAction"
 internal const val CLEAR_MODE_SET_ACTION_STUB = "setTurnOnAction"
 internal const val CLEAR_MODE_CHROME_STUB = "setChrome"
+internal const val CLEAR_MODE_LEAVE_STUB = "leave"
 
 /**
  * The markers, after Instagram's release prefix, of the methods Keep clear mode on changes.
@@ -511,10 +512,8 @@ private fun BytecodePatchContext.traced(trace: String): Method {
  * holding the reel, its state and the handler, that reads the reel state's clear mode flag.
  */
 private fun BytecodePatchContext.anchoredButton(anchors: ClearModeAnchors): Method {
-    val states = reelStateNames().values.toList()
-    val toString = states.singleOrNull() ?: stop("expected one reel state naming its clear mode flag, found ${states.size}")
-    val state = toString.definingClass
-    val flag = clearModeFlag(toString)
+    val flag = reelClearModeFlag()
+    val state = flag.definingClass
     val wanted = setOf(anchors.item, state, anchors.action.definingClass)
     val renders = classesAccessing(state, flag.name, Opcode.IGET_BOOLEAN)
         .filter { holder -> holder.instanceFields.map { it.type }.containsAll(wanted) }
@@ -609,6 +608,13 @@ private fun BytecodePatchContext.exitButton(button: Method, item: String, how: S
     if (button.localRegisterCount() < 1) stop("${button.describe()} has no local register for the hook")
     val (buzz, quiet) = clearModeBuzz(button) ?: (null to 0)
     return ExitButton(reel, buzz, quiet)
+}
+
+/** The reel state's clear mode flag, from the one reel state whose toString names it. */
+internal fun BytecodePatchContext.reelClearModeFlag(): Field {
+    val states = reelStateNames().values.toList()
+    val toString = states.singleOrNull() ?: stop("expected one reel state naming its clear mode flag, found ${states.size}")
+    return clearModeFlag(toString)
 }
 
 /** Every reel state's toString naming its clear mode flag, by the state's type. */
@@ -987,8 +993,25 @@ internal class ClearModeStubs(
     val action: MutableMethod,
     val setAction: MutableMethod,
     val chrome: MutableMethod,
+    val leave: MutableMethod,
 ) {
     fun fill(found: ClearModeHooks) {
+        // The handler's own turn-off, which Pinch for clear mode takes a reel out of clear mode
+        // through (#744). The handler is public wherever it's found. A turn-off the extension can't
+        // reach leaves the stub empty, which turns nothing off.
+        val dismiss = found.dismiss
+        if (dismiss.isPublic()) {
+            leave.addInstructions(
+                0,
+                """
+                    check-cast p0, ${found.handler}
+                    check-cast p1, ${found.item}
+                    check-cast p2, ${found.reason}
+                    invoke-virtual { p0, p1, p2 }, ${found.handler}->${dismiss.name}(${found.item}${found.reason})V
+                    return-void
+                """,
+            )
+        }
         // The reel holder's own alpha setter, which the hook in it hears, so a holder hidden for clear
         // mode gets its buttons back the way Instagram would show them (#740).
         val setter = found.chrome
@@ -1066,6 +1089,7 @@ internal fun BytecodePatchContext.clearModeStubs(): ClearModeStubs {
         action = stub(CLEAR_MODE_ACTION_STUB, listOf(OBJECT), OBJECT),
         setAction = stub(CLEAR_MODE_SET_ACTION_STUB, listOf(OBJECT, OBJECT), "V"),
         chrome = stub(CLEAR_MODE_CHROME_STUB, listOf(OBJECT, "F"), "V"),
+        leave = stub(CLEAR_MODE_LEAVE_STUB, listOf(OBJECT, OBJECT, OBJECT), "V"),
     )
 }
 

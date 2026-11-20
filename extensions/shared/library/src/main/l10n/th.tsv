@@ -1305,6 +1305,12 @@ Stops the short buzz Instagram plays when a reel opens in clear mode. With Keep 
 # context: Reels settings: a switch under Don't vibrate in clear mode (#480). It keeps the seek bar on screen in clear mode; seek bar and clear mode use the same words as Keep a seek bar and Keep clear mode on
 Always show seek bar in clear mode	แสดงแถบเลื่อนเวลาในโหมดล้างหน้าจอตลอดเวลา
 Keeps the seek bar on a reel in clear mode, and you can still drag it, while the other buttons stay hidden. Short reels get a bar too, in clear mode or not.	คงแถบเลื่อนเวลาบนรีลส์ไว้ในโหมดล้างหน้าจอ และคุณยังสามารถลากแถบดังกล่าวได้ ในขณะที่ปุ่มอื่นๆ จะยังคงซ่อนอยู่ โดยรีลส์สั้นจะมีแถบนี้ด้วยเช่นกัน ไม่ว่าจะอยู่ในโหมดล้างหน้าจอหรือไม่ก็ตาม
+# context: Reels settings: a switch under Always show seek bar in clear mode (#744). A two-finger pinch on a reel turns Instagram's clear mode on and off; clear mode uses the same words as Keep clear mode on, and Pinch to zoom is the Reels switch of that name
+Pinch for clear mode	จีบนิ้วเพื่อเข้าโหมดล้างหน้าจอ
+Pinch a reel with two fingers to turn clear mode on, and pinch again to leave it. While Pinch to zoom is on, two fingers zoom instead.	จีบนิ้วสองนิ้วบนรีลส์เพื่อเปิดโหมดล้างหน้าจอ และจีบอีกครั้งเพื่อออก ขณะที่เปิดจีบนิ้วเพื่อซูมอยู่ สองนิ้วจะซูมแทน
+# context: Reels settings: a switch under Pinch for clear mode (#744). It hides the round exit button a reel shows in clear mode, the button that leaves clear mode; Pinch to zoom is the Reels switch of that name
+Hide the exit button in clear mode	ซ่อนปุ่มออกในโหมดล้างหน้าจอ
+Takes away the round button a reel shows in clear mode, so a pinch is how you leave it. The button stays while Pinch to zoom is on.	เอาปุ่มกลมที่รีลส์แสดงในโหมดล้างหน้าจอออก คุณจึงออกด้วยการจีบนิ้ว ปุ่มจะยังอยู่ขณะที่เปิดจีบนิ้วเพื่อซูม
 Unlock with	ปลดล็อกด้วย
 Phone lock	การล็อกโทรศัพท์
 HushGram PIN	PIN ของ HushGram

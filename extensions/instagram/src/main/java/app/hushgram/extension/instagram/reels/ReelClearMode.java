@@ -172,6 +172,17 @@ public final class ReelClearMode {
     /** How many Reels viewers' handlers are kept for the Full screen icon, newest first (#480). */
     static final int VIEWERS = 4;
 
+    /** The reasons Instagram's own pinch turns clear mode on and off with (#744). */
+    static final String PINCH_IN = "PINCH_TO_ZOOM_IN";
+    static final String PINCH_OUT = "PINCH_TO_ZOOM_OUT";
+
+    /** The reason the exit button turns clear mode off with, which a pinch gives where the build has no pinch reason. */
+    static final String EXIT_BUTTON = "EXIT_BUTTON";
+
+    /** Counted under the patch's name for each reel a pinch put in clear mode, and took out of it (#744). */
+    static final String PINCHED_IN = "reels put in clear mode by a pinch";
+    static final String PINCHED_OUT = "reels taken out of clear mode by a pinch";
+
     /** What this class does to Instagram and reads from it. {@link #PATCHED} is the patch's; tests stand in. */
     interface Viewer {
         /** Turns clear mode on through Instagram's own handler, with the reason given. */
@@ -202,6 +213,16 @@ public final class ReelClearMode {
         /** The handler's own reason for a turn-on from Instagram's menu row, or null when it has none. */
         @Nullable
         Object reason(Object handler);
+
+        /** The handler's own reason named [name], or null when it has none. */
+        @Nullable
+        default Object reason(Object handler, String name) {
+            return MENU.equals(name) ? reason(handler) : null;
+        }
+
+        /** Turns clear mode off for [item] through Instagram's own handler, with the reason given (#744). */
+        default void leave(Object handler, Object item, Object reason) {
+        }
 
         /** The turn-on action the handler holds, where the patch reached it (456), or null. */
         @Nullable
@@ -256,13 +277,18 @@ public final class ReelClearMode {
                     && 2 * seen.width() >= view.getWidth() && 2 * seen.height() >= view.getHeight();
         }
 
+        @Override
+        public Object reason(Object handler) {
+            return reason(handler, MENU);
+        }
+
         /**
          * The reason enum is the one parameter of the handler's turn-on, and the last of its
          * turn-off, the only method of the handler 456 keeps. Its constants are read from its own
          * static fields, since Redex may leave an enum without values().
          */
         @Override
-        public Object reason(Object handler) {
+        public Object reason(Object handler, String name) {
             for (Method method : handler.getClass().getDeclaredMethods()) {
                 for (Class<?> parameter : method.getParameterTypes()) {
                     if (!Enum.class.isAssignableFrom(parameter)) continue;
@@ -271,7 +297,7 @@ public final class ReelClearMode {
                         try {
                             field.setAccessible(true);
                             Object constant = field.get(null);
-                            if (constant instanceof Enum && MENU.equals(((Enum<?>) constant).name())) return constant;
+                            if (constant instanceof Enum && name.equals(((Enum<?>) constant).name())) return constant;
                         } catch (ReflectiveOperationException | RuntimeException unreadable) {
                             // Another constant may still be readable.
                         }
@@ -289,6 +315,11 @@ public final class ReelClearMode {
         @Override
         public void setAction(Object handler, Object action) {
             setTurnOnAction(handler, action);
+        }
+
+        @Override
+        public void leave(Object handler, Object item, Object reason) {
+            ReelClearMode.leave(handler, item, reason);
         }
     };
 
@@ -390,6 +421,20 @@ public final class ReelClearMode {
 
     private static volatile boolean showPosted;
 
+    /**
+     * The handler that last turned clear mode on, weakly, and the reel it did, until that reel
+     * leaves it, so a pinch on that reel turns it off through the same handler (#744). Kept with Keep
+     * clear mode on off too.
+     */
+    @Nullable
+    private static volatile WeakReference<Object> onBy;
+
+    @Nullable
+    private static volatile String onReel;
+
+    /** The handler's turn-off was heard since a pinch asked for it (#744). */
+    private static volatile boolean heardLeft;
+
     private ReelClearMode() {
     }
 
@@ -422,6 +467,10 @@ public final class ReelClearMode {
     public static void setChrome(Object page, float alpha) {
     }
 
+    /** Filled in by the patch: the handler's own turn-off (#744). Only the handler, a reel and its reason may be passed. */
+    public static void leave(Object handler, Object item, Object reason) {
+    }
+
     // ------------------------------------------------------------------ hooks
 
     /**
@@ -431,6 +480,11 @@ public final class ReelClearMode {
     public static void entered(@Nullable Object handler, @Nullable Object reason) {
         try {
             HookStatus.invoked(FAMILY);
+            String turned = carrying ? reached : enabling;
+            if (handler != null && turned != null) {
+                onBy = new WeakReference<>(handler);
+                onReel = turned;
+            }
             if (carrying) return;
             String id = enabling;
             enabling = null;
@@ -458,6 +512,13 @@ public final class ReelClearMode {
     public static void left(@Nullable Object handler, @Nullable Object item, @Nullable Object reason) {
         try {
             HookStatus.invoked(FAMILY);
+            heardLeft = true;
+            String gone = item == null ? null : access.id(item);
+            // A reel that can't be told apart may be the one a pinch would turn off, so it's forgotten too.
+            if (gone == null || gone.equals(onReel)) {
+                onReel = null;
+                onBy = null;
+            }
             if (carrying) return;
             if (!swipedAway(reason)) {
                 if (wanted) Logger.printDebug(() -> "Clear mode: turned off, the next reels show their buttons");
@@ -472,7 +533,7 @@ public final class ReelClearMode {
                 drop();
                 return;
             }
-            String id = item == null ? null : access.id(item);
+            String id = gone;
             String was = shown;
             if (handler == null || id == null || !id.equals(was)) {
                 Logger.printDebug(() -> "Clear mode: a reel left it that isn't the one put in it, nothing carried"
@@ -768,49 +829,113 @@ public final class ReelClearMode {
      */
     public static boolean fullScreen(@Nullable Object item) {
         try {
-            if (item == null || carrying || !Utils.settingsReady() || HushgramPause.isPaused()) return false;
-            String id = access.id(item);
-            if (id == null) return false;
-            Object[] handlers;
-            synchronized (HANDLERS) {
-                handlers = HANDLERS.stream().map(WeakReference::get).filter(Objects::nonNull).toArray();
-            }
-            for (Object handler : handlers) {
-                Object reason = access.reason(handler);
-                if (reason == null) continue;
-                outcome = NOTHING;
-                reached = null;
-                aiming = id;
-                carrying = true;
-                try {
-                    access.enter(handler, reason);
-                } finally {
-                    carrying = false;
-                    aiming = null;
-                }
-                int found = outcome;
-                String got = reached;
-                outcome = NOTHING;
-                reached = null;
-                if (found != REACHED || got == null) continue;
-                HookStatus.counted(FAMILY, FULL_SCREEN);
-                if (on()) {
-                    HookStatus.bound(FAMILY, "clear mode");
-                    want(handler);
-                    source = reason;
-                    shown = got;
-                    clearRetry();
-                }
-                Logger.printDebug(() -> "Clear mode: turned on by the Full screen icon");
-                return true;
-            }
-            Logger.printDebug(() -> "Clear mode: the Full screen icon reached no viewer showing its reel ("
-                    + handlers.length + " viewers)");
-            return false;
+            return turnOnFor(item, MENU, FULL_SCREEN, "the Full screen icon");
         } catch (Throwable failure) {
             HookStatus.threw(FAMILY, "full screen icon", failure);
             return false;
         }
+    }
+
+    // ------------------------------------------------------------------ a pinch (#744)
+
+    /**
+     * A pinch on [item], where Instagram's own pinch would only write the reel's clear mode state,
+     * which shows nothing. A reel a viewer's handler put in clear mode, and that hasn't left it, is
+     * taken out of it through that handler with the reason Instagram's pinch gives. Any other reel is
+     * put in it the way the Full screen icon does. True when Instagram did either, so the pinch's own
+     * write is skipped. Never throws.
+     */
+    public static boolean pinched(@Nullable Object item) {
+        try {
+            if (item == null || carrying || !Utils.settingsReady() || HushgramPause.isPaused()) return false;
+            String id = access.id(item);
+            if (id == null) return false;
+            WeakReference<Object> by = onBy;
+            Object handler = by == null ? null : by.get();
+            if (handler != null && id.equals(onReel)) return pinchedOut(handler, item);
+            return turnOnFor(item, PINCH_IN, PINCHED_IN, "a pinch");
+        } catch (Throwable failure) {
+            HookStatus.threw(FAMILY, "pinch for clear mode", failure);
+            return false;
+        }
+    }
+
+    /**
+     * Turns clear mode off for [item] through [handler], the one that put it in, with the reason
+     * Instagram's pinch gives, or the exit button's where the build has none. True when the handler's
+     * turn-off ran, which {@link #left} hears, and which forgets Keep clear mode on like any turn-off
+     * of yours. A handler that turned nothing off leaves the reel to the next pinch's turn-on.
+     */
+    private static boolean pinchedOut(Object handler, Object item) {
+        Object reason = access.reason(handler, PINCH_OUT);
+        if (reason == null) reason = access.reason(handler, EXIT_BUTTON);
+        if (reason == null) {
+            Logger.printDebug(() -> "Clear mode: the handler gives no reason to turn it off with, the pinch does what Instagram's would");
+            return false;
+        }
+        heardLeft = false;
+        access.leave(handler, item, reason);
+        boolean heard = heardLeft;
+        heardLeft = false;
+        if (!heard) {
+            onReel = null;
+            onBy = null;
+            Logger.printDebug(() -> "Clear mode: the pinch's turn-off ran nothing, the next pinch turns it on");
+            return false;
+        }
+        HookStatus.counted(FAMILY, PINCHED_OUT);
+        Logger.printDebug(() -> "Clear mode: turned off by a pinch");
+        return true;
+    }
+
+    /**
+     * Asks each Reels viewer's handler, newest first, to turn clear mode on for [item] with its
+     * reason named [name], or the one Instagram's menu row gives where it has none, and
+     * {@link #current} lets the turn-on land only on [item], so a viewer showing another reel does
+     * nothing. Counted under [counter]. With Keep clear mode on, a reel put in it is carried like
+     * your own. True when Instagram turned it on.
+     */
+    private static boolean turnOnFor(@Nullable Object item, String name, String counter, String how) {
+        if (item == null || carrying || !Utils.settingsReady() || HushgramPause.isPaused()) return false;
+        String id = access.id(item);
+        if (id == null) return false;
+        Object[] handlers;
+        synchronized (HANDLERS) {
+            handlers = HANDLERS.stream().map(WeakReference::get).filter(Objects::nonNull).toArray();
+        }
+        for (Object handler : handlers) {
+            Object reason = access.reason(handler, name);
+            if (reason == null && !MENU.equals(name)) reason = access.reason(handler, MENU);
+            if (reason == null) continue;
+            outcome = NOTHING;
+            reached = null;
+            aiming = id;
+            carrying = true;
+            try {
+                access.enter(handler, reason);
+            } finally {
+                carrying = false;
+                aiming = null;
+            }
+            int found = outcome;
+            String got = reached;
+            outcome = NOTHING;
+            reached = null;
+            if (found != REACHED || got == null) continue;
+            HookStatus.counted(FAMILY, counter);
+            if (on()) {
+                HookStatus.bound(FAMILY, "clear mode");
+                want(handler);
+                source = reason;
+                shown = got;
+                clearRetry();
+            }
+            Logger.printDebug(() -> "Clear mode: turned on by " + how);
+            return true;
+        }
+        Logger.printDebug(() -> "Clear mode: " + how + " reached no viewer showing its reel ("
+                + handlers.length + " viewers)");
+        return false;
     }
 
     /**
@@ -1225,6 +1350,9 @@ public final class ReelClearMode {
             HANDLERS.clear();
         }
         aiming = null;
+        onBy = null;
+        onReel = null;
+        heardLeft = false;
         access = PATCHED;
     }
 

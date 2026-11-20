@@ -1314,6 +1314,12 @@ Stops the short buzz Instagram plays when a reel opens in clear mode. With Keep 
 # context: Reels settings: a switch under Don't vibrate in clear mode (#480). It keeps the seek bar on screen in clear mode; seek bar and clear mode use the same words as Keep a seek bar and Keep clear mode on
 Always show seek bar in clear mode	Mostra sempre la barra di avanzamento in modalità pulita
 Keeps the seek bar on a reel in clear mode, and you can still drag it, while the other buttons stay hidden. Short reels get a bar too, in clear mode or not.	Tiene la barra di avanzamento su un reel in modalità pulita, e puoi ancora trascinarla, mentre gli altri pulsanti restano nascosti. Anche i reel brevi hanno una barra, in modalità pulita o no.
+# context: Reels settings: a switch under Always show seek bar in clear mode (#744). A two-finger pinch on a reel turns Instagram's clear mode on and off; clear mode uses the same words as Keep clear mode on, and Pinch to zoom is the Reels switch of that name
+Pinch for clear mode	Pizzica per la modalità pulita
+Pinch a reel with two fingers to turn clear mode on, and pinch again to leave it. While Pinch to zoom is on, two fingers zoom instead.	Pizzica un reel con due dita per attivare la modalità pulita, e pizzica di nuovo per uscire. Con Pizzica per ingrandire attivo, due dita ingrandiscono.
+# context: Reels settings: a switch under Pinch for clear mode (#744). It hides the round exit button a reel shows in clear mode, the button that leaves clear mode; Pinch to zoom is the Reels switch of that name
+Hide the exit button in clear mode	Nascondi il pulsante di uscita in modalità pulita
+Takes away the round button a reel shows in clear mode, so a pinch is how you leave it. The button stays while Pinch to zoom is on.	Toglie il pulsante rotondo che un reel mostra in modalità pulita, così esci pizzicando. Il pulsante resta con Pizzica per ingrandire attivo.
 Unlock with	Sblocca con
 Phone lock	Blocco del telefono
 HushGram PIN	PIN di HushGram

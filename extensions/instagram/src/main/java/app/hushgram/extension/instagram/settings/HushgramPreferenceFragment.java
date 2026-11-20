@@ -839,7 +839,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 if (Settings.REMOVE_BUILD_EXPIRED_POPUP.key.equals(key)) aliases.append(' ').append(L10n.t("Updates"));
                 // Instagram's menu calls clear mode Full screen (#480).
                 if (Settings.KEEP_REEL_CLEAR_MODE.key.equals(key) || Settings.START_REEL_CLEAR_MODE.key.equals(key)
-                        || Settings.QUIET_REEL_CLEAR_MODE.key.equals(key) || Settings.CLEAR_MODE_SEEK_BAR.key.equals(key)) {
+                        || Settings.QUIET_REEL_CLEAR_MODE.key.equals(key) || Settings.CLEAR_MODE_SEEK_BAR.key.equals(key)
+                        || Settings.PINCH_CLEAR_MODE.key.equals(key) || Settings.HIDE_CLEAR_MODE_EXIT_BUTTON.key.equals(key)) {
                     aliases.append(' ').append(L10n.t("Full screen")).append(" fullscreen");
                 }
                 for (PatchFamily family : build) {

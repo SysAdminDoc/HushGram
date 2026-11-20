@@ -1314,6 +1314,12 @@ Stops the short buzz Instagram plays when a reel opens in clear mode. With Keep 
 # context: Reels settings: a switch under Don't vibrate in clear mode (#480). It keeps the seek bar on screen in clear mode; seek bar and clear mode use the same words as Keep a seek bar and Keep clear mode on
 Always show seek bar in clear mode	Mostrar siempre la barra de reproducción en el modo limpio
 Keeps the seek bar on a reel in clear mode, and you can still drag it, while the other buttons stay hidden. Short reels get a bar too, in clear mode or not.	Deja la barra de reproducción en un reel en modo limpio, y puedes seguir arrastrándola, mientras los demás botones siguen ocultos. Los reels cortos también tienen barra, estén en modo limpio o no.
+# context: Reels settings: a switch under Always show seek bar in clear mode (#744). A two-finger pinch on a reel turns Instagram's clear mode on and off; clear mode uses the same words as Keep clear mode on, and Pinch to zoom is the Reels switch of that name
+Pinch for clear mode	Pellizcar para el modo limpio
+Pinch a reel with two fingers to turn clear mode on, and pinch again to leave it. While Pinch to zoom is on, two fingers zoom instead.	Pellizca un reel con dos dedos para activar el modo limpio, y vuelve a pellizcar para salir. Mientras Pellizcar para hacer zoom está activado, dos dedos hacen zoom.
+# context: Reels settings: a switch under Pinch for clear mode (#744). It hides the round exit button a reel shows in clear mode, the button that leaves clear mode; Pinch to zoom is the Reels switch of that name
+Hide the exit button in clear mode	Ocultar el botón de salida en el modo limpio
+Takes away the round button a reel shows in clear mode, so a pinch is how you leave it. The button stays while Pinch to zoom is on.	Quita el botón redondo que muestra un reel en modo limpio, así que sales pellizcando. El botón se queda mientras Pellizcar para hacer zoom está activado.
 Unlock with	Desbloquear con
 Phone lock	Bloqueo del teléfono
 HushGram PIN	PIN de HushGram

@@ -1313,6 +1313,12 @@ Stops the short buzz Instagram plays when a reel opens in clear mode. With Keep 
 # context: Reels settings: a switch under Don't vibrate in clear mode (#480). It keeps the seek bar on screen in clear mode; seek bar and clear mode use the same words as Keep a seek bar and Keep clear mode on
 Always show seek bar in clear mode	클리어 모드에서 재생바 항상 표시
 Keeps the seek bar on a reel in clear mode, and you can still drag it, while the other buttons stay hidden. Short reels get a bar too, in clear mode or not.	클리어 모드의 릴스에 재생바를 남겨 계속 끌 수 있고, 다른 버튼은 숨겨진 채로 둡니다. 짧은 릴스에도 클리어 모드 여부와 상관없이 재생바가 표시됩니다.
+# context: Reels settings: a switch under Always show seek bar in clear mode (#744). A two-finger pinch on a reel turns Instagram's clear mode on and off; clear mode uses the same words as Keep clear mode on, and Pinch to zoom is the Reels switch of that name
+Pinch for clear mode	두 손가락으로 클리어 모드
+Pinch a reel with two fingers to turn clear mode on, and pinch again to leave it. While Pinch to zoom is on, two fingers zoom instead.	릴스를 두 손가락으로 오므리면 클리어 모드가 켜지고, 다시 오므리면 나갑니다. 두 손가락으로 확대가 켜져 있으면 두 손가락으로 확대됩니다.
+# context: Reels settings: a switch under Pinch for clear mode (#744). It hides the round exit button a reel shows in clear mode, the button that leaves clear mode; Pinch to zoom is the Reels switch of that name
+Hide the exit button in clear mode	클리어 모드에서 나가기 버튼 숨기기
+Takes away the round button a reel shows in clear mode, so a pinch is how you leave it. The button stays while Pinch to zoom is on.	클리어 모드의 릴스에 표시되는 둥근 버튼을 없애, 두 손가락으로 오므려서 나가게 합니다. 두 손가락으로 확대가 켜져 있으면 버튼이 남습니다.
 Unlock with	잠금 해제 방법
 Phone lock	휴대폰 잠금
 HushGram PIN	HushGram PIN

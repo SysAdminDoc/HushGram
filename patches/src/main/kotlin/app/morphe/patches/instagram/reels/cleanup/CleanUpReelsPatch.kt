@@ -79,6 +79,13 @@ private const val PATCH = "Clean up Reels"
  * mode (#277). See ClearMode.kt. Its places are found and checked before any part is hidden, so a
  * build that lacks one changes nothing.
  *
+ * Pinch for clear mode answers the server flag behind Instagram's own pinch for clear mode, and
+ * hands that pinch's write of the reel's state, which shows nothing, to the handler Keep clear mode
+ * on found, so two fingers on a reel turn clear mode on and off. Hide the exit button in clear mode
+ * draws the round button in its corner as nothing that takes no tap (#744). See PinchClearMode.kt. A
+ * build where either doesn't fit, or where Keep clear mode on doesn't, gets the patch without it,
+ * with a warning.
+ *
  * Every part is required: a build where one can't be found once, in the shape its kind has, stops
  * the patch with what's wrong, rather than shipping a switch that quietly does nothing.
  */
@@ -89,6 +96,7 @@ val cleanUpReelsPatch = bytecodePatch(
         "Meta glasses, friends' activity, the Add a comment bar, the reply bar on reels from chats, the Like, Comment and Save buttons, the " +
         "count under any of the buttons beside a reel, the pause icon on a paused reel, the Create and Your algorithm buttons, the Friends tab and the Reels tab's top bar. Each one has its own switch, and Burn-in guard can dim a reel's buttons, and a story's, while you aren't " +
         "touching the screen. Keep clear mode on carries Instagram's clear mode to the next reels, and can start every reel in it. " +
+        "Pinch for clear mode turns clear mode on and off with two fingers, and can hide the button that leaves it. " +
         "Starts off. Turn it on in HushGram settings > Reels.",
 ) {
     category("Reels")
@@ -100,6 +108,7 @@ val cleanUpReelsPatch = bytecodePatch(
         requireStatusMethod("reelDeclutter")
         val clearMode = findClearModeWhereItFits()
         val clearModeStubs = clearModeStubs()
+        val pinchClearMode = findPinchClearModeWhereItFits(clearMode)
         val friendsTab = findFriendsTab()
         val friendsRow = findFriendsRow()
         val friendPicks = findFriendPicks()
@@ -115,6 +124,8 @@ val cleanUpReelsPatch = bytecodePatch(
             applyClearMode(clearMode)
             clearModeStubs.fill(clearMode)
         }
+        // After Keep clear mode on's hooks, which go into the exit button's render first.
+        pinchClearMode?.let { pinchClearMode(it) }
         enableStatus("reelDeclutter")
     }
 }

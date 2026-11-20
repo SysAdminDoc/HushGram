@@ -1300,6 +1300,12 @@ Stops the short buzz Instagram plays when a reel opens in clear mode. With Keep 
 # context: Reels settings: a switch under Don't vibrate in clear mode (#480). It keeps the seek bar on screen in clear mode; seek bar and clear mode use the same words as Keep a seek bar and Keep clear mode on
 Always show seek bar in clear mode	清爽模式中一律显示进度条
 Keeps the seek bar on a reel in clear mode, and you can still drag it, while the other buttons stay hidden. Short reels get a bar too, in clear mode or not.	在清爽模式的 Reel 上保留进度条，仍可拖动，其他按钮维持隐藏。不论是否为清爽模式，短 Reels 也会有进度条。
+# context: Reels settings: a switch under Always show seek bar in clear mode (#744). A two-finger pinch on a reel turns Instagram's clear mode on and off; clear mode uses the same words as Keep clear mode on, and Pinch to zoom is the Reels switch of that name
+Pinch for clear mode	双指进入清爽模式
+Pinch a reel with two fingers to turn clear mode on, and pinch again to leave it. While Pinch to zoom is on, two fingers zoom instead.	在 Reel 上用双指捏合即可开启清爽模式，再捏合一次即可退出。开启双指缩放时，双指会改为缩放。
+# context: Reels settings: a switch under Pinch for clear mode (#744). It hides the round exit button a reel shows in clear mode, the button that leaves clear mode; Pinch to zoom is the Reels switch of that name
+Hide the exit button in clear mode	清爽模式中隐藏退出按钮
+Takes away the round button a reel shows in clear mode, so a pinch is how you leave it. The button stays while Pinch to zoom is on.	移除 Reel 在清爽模式中显示的圆形按钮，改用双指捏合退出。开启双指缩放时会保留按钮。
 Unlock with	解锁方式
 Phone lock	手机锁定
 HushGram PIN	HushGram PIN 码

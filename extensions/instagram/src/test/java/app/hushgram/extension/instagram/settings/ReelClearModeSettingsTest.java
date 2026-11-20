@@ -37,6 +37,8 @@ public class ReelClearModeSettingsTest {
     @Before public void prepare() {
         RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
         Settings.KEEP_REEL_CLEAR_MODE.resetToDefault();
+        Settings.PINCH_CLEAR_MODE.resetToDefault();
+        Settings.HIDE_CLEAR_MODE_EXIT_BUTTON.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         BaseSettings.SAFE_MODE.save(false);
@@ -47,6 +49,8 @@ public class ReelClearModeSettingsTest {
         Utils.awaitBackgroundTasksForTests();
         PatchFamily.inBuildForTests = null;
         Settings.KEEP_REEL_CLEAR_MODE.resetToDefault();
+        Settings.PINCH_CLEAR_MODE.resetToDefault();
+        Settings.HIDE_CLEAR_MODE_EXIT_BUTTON.resetToDefault();
         Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
     }
     private void open(EnumSet<PatchFamily> build) throws Exception {
@@ -162,8 +166,72 @@ public class ReelClearModeSettingsTest {
         assertTrue(PatchFamily.REEL_DECLUTTER.switches.contains(Settings.CLEAR_MODE_SEEK_BAR));
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.CLEAR_MODE_SEEK_BAR.key));
     }
+    /**
+     * Pinch for clear mode (#744) sits right under Always show seek bar in clear mode, starts off, needs
+     * no restart, doesn't wait for Keep clear mode on, and is kept in a backup.
+     */
+    @Test public void pinchForClearModeSitsUnderSeekBarAndStartsOff() throws Exception {
+        open(EnumSet.of(PatchFamily.REEL_DECLUTTER));
+        Preference row = page.getPreferenceScreen().findPreference(Settings.PINCH_CLEAR_MODE.key);
+        assertNotNull(row);
+        assertTrue(row instanceof SwitchPreference);
+        assertEquals("Pinch for clear mode", row.getTitle().toString());
+        assertEquals("Pinch a reel with two fingers to turn clear mode on, and pinch again to leave it. While "
+                + "Pinch to zoom is on, two fingers zoom instead.", row.getSummary().toString());
+        PreferenceGroup reels = (PreferenceGroup) row.getParent();
+        assertEquals("Reels", reels.getTitle().toString());
+        int bar = -1;
+        int pinch = -1;
+        for (int i = 0; i < reels.getPreferenceCount(); i++) {
+            String key = reels.getPreference(i).getKey();
+            if (Settings.CLEAR_MODE_SEEK_BAR.key.equals(key)) bar = i;
+            if (Settings.PINCH_CLEAR_MODE.key.equals(key)) pinch = i;
+        }
+        assertEquals("right after Always show seek bar in clear mode", bar + 1, pinch);
+        assertFalse(((SwitchPreference) row).isChecked());
+        assertFalse(Settings.PINCH_CLEAR_MODE.get());
+        assertEquals(Boolean.FALSE, Settings.PINCH_CLEAR_MODE.defaultValue);
+        assertFalse("read at each pinch, so no restart", Settings.PINCH_CLEAR_MODE.rebootApp);
+        assertTrue("doesn't wait for Keep clear mode on", Settings.PINCH_CLEAR_MODE.isAvailable());
+        assertTrue(PatchFamily.REEL_DECLUTTER.switches.contains(Settings.PINCH_CLEAR_MODE));
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.PINCH_CLEAR_MODE.key));
+    }
+    /**
+     * Hide the exit button in clear mode (#744) sits right under Pinch for clear mode, starts off, needs
+     * no restart, waits for Pinch for clear mode, and is kept in a backup.
+     */
+    @Test public void hideTheExitButtonSitsUnderPinchAndNeedsIt() throws Exception {
+        open(EnumSet.of(PatchFamily.REEL_DECLUTTER));
+        Preference row = page.getPreferenceScreen().findPreference(Settings.HIDE_CLEAR_MODE_EXIT_BUTTON.key);
+        assertNotNull(row);
+        assertTrue(row instanceof SwitchPreference);
+        assertEquals("Hide the exit button in clear mode", row.getTitle().toString());
+        assertEquals("Takes away the round button a reel shows in clear mode, so a pinch is how you leave it. "
+                + "The button stays while Pinch to zoom is on.", row.getSummary().toString());
+        PreferenceGroup reels = (PreferenceGroup) row.getParent();
+        int pinch = -1;
+        int hide = -1;
+        for (int i = 0; i < reels.getPreferenceCount(); i++) {
+            String key = reels.getPreference(i).getKey();
+            if (Settings.PINCH_CLEAR_MODE.key.equals(key)) pinch = i;
+            if (Settings.HIDE_CLEAR_MODE_EXIT_BUTTON.key.equals(key)) hide = i;
+        }
+        assertEquals("right after Pinch for clear mode", pinch + 1, hide);
+        assertFalse(((SwitchPreference) row).isChecked());
+        assertEquals(Boolean.FALSE, Settings.HIDE_CLEAR_MODE_EXIT_BUTTON.defaultValue);
+        assertFalse("decided as the button draws, so no restart", Settings.HIDE_CLEAR_MODE_EXIT_BUTTON.rebootApp);
+        assertFalse("waits for Pinch for clear mode", Settings.HIDE_CLEAR_MODE_EXIT_BUTTON.isAvailable());
+        Settings.PINCH_CLEAR_MODE.save(true);
+        assertTrue(Settings.HIDE_CLEAR_MODE_EXIT_BUTTON.isAvailable());
+        assertTrue(PatchFamily.REEL_DECLUTTER.switches.contains(Settings.HIDE_CLEAR_MODE_EXIT_BUTTON));
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.HIDE_CLEAR_MODE_EXIT_BUTTON.key));
+    }
     @Test public void withoutCleanUpReelsThereIsNoSwitch() throws Exception {
         open(EnumSet.noneOf(PatchFamily.class));
+        assertNull(page.getPreferenceScreen().findPreference(Settings.PINCH_CLEAR_MODE.key));
+        assertNull(page.getPreferenceScreen().findPreference(Settings.HIDE_CLEAR_MODE_EXIT_BUTTON.key));
+        assertFalse(ConfigurationBackup.eligible().containsKey(Settings.PINCH_CLEAR_MODE.key));
+        assertFalse(ConfigurationBackup.eligible().containsKey(Settings.HIDE_CLEAR_MODE_EXIT_BUTTON.key));
         assertNull(page.getPreferenceScreen().findPreference(Settings.CLEAR_MODE_SEEK_BAR.key));
         assertNull(page.getPreferenceScreen().findPreference(Settings.KEEP_REEL_CLEAR_MODE.key));
         assertNull(page.getPreferenceScreen().findPreference(Settings.START_REEL_CLEAR_MODE.key));
