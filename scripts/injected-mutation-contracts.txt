@@ -615,6 +615,9 @@ start-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->built(Ljava/l
 once-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->built(Ljava/lang/Object;)V in instance (LX/*;)LX/*; holding const:0x7f08262e Landroid/graphics/drawable/shapes/OvalShape;-><init>()V
 once-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->quiet()Z in instance (LX/*;)LX/*; holding const:0x7f08262e Landroid/graphics/drawable/shapes/OvalShape;-><init>()V
 once-call Lapp/hushgram/extension/instagram/download/ReelMuteButton;->clearMode(Ljava/lang/Object;)V in instance (LX/*;)LX/*; holding const:0x7f08262e Landroid/graphics/drawable/shapes/OvalShape;-><init>()V
+# A song's page hands itself and its view to AudioPageSong.shown before each of its onViewCreated's
+# two returns (#741), which puts Download beside the page's Save; left out, the page has no Download.
+once-call Lapp/hushgram/extension/instagram/download/AudioPageSong;->shown(Ljava/lang/Object;Ljava/lang/Object;)V in instance (Landroid/view/View;Landroid/os/Bundle;)V sites 2 pooled holding audioPageViewModel renameOriginalAudioViewModel audioPageMetadata
 # The reel holder's chrome alpha setter passes itself and the alpha it was asked for through chrome()
 # once, with the one it holds, right after reading that (#233, #740); left out, Instagram's reset of a
 # page it binds at rest brings back the buttons of a reel in clear mode, and the next reel shows its

@@ -206,6 +206,10 @@ internal fun BytecodePatchContext.reducedMenuList(patch: String): Method {
  * buttons as it's composed ([addReelDownloadButtonWhereItFits]). A build whose column differs keeps
  * the menu's Download without the icon, with a warning.
  *
+ * Download full song's switch also puts a Download icon beside Save on a song's own page, the page
+ * a reel's song opens (#741), which saves the whole song ([addSongPageDownloadWhereItFits]). A build
+ * whose page differs keeps the rest, with a warning.
+ *
  * Everything is found before anything changes, so a build that differs stops the patch naming
  * what it couldn't find, and nothing is half done.
  */
@@ -215,7 +219,7 @@ val downloadReelPatch = bytecodePatch(
     description = "Adds Download to the menu of every reel and saves it without Instagram's watermark. You choose " +
         "the quality, and best is the default. A separate Download cover switch also saves the reel's cover " +
         "picture, the largest one the post carries, and Download audio saves just its sound. Download full song grabs the whole track when a reel uses a " +
-        "song from Instagram's music. Download as video on " +
+        "song from Instagram's music, and from a Download icon on that song's own page. Download as video on " +
         "a carousel with music saves every page, in order. A separate switch under Downloads puts a download icon under Save beside each reel, " +
         "and others add a Lens icon for copying a reel's text, a speed icon, a Full screen icon and a speaker icon, or put " +
         "Playback speed in a reel's menu. On by default. Turn it off in HushGram settings > Reels.",
@@ -230,6 +234,7 @@ val downloadReelPatch = bytecodePatch(
         requireStatusMethod("reelDownload")
         offerDownloadOnEveryReel()
         addReelDownloadButtonWhereItFits()
+        addSongPageDownloadWhereItFits()
         addMuteButtonToClearMode()
         enableStatus("reelDownload")
     }
