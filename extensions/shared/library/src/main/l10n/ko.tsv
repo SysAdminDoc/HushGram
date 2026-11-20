@@ -2726,3 +2726,9 @@ Lock collection	컬렉션 잠금
 Remove lock	잠금 풀기
 # context: toast when locking a collection or taking its lock off couldn't be saved (#678)
 Couldn't change the lock. Try again.	잠금을 바꾸지 못했습니다. 다시 시도하세요.
+# context: the switch under HushGram settings > Notifications that gives a chat's message notification Android's bubble (#747); Android's own name for the feature
+Chat bubbles	채팅 대화창
+# context: that switch's summary (#747)
+A chat's message notification gets Android's bubble button, so the chat can float over other apps. Hidden and locked chats never get one. Needs Android 11 or newer.	채팅 메시지 알림에 Android 대화창 버튼이 생겨서 채팅을 다른 앱 위에 띄울 수 있습니다. 숨긴 채팅과 잠긴 채팅에는 생기지 않습니다. Android 11 이상이 필요합니다.
+# context: the Notifications category's summary when Chat bubbles is the only patch in it (#747)
+Let a chat's notifications open as a bubble over other apps.	채팅 알림을 다른 앱 위에 대화창으로 열 수 있게 합니다.

@@ -115,9 +115,10 @@ internal class ChatLockTargets(
     val displayHook: String,
 )
 
-private fun refuse(why: String): Nothing = throw PatchException("$LOCK_PATCH: $why")
+private fun refuse(why: String, patch: String = LOCK_PATCH): Nothing = throw PatchException("$patch: $why")
 
-internal fun <T> List<T>.one(what: String): T = singleOrNull() ?: refuse("expected one $what, found $size")
+internal fun <T> List<T>.one(what: String, patch: String = LOCK_PATCH): T =
+    singleOrNull() ?: refuse("expected one $what, found $size", patch)
 
 internal fun Method.parameters() = parameterTypes.map(CharSequence::toString)
 
@@ -166,42 +167,78 @@ internal fun BytecodePatchContext.findChatLockTargets(): ChatLockTargets {
     """.trimIndent()
     requireHooks()
 
-    val display = uniqueMethod(LOCK_PATCH, "push notification display", PushDisplayFingerprint)
-    if (0 in display.jumpTargets()) refuse("something jumps back to the push notification display's first instruction")
-    display.requireLocals(LOCK_PATCH, 7)
+    val display = findPushDisplay(LOCK_PATCH)
+    return ChatLockTargets(resume, pause, bridge, bridgeBody, display.method, display.hookCalling(CHAT_TRACK, answers = true))
+}
+
+/**
+ * The method that hands a push's notifications to Android, and what its hooks read there: the push's
+ * two notifications and the map of others it posts with them, from the result the display takes
+ * first, and the deep link, the chat ids and the id of the account it was sent to, from the push that
+ * result keeps. The chat lock and Chat bubbles each hook it, so a hook goes in first and leaves the
+ * method's own code, and each other hook, as they were.
+ */
+internal class PushDisplay(
+    val method: MutableMethod,
+    private val result: String,
+    private val notifications: List<FieldReference>,
+    private val others: FieldReference,
+    private val holder: FieldReference,
+    private val action: FieldReference,
+    private val thread: FieldReference,
+    private val threadIg: FieldReference,
+    private val recipient: FieldReference,
+) {
+    /**
+     * Smali handing [hook] the two notifications, the others, then the deep link, the two chat ids and
+     * the account, in v0 to v6. A push with no payload goes straight on to what's next, at `:skip`.
+     * With [answers], the hook's true ends the display there, before anything is built or posted.
+     */
+    fun hookCalling(hook: String, answers: Boolean): String = buildString {
+        appendLine("move-object/from16 v4, $result")
+        appendLine("iget-object v0, v4, ${notifications[0].signature()}")
+        appendLine("iget-object v1, v4, ${notifications[1].signature()}")
+        appendLine("iget-object v2, v4, ${others.signature()}")
+        appendLine("iget-object v6, v4, ${holder.signature()}")
+        appendLine("if-eqz v6, :skip")
+        appendLine("iget-object v3, v6, ${action.signature()}")
+        appendLine("iget-object v4, v6, ${thread.signature()}")
+        appendLine("iget-object v5, v6, ${threadIg.signature()}")
+        appendLine("iget-object v6, v6, ${recipient.signature()}")
+        append("invoke-static/range { v0 .. v6 }, $hook")
+        if (answers) append("\nmove-result v0\nif-eqz v0, :skip\nreturn-void")
+    }
+}
+
+/**
+ * The push display and the fields of its result and push, each found by what Instagram writes in or
+ * about them, and refused in [patch]'s name when this build has moved them.
+ */
+internal fun BytecodePatchContext.findPushDisplay(patch: String): PushDisplay {
+    val display = uniqueMethod(patch, "push notification display", PushDisplayFingerprint)
+    if (0 in display.jumpTargets()) refuse("something jumps back to the push notification display's first instruction", patch)
+    display.requireLocals(patch, 7)
     val result = display.parameters().first()
-    val resultClass = classDefByOrNull(result) ?: refuse("$result, the push display's result, isn't in this build")
-    val toString = uniqueMethod(LOCK_PATCH, "push notification labels", PushLabelsFingerprint)
+    val resultClass = classDefByOrNull(result) ?: refuse("$result, the push display's result, isn't in this build", patch)
+    val toString = uniqueMethod(patch, "push notification labels", PushLabelsFingerprint)
     val payload = toString.definingClass
     val fields = resultClass.instanceFields.toList()
     val notifications = fields.filter { it.type == NOTIFICATION }
-    if (notifications.size != 2) refuse("$result holds ${notifications.size} notifications, expected two")
-    val others = fields.filter { it.type == MAP }.one("map of other notifications in $result")
-    val holder = fields.filter { it.type == payload }.one("push $result keeps")
-    val action = labelField(toString, PUSH_ACTION, payload)
-    val thread = labelField(toString, PUSH_THREAD, payload)
-    val threadIg = labelField(toString, PUSH_THREAD_IG, payload)
-    val recipient = labelField(toString, PUSH_RECIPIENT, payload)
-    for (field in notifications + others + holder) requirePublic(result, field)
-    for (field in listOf(action, thread, threadIg, recipient)) requirePublic(payload, field)
+    if (notifications.size != 2) refuse("$result holds ${notifications.size} notifications, expected two", patch)
+    val others = fields.filter { it.type == MAP }.one("map of other notifications in $result", patch)
+    val holder = fields.filter { it.type == payload }.one("push $result keeps", patch)
+    val action = labelField(toString, PUSH_ACTION, payload, patch)
+    val thread = labelField(toString, PUSH_THREAD, payload, patch)
+    val threadIg = labelField(toString, PUSH_THREAD_IG, payload, patch)
+    val recipient = labelField(toString, PUSH_RECIPIENT, payload, patch)
+    for (field in notifications + others + holder) requirePublic(result, field, patch)
+    for (field in listOf(action, thread, threadIg, recipient)) requirePublic(payload, field, patch)
+    return PushDisplay(display, display.parameterRegister(0), notifications, others, holder, action, thread, threadIg, recipient)
+}
 
-    val hook = """
-        move-object/from16 v4, ${display.parameterRegister(0)}
-        iget-object v0, v4, ${notifications[0].signature()}
-        iget-object v1, v4, ${notifications[1].signature()}
-        iget-object v2, v4, ${others.signature()}
-        iget-object v6, v4, ${holder.signature()}
-        if-eqz v6, :skip
-        iget-object v3, v6, ${action.signature()}
-        iget-object v4, v6, ${thread.signature()}
-        iget-object v5, v6, ${threadIg.signature()}
-        iget-object v6, v6, ${recipient.signature()}
-        invoke-static/range { v0 .. v6 }, $CHAT_TRACK
-        move-result v0
-        if-eqz v0, :skip
-        return-void
-    """.trimIndent()
-    return ChatLockTargets(resume, pause, bridge, bridgeBody, display, hook)
+/** Puts [hook] first in the push display, a push with no payload going on to the code that was first. */
+internal fun PushDisplay.hookFirst(hook: String) {
+    method.addInstructionsWithLabels(0, hook, ExternalLabel("skip", method.getInstruction(0)))
 }
 
 /** Writes the thread id bridge and puts the hooks in: both lifecycle methods, and the push display. */
@@ -324,7 +361,7 @@ private fun builtAfter(code: List<Instruction>, label: Int, labelRegister: Int):
 }
 
 /** The field a push's toString reads right after the string [label]. */
-private fun labelField(toString: Method, label: String, owner: String): FieldReference {
+private fun labelField(toString: Method, label: String, owner: String, patch: String): FieldReference {
     val code = toString.visualCode()
     val at = code.indices.filter { code[it].visualString() == label }.one("$label in a push's toString")
     val self = toString.localRegisterCount()
@@ -335,12 +372,12 @@ private fun labelField(toString: Method, label: String, owner: String): FieldRef
                 it.definingClass == owner && it.type == STRING
         }
     }
-    return reads.distinctBy { it.signature() }.one("field a push writes after $label")
+    return reads.distinctBy { it.signature() }.one("field a push writes after $label", patch)
 }
 
 /** Refuses unless [type] is a public class and [member], when given, is a public member the extension can reach. */
-internal fun BytecodePatchContext.requirePublic(type: String, member: Any?) {
-    val owner = classDefByOrNull(type) ?: refuse("$type is missing")
+internal fun BytecodePatchContext.requirePublic(type: String, member: Any?, patch: String = LOCK_PATCH) {
+    val owner = classDefByOrNull(type) ?: refuse("$type is missing", patch)
     val flags = when (member) {
         null -> AccessFlags.PUBLIC.value
         is FieldReference -> owner.fields.firstOrNull { it.name == member.name && it.type == member.type }?.accessFlags
@@ -348,8 +385,8 @@ internal fun BytecodePatchContext.requirePublic(type: String, member: Any?) {
             it.name == member.name && it.parameters() == member.parameterTypes.map(CharSequence::toString) && it.returnType == member.returnType
         }?.accessFlags
         else -> null
-    } ?: refuse("$type doesn't declare ${(member as? FieldReference)?.signature() ?: (member as? MethodReference)?.signature()}")
+    } ?: refuse("$type doesn't declare ${(member as? FieldReference)?.signature() ?: (member as? MethodReference)?.signature()}", patch)
     if (!AccessFlags.PUBLIC.isSet(owner.accessFlags) || !AccessFlags.PUBLIC.isSet(flags)) {
-        refuse("${(member as? FieldReference)?.signature() ?: (member as? MethodReference)?.signature() ?: type} isn't public, so the extension can't reach it")
+        refuse("${(member as? FieldReference)?.signature() ?: (member as? MethodReference)?.signature() ?: type} isn't public, so the extension can't reach it", patch)
     }
 }

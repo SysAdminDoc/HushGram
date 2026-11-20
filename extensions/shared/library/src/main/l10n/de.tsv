@@ -2727,3 +2727,9 @@ Lock collection	Sammlung sperren
 Remove lock	Sperre aufheben
 # context: toast when locking a collection or taking its lock off couldn't be saved (#678)
 Couldn't change the lock. Try again.	Sperre nicht geändert. Versuch es noch mal.
+# context: the switch under HushGram settings > Notifications that gives a chat's message notification Android's bubble (#747); Android's own name for the feature
+Chat bubbles	Chat-Bubbles
+# context: that switch's summary (#747)
+A chat's message notification gets Android's bubble button, so the chat can float over other apps. Hidden and locked chats never get one. Needs Android 11 or newer.	Die Benachrichtigung zu einer Chatnachricht bekommt den Bubble-Button von Android, damit der Chat über anderen Apps schweben kann. Versteckte und gesperrte Chats bekommen nie einen. Braucht Android 11 oder neuer.
+# context: the Notifications category's summary when Chat bubbles is the only patch in it (#747)
+Let a chat's notifications open as a bubble over other apps.	Lass die Benachrichtigungen eines Chats als Bubble über anderen Apps aufgehen.

@@ -2724,3 +2724,9 @@ Lock collection	ล็อกคอลเลกชัน
 Remove lock	เอาการล็อกออก
 # context: toast when locking a collection or taking its lock off couldn't be saved (#678)
 Couldn't change the lock. Try again.	เปลี่ยนการล็อกไม่ได้ โปรดลองอีกครั้ง
+# context: the switch under HushGram settings > Notifications that gives a chat's message notification Android's bubble (#747); Android's own name for the feature
+Chat bubbles	บับเบิลแชท
+# context: that switch's summary (#747)
+A chat's message notification gets Android's bubble button, so the chat can float over other apps. Hidden and locked chats never get one. Needs Android 11 or newer.	การแจ้งเตือนข้อความแชทจะมีปุ่มบับเบิลของ Android เพื่อให้แชทลอยอยู่เหนือแอปอื่นได้ แชทที่ซ่อนอยู่และแชทที่ล็อคไว้จะไม่ได้รับปุ่มนี้ ต้องใช้ Android 11 ขึ้นไป
+# context: the Notifications category's summary when Chat bubbles is the only patch in it (#747)
+Let a chat's notifications open as a bubble over other apps.	ให้การแจ้งเตือนของแชทเปิดเป็นบับเบิลเหนือแอปอื่น

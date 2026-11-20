@@ -2642,3 +2642,9 @@ Lock collection	Khóa bộ sưu tập
 Remove lock	Bỏ khóa
 # context: toast when locking a collection or taking its lock off couldn't be saved (#678)
 Couldn't change the lock. Try again.	Không đổi được khóa. Hãy thử lại.
+# context: the switch under HushGram settings > Notifications that gives a chat's message notification Android's bubble (#747); Android's own name for the feature
+Chat bubbles	Bong bóng chat
+# context: that switch's summary (#747)
+A chat's message notification gets Android's bubble button, so the chat can float over other apps. Hidden and locked chats never get one. Needs Android 11 or newer.	Thông báo tin nhắn của một cuộc trò chuyện có nút bong bóng của Android, để cuộc trò chuyện nổi trên các ứng dụng khác. Cuộc trò chuyện đã ẩn và đã khóa không bao giờ có nút này. Cần Android 11 trở lên.
+# context: the Notifications category's summary when Chat bubbles is the only patch in it (#747)
+Let a chat's notifications open as a bubble over other apps.	Cho thông báo của cuộc trò chuyện mở thành bong bóng trên các ứng dụng khác.

@@ -2730,3 +2730,9 @@ Lock collection	鎖定珍藏分類
 Remove lock	移除鎖定
 # context: toast when locking a collection or taking its lock off couldn't be saved (#678)
 Couldn't change the lock. Try again.	無法變更鎖定，請再試一次。
+# context: the switch under HushGram settings > Notifications that gives a chat's message notification Android's bubble (#747); Android's own name for the feature
+Chat bubbles	聊天對話框
+# context: that switch's summary (#747)
+A chat's message notification gets Android's bubble button, so the chat can float over other apps. Hidden and locked chats never get one. Needs Android 11 or newer.	聊天訊息的通知會加上 Android 的對話框按鈕，讓聊天浮在其他應用程式上方。已隱藏和已鎖定的聊天永遠不會加上。需要 Android 11 或更新版本。
+# context: the Notifications category's summary when Chat bubbles is the only patch in it (#747)
+Let a chat's notifications open as a bubble over other apps.	讓聊天的通知以對話框形式開在其他應用程式上方。

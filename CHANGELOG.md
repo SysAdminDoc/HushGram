@@ -6,6 +6,7 @@ Every HushGram release, newest first.
 
 ### Improvements
 
+* `Chat bubbles` is new under Notifications. A chat's message notification gets Android's bubble button, so the chat can float over your other apps. Hidden and locked chats never get one, and neither does the cover notification `Lock your messages` shows while it's shut. Needs Android 11 or newer. Starts off. Asked for in #747.
 * Press and hold a collection in Saved to lock it or take its lock off, with no trip to settings. Taking a lock off always asks first, the same way your other locks unlock, even with the collection open. Asked for in #678.
 * `Center names in chats` is new under Messages. The name and username at the top of a chat sit in the middle of the bar instead of next to the picture. A long name moves as close to the middle as the call buttons let it, so nothing gets cut off, and tapping the name still opens the chat's details. Starts off. `Ask before a call` moved to the Interaction group in Manager to make room, and its switches are still on the Messages page. Asked for in #779.
 * `Pinch for clear mode` is new under Reels. Pinch a reel with two fingers and clear mode comes on, and pinch again to leave it. `Hide the exit button in clear mode` right under it takes away the round button in the corner, so the reel is all you see. A swipe to the next reel still ends clear mode unless `Keep clear mode on` is on. With `Pinch to zoom` on, two fingers zoom instead and the button stays. Both start off. Requested in #744.

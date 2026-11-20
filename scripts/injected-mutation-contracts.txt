@@ -245,6 +245,11 @@ once-call Lapp/hushgram/extension/instagram/direct/ChatLocks;->opened(Ljava/lang
 start-call Lapp/hushgram/extension/instagram/direct/ChatLocks;->closed(Ljava/lang/Object;)V in instance ()V holding DirectThreadController.onPause
 once-call Lapp/hushgram/extension/instagram/direct/ChatLocks;->closed(Ljava/lang/Object;)V in instance ()V holding DirectThreadController.onPause
 once-call Lapp/hushgram/extension/instagram/direct/ChatLocks;->track(Landroid/app/Notification;Landroid/app/Notification;Ljava/util/Map;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Z in instance (L*;L*;Ljava/lang/Runnable;Ljava/lang/String;I)V holding is_alert_only_once notification_displayed
+# Chat bubbles (#747) hands the same push display to ChatBubbles.offer once, at its own start next
+# to the lock's hook, with the notification, its group summary, the other notifications, the push's
+# action, both thread ids and the account it came for. Left out, no chat's notification gets a
+# bubble; twice or elsewhere, it isn't the hook the patch wrote.
+once-call Lapp/hushgram/extension/instagram/direct/ChatBubbles;->offer(Landroid/app/Notification;Landroid/app/Notification;Ljava/util/Map;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V in instance (L*;L*;Ljava/lang/Runnable;Ljava/lang/String;I)V holding is_alert_only_once notification_displayed
 # The locked and hidden chats are kept for each account apart, so every screen hands itself to
 # ChatAccounts.resumed first in Instagram's base screen's onResume (IgFragment, 0Dij on 450), the
 # one method logging IgFragment.onResume, which reads the account off the screen's own session.

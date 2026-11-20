@@ -669,6 +669,45 @@
       "options": []
     },
     {
+      "name": "Chat bubbles",
+      "description": "Lets a chat's message notification open as an Android bubble that floats over other apps (Android 11 or newer). Hidden and locked chats never get one. Starts off. Turn it on in HushGram settings > Notifications.",
+      "category": "Interaction",
+      "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "456.0.0.53.78"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "456.0.0.53.78",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 386214574,
+                "ARMEABI_V7A": 386214562,
+                "X86": 386214575
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
       "name": "Chat history tools",
       "description": "Tap the clock button at the top of a chat, or long press its name, to jump to its first message or to a date, or to save the chat as a text file. Select messages there ticks messages to copy, share or save. The chat loads its older messages on its own, with a count and a Cancel button. Both start off. Turn them on in HushGram settings > Messages.",
       "category": "Messages",

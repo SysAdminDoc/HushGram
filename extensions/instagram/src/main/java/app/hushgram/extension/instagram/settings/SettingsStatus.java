@@ -833,6 +833,11 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Rewritten by the Chat bubbles patch. */
+    public static boolean chatBubbles() {
+        return false;
+    }
+
     /** Rewritten by the Skip the collections tray patch. */
     public static boolean saveTray() {
         return false;

@@ -699,7 +699,8 @@
         "op": "any",
         "patches": [
           "Group Instagram's notifications",
-          "Hide suggested people on profiles"
+          "Hide suggested people on profiles",
+          "Chat bubbles"
         ]
       },
       "anchors": [
@@ -718,6 +719,15 @@
             "op": "any",
             "patches": [
               "Group Instagram's notifications"
+            ]
+          }
+        },
+        {
+          "title": "Chat bubbles",
+          "when": {
+            "op": "any",
+            "patches": [
+              "Chat bubbles"
             ]
           }
         },

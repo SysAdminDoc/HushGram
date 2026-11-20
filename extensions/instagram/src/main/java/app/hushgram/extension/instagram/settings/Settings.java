@@ -1266,6 +1266,13 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting SENT_FOLLOW_REQUESTS = new BooleanSetting("hushgram_sent_follow_requests", FALSE);
 
     /**
+     * Gives a chat's message notification Android's bubble on the chat's own shortcut
+     * ({@link app.hushgram.extension.instagram.direct.ChatBubbles}, #747). Read for each push, so no
+     * restart. Off to start.
+     */
+    public static final BooleanSetting CHAT_BUBBLES = new BooleanSetting("hushgram_chat_bubbles", FALSE);
+
+    /**
      * Saving a post or reel shows the Saved message instead of the tray that asks you to start a
      * collection, which Instagram shows some accounts on every save (piko #2210,
      * {@link app.hushgram.extension.instagram.feed.SaveTray}). Off to start.

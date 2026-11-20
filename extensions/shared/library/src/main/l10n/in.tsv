@@ -2727,3 +2727,9 @@ Lock collection	Kunci koleksi
 Remove lock	Lepas kunci
 # context: toast when locking a collection or taking its lock off couldn't be saved (#678)
 Couldn't change the lock. Try again.	Kunci tidak berubah. Coba lagi.
+# context: the switch under HushGram settings > Notifications that gives a chat's message notification Android's bubble (#747); Android's own name for the feature
+Chat bubbles	Balon chat
+# context: that switch's summary (#747)
+A chat's message notification gets Android's bubble button, so the chat can float over other apps. Hidden and locked chats never get one. Needs Android 11 or newer.	Notifikasi pesan chat mendapat tombol balon Android, jadi chat bisa melayang di atas aplikasi lain. Chat tersembunyi dan obrolan terkunci tidak pernah mendapatkannya. Butuh Android 11 atau yang lebih baru.
+# context: the Notifications category's summary when Chat bubbles is the only patch in it (#747)
+Let a chat's notifications open as a bubble over other apps.	Biarkan notifikasi chat terbuka sebagai balon di atas aplikasi lain.

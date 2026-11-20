@@ -2727,3 +2727,9 @@ Lock collection	Blocca raccolta
 Remove lock	Togli blocco
 # context: toast when locking a collection or taking its lock off couldn't be saved (#678)
 Couldn't change the lock. Try again.	Blocco non cambiato. Riprova.
+# context: the switch under HushGram settings > Notifications that gives a chat's message notification Android's bubble (#747); Android's own name for the feature
+Chat bubbles	Bolle delle chat
+# context: that switch's summary (#747)
+A chat's message notification gets Android's bubble button, so the chat can float over other apps. Hidden and locked chats never get one. Needs Android 11 or newer.	La notifica di un messaggio in chat riceve il pulsante bolla di Android, così la chat può fluttuare sopra le altre app. Le chat nascoste e bloccate non lo ricevono mai. Richiede Android 11 o successivo.
+# context: the Notifications category's summary when Chat bubbles is the only patch in it (#747)
+Let a chat's notifications open as a bubble over other apps.	Fai aprire le notifiche di una chat come bolla sopra le altre app.

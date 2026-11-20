@@ -29,12 +29,14 @@ final class NotificationsCategory {
     static void add(HushgramPreferenceFragment page, PreferenceScreen screen, Context context, Set<PatchFamily> build) {
         boolean groups = build.contains(PatchFamily.NOTIFICATION_GROUPS);
         boolean suggestions = build.contains(PatchFamily.PROFILE_SUGGESTIONS);
-        if (!groups && !suggestions) return;
+        boolean bubbles = build.contains(PatchFamily.CHAT_BUBBLES);
+        if (!groups && !suggestions && !bubbles) return;
         PreferenceCategory notifications = category(screen, L10n.t("Notifications"), SettingsIcons.NOTIFICATIONS,
                 groups && suggestions
                         ? L10n.t("Group or mute Instagram's notifications, and take suggestions off the Notifications page.")
                         : groups ? L10n.t("Group or mute Instagram's notifications so they don't pile up.")
-                        : L10n.t("Take suggestions and Featured off the Notifications page."));
+                        : suggestions ? L10n.t("Take suggestions and Featured off the Notifications page.")
+                        : L10n.t("Let a chat's notifications open as a bubble over other apps."));
         if (groups) {
             SwitchPreference grouping = toggle(context, Settings.GROUP_NOTIFICATIONS, L10n.t("Group notifications"),
                     L10n.t("Puts every notification from Instagram in one group that shows how many it holds, so they "
@@ -49,6 +51,11 @@ final class NotificationsCategory {
                     L10n.t("A group for each kind of notification, such as comments or messages, in place of one group.")));
             // Muting works with grouping off, so this row doesn't hang under the switch.
             notifications.addPreference(page.mutedChannelsRow(context));
+        }
+        if (bubbles) {
+            notifications.addPreference(toggle(context, Settings.CHAT_BUBBLES, L10n.t("Chat bubbles"),
+                    L10n.t("A chat's message notification gets Android's bubble button, so the chat can float over "
+                            + "other apps. Hidden and locked chats never get one. Needs Android 11 or newer.")));
         }
         // Hide suggested people's switches for the Notifications page. They sat under Profiles,
         // with the family's other rows, and a search for Profiles still finds them.
