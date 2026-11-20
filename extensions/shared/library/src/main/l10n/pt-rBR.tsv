@@ -1057,8 +1057,8 @@ Open a chat in Instagram, then come back here to lock it.	Abra uma conversa no I
 This collection is locked	Esta coleção está bloqueada
 Unlock this collection	Desbloquear esta coleção
 Locked collections	Coleções bloqueadas
-Lock single collections in Saved. A locked collection opens only once you unlock it the way Unlock with says. Saving a post to it never asks.	Bloqueia coleções dos Salvos uma a uma. Uma coleção bloqueada só abre depois que você a desbloqueia do jeito que Desbloquear com diz. Salvar um post nela nunca pede nada.
-Open a collection in Saved, then come back here to lock it.	Abra uma coleção nos Salvos e volte aqui para bloqueá-la.
+Lock single collections in Saved. Long press one there to lock it or take its lock off. A locked collection opens only once you unlock it the way Unlock with says. Saving a post to it never asks.	Bloqueia coleções dos Salvos uma a uma. Mantenha uma coleção pressionada lá para bloqueá-la ou tirar o bloqueio. Uma coleção bloqueada só abre depois que você a desbloqueia do jeito que Desbloquear com diz. Salvar um post nela nunca pede nada.
+Long press a collection in Saved to lock it, or open one and come back here.	Mantenha uma coleção pressionada nos Salvos para bloqueá-la, ou abra uma e volte aqui.
 %1$s (opened last)	%1$s (aberta por último)
 %1$s is locked	%1$s está bloqueada
 %1$s is unlocked	%1$s está desbloqueada
@@ -2722,3 +2722,8 @@ Pick a message first.	Escolha uma mensagem primeiro.
 Copied %1$d message.	%1$d mensagem copiada.
 # context: the same toast for any other count; %1$d is how many
 Copied %1$d messages.	%1$d mensagens copiadas.
+# context: the one item in the menu a long press on a collection's tile in Saved opens; Remove lock is that item for a collection that's locked already (#678)
+Lock collection	Bloquear coleção
+Remove lock	Tirar bloqueio
+# context: toast when locking a collection or taking its lock off couldn't be saved (#678)
+Couldn't change the lock. Try again.	Bloqueio não mudou. Tente de novo.

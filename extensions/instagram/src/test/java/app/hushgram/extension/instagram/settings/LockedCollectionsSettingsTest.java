@@ -121,7 +121,7 @@ public class LockedCollectionsSettingsTest {
     public void theCollectionOpenedLastIsOfferedLockedAndUnlockedOnlyOnceTheLockSaysSo() throws Exception {
         assertFalse(MessagesLockForTests.wantsCollectionName());
         AlertDialog empty = open();
-        assertEquals("Open a collection in Saved, then come back here to lock it.",
+        assertEquals("Long press a collection in Saved to lock it, or open one and come back here.",
                 String.valueOf(Shadows.shadowOf(empty).getMessage()));
         assertTrue("opening the list didn't start looking for a collection's name", MessagesLockForTests.wantsCollectionName());
         empty.dismiss();

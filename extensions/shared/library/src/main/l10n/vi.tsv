@@ -1041,8 +1041,8 @@ Open a chat in Instagram, then come back here to lock it.	Hãy mở một cuộc
 This collection is locked	Bộ sưu tập này đã khóa
 Unlock this collection	Mở khóa bộ sưu tập này
 Locked collections	Bộ sưu tập đã khóa
-Lock single collections in Saved. A locked collection opens only once you unlock it the way Unlock with says. Saving a post to it never asks.	Khóa từng bộ sưu tập trong mục Đã lưu. Bộ sưu tập đã khóa chỉ mở sau khi bạn mở khóa theo cách đã chọn ở Mở khóa bằng. Lưu bài viết vào đó thì không bao giờ phải mở khóa.
-Open a collection in Saved, then come back here to lock it.	Mở một bộ sưu tập trong mục Đã lưu, rồi quay lại đây để khóa nó.
+Lock single collections in Saved. Long press one there to lock it or take its lock off. A locked collection opens only once you unlock it the way Unlock with says. Saving a post to it never asks.	Khóa từng bộ sưu tập trong mục Đã lưu. Nhấn giữ một bộ sưu tập ở đó để khóa hoặc bỏ khóa. Bộ sưu tập đã khóa chỉ mở sau khi bạn mở khóa theo cách đã chọn ở Mở khóa bằng. Lưu bài viết vào đó thì không bao giờ phải mở khóa.
+Long press a collection in Saved to lock it, or open one and come back here.	Nhấn giữ một bộ sưu tập trong mục Đã lưu để khóa, hoặc mở nó rồi quay lại đây.
 %1$s (opened last)	%1$s (mở gần nhất)
 %1$s is locked	%1$s đã khóa
 %1$s is unlocked	%1$s đã mở khóa
@@ -2637,3 +2637,8 @@ Pick a message first.	Hãy chọn một tin nhắn trước.
 Copied %1$d message.	Đã sao chép %1$d tin nhắn.
 # context: the same toast for any other count; %1$d is how many
 Copied %1$d messages.	Đã sao chép %1$d tin nhắn.
+# context: the one item in the menu a long press on a collection's tile in Saved opens; Remove lock is that item for a collection that's locked already (#678)
+Lock collection	Khóa bộ sưu tập
+Remove lock	Bỏ khóa
+# context: toast when locking a collection or taking its lock off couldn't be saved (#678)
+Couldn't change the lock. Try again.	Không đổi được khóa. Hãy thử lại.

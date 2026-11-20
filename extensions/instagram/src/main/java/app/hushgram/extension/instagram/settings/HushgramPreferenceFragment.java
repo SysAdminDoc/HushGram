@@ -3998,8 +3998,9 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         row.setKey(LOCKED_COLLECTIONS_ROW);
         row.setPersistent(false);
         row.setTitle(L10n.t("Locked collections"));
-        row.setSummary(L10n.t("Lock single collections in Saved. A locked collection opens only once you unlock it the "
-                + "way Unlock with says. Saving a post to it never asks."));
+        row.setSummary(L10n.t("Lock single collections in Saved. Long press one there to lock it or take its lock off. "
+                + "A locked collection opens only once you unlock it the way Unlock with says. Saving a post to it "
+                + "never asks."));
         row.setOnPreferenceClickListener(tapped -> {
             showLockedCollections();
             return true;
@@ -4024,7 +4025,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         if (last != null) collections.add(0, last);
         AlertDialog.Builder builder = new AlertDialog.Builder(context).setTitle(L10n.t("Locked collections"));
         if (collections.isEmpty()) {
-            builder.setMessage(L10n.t("Open a collection in Saved, then come back here to lock it."));
+            builder.setMessage(L10n.t("Long press a collection in Saved to lock it, or open one and come back here."));
         } else {
             CharSequence[] names = new CharSequence[collections.size()];
             boolean[] locked = new boolean[collections.size()];

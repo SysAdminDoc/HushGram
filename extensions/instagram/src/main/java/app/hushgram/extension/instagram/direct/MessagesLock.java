@@ -88,6 +88,8 @@ import app.hushgram.extension.shared.settings.Setting;
  *
  * <p>Single Saved collections can be locked on their own ({@link CollectionLocks}) the same way:
  * a collection on the list gets Saved's cover over its page by itself and asks the same lock (#678).
+ * A long press on a collection's tile in Saved locks it, or takes its lock off after asking
+ * ({@link CollectionLockMenu}).
  *
  * <p>Single chats can be locked on their own ({@link ChatLocks}), with or without the switches
  * above. A chat on the list gets the same cover over just that chat, asks the same lock, opens
@@ -198,6 +200,8 @@ public final class MessagesLock {
     private static boolean savedCovered;
     /** A collection on the list is under Saved's cover by itself on the screen in front, so the ask names it. */
     private static boolean collectionCovered;
+    /** A collection's lock is coming off from its long press, so the ask being put up names it. */
+    private static boolean collectionAsked;
     /** What the activity in front was last told about the recent apps picture, and when. */
     private static Boolean keptOutOfRecents;
     private static long toldRecentsAt;
@@ -402,6 +406,20 @@ public final class MessagesLock {
      */
     static void confirmRevealThen(Activity activity, Runnable then) {
         ask(activity, then);
+    }
+
+    /**
+     * Runs [then] after the phone's lock or the PIN confirms it's you, every time, even with the
+     * collection open: a collection's lock comes off from its long press in Saved through here, and
+     * the ask names the collection (#678).
+     */
+    static void confirmCollectionRemoveThen(Activity activity, Runnable then) {
+        collectionAsked = true;
+        try {
+            ask(activity, then);
+        } finally {
+            collectionAsked = false;
+        }
     }
 
     /**
@@ -1492,15 +1510,20 @@ public final class MessagesLock {
     }
 
     static String askTitle() {
+        if (collectionAsked) return L10n.t("Unlock this collection");
         if (wholeApp()) return L10n.t("Unlock Instagram");
         if (collectionCovered) return L10n.t("Unlock this collection");
         if (askingForSaved()) return L10n.t("Unlock Saved");
         return messagesOn() ? L10n.t("Unlock your messages") : L10n.t("Unlock this chat");
     }
 
-    /** Saved or a collection on the list on screen, or asked from the settings with Lock Saved the only switch on. */
+    /**
+     * Saved or a collection on the list on screen, a collection's lock coming off, or asked from the
+     * settings with Lock Saved the only switch on.
+     */
     private static boolean askingForSaved() {
-        return savedCovered || collectionCovered || !messagesOn() && savedOn() && !ChatLocks.currentListed();
+        return savedCovered || collectionCovered || collectionAsked
+                || !messagesOn() && savedOn() && !ChatLocks.currentListed();
     }
 
     /** Draws the activity again, so the covers come off at once. */
@@ -1603,6 +1626,7 @@ public final class MessagesLock {
         settingsAsked = false;
         savedCovered = false;
         collectionCovered = false;
+        collectionAsked = false;
         keptOutOfRecents = null;
         toldRecentsAt = 0;
         unfollow();

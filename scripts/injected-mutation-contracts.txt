@@ -290,6 +290,12 @@ once-call Lapp/hushgram/extension/instagram/feed/HomeLeftSwipe;->touch(Landroid/
 # #661) have no rule: the patch leaves the row out with a warning when a build's menu has moved, so a
 # required call would fail a build the patch handles. HiddenChatMenuHookTest proves the four hooks,
 # and that the offer lands after ChatPreview's, so Preview's start-call rule above holds either way.
+# Lock collection on a Saved collection's long press (CollectionLockMenu.tile, #678) has no rule: the
+# patch leaves the long press out with a warning when a build's tile makers have moved, so a required
+# call would fail a build the patch handles. CollectionTilesHookTest proves both makers (the See
+# all grid's row binder and the Saved home row's adapter, each loading id/saved_collection_thumbnail)
+# hand their tile over once, just before its thumbnail lookup and ahead of the binder's
+# accessibility setup (which keeps the long click flag it finds), on every declared build.
 # View live anonymously asks LiveSeen.hold(broadcast id) first where the live heartbeat manager's
 # tick asks for a viewer's or guest's heartbeat (IgLiveHeartbeatManager.A00 calling 036w.A00 on 450,
 # the request adding live_with_eligibility), and the tick returns its plain result while the switch
