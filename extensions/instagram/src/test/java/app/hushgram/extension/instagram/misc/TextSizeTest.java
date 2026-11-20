@@ -6,6 +6,9 @@ package app.hushgram.extension.instagram.misc;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import android.app.Activity;
@@ -173,5 +176,64 @@ public class TextSizeTest {
         TextSize.install(application);
         assertEquals("not in the build", phone(), scaleOf(application.getResources()), 0.001f);
         assertEquals("the saved size stays", 150, (int) Settings.TEXT_SIZE.savedValue());
+        Configuration phones = new Configuration(Resources.getSystem().getConfiguration());
+        assertSame("Instagram's resources take the phone's as is", phones, TextSize.sized(phones));
+    }
+
+    /**
+     * Instagram's own resources, which keep a configuration of their own, as the Font patch leaves
+     * them: each configuration they take goes through {@link TextSize#sized} first (#782).
+     */
+    private static final class InstagramResources extends Resources {
+        @SuppressWarnings("deprecation")
+        InstagramResources(Resources base) {
+            super(base.getAssets(), base.getDisplayMetrics(), base.getConfiguration());
+        }
+
+        @Override
+        @SuppressWarnings("deprecation")
+        public void updateConfiguration(Configuration config, DisplayMetrics metrics) {
+            super.updateConfiguration(TextSize.sized(config), metrics);
+        }
+    }
+
+    @Test
+    public void sizedAnswersACopyAtThePhonesSizeTimesTheShare() {
+        Settings.TEXT_SIZE.save(125);
+        TextSize.install(RuntimeEnvironment.getApplication());
+        Configuration phones = new Configuration(Resources.getSystem().getConfiguration());
+        Configuration sized = TextSize.sized(phones);
+        assertNotSame(phones, sized);
+        assertEquals(phone() * 1.25f, sized.fontScale, 0.001f);
+        assertEquals("the phone's own stays as it was", phone(), phones.fontScale, 0.001f);
+        assertEquals("nothing else changes", phones.densityDpi, sized.densityDpi);
+        assertSame("already so, nothing to do", sized, TextSize.sized(sized));
+        assertNull(TextSize.sized(null));
+    }
+
+    @Test
+    public void sizedLeavesEveryConfigurationAloneUntilInstalledAndAt100() {
+        Configuration phones = new Configuration(Resources.getSystem().getConfiguration());
+        assertSame("not installed yet", phones, TextSize.sized(phones));
+        TextSize.install(RuntimeEnvironment.getApplication());
+        assertSame("100% installs nothing", phones, TextSize.sized(phones));
+    }
+
+    @Test
+    public void instagramsResourcesKeepTheSizeWhenThePhonesConfigurationIsCopiedIn() {
+        Settings.TEXT_SIZE.save(125);
+        Application application = RuntimeEnvironment.getApplication();
+        TextSize.install(application);
+        Resources instagrams = new InstagramResources(application.getResources());
+        TextSize.apply(instagrams, 1.25f);
+        assertEquals("sized first", phone() * 1.25f, scaleOf(instagrams), 0.001f);
+        // A change of the phone's settings: Instagram copies the phone's configuration back in.
+        Configuration phones = new Configuration(Resources.getSystem().getConfiguration());
+        //noinspection deprecation
+        instagrams.updateConfiguration(phones, instagrams.getDisplayMetrics());
+        assertEquals(phone() * 1.25f, scaleOf(instagrams), 0.001f);
+        DisplayMetrics metrics = instagrams.getDisplayMetrics();
+        assertEquals("sp sizes follow", metrics.density * phone() * 1.25f, metrics.scaledDensity, 0.01f);
+        assertEquals("the phone's own stays as it was", phone(), phones.fontScale, 0.001f);
     }
 }

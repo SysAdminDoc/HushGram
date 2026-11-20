@@ -2596,6 +2596,13 @@ once-call Lapp/hushgram/extension/instagram/misc/Fonts;->prismTypeface(Landroid/
 once-call Lapp/hushgram/extension/instagram/misc/Fonts;->prismTypeface(Landroid/graphics/Typeface;)Landroid/graphics/Typeface; in instance (Landroid/content/Context;Landroid/graphics/Typeface;Ljava/lang/Integer;)Landroid/graphics/Typeface; sites 3 class-holding IgdsPrismFontHelper_setTextAppearance_UnsupportedOperationException
 once-call Lapp/hushgram/extension/instagram/misc/Fonts;->prismTypeface(Landroid/graphics/Typeface;)Landroid/graphics/Typeface; in instance (Landroid/content/Context;Landroid/widget/TextView;Ljava/lang/String;Z)V sites 2 class-holding IgdsPrismFontHelper_setTextAppearance_UnsupportedOperationException
 next-call Lapp/hushgram/extension/instagram/misc/Fonts;->textView(Landroid/widget/TextView;)V after Lcom/instagram/common/ui/base/IgTextViewUtils;->initialize(Landroid/widget/TextView;Landroid/content/Context;Landroid/util/AttributeSet;)V in instance (Landroid/content/Context;Landroid/util/AttributeSet;II)V holding Lcom/instagram/common/ui/base/IgTextViewUtils;->initialize(Landroid/widget/TextView;Landroid/content/Context;Landroid/util/AttributeSet;)V
+# It also hands each configuration Instagram's own resources take to TextSize.sized first, in the
+# updateConfiguration of the class they extend Resources through (07B0 on 386214534 and 386214574,
+# 07p3 on 386214562, 07Cc on 386214575, the one such method emptying an LruCache), so the phone's
+# configuration Instagram copies into them on a change of its settings keeps the text size (#782).
+# Left out, captions come back at the phone's size after the phone turns; twice or elsewhere, it
+# isn't the hook the patch wrote. TextScaleHookTest checks all four builds.
+start-call Lapp/hushgram/extension/instagram/misc/TextSize;->sized(Landroid/content/res/Configuration;)Landroid/content/res/Configuration; in instance (Landroid/content/res/Configuration;Landroid/util/DisplayMetrics;)V holding Landroid/util/LruCache;->evictAll()V Landroid/content/res/Resources;->updateConfiguration(Landroid/content/res/Configuration;Landroid/util/DisplayMetrics;)V
 # Show if a profile follows you hands the pronouns slot beside a profile's name and the header to
 # FriendshipStatus right after the name's binder shows the slot with the pronouns in it, and right
 # after each place it hides the slot for an account with none (the one method loading the trace

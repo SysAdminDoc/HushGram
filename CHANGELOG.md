@@ -62,6 +62,7 @@ Every HushGram release, newest first.
 * `Thicker story progress bar` makes the bar thicker again when you've picked a seek bar shape. 0.0.21 kept the shape at its own size so the waves wouldn't stretch, and that left the bar as thin as before. The shape's line now grows as much as the standard bar does, and its waves keep their size. Reported in #775.
 * With `Taps on feed videos stay in the feed` on, tapping a feed video no longer stops it on its cover or leaves it playing under a play button. On some accounts Instagram got the video ready for Reels before HushGram kept the tap, and that stopped the feed's player. Reported in #706.
 * `Sent follow requests` now catches the Requested button at the top of a profile. Since 456 Instagram sets that button another way, so a request you sent from someone's profile never made it onto the list. Reported in #690.
+* `Text size` stays put when you turn your phone or change one of its settings. Captions in the feed went back to your phone's own size after that, until Instagram was closed and opened again. Reported in #782.
 
 ## 0.0.21 (2026-11-18)
 

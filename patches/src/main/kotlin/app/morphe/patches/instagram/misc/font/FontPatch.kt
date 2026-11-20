@@ -66,9 +66,25 @@ internal const val IG_TEXT_VIEW = "Lcom/instagram/common/ui/base/IgTextView;"
 internal const val INITIALIZE =
     "Lcom/instagram/common/ui/base/IgTextViewUtils;->initialize(Landroid/widget/TextView;Landroid/content/Context;Landroid/util/AttributeSet;)V"
 
+internal const val TEXT_SIZE = "$EXTENSION_PACKAGE/misc/TextSize;"
+internal const val SIZED = "$TEXT_SIZE->sized(Landroid/content/res/Configuration;)Landroid/content/res/Configuration;"
+
+/** Instagram's base screen, a name its build keeps. It keeps the screen's resources, which are Instagram's own. */
+internal const val IG_ACTIVITY = "Lcom/instagram/base/activity/IgActivity;"
+
+/** How Instagram's own resources take a configuration: Resources' own, which they override. */
+internal const val RESOURCES_UPDATE =
+    "Landroid/content/res/Resources;->updateConfiguration(Landroid/content/res/Configuration;Landroid/util/DisplayMetrics;)V"
+
+/** What Instagram's own resources call as they take a configuration, emptying what they kept from the last. */
+internal const val EVICT_ALL = "Landroid/util/LruCache;->evictAll()V"
+
 private const val TYPEFACE = "Landroid/graphics/Typeface;"
 private const val CONTEXT = "Landroid/content/Context;"
 private const val STRING = "Ljava/lang/String;"
+private const val RESOURCES = "Landroid/content/res/Resources;"
+private const val CONFIGURATION = "Landroid/content/res/Configuration;"
+private const val DISPLAY_METRICS = "Landroid/util/DisplayMetrics;"
 
 /**
  * Instagram's text draws in the phone's font or a font file picked in HushGram settings. Included
@@ -94,6 +110,12 @@ private const val STRING = "Ljava/lang/String;"
  * changes the calls, not either class. Instagram keeps those pictures across restarts by the start of
  * their names, single emoji and sheets of six alike, so each name also goes through the extension
  * before it's used, which adds the picked file's mark there.
+ *
+ * Text size, which ships with this patch, sets the font scale in the resources the application and
+ * each screen hand out. Those are Instagram's own, which keep a configuration of their own, and a
+ * change of the phone's settings (turning the phone among them) has Instagram copy the phone's
+ * configuration into them, so captions came back at the phone's size (#782). Each configuration they
+ * take goes through the extension first, which answers it at the saved size.
  */
 @Suppress("unused")
 val fontPatch = bytecodePatch(
@@ -108,7 +130,9 @@ val fontPatch = bytecodePatch(
 
     execute {
         requireStatusMethod("font")
+        val textScale = findTextScaleSite()
         swapFonts()
+        keepTextScale(textScale)
         enableStatus("font")
     }
 }
@@ -336,6 +360,68 @@ internal fun BytecodePatchContext.swapFonts() {
             """,
         )
     }
+}
+
+/**
+ * Finds where Instagram's own resources take a configuration and checks the extension (#782).
+ *
+ * [IG_ACTIVITY] keeps its screen's resources in one instance field of Instagram's own Resources
+ * class (`07Aw` on 386214574, `07p2` on 386214562, `07Cb` on 386214575). Its class or one above it
+ * extends Resources itself (`07B0`, `07p3`, `07Cc`) and keeps the configuration: its instance
+ * (Configuration, DisplayMetrics) updateConfiguration empties the caches it drew with
+ * ([EVICT_ALL]) and hands the configuration on to [RESOURCES_UPDATE]. The application's resources
+ * are a class below the same one. Nothing may jump to its first instruction, where the hook goes.
+ */
+internal fun BytecodePatchContext.findTextScaleSite(): Method {
+    val activity = classDefByOrNull(IG_ACTIVITY) ?: refuse("this build has no $IG_ACTIVITY")
+    val kept = activity.fields.filter { !AccessFlags.STATIC.isSet(it.accessFlags) }
+        .mapNotNull { resourcesAbove(it.type) }.distinctBy { it.type }
+    val resources = kept.singleOrNull()
+        ?: refuse("expected $IG_ACTIVITY to keep one kind of Instagram's own resources, found ${kept.size}")
+    val updates = resources.methods.filter {
+        it.name == "updateConfiguration" && !AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == "V" &&
+            it.parameterTypes.map(Any::toString) == listOf(CONFIGURATION, DISPLAY_METRICS)
+    }
+    val update = updates.singleOrNull() ?: refuse("${resources.type} doesn't take a configuration itself")
+    val where = "${resources.type}->updateConfiguration"
+    val code = update.code()
+    if (code.none { it.calls(EVICT_ALL) }) refuse("$where doesn't empty its caches, so it isn't the one that keeps a configuration")
+    if (code.none { (it.opcode == Opcode.INVOKE_SUPER || it.opcode == Opcode.INVOKE_SUPER_RANGE) && it.calls(RESOURCES_UPDATE) }) {
+        refuse("$where doesn't hand the configuration on to Resources")
+    }
+    if (0 in update.jumpTargets()) refuse("$where has a jump to its first instruction")
+    // p1, the configuration, is moved into, which takes a register below 256.
+    if (update.implementation!!.registerCount - 2 > 255) refuse("$where has too many registers to take the answer back")
+    if (classDefByOrNull(TEXT_SIZE)?.methods?.any {
+            "${it.definingClass}->${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" == SIZED &&
+                AccessFlags.STATIC.isSet(it.accessFlags) && AccessFlags.PUBLIC.isSet(it.accessFlags)
+        } != true
+    ) {
+        refuse("the extension has no public static $SIZED")
+    }
+    return update
+}
+
+/** Each configuration Instagram's own resources take goes through TextSize.sized first, and they keep its answer. */
+internal fun BytecodePatchContext.keepTextScale(update: Method) {
+    mutable(update).addInstructions(
+        0,
+        """
+            invoke-static/range { p1 .. p1 }, $SIZED
+            move-result-object p1
+        """,
+    )
+}
+
+/** The class at or above [type] that extends Resources itself, when [type] is one of the app's below it. */
+private fun BytecodePatchContext.resourcesAbove(type: String): ClassDef? {
+    var at = type
+    repeat(16) {
+        val classDef = classDefByOrNull(at) ?: return null
+        if (classDef.superclass == RESOURCES) return classDef
+        at = classDef.superclass ?: return null
+    }
+    return null
 }
 
 /**
