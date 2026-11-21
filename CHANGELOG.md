@@ -70,6 +70,7 @@ Every HushGram release, newest first.
 * `Text size` stays put when you turn your phone or change one of its settings. Captions in the feed went back to your phone's own size after that, until Instagram was closed and opened again. Reported in #782.
 * Instagram no longer closes right after you sign in on a phone without Google Play services, like a de-Googled ROM or one running microG. `Run without Play services` is on by default and has no switch. Reported in #767 and #748.
 * On a narrow phone, HushGram's buttons at the top of a chat fold into one More button that holds all of them, so the chat's name shows and the last call button isn't cut off. Reported in #802.
+* Bigger text from Text size no longer makes a chat's message box taller. The space above and below the text gives way first, and only when that runs out does the box's own text come down a little, still bigger than the phone's size. Reported in #806.
 
 ## 0.0.21 (2026-11-18)
 

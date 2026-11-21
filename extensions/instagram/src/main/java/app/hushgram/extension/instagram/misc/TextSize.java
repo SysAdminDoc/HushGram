@@ -36,6 +36,9 @@ import app.hushgram.extension.shared.Utils;
  * Instagram copy the phone's configuration into them again after this class has sized them, and the
  * captions it lays out next come back at the phone's size (#782). The Font patch hands every
  * configuration they take to {@link #sized} first.
+ *
+ * <p>Bigger text made a chat's message box taller (#806). {@link ComposerFit} keeps it the height
+ * it has at the phone's own size.
  */
 public final class TextSize {
     private static volatile boolean registered;
@@ -55,6 +58,7 @@ public final class TextSize {
         registered = false;
         active = 1f;
         inBuildForTests = null;
+        ComposerFit.resetForTests();
     }
 
     private static boolean inBuild() {
@@ -152,10 +156,15 @@ public final class TextSize {
         @Override
         public void onActivityResumed(@NonNull Activity activity) {
             apply(activity.getResources(), scale);
+            ComposerFit.follow(activity, scale);
+        }
+
+        @Override
+        public void onActivityPaused(@NonNull Activity activity) {
+            ComposerFit.unfollow(activity);
         }
 
         @Override public void onActivityStarted(@NonNull Activity activity) { }
-        @Override public void onActivityPaused(@NonNull Activity activity) { }
         @Override public void onActivityStopped(@NonNull Activity activity) { }
         @Override public void onActivitySaveInstanceState(@NonNull Activity activity, @NonNull Bundle state) { }
         @Override public void onActivityDestroyed(@NonNull Activity activity) { }
