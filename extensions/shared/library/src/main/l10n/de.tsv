@@ -1432,7 +1432,7 @@ Also on Home	Auch auf der Startseite
 Leaves out posts on Home whose caption holds a word or phrase from the list too. Pull down on Home to refresh after changing it.	Blendet auch Beiträge auf der Startseite aus, deren Bildunterschrift ein Wort oder einen Ausdruck aus der Liste enthält. Ziehe die Startseite nach dem Ändern nach unten, um sie zu aktualisieren.
 Leaves out reels in the Reels tab whose caption holds a word or phrase from the list below. A reel you open yourself still plays.	Lässt im Reels-Tab Reels weg, deren Bildunterschrift ein Wort oder eine Wortgruppe aus der Liste unten enthält. Ein Reel, das du selbst öffnest, wird weiter abgespielt.
 Blocked words	Blockierte Wörter
-Words or phrases, with a comma or a new line between them. Capital letters don't matter, and a hashtag works too.	Wörter oder Wortgruppen, getrennt durch ein Komma oder eine neue Zeile. Groß- und Kleinschreibung spielt keine Rolle, und ein Hashtag funktioniert auch.
+Words or phrases, with a comma or a new line between them. Capital letters don't matter, a hashtag works too, and an @name hides that account's posts.	Wörter oder Wortgruppen, getrennt durch ein Komma oder eine neue Zeile. Groß- und Kleinschreibung spielt keine Rolle, ein Hashtag funktioniert auch, und ein @name blendet die Beiträge dieses Kontos aus.
 No words yet	Noch keine Wörter
 %1$d word	%1$d Wort
 %1$d words	%1$d Wörter

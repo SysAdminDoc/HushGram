@@ -44,6 +44,7 @@ Every HushGram release, newest first.
 * A chat's clock button menu has `Select messages` now, right under Export chat. It lists the messages the chat has loaded with a box beside each, and Select all at the top ticks every one. Tick a few and copy or share them, or tap Save to write just those to a text file in Downloads, HushGram folder. It comes with `Export a chat as text`. To pick from older messages, scroll up in the chat first. Asked for in #778.
 * In Manager's Expert mode the six comment patches have a Comments group of their own now, like the Comments page in HushGram settings, and `HushGram launch screen` moved to Settings. Interaction and Interface were getting too long to scan.
 * `Keep the tab bar on reel links` is new under Reels. A reel link you open from another app, like WhatsApp, plays on the tab you were on with the tab bar under it, so the seek bar sits up where your thumb reaches. It works when Instagram was closed too, and Back takes you to that tab. It starts off. Asked for in #385.
+* `Blocked words` under `Hide reels by caption words` takes an @name too, like `@cnn`. That account's reels leave the Reels tab, and with `Also on Home` on its posts leave Home as well. Asked for in #807.
 * **Tooling:** The GitHub release notes leave out the Tooling bullets and the What was checked part now. They're still here in the changelog, and Manager's notes keep their Validation line.
 
 ### Bug Fixes

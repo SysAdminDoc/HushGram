@@ -680,7 +680,7 @@ public final class FeedSuggestions {
                 : byLiked(item, likedOf) == null ? null
                 : byAuthor(item, authorOf) == null ? null
                 : byProfessional(item, professionalOf) == null ? null
-                : byCaption(item, captionOf) == null ? null : byNumbers(item, numbersOf);
+                : byCaption(item, captionOf, authorOf) == null ? null : byNumbers(item, numbersOf);
         if (kept == null && page != null) page[1]++;
         if (kept != null && page != null && "MEDIA".equals(kind)) {
             try {
@@ -694,16 +694,18 @@ public final class FeedSuggestions {
 
     /**
      * [item], or null while Also on Home is on and its post's caption holds one of Hide reels by
-     * caption words' words (#192). The caption isn't read while there are no words. A post with no
-     * caption, or one that can't be read, stays.
+     * caption words' words (#192), or the list names its author as {@code @name} (#807). The caption
+     * isn't read while there are no words, nor the author while no word names an account. A post
+     * with no caption, or one that can't be read, stays unless its author is named.
      */
-    private static Object byCaption(Object item, Function<Object, String> captionOf) {
+    private static Object byCaption(Object item, Function<Object, String> captionOf, Function<Object, String> authorOf) {
         try {
             List<String> words = CaptionWordReels.homeWordsWhenOn();
             CaptionLanguage.Rule language = CaptionLanguage.homeRuleWhenOn();
             if (words.isEmpty() && language == null) return item;
             String caption = captionOf.apply(item);
-            if (CaptionWordReels.holdsAny(caption, words)) {
+            if (CaptionWordReels.holdsAny(caption, words)
+                    || CaptionWordReels.namesAccounts(words) && CaptionWordReels.postedByAny(authorOf.apply(item), words)) {
                 FeedFilterCounters.removed(TYPES_ROUTE, 1, CAPTION_WORD);
                 HookStatus.counted(FamilyNames.FEED_SUGGESTIONS, CAPTION_WORD_REMOVED);
                 typesTookOut = true;

@@ -142,6 +142,28 @@ public class CaptionWordHomeTest {
         assertEquals(1, captionReads);
     }
 
+    /** #807: an @name in the list takes that account's posts off Home too, caption or not; no @name, no author read. */
+    @Test
+    public void anAtNameTakesThatAccountsPostsOffHome() {
+        Item theirs = new Item(null);
+        Item other = new Item("a quiet walk");
+        int[] authorReads = {0};
+        Function<Object, String> authorOf = item -> {
+            authorReads[0]++;
+            return item == theirs ? "ClickBait.Daily" : "someone";
+        };
+        wordsOn("spoiler\n@clickbait.daily");
+        assertNull(FeedSuggestions.homeItem(theirs, photo, notLiked, authorOf, captionOf));
+        assertSame(other, FeedSuggestions.homeItem(other, photo, notLiked, authorOf, captionOf));
+        assertTrue(FeedSuggestions.typesTookOut);
+        assertTrue(HookStatus.report().toString().contains(FeedSuggestions.CAPTION_WORD_REMOVED));
+
+        authorReads[0] = 0;
+        wordsOn("spoiler");
+        assertSame(theirs, FeedSuggestions.homeItem(theirs, photo, notLiked, authorOf, captionOf));
+        assertEquals(0, authorReads[0]);
+    }
+
     /** A page of Home's response that loses every post to a caption word counts as emptied. */
     @Test
     public void aPageItEmptiesCountsAsLost() {

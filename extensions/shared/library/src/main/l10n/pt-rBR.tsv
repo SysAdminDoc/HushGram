@@ -1432,7 +1432,7 @@ Also on Home	Também no Início
 Leaves out posts on Home whose caption holds a word or phrase from the list too. Pull down on Home to refresh after changing it.	Tira também do Início os posts cuja legenda tem uma palavra ou frase da lista. Puxe o Início para baixo para atualizar depois de mudar.
 Leaves out reels in the Reels tab whose caption holds a word or phrase from the list below. A reel you open yourself still plays.	Deixa de fora da aba Reels os reels cuja legenda tem uma palavra ou frase da lista abaixo. Um reel que você mesmo abre continua tocando.
 Blocked words	Palavras bloqueadas
-Words or phrases, with a comma or a new line between them. Capital letters don't matter, and a hashtag works too.	Palavras ou frases, separadas por vírgula ou por uma nova linha. Maiúsculas não fazem diferença, e uma hashtag também funciona.
+Words or phrases, with a comma or a new line between them. Capital letters don't matter, a hashtag works too, and an @name hides that account's posts.	Palavras ou frases, separadas por vírgula ou por uma nova linha. Maiúsculas não fazem diferença, uma hashtag também funciona, e um @nome oculta as publicações dessa conta.
 No words yet	Nenhuma palavra ainda
 %1$d word	%1$d palavra
 %1$d words	%1$d palavras

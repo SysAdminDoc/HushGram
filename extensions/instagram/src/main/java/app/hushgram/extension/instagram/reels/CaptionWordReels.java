@@ -29,8 +29,10 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  *
  * <p>The list is the words and phrases typed under the switch, split at commas and new lines, as
  * Hushfeed's Blocked caption words are, so a list from there pastes in as it is. A reel goes when
- * its caption, the post's own words with their hashtags, holds one of them, whatever the case. A
- * reel with no caption stays. With Also on Home on, Home's posts are matched against the same list
+ * its caption, the post's own words with their hashtags, holds one of them, whatever the case. An
+ * {@code @name} in the list also takes out that account's own reels, the author read through the
+ * post's user and its username (#807). A reel with no caption from an account not named stays.
+ * With Also on Home on, Home's posts are matched against the same list
  * ({@link app.hushgram.extension.instagram.feed.FeedSuggestions#homeItem}).
  *
  * <p>A page where every reel would go keeps every item, so the viewer always has a reel to show,
@@ -57,6 +59,11 @@ public final class CaptionWordReels {
 
         /** The post's caption text, or null when it has none. */
         String caption(Object media);
+
+        /** The username of whoever posted it, or null when it can't be read (#807). */
+        default String author(Object media) {
+            return null;
+        }
     }
 
     private static final Reader PATCHED = new Reader() {
@@ -69,6 +76,12 @@ public final class CaptionWordReels {
         public String caption(Object media) {
             Object caption = InstagramMedia.caption(media);
             return caption == null ? null : InstagramMedia.captionText(caption);
+        }
+
+        @Override
+        public String author(Object media) {
+            Object owner = InstagramMedia.owner(media);
+            return owner == null ? null : InstagramMedia.username(owner);
         }
     };
 
@@ -115,6 +128,7 @@ public final class CaptionWordReels {
             List<String> blocked = words.get();
             CaptionLanguage.Rule other = language.get();
             if (blocked.isEmpty() && other == null) return items;
+            boolean accounts = namesAccounts(blocked);
 
             boolean[] goes = new boolean[size];
             int matched = 0;
@@ -126,7 +140,8 @@ public final class CaptionWordReels {
                 Object media = item == null ? null : reader.media(item);
                 if (media != null) reels++;
                 String caption = media == null ? null : reader.caption(media);
-                boolean hit = holdsAny(caption, blocked);
+                boolean hit = holdsAny(caption, blocked)
+                        || accounts && media != null && postedByAny(reader.author(media), blocked);
                 boolean foreignHit = !hit && other != null && other.isOther(caption);
                 if (hit) {
                     matched++;
@@ -172,6 +187,29 @@ public final class CaptionWordReels {
         String text = caption.toLowerCase(Locale.ROOT);
         for (String word : words) {
             if (text.contains(word)) return true;
+        }
+        return false;
+    }
+
+    /** Whether [words], already lower case, name an account: an @ and at least one more character (#807). */
+    public static boolean namesAccounts(List<String> words) {
+        for (String word : words) {
+            if (word.length() > 1 && word.charAt(0) == '@') return true;
+        }
+        return false;
+    }
+
+    /**
+     * Whether [author], a username, is one of the accounts [words] name as {@code @name}, whatever the
+     * case and with or without its own @ (#807). An unknown author is nobody's.
+     */
+    public static boolean postedByAny(String author, List<String> words) {
+        if (author == null) return false;
+        String name = author.trim().toLowerCase(Locale.ROOT);
+        if (name.startsWith("@")) name = name.substring(1);
+        if (name.isEmpty()) return false;
+        for (String word : words) {
+            if (word.length() == name.length() + 1 && word.charAt(0) == '@' && word.endsWith(name)) return true;
         }
         return false;
     }

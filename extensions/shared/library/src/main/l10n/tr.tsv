@@ -1432,7 +1432,7 @@ Also on Home	Ana Sayfa'da da
 Leaves out posts on Home whose caption holds a word or phrase from the list too. Pull down on Home to refresh after changing it.	Açıklamasında listedeki bir kelime veya ifade geçen Ana Sayfa gönderilerini de gizler. Değiştirdikten sonra yenilemek için Ana Sayfa'yı aşağı çek.
 Leaves out reels in the Reels tab whose caption holds a word or phrase from the list below. A reel you open yourself still plays.	Reels sekmesinde açıklaması aşağıdaki listeden bir kelime ya da ifade içeren reel'leri çıkarır. Kendin açtığın bir reel yine oynatılır.
 Blocked words	Engellenen kelimeler
-Words or phrases, with a comma or a new line between them. Capital letters don't matter, and a hashtag works too.	Aralarında virgül ya da yeni satır olan kelimeler veya ifadeler. Büyük küçük harf fark etmez, hashtag de olur.
+Words or phrases, with a comma or a new line between them. Capital letters don't matter, a hashtag works too, and an @name hides that account's posts.	Aralarında virgül ya da yeni satır olan kelimeler veya ifadeler. Büyük küçük harf fark etmez, hashtag de olur, @ad yazarsan o hesabın gönderileri gizlenir.
 No words yet	Henüz kelime yok
 %1$d word	%1$d kelime
 %1$d words	%1$d kelime

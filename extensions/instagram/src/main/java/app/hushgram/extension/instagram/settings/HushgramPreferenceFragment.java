@@ -8351,7 +8351,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         row.setTitle(L10n.t("Blocked words"));
         row.setDialogTitle(L10n.t("Blocked words"));
         row.setDialogMessage(L10n.t("Words or phrases, with a comma or a new line between them. Capital letters don't "
-                + "matter, and a hashtag works too."));
+                + "matter, a hashtag works too, and an @name hides that account's posts."));
         row.setPositiveButtonText(L10n.t("Save"));
         row.setNegativeButtonText(L10n.t("Cancel"));
         EditText field = row.getEditText();

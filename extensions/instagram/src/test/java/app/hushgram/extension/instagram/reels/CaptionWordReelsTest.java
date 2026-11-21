@@ -40,9 +40,15 @@ public class CaptionWordReelsTest {
     /** A reel's post, with its caption text, which can be null. */
     static final class Post {
         final String caption;
+        final String author;
 
         Post(String caption) {
+            this(caption, "someone");
+        }
+
+        Post(String caption, String author) {
             this.caption = caption;
+            this.author = author;
         }
     }
 
@@ -58,6 +64,7 @@ public class CaptionWordReelsTest {
     /** Reads a Clip the way the patch-filled stub and the caption bridges read Instagram's item, counting each read. */
     static class Reader implements CaptionWordReels.Reader {
         final AtomicInteger reads = new AtomicInteger();
+        final AtomicInteger authors = new AtomicInteger();
 
         @Override
         public Object media(Object item) {
@@ -68,6 +75,12 @@ public class CaptionWordReelsTest {
         @Override
         public String caption(Object media) {
             return ((Post) media).caption;
+        }
+
+        @Override
+        public String author(Object media) {
+            authors.incrementAndGet();
+            return ((Post) media).author;
         }
     }
 
@@ -133,6 +146,37 @@ public class CaptionWordReelsTest {
         assertTrue(report, report.contains("blocked word 3"));
         assertTrue(HookStatus.missing(FamilyNames.CAPTION_WORD_REELS).toString(),
                 HookStatus.missing(FamilyNames.CAPTION_WORD_REELS).isEmpty());
+    }
+
+    /**
+     * #807: an @name in the list takes out that account's own reels, whatever the case and caption,
+     * and still takes out a reel whose caption mentions it. Other accounts' reels stay, a name that's
+     * only the start of another doesn't match, and without any @name no author is read.
+     */
+    @Test
+    public void anAtNameTakesOutThatAccountsReels() {
+        Settings.REELS_BLOCKED_WORDS.save("spoiler\n@Clickbait.Daily");
+        Clip theirs = new Clip(new Post("Sunset at the lake", "clickbait.daily"));
+        Clip theirsNoCaption = new Clip(new Post(null, "ClickBait.Daily"));
+        Clip mention = new Clip(new Post("Thanks @clickbait.daily for this", "fan"));
+        Clip longer = new Clip(new Post("a cat", "clickbait.daily2"));
+        Clip shorter = new Clip(new Post("a dog", "clickbait.dail"));
+        Clip nobody = new Clip(new Post("a bird", null));
+        List<Clip> items = Arrays.asList(theirs, theirsNoCaption, mention, longer, shorter, nobody);
+
+        assertEquals(Arrays.asList(longer, shorter, nobody), page(items));
+        String report = FeedFilterCounters.report().toString();
+        assertTrue(report, report.contains("blocked word 3"));
+
+        reader.authors.set(0);
+        Settings.REELS_BLOCKED_WORDS.save("spoiler");
+        assertSame(items, page(items));
+        assertEquals("no @name, no author read", 0, reader.authors.get());
+
+        assertFalse("a lone @ names nobody", CaptionWordReels.namesAccounts(CaptionWordReels.words("spoiler, @")));
+        assertTrue(CaptionWordReels.postedByAny("@ClickBait.Daily ", CaptionWordReels.words("@clickbait.daily")));
+        assertFalse(CaptionWordReels.postedByAny("", CaptionWordReels.words("@clickbait.daily")));
+        assertFalse(CaptionWordReels.postedByAny("clickbait.daily", CaptionWordReels.words("clickbait.daily")));
     }
 
     /**

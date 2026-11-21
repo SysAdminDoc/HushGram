@@ -12,6 +12,7 @@ import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.download.INSTAGRAM_MEDIA
 import app.morphe.patches.instagram.download.MEDIA
+import app.morphe.patches.instagram.download.USER
 import app.morphe.patches.instagram.reels.partnership.ReelsPageSites
 import app.morphe.patches.instagram.reels.partnership.fillReelsItemMedia
 import com.android.tools.smali.dexlib2.AccessFlags
@@ -72,6 +73,33 @@ class HideCaptionWordReelsHookTest {
             listOf("check-cast $COMMENT", "invoke-interface $COMMENT->words()$STRING", "move-result-object", "return-object", "const/4", "return-object"),
             context.body(INSTAGRAM_MEDIA, "captionText"),
         )
+    }
+
+    /** #807: the author bridges, Media's user getter and then User's username getter, are written for the list's @names. */
+    @Test
+    fun theAuthorBridgesAreFilledForTheListsNames() {
+        val context = PatchContexts.of(standIns(author = true))
+        context.findCaptionWordReels()()
+
+        assertEquals(
+            listOf("check-cast $MEDIA", "invoke-virtual $MEDIA->usr()$USER", "move-result-object", "return-object", "const/4", "return-object"),
+            context.body(INSTAGRAM_MEDIA, "owner"),
+        )
+        assertEquals(
+            listOf("check-cast $USER", "invoke-virtual $USER->nm()$STRING", "move-result-object", "return-object", "const/4", "return-object"),
+            context.body(INSTAGRAM_MEDIA, "username"),
+        )
+    }
+
+    /** #807: a build whose author can't be told still gets the caption filter, with the author bridges left as built. */
+    @Test
+    fun withoutTheAuthorThePatchStillGoesIn() {
+        val context = PatchContexts.of(standIns(author = false))
+        context.findCaptionWordReels()()
+
+        assertEquals(listOf("const/4", "return-object"), context.body(INSTAGRAM_MEDIA, "owner"))
+        assertEquals(listOf("const/4", "return-object"), context.body(INSTAGRAM_MEDIA, "username"))
+        assertEquals("check-cast $MEDIA", context.body(INSTAGRAM_MEDIA, "caption").first())
     }
 
     /** A caption bridge Download any video wrote first is left as it is, so both patches together write each one once. */
@@ -139,6 +167,7 @@ class HideCaptionWordReelsHookTest {
         /**
          * Stand-ins shaped like 451's: Media with one getter loading caption's hash, the comment
          * interface it answers, and the tree-backed comment whose text getter loads text's hash.
+         * With [author], Media's user getter and User's username getter as well (#807).
          */
         fun standIns(
             captionGetters: Int = 1,
@@ -146,12 +175,25 @@ class HideCaptionWordReelsHookTest {
             treeImplements: Boolean = true,
             declaresText: Boolean = true,
             extension: Boolean = true,
+            author: Boolean = false,
         ): List<ClassDef> {
             val getters = (1..captionGetters).map { i ->
                 method(
                     MEDIA, if (i == 1) "cap" else "cap$i", COMMENT, PUBLIC or AccessFlags.FINAL.value, 2,
                     "const v0, ${"caption".hashCode()}\nconst/4 v0, 0x0\nreturn-object v0",
                 )
+            } + if (author) {
+                listOf(method(MEDIA, "usr", USER, PUBLIC or AccessFlags.FINAL.value, 2, "const v0, ${"user".hashCode()}\nconst/4 v0, 0x0\nreturn-object v0"))
+            } else {
+                emptyList()
+            }
+            val user = if (author) {
+                ImmutableClassDef(
+                    USER, PUBLIC, OBJECT, null, null, null, null,
+                    listOf(method(USER, "nm", STRING, PUBLIC or AccessFlags.FINAL.value, 2, "const v0, ${"username".hashCode()}\nconst/4 v0, 0x0\nreturn-object v0")),
+                )
+            } else {
+                null
             }
             val media = ImmutableClassDef(MEDIA, PUBLIC, OBJECT, null, null, null, null, getters)
             val comment = if (commentInterface) {
@@ -167,7 +209,7 @@ class HideCaptionWordReelsHookTest {
                 listOf(method(TREE, "words", STRING, PUBLIC, 2, "const v0, ${"text".hashCode()}\nconst/4 v0, 0x0\nreturn-object v0")),
             )
             return listOfNotNull(
-                media, comment, tree, ExtensionDex.classDef(INSTAGRAM_MEDIA),
+                media, comment, tree, user, ExtensionDex.classDef(INSTAGRAM_MEDIA),
                 if (extension) ExtensionDex.classDef(CAPTION_WORD_REELS) else null,
             )
         }

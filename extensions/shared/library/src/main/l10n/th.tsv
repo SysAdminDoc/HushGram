@@ -1423,7 +1423,7 @@ Also on Home	บนหน้าหลักด้วยเช่นกัน
 Leaves out posts on Home whose caption holds a word or phrase from the list too. Pull down on Home to refresh after changing it.	ละเว้นโพสต์บนหน้าหลักที่มีคำหรือวลีจากรายการนี้ในคำบรรยายด้วยเช่นกัน เลื่อนหน้าหลักลงเพื่อรีเฟรชหลังจากเปลี่ยนแปลงการตั้งค่า
 Leaves out reels in the Reels tab whose caption holds a word or phrase from the list below. A reel you open yourself still plays.	ละเว้นรีลส์ในแท็บรีลส์ที่มีคำหรือวลีจากรายการด้านล่างในคำบรรยาย โดยรีลส์ที่คุณเปิดดูด้วยตนเองจะยังคงเล่นได้ตามปกติ
 Blocked words	คำที่บล็อก
-Words or phrases, with a comma or a new line between them. Capital letters don't matter, and a hashtag works too.	คำหรือวลี โดยคั่นด้วยเครื่องหมายจุลภาคหรือขึ้นบรรทัดใหม่ ตัวพิมพ์ใหญ่-เล็กไม่มีผล และสามารถใช้แฮชแท็กได้เช่นกัน
+Words or phrases, with a comma or a new line between them. Capital letters don't matter, a hashtag works too, and an @name hides that account's posts.	คำหรือวลี โดยคั่นด้วยเครื่องหมายจุลภาคหรือขึ้นบรรทัดใหม่ ตัวพิมพ์ใหญ่-เล็กไม่มีผล ใช้แฮชแท็กได้ และ @ชื่อ จะซ่อนโพสต์ของบัญชีนั้น
 No words yet	ยังไม่มีคำที่บล็อก
 %1$d word	%1$d คำ
 %1$d words	%1$d คำ

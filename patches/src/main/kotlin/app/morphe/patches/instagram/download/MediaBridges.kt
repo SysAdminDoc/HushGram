@@ -265,6 +265,23 @@ internal fun BytecodePatchContext.captionBridges(
     null
 }
 
+/**
+ * The same for who posted a Media: its `user` and that user's `username`, for the @names in Hide
+ * reels by caption words' list (#807). A build where either can't be told answers null, after the
+ * patch log says why and what [without] leaves out, and the patch goes in without them.
+ */
+internal fun BytecodePatchContext.authorBridges(patch: String, without: String): (() -> Unit)? = try {
+    val owner = pandoGetter(patch, MEDIA, "user", USER)
+    val username = pandoGetter(patch, USER, "username", "Ljava/lang/String;")
+    bridgeWriter(patch, listOf(
+        Bridge("owner", MEDIA, virtual(owner)),
+        Bridge("username", USER, virtual(username)),
+    ))
+} catch (unknown: PatchException) {
+    patchLog.warning("${unknown.message}. $without.")
+    null
+}
+
 /** The same for an account's username alone, for a save named after an account found elsewhere. */
 internal fun BytecodePatchContext.usernameBridge(patch: String): () -> Unit {
     val username = pandoGetter(patch, USER, "username", "Ljava/lang/String;")

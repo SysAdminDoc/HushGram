@@ -7,6 +7,7 @@ package app.morphe.patches.instagram.reels.captionwords
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
+import app.morphe.patches.instagram.download.authorBridges
 import app.morphe.patches.instagram.download.captionBridges
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.enableStatus
@@ -58,8 +59,9 @@ private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $det
 /**
  * Checks the extension has the page filter and the item stub, then finds how a post's caption is
  * read: the caption bridges Details' Copy caption uses, Media's caption and that comment's text.
- * Answers the writer for those bridges. Fails before anything changes when any of it can't be told,
- * since without the caption there's nothing to match.
+ * Answers the writer for those bridges, and for the author's, Media's user and its username, which
+ * the list's @names match (#807). Fails before anything changes when the caption can't be told,
+ * since without it there's nothing to match. Without the author the @names match captions only.
  */
 internal fun BytecodePatchContext.findCaptionWordReels(): () -> Unit {
     val extension = classDefByOrNull(CAPTION_WORD_REELS) ?: refuse("the extension has no $CAPTION_WORD_REELS")
@@ -69,7 +71,12 @@ internal fun BytecodePatchContext.findCaptionWordReels(): () -> Unit {
     if (extension.methods.none { it.isStaticStub("media", listOf(OBJECT), OBJECT) }) {
         refuse("the extension has no static media(Object)Object to fill")
     }
-    return captionBridges(PATCH, "$PATCH can't read a reel's caption") ?: refuse("can't read a post's caption in this Instagram build")
+    val caption = captionBridges(PATCH, "$PATCH can't read a reel's caption") ?: refuse("can't read a post's caption in this Instagram build")
+    val author = authorBridges(PATCH, "$PATCH goes in without @names, so they only match captions")
+    return {
+        caption()
+        author?.invoke()
+    }
 }
 
 /**
