@@ -17,6 +17,7 @@ import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
+import android.view.ViewParent;
 import android.view.ViewGroup;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.FrameLayout;
@@ -28,11 +29,14 @@ import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
 import java.lang.ref.WeakReference;
+import java.util.ArrayList;
+import java.util.List;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.Logger;
+import app.hushgram.extension.shared.ResourceIdCache;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 
@@ -50,6 +54,11 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * once did, could leave the video stuck on the frame it was moved to. Most feed posts come without
  * the picture strip a reel has, so with the preview on, the paused video itself follows the drag
  * there and shows the moment the finger is on (#567).
+ *
+ * <p>Instagram keeps a row of buttons along the bottom of a feed video, tags at the start and sound
+ * at the end. While the bar shows, that row is lifted by the bar's height, so the buttons sit over
+ * the bar instead of covering its ends, and the toggle button lines up in the row beside them (#794).
+ * The row is put back where it was when the bar hides or moves to another video.
  *
  * <p>With the switch off, HushGram paused or the settings not read, the bar hides and a drag does
  * nothing. A bar hidden for {@link #GONE_MS} goes away and stops ticking until the player plays
@@ -87,6 +96,20 @@ public final class FeedSeekBar {
 
     /** The toggle button's size, a small circle at the bottom start of the video (#437). */
     static final int BUTTON_DP = 28;
+
+    /** The gap between the toggle and a button of Instagram's beside it (#794). */
+    static final int BUTTON_GAP_DP = 4;
+
+    /**
+     * Instagram's sound button on a feed video. The row along the video's bottom holding it holds the
+     * tags button too, and the bar lifts that row clear of itself (#794).
+     */
+    static final String SOUND_BUTTON = "slideout_iconview_icon";
+
+    /** How far above the video's frame the row is looked for: the post's media holds both. */
+    static final int ROW_LEVELS = 2;
+
+    private static final ResourceIdCache ids = new ResourceIdCache();
 
     /** The feed's video player, through the patch's stubs; tests stand in. */
     interface Player {
@@ -233,12 +256,26 @@ public final class FeedSeekBar {
     }
 
     @VisibleForTesting
+    @Nullable
+    static View buttonForTests() {
+        Overlay overlay = current;
+        return overlay == null ? null : overlay.button;
+    }
+
+    /** Gives Instagram's [name] view id the value [id] in tests, where the app's ids aren't there. */
+    @VisibleForTesting
+    static void idForTests(Context context, String name, int id) {
+        ids.putForTests(Utils.resourcePackage(context), name, id);
+    }
+
+    @VisibleForTesting
     static void resetForTests() {
         Overlay overlay = current;
         if (overlay != null) overlay.remove();
         current = null;
         feed = PATCHED;
         logged = false;
+        ids.clear();
     }
 
     /** One player's bar and its ticking. */
@@ -263,6 +300,10 @@ public final class FeedSeekBar {
         boolean claimed;
         float downX;
         float downY;
+        /** Instagram's row of buttons this bar lifted (#794), the translation it had, and how far it went up. */
+        @Nullable WeakReference<View> lifted;
+        float liftedFrom;
+        int liftedBy;
 
         Overlay(Object player) {
             this.player = new WeakReference<>(player);
@@ -316,8 +357,30 @@ public final class FeedSeekBar {
             int barState = wanted() ? View.VISIBLE : View.GONE;
             if (seek.getVisibility() != barState) seek.setVisibility(barState);
             if (barState == View.GONE) dragging = false;
-            showButton(frame, view);
+            ViewGroup row = buttonRow(frame);
+            int lift = barState == View.VISIBLE && row != null ? barHeight(view, seek) : 0;
+            lift(row, lift);
+            showButton(frame, view, row, lift);
             showTime(frame, view, seek);
+        }
+
+        /**
+         * Keeps Instagram's [row] of buttons, the sound and tags buttons along the video's bottom,
+         * lifted [by] pixels so they sit over the bar instead of on it and a touch at the bar's ends
+         * goes to the bar (#794). A row lifted before is put back first, unless Instagram moved it
+         * since, which means it's placing that row itself.
+         */
+        private void lift(@Nullable View row, int by) {
+            View held = lifted == null ? null : lifted.get();
+            boolean holding = held != null && held.getTranslationY() == liftedFrom - liftedBy;
+            if (held == row && by == liftedBy && holding && by > 0) return;
+            if (holding) held.setTranslationY(liftedFrom);
+            lifted = null;
+            if (row == null || by <= 0) return;
+            liftedFrom = row.getTranslationY();
+            liftedBy = by;
+            row.setTranslationY(liftedFrom - by);
+            lifted = new WeakReference<>(row);
         }
 
         /**
@@ -377,16 +440,30 @@ public final class FeedSeekBar {
             if (parent != null) parent.removeView(shown);
         }
 
-        /** Puts the toggle button in [frame] just after [view], or takes it out when its switch is off. */
-        private void showButton(FrameLayout frame, View view) {
+        /**
+         * Puts the toggle button in [frame] just after [view], or takes it out when its switch is off.
+         * With Instagram's [row] of buttons there, lifted [lift] pixels, the toggle sits in that row,
+         * level with the sound button and past a tags button on its side, so none of them overlap
+         * (#794). Without one it sits at the bottom start, over the bar.
+         */
+        private void showButton(FrameLayout frame, View view, @Nullable ViewGroup row, int lift) {
             if (!buttonWanted()) {
                 removeButton();
                 return;
             }
+            int size = dp(view, BUTTON_DP);
+            int[] place = {dp(view, 8), barHeight(view, bar) + dp(view, 4)};
+            if (row != null) inRow(row, lift, size, dp(view, BUTTON_GAP_DP), place);
             Toggle shown = button;
             if (shown != null && shown.getParent() == frame) {
-                int size = dp(view, BUTTON_DP);
-                fit(shown, size, size, barHeight(view, bar) + dp(view, 4));
+                fit(shown, size, size, place[1]);
+                if (shown.getLayoutParams() instanceof FrameLayout.LayoutParams) {
+                    FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) shown.getLayoutParams();
+                    if (params.getMarginStart() != place[0]) {
+                        params.setMarginStart(place[0]);
+                        shown.setLayoutParams(params);
+                    }
+                }
                 shown.invalidate();
                 return;
             }
@@ -397,10 +474,9 @@ public final class FeedSeekBar {
             } else if (shown.getParent() != null) {
                 ((ViewGroup) shown.getParent()).removeView(shown);
             }
-            int size = dp(view, BUTTON_DP);
             FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(size, size, Gravity.BOTTOM | Gravity.START);
-            params.setMarginStart(dp(view, 8));
-            params.bottomMargin = barHeight(view, bar) + dp(view, 4);
+            params.setMarginStart(place[0]);
+            params.bottomMargin = place[1];
             frame.addView(shown, frame.indexOfChild(view) + 1, params);
         }
 
@@ -431,6 +507,7 @@ public final class FeedSeekBar {
         private void hide() {
             if (!buttonWanted()) removeButton();
             removeTime();
+            lift(null, 0);
             if (bar != null && bar.getVisibility() != View.GONE) bar.setVisibility(View.GONE);
             dragging = false;
             long now = SystemClock.uptimeMillis();
@@ -507,6 +584,7 @@ public final class FeedSeekBar {
             held = false;
             removeButton();
             removeTime();
+            lift(null, 0);
             SeekBar seek = bar;
             bar = null;
             if (seek != null) {
@@ -658,6 +736,99 @@ public final class FeedSeekBar {
             info.setCheckable(true);
             info.setChecked(barShown());
         }
+    }
+
+    /**
+     * Instagram's row of buttons along the bottom of the video in [frame] (#794): the nearest holder
+     * of a sound button, in the post's media around the frame, that's as wide as the video, ends at
+     * its bottom and takes less than half its height. Null when there's none, which leaves Instagram's
+     * buttons where they are.
+     */
+    @Nullable
+    static ViewGroup buttonRow(FrameLayout frame) {
+        int sound = ids.resolve(frame.getResources(), Utils.resourcePackage(frame.getContext()), SOUND_BUTTON, false);
+        if (sound == 0) return null;
+        ViewGroup root = frame;
+        for (int up = 0; up < ROW_LEVELS && root.getParent() instanceof ViewGroup; up++) root = (ViewGroup) root.getParent();
+        ArrayList<View> icons = new ArrayList<>();
+        collect(root, sound, icons);
+        int bottom = top(frame, root) + frame.getHeight();
+        for (View icon : icons) {
+            for (ViewParent at = icon.getParent(); at instanceof ViewGroup && at != root && at != frame; at = at.getParent()) {
+                ViewGroup holder = (ViewGroup) at;
+                if (holder.getWidth() != frame.getWidth() || holder.getHeight() * 2 >= frame.getHeight()) continue;
+                if (Math.abs(top(holder, root) + holder.getHeight() - bottom) <= 1) return holder;
+            }
+        }
+        return null;
+    }
+
+    /** Adds every shown view with [id] under [group] to [found]. */
+    private static void collect(ViewGroup group, int id, List<View> found) {
+        for (int i = 0; i < group.getChildCount(); i++) {
+            View child = group.getChildAt(i);
+            if (child.getVisibility() != View.VISIBLE) continue;
+            if (child.getId() == id) found.add(child);
+            if (child instanceof ViewGroup) collect((ViewGroup) child, id, found);
+        }
+    }
+
+    /** Where [view] is laid out below [root]'s top, leaving out any translation; -1 when it isn't under [root]. */
+    private static int top(View view, ViewGroup root) {
+        int top = 0;
+        for (View at = view; at != root; at = (View) at.getParent()) {
+            top += at.getTop();
+            if (!(at.getParent() instanceof View)) return -1;
+        }
+        return top;
+    }
+
+    /**
+     * The toggle's place in Instagram's [row], lifted [lift] pixels, written into [place] as its start
+     * margin and bottom margin in the video's frame (#794): centered on the row's buttons, and past
+     * the end of any of them on the start side, [gap] after it. Each of the row's buttons is its child,
+     * or that child's only shown child when it's a group padding one.
+     */
+    static void inRow(ViewGroup row, int lift, int size, int gap, int[] place) {
+        boolean rtl = row.getLayoutDirection() == View.LAYOUT_DIRECTION_RTL;
+        int width = row.getWidth();
+        int middle = -1;
+        int start = place[0];
+        for (int i = 0; i < row.getChildCount(); i++) {
+            View child = row.getChildAt(i);
+            if (child.getVisibility() != View.VISIBLE || child.getWidth() == 0) continue;
+            int left = child.getLeft();
+            int top = child.getTop();
+            View button = child;
+            if (child instanceof ViewGroup) {
+                View only = onlyShown((ViewGroup) child);
+                if (only != null) {
+                    left += only.getLeft();
+                    top += only.getTop();
+                    button = only;
+                }
+            }
+            int right = left + button.getWidth();
+            if (middle < 0) middle = top + button.getHeight() / 2;
+            boolean startSide = rtl ? left + right > width : left + right < width;
+            if (startSide) start = Math.max(start, (rtl ? width - left : right) + gap);
+        }
+        if (middle < 0) return;
+        place[0] = start;
+        place[1] = Math.max(0, row.getHeight() - middle + lift - size / 2);
+    }
+
+    /** [group]'s one shown child, or null when it shows none or more than one. */
+    @Nullable
+    private static View onlyShown(ViewGroup group) {
+        View only = null;
+        for (int i = 0; i < group.getChildCount(); i++) {
+            View child = group.getChildAt(i);
+            if (child.getVisibility() != View.VISIBLE) continue;
+            if (only != null) return null;
+            only = child;
+        }
+        return only;
     }
 
     /**

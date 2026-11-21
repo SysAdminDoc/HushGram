@@ -56,6 +56,7 @@ Every HushGram release, newest first.
 * Home no longer crashes when a hide switch removes the only post on a page of the feed, which could happen when opening a link to a post.
 * With `Ask for VP9 instead of AV1` on, a post or reel that Instagram still hands over as AV1 now saves as VP9 from Instagram's website when the website has it. HushGram asks the website logged out and sends only the post's number. Stories can still come as AV1, and `Convert to keep the full size` turns those into H.264. Reported in #546.
 * Letting go after `Hold for 2x on feed videos` no longer pauses the video when `Tap a feed video to pause it` is on too.
+* The tags and sound buttons on a feed video now move up above its seek bar while the bar shows, so they don't cover its ends, and the seek bar's toggle button lines up beside them instead of on top of the tags button. Reported in #794.
 * The `Show if a profile follows you` label no longer lands on top of the post count on profiles with no name.
 * `Glass in chats` keeps the message bar's glass when Instagram switches the bar to its newer layout, and `Message bar tint` works on it again. Reported in #759.
 * Messages in a chat no longer jump and snap back while you type a long message with `Glass in chats` on. Reported in #757.
