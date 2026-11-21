@@ -1080,6 +1080,53 @@ public class StoryMentionsTest {
         assertTrue("the list is open again", again.isShowing());
     }
 
+    /**
+     * #403 on 456: the profile's story shows in a screen of its own while the list's story is behind
+     * the profile, and nothing says a new viewer came to the front, so the last viewer shown is still
+     * the list's. That story's mentions ended the wait, and Back to the first story left the list
+     * closed. A story on another screen never ends it.
+     */
+    @Test
+    public void aStoryOnTheProfilesOwnScreenDoesntEndTheComeBack() {
+        Object viewer = new Object();
+        StoryMentions.viewerShown(viewer);
+        bind(ANA, BO);
+        AlertDialog first = openedList();
+        tapAccount(first, "Ana Lima, @ana");
+        controller.pause();
+        idle();
+
+        ActivityController<Activity> profileStory = Robolectric.buildActivity(Activity.class).setup();
+        try {
+            Activity other = profileStory.get();
+            FrameLayout otherRoot = new FrameLayout(other);
+            LinearLayout otherHeader = new LinearLayout(other);
+            otherHeader.setOrientation(LinearLayout.VERTICAL);
+            otherHeader.setId(StoryMentions.headerIdForTests);
+            TextView name = new TextView(other);
+            name.setText("ana");
+            otherHeader.addView(name);
+            FrameLayout otherItem = new FrameLayout(other);
+            otherRoot.addView(otherItem);
+            otherRoot.addView(otherHeader);
+            other.setContentView(otherRoot);
+            StoryMentions.bind(otherItem, Arrays.asList(BO));
+            idle();
+            assertTrue("the profile's story has its own pill on the screen",
+                    StoryMentions.onScreen(StoryMentions.pillIn(otherHeader)));
+            assertSame("the profile's story doesn't open the list", first, ShadowDialog.getLatestDialog());
+            profileStory.pause();
+        } finally {
+            profileStory.close();
+        }
+
+        controller.resume();
+        idle();
+        AlertDialog again = (AlertDialog) ShadowDialog.getLatestDialog();
+        assertNotSame(first, again);
+        assertTrue("the list is open again", again.isShowing());
+    }
+
     /** The look starts under the name, as the pill was before there was a choice (#468). */
     @Test
     public void theLookStartsUnderTheNameAndIsntASwitch() {

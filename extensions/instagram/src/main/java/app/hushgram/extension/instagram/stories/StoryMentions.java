@@ -397,9 +397,11 @@ public final class StoryMentions {
         } else if (!waiting.matches(pill.people)) {
             // Only a story moving on in the viewer the list was left from ends it. A story opened from
             // the profile is another viewer, and its mentions left the list closed when you came back (#403).
-            if (waiting.away && viewer.get() == waiting.viewer.get()) {
+            if (waiting.away && movedOn(waiting, pill)) {
                 backToList = null;
                 Logger.printDebug(() -> "Story mentions: the story moved on, so the list stays closed");
+            } else {
+                Logger.printDebug(() -> "Story mentions: another story's pill, the list still waits");
             }
         } else if (waiting.away) {
             backToList = null;
@@ -411,6 +413,21 @@ public final class StoryMentions {
             if (activity == null) activity = showsIn(pill, waiting.story.get());
             list(activity != null ? activity : pill.getContext(), pill.people);
         }
+    }
+
+    /**
+     * Whether [pill], mentioning other accounts, shows because the story the list was left from moved
+     * on: it's on that story's screen, that screen is in front, and the viewer last shown is the list's.
+     * On 456 a story watched from the profile shows on a screen of its own while the list's is behind,
+     * and the viewer last shown still read as the list's when its pill showed, so that alone took it
+     * for the list's story moving on (#403).
+     */
+    private static boolean movedOn(BackToList waiting, Pill pill) {
+        if (waiting.behind || viewer.get() != waiting.viewer.get()) return false;
+        Activity story = waiting.story.get();
+        Window window = story == null ? null : story.getWindow();
+        View decor = window == null ? null : window.peekDecorView();
+        return decor != null && pill.getRootView() == decor;
     }
 
     /** Whether [view] shows on the screen, not only in a page laid out beside the story. */
