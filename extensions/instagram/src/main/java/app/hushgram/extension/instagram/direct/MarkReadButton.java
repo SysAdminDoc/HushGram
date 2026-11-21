@@ -123,7 +123,7 @@ public final class MarkReadButton {
     static void refresh() {
         try {
             ImageView ours = button.get();
-            if (ours != null) ours.setVisibility(wanted() ? View.VISIBLE : View.GONE);
+            if (ours != null) ChatHeaderFit.show(ours, wanted());
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.THREAD_SEEN, STEP, t);
         }
@@ -169,7 +169,7 @@ public final class MarkReadButton {
             ours = ChatPager.addHeaderButton(row, glyph, L10n.t("Mark as read"), TAG, TAP, KEEP);
         }
         button = new WeakReference<>(ours);
-        ours.setVisibility(wanted() ? View.VISIBLE : View.GONE);
+        ChatHeaderFit.show(ours, wanted());
         return ours;
     }
 
@@ -221,5 +221,6 @@ public final class MarkReadButton {
         button = new WeakReference<>(null);
         openedAt = 0;
         SeenChoiceButton.resetForTests();
+        ChatHeaderFit.resetForTests();
     }
 }

@@ -6,6 +6,7 @@ package app.hushgram.extension.instagram.direct;
 
 import android.graphics.drawable.Drawable;
 import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
@@ -17,6 +18,8 @@ import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 import java.lang.ref.WeakReference;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * The eye in a chat's header while Choose Seen in each chat is on (#13). It sits in the row of call
@@ -90,7 +93,7 @@ public final class SeenChoiceButton {
             String account = ChatLocks.currentAccount();
             String thread = ChatLocks.current();
             boolean known = ThreadSeen.choosesPerChat() && !isEmpty(account) && !isEmpty(thread);
-            ours.setVisibility(known ? View.VISIBLE : View.GONE);
+            ChatHeaderFit.show(ours, known);
             if (!known) return;
             boolean holds = ThreadSeen.holdsHere(account, thread);
             Drawable glyph = ChatPager.icon(ours.getContext(), holds ? HOLDS : SENDS);
@@ -114,30 +117,47 @@ public final class SeenChoiceButton {
 
     /** Opens the chat's choices under [anchor], the one it has now checked. */
     private static void open(View anchor) {
-        final String account = ChatLocks.currentAccount();
-        final String thread = ChatLocks.current();
-        if (isEmpty(account) || isEmpty(thread)) {
+        PopupMenu popup = new PopupMenu(anchor.getContext(), anchor);
+        final List<Runnable> actions = new ArrayList<>();
+        if (!addChoices(popup.getMenu(), GROUP, actions)) {
             Utils.showToastShort(L10n.t("Couldn't save the choice"));
             return;
         }
-        SeenChoices.Choice now = ThreadSeen.choiceOf(account, thread);
-        PopupMenu popup = new PopupMenu(anchor.getContext(), anchor);
-        Menu menu = popup.getMenu();
-        menu.add(GROUP, 0, 0, L10n.t("Use the HushGram setting"));
-        menu.add(GROUP, 1, 1, L10n.t("Hold Seen in this chat"));
-        menu.add(GROUP, 2, 2, L10n.t("Send Seen in this chat"));
-        menu.setGroupCheckable(GROUP, true, true);
-        for (int index = 0; index < ROWS.length; index++) {
-            if (ROWS[index] == now) menu.findItem(index).setChecked(true);
-        }
         popup.setOnMenuItemClickListener(item -> {
             int index = item.getItemId();
-            if (index >= 0 && index < ROWS.length) pick(account, thread, ROWS[index]);
+            if (index >= 0 && index < actions.size()) actions.get(index).run();
             return true;
         });
         popup.setOnDismissListener(closed -> shown = new WeakReference<>(null));
         shown = new WeakReference<>(popup);
         popup.show();
+    }
+
+    /**
+     * Adds the chat's three choices to [menu] as one group with the chat's own checked, here and in More when
+     * the header's buttons are folded (#802). Each item's id is its place in [actions], which gets the pick.
+     * False, with nothing added, while the chat on screen or its account isn't known.
+     */
+    static boolean addChoices(Menu menu, int group, List<Runnable> actions) {
+        final String account = ChatLocks.currentAccount();
+        final String thread = ChatLocks.current();
+        if (isEmpty(account) || isEmpty(thread)) return false;
+        SeenChoices.Choice now = ThreadSeen.choiceOf(account, thread);
+        String[] titles = {L10n.t("Use the HushGram setting"), L10n.t("Hold Seen in this chat"),
+                L10n.t("Send Seen in this chat")};
+        List<MenuItem> items = new ArrayList<>();
+        for (int index = 0; index < ROWS.length; index++) {
+            final SeenChoices.Choice choice = ROWS[index];
+            int id = actions.size();
+            items.add(menu.add(group, id, id, titles[index]));
+            actions.add(() -> pick(account, thread, choice));
+        }
+        menu.setGroupCheckable(group, true, true);
+        // Only the chat's own: in a group checked one at a time, setChecked(false) checks the item too.
+        for (int index = 0; index < ROWS.length; index++) {
+            if (ROWS[index] == now) items.get(index).setChecked(true);
+        }
+        return true;
     }
 
     /** Keeps [choice] for [thread] on [account], says so and shows the eye and the check mark its way. */

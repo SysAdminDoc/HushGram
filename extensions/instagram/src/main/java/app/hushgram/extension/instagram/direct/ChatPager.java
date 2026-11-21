@@ -477,12 +477,14 @@ public final class ChatPager {
         String description = jumpWanted() ? L10n.t("Jump to the first message or a date") : L10n.t("Export chat");
         ImageView made = addHeaderButton(row, glyph, description, BUTTON_TAG, TAP, KEEP);
         button = new WeakReference<>(made);
+        ChatHeaderFit.show(made, true);
         return made;
     }
 
     /**
      * Makes a button showing [glyph] the way the header's call buttons in [row] look and puts it first
-     * in the row, tagged [tag] so it can be found again.
+     * in the row, tagged [tag] so it can be found again. The row is fitted from then on, so the buttons
+     * don't crowd the chat's name or push a call button off the bar ({@link ChatHeaderFit}, #802).
      */
     static ImageView addHeaderButton(LinearLayout row, Drawable glyph, String description, String tag,
                                      View.OnClickListener tap, View.OnAttachStateChangeListener keep) {
@@ -518,6 +520,7 @@ public final class ChatPager {
         made.setOnClickListener(tap);
         made.addOnAttachStateChangeListener(keep);
         row.addView(made, 0, params);
+        ChatHeaderFit.watch(row);
         return made;
     }
 
@@ -583,18 +586,7 @@ public final class ChatPager {
             }
             final List<String> labels = new ArrayList<>();
             final List<Integer> actions = new ArrayList<>();
-            if (jumpWanted()) {
-                labels.add(L10n.t("Jump to the first message"));
-                actions.add(ACTION_FIRST);
-                labels.add(L10n.t("Jump to a date"));
-                actions.add(ACTION_DATE);
-            }
-            if (exportWanted()) {
-                labels.add(L10n.t("Export chat"));
-                actions.add(ACTION_EXPORT);
-                labels.add(L10n.t("Select messages"));
-                actions.add(ACTION_SELECT);
-            }
+            lines(labels, actions);
             if (labels.isEmpty()) return false;
             final String name = nameIn(root);
             try {
@@ -617,6 +609,59 @@ public final class ChatPager {
         }
     }
 
+    /** The menu's lines and what each does, as the switches say. */
+    private static void lines(List<String> labels, List<Integer> actions) {
+        if (jumpWanted()) {
+            labels.add(L10n.t("Jump to the first message"));
+            actions.add(ACTION_FIRST);
+            labels.add(L10n.t("Jump to a date"));
+            actions.add(ACTION_DATE);
+        }
+        if (exportWanted()) {
+            labels.add(L10n.t("Export chat"));
+            actions.add(ACTION_EXPORT);
+            labels.add(L10n.t("Select messages"));
+            actions.add(ACTION_SELECT);
+        }
+    }
+
+    private static String[] iconsFor(int action) {
+        return action == ACTION_FIRST ? FIRST_ICONS : action == ACTION_DATE ? DATE_ICONS
+                : action == ACTION_SELECT ? SELECT_ICONS : EXPORT_ICONS;
+    }
+
+    /**
+     * Adds the menu's lines to [menu] in [group], for More when the header's buttons are folded (#802).
+     * Each item's id is its place in [actions], which gets what the line does. Adds nothing while no chat,
+     * chat view or activity is there.
+     */
+    static void addLines(View pressed, Menu menu, int group, final List<Runnable> actions) {
+        Object fragment = screen.get();
+        if (fragment == null || !wanted()) return;
+        final Activity activity = TextGrab.ownerOf(pressed, null);
+        final View root = viewOf(fragment);
+        if (activity == null || root == null) {
+            log("no lines for More: " + (activity == null ? "no activity" : "the chat has no view"));
+            return;
+        }
+        final String name = nameIn(root);
+        List<String> labels = new ArrayList<>();
+        List<Integer> lines = new ArrayList<>();
+        lines(labels, lines);
+        int color = FeedDownloadButton.iconColor(activity);
+        for (int i = 0; i < labels.size(); i++) {
+            final int action = lines.get(i);
+            int id = actions.size();
+            MenuItem item = menu.add(group, id, id, labels.get(i));
+            actions.add(() -> act(activity, root, name, action));
+            Drawable glyph = icon(activity, iconsFor(action));
+            if (glyph != null) {
+                glyph.setTintList(ColorStateList.valueOf(color));
+                item.setIcon(glyph);
+            }
+        }
+    }
+
     /** The menu as a popup under what was pressed, each line with Instagram's glyph for it (#453). */
     private static void popup(final Activity activity, View pressed, final View root, final String name, List<String> labels,
                               List<Integer> actions) {
@@ -626,8 +671,7 @@ public final class ChatPager {
         for (int i = 0; i < labels.size(); i++) {
             int action = actions.get(i);
             MenuItem item = items.add(Menu.NONE, action, i, labels.get(i));
-            Drawable glyph = icon(activity, action == ACTION_FIRST ? FIRST_ICONS : action == ACTION_DATE ? DATE_ICONS
-                    : action == ACTION_SELECT ? SELECT_ICONS : EXPORT_ICONS);
+            Drawable glyph = icon(activity, iconsFor(action));
             if (glyph != null) {
                 glyph.setTintList(ColorStateList.valueOf(color));
                 item.setIcon(glyph);
