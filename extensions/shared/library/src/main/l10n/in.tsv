@@ -148,6 +148,8 @@ Writes the account that posted, the post date and a link to the post into a save
 You	Kamu
 You paused HushGram.	Anda menjeda HushGram.
 the re-signed build fix	perbaikan build yang ditandatangani ulang
+# context: Pause page, the list of fixes that stay on while HushGram is paused; this one keeps Instagram from closing on phones without Google Play services
+the Play services crash fix	perbaikan crash tanpa layanan Play
 Don't send reel watch history	Jangan kirim riwayat tontonan reel
 Stops telling Instagram which reels you watched or how far you got. Instagram uses that to pick your Reels. Watched reels may come back.	Instagram tidak lagi diberi tahu reel mana yang kamu tonton dan sampai mana. Instagram memakainya untuk memilih Reels kamu. Reel yang sudah ditonton bisa muncul lagi.
 Reels	Reels

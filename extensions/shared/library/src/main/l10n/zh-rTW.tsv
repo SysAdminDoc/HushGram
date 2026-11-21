@@ -153,6 +153,8 @@ Writes the account that posted, the post date and a link to the post into a save
 You	你
 You paused HushGram.	你已暫停 HushGram。
 the re-signed build fix	重新簽署版本修正
+# context: Pause page, the list of fixes that stay on while HushGram is paused; this one keeps Instagram from closing on phones without Google Play services
+the Play services crash fix	無 Play 服務時當機的修正
 Don't send reel watch history	不傳送 Reels 觀看記錄
 Stops telling Instagram which reels you watched or how far you got. Instagram uses that to pick your Reels. Watched reels may come back.	不再向 Instagram 回報你看過哪些 Reels 或觀看進度。Instagram 會用這些資料推薦 Reels，因此已看過的 Reels 可能再次出現。
 Reels	Reels

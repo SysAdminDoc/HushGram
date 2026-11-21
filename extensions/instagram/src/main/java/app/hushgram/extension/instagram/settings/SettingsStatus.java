@@ -53,6 +53,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean withoutPlayServices() {
+        return false;
+    }
+
     public static boolean removeAdId() {
         return false;
     }

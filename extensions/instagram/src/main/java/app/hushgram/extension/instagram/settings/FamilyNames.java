@@ -22,6 +22,7 @@ public final class FamilyNames {
     public static final String EXTERNAL_BROWSER = "Open links in external browser";
     public static final String BUILD_EXPIRED_POPUP = "Remove build expired popup";
     public static final String RESTORE_TRUST = "Restore trust on re-signed builds";
+    public static final String WITHOUT_PLAY_SERVICES = "Run without Play services";
     public static final String REMOVE_AD_ID = "Remove the advertising ID";
     public static final String REEL_WATCH_HISTORY = "Don't send reel watch history";
     public static final String FEED_VIEW_HISTORY = "Don't send feed view history";

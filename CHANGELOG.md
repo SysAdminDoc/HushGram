@@ -68,6 +68,7 @@ Every HushGram release, newest first.
 * With `Taps on feed videos stay in the feed` on, tapping a feed video no longer stops it on its cover or leaves it playing under a play button. On some accounts Instagram got the video ready for Reels before HushGram kept the tap, and that stopped the feed's player. Reported in #706.
 * `Sent follow requests` now catches the Requested button at the top of a profile. Since 456 Instagram sets that button another way, so a request you sent from someone's profile never made it onto the list. Reported in #690.
 * `Text size` stays put when you turn your phone or change one of its settings. Captions in the feed went back to your phone's own size after that, until Instagram was closed and opened again. Reported in #782.
+* Instagram no longer closes right after you sign in on a phone without Google Play services, like a de-Googled ROM or one running microG. `Run without Play services` is on by default and has no switch. Reported in #767 and #748.
 
 ## 0.0.21 (2026-11-18)
 

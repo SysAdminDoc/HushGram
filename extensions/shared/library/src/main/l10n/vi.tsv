@@ -146,6 +146,8 @@ Writes the account that posted, the post date and a link to the post into a save
 You	Bạn
 You paused HushGram.	Bạn đã tạm dừng HushGram.
 the re-signed build fix	bản sửa cho bản dựng đã ký lại
+# context: Pause page, the list of fixes that stay on while HushGram is paused; this one keeps Instagram from closing on phones without Google Play services
+the Play services crash fix	bản sửa lỗi văng khi không có dịch vụ Play
 Don't send reel watch history	Không gửi lịch sử xem reel
 Stops telling Instagram which reels you watched or how far you got. Instagram uses that to pick your Reels. Watched reels may come back.	Ngừng báo cho Instagram biết bạn đã xem reel nào hoặc xem đến đâu. Instagram dùng thông tin đó để chọn Reels cho bạn. Các reel đã xem có thể xuất hiện lại.
 # context: Instagram's own Reels tab and screen. Instagram keeps the word Reels in Vietnamese, so keep it.

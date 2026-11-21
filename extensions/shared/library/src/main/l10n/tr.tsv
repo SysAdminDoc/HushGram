@@ -148,6 +148,8 @@ Writes the account that posted, the post date and a link to the post into a save
 You	Sen
 You paused HushGram.	HushGram'u duraklattın.
 the re-signed build fix	yeniden imzalanmış sürüm düzeltmesi
+# context: Pause page, the list of fixes that stay on while HushGram is paused; this one keeps Instagram from closing on phones without Google Play services
+the Play services crash fix	Play hizmetleri olmadan çökme düzeltmesi
 Don't send reel watch history	Reel izleme geçmişini gönderme
 Stops telling Instagram which reels you watched or how far you got. Instagram uses that to pick your Reels. Watched reels may come back.	Instagram'a hangi reels'leri izlediğini ve ne kadarını izlediğini söylemez. Instagram bunu Reels'ini seçmek için kullanır. İzlediğin reels'ler geri gelebilir.
 Reels	Reels

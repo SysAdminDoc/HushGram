@@ -1144,6 +1144,12 @@ once-call Lapp/hushgram/extension/instagram/misc/InstagramSignature;->originalSi
 # tries. Left out, a re-signed build hands its Facebook login to a Facebook app that turns it away;
 # twice or elsewhere, it isn't the call the patch wrote.
 sole-call Lapp/hushgram/extension/instagram/misc/FacebookAppLogin;->resolveActivity(Landroid/content/pm/PackageManager;Landroid/content/Intent;I)Landroid/content/pm/ResolveInfo; replacing Landroid/content/pm/PackageManager;->resolveActivity(Landroid/content/Intent;I)Landroid/content/pm/ResolveInfo; in instance (Lcom/facebook/login/LoginClient$Request;)V holding com.facebook.wakizashi
+# Run without Play services (#767) asks FirebaseRpc in place of the one PendingIntent.getBroadcast
+# call in Firebase Instance ID's token request sender, the static method taking the request's
+# Bundle and the sender, answering a Bundle and naming the placeholder package its identity intent
+# points at (08wn.A00 on 386214574). Left out, a phone with microG and no Play services closes
+# Instagram right after sign-in; twice or elsewhere, it isn't the call the patch wrote.
+sole-call Lapp/hushgram/extension/instagram/misc/FirebaseRpc;->getBroadcast(Landroid/content/Context;ILandroid/content/Intent;I)Landroid/app/PendingIntent; replacing Landroid/app/PendingIntent;->getBroadcast(Landroid/content/Context;ILandroid/content/Intent;I)Landroid/app/PendingIntent; in static (Landroid/os/Bundle;L*;)Landroid/os/Bundle; pooled holding com.google.example.invalidpackage
 # The secure provider's inline gate asks for real current family keys after a native refusal,
 # once. The native fixture proves its error and kill-switch strings together with the kept policy
 # getter call pick one instance ()V across every dex. The query helper shares its strings with the

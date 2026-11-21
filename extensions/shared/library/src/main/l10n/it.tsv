@@ -148,6 +148,8 @@ Writes the account that posted, the post date and a link to the post into a save
 You	Tu
 You paused HushGram.	Hai messo in pausa HushGram.
 the re-signed build fix	la correzione per la build firmata di nuovo
+# context: Pause page, the list of fixes that stay on while HushGram is paused; this one keeps Instagram from closing on phones without Google Play services
+the Play services crash fix	la correzione della chiusura senza servizi Play
 Don't send reel watch history	Non inviare la cronologia dei reel guardati
 Stops telling Instagram which reels you watched or how far you got. Instagram uses that to pick your Reels. Watched reels may come back.	Smette di dire a Instagram quali reel hai guardato o fin dove sei arrivato. Instagram lo usa per scegliere i tuoi reel. I reel già visti potrebbero tornare.
 Reels	Reel
