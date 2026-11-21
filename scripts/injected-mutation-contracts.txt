@@ -1914,6 +1914,17 @@ once-call Lapp/hushgram/extension/instagram/reels/ReelProfileTabBar;->open(Ljava
 once-call Lapp/hushgram/extension/instagram/reels/ReelProfileTabBar;->keepTabRoot(ILjava/lang/Object;)I in static (L*;)V calling instance Landroidx/fragment/app/Fragment;->getChildFragmentManager()L*; pooled class-holding IgTabHostFragment.loadFragment
 once-call Lapp/hushgram/extension/instagram/reels/ReelProfileTabBar;->keepTabRoot(ILjava/lang/Object;)I in static (L*;)V calling instance Landroidx/fragment/app/Fragment;->getChildFragmentManager()L*; pooled class-holding IgSwipeableTabHostFragment.loadFragment
 #
+# Keep the tab bar on reel links (#385) asks ReelLinkTabBar.open first thing in the route that puts
+# a reel link's viewer in an activity, the static (Bundle, FragmentActivity, UserSession) method
+# reading the back stack flag (0XcO's A02 on 456's 386214574). Left out, a link keeps opening its
+# reel with no tab bar. Twice or elsewhere, it isn't the hook the patch wrote. 386214575 pools the flag.
+once-call Lapp/hushgram/extension/instagram/reels/ReelLinkTabBar;->open(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Z in static (Landroid/os/Bundle;Landroidx/fragment/app/FragmentActivity;Lcom/instagram/common/session/UserSession;)V pooled holding InstagramUrlLaunchConstants.EXTRA_SHOULD_INCLUDE_BACK_STACK
+# Both tab hosts also let ReelLinkTabBar.keepTabRoot answer their root check, in the same two methods
+# as the reel profile's. Left out, the link's reel loses the tab bar on accounts whose hosts hide it
+# for anything pushed on a tab.
+once-call Lapp/hushgram/extension/instagram/reels/ReelLinkTabBar;->keepTabRoot(ILjava/lang/Object;)I in static (L*;)V calling instance Landroidx/fragment/app/Fragment;->getChildFragmentManager()L*; pooled class-holding IgTabHostFragment.loadFragment
+once-call Lapp/hushgram/extension/instagram/reels/ReelLinkTabBar;->keepTabRoot(ILjava/lang/Object;)I in static (L*;)V calling instance Landroidx/fragment/app/Fragment;->getChildFragmentManager()L*; pooled class-holding IgSwipeableTabHostFragment.loadFragment
+#
 # Favorites from the tab bar (#643), part of Start Home on Following: both tab hosts also let
 # FavoritesFeed.keepTabRoot answer the root check, in the same two methods. Home's feed switch built
 # for an activity (00OV on 454, the class whose feed type method holds feed_type and the remembered

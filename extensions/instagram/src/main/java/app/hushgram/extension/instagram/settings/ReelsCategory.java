@@ -432,6 +432,11 @@ final class ReelsCategory {
                     L10n.t("A profile you open from a reel stays on the tab you're on, with the tab bar under it. "
                             + "Back goes back to the reel.")));
         }
+        if (build.contains(PatchFamily.REEL_LINK_TAB_BAR)) {
+            reels.add(toggle(context, Settings.REEL_LINK_TAB_BAR, L10n.t("Keep the tab bar on reel links"),
+                    L10n.t("A reel link you open from another app plays on the tab you were on, with the tab bar "
+                            + "under it. Back goes back to that tab.")));
+        }
         if (build.contains(PatchFamily.REEL_ORIGIN)) {
             reels.add(toggle(context, Settings.FIND_REEL_ORIGIN, L10n.t("Find the reel you came from"),
                     L10n.t("Open a creator's profile from a reel, then their Reels tab, and it scrolls to that reel "

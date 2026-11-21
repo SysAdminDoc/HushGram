@@ -637,6 +637,11 @@
         "extensions/instagram/src/test/java/app/hushgram/extension/instagram/direct/ChatHeaderFitTest.java",
         "extensions/instagram/src/main/java/app/hushgram/extension/instagram/misc/ComposerFit.java",
         "extensions/instagram/src/test/java/app/hushgram/extension/instagram/misc/ComposerFitTest.java",
+        "extensions/instagram/src/main/java/app/hushgram/extension/instagram/reels/ReelLinkTabBar.java",
+        "extensions/instagram/src/main/java/app/hushgram/extension/instagram/reels/ReelLinkTabBarTargets.java",
+        "extensions/instagram/src/test/java/app/hushgram/extension/instagram/reels/ReelLinkTabBarTest.java",
+        "patches/src/main/kotlin/app/morphe/patches/instagram/reels/linktabbar/ReelLinkTabBarPatch.kt",
+        "patches/src/test/kotlin/app/morphe/patches/instagram/reels/linktabbar/ReelLinkTabBarPatchTest.kt",
         "scripts/gen-readme-patches.py"
       ],
       "origin": "original",

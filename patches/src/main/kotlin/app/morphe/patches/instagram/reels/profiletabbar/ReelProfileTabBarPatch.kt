@@ -234,8 +234,11 @@ private fun tabHost(method: Method, check: Method, manager: String): TabHost {
     return TabHost(method, hookAt, answer, host, getter)
 }
 
-/** Lets the extension answer the root check, in the host's own decision on the tab bar only. */
-internal fun BytecodePatchContext.keepProfileAsTabRoot(host: TabHost) {
+/**
+ * Lets the extension answer the root check, in the host's own decision on the tab bar only. Another
+ * patch's [hook] (Keep the tab bar on reel links) goes in at the same spot, so the answers chain.
+ */
+internal fun BytecodePatchContext.keepProfileAsTabRoot(host: TabHost, hook: String = TAB_ROOT_HOOK) {
     val parameters = host.method.parameterTypes.map(CharSequence::toString)
     val method = mutableClassDefBy(host.method.definingClass).methods.first {
         it.name == host.method.name && it.returnType == host.method.returnType &&
@@ -244,7 +247,7 @@ internal fun BytecodePatchContext.keepProfileAsTabRoot(host: TabHost) {
     method.addInstructions(
         host.hookAt,
         """
-            invoke-static { v${host.answer}, v${host.host} }, $TAB_ROOT_HOOK
+            invoke-static { v${host.answer}, v${host.host} }, $hook
             move-result v${host.answer}
         """.trimIndent(),
     )

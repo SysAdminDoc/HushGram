@@ -2238,6 +2238,8 @@ The camera, as Instagram has it. Pick a tab and the same swipe opens that tab in
 A swipe right on Home opens %1$s. The + button still opens the camera.	在首页向右滑动会打开 %1$s。+ 按钮仍会打开相机。
 Keep the tab bar on a reel's profile	在 Reel 的主页保留标签栏
 A profile you open from a reel stays on the tab you're on, with the tab bar under it. Back goes back to the reel.	从 Reel 打开的主页会留在目前的标签页，下方保留标签栏。返回会回到 Reel.
+Keep the tab bar on reel links	在 Reel 链接保留标签栏
+A reel link you open from another app plays on the tab you were on, with the tab bar under it. Back goes back to that tab.	从其他应用打开的 Reel 链接会在你原来的标签页播放，下方保留标签栏。返回会回到那个标签页.
 Mute button on reels	Reels 静音按钮
 Puts a speaker icon beside a reel. Tap it to turn the sound off or on while the reel keeps playing.	在 Reel 旁加入喇叭图标。点一下即可在 Reel 继续播放时关闭或打开声音。
 Mute button in clear mode	清爽模式静音按钮

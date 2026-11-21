@@ -141,6 +141,7 @@ import app.morphe.patches.instagram.feed.savemenu.saveInPostMenuPatch
 import app.morphe.patches.instagram.feed.watchagain.watchAgainInFeedPatch
 import app.morphe.patches.instagram.reels.scrolling.stopReelsScrollingPatch
 import app.morphe.patches.instagram.reels.profiletabbar.reelProfileTabBarPatch
+import app.morphe.patches.instagram.reels.linktabbar.reelLinkTabBarPatch
 import app.morphe.patches.instagram.reels.swipeprofile.swipeToProfilePatch
 import app.morphe.patches.instagram.reels.seekbar.reelSeekBarPatch
 import app.morphe.patches.instagram.reels.links.openReelLinksPatch
@@ -382,6 +383,7 @@ class DefaultCatalogTest {
         hideLiveReelsPatch,
         watchAgainInFeedPatch,
         reelProfileTabBarPatch,
+        reelLinkTabBarPatch,
         reelAboveCommentsPatch,
         reelScreenSleepPatch,
         chatBubblesPatch,

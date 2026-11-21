@@ -174,6 +174,7 @@ public final class FamilyNames {
     public static final String REEL_SCROLLING = "Stop Reels scrolling";
     public static final String SWIPE_TO_PROFILE = "Swipe left to open the profile";
     public static final String REEL_PROFILE_TAB_BAR = "Keep the tab bar on a reel's profile";
+    public static final String REEL_LINK_TAB_BAR = "Keep the tab bar on reel links";
     public static final String REEL_ORIGIN = "Find the reel you came from";
     public static final String STORY_DOWNLOAD = "Download any story";
     public static final String VIDEO_DOWNLOAD = "Download any video";

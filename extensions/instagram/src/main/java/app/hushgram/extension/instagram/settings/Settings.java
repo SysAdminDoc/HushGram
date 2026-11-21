@@ -4265,6 +4265,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_reel_profile_tab_bar", FALSE);
 
     /**
+     * A reel link opened from another app plays on the tab you were on, with the tab bar under it
+     * (#385, {@link app.hushgram.extension.instagram.reels.ReelLinkTabBar}). Read at each link, so
+     * it needs no restart. Off to start.
+     */
+    public static final BooleanSetting REEL_LINK_TAB_BAR =
+            new BooleanSetting("hushgram_reel_link_tab_bar", FALSE);
+
+    /**
      * After {@link #REEL_CAP_COUNT} reels in a session, swiping in Reels stops until Instagram has been
      * in the background for {@link #REEL_CAP_BREAK} minutes
      * ({@link app.hushgram.extension.instagram.reels.ReelScrolling}). Read at each new reel. Off to start.
