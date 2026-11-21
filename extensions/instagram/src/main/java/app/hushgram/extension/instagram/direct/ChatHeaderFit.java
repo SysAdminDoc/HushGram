@@ -310,7 +310,7 @@ final class ChatHeaderFit {
             }
         }
         View eye = child(row, SeenChoiceButton.TAG);
-        if (eye != null && wanted(eye)) SeenChoiceButton.addChoices(menu, GROUP_SEEN, actions);
+        if (eye != null && wanted(eye)) SeenChoiceButton.addChoices(anchor.getContext(), menu, GROUP_SEEN, actions);
         View clock = child(row, ChatPager.BUTTON_TAG);
         if (clock != null && wanted(clock)) ChatPager.addLines(anchor, menu, GROUP_PAGER, actions);
         if (menu.size() == 0) return;

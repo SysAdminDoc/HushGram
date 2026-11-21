@@ -4,6 +4,8 @@
  */
 package app.hushgram.extension.instagram.direct;
 
+import android.content.Context;
+import android.content.res.ColorStateList;
 import android.graphics.drawable.Drawable;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -13,6 +15,7 @@ import android.view.ViewParent;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.PopupMenu;
+import app.hushgram.extension.instagram.download.FeedDownloadButton;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.Utils;
@@ -39,6 +42,8 @@ public final class SeenChoiceButton {
     static final String[] SENDS = {"instagram_eye_pano_outline_24", "instagram_eye_outline_24"};
     /** Instagram's crossed-out eye, for a chat that holds Seen. */
     static final String[] HOLDS = {"instagram_eye_off_pano_outline_24", "instagram_eye_off_outline_24"};
+    /** Instagram's gear, for the choice that leaves the chat to the HushGram setting. */
+    static final String[] SETTING = {"instagram_settings_pano_outline_24", "instagram_settings_outline_24"};
     static final String STEP = "seen choice button";
 
     /** The menu's rows, by item id. */
@@ -119,7 +124,7 @@ public final class SeenChoiceButton {
     private static void open(View anchor) {
         PopupMenu popup = new PopupMenu(anchor.getContext(), anchor);
         final List<Runnable> actions = new ArrayList<>();
-        if (!addChoices(popup.getMenu(), GROUP, actions)) {
+        if (!addChoices(anchor.getContext(), popup.getMenu(), GROUP, actions)) {
             Utils.showToastShort(L10n.t("Couldn't save the choice"));
             return;
         }
@@ -138,18 +143,27 @@ public final class SeenChoiceButton {
      * the header's buttons are folded (#802). Each item's id is its place in [actions], which gets the pick.
      * False, with nothing added, while the chat on screen or its account isn't known.
      */
-    static boolean addChoices(Menu menu, int group, List<Runnable> actions) {
+    static boolean addChoices(Context context, Menu menu, int group, List<Runnable> actions) {
         final String account = ChatLocks.currentAccount();
         final String thread = ChatLocks.current();
         if (isEmpty(account) || isEmpty(thread)) return false;
         SeenChoices.Choice now = ThreadSeen.choiceOf(account, thread);
         String[] titles = {L10n.t("Use the HushGram setting"), L10n.t("Hold Seen in this chat"),
                 L10n.t("Send Seen in this chat")};
+        // Shown where the menu shows icons (More), so its rows line up with the chat menu's.
+        String[][] glyphs = {SETTING, HOLDS, SENDS};
+        int color = FeedDownloadButton.iconColor(context);
         List<MenuItem> items = new ArrayList<>();
         for (int index = 0; index < ROWS.length; index++) {
             final SeenChoices.Choice choice = ROWS[index];
             int id = actions.size();
-            items.add(menu.add(group, id, id, titles[index]));
+            MenuItem item = menu.add(group, id, id, titles[index]);
+            Drawable glyph = ChatPager.icon(context, glyphs[index]);
+            if (glyph != null) {
+                glyph.setTintList(ColorStateList.valueOf(color));
+                item.setIcon(glyph);
+            }
+            items.add(item);
             actions.add(() -> pick(account, thread, choice));
         }
         menu.setGroupCheckable(group, true, true);

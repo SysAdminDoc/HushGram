@@ -301,6 +301,8 @@ public class ChatHeaderFitTest {
         assertEquals("Jump to a date", titles.get(5));
         assertTrue("the chat's own choice is checked", menu.getItem(1).isChecked());
         assertFalse(menu.getItem(2).isChecked());
+        assertNotNull("the Seen choices carry glyphs, so they line up with the chat menu's lines", menu.getItem(2).getIcon());
+        assertNotNull(menu.getItem(4).getIcon());
 
         assertTrue(menu.performIdentifierAction(menu.getItem(3).getItemId(), 0));
         ShadowLooper.idleMainLooper();
