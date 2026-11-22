@@ -99,6 +99,7 @@ public final class ProfileSuggestions {
     static final String SUGGESTED_TAB = "suggested tab on follow lists";
     static final String FOLLOW_REQUESTS = "suggested people on follow requests";
     static final String REQUEST_SECTION = "suggested section under follow requests";
+    static final String FRIENDING_REQUESTS = "suggested people on the follow requests page";
     static final String MUTUAL_SUGGESTIONS = "suggested section under mutual followers";
     static final String SUGGESTED_SUBSCRIPTIONS = "suggested subscriptions";
     static final String FRIENDING_BUTTON = "discover people button on follow lists";
@@ -107,6 +108,22 @@ public final class ProfileSuggestions {
 
     /** The type the notifications' reply gives the People you don't follow back section. */
     static final String FOLLOW_BACK_TYPE = "FOLLOW_BACK";
+
+    /**
+     * What the friending center calls its Follow requests page, and that page's unit of requests (#814).
+     * Instagram keeps it: it's the server's name and the one the notification route opens the page with.
+     */
+    static final String REQUESTS_PAGE = "follow_requests";
+
+    /** A unit name the friending center's lookup doesn't know, so its list skips the unit. */
+    static final String UNKNOWN_UNIT = "hushgram_hidden_unit";
+
+    /**
+     * The page the friending center's list is building on this thread. The list reads its page once
+     * and looks its units up later in the same pass, on the same thread, with nothing in between that
+     * waits, so the page kept here is the one each unit belongs to.
+     */
+    private static final ThreadLocal<String> friendingPage = new ThreadLocal<>();
 
     /** The type the notifications' reply gives a section of your follow requests, never a suggestion. */
     static final String FOLLOW_REQUEST_TYPE = "FOLLOW_REQUEST";
@@ -314,6 +331,41 @@ public final class ProfileSuggestions {
     static boolean requestSuggestionsEmpty(int empty, BooleanSupplier on) {
         if (empty != 0) return true;
         return hides(REQUEST_SECTION, on);
+    }
+
+    /**
+     * Injected right after the friending center's list reads which page it's building: Discover
+     * people, or the Follow requests page a follow request notification opens (#814). Keeps it for
+     * this thread so [friendingUnit] knows the page. Never throws.
+     */
+    public static void friendingCenterMode(String page) {
+        try {
+            friendingPage.set(page);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.PROFILE_SUGGESTIONS, FRIENDING_REQUESTS, failure);
+        }
+    }
+
+    /**
+     * Injected where the friending center's list looks up the name of each unit the server sent, right
+     * before it skips the ones it doesn't know (#814). On the Follow requests page, while Hide Suggested
+     * for you on follow lists is on, answers a name the lookup doesn't know for every unit but the
+     * requests, so the page drops Suggested for you and the other suggestion units whole and shows the
+     * requests alone, or its empty state. [unit] as it came on any other page, otherwise, or when
+     * anything goes wrong. Never throws.
+     */
+    public static String friendingUnit(String unit) {
+        return friendingUnit(unit, ProfileSuggestions::followListOn);
+    }
+
+    static String friendingUnit(String unit, BooleanSupplier on) {
+        try {
+            if (unit == null || REQUESTS_PAGE.equals(unit) || !REQUESTS_PAGE.equals(friendingPage.get())) return unit;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.PROFILE_SUGGESTIONS, FRIENDING_REQUESTS, failure);
+            return unit;
+        }
+        return hides(FRIENDING_REQUESTS, on) ? UNKNOWN_UNIT : unit;
     }
 
     /**

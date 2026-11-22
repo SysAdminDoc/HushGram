@@ -2778,6 +2778,17 @@ once-call Lapp/hushgram/extension/instagram/profile/ProfileSuggestions;->exclude
 # by item_key_suggested_user_%s and where the hook lands.
 once-call Lapp/hushgram/extension/instagram/profile/ProfileSuggestions;->requestSuggestionsEmpty(I)Z in instance (Ljava/lang/Object;)Ljava/lang/Object; pooled holding item_key_suggested_user_%s item_key_follow_request_%s
 #
+# A follow request notification, and Notifications on some accounts, open the friending center's
+# Follow requests page instead, whose list is another coroutine (0I4I.invokeSuspend on 456, the one
+# keying item_key_empty_follow_requests_header). It reads which page it builds, and that read goes to
+# ProfileSuggestions.friendingCenterMode; each unit the server sent has its name handed to
+# ProfileSuggestions.friendingUnit right before the list looks it up, and on that page the answer for
+# every unit but follow_requests is a name the lookup doesn't know, so the list skips Suggested for you
+# and the other suggestion units. Left out, they show there; twice or elsewhere, it isn't the hook the
+# patch wrote. FriendingRequestsHookTest checks on every declared build where both land.
+once-call Lapp/hushgram/extension/instagram/profile/ProfileSuggestions;->friendingCenterMode(Ljava/lang/String;)V in instance (Ljava/lang/Object;)Ljava/lang/Object; pooled holding item_key_empty_follow_requests_header follow_requests
+once-call Lapp/hushgram/extension/instagram/profile/ProfileSuggestions;->friendingUnit(Ljava/lang/String;)Ljava/lang/String; in instance (Ljava/lang/Object;)Ljava/lang/Object; pooled holding item_key_empty_follow_requests_header follow_requests
+#
 # It also takes Suggested for you off the bottom of the mutual followers list (#302). The list
 # adapter's rows (LX/0N6E;->A0C()V on 452.1) hand the suggested accounts to
 # ProfileSuggestions.mutualSuggestions right after reading them and before their isEmpty(). The rows

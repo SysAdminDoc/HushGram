@@ -19,7 +19,9 @@ import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 
 private const val PATCH = "Hide suggested people on profiles"
@@ -31,6 +33,17 @@ internal const val REQUEST_SUGGESTIONS_EMPTY = "$PROFILE_SUGGESTIONS->requestSug
 internal const val SUGGESTED_SUBSCRIPTIONS = "$PROFILE_SUGGESTIONS->suggestedSubscriptions(Ljava/util/List;)Ljava/util/List;"
 internal const val MORE_SUGGESTED_SUBSCRIPTIONS = "$PROFILE_SUGGESTIONS->moreSuggestedSubscriptions(I)Z"
 internal const val FRIENDING_BUTTON = "$PROFILE_SUGGESTIONS->friendingButton(I)I"
+internal const val FRIENDING_CENTER_MODE = "$PROFILE_SUGGESTIONS->friendingCenterMode(Ljava/lang/String;)V"
+internal const val FRIENDING_UNIT = "$PROFILE_SUGGESTIONS->friendingUnit(Ljava/lang/String;)Ljava/lang/String;"
+
+/**
+ * The key the friending center's list gives the header it shows on a Follow requests page with no
+ * requests, and the name that page and its unit of requests go by (#814). Instagram keeps both: the
+ * key is what the list tells rows apart by, and the name is the server's and the notification route's.
+ * Of the methods loading the key, only the list loads the name too.
+ */
+internal const val EMPTY_REQUESTS_HEADER = "item_key_empty_follow_requests_header"
+internal const val FOLLOW_REQUESTS_PAGE = "follow_requests"
 
 /**
  * The requests the Subscriptions tab of your own follow lists makes for its Suggested subscriptions
@@ -303,6 +316,119 @@ internal fun BytecodePatchContext.hideRequestSection(site: FollowListSite) {
             move-result v${site.register}
         """,
     )
+}
+
+/**
+ * The friending center's list builder and where it reads two things (#814): which page it builds,
+ * Follow requests among them (the iget of that mode and the register it lands in), and each server
+ * unit's name right before it looks the name up (the lookup call and the register holding the name).
+ */
+internal class FriendingRequestsSite(
+    val type: String,
+    val name: String,
+    val parameters: List<String>,
+    val mode: Int,
+    val modeRegister: Int,
+    val lookup: Int,
+    val unitRegister: Int,
+)
+
+/**
+ * Finds the friending center's list, the one that builds the Follow requests page a follow request
+ * notification opens (#814). It's the one method loading both [EMPTY_REQUESTS_HEADER] and
+ * [FOLLOW_REQUESTS_PAGE]; the empty header's row model loads the key too, but not the page. Of its calls, one
+ * hands a unit's name to the static lookup that names the units the list knows (the method loading
+ * [FOLLOW_REQUESTS_PAGE] that answers an Integer for a String), and an if-eqz right after skips the unit
+ * when the lookup answers null. The page's mode is the String field the list compares with
+ * [FOLLOW_REQUESTS_PAGE], read last before that lookup. Fails before anything changes when there isn't
+ * exactly one list, lookup or comparison, the mode isn't read before the lookup, or something jumps in
+ * where a hook goes.
+ */
+internal fun BytecodePatchContext.findFriendingRequests(): FriendingRequestsSite {
+    val lists = classesLoadingString(EMPTY_REQUESTS_HEADER).flatMap { classDef ->
+        classDef.methods.filter { loadsString(it, EMPTY_REQUESTS_HEADER) && loadsString(it, FOLLOW_REQUESTS_PAGE) }
+    }
+    val method = lists.singleOrNull()
+        ?: refuse("expected one list loading \"$EMPTY_REQUESTS_HEADER\" and \"$FOLLOW_REQUESTS_PAGE\", found ${lists.size}")
+    val where = "${method.definingClass}->${method.name}"
+    val code = method.implementation!!.instructions.toList()
+    val jumps = method.jumpTargets()
+    val namers = classesLoadingString(FOLLOW_REQUESTS_PAGE).flatMap { classDef ->
+        classDef.methods.filter { candidate ->
+            AccessFlags.STATIC.isSet(candidate.accessFlags) && candidate.returnType == "Ljava/lang/Integer;" &&
+                candidate.parameterTypes.map(CharSequence::toString) == listOf("Ljava/lang/String;") &&
+                loadsString(candidate, FOLLOW_REQUESTS_PAGE)
+        }
+    }.map { "${it.definingClass}->${it.name}(Ljava/lang/String;)Ljava/lang/Integer;" }.toSet()
+    val lookups = code.indices.filter { at ->
+        val result = code.getOrNull(at + 1)
+        val skip = code.getOrNull(at + 2)
+        code[at].methodReference()?.toString() in namers && result?.opcode == Opcode.MOVE_RESULT_OBJECT &&
+            skip?.opcode == Opcode.IF_EQZ && (skip as OneRegisterInstruction).registerA == (result as OneRegisterInstruction).registerA
+    }
+    val lookup = lookups.singleOrNull() ?: refuse("$where doesn't look its units up once and skip the ones it doesn't know, found ${lookups.size}")
+    val unitRegister = onlyRegister(code[lookup]) ?: refuse("$where hands its unit lookup something other than one name")
+    if (lookup in jumps) refuse("something in $where jumps to its unit lookup")
+
+    val comparisons = code.indices.filter { stringLoadedAt(code, it) == FOLLOW_REQUESTS_PAGE }.mapNotNull { at ->
+        val key = keyRegister(code, at) ?: return@mapNotNull null
+        val call = (at + 1 until code.size).firstOrNull { code[it].methodReference() != null } ?: return@mapNotNull null
+        val equals = code[call] as? FiveRegisterInstruction ?: return@mapNotNull null
+        if (code[call].methodReference().toString() != "Ljava/lang/String;->equals(Ljava/lang/Object;)Z" || equals.registerC != key) return@mapNotNull null
+        val write = (at - 1 downTo 0).firstOrNull { code[it].opcode.setsRegister() && (code[it] as? OneRegisterInstruction)?.registerA == equals.registerD }
+            ?: return@mapNotNull null
+        if (code[write].opcode != Opcode.IGET_OBJECT) return@mapNotNull null
+        ((code[write] as ReferenceInstruction).reference as? FieldReference)?.takeIf { it.type == "Ljava/lang/String;" }
+    }
+    val field = comparisons.map(Any::toString).distinct().singleOrNull()
+        ?: refuse("$where doesn't compare one page mode with \"$FOLLOW_REQUESTS_PAGE\", found ${comparisons.size}")
+    val mode = (lookup - 1 downTo 0).firstOrNull {
+        code[it].opcode == Opcode.IGET_OBJECT && (code[it] as ReferenceInstruction).reference.toString() == field
+    } ?: refuse("$where doesn't read its page mode before its unit lookup")
+    if (mode + 1 in jumps) refuse("something in $where jumps past its read of the page mode")
+    return FriendingRequestsSite(
+        method.definingClass, method.name, method.parameterTypes.map(CharSequence::toString),
+        mode, (code[mode] as TwoRegisterInstruction).registerA, lookup, unitRegister,
+    )
+}
+
+/** [findFriendingRequests], or null with a warning, so the patch's other parts still go in. */
+internal fun BytecodePatchContext.findFriendingRequestsOrWarn(): FriendingRequestsSite? = try {
+    findFriendingRequests()
+} catch (refusal: PatchException) {
+    patchLog.warning("${refusal.message}. $PATCH goes in without hiding Suggested for you on the Follow requests page notifications open.")
+    null
+}
+
+/**
+ * Hands each unit's name to [FRIENDING_UNIT] right before the lookup and puts the answer back in the
+ * same register, and hands the page's mode to [FRIENDING_CENTER_MODE] right after the list reads it. On
+ * the Follow requests page the extension answers a name the lookup doesn't know for every unit but the
+ * requests, so the list skips each suggestion unit whole: its Suggested for you header, its rows and
+ * its See all. The lookup is later, so it goes in first and the mode read's index holds.
+ */
+internal fun BytecodePatchContext.hideFriendingRequests(site: FriendingRequestsSite) {
+    val method = mutableClassDefBy(site.type).methods.single {
+        it.name == site.name && it.parameterTypes.map(CharSequence::toString) == site.parameters
+    }
+    method.addInstructions(
+        site.lookup,
+        """
+            invoke-static/range { v${site.unitRegister} .. v${site.unitRegister} }, $FRIENDING_UNIT
+            move-result-object v${site.unitRegister}
+        """,
+    )
+    method.addInstructions(
+        site.mode + 1,
+        "invoke-static/range { v${site.modeRegister} .. v${site.modeRegister} }, $FRIENDING_CENTER_MODE",
+    )
+}
+
+/** The one register a call is handed, in either form, or null when it's handed more or none. */
+private fun onlyRegister(call: Instruction): Int? = when (call) {
+    is FiveRegisterInstruction -> call.takeIf { it.registerCount == 1 }?.registerC
+    is RegisterRangeInstruction -> call.takeIf { it.registerCount == 1 }?.startRegister
+    else -> null
 }
 
 /** Where a Subscriptions tab request's reply says whether there's another page: the move-result and its register. */

@@ -96,6 +96,7 @@ val hideProfileSuggestionsPatch = bytecodePatch(
         val suggestedTab = findSuggestedTabOrWarn()
         val requestSuggestions = findRequestSuggestionsOrWarn()
         val requestSection = findRequestSectionOrWarn()
+        val friendingRequests = findFriendingRequestsOrWarn()
         val mutualSuggestions = findMutualSuggestionsOrWarn()
         val subscriptions = findSuggestedSubscriptionsOrWarn()
         val friendingButton = findFriendingButtonOrWarn()
@@ -111,6 +112,7 @@ val hideProfileSuggestionsPatch = bytecodePatch(
         suggestedTab?.let { hideSuggestedTab(it) }
         requestSuggestions?.let { hideRequestSuggestions(it) }
         requestSection?.let { hideRequestSection(it) }
+        friendingRequests?.let { hideFriendingRequests(it) }
         mutualSuggestions?.let { hideMutualSuggestions(it) }
         subscriptions.forEach { hideSuggestedSubscriptions(it) }
         friendingButton?.let { hideFriendingButton(it) }
