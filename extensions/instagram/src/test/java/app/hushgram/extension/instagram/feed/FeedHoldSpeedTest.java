@@ -44,6 +44,7 @@ public class FeedHoldSpeedTest {
         Settings.HOLD_FEED_VIDEO_FAST.resetToDefault();
         Settings.HOLD_FEED_VIDEO_KEEP.resetToDefault();
         Settings.HOLD_FEED_VIDEO_KEEP_LONG.resetToDefault();
+        Settings.HOLD_FEED_VIDEO_KEEP_NAME.resetToDefault();
         FeedHoldSpeed.clock = android.os.SystemClock::uptimeMillis;
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
@@ -181,6 +182,36 @@ public class FeedHoldSpeedTest {
         String report = report();
         assertTrue(report, report.contains(FeedHoldSpeed.SHORT + " 2"));
         assertTrue(report, report.contains(FeedHoldSpeed.KEPT + " 1"));
+    }
+
+    /**
+     * #552: Keep the name while you hold keeps the post's look on every hold while it and Hold for 2x
+     * on feed videos are on, counting each, and lets Instagram show its hold look otherwise.
+     */
+    @Test
+    public void keepTheNameKeepsTheLookOnlyWhileOn() {
+        assertFalse("off to start", Settings.HOLD_FEED_VIDEO_KEEP_NAME.get());
+        assertFalse("off", FeedHoldSpeed.keepsLook());
+
+        Settings.HOLD_FEED_VIDEO_KEEP_NAME.save(true);
+        assertTrue("on", FeedHoldSpeed.keepsLook());
+        assertTrue("every hold", FeedHoldSpeed.keepsLook());
+
+        Settings.HOLD_FEED_VIDEO_FAST.save(false);
+        assertFalse("it needs Hold for 2x on feed videos", FeedHoldSpeed.keepsLook());
+        Settings.HOLD_FEED_VIDEO_FAST.save(true);
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertFalse("paused", FeedHoldSpeed.keepsLook());
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        SettingsContextRule.withoutContext(() -> assertFalse("no context", FeedHoldSpeed.keepsLook()));
+
+        assertEquals(Collections.singletonList(Settings.HOLD_FEED_VIDEO_FAST), Settings.HOLD_FEED_VIDEO_KEEP_NAME.getParentSettings());
+        assertFalse(Settings.HOLD_FEED_VIDEO_KEEP_NAME.rebootApp);
+        String report = report();
+        assertTrue(report, report.contains(FeedHoldSpeed.LOOK_KEPT + " 2"));
     }
 
     /**

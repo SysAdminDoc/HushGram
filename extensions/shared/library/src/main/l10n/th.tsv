@@ -2557,6 +2557,10 @@ A feed video you hold for 2x keeps playing at 2x after you let go. Hold it again
 Only after a long hold	เฉพาะเมื่อกดค้างนาน
 # context: Summary of Only after a long hold, a switch under Keep 2x after you let go (#552)
 Keeps 2x only when you hold the video for about 3 seconds. Let go sooner and it goes back to normal speed.	คง 2 เท่าไว้เฉพาะเมื่อคุณกดวิดีโอค้างไว้ประมาณ 3 วินาที ปล่อยเร็วกว่านั้นจะกลับสู่ความเร็วปกติ
+# context: Feed settings: a switch under Hold for 2x on feed videos that keeps the poster's name over the video while it's held at 2x (#552)
+Keep the name while you hold	คงชื่อไว้ขณะกดค้าง
+# context: Summary of Keep the name while you hold, a switch under Hold for 2x on feed videos (#552)
+The name over a feed video stays while you hold it for 2x. Instagram's 2x and time labels don't show then.	ชื่อบนวิดีโอในฟีดจะยังอยู่ขณะที่คุณกดค้างเพื่อเล่น 2 เท่า ป้าย 2 เท่าและเวลาของ Instagram จะไม่แสดง
 # context: Stories settings: title and dialog title of the list under Story ring size that picks how thick story rings are drawn (#528)
 Ring thickness	ความหนาของวงแหวน
 # context: Stories settings: the Ring thickness choice that keeps the thickness Instagram gives story rings (#528)

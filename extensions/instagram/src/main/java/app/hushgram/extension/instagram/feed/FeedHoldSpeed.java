@@ -45,6 +45,11 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * <p>Only after a long hold (#552) keeps the speed only past a hold that played at 2x for
  * {@link #LONG_HOLD_MS}, timed from that press entry, so a quick hold to peek at 2x goes back to
  * normal on the lift.
+ *
+ * <p>Keep the name while you hold (#552) keeps the post's look through the hold. Once the press
+ * entry has the video at 2x, it hands the post its hold state, which hides the name over the video
+ * and shows Instagram's 2x and time labels. The patch asks {@link #keepsLook} first, and a yes hands
+ * it the resting state instead, so only the speed changes.
  */
 public final class FeedHoldSpeed {
     /** Each side's strip as a share of the video's width: half, so a hold anywhere on it counts. */
@@ -59,6 +64,9 @@ public final class FeedHoldSpeed {
 
     /** Lifts that went back to normal speed because Only after a long hold wanted a longer hold. */
     static final String SHORT = "short feed holds back to normal speed";
+
+    /** Holds that kept the post's look, the name over the video included, for Keep the name while you hold. */
+    static final String LOOK_KEPT = "feed holds that kept the name";
 
     /**
      * How long a hold plays at 2x before Only after a long hold keeps it (#552). The press entry comes
@@ -170,6 +178,23 @@ public final class FeedHoldSpeed {
                 KEPT_FLAGS.add(fast);
             }
             HookStatus.counted(FamilyNames.FEED_HOLD_FAST, KEPT);
+            return true;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.FEED_HOLD_FAST, LOCK_HOOK, failure);
+            return false;
+        }
+    }
+
+    /**
+     * Whether a held press that has the feed video at 2x keeps the post's look, the name over the
+     * video included: yes with Hold for 2x on feed videos and Keep the name while you hold both on.
+     * No lets Instagram show its hold look. Never throws.
+     */
+    public static boolean keepsLook() {
+        try {
+            HookStatus.invoked(FamilyNames.FEED_HOLD_FAST);
+            if (!on() || !Settings.HOLD_FEED_VIDEO_KEEP_NAME.get()) return false;
+            HookStatus.counted(FamilyNames.FEED_HOLD_FAST, LOOK_KEPT);
             return true;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.FEED_HOLD_FAST, LOCK_HOOK, failure);

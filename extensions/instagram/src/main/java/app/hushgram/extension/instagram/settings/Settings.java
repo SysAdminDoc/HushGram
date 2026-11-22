@@ -558,6 +558,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hold_feed_video_keep_long", FALSE, parent(HOLD_FEED_VIDEO_KEEP));
 
     /**
+     * A feed video held for 2x under {@link #HOLD_FEED_VIDEO_FAST} keeps its look: the name over it
+     * stays, and Instagram's 2x and time labels don't come up
+     * ({@link app.hushgram.extension.instagram.feed.FeedHoldSpeed#keepsLook}). Read on every press, so
+     * it needs no restart. Off to start (#552).
+     */
+    public static final BooleanSetting HOLD_FEED_VIDEO_KEEP_NAME =
+            new BooleanSetting("hushgram_hold_feed_video_keep_name", FALSE, parent(HOLD_FEED_VIDEO_FAST));
+
+    /**
      * A seek bar along the bottom of the video playing in a feed, which moves the video to where a
      * drag lets go ({@link app.hushgram.extension.instagram.feed.FeedSeekBar}). Off to start.
      */

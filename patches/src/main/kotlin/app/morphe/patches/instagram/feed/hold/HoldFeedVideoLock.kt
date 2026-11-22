@@ -41,10 +41,15 @@ import com.android.tools.smali.dexlib2.iface.reference.MethodReference
  * stored on the controller and calls its A0S(003K) with INACTIVE; the press set ACTIVE, which shows
  * the time and hides the name over the video). A kept lift does just that part of the reset itself,
  * so the name comes back while the video goes on at 2x (#552).
+ *
+ * Keep the name while you hold (#552): once the press entry has the video at 2x, it hands the same
+ * setter the hold state (003K.A03 ACTIVE). The patch asks the extension right before that call, and
+ * a yes hands it the resting state instead, so the post keeps its look while the video plays fast.
  */
 
 internal const val LOCK_PRESSED = "$FEED_HOLD->pressed(Ljava/util/concurrent/atomic/AtomicBoolean;)V"
 internal const val LOCK_LIFTED = "$FEED_HOLD->lifted(Ljava/util/concurrent/atomic/AtomicBoolean;)Z"
+internal const val LOOK_KEPT = "$FEED_HOLD->keepsLook()Z"
 
 /** What the feed's 2x controller logs when putting the speed back fails, loaded in its reset. */
 internal const val SPEED_RESET_TAG = "FeedVideo2xSpeed"
@@ -58,7 +63,9 @@ private const val FEED_MEDIA = "Lcom/instagram/feed/media/Media;"
 /**
  * The press entry and the release of the feed's hold, the controller's speed reset both call
  * ([reset], as "type->name(params)return"), the controller's fast flag ([fast], as
- * "type->name:type") and how the reset puts the post's 2x look to rest ([look]), when it does.
+ * "type->name:type"), how the reset puts the post's 2x look to rest ([look]), when it does, and the
+ * hold state the press entry hands the post through the same setter ([held], a static field), when
+ * it does that once.
  */
 internal class FeedLock(
     val press: Method,
@@ -66,6 +73,7 @@ internal class FeedLock(
     val reset: String,
     val fast: String,
     val look: FeedLook?,
+    val held: String? = null,
 )
 
 /**
@@ -141,7 +149,8 @@ internal fun BytecodePatchContext.findFeedLock(press: Method): FeedLock {
     }
     val release = releases.singleOrNull()
         ?: refuseLock("expected one press release (${shape.joinToString(", ")}) in ${press.definingClass}, found ${releases.size}")
-    val found = FeedLock(press, release, reset.signature(), fast, reset.findLook(controller.type))
+    val look = reset.findLook(controller.type)
+    val found = FeedLock(press, release, reset.signature(), fast, look, look?.let { press.findHeld(it) })
     press.planReset(found.reset, keepsAnswer = false)
     release.planReset(found.reset, keepsAnswer = true, borrow = found.borrows())
     return found
@@ -180,6 +189,36 @@ private fun Method.findLook(controller: String): FeedLook? {
         FeedLook(item.toString(), rest.toString(), show.toString())
     }
     return looks.distinct().singleOrNull()
+}
+
+/** Whether this is a call to [target] with two registers, as the look's setter is called. */
+private fun Instruction.showsLook(target: String) =
+    opcode == Opcode.INVOKE_VIRTUAL && ((this as ReferenceInstruction).reference as? MethodReference)?.toString() == target &&
+        (this as FiveRegisterInstruction).registerCount == 2
+
+/** The static field a sget-object loads into the look setter's state register, when this is one. */
+private fun Instruction?.loadsState(call: Instruction): String? {
+    if (this?.opcode != Opcode.SGET_OBJECT || (this as OneRegisterInstruction).registerA != (call as FiveRegisterInstruction).registerD) {
+        return null
+    }
+    return ((this as ReferenceInstruction).reference as? FieldReference)?.toString()
+}
+
+/**
+ * The hold state this press entry hands the post through [look]'s setter: its one call to the setter,
+ * handed a static field of the state's enum other than the resting one, loaded right before. Null when
+ * there isn't exactly one such call or something jumps straight onto it, so the press keeps its look.
+ */
+private fun Method.findHeld(look: FeedLook): String? {
+    val code = code()
+    val state = look.rest.substringAfterLast(':')
+    val calls = code.indices.filter { code[it].showsLook(look.show) }
+    val at = calls.singleOrNull() ?: return null
+    val held = code.getOrNull(at - 1).loadsState(code[at]) ?: return null
+    if (held == look.rest || held.substringBefore("->") != state || held.substringAfterLast(':') != state || at in jumpTargets()) {
+        return null
+    }
+    return held
 }
 
 /** Whether this instruction writes [register], one of a wide pair included. */
@@ -234,10 +273,35 @@ private fun BytecodePatchContext.editable(method: Method): MutableMethod =
     }
 
 /**
+ * Asks [LOOK_KEPT] right before the press entry hands the post its hold state ([held]): a yes hands
+ * it [look]'s resting state instead. Both ways load the state into the call's own register, so the
+ * call always gets one and nothing else is borrowed.
+ */
+private fun MutableMethod.keepLook(look: FeedLook, held: String) {
+    val code = code()
+    val at = code.indices.single { code[it].showsLook(look.show) && code.getOrNull(it - 1).loadsState(code[it]) == held }
+    val state = (code[at] as FiveRegisterInstruction).registerD
+    addInstructionsWithLabels(
+        at,
+        """
+            invoke-static { }, $LOOK_KEPT
+            move-result v$state
+            if-eqz v$state, :held
+            sget-object v$state, ${look.rest}
+            goto :show
+            :held
+            sget-object v$state, $held
+        """,
+        ExternalLabel("show", getInstruction(at)),
+    )
+}
+
+/**
  * Tells [LOCK_PRESSED] the fast flag before the press entry's reset, and asks [LOCK_LIFTED] before
  * the release's: a yes puts the post's 2x look to rest the way the reset does ([FeedLock.look]) and
- * skips the rest of the reset, its answer set to yes the way a fast lift's is. Each call is found
- * again by its reference, so other patches' code in either method doesn't matter.
+ * skips the rest of the reset, its answer set to yes the way a fast lift's is. When the press hands
+ * the post its hold state ([FeedLock.held]), [LOOK_KEPT] may swap it for the resting one. Each call is
+ * found again by its reference, so other patches' code in either method doesn't matter.
  */
 internal fun BytecodePatchContext.lockFast(found: FeedLock) {
     val press = editable(found.press)
@@ -250,6 +314,7 @@ internal fun BytecodePatchContext.lockFast(found: FeedLock) {
             invoke-static { v$told }, $LOCK_PRESSED
         """,
     )
+    found.held?.let { held -> press.keepLook(found.look!!, held) }
 
     val release = editable(found.release)
     val lift = release.planReset(found.reset, keepsAnswer = true, borrow = found.borrows())
