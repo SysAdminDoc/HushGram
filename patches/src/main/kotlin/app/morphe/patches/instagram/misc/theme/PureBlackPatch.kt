@@ -113,6 +113,23 @@ internal const val MENU_BACKGROUND = "igds_context_menu_background_color"
 internal val DARK_MENUS = listOf("IgdsPrismBGBlurFallbackFixDark", "IgdsSemanticColorsDark")
 
 /**
+ * The theme attributes Instagram's toasts and snackbars fill with, the bars that pop up at the bottom
+ * to say something was done (#816): the 95% gray most of them use (igds_prism_toast_95_alpha_background,
+ * #f2212328 on 456), its see-through 50% twin under a blur (igds_prism_toast_background), and the
+ * gray the older bar and a photo's tags share (ig_toast_background, #f225292e).
+ */
+internal val TOAST_BACKGROUNDS = listOf(
+    "igds_color_toast_95_alpha_background", "igds_color_toast_background", "igds_color_tag_or_toast_background",
+)
+
+/**
+ * The dark theme's styles that set [TOAST_BACKGROUNDS]: the base dark palette sets all three, and
+ * Prism's dark palette sets the older bar's again. The light theme's bars keep Instagram's dark gray.
+ * The patch fails unless each of the three changes.
+ */
+internal val DARK_TOASTS = listOf("IgdsSemanticColorsDark", "IgdsPrismSemanticColorsExperimentDark")
+
+/**
  * The dark theme Instagram's newer comments screen wraps itself in (#538). It sets the screen's and
  * the sheet's backgrounds to bds_grey_9_95_transparent, #f2262626, and a photo or GIF in a comment
  * paints its rounded corners in that color, so on a sheet that's black they showed as gray squares
@@ -227,6 +244,14 @@ internal fun blackenStories(styles: Document): List<String> = blackenAttribute(s
 internal fun blackenMenus(styles: Document): List<String> = blackenAttribute(styles, MENU_BACKGROUND, DARK_MENUS)
 
 /**
+ * Points each of [TOAST_BACKGROUNDS] at [PURE_BLACK_COLOR] in each of [DARK_TOASTS] that one decoded
+ * styles.xml holds, and answers the attributes it changed. A bar's text, icon and button keep their
+ * colors.
+ */
+internal fun blackenToasts(styles: Document): List<String> =
+    TOAST_BACKGROUNDS.filter { blackenAttribute(styles, it, DARK_TOASTS).isNotEmpty() }
+
+/**
  * Points each of [COMMENT_BACKGROUNDS] at [PURE_BLACK_COLOR] in [COMMENT_COLORS] if one decoded
  * styles.xml holds it, and answers the attributes it changed. The comments' text, dividers and
  * highlighted rows keep their colors.
@@ -331,7 +356,7 @@ internal fun BytecodePatchContext.blackenLiterals(): List<String> {
 /**
  * Writes pure black into the decoded styles: the backgrounds [blackenStyles] owns, the sheets
  * [blackenSheets] owns, the story viewer [blackenStories] owns, the held-message menu
- * [blackenMenus] owns, the comments theme [blackenComments] owns and the dark launch screen
+ * [blackenMenus] owns, the toasts [blackenToasts] owns, the comments theme [blackenComments] owns and the dark launch screen
  * [blackenLaunchScreen] owns, and into the Likes row's own attribute [blackenRowStyles] owns, which
  * the row [routeRow] owns fills with from then on. Only that row's file, values/attrs.xml, the styles
  * files that name [PRISM_BLACK_COLOR] or [ROW_BACKGROUND] and the night ones naming
@@ -361,6 +386,7 @@ internal fun ResourcePatchContext.blackenThemes() {
     val sheets = mutableListOf<String>()
     val stories = mutableListOf<String>()
     val menus = mutableListOf<String>()
+    val toasts = mutableListOf<String>()
     val comments = mutableListOf<String>()
     val launchScreens = mutableListOf<String>()
     val rowStyles = mutableListOf<String>()
@@ -378,6 +404,7 @@ internal fun ResourcePatchContext.blackenThemes() {
                 sheets += blackenSheets(styles)
                 stories += blackenStories(styles)
                 menus += blackenMenus(styles)
+                toasts += blackenToasts(styles)
                 comments += blackenComments(styles)
             }
             if (row) rowStyles += blackenRowStyles(styles)
@@ -395,6 +422,8 @@ internal fun ResourcePatchContext.blackenThemes() {
     if (grayStories.isNotEmpty()) throw PatchException("$PATCH: ${grayStories.joinToString()} no longer set $STORY_BACKGROUND")
     val grayMenus = DARK_MENUS - menus.toSet()
     if (grayMenus.isNotEmpty()) throw PatchException("$PATCH: ${grayMenus.joinToString()} no longer set $MENU_BACKGROUND")
+    val grayToasts = TOAST_BACKGROUNDS - toasts.toSet()
+    if (grayToasts.isNotEmpty()) throw PatchException("$PATCH: ${DARK_TOASTS.joinToString()} no longer set ${grayToasts.joinToString()}")
     val grayComments = COMMENT_BACKGROUNDS - comments.toSet()
     if (grayComments.isNotEmpty()) throw PatchException("$PATCH: $COMMENT_COLORS no longer sets ${grayComments.joinToString()}")
     if (launchScreens.none { "v31" in it.split('-') }) {

@@ -248,6 +248,47 @@ class PureBlackTest {
     }
 
     /**
+     * The toasts and snackbars go pure black in the dark theme's two palettes (#816), and the light
+     * theme's keep their gray, as does anything else those styles set.
+     */
+    @Test
+    fun theDarkToastsGetPureBlack() {
+        val styles = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(
+            """
+                <resources>
+                    <style name="IgdsPrismSemanticColorsExperimentDark">
+                        <item name="igds_color_tag_or_toast_background">@color/igds_prism_gray_09_alpha_95</item>
+                        <item name="igds_color_banner_background">@color/igds_prism_gray_09_alpha_95</item>
+                    </style>
+                    <style name="IgdsSemanticColorsDark">
+                        <item name="igds_color_tag_or_toast_background">@color/bds_grey_9_95_transparent</item>
+                        <item name="igds_color_toast_95_alpha_background">@color/igds_prism_gray_10_alpha_95</item>
+                        <item name="igds_color_toast_background">@color/igds_prism_gray_10_alpha_50</item>
+                    </style>
+                    <style name="IgdsSemanticColorsLight">
+                        <item name="igds_color_toast_95_alpha_background">@color/igds_prism_gray_10_alpha_95</item>
+                    </style>
+                </resources>
+            """.trimIndent().byteInputStream(),
+        )
+
+        assertEquals(TOAST_BACKGROUNDS, blackenToasts(styles))
+
+        val items = styles.getElementsByTagName("item").let { list ->
+            (0 until list.length).map { (list.item(it) as Element).textContent }
+        }
+        assertEquals(
+            listOf(
+                PURE_BLACK_COLOR, "@color/igds_prism_gray_09_alpha_95",
+                PURE_BLACK_COLOR, PURE_BLACK_COLOR, PURE_BLACK_COLOR,
+                "@color/igds_prism_gray_10_alpha_95",
+            ),
+            items,
+        )
+        assertEquals("a second pass finds nothing", emptyList<String>(), blackenToasts(styles))
+    }
+
+    /**
      * The newer comments screen's theme gets pure black behind the comments and on the sheet, so a
      * picture's rounded corners stop showing gray (#538). Its dividers, its text and another style's
      * backgrounds stay.
@@ -521,6 +562,20 @@ class PureBlackTest {
                         },
                     )
                     assertTrue("$code: the light theme sets a menu's color", lightMenu in menusBefore)
+                    val toastsBefore = TOAST_BACKGROUNDS.associateWith { attributeColors(res, it) }
+                    assertEquals(
+                        "$code: the dark toasts' grays",
+                        mapOf(
+                            "igds_color_toast_95_alpha_background" to mapOf("values/IgdsSemanticColorsDark" to "@color/igds_prism_gray_10_alpha_95"),
+                            "igds_color_toast_background" to mapOf("values/IgdsSemanticColorsDark" to "@color/igds_prism_gray_10_alpha_50"),
+                            "igds_color_tag_or_toast_background" to mapOf(
+                                "values/IgdsSemanticColorsDark" to "@color/bds_grey_9_95_transparent",
+                                "values/IgdsPrismSemanticColorsExperimentDark" to "@color/igds_prism_gray_09_alpha_95",
+                            ),
+                        ),
+                        toastsBefore.mapValues { (_, styles) -> styles.filterKeys { it.removePrefix("values/") in DARK_TOASTS } },
+                    )
+                    assertTrue("$code: the light theme sets a toast's color", toastsBefore.values.all { lightMenu in it })
                     assertEquals(
                         "$code: the dark sheets' grays",
                         mapOf(
@@ -584,6 +639,12 @@ class PureBlackTest {
                     )
                     assertEquals("$code: every other menu style", menusBefore - darkMenus, menusAfter - darkMenus)
                     assertNotEquals("$code: the light menu", PURE_BLACK_COLOR, menusAfter[lightMenu])
+                    for ((attribute, stylesBefore) in toastsBefore) {
+                        val stylesAfter = attributeColors(res, attribute)
+                        val darkToasts = stylesBefore.keys.filter { it.removePrefix("values/") in DARK_TOASTS }
+                        assertEquals("$code: the dark $attribute (#816)", darkToasts.associateWith { PURE_BLACK_COLOR }, stylesAfter.filterKeys { it in darkToasts })
+                        assertEquals("$code: every other style's $attribute", stylesBefore - darkToasts, stylesAfter - darkToasts)
+                    }
                     assertEquals(
                         "$code: the comments theme (#538)",
                         mapOf(
