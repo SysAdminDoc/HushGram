@@ -46,6 +46,7 @@ Export diagnostic report	匯出診斷報告
 From the next start, every switch but Debug logging acts as if it were off. Changes made when you patched stay in, and your choices stay saved.	下次啟動起，除了「偵錯記錄」以外，所有開關都會視為關閉。套用修補程式時的變更仍會保留，你選擇的設定也會繼續儲存。
 Here it is.	就在這裡。
 Hides comments that hold a word or phrase from the list too, and comments by an account the list names with @. A hidden comment's replies go with it.	也會隱藏含有清單中字詞的留言，以及清單用 @ 指名的帳號所寫的留言。被隱藏留言的回覆也會一起消失.
+Instagram settings page	Instagram 設定頁面
 Jump to a date	跳到某個日期
 Jump to the first message	跳到第一則訊息
 Jump to the first message or a date	跳到第一則訊息或某個日期
@@ -55,6 +56,7 @@ Loading older messages. %1$d messages so far.	正在載入較舊的訊息。目�
 Lock these settings	鎖定這些設定
 Mark a chat seen when you reply	回覆時將聊天標示為已讀
 Mark a chat seen when you react	回應時將聊天標示為已讀
+Plain rows, switches and colors like Instagram's own settings, dark or light as Instagram is. Takes the place of Black and Light settings page while it's on.	與 Instagram 本身設定相同的簡潔列、開關與顏色，隨 Instagram 顯示深色或淺色。開啟時取代黑色設定頁面和淺色設定頁面。
 Reacting to a message in a chat lets the other person see that you've read up to that message. What they sent after it stays unseen to them.	在聊天中對訊息傳送心情回應後，對方會看到你已讀到該則訊息。之後傳來的內容，對方仍看不到已讀。
 No messages found to save.	沒有可儲存的訊息。
 Pick a wait from 1 to 72 hours. Locked, nothing here changes until you ask to unlock and the wait is over.	選擇 1 至 72 小時的等待時間。鎖定後，必須提出解鎖申請並等待時間結束，才能變更此處的設定。

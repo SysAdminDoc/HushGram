@@ -41,6 +41,7 @@ Export diagnostic report	Ekspor laporan diagnostik
 From the next start, every switch but Debug logging acts as if it were off. Changes made when you patched stay in, and your choices stay saved.	Mulai peluncuran berikutnya, semua sakelar kecuali Pencatatan debug dianggap nonaktif. Yang diatur saat Anda menambal tetap aktif, dan pilihan Anda tetap tersimpan.
 Here it is.	Ini dia.
 Hides comments that hold a word or phrase from the list too, and comments by an account the list names with @. A hidden comment's replies go with it.	Juga menyembunyikan komentar yang berisi kata atau frasa dari daftar, dan komentar dari akun yang disebut daftar dengan @. Balasan dari komentar yang disembunyikan ikut hilang.
+Instagram settings page	Halaman pengaturan Instagram
 Jump to a date	Lompat ke tanggal
 Jump to the first message	Lompat ke pesan pertama
 Jump to the first message or a date	Lompat ke pesan pertama atau ke tanggal
@@ -50,6 +51,7 @@ Loading older messages. %1$d messages so far.	Memuat pesan lama. Sejauh ini %1$d
 Lock these settings	Kunci pengaturan ini
 Mark a chat seen when you reply	Tandai obrolan sudah dilihat saat kamu membalas
 Mark a chat seen when you react	Tandai obrolan sudah dilihat saat kamu bereaksi
+Plain rows, switches and colors like Instagram's own settings, dark or light as Instagram is. Takes the place of Black and Light settings page while it's on.	Baris, sakelar, dan warna polos seperti pengaturan Instagram sendiri, gelap atau terang mengikuti Instagram. Menggantikan Halaman pengaturan hitam dan Halaman pengaturan terang selama aktif.
 Reacting to a message in a chat lets the other person see that you've read up to that message. What they sent after it stays unseen to them.	Saat kamu bereaksi pada pesan di obrolan, orang lain melihat bahwa kamu sudah membaca sampai pesan itu. Pesan yang mereka kirim setelahnya tetap belum terlihat oleh mereka.
 No messages found to save.	Tidak ada pesan untuk disimpan.
 Pick a wait from 1 to 72 hours. Locked, nothing here changes until you ask to unlock and the wait is over.	Pilih waktu tunggu 1 sampai 72 jam. Saat terkunci, tidak ada yang berubah di sini sampai kamu meminta buka kunci dan waktu tunggunya selesai.

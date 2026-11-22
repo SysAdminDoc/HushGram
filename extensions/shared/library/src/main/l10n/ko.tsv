@@ -42,6 +42,7 @@ Export diagnostic report	진단 보고서 내보내기
 From the next start, every switch but Debug logging acts as if it were off. Changes made when you patched stay in, and your choices stay saved.	다음 시작부터 디버그 로깅을 제외한 모든 스위치가 비활성화된 것처럼 작동합니다. 패치할 때 적용된 변경 사항은 그대로 유지되며, 사용자가 선택한 설정도 저장된 상태로 유지됩니다
 Here it is.	여기예요.
 Hides comments that hold a word or phrase from the list too, and comments by an account the list names with @. A hidden comment's replies go with it.	목록의 단어나 문구가 들어간 댓글과, 목록에 @로 적은 계정이 쓴 댓글도 숨깁니다. 숨긴 댓글의 답글도 함께 사라집니다.
+Instagram settings page	Instagram 설정 페이지
 Jump to a date	날짜로 이동
 Jump to the first message	첫 메시지로 이동
 Jump to the first message or a date	첫 메시지 또는 날짜로 이동
@@ -51,6 +52,7 @@ Loading older messages. %1$d messages so far.	이전 메시지를 불러오는 �
 Lock these settings	이 설정 잠그기
 Mark a chat seen when you reply	답장하면 채팅을 읽음으로 표시
 Mark a chat seen when you react	반응하면 채팅을 읽음으로 표시
+Plain rows, switches and colors like Instagram's own settings, dark or light as Instagram is. Takes the place of Black and Light settings page while it's on.	Instagram 자체 설정처럼 단순한 행, 스위치, 색상을 사용하며 Instagram에 맞춰 어둡거나 밝게 표시됩니다. 켜져 있는 동안 검은색 설정 페이지와 밝은 설정 페이지 대신 사용됩니다.
 Reacting to a message in a chat lets the other person see that you've read up to that message. What they sent after it stays unseen to them.	채팅에서 메시지에 반응하면 상대가 그 메시지까지 읽었다는 것을 볼 수 있습니다. 그 뒤에 보낸 메시지는 상대에게 읽지 않은 상태로 남습니다.
 No messages found to save.	저장할 메시지가 없어요.
 Pick a wait from 1 to 72 hours. Locked, nothing here changes until you ask to unlock and the wait is over.	1~72시간 중 대기 시간을 고르세요. 잠기면 잠금 해제를 요청하고 대기 시간이 끝날 때까지 여기서 아무것도 바뀌지 않습니다.

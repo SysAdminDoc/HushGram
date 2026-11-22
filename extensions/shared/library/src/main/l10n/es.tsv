@@ -41,6 +41,7 @@ Export diagnostic report	Exportar informe de diagnóstico
 From the next start, every switch but Debug logging acts as if it were off. Changes made when you patched stay in, and your choices stay saved.	Desde el próximo inicio, todos los interruptores, salvo el Registro de depuración, funcionan como si estuvieran desactivados. Lo que se aplicó al parchear se mantiene, y tus preferencias quedan guardadas.
 Here it is.	Aquí está.
 Hides comments that hold a word or phrase from the list too, and comments by an account the list names with @. A hidden comment's replies go with it.	Oculta también los comentarios que contienen una palabra o frase de la lista, y los comentarios de las cuentas que la lista nombra con @. Las respuestas de un comentario oculto se van con él.
+Instagram settings page	Página de ajustes de Instagram
 Jump to a date	Ir a una fecha
 Jump to the first message	Ir al primer mensaje
 Jump to the first message or a date	Ir al primer mensaje o a una fecha
@@ -50,6 +51,7 @@ Loading older messages. %1$d messages so far.	Cargando mensajes anteriores. %1$d
 Lock these settings	Bloquear estos ajustes
 Mark a chat seen when you reply	Marcar un chat como visto al responder
 Mark a chat seen when you react	Marcar un chat como visto al reaccionar
+Plain rows, switches and colors like Instagram's own settings, dark or light as Instagram is. Takes the place of Black and Light settings page while it's on.	Filas, interruptores y colores sencillos como los de los propios ajustes de Instagram, oscuros o claros según Instagram. Sustituye a Página de ajustes negra y Página de ajustes clara mientras está activada.
 Reacting to a message in a chat lets the other person see that you've read up to that message. What they sent after it stays unseen to them.	Al reaccionar a un mensaje en un chat, la otra persona ve que leíste hasta ese mensaje. Lo que te mandó después sigue sin verse para ella.
 No messages found to save.	No hay mensajes que guardar.
 Pick a wait from 1 to 72 hours. Locked, nothing here changes until you ask to unlock and the wait is over.	Elige una espera de 1 a 72 horas. Con el bloqueo, aquí no cambia nada hasta que pidas desbloquear y termine la espera.

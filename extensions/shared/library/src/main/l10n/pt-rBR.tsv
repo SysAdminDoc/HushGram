@@ -41,6 +41,7 @@ Export diagnostic report	Exportar relatório de diagnóstico
 From the next start, every switch but Debug logging acts as if it were off. Changes made when you patched stay in, and your choices stay saved.	Na próxima inicialização, todas as opções, exceto Registro de depuração, funcionarão como se estivessem desativadas. As alterações feitas ao aplicar os patches continuarão em vigor, e suas escolhas permanecerão salvas.
 Here it is.	Aqui está.
 Hides comments that hold a word or phrase from the list too, and comments by an account the list names with @. A hidden comment's replies go with it.	Também oculta comentários que contêm uma palavra ou frase da lista e comentários de contas que a lista cita com @. As respostas de um comentário oculto somem junto.
+Instagram settings page	Página de configurações do Instagram
 Jump to a date	Ir para uma data
 Jump to the first message	Ir para a primeira mensagem
 Jump to the first message or a date	Ir para a primeira mensagem ou para uma data
@@ -50,6 +51,7 @@ Loading older messages. %1$d messages so far.	Carregando mensagens mais antigas.
 Lock these settings	Bloquear estas configurações
 Mark a chat seen when you reply	Marcar a conversa como vista quando você responder
 Mark a chat seen when you react	Marcar a conversa como vista quando você reagir
+Plain rows, switches and colors like Instagram's own settings, dark or light as Instagram is. Takes the place of Black and Light settings page while it's on.	Linhas, chaves e cores simples como nas próprias configurações do Instagram, escuras ou claras como o Instagram estiver. Substitui a Página de configurações preta e a clara enquanto estiver ativada.
 Reacting to a message in a chat lets the other person see that you've read up to that message. What they sent after it stays unseen to them.	Ao reagir a uma mensagem em uma conversa, a outra pessoa vê que você leu até essa mensagem. O que ela mandou depois continua sem visualização para ela.
 No messages found to save.	Nenhuma mensagem para salvar.
 Pick a wait from 1 to 72 hours. Locked, nothing here changes until you ask to unlock and the wait is over.	Escolha uma espera de 1 a 72 horas. Com o bloqueio, nada muda aqui até você pedir para desbloquear e a espera terminar.

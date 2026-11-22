@@ -41,6 +41,7 @@ Export diagnostic report	Tanılama raporunu dışa aktar
 From the next start, every switch but Debug logging acts as if it were off. Changes made when you patched stay in, and your choices stay saved.	Sonraki açılıştan itibaren Hata ayıklama günlüğü dışındaki her anahtar kapalıymış gibi davranır. Yamaladığında ayarlananlar devrede kalır ve tercihlerin kayıtlı kalır.
 Here it is.	İşte burada.
 Hides comments that hold a word or phrase from the list too, and comments by an account the list names with @. A hidden comment's replies go with it.	Listedeki bir kelimeyi veya ifadeyi içeren yorumları ve listenin @ ile andığı hesapların yorumlarını da gizler. Gizlenen bir yorumun yanıtları da onunla birlikte gider.
+Instagram settings page	Instagram ayarlar sayfası
 Jump to a date	Bir tarihe atla
 Jump to the first message	İlk mesaja atla
 Jump to the first message or a date	İlk mesaja veya bir tarihe atla
@@ -50,6 +51,7 @@ Loading older messages. %1$d messages so far.	Eski mesajlar yükleniyor. Şimdil
 Lock these settings	Bu ayarları kilitle
 Mark a chat seen when you reply	Yanıt verdiğinde sohbeti görüldü olarak işaretle
 Mark a chat seen when you react	Tepki verdiğinde sohbeti görüldü olarak işaretle
+Plain rows, switches and colors like Instagram's own settings, dark or light as Instagram is. Takes the place of Black and Light settings page while it's on.	Instagram'ın kendi ayarlarındaki gibi sade satırlar, anahtarlar ve renkler, Instagram nasılsa koyu ya da açık. Açıkken Siyah ve Açık ayarlar sayfasının yerini alır.
 Reacting to a message in a chat lets the other person see that you've read up to that message. What they sent after it stays unseen to them.	Bir sohbette bir mesaja tepki vermen, karşı tarafın o mesaja kadar okuduğunu görmesini sağlar. Sonrasında yazdıkları onlar için görülmemiş kalır.
 No messages found to save.	Kaydedilecek mesaj yok.
 Pick a wait from 1 to 72 hours. Locked, nothing here changes until you ask to unlock and the wait is over.	1 ile 72 saat arasında bir bekleme seç. Kilitliyken, kilidi açmayı isteyip bekleme bitene kadar burada hiçbir şey değişmez.

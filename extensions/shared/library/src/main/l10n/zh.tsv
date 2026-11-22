@@ -46,6 +46,7 @@ Export diagnostic report	导出诊断报告
 From the next start, every switch but Debug logging acts as if it were off. Changes made when you patched stay in, and your choices stay saved.	下次启动起，除了“调试记录”以外，所有开关都会视为关闭。打补丁时的变更仍会保留，你选择的设置也会继续保存。
 Here it is.	就在这里。
 Hides comments that hold a word or phrase from the list too, and comments by an account the list names with @. A hidden comment's replies go with it.	也会隐藏包含列表中字词的评论，以及列表用 @ 点名的账号所写的评论。被隐藏评论的回复也会一起消失.
+Instagram settings page	Instagram 设置页面
 Jump to a date	跳到某个日期
 Jump to the first message	跳到第一则消息
 Jump to the first message or a date	跳到第一则消息或某个日期
@@ -55,6 +56,7 @@ Loading older messages. %1$d messages so far.	正在加载较旧的消息。目�
 Lock these settings	锁定这些设置
 Mark a chat seen when you reply	回复时将聊天标示为已读
 Mark a chat seen when you react	回应时将聊天标示为已读
+Plain rows, switches and colors like Instagram's own settings, dark or light as Instagram is. Takes the place of Black and Light settings page while it's on.	与 Instagram 自身设置相同的简洁列、开关和颜色，随 Instagram 显示深色或浅色。开启时取代黑色设置页面和浅色设置页面。
 Reacting to a message in a chat lets the other person see that you've read up to that message. What they sent after it stays unseen to them.	在聊天中对消息发送心情回应后，对方会看到你已读到该条消息。之后传来的内容，对方仍看不到已读。
 No messages found to save.	没有可保存的消息。
 Pick a wait from 1 to 72 hours. Locked, nothing here changes until you ask to unlock and the wait is over.	选择 1 至 72 小时的等待时间。锁定后，必须提出解锁申请并等待时间结束，才能变更此处的设置。

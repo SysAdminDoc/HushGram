@@ -141,8 +141,9 @@ public class ConfigurationBackupTest {
         original.edit().putString("private-session", "secret-token").commit();
         PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.HIDE_ADS);
         JSONObject values = new JSONObject(new String(ConfigurationBackup.export(), StandardCharsets.UTF_8)).getJSONObject("settings");
-        assertEquals(14, values.length());
+        assertEquals(15, values.length());
         assertFalse(values.getJSONObject(Settings.SETTINGS_LIGHT_LOOK.key).getBoolean("value"));
+        assertFalse(values.getJSONObject(Settings.SETTINGS_INSTAGRAM_LOOK.key).getBoolean("value"));
         assertTrue(values.getJSONObject(Settings.CATEGORY_OWN_PAGE.key).getBoolean("value"));
         assertFalse(values.getJSONObject(Settings.DATE_SETTINGS_EXPORT.key).getBoolean("value"));
         assertTrue(values.getJSONObject(Settings.DESCRIPTIONS_BEHIND_INFO.key).getBoolean("value"));

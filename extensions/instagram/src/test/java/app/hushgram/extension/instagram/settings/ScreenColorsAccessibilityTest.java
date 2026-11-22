@@ -121,6 +121,22 @@ public class ScreenColorsAccessibilityTest {
         assertEquals(light.summary, color(summary, true, false));
     }
 
+    /** Instagram settings page (#797), light and dark: every part clears the bars the other looks do. */
+    @Test public void instagramsLooksKeepEveryPartReadable() {
+        for (ScreenColors look : new ScreenColors[]{ScreenColors.INSTAGRAM_LIGHT, ScreenColors.INSTAGRAM_DARK}) {
+            readable(look);
+            contrast("field edge", look.outline, look.background, 1.3);
+            int reason = color(look.disabledSummary(), false, false);
+            for (int surface : new int[]{look.background, look.card, look.dialog}) {
+                contrast("placeholder", look.hint, surface, 4.5);
+                contrast("disabled summary", over(reason, surface), surface, 4.5);
+            }
+            assertTrue("A placeholder must read quieter than a saved summary", look.light
+                    ? luminance(look.hint) > luminance(look.summary)
+                    : luminance(look.hint) < luminance(look.summary));
+        }
+    }
+
     @Test public void pureBlackTurnsCardsAndDialogsBlackAndKeepsTheirOutlines() {
         ScreenColors black = new ScreenColors(true);
         assertEquals(Color.BLACK, black.card);

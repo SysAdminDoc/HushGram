@@ -41,6 +41,7 @@ Export diagnostic report	Xuất báo cáo chẩn đoán
 From the next start, every switch but Debug logging acts as if it were off. Changes made when you patched stay in, and your choices stay saved.	Từ lần khởi động sau, mọi công tắc trừ Ghi nhật ký gỡ lỗi đều hoạt động như đã tắt. Những thay đổi đặt lúc vá vẫn giữ nguyên và lựa chọn của bạn vẫn được lưu.
 Here it is.	Đây rồi.
 Hides comments that hold a word or phrase from the list too, and comments by an account the list names with @. A hidden comment's replies go with it.	Ẩn cả bình luận chứa từ hoặc cụm từ trong danh sách, và bình luận của tài khoản mà danh sách ghi bằng @. Các trả lời của bình luận bị ẩn cũng biến mất theo.
+Instagram settings page	Trang cài đặt kiểu Instagram
 Jump to a date	Chuyển đến một ngày
 Jump to the first message	Chuyển đến tin nhắn đầu tiên
 Jump to the first message or a date	Chuyển đến tin nhắn đầu tiên hoặc một ngày
@@ -50,6 +51,7 @@ Loading older messages. %1$d messages so far.	Đang tải tin nhắn cũ hơn. �
 Lock these settings	Khóa các cài đặt này
 Mark a chat seen when you reply	Đánh dấu đã xem khi bạn trả lời
 Mark a chat seen when you react	Đánh dấu đã xem khi bạn bày tỏ cảm xúc
+Plain rows, switches and colors like Instagram's own settings, dark or light as Instagram is. Takes the place of Black and Light settings page while it's on.	Hàng, công tắc và màu sắc đơn giản như phần cài đặt của chính Instagram, tối hoặc sáng theo Instagram. Thay cho Trang cài đặt màu đen và Trang cài đặt màu sáng khi đang bật.
 Reacting to a message in a chat lets the other person see that you've read up to that message. What they sent after it stays unseen to them.	Khi bạn bày tỏ cảm xúc với một tin nhắn trong cuộc trò chuyện, người kia sẽ thấy bạn đã đọc đến tin nhắn đó. Những gì họ gửi sau đó vẫn chưa được xem.
 No messages found to save.	Không có tin nhắn nào để lưu.
 Pick a wait from 1 to 72 hours. Locked, nothing here changes until you ask to unlock and the wait is over.	Chọn thời gian chờ từ 1 đến 72 giờ. Khi đã khóa, không có gì ở đây thay đổi được cho đến khi bạn yêu cầu mở khóa và hết thời gian chờ.

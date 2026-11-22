@@ -110,7 +110,9 @@ public final class SettingsDialog extends DialogFragment {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
-        // Before anything is built: Light settings page keeps to this screen (#762).
+        // Before anything is built: Light settings page keeps to this screen (#762), and
+        // Instagram settings page takes the screen's dark or light (#797).
+        ScreenColors.followNight(getActivity());
         countOpen(true);
         failed = savedInstanceState != null && savedInstanceState.getBoolean(PAGE_FAILED);
         try {
@@ -412,6 +414,7 @@ public final class SettingsDialog extends DialogFragment {
 
     @Override
     public void onStart() {
+        ScreenColors.followNight(getActivity());
         countOpen(true);
         super.onStart();
         Dialog shown = getDialog();

@@ -826,6 +826,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 }
                 if (Settings.SETTINGS_BLACK_LOOK.key.equals(key)) aliases.append(" amoled oled dark theme layout");
                 if (Settings.SETTINGS_LIGHT_LOOK.key.equals(key)) aliases.append(" white bright day theme layout");
+                if (Settings.SETTINGS_INSTAGRAM_LOOK.key.equals(key)) aliases.append(" native stock official plain flat theme layout");
                 if (NotificationsCategory.movedFromProfiles(key)) aliases.append(' ').append(L10n.t("Profiles"));
                 if (Settings.HIDE_REELS_TAB.key.equals(key) || Settings.SHOW_REELS_TAB.key.equals(key)) {
                     aliases.append(' ').append(L10n.t("Reels"));
@@ -1859,8 +1860,9 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         PreferenceCategory under = pages ? shownPage() : null;
         PreferenceCategory page = listing ? under : null;
         boolean own = listing && ownPages();
-        // Either look puts HushGram's name at the top (#455, #762).
-        boolean named = Settings.SETTINGS_BLACK_LOOK.savedValue() || Settings.SETTINGS_LIGHT_LOOK.savedValue();
+        // Each look puts HushGram's name at the top (#455, #762, #797).
+        boolean named = Settings.SETTINGS_BLACK_LOOK.savedValue() || Settings.SETTINGS_LIGHT_LOOK.savedValue()
+                || Settings.SETTINGS_INSTAGRAM_LOOK.savedValue();
         for (Preference top : new Preference[]{header, statusCard, beforeSignIn, viewToggle, gridToggle, search}) {
             if (top == null) continue;
             // A tap hid the notice for good and took it off the screen. It stays off.

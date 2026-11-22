@@ -72,7 +72,9 @@ final class ShortcutCover {
             }
             coverWhenStarted = null;
             take(cover, "a new request");
-            // The settings' own page colour: white under Light settings page (#762).
+            // The settings' own page colour: white under Light settings page (#762), and
+            // Instagram's own under Instagram settings page, dark or light as this screen is (#797).
+            ScreenColors.followNight(activity);
             final Drawable shown = new ColorDrawable(ScreenColors.settingsPage().background);
             shown.setBounds(0, 0, SIDE, SIDE);
             decor.getOverlay().add(shown);
