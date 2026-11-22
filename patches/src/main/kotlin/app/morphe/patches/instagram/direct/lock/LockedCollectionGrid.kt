@@ -4,6 +4,7 @@
  */
 package app.morphe.patches.instagram.direct.lock
 
+import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
 import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
@@ -15,11 +16,15 @@ import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.liveAcrossInjection
 import app.morphe.patches.instagram.misc.extension.loadsString
+import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
 import app.morphe.patches.instagram.misc.extension.patchLog
+import app.morphe.patches.instagram.misc.extension.requireParameterIntact
 import app.morphe.patches.instagram.misc.extension.stringLoadedAt
 import app.morphe.util.addInstructionsAtControlFlowLabel
+import app.morphe.util.reachingWrites
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Field
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
@@ -50,6 +55,11 @@ internal const val SAVED_COLLECTION_IDS_KEY = "saved_collection_ids"
 /** The endpoint of Saved's posts, which the grid screen of All and Posts loads. */
 internal const val SAVED_POSTS_FEED = "feed/saved/posts/"
 
+/** Handed each batch of reels Saved's Reels screen gets, with the screen; answers the batch to show. */
+internal const val LEAVE_OUT_REELS = "$LOCKED_ITEMS->leaveOutReels(Ljava/util/List;Ljava/lang/Object;)Ljava/util/List;"
+/** The name Saved's Reels screen gives its fetcher, loaded by the screen and where its new reels come in. */
+internal const val SAVED_REELS_FETCHER = "clipsSavedTabFetcher"
+
 /** The method reading a collection from JSON, each return of the collection it made, and its id and name fields. */
 internal class CollectionReader(
     val method: MutableMethod,
@@ -74,11 +84,27 @@ internal class SavedGridRows(
     val collection: FieldReference,
 )
 
+/**
+ * Where Saved's Reels screen has a new batch of reels in hand: [at], just after the code handling it
+ * casts the screen into [screen], with the batch in [reels]. [collection] is the screen's field
+ * holding the collection it's of, and [media] a reel's field holding its post.
+ */
+internal class SavedReelsBatch(
+    val method: MutableMethod,
+    val at: Int,
+    val reels: Int,
+    val screen: Int,
+    val collection: FieldReference,
+    val media: FieldReference,
+)
+
 internal class LockedGridTargets(
     val reader: CollectionReader,
     val rows: List<SavedGridRows>,
     val savedIn: MethodReference,
     val bridges: Map<String, MutableMethod>,
+    /** Null when this build's Reels screen moved: its reels show as before, and the rest goes on. */
+    val reels: SavedReelsBatch?,
 )
 
 /**
@@ -106,9 +132,97 @@ internal fun BytecodePatchContext.findLockedGrid(): LockedGridTargets {
         "savedIn" to bridge("savedIn", "Ljava/util/List;"),
         "idOf" to bridge("idOf", "Ljava/lang/String;"),
         "nameOf" to bridge("nameOf", "Ljava/lang/String;"),
+        "mediaOf" to bridge("mediaOf", "Ljava/lang/Object;"),
+        "collectionOf" to bridge("collectionOf", "Ljava/lang/Object;"),
     )
-    return LockedGridTargets(reader, rows, savedIn, bridges)
+    val reels = try {
+        findSavedReelsBatch()
+    } catch (e: PatchException) {
+        patchLog.warning("${e.message}. Reels saved into a locked collection still show in Saved's Reels, and the rest of the lock goes on.")
+        null
+    }
+    return LockedGridTargets(reader, rows, savedIn, bridges, reels)
 }
+
+/**
+ * The one place Saved's Reels screen gets a new batch of reels: in a method loading
+ * [SAVED_REELS_FETCHER] and taking one List, where it casts the screen, a class loading the same
+ * string with one field holding a SavedCollection, and goes on to hand a List to the grid adapter the
+ * screen keeps. On Redex builds that's one arm of a merged listener, so the hook goes on the arm's
+ * own cast, where nothing jumps. The batch is the List the method took, still in a register of
+ * v0 to v15 there.
+ */
+internal fun BytecodePatchContext.findSavedReelsBatch(): SavedReelsBatch {
+    val owners = classesLoadingString(SAVED_REELS_FETCHER)
+    val screens = owners.filter { owner ->
+        owner.fields.count { it.type == SAVED_COLLECTION_TYPE && !AccessFlags.STATIC.isSet(it.accessFlags) } == 1
+    }.associateBy { it.type }
+    val found = owners.flatMap { owner ->
+        owner.methods.filter { it.listParameter() != null && loadsString(it, SAVED_REELS_FETCHER) }.flatMap { method ->
+            val code = method.implementation!!.instructions.toList()
+            code.indices.filter { at ->
+                val screen = code[at].castType()?.let(screens::get)
+                screen != null && code.drop(at + 1).any { it.handsListToGridOf(screen) }
+            }.map { method to it }
+        }
+    }
+    val (stock, cast) = found.singleOrNull()
+        ?: refuseGrid("expected one place Saved's Reels screen gets new reels, found ${found.size}")
+    val method = mutableClassDefBy(stock.definingClass).methods.single { it.sameAs(stock) }
+    val code = method.implementation!!.instructions.toList()
+    val where = "${method.definingClass}->${method.name}"
+    val screenClass = screens.getValue(code[cast].castType()!!)
+    val screen = (code[cast] as OneRegisterInstruction).registerA
+    val at = cast + 1
+    if (at in method.jumpTargets()) refuseGrid("something in $where jumps to just after it casts Saved's Reels screen")
+    if (screen > 15) refuseGrid("expected $where to cast Saved's Reels screen into v0 to v15")
+    val reels = reelsRegister(method, code, method.listParameter()!!, at)
+        ?: refuseGrid("expected $where to still hold the reels it got in v0 to v15 where it casts Saved's Reels screen")
+    val collection = screenClass.fields.single { it.type == SAVED_COLLECTION_TYPE && !AccessFlags.STATIC.isSet(it.accessFlags) }
+    val media = screenClass.reelMediaField()
+        ?: refuseGrid("expected Saved's Reels screen ${screenClass.type} to read one kind of reel's post")
+    return SavedReelsBatch(method, at, reels, screen, collection, media)
+}
+
+/** The index of a method's one List parameter, or null when it has none or more. */
+private fun Method.listParameter(): Int? =
+    parameterTypes.indices.filter { parameterTypes[it].toString() == "Ljava/util/List;" }.singleOrNull()
+
+private fun Instruction.castType(): String? =
+    if (opcode == Opcode.CHECK_CAST) ((this as ReferenceInstruction).reference as TypeReference).type else null
+
+/** A call handing a List and a flag to the grid adapter kept in one of [screen]'s fields. */
+private fun Instruction.handsListToGridOf(screen: ClassDef): Boolean {
+    if (opcode != Opcode.INVOKE_VIRTUAL) return false
+    val call = (this as ReferenceInstruction).reference as MethodReference
+    return call.returnType == "V" && call.parameterTypes.map(Any::toString) == listOf("Ljava/util/List;", "Z") &&
+        screen.fields.any { !AccessFlags.STATIC.isSet(it.accessFlags) && it.type == call.definingClass }
+}
+
+/**
+ * The register of v0 to v15 holding parameter [list] at [at]: the parameter's own, or the one a move
+ * copied it to, when that copy is the only write of it reaching [at] and the parameter was intact then.
+ */
+private fun reelsRegister(method: MutableMethod, code: List<Instruction>, list: Int, at: Int): Int? {
+    val param = method.parameterRegisterNumber(list)
+    fun intactAt(index: Int) = runCatching { method.requireParameterIntact("reels", list, listOf(index)) }.isSuccess
+    if (param <= 15 && intactAt(at)) return param
+    return code.indices.firstNotNullOfOrNull { move ->
+        val copy = code[move] as? TwoRegisterInstruction
+        val copied = (code[move].opcode == Opcode.MOVE_OBJECT || code[move].opcode == Opcode.MOVE_OBJECT_FROM16) &&
+            copy!!.registerB == param && copy.registerA <= 15
+        copy?.registerA?.takeIf { copied && reachingWrites(method, code, it, at) == setOf(move) && intactAt(move) }
+    }
+}
+
+/** The one field of a class other than this one and Media holding a post, read in this class's methods: a reel's post. */
+private fun ClassDef.reelMediaField(): FieldReference? = methods
+    .flatMap { it.implementation?.instructions?.toList() ?: emptyList() }
+    .filter { it.opcode == Opcode.IGET_OBJECT }
+    .map { (it as ReferenceInstruction).reference as FieldReference }
+    .filter { it.type == SAVED_GRID_MEDIA && it.definingClass != type && it.definingClass != SAVED_GRID_MEDIA }
+    .distinctBy { it.toString() }
+    .singleOrNull()
 
 /**
  * The single unsafeParseFromJson making a SavedCollection and loading both [COLLECTION_ID_KEY] and
@@ -291,6 +405,30 @@ internal fun hookLockedGrid(targets: LockedGridTargets) {
         """
             check-cast p0, $SAVED_COLLECTION_TYPE
             iget-object p0, p0, ${reader.name}
+            return-object p0
+        """.trimIndent(),
+    )
+    val reels = targets.reels ?: return
+    reels.method.addInstructions(
+        reels.at,
+        """
+            invoke-static { v${reels.reels}, v${reels.screen} }, $LEAVE_OUT_REELS
+            move-result-object v${reels.reels}
+        """.trimIndent(),
+    )
+    targets.bridges.getValue("mediaOf").addInstructionsWithLabels(
+        0,
+        """
+            check-cast p0, ${reels.media.definingClass}
+            iget-object p0, p0, ${reels.media}
+            return-object p0
+        """.trimIndent(),
+    )
+    targets.bridges.getValue("collectionOf").addInstructionsWithLabels(
+        0,
+        """
+            check-cast p0, ${reels.collection.definingClass}
+            iget-object p0, p0, ${reels.collection}
             return-object p0
         """.trimIndent(),
     )

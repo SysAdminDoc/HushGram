@@ -5,12 +5,17 @@
 package app.hushgram.extension.instagram.direct;
 
 import android.app.Activity;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.Menu;
 import android.view.View;
 import android.widget.PopupMenu;
 import android.widget.TextView;
 
 import androidx.annotation.Nullable;
+
+import java.util.Map;
+import java.util.WeakHashMap;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.shared.L10n;
@@ -32,10 +37,19 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * the collection open, so a phone handed over unlocked can't take the lock off. The collection is read
  * from the tile as it's pressed, so a tile Instagram reuses for another collection asks for the right
  * one. Paused, a long press does nothing.
+ *
+ * <p>A locked collection's tile also hides its cover while the lock is shut, since the cover is one of
+ * the posts inside. It comes back once the tile names another collection, or the same one after the
+ * lock opens and Saved shows it again.
  */
 public final class CollectionLockMenu {
     /** The view in a collection's tile naming it, as Instagram names it. */
     static final String NAME = "saved_collection_name";
+    /** The view in a collection's tile showing its cover, as Instagram names it. */
+    static final String COVER = "saved_collection_thumbnail";
+
+    /** The covers hidden here, each with the alpha it had before. Touched on the main thread only. */
+    private static final Map<View, Float> hidden = new WeakHashMap<>();
 
     /** The menu's one item, either way. */
     static final int LOCK = 1;
@@ -55,9 +69,55 @@ public final class CollectionLockMenu {
      */
     public static void tile(View tile) {
         try {
+            if (tile == null) return;
+            watchCover(tile);
             // Instagram's own long press, should it ever add one, stays.
-            if (tile == null || tile.isLongClickable()) return;
+            if (tile.isLongClickable()) return;
             tile.setOnLongClickListener(CollectionLockMenu::pressed);
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.MESSAGES_LOCK, STEP, t);
+        }
+    }
+
+    /**
+     * Each time Instagram names [tile] after a collection, its cover follows: hidden for one that's
+     * locked while the lock is shut, so the tile doesn't show what's inside, and back for any other.
+     */
+    static void watchCover(View tile) {
+        TextView name = nameView(tile);
+        if (name == null) return;
+        name.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence text, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence text, int start, int before, int count) {
+            }
+
+            @Override
+            public void afterTextChanged(Editable text) {
+                cover(tile);
+            }
+        });
+    }
+
+    /** Hides [tile]'s cover or puts it back, for the collection the tile names now. Never throws. */
+    static void cover(View tile) {
+        try {
+            View cover = view(tile, COVER);
+            TextView name = nameView(tile);
+            if (cover == null || name == null) return;
+            String named = CollectionLocks.text(name);
+            boolean hide = named != null && MessagesLock.collectionListLocked() && CollectionLocks.listed(named);
+            Float was = hidden.get(cover);
+            if (hide && was == null) {
+                hidden.put(cover, cover.getAlpha());
+                cover.setAlpha(0f);
+            } else if (!hide && was != null) {
+                hidden.remove(cover);
+                cover.setAlpha(was);
+            }
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.MESSAGES_LOCK, STEP, t);
         }
@@ -66,13 +126,25 @@ public final class CollectionLockMenu {
     /** The collection [tile] shows, as its page names it, or null when its name can't be read. */
     @Nullable
     static String nameOf(View tile) {
-        int id = MessagesLock.id(tile.getContext(), NAME);
+        TextView name = nameView(tile);
+        return name == null ? null : CollectionLocks.text(name);
+    }
+
+    @Nullable
+    private static TextView nameView(View tile) {
+        View name = view(tile, NAME);
+        return name instanceof TextView ? (TextView) name : null;
+    }
+
+    /** The view in [tile] Instagram names [name], or null. */
+    @Nullable
+    private static View view(View tile, String name) {
+        int id = MessagesLock.id(tile.getContext(), name);
         if (id == 0) {
-            HookStatus.missingViewId(FamilyNames.MESSAGES_LOCK, NAME);
+            HookStatus.missingViewId(FamilyNames.MESSAGES_LOCK, name);
             return null;
         }
-        View name = tile.findViewById(id);
-        return name instanceof TextView ? CollectionLocks.text((TextView) name) : null;
+        return tile.findViewById(id);
     }
 
     /** The long press on [tile]: its menu, unless HushGram is paused or the collection can't be told. */
@@ -105,6 +177,7 @@ public final class CollectionLockMenu {
         try {
             if (id == LOCK) {
                 say(CollectionLocks.add(account, name), L10n.f("%1$s is locked", L10n.isolate(name)));
+                cover(tile);
                 return true;
             }
             if (id != REMOVE) return false;
@@ -113,8 +186,10 @@ public final class CollectionLockMenu {
                 say(false, null);
                 return true;
             }
-            MessagesLock.confirmCollectionRemoveThen(activity, () ->
-                    say(CollectionLocks.remove(account, name), L10n.f("%1$s is unlocked", L10n.isolate(name))));
+            MessagesLock.confirmCollectionRemoveThen(activity, () -> {
+                say(CollectionLocks.remove(account, name), L10n.f("%1$s is unlocked", L10n.isolate(name)));
+                cover(tile);
+            });
             return true;
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.MESSAGES_LOCK, STEP, t);

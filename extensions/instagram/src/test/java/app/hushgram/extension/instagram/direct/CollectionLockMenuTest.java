@@ -85,6 +85,7 @@ public class CollectionLockMenuTest {
         ChatAccounts.signInForTests(ME);
         Map<String, Integer> ids = new HashMap<>();
         ids.put(CollectionLockMenu.NAME, NAME);
+        ids.put(CollectionLockMenu.COVER, PICTURE);
         MessagesLock.idsForTests = ids;
         MessagesLock.asker = (activity, confirmed, notConfirmed) -> {
             titles.add(MessagesLock.askTitle());
@@ -201,6 +202,51 @@ public class CollectionLockMenuTest {
 
         // A tile the patch couldn't hand over is never a reason to throw.
         CollectionLockMenu.tile(null);
+    }
+
+    /**
+     * A locked collection's tile hides its cover, one of the posts inside, while the lock is shut,
+     * and shows it as Instagram left it for any other collection the tile is bound to.
+     */
+    @Test
+    public void aLockedCollectionsCoverHidesWhileTheLockIsShut() {
+        Activity activity = saved("Trips", "Recipes");
+        View trips = tile(activity, "Trips");
+        View cover = trips.findViewById(PICTURE);
+        cover.setAlpha(0.8f);
+        TextView name = trips.findViewById(NAME);
+
+        pick(longPress(trips));
+        assertEquals("the cover showed once locked", 0f, cover.getAlpha(), 0f);
+        assertEquals("the collection next to it lost its cover", 1f,
+                tile(activity, "Recipes").findViewById(PICTURE).getAlpha(), 0f);
+
+        // Instagram reuses the tile for another collection, then binds it to this one again.
+        name.setText("Recipes");
+        assertEquals("another collection's cover stayed hidden", 0.8f, cover.getAlpha(), 0f);
+        name.setText("Trips");
+        assertEquals(0f, cover.getAlpha(), 0f);
+
+        // Another account's collection of the same name keeps its cover.
+        ChatAccounts.signInForTests(OTHER);
+        name.setText("Trips");
+        assertEquals("another account's cover hid", 0.8f, cover.getAlpha(), 0f);
+        ChatAccounts.signInForTests(ME);
+        name.setText("Trips");
+        assertEquals(0f, cover.getAlpha(), 0f);
+
+        // Taking the lock off puts it back at once.
+        pick(longPress(trips));
+        asks.get(0)[0].run();
+        idle();
+        assertFalse(CollectionLocks.listed(ME, "Trips"));
+        assertEquals("the cover stayed hidden once unlocked", 0.8f, cover.getAlpha(), 0f);
+
+        // Locked again while the lock is open, it shows until the lock shuts and Saved names it again.
+        MessagesLock.openForTests();
+        pick(longPress(trips));
+        assertTrue(CollectionLocks.listed(ME, "Trips"));
+        assertEquals("the cover hid with the lock open", 0.8f, cover.getAlpha(), 0f);
     }
 
     /**

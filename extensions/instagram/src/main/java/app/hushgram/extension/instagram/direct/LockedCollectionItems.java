@@ -12,6 +12,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
@@ -22,7 +23,7 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
 
 /**
  * Posts and reels saved into a locked collection stay out of Saved's other grids while the lock is
- * shut (#678), so All and Posts don't show what the collection's own page covers.
+ * shut (#678), so All, Posts and Reels don't show what the collection's own page covers.
  *
  * <p>Instagram tells which collections a saved post is in only by their ids, and {@link CollectionLocks}
  * keeps a collection by its name. Each collection Instagram reads goes through {@link #read}, so its
@@ -30,7 +31,8 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * ({@link Settings#LOCKED_COLLECTION_IDS}), so a grid that loads before the collections do after a
  * restart still knows it.
  *
- * <p>Saved's grid asks {@link #leaveOut} about each post as it makes its rows. A post is left out
+ * <p>Saved's grid asks {@link #leaveOut} about each post as it makes its rows, and its Reels screen
+ * hands {@link #leaveOutReels} each batch of reels it gets before making rows of them. A post is left out
  * while the lock is shut and one of its collections is on the list for the account in front, unless
  * the grid belongs to one of the post's own collections: a collection's page always shows all of
  * itself, and an unlocked collection sharing a post with a locked one keeps it. After an unlock the
@@ -141,6 +143,38 @@ public final class LockedCollectionItems {
         return locked;
     }
 
+    // ---------------------------------------------------------------- the Reels tab
+
+    /**
+     * [reels], the items Saved's Reels screen [screen] just got, without those whose post
+     * {@link #leaveOut} leaves out of the collection the screen is of. Called before the screen's grid
+     * makes rows of them. Answers [reels] itself when none is left out. Fails open, never throws.
+     */
+    @Nullable
+    public static List<?> leaveOutReels(@Nullable List<?> reels, @Nullable Object screen) {
+        if (reels == null || reels.isEmpty()) return reels;
+        try {
+            if (!MessagesLock.collectionListLocked()) return reels;
+            Object shown = screen == null ? null : collectionOf(screen);
+            return leaveOutEach(reels, reel -> reel != null && leaveOut(mediaOf(reel), shown) != 0);
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.MESSAGES_LOCK, STEP, t);
+            return reels;
+        }
+    }
+
+    /** [items] without those [out] says yes to: [items] itself when that's none, a new list in the same order otherwise. */
+    static List<?> leaveOutEach(List<?> items, Predicate<Object> out) {
+        List<Object> kept = null;
+        for (int i = 0; i < items.size(); i++) {
+            Object item = items.get(i);
+            boolean left = out.test(item);
+            if (left && kept == null) kept = new ArrayList<>(items.subList(0, i));
+            else if (!left && kept != null) kept.add(item);
+        }
+        return kept == null ? items : kept;
+    }
+
     // ---------------------------------------------------------------- the ids remembered
 
     private static Map<String, String> remembered() {
@@ -212,6 +246,18 @@ public final class LockedCollectionItems {
     /** Rewritten by the patch: the name of [collection]. */
     @Nullable
     public static String nameOf(Object collection) {
+        return null;
+    }
+
+    /** Rewritten by the patch: the post [reel], one of the items Saved's Reels screen gets, shows. */
+    @Nullable
+    public static Object mediaOf(Object reel) {
+        return null;
+    }
+
+    /** Rewritten by the patch: the collection [screen], Saved's Reels screen, is of. */
+    @Nullable
+    public static Object collectionOf(Object screen) {
         return null;
     }
 

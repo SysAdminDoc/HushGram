@@ -168,6 +168,25 @@ public class LockedCollectionItemsTest {
         assertTrue(LockedCollectionItems.parse("\nno tab\n\tno id\nid\t\n").isEmpty());
     }
 
+    /** Saved's Reels screen gets its batch back without the reels left out, in order, or the same list when none is. */
+    @Test
+    public void theReelsTabGetsItsBatchWithoutTheLockedOnes() {
+        List<Object> reels = Arrays.asList("a", "locked 1", "b", "locked 2", "c");
+        assertEquals(Arrays.asList("a", "b", "c"),
+                LockedCollectionItems.leaveOutEach(reels, reel -> reel.toString().startsWith("locked")));
+        List<Object> kept = Arrays.asList("a", "b");
+        assertTrue("a batch with nothing left out was copied",
+                kept == LockedCollectionItems.leaveOutEach(kept, reel -> false));
+        assertEquals(Collections.emptyList(), LockedCollectionItems.leaveOutEach(Collections.singletonList("locked"), reel -> true));
+
+        // With a collection locked, Instagram's own, unpatched here, give no post, so every reel stays.
+        LockedCollectionItems.learned(TRIPS, "Trips");
+        assertTrue(CollectionLocks.add(ME, "Trips"));
+        List<Object> batch = Arrays.asList(new Object(), null, new Object());
+        assertTrue(batch == LockedCollectionItems.leaveOutReels(batch, new Object()));
+        assertNull(LockedCollectionItems.leaveOutReels(null, null));
+    }
+
     @Test
     public void anythingUnexpectedShowsThePost() {
         LockedCollectionItems.learned(TRIPS, "Trips");

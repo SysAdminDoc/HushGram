@@ -45,11 +45,12 @@ class LockedCollectionGridHookTest {
         val declared = ExtensionDex.classDef(LOCKED_ITEMS).methods
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
-        for (hook in listOf(READ_COLLECTION, LEAVE_OUT_POST)) {
+        for (hook in listOf(READ_COLLECTION, LEAVE_OUT_POST, LEAVE_OUT_REELS)) {
             assertTrue("$hook is not in the extension: $declared", hook.substringAfter("->") in declared)
         }
         for (bridge in listOf("savedIn(Ljava/lang/Object;)Ljava/util/List;", "idOf(Ljava/lang/Object;)Ljava/lang/String;",
-            "nameOf(Ljava/lang/Object;)Ljava/lang/String;")) {
+            "nameOf(Ljava/lang/Object;)Ljava/lang/String;", "mediaOf(Ljava/lang/Object;)Ljava/lang/Object;",
+            "collectionOf(Ljava/lang/Object;)Ljava/lang/Object;")) {
             assertTrue("$bridge is not in the extension: $declared", bridge in declared)
         }
     }
@@ -69,7 +70,9 @@ class LockedCollectionGridHookTest {
 
     private fun builds(bundle: File) {
         val label = bundle.parentFile.name + "/" + bundle.name
-        val classes = FixtureDex.classesLoadingAny(bundle, setOf(COLLECTION_NAME_KEY, SAVED_COLLECTION_IDS_KEY, SAVED_POSTS_FEED)) {
+        val classes = FixtureDex.classesLoadingAny(
+            bundle, setOf(COLLECTION_NAME_KEY, SAVED_COLLECTION_IDS_KEY, SAVED_POSTS_FEED, SAVED_REELS_FETCHER),
+        ) {
             it.type == SAVED_GRID_MEDIA
         }
         val context = PatchContexts.of(classes + ExtensionDex.classDef(LOCKED_ITEMS))
@@ -85,6 +88,14 @@ class LockedCollectionGridHookTest {
         // Alignment nops before a switch payload move when code goes in, so neither side counts them.
         val readerBefore = reader.method.instructions().filter { it.opcode != Opcode.NOP }.map(::text)
         val rowsBefore = rows.method.instructions().filter { it.opcode != Opcode.NOP }.map(::text)
+        val reels = targets.reels
+            ?: throw AssertionError("$label: Saved's Reels: ${runCatching { context.findSavedReelsBatch() }.exceptionOrNull()?.message}")
+        val cast = reels.method.instructions()[reels.at - 1]
+        assertEquals("$label: the hook goes just after the Reels screen is cast", Opcode.CHECK_CAST, cast.opcode)
+        assertEquals("$label: into the screen register", reels.screen, (cast as OneRegisterInstruction).registerA)
+        assertEquals("$label: the screen's collection", reels.collection.definingClass, (cast as ReferenceInstruction).reference.toString())
+        assertEquals("$label: a reel's post", SAVED_GRID_MEDIA, reels.media.type)
+        val reelsBefore = reels.method.instructions().filter { it.opcode != Opcode.NOP }.map(::text)
 
         hookLockedGrid(targets)
 
@@ -125,7 +136,22 @@ class LockedCollectionGridHookTest {
         assertEquals("$label: nothing reads the borrowed register after", emptyList<Int>(),
             rows.method.readsAfter(at + 3, rows.scratch))
 
+        // Each batch of reels goes to the extension with the screen, and what comes back goes on in its place.
+        val batch = reels.method.instructions()
+        val leave = batch[reels.at] as FiveRegisterInstruction
+        assertEquals("$label: the Reels ask", LEAVE_OUT_REELS, (leave as ReferenceInstruction).reference.toString())
+        assertEquals("$label: with the reels and the screen", listOf(2, reels.reels, reels.screen),
+            listOf(leave.registerCount, leave.registerC, leave.registerD))
+        assertEquals("$label: the reels to show", Opcode.MOVE_RESULT_OBJECT, batch[reels.at + 1].opcode)
+        assertEquals("$label: in the same register", reels.reels, (batch[reels.at + 1] as OneRegisterInstruction).registerA)
+        assertEquals("$label: the Reels screen's own code stays", reelsBefore,
+            batch.filterIndexed { index, each -> index !in reels.at until reels.at + 2 && each.opcode != Opcode.NOP }.map(::text))
+
         // The bridges read Instagram's own.
+        assertEquals("$label: a reel's post", reels.media.toString(),
+            (targets.bridges.getValue("mediaOf").instructions()[1] as ReferenceInstruction).reference.toString())
+        assertEquals("$label: the Reels screen's collection", reels.collection.toString(),
+            (targets.bridges.getValue("collectionOf").instructions()[1] as ReferenceInstruction).reference.toString())
         val savedIn = targets.bridges.getValue("savedIn").instructions()
         assertEquals("$label: a post's collections", targets.savedIn.toString(), (savedIn[1] as ReferenceInstruction).reference.toString())
         assertEquals("$label: a collection's id", reader.id.toString(),
@@ -141,8 +167,13 @@ class LockedCollectionGridHookTest {
         return addresses.indexOf(addresses[at] + (code[at] as OffsetInstruction).codeOffset)
     }
 
+    /** An instruction's kind and reference. A goto the code going in pushed out of reach widens, so all gotos read alike. */
     private fun text(instruction: Instruction): String {
         val reference = (instruction as? ReferenceInstruction)?.reference?.toString().orEmpty()
-        return "${instruction.opcode} $reference"
+        val kind = when (instruction.opcode) {
+            Opcode.GOTO_16, Opcode.GOTO_32 -> Opcode.GOTO
+            else -> instruction.opcode
+        }
+        return "$kind $reference"
     }
 }
