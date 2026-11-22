@@ -243,15 +243,16 @@ public class FollowListSuggestionsSettingsTest {
     /** #756: the list offers each kind seen with its line, saves a tick at once, and Show all clears it without closing. */
     @Test public void tickingAKindHidesItAndShowAllClears() throws Exception {
         open(EnumSet.of(PatchFamily.PROFILE_SUGGESTIONS));
+        String commented = "dana also commented on erin's post: so true";
         RuntimeEnvironment.getApplication().getSharedPreferences(NotificationKinds.STORE, Context.MODE_PRIVATE).edit()
                 .putString("user_followed", "carol started following you.")
-                .putString("comment_subscribed", "dana also commented on erin's post: so true")
+                .putString("comment_subscribed", commented)
                 .commit();
         NotificationKinds.forgetForTests();
         AlertDialog dialog = openKinds();
         ListView list = dialog.getListView();
         assertEquals(2, list.getCount());
-        assertEquals("dana also commented on erin's post: so true\ncomment_subscribed", list.getItemAtPosition(0).toString());
+        assertEquals(commented + "\ncomment_subscribed", list.getItemAtPosition(0).toString());
         assertEquals("carol started following you.\nuser_followed", list.getItemAtPosition(1).toString());
         assertFalse(list.isItemChecked(0));
 
