@@ -9,12 +9,15 @@ import static org.junit.Assert.*;
 import android.app.Activity;
 import android.content.Context;
 import android.content.res.Configuration;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Rect;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.InsetDrawable;
+import android.graphics.drawable.LayerDrawable;
 import android.graphics.drawable.RippleDrawable;
 import android.os.Build;
 import android.preference.Preference;
@@ -40,6 +43,7 @@ import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
 import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.Config;
+import org.robolectric.annotation.GraphicsMode;
 import org.robolectric.shadows.ShadowLooper;
 
 import app.hushgram.extension.shared.SettingsContextRule;
@@ -274,11 +278,10 @@ public class InstagramSettingsPageTest {
             Drawable track = row.toggle.getTrackDrawable();
             assertEquals("Instagram's 52 wide pill", px(row.view, 52), track.getIntrinsicWidth());
             assertEquals(px(row.view, 32), track.getIntrinsicHeight());
-            assertEquals(px(row.view, 16), ((GradientDrawable) track).getCornerRadius(), 0.5f);
+            assertEquals(px(row.view, 16), ((GradientDrawable) ((LayerDrawable) track).getDrawable(0)).getCornerRadius(), 0.5f);
             Drawable thumb = row.toggle.getThumbDrawable();
-            assertTrue("a round handle inset in the pill: " + thumb, thumb instanceof InsetDrawable);
-            assertEquals(px(row.view, 32), thumb.getIntrinsicWidth());
-            assertEquals(GradientDrawable.OVAL, ((GradientDrawable) ((InsetDrawable) thumb).getDrawable()).getShape());
+            assertEquals("a 24 handle", px(row.view, 24), thumb.getIntrinsicHeight());
+            assertEquals(GradientDrawable.OVAL, ((GradientDrawable) ((LayerDrawable) thumb).getDrawable(0)).getShape());
             assertEquals(look.title, state(row.toggle.getTrackTintList(), true));
             assertEquals(look.switchOff, state(row.toggle.getTrackTintList(), false));
             assertEquals(look.background, state(row.toggle.getThumbTintList(), true));
@@ -291,6 +294,58 @@ public class InstagramSettingsPageTest {
         ((RippleDrawable) card.view.getBackground()).getDrawable(0).getPadding(edges);
         assertNotEquals("the black look keeps its cards", 0, edges.left);
         assertEquals(px(card.view, 40), card.toggle.getTrackDrawable().getIntrinsicWidth());
+    }
+
+    /**
+     * The pill is drawn whole, 52 by 32, with the handle inside it and the pill showing past its
+     * end and above and below it, off and on. Switch trims its track by the thumb's optical insets,
+     * and an InsetDrawable handle reported its inset as one, so the pill came out as tall as the
+     * handle and the handle sat over its end: a crescent on the page.
+     */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    public void theHandleSitsInsideTheWholePill() {
+        Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
+        SwitchPreference preference = new SwitchPreference(activity);
+        for (ScreenColors look : new ScreenColors[]{ScreenColors.INSTAGRAM_LIGHT, ScreenColors.INSTAGRAM_DARK}) {
+            for (boolean on : new boolean[]{false, true}) {
+                Row row = new Row(activity);
+                look.paintRow(row.view, preference);
+                Switch toggle = row.toggle;
+                toggle.setChecked(on);
+                toggle.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
+                toggle.layout(0, 0, toggle.getMeasuredWidth(), toggle.getMeasuredHeight());
+                Bitmap page = Bitmap.createBitmap(toggle.getWidth(), toggle.getHeight(), Bitmap.Config.ARGB_8888);
+                Canvas canvas = new Canvas(page);
+                canvas.drawColor(look.background);
+                toggle.draw(canvas);
+
+                String state = (look == ScreenColors.INSTAGRAM_DARK ? "dark" : "light") + (on ? ", on" : ", off");
+                Rect pill = toggle.getTrackDrawable().getBounds();
+                assertEquals(state + ": the pill's whole 52", px(toggle, 52), pill.width());
+                assertEquals(state + ": and its whole 32", px(toggle, 32), pill.height());
+                int track = on ? look.title : look.switchOff;
+                int handle = on ? look.background : Color.WHITE;
+                int middle = pill.centerY();
+                // The handle is 24 across and 4 in from the pill's end, so its centre is 16 in.
+                int handleX = on ? pill.right - px(toggle, 16) : pill.left + px(toggle, 16);
+                assertColor(state + ": the handle", handle, page.getPixel(handleX, middle));
+                assertColor(state + ": the pill past the handle's end", track,
+                        page.getPixel(on ? pill.right - px(toggle, 2) - 1 : pill.left + px(toggle, 2), middle));
+                assertColor(state + ": the pill above the handle", track, page.getPixel(handleX, pill.top + px(toggle, 2)));
+                assertColor(state + ": the pill below the handle", track,
+                        page.getPixel(handleX, pill.bottom - px(toggle, 2) - 1));
+                assertColor(state + ": the pill's far end", track,
+                        page.getPixel(on ? pill.left + px(toggle, 10) : pill.right - px(toggle, 10) - 1, middle));
+            }
+        }
+    }
+
+    private static void assertColor(String what, int expected, int actual) {
+        int off = Math.max(Math.abs(Color.red(expected) - Color.red(actual)),
+                Math.max(Math.abs(Color.green(expected) - Color.green(actual)),
+                        Math.abs(Color.blue(expected) - Color.blue(actual))));
+        assertTrue(what + String.format(": expected %08X, drew %08X", expected, actual), off <= 3);
     }
 
     @Test public void sectionNamesArePlainGreyAsInInstagram() {

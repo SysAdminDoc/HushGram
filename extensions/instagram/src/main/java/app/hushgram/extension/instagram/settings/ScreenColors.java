@@ -21,6 +21,7 @@ import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.InsetDrawable;
+import android.graphics.drawable.LayerDrawable;
 import android.graphics.drawable.RippleDrawable;
 import android.os.Build;
 import android.preference.Preference;
@@ -29,6 +30,7 @@ import android.preference.PreferenceGroup;
 import android.preference.PreferenceScreen;
 import android.preference.TwoStatePreference;
 import android.util.TypedValue;
+import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
@@ -439,6 +441,11 @@ public final class ScreenColors {
     static final int INSTAGRAM_TRACK_HEIGHT_DP = 32;
     /** Its round handle, 24 across, 4 in from the pill's edge. */
     static final int INSTAGRAM_HANDLE_DP = 24;
+    /**
+     * The handle's side padding. Switch slides a thumb its width less this padding, so the handle
+     * counts as 20 wide: two of them and the track's padding fill the 52 pill, and it travels 20.
+     */
+    private static final int INSTAGRAM_HANDLE_SIDE_DP = 2;
 
     private static Drawable squareThumb(View row) {
         GradientDrawable thumb = new GradientDrawable();
@@ -457,21 +464,37 @@ public final class ScreenColors {
         return track;
     }
 
-    /** The round handle, inset so the pill shows around it. The tint list reaches it through the inset. */
+    /**
+     * The round handle, kept at its own size in the middle of the pill's height so the pill shows
+     * around it. An InsetDrawable reported its inset as optical insets, and Switch trims its track
+     * by those, so the pill came out as tall as the handle with the handle over its end (#797). A
+     * layer of a set size reports none. The tint list reaches the handle through the layer.
+     */
     private static Drawable instagramThumb(View row) {
         GradientDrawable handle = new GradientDrawable();
         handle.setShape(GradientDrawable.OVAL);
-        handle.setSize(dp(row, INSTAGRAM_HANDLE_DP), dp(row, INSTAGRAM_HANDLE_DP));
         handle.setColor(Color.WHITE);
-        int edge = dp(row, (INSTAGRAM_TRACK_HEIGHT_DP - INSTAGRAM_HANDLE_DP) / 2);
-        return new InsetDrawable(handle, edge);
+        LayerDrawable thumb = new LayerDrawable(new Drawable[]{handle});
+        int size = dp(row, INSTAGRAM_HANDLE_DP);
+        thumb.setLayerSize(0, size, size);
+        thumb.setLayerGravity(0, Gravity.CENTER);
+        int side = dp(row, INSTAGRAM_HANDLE_SIDE_DP);
+        thumb.setPadding(side, 0, side, 0);
+        return thumb;
     }
 
+    /** The pill, with side padding that makes the handle stop 4 short of either end. */
     private static Drawable instagramTrack(View row) {
-        GradientDrawable track = new GradientDrawable();
-        track.setCornerRadius(dp(row, INSTAGRAM_TRACK_HEIGHT_DP / 2));
-        track.setSize(dp(row, INSTAGRAM_TRACK_WIDTH_DP), dp(row, INSTAGRAM_TRACK_HEIGHT_DP));
-        track.setColor(Color.WHITE);
+        GradientDrawable pill = new GradientDrawable();
+        pill.setCornerRadius(dp(row, INSTAGRAM_TRACK_HEIGHT_DP / 2));
+        int width = dp(row, INSTAGRAM_TRACK_WIDTH_DP);
+        pill.setSize(width, dp(row, INSTAGRAM_TRACK_HEIGHT_DP));
+        pill.setColor(Color.WHITE);
+        LayerDrawable track = new LayerDrawable(new Drawable[]{pill});
+        // From the rounded pixel sizes, so two slid handles and this never come to more than the pill.
+        int slid = dp(row, INSTAGRAM_HANDLE_DP) - 2 * dp(row, INSTAGRAM_HANDLE_SIDE_DP);
+        int side = (width - 2 * slid) / 2;
+        track.setPadding(side, 0, side, 0);
         return track;
     }
 
