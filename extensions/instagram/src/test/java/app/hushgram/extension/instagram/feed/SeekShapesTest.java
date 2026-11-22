@@ -16,6 +16,7 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Path;
 import android.graphics.RectF;
 import android.graphics.drawable.Drawable;
 import android.view.Gravity;
@@ -25,6 +26,7 @@ import android.widget.SeekBar;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.junit.After;
@@ -132,16 +134,141 @@ public class SeekShapesTest {
         assertEquals(16, bar.getPaddingLeft());
     }
 
-    /** A canvas that notes each rounded rectangle drawn on it: left, top, right, bottom and both radii. */
+    /**
+     * A canvas that notes each rounded rectangle drawn on it (left, top, right, bottom and both radii,
+     * and the color it was drawn in), and in [order] each rectangle and path in turn.
+     */
     private static final class Recording extends Canvas {
         final List<float[]> rects = new ArrayList<>();
         final List<Paint> paints = new ArrayList<>();
+        final List<Integer> colors = new ArrayList<>();
+        final List<String> order = new ArrayList<>();
 
         @Override
         public void drawRoundRect(RectF rect, float rx, float ry, Paint paint) {
             rects.add(new float[] {rect.left, rect.top, rect.right, rect.bottom, rx, ry});
             paints.add(paint);
+            colors.add(paint.getColor());
+            order.add("rect");
         }
+
+        @Override
+        public void drawPath(Path path, Paint paint) {
+            order.add("wave");
+        }
+    }
+
+    /**
+     * #796: Instagram draws the playing story segment's whole track and then its played part over
+     * it, and the wave's gaps showed the straight track running on under it. The wave now holds that
+     * track back and draws only its rest past the played part, in the track's own color, before the
+     * wave. A played segment and one to come draw at once, as before.
+     */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    public void theWaveLeavesTheTrackOutFromUnderThePlayedPart() {
+        storyProgress(SeekShape.WAVE);
+        Recording canvas = new Recording();
+        Paint paint = new Paint();
+
+        paint.setColor(0xFFFFFFFF);
+        SeekShapes.storySegment(canvas, new RectF(0, 20, 100, 24), 2f, 2f, paint);
+        assertEquals("a played segment waves at once", Arrays.asList("wave"), canvas.order);
+
+        paint.setColor(0x99FFFFFF);
+        RectF rect = new RectF(110, 20, 210, 24);
+        SeekShapes.storySegment(canvas, rect, 2f, 2f, paint);
+        assertEquals("the playing segment's track waits for its played part", 1, canvas.order.size());
+
+        paint.setColor(0xFFFFFFFF);
+        rect.right = 150f;
+        SeekShapes.storySegment(canvas, rect, 2f, 2f, paint);
+        assertEquals(Arrays.asList("wave", "rect", "wave"), canvas.order);
+        assertEquals("the track starts where the wave stops", 150f, canvas.rects.get(0)[0], 0f);
+        assertEquals("and runs to the segment's end", 210f, canvas.rects.get(0)[2], 0f);
+        assertEquals("in the track's own color", 0x99FFFFFF, (int) canvas.colors.get(0));
+
+        paint.setColor(0x99FFFFFF);
+        SeekShapes.storySegment(canvas, new RectF(220, 20, 320, 24), 2f, 2f, paint);
+        assertEquals("a segment to come draws at once", 4, canvas.order.size());
+        assertEquals(220f, canvas.rects.get(1)[0], 0f);
+        assertEquals(320f, canvas.rects.get(1)[2], 0f);
+
+        SeekShapes.storyBarDrawn(canvas);
+        assertEquals("nothing's left to draw at the end", 4, canvas.order.size());
+    }
+
+    /** #796: right to left the played part fills from the segment's right end, and the rest stays on its left. */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    public void aBarFillingFromTheRightKeepsItsTrackOnTheLeft() {
+        storyProgress(SeekShape.WAVE);
+        Recording canvas = new Recording();
+        Paint paint = new Paint();
+        paint.setColor(0x99FFFFFF);
+        RectF rect = new RectF(110, 20, 210, 24);
+        SeekShapes.storySegment(canvas, rect, 2f, 2f, paint);
+        paint.setColor(0xFFFFFFFF);
+        rect.left = 170f;
+        SeekShapes.storySegment(canvas, rect, 2f, 2f, paint);
+        assertEquals(Arrays.asList("rect", "wave"), canvas.order);
+        assertEquals(110f, canvas.rects.get(0)[0], 0f);
+        assertEquals(170f, canvas.rects.get(0)[2], 0f);
+    }
+
+    /** #796: a track whose played part never comes is drawn whole when the bar's onDraw ends, and a just started one whole too. */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    public void aHeldTrackStillDrawsWhole() {
+        View progress = storyProgress(SeekShape.WAVE);
+        Recording canvas = new Recording();
+        Paint paint = new Paint();
+        paint.setColor(0x99FFFFFF);
+        SeekShapes.storySegment(canvas, new RectF(110, 20, 210, 24), 2f, 2f, paint);
+        assertTrue(canvas.order.isEmpty());
+        SeekShapes.storyBarDrawn(canvas);
+        assertEquals(Arrays.asList("rect"), canvas.order);
+        assertEquals(110f, canvas.rects.get(0)[0], 0f);
+        assertEquals(210f, canvas.rects.get(0)[2], 0f);
+
+        SeekShapes.storyBar(progress);
+        SeekShapes.storySegment(canvas, new RectF(110, 20, 210, 24), 2f, 2f, paint);
+        paint.setColor(0xFFFFFFFF);
+        SeekShapes.storySegment(canvas, new RectF(110, 20, 110, 24), 2f, 2f, paint);
+        assertEquals("nothing played yet leaves the whole track", 2, canvas.rects.size());
+        assertEquals(110f, canvas.rects.get(1)[0], 0f);
+        assertEquals(210f, canvas.rects.get(1)[2], 0f);
+    }
+
+    /** #796: until the bar's onDraw is known to say it's done, and on any other shape, every segment draws at once. */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    public void nothingIsHeldWithoutTheBarsEndOrOffTheWave() {
+        FrameLayout header = new FrameLayout(RuntimeEnvironment.getApplication());
+        View progress = new View(RuntimeEnvironment.getApplication());
+        header.addView(progress);
+        Settings.SEEK_BAR_SHAPE.save(SeekShape.WAVE);
+        SeekShapes.storyBar(progress);
+        Recording canvas = new Recording();
+        Paint paint = new Paint();
+        paint.setColor(0x99FFFFFF);
+        SeekShapes.storySegment(canvas, new RectF(110, 20, 210, 24), 2f, 2f, paint);
+        assertEquals("a build without the end call draws as before", 1, canvas.rects.size());
+
+        storyProgress(SeekShape.ROUNDED);
+        SeekShapes.storySegment(canvas, new RectF(110, 20, 210, 24), 2f, 2f, paint);
+        assertEquals(2, canvas.rects.size());
+    }
+
+    /** A story progress bar in its header, the wave's end call seen once, and a frame started in [shape]. */
+    private static View storyProgress(SeekShape shape) {
+        FrameLayout header = new FrameLayout(RuntimeEnvironment.getApplication());
+        View progress = new View(RuntimeEnvironment.getApplication());
+        header.addView(progress);
+        Settings.SEEK_BAR_SHAPE.save(shape);
+        SeekShapes.storyBarDrawn(new Canvas());
+        SeekShapes.storyBar(progress);
+        return progress;
     }
 
     /** #630: on standard each story segment is the very call Instagram made, and its header keeps clipping. */

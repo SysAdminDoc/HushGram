@@ -139,6 +139,22 @@ public final class SeekShapes {
     private static float storyStretch = 1f;
     private static final RectF SEGMENT = new RectF();
     private static final Path SEGMENT_WAVE = new Path();
+    /**
+     * The see-through track of the segment playing now, held back while the wave shape draws (#796):
+     * Instagram draws that segment's whole track and then its played part over it, and the wave's
+     * gaps showed the straight track running on under the wave. Held until its played part comes, it
+     * then draws only the rest of the track past the wave. At most {@link #HELD_MOST} copies, one per
+     * call Instagram made on that segment, kept for the frame.
+     */
+    private static final int HELD_MOST = 4;
+    private static final RectF[] HELD_TRACKS = new RectF[HELD_MOST];
+    private static final Paint[] HELD_PAINTS = new Paint[HELD_MOST];
+    private static final RectF HELD_PIECE = new RectF();
+    private static int held;
+    /** Whether this frame's playing segment has had its track drawn, held or not, so later tracks draw at once. */
+    private static boolean heldDone;
+    /** Whether the bar's onDraw tells {@link #storyBarDrawn} it's done, without which nothing is held. */
+    private static boolean barEndHooked;
     /** Each header a story progress bar draws past, with whether it clipped its children before. */
     private static final Map<ViewGroup, Boolean> UNCLIPPED = new WeakHashMap<>();
 
@@ -308,6 +324,8 @@ public final class SeekShapes {
      * their own size (#689) and still draws thicker (#775), so it reads that stretch too. Never throws.
      */
     public static void storyBar(View bar) {
+        held = 0;
+        heldDone = false;
         try {
             SeekShape shape = wanted();
             storyDensity = bar.getResources().getDisplayMetrics().density;
@@ -332,20 +350,98 @@ public final class SeekShapes {
     /**
      * Stands in for each Canvas.drawRoundRect the story progress bar makes (#630), with the same
      * arguments. On {@link SeekShape#STANDARD} it makes that very call, so the bar looks as Instagram
-     * drew it; otherwise it draws the segment in the shape {@link #storyBar} read.
+     * drew it; otherwise it draws the segment in the shape {@link #storyBar} read. The wave holds the
+     * playing segment's track back until its played part comes (#796).
      */
     public static void storySegment(Canvas canvas, RectF rect, float rx, float ry, Paint paint) {
         SeekShape shape = storyShape;
         if (shape != SeekShape.STANDARD) {
             try {
+                if (shape == SeekShape.WAVE && barEndHooked && heldBack(canvas, rect, paint)) return;
                 SeekShapeDrawable.segment(canvas, rect, paint, shape, storyDensity, storyStretch, SEGMENT, SEGMENT_WAVE);
                 return;
             } catch (Throwable failure) {
+                held = 0;
                 storyShape = SeekShape.STANDARD;
                 HookStatus.threw(FamilyNames.FEED_SEEK_BAR, STORY_HOOK, failure);
             }
         }
         canvas.drawRoundRect(rect, rx, ry, paint);
+    }
+
+    /**
+     * Last thing before each return of the story progress bar's onDraw (#796): draws whole whatever
+     * track the wave still holds, a segment whose played part never came. Never throws.
+     */
+    public static void storyBarDrawn(Canvas canvas) {
+        barEndHooked = true;
+        if (held == 0) return;
+        try {
+            drawHeld(canvas, null);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.FEED_SEEK_BAR, STORY_HOOK, failure);
+        } finally {
+            held = 0;
+        }
+    }
+
+    /**
+     * Whether the wave keeps [rect] back to draw later: the first see-through track of the frame, and
+     * any more on that same segment, are the playing segment's. An opaque segment, its played part,
+     * first draws the held tracks without the part it covers, so the wave never lies over a straight
+     * track; anything else first draws them whole. Instagram's [paint] and [rect] are copied, as it
+     * changes both right after.
+     */
+    private static boolean heldBack(Canvas canvas, RectF rect, Paint paint) {
+        boolean track = paint.getAlpha() < SeekShapeDrawable.PLAYED_ALPHA;
+        if (track && !heldDone && held < HELD_MOST && (held == 0 || sameSegment(HELD_TRACKS[0], rect))) {
+            if (HELD_TRACKS[held] == null) {
+                HELD_TRACKS[held] = new RectF();
+                HELD_PAINTS[held] = new Paint();
+            }
+            HELD_TRACKS[held].set(rect);
+            HELD_PAINTS[held].set(paint);
+            held++;
+            return true;
+        }
+        if (held > 0) {
+            try {
+                drawHeld(canvas, track ? null : rect);
+            } finally {
+                held = 0;
+                heldDone = true;
+            }
+        }
+        return false;
+    }
+
+    /** Whether [rect] lies over [track] at all, which a later call on the same segment does. */
+    private static boolean sameSegment(RectF track, RectF rect) {
+        return rect.left < track.right && rect.right > track.left && rect.top < track.bottom && rect.bottom > track.top;
+    }
+
+    /**
+     * Draws the held tracks, each without the stretch [played] covers when it's on the same row: the
+     * part left of it and the part right of it, so a bar filling from either side keeps its rest.
+     */
+    private static void drawHeld(Canvas canvas, @Nullable RectF played) {
+        for (int i = 0; i < held; i++) {
+            RectF track = HELD_TRACKS[i];
+            Paint paint = HELD_PAINTS[i];
+            if (played == null || !(played.top < track.bottom && played.bottom > track.top)) {
+                SeekShapeDrawable.segment(canvas, track, paint, SeekShape.WAVE, storyDensity, storyStretch, SEGMENT, SEGMENT_WAVE);
+                continue;
+            }
+            float before = Math.min(played.left, track.right);
+            if (before > track.left) heldPiece(canvas, track, track.left, before, paint);
+            float after = Math.max(played.right, track.left);
+            if (after < track.right) heldPiece(canvas, track, after, track.right, paint);
+        }
+    }
+
+    private static void heldPiece(Canvas canvas, RectF track, float left, float right, Paint paint) {
+        HELD_PIECE.set(left, track.top, right, track.bottom);
+        SeekShapeDrawable.segment(canvas, HELD_PIECE, paint, SeekShape.WAVE, storyDensity, storyStretch, SEGMENT, SEGMENT_WAVE);
     }
 
     /**
@@ -365,6 +461,9 @@ public final class SeekShapes {
         storyShape = SeekShape.STANDARD;
         storyDensity = 1f;
         storyStretch = 1f;
+        held = 0;
+        heldDone = false;
+        barEndHooked = false;
         UNCLIPPED.clear();
         ROOM.clear();
         OPENED.clear();

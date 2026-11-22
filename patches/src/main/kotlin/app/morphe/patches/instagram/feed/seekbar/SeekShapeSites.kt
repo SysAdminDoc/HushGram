@@ -13,11 +13,13 @@ import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.patchLog
+import app.morphe.util.addInstructionsAtControlFlowLabel
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
@@ -28,6 +30,7 @@ internal const val SEEK_SHAPES = "$EXTENSION_PACKAGE/feed/SeekShapes;"
 internal const val STORY_BAR_HOOK = "$SEEK_SHAPES->storyBar(Landroid/view/View;)V"
 internal const val STORY_SEGMENT_HOOK =
     "$SEEK_SHAPES->storySegment(Landroid/graphics/Canvas;Landroid/graphics/RectF;FFLandroid/graphics/Paint;)V"
+internal const val STORY_BAR_DRAWN_HOOK = "$SEEK_SHAPES->storyBarDrawn(Landroid/graphics/Canvas;)V"
 internal const val CHAT_VIDEO_HOOK = "$SEEK_SHAPES->chatVideo(Landroid/widget/SeekBar;)V"
 
 /** The story viewer's progress bar, a View drawing each segment as a rounded rectangle. Not renamed by Redex. */
@@ -40,8 +43,12 @@ private const val SEEK_BAR = "Landroidx/appcompat/widget/AppCompatSeekBar;"
 private const val CREATE_VIEW_SHAPE = "(Landroid/view/LayoutInflater;Landroid/view/ViewGroup;Landroid/os/Bundle;)Landroid/view/View;"
 private const val SHAPES_PATCH = "Seek bar on feed videos"
 
-/** The story progress bar's onDraw, which takes [STORY_BAR_HOOK] first, and each method's drawRoundRect calls by index. */
-internal class StoryBarSites(val onDraw: Method, val draws: Map<Method, List<Int>>)
+/**
+ * The story progress bar's onDraw, which takes [STORY_BAR_HOOK] first, and each method's drawRoundRect
+ * calls by index. [ends]: onDraw keeps its canvas in its parameter register throughout, so each of its
+ * returns can hand it to [STORY_BAR_DRAWN_HOOK].
+ */
+internal class StoryBarSites(val onDraw: Method, val draws: Map<Method, List<Int>>, val ends: Boolean)
 
 /** The chat media viewer's onCreateView and the index right after it keeps the seek bar it built. */
 internal class ChatVideoSite(val method: Method, val after: Int, val register: Int)
@@ -51,6 +58,7 @@ internal class ChatVideoSite(val method: Method, val after: Int, val register: I
  * onDraw(Canvas) with nothing jumping to its start, and every Canvas.drawRoundRect its methods make,
  * one or more. On 454.0.0.54.77 those are onDraw's four and its helpers A0A's three, A0B's two and
  * A00's one, all in 35c form. Null after the log says why, so the feed's seek bar goes in without it.
+ * An onDraw that writes over its canvas parameter gets no end calls, after the log says so (#796).
  */
 internal fun BytecodePatchContext.findStoryBarShape(): StoryBarSites? = try {
     val bar = classDefByOrNull(SEGMENTED_PROGRESS_BAR) ?: shapeRefuse("this build has no $SEGMENTED_PROGRESS_BAR")
@@ -65,7 +73,15 @@ internal fun BytecodePatchContext.findStoryBarShape(): StoryBarSites? = try {
         m.codeOf().withIndex().filter { (_, it) -> it.isRoundRectDraw() }.map { it.index }
     }.filterValues { it.isNotEmpty() }
     if (draws.isEmpty()) shapeRefuse("$SEGMENTED_PROGRESS_BAR draws no rounded rectangle")
-    StoryBarSites(onDraw, draws)
+    val canvas = onDraw.implementation!!.registerCount - 1
+    val ends = onDraw.codeOf().none { it.writes(canvas) } && onDraw.codeOf().any { it.opcode == Opcode.RETURN_VOID }
+    if (!ends) {
+        patchLog.warning(
+            "$SHAPES_PATCH: $SEGMENTED_PROGRESS_BAR->onDraw writes over its canvas or never returns. " +
+                "The wave goes in drawn over Instagram's track on the story segment playing.",
+        )
+    }
+    StoryBarSites(onDraw, draws, ends)
 } catch (missing: PatchException) {
     patchLog.warning("${missing.message}. $SHAPES_PATCH goes in leaving story progress segments as Instagram draws them.")
     null
@@ -74,7 +90,8 @@ internal fun BytecodePatchContext.findStoryBarShape(): StoryBarSites? = try {
 /**
  * Each of the story progress bar's rounded rectangles goes to [STORY_SEGMENT_HOOK] on the same
  * registers, which makes that same call while the shape is standard, and its onDraw asks
- * [STORY_BAR_HOOK] first thing with the bar.
+ * [STORY_BAR_HOOK] first thing with the bar. Before each of onDraw's returns it hands the canvas to
+ * [STORY_BAR_DRAWN_HOOK], taking the return's label so a branch onto the return runs it too (#796).
  */
 internal fun BytecodePatchContext.hookStoryBarShape(sites: StoryBarSites) {
     val bar = mutableClassDefBy(SEGMENTED_PROGRESS_BAR)
@@ -83,8 +100,14 @@ internal fun BytecodePatchContext.hookStoryBarShape(sites: StoryBarSites) {
         val code = stock.codeOf()
         for (index in indices) method.replaceInstruction(index, staticCallOn(code[index], STORY_SEGMENT_HOOK))
     }
-    bar.methods.single { it.name == sites.onDraw.name && it.shapeOf() == sites.onDraw.shapeOf() }
-        .addInstructions(0, "invoke-static/range { p0 .. p0 }, $STORY_BAR_HOOK")
+    val onDraw = bar.methods.single { it.name == sites.onDraw.name && it.shapeOf() == sites.onDraw.shapeOf() }
+    if (sites.ends) {
+        val returns = onDraw.codeOf().withIndex().filter { (_, it) -> it.opcode == Opcode.RETURN_VOID }.map { it.index }
+        for (at in returns.sortedDescending()) {
+            onDraw.addInstructionsAtControlFlowLabel(at, "invoke-static/range { p1 .. p1 }, $STORY_BAR_DRAWN_HOOK")
+        }
+    }
+    onDraw.addInstructions(0, "invoke-static/range { p0 .. p0 }, $STORY_BAR_HOOK")
 }
 
 /**
@@ -130,6 +153,13 @@ private fun staticCallOn(call: Instruction, hook: String): String = when (call) 
 
 private fun Instruction.isRoundRectDraw(): Boolean =
     (opcode == Opcode.INVOKE_VIRTUAL || opcode == Opcode.INVOKE_VIRTUAL_RANGE) && calledOf()?.toString() == DRAW_ROUND_RECT
+
+/** Whether this instruction writes [register], or a wide pair that takes it in. */
+private fun Instruction.writes(register: Int): Boolean {
+    if (!opcode.setsRegister()) return false
+    val written = (this as? OneRegisterInstruction)?.registerA ?: return false
+    return written == register || (opcode.setsWideRegister() && written + 1 == register)
+}
 
 private fun Instruction.keepsSeekBar(): Boolean =
     opcode == Opcode.IPUT_OBJECT && ((this as ReferenceInstruction).reference as? FieldReference)?.type == SEEK_BAR

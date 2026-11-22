@@ -23,7 +23,7 @@
 # a shape (and any run in the method's name). static counts an invoke-static alone, instance any
 # other invoke, and neither word any invoke. A once-call or shared-call rule's method calls the hook
 # once, or with sites <n> (2 or more) exactly n times, for a filter put on each of several reads in
-# one method, or with sites returns once right before each return-object, however many it has. Where start-call and shared-call look for the hook in the other methods holding the
+# one method, or with sites returns once right before each return-object (each return-void in a void method), however many it has. Where start-call and shared-call look for the hook in the other methods holding the
 # strings, and once-call in every other method of Instagram's, they leave out a method another rule
 # for the same hook picks, so two rules told apart only by calling each hold their own method, and a
 # hook the patch puts in several methods gets a once-call for each.
@@ -4129,6 +4129,11 @@ once-call Lapp/hushgram/extension/instagram/feed/SeekShapes;->storySegment(Landr
 once-call Lapp/hushgram/extension/instagram/feed/SeekShapes;->storySegment(Landroid/graphics/Canvas;Landroid/graphics/RectF;FFLandroid/graphics/Paint;)V in instance (Landroid/graphics/Canvas;)V lacking instance Lcom/instagram/ui/widget/segmentedprogressbar/SegmentedProgressBar;->*(Landroid/graphics/Canvas;)V sites 3 class-holding Lcom/instagram/ui/widget/segmentedprogressbar/SegmentedProgressBar;->getEllipsisWidth()F
 once-call Lapp/hushgram/extension/instagram/feed/SeekShapes;->storySegment(Landroid/graphics/Canvas;Landroid/graphics/RectF;FFLandroid/graphics/Paint;)V in instance (Landroid/graphics/Canvas;F)V sites 2 class-holding Lcom/instagram/ui/widget/segmentedprogressbar/SegmentedProgressBar;->getEllipsisWidth()F
 once-call Lapp/hushgram/extension/instagram/feed/SeekShapes;->storySegment(Landroid/graphics/Canvas;Landroid/graphics/RectF;FFLandroid/graphics/Paint;)V in instance (Landroid/graphics/Canvas;FFZ)F class-holding Lcom/instagram/ui/widget/segmentedprogressbar/SegmentedProgressBar;->getEllipsisWidth()F
+# #796: that onDraw hands its canvas to SeekShapes.storyBarDrawn right before each of its
+# return-voids (three on 456), taking each return's label, so the wave draws whatever track it held
+# back. Left out, nothing is held and the wave lies over Instagram's straight track again; twice, a
+# held track draws twice.
+once-call Lapp/hushgram/extension/instagram/feed/SeekShapes;->storyBarDrawn(Landroid/graphics/Canvas;)V in instance (Landroid/graphics/Canvas;)V calling instance Lcom/instagram/ui/widget/segmentedprogressbar/SegmentedProgressBar;->*(Landroid/graphics/Canvas;)V sites returns class-holding Lcom/instagram/ui/widget/segmentedprogressbar/SegmentedProgressBar;->getEllipsisWidth()F
 # The seek bar shape on a video opened from a chat (#630) hands the seek bar the chat media
 # viewer's onCreateView builds to SeekShapes.chatVideo right after it keeps it in a field, the one
 # onCreateView loading the viewer's reply thread key (0GOB on 454's 386014758, keeping it in

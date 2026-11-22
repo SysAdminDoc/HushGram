@@ -264,7 +264,8 @@ public class DexDiff {
      *       each of several reads in one method, as Hide the home feed does on both helper reads in
      *       the read of Home's store. "sites returns" holds it to once right before each
      *       return-object instead, for a hook on a method's result whose count of returns differs
-     *       between builds. A sole-call rule takes "sites each" in the same place, for a hook that
+     *       between builds, or before each return-void of a void method, as the story progress
+     *       bar's onDraw ends. A sole-call rule takes "sites each" in the same place, for a hook that
      *       stands in for a call a method makes once in some builds and on each of two branches in
      *       others, as the speed lock toast's show is in 455's 386113970.
      *   <li>Any of those five with "pooled" right before "holding" or "class-holding": a method
@@ -334,7 +335,8 @@ public class DexDiff {
         final Boolean callStatic;
         /**
          * once-call and shared-call: how many times its method calls the callee, 1 unless the rule says
-         * "sites", or {@link #SITES_RETURNS} for once right before each of its return-object instructions.
+         * "sites", or {@link #SITES_RETURNS} for once right before each of its return-object (or a void
+         * method's return-void) instructions.
          * sole-call: 1, or {@link #SITES_EACH} for once in place of each call the clean build makes there.
          */
         final int sites;
@@ -2077,9 +2079,9 @@ public class DexDiff {
             if (missed != null) {
                 System.out.println("[diff] " + rule + ": " + sites.size() + " call sites in " + only.method + ", " + missed);
                 findings.add("contract: " + contract.callee + " has " + sites.size() + (sites.size() == 1 ? " call site" : " call sites")
-                        + " in " + only.method + ", and must be called once right before each return-object: " + missed);
+                        + " in " + only.method + ", and must be called once right before each return: " + missed);
             } else {
-                System.out.println("[diff] " + rule + ": before each of " + sites.size() + " return-object in " + only.method);
+                System.out.println("[diff] " + rule + ": before each of " + sites.size() + " returns in " + only.method);
             }
         } else if (contract.sites != SITES_EACH && sites.size() != contract.sites) {
             System.out.println("[diff] " + rule + ": " + sites.size() + " call sites in " + only.method);
@@ -2328,7 +2330,8 @@ public class DexDiff {
      * call sits before the one return of 454 arm64's feed menu builder, and before each of 9 to 22
      * where the other ABIs merged that builder into a switch. Other hooks a later patch puts at the
      * same returns may come between, as long as each is a static call into the extension answering
-     * nothing: Leave out menu items' feedRows follows settle there.
+     * nothing: Leave out menu items' feedRows follows settle there. In a void method it's each
+     * return-void instead, as SeekShapes.storyBarDrawn sits before each of the story bar onDraw's.
      */
     static final int SITES_RETURNS = -1;
 
@@ -2336,23 +2339,24 @@ public class DexDiff {
     static final int SITES_EACH = -2;
 
     /**
-     * Why the calls at [sites] aren't each right before a return-object of [body], one per return,
-     * or null when they are. A run of the extension's void static calls between one and its return
-     * still counts as right before.
+     * Why the calls at [sites] aren't each right before a return-object (or return-void) of [body],
+     * one per return, or null when they are. A run of the extension's void static calls between one
+     * and its return still counts as right before.
      */
     static String beforeEachReturn(List<Instruction> body, List<Integer> sites) {
         int returns = 0;
         List<Integer> bare = new ArrayList<>();
         for (int k = 0; k < body.size(); k++) {
-            if (body.get(k).getOpcode() != Opcode.RETURN_OBJECT) continue;
+            Opcode op = body.get(k).getOpcode();
+            if (op != Opcode.RETURN_OBJECT && op != Opcode.RETURN_VOID) continue;
             returns++;
             int before = k - 1;
             while (before >= 0 && !sites.contains(before) && isExtensionVoidCall(body.get(before))) before--;
             if (!sites.contains(before)) bare.add(k);
         }
-        if (returns == 0) return "it has no return-object";
-        if (!bare.isEmpty()) return bare.size() + " of its " + returns + " return-object without the call right before, at " + bare;
-        if (sites.size() != returns) return sites.size() - returns + " more than its " + returns + " return-object";
+        if (returns == 0) return "it has no return-object or return-void";
+        if (!bare.isEmpty()) return bare.size() + " of its " + returns + " returns without the call right before, at " + bare;
+        if (sites.size() != returns) return sites.size() - returns + " more than its " + returns + " returns";
         return null;
     }
 
