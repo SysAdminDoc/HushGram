@@ -984,6 +984,15 @@ public class Settings extends BaseSettings {
             new StringSetting("hushgram_locked_collections", "", false, false);
 
     /**
+     * The ids Instagram gives the collections on {@link #LOCKED_COLLECTIONS}, each with its name
+     * ({@link app.hushgram.extension.instagram.direct.LockedCollectionItems}), a line for each, so
+     * Saved's grids know a locked collection's posts before its name has loaded. Only remembered, never
+     * a switch, and a backup leaves it out like the list.
+     */
+    public static final StringSetting LOCKED_COLLECTION_IDS =
+            new StringSetting("hushgram_locked_collection_ids", "", false, false);
+
+    /**
      * The chats hidden one at a time ({@link app.hushgram.extension.instagram.direct.HiddenChats}),
      * in the same lines as {@link #LOCKED_CHATS}. A chat on the list is the switch. It isn't kept
      * while HushGram is paused, so a paused Instagram shows every chat again, and a backup leaves it
@@ -1038,7 +1047,7 @@ public class Settings extends BaseSettings {
         // The locks keep answering what you chose while HushGram is paused or in safe mode, so
         // neither one, nor the marker file that pauses it from outside, gets around them.
         Setting.keepWhenPaused(LOCK_MESSAGES, LOCK_APP, LOCK_SAVED, LOCK_EACH_CHAT, LOCK_AGAIN, LOCKED_CHATS,
-                LOCKED_COLLECTIONS, UNLOCK_WITH, LOCK_PIN, LOCK_PIN_MISSES, LOCK_PIN_WAIT_UNTIL);
+                LOCKED_COLLECTIONS, LOCKED_COLLECTION_IDS, UNLOCK_WITH, LOCK_PIN, LOCK_PIN_MISSES, LOCK_PIN_WAIT_UNTIL);
     }
 
     /**

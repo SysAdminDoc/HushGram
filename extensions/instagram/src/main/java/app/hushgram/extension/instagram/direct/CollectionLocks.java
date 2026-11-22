@@ -97,10 +97,15 @@ public final class CollectionLocks {
     @Nullable
     static String text(TextView view) {
         CharSequence text = view.getText();
-        if (text == null) return null;
-        String name = ChatList.clean(text.toString());
-        if (ChatList.standsIn(name)) return null;
-        return name.length() > NAME_LENGTH ? name.substring(0, NAME_LENGTH) : name;
+        return text == null ? null : kept(text.toString());
+    }
+
+    /** [name] as the list keeps a collection's name, cut to its length, or null when it isn't a name. */
+    @Nullable
+    static String kept(@Nullable String name) {
+        String clean = ChatList.clean(name);
+        if (ChatList.standsIn(clean)) return null;
+        return clean.length() > NAME_LENGTH ? clean.substring(0, NAME_LENGTH) : clean;
     }
 
     /** The collection called [name] showed, for the account in front. */
@@ -153,7 +158,9 @@ public final class CollectionLocks {
     public static boolean add(@Nullable String account, @Nullable String name) {
         if (empty(account) || empty(name)) return false;
         String kept = ChatList.clean(name);
-        return change(rows -> ChatList.added(rows, account, kept, kept));
+        boolean added = change(rows -> ChatList.added(rows, account, kept, kept));
+        if (added) LockedCollectionItems.locked(kept);
+        return added;
     }
 
     /**
@@ -209,5 +216,6 @@ public final class CollectionLocks {
         wanted = false;
         parsedRaw = null;
         parsedRows = Collections.emptyList();
+        LockedCollectionItems.resetForTests();
     }
 }
