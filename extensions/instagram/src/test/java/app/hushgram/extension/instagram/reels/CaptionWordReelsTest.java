@@ -107,11 +107,57 @@ public class CaptionWordReelsTest {
         Settings.REELS_KEPT_LANGUAGES.resetToDefault();
         CaptionLanguage.forget();
         Settings.HIDE_CAPTION_WORD_REELS.resetToDefault();
+        Settings.HIDE_CAPTION_WORD_COMMENTS.resetToDefault();
         Settings.REELS_BLOCKED_WORDS.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
         FeedFilterCounters.clear();
+    }
+
+    /**
+     * #807: with Also in comments on, a comment holding a word from the list gets no row, and so does
+     * one an @name on the list wrote, whatever the case. Others keep theirs, without an @name in the
+     * list no author is read, and a failure keeps the comment.
+     */
+    @Test
+    public void aCommentWithABlockedWordOrByANamedAccountGetsNoRow() {
+        List<String> words = CaptionWordReels.words("spoiler, @CNN");
+        Object cnn = new Object();
+        Object other = new Object();
+        java.util.function.Function<Object, String> names = user -> user == cnn ? "cnn" : "someone";
+        assertTrue(CaptionWordReels.dropsComment("Huge SPOILER ahead", other, names, () -> words));
+        assertTrue(CaptionWordReels.dropsComment("great clip", cnn, names, () -> words));
+        assertFalse(CaptionWordReels.dropsComment("great clip", other, names, () -> words));
+        assertFalse("no words and nobody", CaptionWordReels.dropsComment(null, null, names, () -> words));
+        assertFalse("Also in comments off", CaptionWordReels.dropsComment("spoiler", cnn, names, Collections::emptyList));
+        AtomicInteger reads = new AtomicInteger();
+        assertFalse(CaptionWordReels.dropsComment("great clip", cnn, user -> {
+            reads.incrementAndGet();
+            return "cnn";
+        }, () -> CaptionWordReels.words("spoiler")));
+        assertEquals("without an @name the author isn't read", 0, reads.get());
+        assertFalse("a failure keeps it", CaptionWordReels.dropsComment("great clip", cnn, user -> {
+            throw new IllegalStateException("no bridge");
+        }, () -> words));
+        String report = FeedFilterCounters.report().toString();
+        assertTrue(report, report.contains("Caption word comments"));
+    }
+
+    /** #807: comments are read only with Also in comments and its switch both on, and not while paused. */
+    @Test
+    public void commentsAreReadOnlyWithAlsoInCommentsOn() {
+        assertFalse("off to start", CaptionWordReels.commentsOn());
+        Settings.HIDE_CAPTION_WORD_COMMENTS.save(true);
+        assertTrue(CaptionWordReels.commentsOn());
+        assertTrue(CaptionWordReels.dropsComment("a giveaway", null));
+        Settings.HIDE_CAPTION_WORD_REELS.save(false);
+        assertFalse("waits for its switch", CaptionWordReels.commentsOn());
+        assertFalse(CaptionWordReels.dropsComment("a giveaway", null));
+        Settings.HIDE_CAPTION_WORD_REELS.save(true);
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertFalse("paused", CaptionWordReels.commentsOn());
     }
 
     private List<?> page(List<?> items) {

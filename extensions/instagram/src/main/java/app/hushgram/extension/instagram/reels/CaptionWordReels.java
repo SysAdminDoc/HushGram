@@ -9,6 +9,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 import app.hushgram.extension.instagram.download.InstagramMedia;
@@ -33,7 +34,8 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * {@code @name} in the list also takes out that account's own reels, the author read through the
  * post's user and its username (#807). A reel with no caption from an account not named stays.
  * With Also on Home on, Home's posts are matched against the same list
- * ({@link app.hushgram.extension.instagram.feed.FeedSuggestions#homeItem}).
+ * ({@link app.hushgram.extension.instagram.feed.FeedSuggestions#homeItem}), and with Also in comments
+ * on, so is each comment in a post's comments as its row is built ({@link #dropsComment}).
  *
  * <p>A page where every reel would go keeps every item, so the viewer always has a reel to show,
  * and the report counts it. Off, paused, with an empty list, before the settings are read, or when
@@ -42,6 +44,9 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
 public final class CaptionWordReels {
     /** The diagnostic counter route: the pages seen, and the items taken out of them. */
     static final String ROUTE = "Caption word reels";
+
+    /** The diagnostic counter route for comments left out of a post's comments (#807). */
+    static final String COMMENT_ROUTE = "Caption word comments";
 
     /** The reason, and kind, of an item whose caption holds a blocked word. */
     static final String BLOCKED = "blocked word";
@@ -250,6 +255,56 @@ public final class CaptionWordReels {
     public static List<String> homeWordsWhenOn() {
         if (!Utils.settingsReady() || !Settings.HIDE_CAPTION_WORD_HOME.get()) return Collections.emptyList();
         return wordsWhenOn();
+    }
+
+    /**
+     * The blocked words a post's comments are matched against (#807): the list while the switch and
+     * its Also in comments are both on, and none while either is off, while paused or before the
+     * settings are read.
+     */
+    static List<String> commentWordsWhenOn() {
+        if (!Utils.settingsReady() || !Settings.HIDE_CAPTION_WORD_COMMENTS.get()) return Collections.emptyList();
+        return wordsWhenOn();
+    }
+
+    /**
+     * Asked first thing as each comment's row is built (#807): whether the comment's words and
+     * author are read at all. Never throws.
+     */
+    public static boolean commentsOn() {
+        try {
+            return !commentWordsWhenOn().isEmpty();
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.CAPTION_WORD_REELS, "comment rows", failure);
+            return false;
+        }
+    }
+
+    /**
+     * Whether a comment gets no row in a post's comments (#807): [text], its words, hold one from the
+     * list, or the list names [user], who wrote it, with an @name. A reply is a row of its own, and a
+     * hidden comment's replies go with it. No while Also in comments is off and on any failure. Never
+     * throws.
+     */
+    public static boolean dropsComment(String text, Object user) {
+        return dropsComment(text, user, InstagramMedia::username, CaptionWordReels::commentWordsWhenOn);
+    }
+
+    static boolean dropsComment(String text, Object user, Function<Object, String> username,
+                                Supplier<List<String>> words) {
+        try {
+            List<String> blocked = words.get();
+            if (blocked.isEmpty()) return false;
+            boolean hit = holdsAny(text, blocked)
+                    || user != null && namesAccounts(blocked) && postedByAny(username.apply(user), blocked);
+            if (!hit) return false;
+            FeedFilterCounters.removed(COMMENT_ROUTE, 1, BLOCKED);
+            Logger.printDebug(() -> "Caption word comments: left a comment out of a post's comments");
+            return true;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.CAPTION_WORD_REELS, "comment row", failure);
+            return false;
+        }
     }
 
     /**

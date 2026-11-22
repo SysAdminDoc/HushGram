@@ -10,6 +10,7 @@ A file named %1$s in %2$s paused HushGram.	Eine Datei namens %1$s in %2$s hat Hu
 About	Info
 Add the source to saved photos and videos	Quelle zu gespeicherten Fotos und Videos hinzufügen
 Ads and privacy	Werbung und Datenschutz
+Also in comments	Auch in Kommentaren
 Asks Android to run Instagram at your screen's fastest refresh rate, at the same resolution. Some phones keep their own limit for apps, and battery saver can still lower it.	Bittet Android, Instagram mit der schnellsten Bildwiederholrate deines Displays bei gleicher Auflösung laufen zu lassen. Manche Handys setzen Apps ein eigenes Limit, und der Energiesparmodus kann die Rate trotzdem senken.
 Back	Zurück
 Before you sign in	Bevor du dich anmeldest
@@ -39,6 +40,7 @@ Export chat	Chat exportieren
 Export diagnostic report	Diagnosebericht exportieren
 From the next start, every switch but Debug logging acts as if it were off. Changes made when you patched stay in, and your choices stay saved.	Ab dem nächsten Start verhält sich jeder Schalter außer der Debug-Protokollierung, als wäre er aus. Was beim Patchen festgelegt wurde, bleibt aktiv, und deine Auswahl bleibt gespeichert.
 Here it is.	Hier ist es.
+Hides comments that hold a word or phrase from the list too, and comments by an account the list names with @. A hidden comment's replies go with it.	Blendet auch Kommentare aus, die ein Wort oder eine Wortgruppe aus der Liste enthalten, und Kommentare von Konten, die die Liste mit @ nennt. Die Antworten auf einen ausgeblendeten Kommentar verschwinden mit ihm.
 Jump to a date	Zu einem Datum springen
 Jump to the first message	Zur ersten Nachricht springen
 Jump to the first message or a date	Zur ersten Nachricht oder zu einem Datum springen

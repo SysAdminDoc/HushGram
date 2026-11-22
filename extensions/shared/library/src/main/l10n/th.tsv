@@ -11,6 +11,7 @@ A file named %1$s in %2$s paused HushGram.	ไฟล์ชื่อ %1$s ใน 
 About	เกี่ยวกับ
 Add the source to saved photos and videos	เพิ่มแหล่งที่มาลงในรูปภาพและวิดีโอที่บันทึก
 Ads and privacy	โฆษณาและความเป็นส่วนตัว
+Also in comments	ในความคิดเห็นด้วย
 Asks Android to run Instagram at your screen's fastest refresh rate, at the same resolution. Some phones keep their own limit for apps, and battery saver can still lower it.	ขอให้ Android ใช้งาน Instagram ด้วยอัตรารีเฟรชสูงสุดของหน้าจอที่ความละเอียดเดิม โทรศัพท์บางรุ่นอาจจำกัดอัตราสำหรับแอปไว้ และโหมดประหยัดแบตเตอรี่ยังคงลดอัตราดังกล่าวลงได้
 Back	ย้อนกลับ
 Before you sign in	ก่อนที่คุณจะเข้าสู่ระบบ
@@ -40,6 +41,7 @@ Export chat	ส่งออกแชท
 Export diagnostic report	ส่งออกรายงานการวินิจฉัย
 From the next start, every switch but Debug logging acts as if it were off. Changes made when you patched stay in, and your choices stay saved.	เมื่อเริ่มแอปใหม่ในครั้งถัดไป สวิตช์ทุกตัวยกเว้นการบันทึกข้อมูลดีบักจะทำงานเสมือนปิดอยู่ การเปลี่ยนแปลงที่ทำไว้ตอนที่คุณแพตช์จะยังคงมีผล และตัวเลือกที่คุณตั้งไว้จะยังได้รับการบันทึก
 Here it is.	อยู่ที่นี่แล้ว
+Hides comments that hold a word or phrase from the list too, and comments by an account the list names with @. A hidden comment's replies go with it.	ซ่อนความคิดเห็นที่มีคำหรือวลีจากรายการด้วย และความคิดเห็นของบัญชีที่รายการระบุด้วย @ คำตอบของความคิดเห็นที่ซ่อนจะหายไปด้วย
 Jump to a date	ข้ามไปยังวันที่
 Jump to the first message	ข้ามไปยังข้อความแรก
 Jump to the first message or a date	ข้ามไปยังข้อความแรกหรือวันที่

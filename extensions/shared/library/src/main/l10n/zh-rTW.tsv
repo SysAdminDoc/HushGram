@@ -15,6 +15,7 @@ A file named %1$s in %2$s paused HushGram.	%2$s 中名為 %1$s 的檔案使 Hush
 About	關於
 Add the source to saved photos and videos	在儲存的照片和影片中加入來源資訊
 Ads and privacy	廣告與隱私
+Also in comments	同時套用至留言
 Asks Android to run Instagram at your screen's fastest refresh rate, at the same resolution. Some phones keep their own limit for apps, and battery saver can still lower it.	要求 Android 以螢幕最高的更新率、相同的解析度執行 Instagram。部分手機會為應用程式設定自己的上限，省電模式也仍可能調低更新率。
 Back	返回
 Before you sign in	登入之前
@@ -44,6 +45,7 @@ Export chat	匯出聊天
 Export diagnostic report	匯出診斷報告
 From the next start, every switch but Debug logging acts as if it were off. Changes made when you patched stay in, and your choices stay saved.	下次啟動起，除了「偵錯記錄」以外，所有開關都會視為關閉。套用修補程式時的變更仍會保留，你選擇的設定也會繼續儲存。
 Here it is.	就在這裡。
+Hides comments that hold a word or phrase from the list too, and comments by an account the list names with @. A hidden comment's replies go with it.	也會隱藏含有清單中字詞的留言，以及清單用 @ 指名的帳號所寫的留言。被隱藏留言的回覆也會一起消失.
 Jump to a date	跳到某個日期
 Jump to the first message	跳到第一則訊息
 Jump to the first message or a date	跳到第一則訊息或某個日期

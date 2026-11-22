@@ -10,6 +10,7 @@ A file named %1$s in %2$s paused HushGram.	Một tệp tên %1$s trong %2$s đã
 About	Giới thiệu
 Add the source to saved photos and videos	Thêm nguồn vào ảnh và video đã lưu
 Ads and privacy	Quảng cáo và quyền riêng tư
+Also in comments	Cả trong bình luận
 Asks Android to run Instagram at your screen's fastest refresh rate, at the same resolution. Some phones keep their own limit for apps, and battery saver can still lower it.	Yêu cầu Android chạy Instagram ở tốc độ làm mới cao nhất của màn hình, với cùng độ phân giải. Một số điện thoại vẫn giữ giới hạn riêng cho ứng dụng và chế độ tiết kiệm pin có thể hạ tốc độ này xuống.
 Back	Quay lại
 Before you sign in	Trước khi đăng nhập
@@ -39,6 +40,7 @@ Export chat	Xuất cuộc trò chuyện
 Export diagnostic report	Xuất báo cáo chẩn đoán
 From the next start, every switch but Debug logging acts as if it were off. Changes made when you patched stay in, and your choices stay saved.	Từ lần khởi động sau, mọi công tắc trừ Ghi nhật ký gỡ lỗi đều hoạt động như đã tắt. Những thay đổi đặt lúc vá vẫn giữ nguyên và lựa chọn của bạn vẫn được lưu.
 Here it is.	Đây rồi.
+Hides comments that hold a word or phrase from the list too, and comments by an account the list names with @. A hidden comment's replies go with it.	Ẩn cả bình luận chứa từ hoặc cụm từ trong danh sách, và bình luận của tài khoản mà danh sách ghi bằng @. Các trả lời của bình luận bị ẩn cũng biến mất theo.
 Jump to a date	Chuyển đến một ngày
 Jump to the first message	Chuyển đến tin nhắn đầu tiên
 Jump to the first message or a date	Chuyển đến tin nhắn đầu tiên hoặc một ngày

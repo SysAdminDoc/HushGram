@@ -171,6 +171,7 @@ public final class ConfigurationBackup {
         if (PatchFamily.CAPTION_WORD_REELS.inBuild()) {
             settings.put(Settings.REELS_BLOCKED_WORDS.key, Settings.REELS_BLOCKED_WORDS);
             settings.put(Settings.REELS_KEPT_LANGUAGES.key, Settings.REELS_KEPT_LANGUAGES);
+            settings.put(Settings.HIDE_CAPTION_WORD_COMMENTS.key, Settings.HIDE_CAPTION_WORD_COMMENTS);
             // Also on Home, both of them: their rows show only with Home's reads in the build.
             if (PatchFamily.feedTypesInBuild()) {
                 settings.put(Settings.HIDE_CAPTION_WORD_HOME.key, Settings.HIDE_CAPTION_WORD_HOME);

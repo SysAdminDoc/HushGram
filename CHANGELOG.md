@@ -45,6 +45,7 @@ Every HushGram release, newest first.
 * In Manager's Expert mode the six comment patches have a Comments group of their own now, like the Comments page in HushGram settings, and `HushGram launch screen` moved to Settings. Interaction and Interface were getting too long to scan.
 * `Keep the tab bar on reel links` is new under Reels. A reel link you open from another app, like WhatsApp, plays on the tab you were on with the tab bar under it, so the seek bar sits up where your thumb reaches. It works when Instagram was closed too, and Back takes you to that tab. It starts off. Asked for in #385.
 * `Blocked words` under `Hide reels by caption words` takes an @name too, like `@cnn`. That account's reels leave the Reels tab, and with `Also on Home` on its posts leave Home as well. Asked for in #807.
+* `Also in comments` is new under `Hide reels by caption words`. It hides comments that hold a word from your list, and comments by an account the list names with @. Replies to a hidden comment go with it. Asked for in #807.
 * `Time on the seek bar` is new under `Seek bar on stories`. It shows the time played and the story's length at the start of the bar, like 0:03 / 0:15, and a tap on it (or `Show the time left`) counts down what's left instead. Asked for in #784.
 * **Tooling:** The GitHub release notes leave out the Tooling bullets and the What was checked part now. They're still here in the changelog, and Manager's notes keep their Validation line.
 

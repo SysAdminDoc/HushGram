@@ -92,6 +92,9 @@ final class ReelsCategory {
                         L10n.t("Leaves out posts on Home whose caption holds a word or phrase from the list too. "
                                 + "Pull down on Home to refresh after changing it.")));
             }
+            reels.add(toggle(context, Settings.HIDE_CAPTION_WORD_COMMENTS, L10n.t("Also in comments"),
+                    L10n.t("Hides comments that hold a word or phrase from the list too, and comments by an account "
+                            + "the list names with @. A hidden comment's replies go with it.")));
             reels.add(toggle(context, Settings.HIDE_OTHER_LANGUAGE_REELS, L10n.t("Hide reels in other languages"),
                     L10n.t("Leaves out reels in the Reels tab whose caption is in a language you didn't list below. "
                             + "A caption too short to tell, or a reel you open yourself, still shows.")));

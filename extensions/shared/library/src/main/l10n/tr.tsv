@@ -10,6 +10,7 @@ A file named %1$s in %2$s paused HushGram.	%2$s içindeki %1$s adlı bir dosya H
 About	Hakkında
 Add the source to saved photos and videos	Kayıtlı fotoğraf ve videolara kaynağı ekle
 Ads and privacy	Reklamlar ve gizlilik
+Also in comments	Yorumlarda da
 Asks Android to run Instagram at your screen's fastest refresh rate, at the same resolution. Some phones keep their own limit for apps, and battery saver can still lower it.	Android'den Instagram'ı ekranının en yüksek yenileme hızında, aynı çözünürlükte çalıştırmasını ister. Bazı telefonlar uygulamalara kendi sınırını koyar ve pil tasarrufu hızı yine de düşürebilir.
 Back	Geri
 Before you sign in	Giriş yapmadan önce
@@ -39,6 +40,7 @@ Export chat	Sohbeti dışa aktar
 Export diagnostic report	Tanılama raporunu dışa aktar
 From the next start, every switch but Debug logging acts as if it were off. Changes made when you patched stay in, and your choices stay saved.	Sonraki açılıştan itibaren Hata ayıklama günlüğü dışındaki her anahtar kapalıymış gibi davranır. Yamaladığında ayarlananlar devrede kalır ve tercihlerin kayıtlı kalır.
 Here it is.	İşte burada.
+Hides comments that hold a word or phrase from the list too, and comments by an account the list names with @. A hidden comment's replies go with it.	Listedeki bir kelimeyi veya ifadeyi içeren yorumları ve listenin @ ile andığı hesapların yorumlarını da gizler. Gizlenen bir yorumun yanıtları da onunla birlikte gider.
 Jump to a date	Bir tarihe atla
 Jump to the first message	İlk mesaja atla
 Jump to the first message or a date	İlk mesaja veya bir tarihe atla

@@ -10,6 +10,7 @@ A file named %1$s in %2$s paused HushGram.	Um arquivo chamado %1$s em %2$s pauso
 About	Sobre
 Add the source to saved photos and videos	Adicionar a origem às fotos e vídeos salvos
 Ads and privacy	Anúncios e privacidade
+Also in comments	Também nos comentários
 Asks Android to run Instagram at your screen's fastest refresh rate, at the same resolution. Some phones keep their own limit for apps, and battery saver can still lower it.	Pede ao Android que execute o Instagram na maior taxa de atualização da tela, na mesma resolução. Alguns celulares mantêm um limite próprio para apps, e a economia de bateria ainda pode reduzi-la.
 Back	Voltar
 Before you sign in	Antes de entrar
@@ -39,6 +40,7 @@ Export chat	Exportar conversa
 Export diagnostic report	Exportar relatório de diagnóstico
 From the next start, every switch but Debug logging acts as if it were off. Changes made when you patched stay in, and your choices stay saved.	Na próxima inicialização, todas as opções, exceto Registro de depuração, funcionarão como se estivessem desativadas. As alterações feitas ao aplicar os patches continuarão em vigor, e suas escolhas permanecerão salvas.
 Here it is.	Aqui está.
+Hides comments that hold a word or phrase from the list too, and comments by an account the list names with @. A hidden comment's replies go with it.	Também oculta comentários que contêm uma palavra ou frase da lista e comentários de contas que a lista cita com @. As respostas de um comentário oculto somem junto.
 Jump to a date	Ir para uma data
 Jump to the first message	Ir para a primeira mensagem
 Jump to the first message or a date	Ir para a primeira mensagem ou para uma data

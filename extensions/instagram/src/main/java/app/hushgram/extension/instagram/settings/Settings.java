@@ -3003,6 +3003,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_caption_word_home", FALSE, parent(HIDE_CAPTION_WORD_REELS));
 
     /**
+     * {@link #REELS_BLOCKED_WORDS} in a post's comments too (#807): a comment whose words hold one,
+     * or whose author the list names with an @name, gets no row, and its replies go with it
+     * ({@link app.hushgram.extension.instagram.reels.CaptionWordReels#dropsComment}). Waits for
+     * {@link #HIDE_CAPTION_WORD_REELS}, and is off to start.
+     */
+    public static final BooleanSetting HIDE_CAPTION_WORD_COMMENTS =
+            new BooleanSetting("hushgram_hide_caption_word_comments", FALSE, parent(HIDE_CAPTION_WORD_REELS));
+
+    /**
      * Reels whose caption is in a language not listed in {@link #REELS_KEPT_LANGUAGES}
      * ({@link app.hushgram.extension.instagram.reels.CaptionLanguage}). Read as each page of reels
      * arrives. Off to start (#495).

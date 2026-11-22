@@ -11,6 +11,7 @@ A file named %1$s in %2$s paused HushGram.	%2$s에 있는 %1$s 파일 때문에 
 About	정보
 Add the source to saved photos and videos	저장한 사진과 동영상에 출처 추가
 Ads and privacy	광고 및 개인정보 보호
+Also in comments	댓글에도 적용
 Asks Android to run Instagram at your screen's fastest refresh rate, at the same resolution. Some phones keep their own limit for apps, and battery saver can still lower it.	화면의 가장 높은 주사율, 같은 해상도로 Instagram을 실행하도록 Android에 요청합니다. 일부 휴대전화는 앱에 자체 제한을 두며, 절전 모드가 주사율을 낮출 수도 있습니다.
 Back	뒤로
 Before you sign in	로그인 전에 읽어보세요
@@ -40,6 +41,7 @@ Export chat	채팅 내보내기
 Export diagnostic report	진단 보고서 내보내기
 From the next start, every switch but Debug logging acts as if it were off. Changes made when you patched stay in, and your choices stay saved.	다음 시작부터 디버그 로깅을 제외한 모든 스위치가 비활성화된 것처럼 작동합니다. 패치할 때 적용된 변경 사항은 그대로 유지되며, 사용자가 선택한 설정도 저장된 상태로 유지됩니다
 Here it is.	여기예요.
+Hides comments that hold a word or phrase from the list too, and comments by an account the list names with @. A hidden comment's replies go with it.	목록의 단어나 문구가 들어간 댓글과, 목록에 @로 적은 계정이 쓴 댓글도 숨깁니다. 숨긴 댓글의 답글도 함께 사라집니다.
 Jump to a date	날짜로 이동
 Jump to the first message	첫 메시지로 이동
 Jump to the first message or a date	첫 메시지 또는 날짜로 이동
