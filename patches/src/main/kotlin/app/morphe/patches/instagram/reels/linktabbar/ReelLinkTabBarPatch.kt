@@ -27,6 +27,7 @@ import app.morphe.patches.instagram.reels.profiletabbar.keepProfileAsTabRoot
 import app.morphe.patches.instagram.reels.profiletabbar.requirePublic
 import app.morphe.patches.instagram.reels.profiletabbar.writeFragmentList
 import app.morphe.patches.shared.compat.AppCompatibilities
+import app.morphe.util.returnEarly
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
@@ -69,14 +70,7 @@ internal fun BytecodePatchContext.findTabBarFlag(): FieldReference {
 
 /** Writes [flag]'s name into the stub the extension asks for it. */
 internal fun BytecodePatchContext.writeTabBarFlag(flag: FieldReference) {
-    val stub = mutableClassDefBy(REEL_LINK_TARGETS).methods.single { it.name == "tabBarHiddenFlag" }
-    stub.addInstructions(
-        0,
-        """
-            const-string v0, "${flag.name}"
-            return-object v0
-        """.trimIndent(),
-    )
+    mutableClassDefBy(REEL_LINK_TARGETS).methods.single { it.name == "tabBarHiddenFlag" }.returnEarly(flag.name)
 }
 
 internal fun BytecodePatchContext.findLinkViewerRoute(): Method {
