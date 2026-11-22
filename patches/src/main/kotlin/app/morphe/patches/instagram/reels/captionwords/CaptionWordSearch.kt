@@ -4,11 +4,13 @@
  */
 package app.morphe.patches.instagram.reels.captionwords
 
+import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patches.instagram.explore.findExploreParser
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesLoadingString
+import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.patchLog
 import app.morphe.patches.instagram.misc.extension.stringLoadedAt
@@ -30,6 +32,12 @@ internal const val SEARCH_SECTIONS = "$CAPTION_WORD_SEARCH->sections(Ljava/util/
 internal const val RESULT_SECTIONS = "sections"
 internal const val RESULT_MORE_REELS = "has_more_reels"
 internal const val RESULT_RANK_TOKEN = "rank_token"
+
+/**
+ * A string the keyword results row builder loads, and no other static method of its shape: the
+ * marker for the row Instagram puts after the last result.
+ */
+internal const val SERP_END = "end_of_serp_recommendation"
 
 private const val LIST = "Ljava/util/List;"
 
@@ -137,4 +145,51 @@ internal fun BytecodePatchContext.filterSearchSections(page: SectionPage) {
             invoke-static { v$temp }, $SEARCH_SECTIONS
         """,
     )
+}
+
+/** The method every keyword search page passes through whole: its class and name. */
+internal class KeywordResults(val type: String, val name: String)
+
+/**
+ * A keyword search's For you grid comes over GraphQL and never reaches the search results parser.
+ * Its row builder makes one block of the grid at a time, and the first page, the next ones and the
+ * cached one each hand their whole list of blocks to one static (List)V that numbers the grid's
+ * end-of-results rows (0D16.A01 on 456's 386214574): the one static method loading [SERP_END] that
+ * takes a list and nothing else. Without the hook in the extension, with no such method or more than
+ * one, or when something jumps to its start, it's left out with a warning, and the For you grid keeps
+ * every block.
+ */
+internal fun BytecodePatchContext.findKeywordResults(): List<KeywordResults> {
+    if (classDefByOrNull(CAPTION_WORD_SEARCH)?.methods?.any { it.name == "sections" } != true) return emptyList()
+    val found = classesLoadingString(SERP_END).flatMap { classDef ->
+        classDef.methods.filter { method ->
+            method.implementation != null && AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "V" &&
+                method.parameterTypes.map(Any::toString) == listOf(LIST) && loadsString(method, SERP_END)
+        }.map { classDef to it }
+    }
+    val (owner, method) = found.singleOrNull() ?: run {
+        patchLog.warning(
+            "$PATCH: expected one static (List)V loading $SERP_END, found ${found.size}. " +
+                "Also in search leaves the For you grid of a search alone.",
+        )
+        return emptyList()
+    }
+    if (0 in method.jumpTargets()) {
+        patchLog.warning("$PATCH: ${owner.type}->${method.name} jumps to its start. Also in search leaves the For you grid of a search alone.")
+        return emptyList()
+    }
+    return listOf(KeywordResults(owner.type, method.name))
+}
+
+/**
+ * First thing in that method, hands its list of blocks to [SEARCH_SECTIONS], which takes the blocks
+ * holding a blocked post out of it in place, before Instagram numbers what's left.
+ */
+internal fun BytecodePatchContext.filterKeywordResults(pages: KeywordResults) {
+    val method = mutableClassDefBy(pages.type).methods.single {
+        it.name == pages.name && it.parameterTypes.map(Any::toString) == listOf(LIST)
+    }
+    val list = method.implementation!!.registerCount - 1
+    val call = if (list > 15) "invoke-static/range { v$list .. v$list }, $SEARCH_SECTIONS" else "invoke-static { v$list }, $SEARCH_SECTIONS"
+    method.addInstructions(0, call)
 }

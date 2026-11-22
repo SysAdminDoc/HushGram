@@ -3007,9 +3007,15 @@ once-call Lapp/hushgram/extension/instagram/reels/CaptionWordReels;->page(Ljava/
 # before the parser hands the page back (#807): the topical Explore page's, in the parser Hide the
 # Explore grid asks too, and the search results grid's, the one parser loading sections,
 # has_more_reels and rank_token (0P4J.unsafeParseFromJson on 456's 386214574). Both fill their
-# sections through the same section reader. CaptionWordSearchHookTest checks both sites on every build.
+# sections through the same section reader. CaptionWordSearchHookTest checks every site on every build.
 once-call Lapp/hushgram/extension/instagram/reels/CaptionWordSearch;->sections(Ljava/util/List;)V in instance (LX/*;)Ljava/lang/Object; holding sectional_items session_paging_token
 once-call Lapp/hushgram/extension/instagram/reels/CaptionWordSearch;->sections(Ljava/util/List;)V in instance (LX/*;)Ljava/lang/Object; holding sections has_more_reels rank_token
+# A keyword search's For you grid comes over GraphQL and skips that parser, and its row builder
+# makes one block at a time, so the hook sits first thing in the one static (List)V loading
+# end_of_serp_recommendation, which the first page, the next ones and the cached one hand their
+# whole list of blocks to (0D16.A01 on 386214574).
+start-call Lapp/hushgram/extension/instagram/reels/CaptionWordSearch;->sections(Ljava/util/List;)V in static (Ljava/util/List;)V holding end_of_serp_recommendation
+once-call Lapp/hushgram/extension/instagram/reels/CaptionWordSearch;->sections(Ljava/util/List;)V in static (Ljava/util/List;)V holding end_of_serp_recommendation
 
 # Hide reels by sound hands the same pages, at the same join, to HiddenSounds.page, once (#191). Its
 # stub reads the item's post, and the sound comes from the clips_metadata bridges, which

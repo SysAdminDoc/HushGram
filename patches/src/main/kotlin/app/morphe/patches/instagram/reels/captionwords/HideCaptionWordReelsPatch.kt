@@ -81,9 +81,11 @@ val hideCaptionWordReelsPatch = bytecodePatch(
         val caption = findCaptionWordReels()
         val comments = findCommentWordsOrWarn()
         val search = findSearchSectionPages()
+        val keyword = findKeywordResults()
         hideCaptionWordReels(page, caption)
         comments?.let { hideCommentWords(it) }
         search.forEach { filterSearchSections(it) }
+        keyword.forEach { filterKeywordResults(it) }
         enableStatus("captionWordReels")
     }
 }

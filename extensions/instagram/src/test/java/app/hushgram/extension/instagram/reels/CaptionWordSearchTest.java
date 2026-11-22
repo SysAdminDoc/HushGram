@@ -5,6 +5,7 @@
 package app.hushgram.extension.instagram.reels;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
@@ -347,5 +348,20 @@ public class CaptionWordSearchTest {
         assertEquals("these test rows hold no Instagram post", 1, sections.size());
         assertTrue(HookStatus.missing(FamilyNames.CAPTION_WORD_REELS).toString(),
                 HookStatus.missing(FamilyNames.CAPTION_WORD_REELS).isEmpty());
+    }
+
+    /**
+     * On the device the walk goes into Instagram's renamed and kept classes, but never a user or the
+     * signed-in session a keyword search's rows hold, which would use up the walk before the posts.
+     */
+    @Test
+    public void theWalkSkipsUsersAndTheSession() {
+        assertTrue(CaptionWordSearch.follows("X.0CV7"));
+        assertTrue(CaptionWordSearch.follows("com.instagram.search.common.analytics.SearchContext"));
+        assertFalse(CaptionWordSearch.follows(CaptionWordSearch.USER));
+        assertFalse(CaptionWordSearch.follows(CaptionWordSearch.SESSION));
+        assertEquals("com.instagram.common.session.UserSession", CaptionWordSearch.SESSION);
+        assertFalse(CaptionWordSearch.follows("java.lang.Thread"));
+        assertFalse(CaptionWordSearch.follows("android.view.View"));
     }
 }

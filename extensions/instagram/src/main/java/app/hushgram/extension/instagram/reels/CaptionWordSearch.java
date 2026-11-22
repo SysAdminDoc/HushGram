@@ -25,15 +25,19 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  *
  * <p>The Search tab's Explore grid and the grid of posts under a search's results are both read as
  * sections, each one row of the grid with its few posts, by the same section reader. The patch hands
- * {@link #sections} each page's section list as its parser hands the page back, and while Also in
- * search is on this takes out, in place, every section holding a post whose caption holds a word from
- * the list, or whose author the list names with an {@code @name}. A row goes whole, the posts beside
- * the matching one with it, since a row with a hole in it isn't a layout Instagram draws.
+ * {@link #sections} each page's section list as its parser hands the page back. A keyword search's
+ * For you grid comes over GraphQL instead and never meets that parser, so the patch also hands over
+ * each of its pages' list of blocks, each block holding its own section and posts, before Instagram
+ * numbers them. While Also in
+ * search is on this takes out, in place, every section or row holding a post whose caption holds a
+ * word from the list, or whose author the list names with an {@code @name}. A row goes whole, the
+ * posts beside the matching one with it, since a row with a hole in it isn't a layout Instagram draws.
  *
  * <p>A section's posts are found by walking its fields: a section holds its layout, the layout its
  * items, and each item Instagram's own {@code com.instagram.feed.media.Media}, a class that keeps its
  * name. The walk follows only Instagram's classes and collections, goes {@link #DEPTH} steps down at
- * most and looks at {@link #VISITS} objects at most per section, and stops at each post and at users.
+ * most and looks at {@link #VISITS} objects at most per section, and stops at each post, at users and
+ * at the signed-in session.
  *
  * <p>A page where every section would go keeps every one, so a search for a word on the list still
  * shows its results rather than an empty grid that keeps asking for more. Off, paused, with an empty
@@ -49,6 +53,12 @@ public final class CaptionWordSearch {
     /** The class of Instagram's users, a name Redex keeps; the walk never goes into one. */
     static final String USER = "com.instagram.user.model.User";
 
+    /**
+     * The signed-in session, a name Redex keeps. A keyword search's rows can hold it, and it leads to
+     * everything the app has open, so the walk never goes into it either.
+     */
+    static final String SESSION = "com.instagram.common.session.UserSession";
+
     /** How many steps down from a section the walk goes, a collection's items counting as a step. */
     static final int DEPTH = 6;
 
@@ -58,19 +68,22 @@ public final class CaptionWordSearch {
     /** Instagram's own posts, by their kept class name. */
     private static final Predicate<Class<?>> POSTS = type -> MEDIA.equals(type.getName());
 
-    /** Instagram's own classes: Redex's renamed ones in X, and the kept ones under com.instagram, users left out. */
-    private static final Predicate<Class<?>> INSTAGRAMS = type -> {
-        String name = type.getName();
-        return (name.startsWith("X.") || name.startsWith("com.instagram.")) && !USER.equals(name);
-    };
+    /** Instagram's own classes: Redex's renamed ones in X, and the kept ones under com.instagram, users and the session left out. */
+    private static final Predicate<Class<?>> INSTAGRAMS = type -> follows(type.getName());
+
+    /** Whether the walk goes into a class of this name. */
+    static boolean follows(String name) {
+        return (name.startsWith("X.") || name.startsWith("com.instagram.")) && !USER.equals(name) && !SESSION.equals(name);
+    }
 
     private CaptionWordSearch() {
     }
 
     /**
      * Injected where the Explore page's parser and the search results grid's parser hand their page
-     * back, with the page's section list. Takes the sections holding a blocked post out of it, in
-     * place, while Also in search is on. Never throws.
+     * back, with the page's section list, and where a keyword search's page of blocks is numbered,
+     * with that list. Takes the sections or blocks holding a blocked post out of it, in place, while
+     * Also in search is on. Never throws.
      */
     public static void sections(List<?> sections) {
         sections(sections, CaptionWordReels.PATCHED, CaptionWordReels::searchWordsWhenOn, POSTS, INSTAGRAMS);

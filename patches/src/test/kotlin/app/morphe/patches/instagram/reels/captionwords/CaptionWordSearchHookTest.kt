@@ -22,6 +22,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
@@ -35,7 +36,8 @@ import java.io.File
 /**
  * Also in search (#807): the caption word patch hands the Explore page's and the search results
  * grid's section lists to the extension, each right before its parser hands the page back, beside
- * Hide the Explore grid's own hook in either patch order.
+ * Hide the Explore grid's own hook in either patch order, and a keyword search's For you blocks first
+ * thing in the method every page of them passes through.
  */
 class CaptionWordSearchHookTest {
     /** The hook is in the CaptionWordSearch the bundle ships, public and static. */
@@ -68,8 +70,10 @@ class CaptionWordSearchHookTest {
     @Test
     fun aMissingHookOrParserLeavesItOut() {
         assertEquals(emptyList<SectionPage>(), PatchContexts.of(emptyList()).findSearchSectionPages())
+        assertEquals(emptyList<KeywordResults>(), PatchContexts.of(emptyList()).findKeywordResults())
         val bare = PatchContexts.of(listOf(ImmutableClassDef.of(ExtensionDex.classDef(CAPTION_WORD_SEARCH))))
         assertEquals(emptyList<SectionPage>(), bare.findSearchSectionPages())
+        assertEquals(emptyList<KeywordResults>(), bare.findKeywordResults())
         val failure = assertThrows(PatchException::class.java) { bare.findSearchResultsPage() }
         assertTrue(failure.message, failure.message!!.startsWith("Hide reels by caption words: expected one search results parser"))
     }
@@ -112,12 +116,38 @@ class CaptionWordSearchHookTest {
                 }
             }
         }
+        keywordResults(classes, label)
+    }
+
+    /**
+     * The For you grid of a keyword search: the hook hands over the page's list of blocks first thing
+     * in the method numbering them, and the method's own code follows as it was.
+     */
+    private fun keywordResults(classes: List<ClassDef>, label: String) {
+        val context = PatchContexts.of(classes)
+        val found = context.findKeywordResults().single()
+        val stock = context.classDefBy(found.type).methods.single { it.name == found.name }
+        val before = stock.implementation!!.instructions.map { it.opcode }
+        val list = stock.implementation!!.registerCount - 1
+        assertEquals("$label: a static method taking one list", listOf("Ljava/util/List;"), stock.parameterTypes.map(Any::toString))
+
+        context.filterKeywordResults(found)
+        val method = context.mutableClassDefBy(found.type).methods.single { it.name == found.name }
+        val code = method.implementation!!.instructions.toList()
+        assertEquals("$label: one hook", 1, code.count { it.referenceText() == SEARCH_SECTIONS })
+        val call = code.first()
+        assertEquals("$label: the hook comes first", SEARCH_SECTIONS, call.referenceText())
+        val passed = if (call.opcode == Opcode.INVOKE_STATIC_RANGE) (call as RegisterRangeInstruction).startRegister
+        else (call as FiveRegisterInstruction).registerC
+        assertEquals("$label: the hook gets the method's list", list, passed)
+        assertEquals("$label: Instagram's own code follows as it was", before, code.drop(1).map { it.opcode })
     }
 
     /** The two parsers, the string pools they ask, and the extension's CaptionWordSearch. */
     private fun sectionClasses(bundle: File): List<ClassDef> {
         val pool = LinkedHashMap<String, ClassDef>()
-        (FixtureDex.classesLoading(bundle, PAGING_TOKEN) + FixtureDex.classesLoading(bundle, RESULT_MORE_REELS))
+        (FixtureDex.classesLoading(bundle, PAGING_TOKEN) + FixtureDex.classesLoading(bundle, RESULT_MORE_REELS) +
+            FixtureDex.classesLoading(bundle, SERP_END))
             .forEach { pool[it.type] = it }
         return FixtureDex.withStringPools(bundle, pool.values) + ImmutableClassDef.of(ExtensionDex.classDef(CAPTION_WORD_SEARCH))
     }
