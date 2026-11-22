@@ -12,6 +12,7 @@ import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.instagram.misc.extension.classesAccessing
 import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.liveAcrossInjection
@@ -60,6 +61,11 @@ internal const val LEAVE_OUT_REELS = "$LOCKED_ITEMS->leaveOutReels(Ljava/util/Li
 /** The name Saved's Reels screen gives its fetcher, loaded by the screen and where its new reels come in. */
 internal const val SAVED_REELS_FETCHER = "clipsSavedTabFetcher"
 
+/** Handed what Saved's search found, with the search screen; answers what to show. */
+internal const val LEAVE_OUT_FOUND = "$LOCKED_ITEMS->leaveOutFound(Ljava/util/List;Ljava/lang/Object;)Ljava/util/List;"
+/** The module name Saved's search screen gives, from its getModuleName. */
+internal const val SAVED_SEARCH_MODULE = "saved_search"
+
 /** The method reading a collection from JSON, each return of the collection it made, and its id and name fields. */
 internal class CollectionReader(
     val method: MutableMethod,
@@ -98,6 +104,12 @@ internal class SavedReelsBatch(
     val media: FieldReference,
 )
 
+/**
+ * Where what Saved's search found goes into the search screen: [at], the screen's own List field
+ * taking the posts in [posts], the screen being in [screen].
+ */
+internal class SavedSearchResults(val method: MutableMethod, val at: Int, val posts: Int, val screen: Int)
+
 internal class LockedGridTargets(
     val reader: CollectionReader,
     val rows: List<SavedGridRows>,
@@ -105,6 +117,8 @@ internal class LockedGridTargets(
     val bridges: Map<String, MutableMethod>,
     /** Null when this build's Reels screen moved: its reels show as before, and the rest goes on. */
     val reels: SavedReelsBatch?,
+    /** Null when this build's Saved search moved: it finds everything as before, and the rest goes on. */
+    val search: SavedSearchResults?,
 )
 
 /**
@@ -141,7 +155,60 @@ internal fun BytecodePatchContext.findLockedGrid(): LockedGridTargets {
         patchLog.warning("${e.message}. Reels saved into a locked collection still show in Saved's Reels, and the rest of the lock goes on.")
         null
     }
-    return LockedGridTargets(reader, rows, savedIn, bridges, reels)
+    val search = try {
+        findSavedSearchResults()
+    } catch (e: PatchException) {
+        patchLog.warning("${e.message}. Saved's search still finds posts saved into a locked collection, and the rest of the lock goes on.")
+        null
+    }
+    return LockedGridTargets(reader, rows, savedIn, bridges, reels, search)
+}
+
+/**
+ * Where Saved's search screen gets what it found: the screen is the one class whose getModuleName
+ * loads [SAVED_SEARCH_MODULE], and the place is the one write of a List field of it, outside the
+ * screen, that goes straight on to make a row of each post in that List. The hook goes on the write
+ * itself, under any label it has, so every way there passes through it.
+ */
+internal fun BytecodePatchContext.findSavedSearchResults(): SavedSearchResults {
+    val screens = classesLoadingString(SAVED_SEARCH_MODULE).filter { owner ->
+        owner.methods.any { it.name == "getModuleName" && it.parameterTypes.isEmpty() && loadsString(it, SAVED_SEARCH_MODULE) }
+    }
+    val screen = screens.singleOrNull() ?: refuseGrid("expected one Saved search screen, found ${screens.size}")
+    val lists = screen.fields.filter { it.type == "Ljava/util/List;" && !AccessFlags.STATIC.isSet(it.accessFlags) }
+    val found = lists.flatMap { field ->
+        classesAccessing(screen.type, field.name, Opcode.IPUT_OBJECT).filter { it.type != screen.type }.flatMap { owner ->
+            owner.methods.flatMap { method ->
+                val code = method.implementation?.instructions?.toList().orEmpty()
+                code.indices.filter { code.storesFoundPosts(it, screen.type, field.name) }.map { method to it }
+            }
+        }
+    }
+    val (stock, at) = found.singleOrNull()
+        ?: refuseGrid("expected one place Saved's search gets what it found, found ${found.size}")
+    val method = mutableClassDefBy(stock.definingClass).methods.single { it.sameAs(stock) }
+    val write = method.implementation!!.instructions.toList()[at] as TwoRegisterInstruction
+    return SavedSearchResults(method, at, write.registerA, write.registerB)
+}
+
+/**
+ * Whether the instruction at [at] puts a List into the field [name] of [screen] and the code right
+ * after goes over that List, casting what it gets to a post.
+ */
+private fun List<Instruction>.storesFoundPosts(at: Int, screen: String, name: String): Boolean {
+    val write = this[at]
+    if (write.opcode != Opcode.IPUT_OBJECT) return false
+    val field = (write as ReferenceInstruction).reference as FieldReference
+    if (field.definingClass != screen || field.name != name) return false
+    val posts = (write as TwoRegisterInstruction).registerA
+    val after = drop(at + 1).take(40)
+    val walk = after.indexOfFirst {
+        val call = (it as? ReferenceInstruction)?.reference as? MethodReference
+        it.opcode == Opcode.INVOKE_INTERFACE && call?.name == "iterator" && (it as FiveRegisterInstruction).registerC == posts
+    }
+    return walk >= 0 && after.drop(walk).any {
+        it.opcode == Opcode.CHECK_CAST && ((it as ReferenceInstruction).reference as TypeReference).type == SAVED_GRID_MEDIA
+    }
 }
 
 /**
@@ -408,6 +475,15 @@ internal fun hookLockedGrid(targets: LockedGridTargets) {
             return-object p0
         """.trimIndent(),
     )
+    targets.search?.let { search ->
+        search.method.addInstructionsAtControlFlowLabel(
+            search.at,
+            """
+                invoke-static { v${search.posts}, v${search.screen} }, $LEAVE_OUT_FOUND
+                move-result-object v${search.posts}
+            """.trimIndent(),
+        )
+    }
     val reels = targets.reels ?: return
     reels.method.addInstructions(
         reels.at,

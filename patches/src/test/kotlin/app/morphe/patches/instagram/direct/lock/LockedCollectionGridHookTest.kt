@@ -45,7 +45,7 @@ class LockedCollectionGridHookTest {
         val declared = ExtensionDex.classDef(LOCKED_ITEMS).methods
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
-        for (hook in listOf(READ_COLLECTION, LEAVE_OUT_POST, LEAVE_OUT_REELS)) {
+        for (hook in listOf(READ_COLLECTION, LEAVE_OUT_POST, LEAVE_OUT_REELS, LEAVE_OUT_FOUND)) {
             assertTrue("$hook is not in the extension: $declared", hook.substringAfter("->") in declared)
         }
         for (bridge in listOf("savedIn(Ljava/lang/Object;)Ljava/util/List;", "idOf(Ljava/lang/Object;)Ljava/lang/String;",
@@ -70,10 +70,16 @@ class LockedCollectionGridHookTest {
 
     private fun builds(bundle: File) {
         val label = bundle.parentFile.name + "/" + bundle.name
+        // Saved's search gets what it found in a class of its own, which writes the screen's field.
+        val searchScreens = FixtureDex.classesLoading(bundle, SAVED_SEARCH_MODULE).map { it.type }.toSet()
         val classes = FixtureDex.classesLoadingAny(
-            bundle, setOf(COLLECTION_NAME_KEY, SAVED_COLLECTION_IDS_KEY, SAVED_POSTS_FEED, SAVED_REELS_FETCHER),
-        ) {
-            it.type == SAVED_GRID_MEDIA
+            bundle, setOf(COLLECTION_NAME_KEY, SAVED_COLLECTION_IDS_KEY, SAVED_POSTS_FEED, SAVED_REELS_FETCHER, SAVED_SEARCH_MODULE),
+        ) { owner ->
+            owner.type == SAVED_GRID_MEDIA || owner.methods.any { method ->
+                method.implementation?.instructions?.any {
+                    it.opcode == Opcode.IPUT_OBJECT && ((it as ReferenceInstruction).reference as FieldReference).definingClass in searchScreens
+                } == true
+            }
         }
         val context = PatchContexts.of(classes + ExtensionDex.classDef(LOCKED_ITEMS))
         val targets = try {
@@ -96,6 +102,14 @@ class LockedCollectionGridHookTest {
         assertEquals("$label: the screen's collection", reels.collection.definingClass, (cast as ReferenceInstruction).reference.toString())
         assertEquals("$label: a reel's post", SAVED_GRID_MEDIA, reels.media.type)
         val reelsBefore = reels.method.instructions().filter { it.opcode != Opcode.NOP }.map(::text)
+        val search = targets.search
+            ?: throw AssertionError("$label: Saved's search: ${runCatching { context.findSavedSearchResults() }.exceptionOrNull()?.message}")
+        val stored = search.method.instructions()[search.at]
+        assertEquals("$label: the search screen's list", Opcode.IPUT_OBJECT, stored.opcode)
+        val searchBefore = search.method.instructions().filter { it.opcode != Opcode.NOP }.map(::text)
+        // Whatever jumped to the write jumps to the hook after.
+        val searchCode = search.method.instructions()
+        val jumpsToWrite = searchCode.indices.filter { it in jumping(searchCode) && targetOf(searchCode, it) == search.at }
 
         hookLockedGrid(targets)
 
@@ -147,6 +161,23 @@ class LockedCollectionGridHookTest {
         assertEquals("$label: the Reels screen's own code stays", reelsBefore,
             batch.filterIndexed { index, each -> index !in reels.at until reels.at + 2 && each.opcode != Opcode.NOP }.map(::text))
 
+        // What Saved's search found goes to the extension with the screen before the screen keeps it.
+        val found = search.method.instructions()
+        val searchAsk = found[search.at] as FiveRegisterInstruction
+        assertEquals("$label: the search ask", LEAVE_OUT_FOUND, (searchAsk as ReferenceInstruction).reference.toString())
+        assertEquals("$label: with the posts and the screen", listOf(2, search.posts, search.screen),
+            listOf(searchAsk.registerCount, searchAsk.registerC, searchAsk.registerD))
+        assertEquals("$label: the posts to show", Opcode.MOVE_RESULT_OBJECT, found[search.at + 1].opcode)
+        assertEquals("$label: in the same register", search.posts, (found[search.at + 1] as OneRegisterInstruction).registerA)
+        assertEquals("$label: then the screen keeps them", Opcode.IPUT_OBJECT, found[search.at + 2].opcode)
+        assertEquals("$label: the search's own code stays", searchBefore,
+            found.filterIndexed { index, each -> index !in search.at until search.at + 2 && each.opcode != Opcode.NOP }.map(::text))
+        for (jump in jumpsToWrite) {
+            // A jump after the write moved down by the two instructions that went in.
+            val now = if (jump < search.at) jump else jump + 2
+            assertEquals("$label: the jump at $jump lands on the hook", search.at, targetOf(found, now))
+        }
+
         // The bridges read Instagram's own.
         assertEquals("$label: a reel's post", reels.media.toString(),
             (targets.bridges.getValue("mediaOf").instructions()[1] as ReferenceInstruction).reference.toString())
@@ -159,6 +190,10 @@ class LockedCollectionGridHookTest {
         assertEquals("$label: a collection's name", reader.name.toString(),
             (targets.bridges.getValue("nameOf").instructions()[1] as ReferenceInstruction).reference.toString())
     }
+
+    /** The indexes of the branches and gotos in [code]. */
+    private fun jumping(code: List<Instruction>): Set<Int> = code.indices.filter { code[it] is OffsetInstruction &&
+        code[it].opcode != Opcode.PACKED_SWITCH && code[it].opcode != Opcode.SPARSE_SWITCH && code[it].opcode != Opcode.FILL_ARRAY_DATA }.toSet()
 
     /** The index the branch at [at] goes to. */
     private fun targetOf(code: List<Instruction>, at: Int): Int {

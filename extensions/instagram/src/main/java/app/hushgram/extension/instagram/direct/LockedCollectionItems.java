@@ -4,6 +4,8 @@
  */
 package app.hushgram.extension.instagram.direct;
 
+import android.os.Bundle;
+
 import androidx.annotation.Nullable;
 
 import java.util.ArrayList;
@@ -23,7 +25,7 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
 
 /**
  * Posts and reels saved into a locked collection stay out of Saved's other grids while the lock is
- * shut (#678), so All, Posts and Reels don't show what the collection's own page covers.
+ * shut (#678), so All, Posts, Reels and Saved's search don't show what the collection's own page covers.
  *
  * <p>Instagram tells which collections a saved post is in only by their ids, and {@link CollectionLocks}
  * keeps a collection by its name. Each collection Instagram reads goes through {@link #read}, so its
@@ -32,7 +34,8 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * restart still knows it.
  *
  * <p>Saved's grid asks {@link #leaveOut} about each post as it makes its rows, and its Reels screen
- * hands {@link #leaveOutReels} each batch of reels it gets before making rows of them. A post is left out
+ * hands {@link #leaveOutReels} each batch of reels it gets before making rows of them, as Saved's search
+ * hands {@link #leaveOutFound} what it found. A post is left out
  * while the lock is shut and one of its collections is on the list for the account in front, unless
  * the grid belongs to one of the post's own collections: a collection's page always shows all of
  * itself, and an unlocked collection sharing a post with a locked one keeps it. After an unlock the
@@ -160,6 +163,41 @@ public final class LockedCollectionItems {
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.MESSAGES_LOCK, STEP, t);
             return reels;
+        }
+    }
+
+    // ---------------------------------------------------------------- Saved's search
+
+    /** The argument Saved's search keeps the id of the collection it searches in under, as Instagram names it. */
+    static final String SEARCH_COLLECTION = "SavedSearchFragment.ARGUMENT_COLLECTION_ID";
+
+    /**
+     * [posts], what Saved's search [screen] found, without those {@link #leaveOut} leaves out of the
+     * collection the search is in, or of all of Saved when it's in none. Answers [posts] itself when
+     * none is left out. Fails open, never throws.
+     */
+    @Nullable
+    public static List<?> leaveOutFound(@Nullable List<?> posts, @Nullable Object screen) {
+        if (posts == null || posts.isEmpty()) return posts;
+        try {
+            if (!MessagesLock.collectionListLocked()) return posts;
+            String shown = searchedIn(screen);
+            return leaveOutEach(posts, post -> post != null && leaveOut(() -> savedIn(post), () -> shown) != 0);
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.MESSAGES_LOCK, STEP, t);
+            return posts;
+        }
+    }
+
+    /** The id of the collection Saved's search [screen] searches in, from its arguments, or null for all of Saved. */
+    @Nullable
+    static String searchedIn(@Nullable Object screen) {
+        if (screen == null) return null;
+        try {
+            Object arguments = screen.getClass().getMethod("getArguments").invoke(screen);
+            return arguments instanceof Bundle ? ((Bundle) arguments).getString(SEARCH_COLLECTION) : null;
+        } catch (ReflectiveOperationException | RuntimeException e) {
+            return null;
         }
     }
 

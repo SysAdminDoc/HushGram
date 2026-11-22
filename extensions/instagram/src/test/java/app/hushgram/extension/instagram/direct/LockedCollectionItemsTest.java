@@ -9,6 +9,8 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import android.os.Bundle;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -185,6 +187,38 @@ public class LockedCollectionItemsTest {
         List<Object> batch = Arrays.asList(new Object(), null, new Object());
         assertTrue(batch == LockedCollectionItems.leaveOutReels(batch, new Object()));
         assertNull(LockedCollectionItems.leaveOutReels(null, null));
+    }
+
+    /** Saved's search inside one collection names it in its arguments; a search of all of Saved names none. */
+    @Test
+    public void savedsSearchKnowsTheCollectionItSearchesIn() {
+        Bundle arguments = new Bundle();
+        arguments.putString(LockedCollectionItems.SEARCH_COLLECTION, TRIPS);
+        assertEquals(TRIPS, LockedCollectionItems.searchedIn(new SearchScreen(arguments)));
+        assertNull(LockedCollectionItems.searchedIn(new SearchScreen(new Bundle())));
+        assertNull(LockedCollectionItems.searchedIn(new SearchScreen(null)));
+        assertNull("a screen with no arguments threw", LockedCollectionItems.searchedIn(new Object()));
+        assertNull(LockedCollectionItems.searchedIn(null));
+
+        // With a collection locked, Instagram's own, unpatched here, give no collections, so every post stays.
+        LockedCollectionItems.learned(TRIPS, "Trips");
+        assertTrue(CollectionLocks.add(ME, "Trips"));
+        List<Object> found = Arrays.asList(new Object(), null);
+        assertTrue(found == LockedCollectionItems.leaveOutFound(found, new SearchScreen(arguments)));
+        assertNull(LockedCollectionItems.leaveOutFound(null, null));
+    }
+
+    /** Stands in for Saved's search screen, a Fragment, as far as its arguments go. */
+    public static final class SearchScreen {
+        private final Bundle arguments;
+
+        SearchScreen(Bundle arguments) {
+            this.arguments = arguments;
+        }
+
+        public Bundle getArguments() {
+            return arguments;
+        }
     }
 
     @Test
