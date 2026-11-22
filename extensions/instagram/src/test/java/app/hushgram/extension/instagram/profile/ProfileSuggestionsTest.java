@@ -467,6 +467,36 @@ public class ProfileSuggestionsTest {
         assertTrue(missing, missing.contains("'" + ProfileSuggestions.FOLLOW_REQUESTS + "'"));
     }
 
+    /**
+     * The Suggested for you section under the follow requests goes with the same switch even when the
+     * reply carries suggested people: on, the list reads as empty and the hook counts it; off, paused or
+     * unready, the list's own answer stands, and a list already empty stays empty (#814).
+     */
+    @Test
+    public void theFollowRequestsSectionGoesWithTheFollowListSwitch() {
+        assertFalse("off to start", ProfileSuggestions.requestSuggestionsEmpty(0));
+        assertTrue("an empty list stays empty", ProfileSuggestions.requestSuggestionsEmpty(1));
+
+        Settings.HIDE_FOLLOW_LIST_SUGGESTIONS.save(true);
+        assertTrue(ProfileSuggestions.requestSuggestionsEmpty(0));
+        String report = FeedFilterCounters.report().toString();
+        assertTrue(report, report.contains(ProfileSuggestions.REQUEST_SECTION));
+        assertTrue(report, report.contains("1 removed"));
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertFalse("paused", ProfileSuggestions.requestSuggestionsEmpty(0));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        SettingsContextRule.withoutContext(() -> assertFalse("unready", ProfileSuggestions.requestSuggestionsEmpty(0)));
+
+        Settings.HIDE_FOLLOW_LIST_SUGGESTIONS.save(false);
+        assertFalse("off", ProfileSuggestions.requestSuggestionsEmpty(0));
+        assertFalse("a throwing switch keeps the list", ProfileSuggestions.requestSuggestionsEmpty(0, THROWS));
+        String missing = HookStatus.missing(FamilyNames.PROFILE_SUGGESTIONS).toString();
+        assertTrue(missing, missing.contains("'" + ProfileSuggestions.REQUEST_SECTION + "'"));
+    }
+
     /** A follow list switch that throws leaves the list's answer and says which hook threw. */
     @Test
     public void aThrowingFollowListSwitchFailsOpenAndIsReported() {

@@ -2769,6 +2769,15 @@ once-call Lapp/hushgram/extension/instagram/profile/ProfileSuggestions;->suggest
 # variable names and where the hook lands.
 once-call Lapp/hushgram/extension/instagram/profile/ProfileSuggestions;->excludeRequestSuggestions(I)Z in instance (LX/*;ZZ)Ljava/lang/Object; pooled holding exclude_suggested_users defer_suggested_users
 #
+# The server can send the suggested people anyway (#814), so the same switch also answers the screen's
+# own list: the coroutine that builds its rows (0aIn.invokeSuspend on 456) asks whether its suggested
+# people are none right before the branch past their header, rows and See all button, and that isEmpty
+# answer goes to ProfileSuggestions.requestSuggestionsEmpty and back into its register. Left out, the
+# Suggested for you section shows whenever the reply carries it; twice or elsewhere, it isn't the hook
+# the patch wrote. RequestSectionHookTest checks on every build that this is the one method keying rows
+# by item_key_suggested_user_%s and where the hook lands.
+once-call Lapp/hushgram/extension/instagram/profile/ProfileSuggestions;->requestSuggestionsEmpty(I)Z in instance (Ljava/lang/Object;)Ljava/lang/Object; pooled holding item_key_suggested_user_%s item_key_follow_request_%s
+#
 # It also takes Suggested for you off the bottom of the mutual followers list (#302). The list
 # adapter's rows (LX/0N6E;->A0C()V on 452.1) hand the suggested accounts to
 # ProfileSuggestions.mutualSuggestions right after reading them and before their isEmpty(). The rows

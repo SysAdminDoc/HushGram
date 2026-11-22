@@ -9,6 +9,7 @@ import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.jumpTargets
+import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.patchLog
 import app.morphe.patches.instagram.misc.extension.stringLoadedAt
 import app.morphe.util.ControlFlow
@@ -26,6 +27,7 @@ private const val PATCH = "Hide suggested people on profiles"
 internal const val FOLLOW_LIST = "$PROFILE_SUGGESTIONS->followList(I)I"
 internal const val SUGGESTED_TAB = "$PROFILE_SUGGESTIONS->suggestedTab(I)I"
 internal const val EXCLUDE_REQUEST_SUGGESTIONS = "$PROFILE_SUGGESTIONS->excludeRequestSuggestions(I)Z"
+internal const val REQUEST_SUGGESTIONS_EMPTY = "$PROFILE_SUGGESTIONS->requestSuggestionsEmpty(I)Z"
 internal const val SUGGESTED_SUBSCRIPTIONS = "$PROFILE_SUGGESTIONS->suggestedSubscriptions(Ljava/util/List;)Ljava/util/List;"
 internal const val MORE_SUGGESTED_SUBSCRIPTIONS = "$PROFILE_SUGGESTIONS->moreSuggestedSubscriptions(I)Z"
 internal const val FRIENDING_BUTTON = "$PROFILE_SUGGESTIONS->friendingButton(I)I"
@@ -52,6 +54,14 @@ internal const val SELF_FOLLOW_LISTS = "self_follow_lists"
  */
 internal const val EXCLUDE_SUGGESTED_USERS = "exclude_suggested_users"
 internal const val DEFER_SUGGESTED_USERS = "defer_suggested_users"
+
+/**
+ * The keys the Follow requests screen's list gives each suggested person's row under the requests, and
+ * each request's row (#814). Instagram keeps them: they're what the list tells its rows apart by. A
+ * suggested person's row model loads the first too, so the list is the one method loading both.
+ */
+internal const val SUGGESTED_USER_ROW = "item_key_suggested_user_%s"
+internal const val FOLLOW_REQUEST_ROW = "item_key_follow_request_%s"
 
 /**
  * The argument the followers and following list reads to know whether to fetch the accounts it
@@ -229,6 +239,67 @@ internal fun BytecodePatchContext.hideRequestSuggestions(site: RequestSuggestion
         0,
         """
             invoke-static/range { v${site.register} .. v${site.register} }, $EXCLUDE_REQUEST_SUGGESTIONS
+            move-result v${site.register}
+        """,
+    )
+}
+
+/**
+ * Finds where the Follow requests screen's list asks whether it has no suggested people (#814): in the
+ * one method keying rows by [SUGGESTED_USER_ROW] and [FOLLOW_REQUEST_ROW], the List.isEmpty answer an if-nez right after it
+ * reads to jump past the code that makes those rows, the Suggested for you header and the See all
+ * button. Its move-result is the site. Fails before anything changes when there isn't exactly one such
+ * method or one such check, or something jumps onto the if-nez, where the hook goes.
+ */
+internal fun BytecodePatchContext.findRequestSection(): FollowListSite {
+    val lists = classesLoadingString(SUGGESTED_USER_ROW).flatMap { classDef ->
+        classDef.methods.filter { loadsString(it, SUGGESTED_USER_ROW) && loadsString(it, FOLLOW_REQUEST_ROW) }
+    }
+    val method = lists.singleOrNull()
+        ?: refuse("expected one list keying rows by \"$SUGGESTED_USER_ROW\" and \"$FOLLOW_REQUEST_ROW\", found ${lists.size}")
+    val where = "${method.definingClass}->${method.name}"
+    val code = method.implementation!!.instructions.toList()
+    val row = code.indices.singleOrNull { stringLoadedAt(code, it) == SUGGESTED_USER_ROW }
+        ?: refuse("$where doesn't load \"$SUGGESTED_USER_ROW\" once")
+    val flow = ControlFlow.of(method)
+    val checks = (0 until code.size - 2).filter { at ->
+        val ask = code[at].methodReference()
+        val result = code[at + 1] as? OneRegisterInstruction
+        val branch = code[at + 2] as? OneRegisterInstruction
+        code[at].opcode == Opcode.INVOKE_INTERFACE && ask?.definingClass == "Ljava/util/List;" && ask.name == "isEmpty" &&
+            code[at + 1].opcode == Opcode.MOVE_RESULT && code[at + 2].opcode == Opcode.IF_NEZ &&
+            result?.registerA == branch?.registerA && at + 2 < row && (flow.normal[at + 2].firstOrNull() ?: -1) > row
+    }
+    val check = checks.singleOrNull()
+        ?: refuse("$where doesn't skip its \"$SUGGESTED_USER_ROW\" rows on one empty list, found ${checks.size}")
+    if (check + 2 in method.jumpTargets()) refuse("something in $where jumps to the check on its suggested people")
+    return FollowListSite(
+        method.definingClass, method.name, method.parameterTypes.map(CharSequence::toString), check + 1,
+        (code[check + 1] as OneRegisterInstruction).registerA,
+    )
+}
+
+/** [findRequestSection], or null with a warning, so the patch's other parts still go in. */
+internal fun BytecodePatchContext.findRequestSectionOrWarn(): FollowListSite? = try {
+    findRequestSection()
+} catch (refusal: PatchException) {
+    patchLog.warning("${refusal.message}. $PATCH goes in without hiding the Suggested for you section the Follow requests screen draws.")
+    null
+}
+
+/**
+ * Hands the list's isEmpty answer to [REQUEST_SUGGESTIONS_EMPTY] right before the branch reads it and
+ * puts the answer back in the same register: true skips the Suggested for you header, its Follow rows
+ * and the See all button, whatever the reply carried.
+ */
+internal fun BytecodePatchContext.hideRequestSection(site: FollowListSite) {
+    val method = mutableClassDefBy(site.type).methods.single {
+        it.name == site.name && it.parameterTypes.map(CharSequence::toString) == site.parameters
+    }
+    method.addInstructions(
+        site.result + 1,
+        """
+            invoke-static/range { v${site.register} .. v${site.register} }, $REQUEST_SUGGESTIONS_EMPTY
             move-result v${site.register}
         """,
     )

@@ -98,6 +98,7 @@ public final class ProfileSuggestions {
     static final String FOLLOW_LIST = "follow list section";
     static final String SUGGESTED_TAB = "suggested tab on follow lists";
     static final String FOLLOW_REQUESTS = "suggested people on follow requests";
+    static final String REQUEST_SECTION = "suggested section under follow requests";
     static final String MUTUAL_SUGGESTIONS = "suggested section under mutual followers";
     static final String SUGGESTED_SUBSCRIPTIONS = "suggested subscriptions";
     static final String FRIENDING_BUTTON = "discover people button on follow lists";
@@ -296,6 +297,23 @@ public final class ProfileSuggestions {
     static boolean excludeRequestSuggestions(int exclude, BooleanSupplier on) {
         if (exclude != 0) return true;
         return hides(FOLLOW_REQUESTS, on);
+    }
+
+    /**
+     * Injected where the Follow requests screen's list asks whether it has no suggested people, right
+     * before it draws the Suggested for you header, the Follow rows and the See all button under the
+     * requests (#814). Answers true while Hide Suggested for you on follow lists is on, so none of that is
+     * drawn even when the reply carries suggested people the request asked to leave out, and [empty] as
+     * it came otherwise, or when anything goes wrong. It takes an int and answers a boolean, back into
+     * the register the list's own isEmpty answer was in. Never throws.
+     */
+    public static boolean requestSuggestionsEmpty(int empty) {
+        return requestSuggestionsEmpty(empty, ProfileSuggestions::followListOn);
+    }
+
+    static boolean requestSuggestionsEmpty(int empty, BooleanSupplier on) {
+        if (empty != 0) return true;
+        return hides(REQUEST_SECTION, on);
     }
 
     /**
