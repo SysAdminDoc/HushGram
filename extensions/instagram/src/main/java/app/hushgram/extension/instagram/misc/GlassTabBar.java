@@ -2428,17 +2428,23 @@ public final class GlassTabBar {
         /**
          * Sends the window's insets round again when this floating pill shows or hides in front, or its
          * activity came back, so Instagram reads the navigation bar's height again ({@link #navBarHeight}).
-         * A bottom sheet coming up over it or going changes nothing Instagram reads (#222).
+         * A bottom sheet coming up over it or going changes nothing Instagram reads (#222). When the pill
+         * stops showing in front, as Instagram hides its bar for a story, the screens get the bar's real
+         * height at once ({@link FullScreenBars#giveNavBarHeightNow}). Told only after that pass, a story
+         * opening under the pill showed down to the bottom edge for a frame and then jumped up (#618).
+         * True when they were told now, so this frame waits for their new layout.
          */
-        private void askForInsetsWhenShownChanges() {
-            if (!floating) return;
+        private boolean askForInsetsWhenShownChanges() {
+            if (!floating) return false;
             Activity now = front.get();
             boolean shown = now != null && !HushgramPause.isPaused() && floatsShownIn(now);
-            if (insetsShown != null && insetsShown == shown) return;
+            if (insetsShown != null && insetsShown == shown) return false;
+            boolean wentAway = Boolean.TRUE.equals(insetsShown) && now != null;
             insetsShown = shown;
             View root = bar.getRootView();
             root.post(root::requestApplyInsets);
             HookStatus.counted(FamilyNames.GLASS_TAB_BAR, COUNT_INSETS_AGAIN);
+            return wentAway && FullScreenBars.giveNavBarHeightNow();
         }
 
         /** The clear space above and under the pill. */
@@ -2904,7 +2910,8 @@ public final class GlassTabBar {
                 }
                 // A Reels viewer laid out at a size it's about to lose isn't shown at it either.
                 if (reelsMoved) layOutAgain = true;
-                askForInsetsWhenShownChanges();
+                // Screens given the navigation bar's height as the pill went hold the frame too (#618).
+                if (askForInsetsWhenShownChanges()) layOutAgain = true;
                 // Moved sheets hold the frame back for their new layout too, so a sheet never shows on the
                 // navigation bar first. They move once when the holder first turns up and when the room changes.
                 if (liftSheets()) layOutAgain = true;

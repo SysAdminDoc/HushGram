@@ -66,6 +66,7 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
+* With `Glass tab bar` and `Show content behind the tab bar` on, a story you open no longer covers the whole screen for a moment before jumping up above the gesture bar. Reported in #618.
 * Unticking Interested or Not interested in `Items in the three-dot menus` takes them off a suggested post's menu in Home again. Instagram 456 renamed those two rows there. Reported in #707.
 * The time on a feed video's seek bar is smaller now and sits under the tags and sound buttons, so tapping it no longer opens the tags instead. Reported in #711.
 * The dot beside a new setting stays until you've scrolled to it. Going back out of a page cleared every dot on it, even the ones further down you never saw. Reported in #689.

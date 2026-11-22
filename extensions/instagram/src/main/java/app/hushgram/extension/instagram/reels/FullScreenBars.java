@@ -603,24 +603,38 @@ public final class FullScreenBars {
      * the main loop, once Instagram's pass is over, with whatever pair is kept by then.
      */
     static void heightsKept(int status, int nav) {
+        heightsKept(status, nav, false);
+    }
+
+    /**
+     * {@link #heightsKept(int, int)}, telling the kept listeners right away when [now] instead of on the
+     * main loop's next turn. True when they were told, or will be.
+     */
+    private static boolean heightsKept(int status, int nav, boolean now) {
         try {
             int wasStatus = keptStatus;
             int wasNav = keptNav;
             boolean changed = status != keptStatus || nav != keptNav;
             keptStatus = status;
             keptNav = nav;
-            if (!changed || !registered || !keepsListeners()) return;
+            if (!changed || !registered || !keepsListeners()) return false;
             Activity activity = resumed.get();
             ArrayList<Object> held = activity == null ? null : askers.get(activity);
-            if (held == null || held.isEmpty()) return;
+            if (held == null || held.isEmpty()) return false;
             List<Object> listeners = new ArrayList<>(held);
             // Telling a screen that shows a video can stop its frames (#222), so each tell is named (#244).
             Logger.printDebug(() -> "Full screen bars: telling " + listeners.size() + " screens in "
                     + activity.getClass().getSimpleName() + " the bars' heights " + status + "/" + nav
                     + " (were " + wasStatus + "/" + wasNav + "): " + names(listeners));
-            new Handler(Looper.getMainLooper()).post(() -> tellAll(listeners));
+            if (now) {
+                tellAll(listeners);
+            } else {
+                new Handler(Looper.getMainLooper()).post(() -> tellAll(listeners));
+            }
+            return true;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.FULL_SCREEN_BARS, "heights kept", failure);
+            return false;
         }
     }
 
@@ -765,6 +779,31 @@ public final class FullScreenBars {
             if (gave) heightsKept(statusTaken ? 0 : statusOffered, navTaken ? 0 : navOffered);
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.FULL_SCREEN_BARS, "bar heights shown", failure);
+        }
+    }
+
+    /**
+     * Called by a floating glass pill in the frame where it stops showing in front, as when Instagram
+     * hides its tab bar for a story (#618). Instagram's copy of the navigation bar's height still holds
+     * the pill's 0 then. Its next insets pass only stores the real height, and its screens heard that a
+     * turn of the main loop later ({@link #heightsKept}), so a story opening under the pill showed down
+     * to the bottom edge for a frame and then jumped up by the bar's height. The height Instagram last
+     * offered goes back into its copy here and the activity's kept listeners hear it at once. True when
+     * they did, so the pill holds that frame for the layout they asked for.
+     */
+    public static boolean giveNavBarHeightNow() {
+        try {
+            // A window left with no bar at its foot keeps the 0, and so does a bar full screen hides.
+            if (!navTaken || navOffered <= 0 || keptStatus < 0 || anyHidden(false) || navBarInFront() == 0) return false;
+            int answer = GlassTabBar.navBarHeight(navOffered, 0);
+            if (answer <= 0) return false;
+            keepNavBarHeight(answer);
+            navTaken = false;
+            // Only the navigation bar's height changes, so the insets pass after this tells nobody again.
+            return heightsKept(keptStatus, answer, true);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.GLASS_TAB_BAR, "navigation bar height given now", failure);
+            return false;
         }
     }
 

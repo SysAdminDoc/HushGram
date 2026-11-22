@@ -699,6 +699,64 @@ public class GlassTabBarTest {
         }
     }
 
+    /**
+     * #618: Instagram hides its tab bar as a story opens under a floating pill. Its screens still had the
+     * pill's 0 for the navigation bar and heard the real height a turn of the main loop after the next
+     * insets pass, so the story showed down to the bottom edge for a frame and then jumped up. In the
+     * frame the pill goes, the screens hear the real height at once and that frame waits for their new
+     * layout. The insets pass that follows tells nobody again, and the next frame draws.
+     */
+    @Test
+    @Config(sdk = 29, qualifiers = "en-rUS-w411dp-h891dp-xhdpi")
+    public void screensHearTheNavigationBarsHeightInTheFrameThePillGoes() throws Exception {
+        GlassTabBar.resetForTests();
+        java.util.List<String> told = new java.util.ArrayList<>();
+        Class<?> teller = Class.forName("app.hushgram.extension.instagram.reels.FullScreenBars$Teller");
+        Object recorder = java.lang.reflect.Proxy.newProxyInstance(teller.getClassLoader(), new Class<?>[] {teller},
+                (proxy, method, args) -> {
+                    switch (method.getName()) {
+                        case "tell": told.add(args[0] + " " + args[1] + " " + args[2]); return null;
+                        case "hashCode": return System.identityHashCode(proxy);
+                        case "equals": return proxy == args[0];
+                        default: return "recorder";
+                    }
+                });
+        ReflectionHelpers.callStaticMethod(FullScreenBars.class, "resetHeightsForTests",
+                ReflectionHelpers.ClassParameter.from(teller, recorder));
+        ReflectionHelpers.callStaticMethod(FullScreenBars.class, "registeredForTests",
+                ReflectionHelpers.ClassParameter.from(boolean.class, true));
+        try (GlassHost host = new GlassHost(Color.BLACK, true, GlassHeight.STANDARD, false, false)) {
+            int nav = host.dp(24);
+            int status = host.dp(28);
+            navBarAtTheFoot(nav);
+            host.controller.pause().resume();
+            ReflectionHelpers.callStaticMethod(FullScreenBars.class, "nowResumed",
+                    ReflectionHelpers.ClassParameter.from(Activity.class, host.activity));
+            host.frame();
+            FullScreenBars.heightsAsked(host.activity, "story screen");
+            assertEquals(status, FullScreenBars.barHeight(status));
+            assertEquals("shown in front", 0, FullScreenBars.navBarHeight(nav));
+            host.frame();
+            told.clear();
+
+            host.bar.setVisibility(View.GONE);
+            boolean held = host.bar.getViewTreeObserver().dispatchOnPreDraw();
+            assertEquals("told in the frame the pill went", java.util.Collections.singletonList("story screen " + status + " " + nav), told);
+            assertTrue("that frame waits for the new layout", held);
+            assertEquals("the pill is out of the way", nav, GlassTabBar.navBarHeight(nav));
+
+            assertEquals(status, FullScreenBars.barHeight(status));
+            assertEquals("the insets pass after it", nav, FullScreenBars.navBarHeight(nav));
+            org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(200));
+            assertEquals("nobody is told twice", 1, told.size());
+            assertFalse("the next frame draws", host.bar.getViewTreeObserver().dispatchOnPreDraw());
+        } finally {
+            ReflectionHelpers.callStaticMethod(FullScreenBars.class, "registeredForTests",
+                    ReflectionHelpers.ClassParameter.from(boolean.class, false));
+            resetFullScreenHeights();
+        }
+    }
+
     /** FullScreenBars starts and ends with nothing offered, taken or kept, telling the patch's listeners. */
     private static void resetFullScreenHeights() throws Exception {
         Class<?> teller = Class.forName("app.hushgram.extension.instagram.reels.FullScreenBars$Teller");
