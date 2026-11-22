@@ -248,7 +248,7 @@ public final class ReelSeekRoom {
      * app, and its curved corners cut off the ends of a bar on the edge (#633): then [unreported], the height
      * the bar is taken to have ({@link FullScreenBars#unreportedNavHeight}).
      */
-    static int strip(int nav, int gestures, int unreported) {
+    public static int strip(int nav, int gestures, int unreported) {
         int measured = Math.max(nav, gestures);
         return measured > 0 ? measured : Math.max(0, unreported);
     }

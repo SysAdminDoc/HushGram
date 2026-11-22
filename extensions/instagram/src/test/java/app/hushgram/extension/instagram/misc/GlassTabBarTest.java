@@ -4019,6 +4019,36 @@ public class GlassTabBarTest {
     }
 
     /**
+     * #450: with the pill away, a reel's seek bar on a gesture navigation phone (a 48 pixel bar under a 64
+     * pixel gesture area, as the API 36 emulator reports) goes up past the whole gesture area, so the seek
+     * bar's room finds it clear and adds no lift of its own. Lifted 48, the room put 16 on top; a drag made
+     * the pill and the room each take the other's for Instagram's, and the bar was left over the caption.
+     * The taller of the two counts, and a phone reporting neither falls back to the bar it's taken to have.
+     */
+    @Test
+    public void aReelWithThePillAwayClearsTheGestureAreaSoTheRoomAddsNothing() {
+        int lift = GlassTabBar.intoTheSeekBarsStrip(1600, 1600, 48, 64, 63);
+        assertEquals("past the gesture area", 64, lift);
+        int room = ReflectionHelpers.callStaticMethod(ReelSeekRoom.class, "liftFor",
+                ReflectionHelpers.ClassParameter.from(int.class, 1600 - lift),
+                ReflectionHelpers.ClassParameter.from(int.class, 1600),
+                ReflectionHelpers.ClassParameter.from(int.class, ReelSeekRoom.strip(48, 64, 63)));
+        assertEquals("the room has nothing to add", 0, room);
+        int navOnly = GlassTabBar.intoTheNavigationBar(1600, 1600, 48);
+        int under = ReflectionHelpers.callStaticMethod(ReelSeekRoom.class, "liftFor",
+                ReflectionHelpers.ClassParameter.from(int.class, 1600 - navOnly),
+                ReflectionHelpers.ClassParameter.from(int.class, 1600),
+                ReflectionHelpers.ClassParameter.from(int.class, ReelSeekRoom.strip(48, 64, 63)));
+        assertEquals("past the bar alone the room still lifted", 16, under);
+
+        assertEquals("a taller bar counts", 126, GlassTabBar.intoTheSeekBarsStrip(1600, 1600, 126, 0, 63));
+        assertEquals("nothing reported", 63, GlassTabBar.intoTheSeekBarsStrip(1600, 1600, 0, 0, 63));
+        assertEquals("stopped above the strip", 0, GlassTabBar.intoTheSeekBarsStrip(1536, 1600, 48, 64, 63));
+        assertEquals("part way in", 30, GlassTabBar.intoTheSeekBarsStrip(1566, 1600, 48, 64, 63));
+        assertEquals("no window yet", 0, GlassTabBar.intoTheSeekBarsStrip(1600, 0, 48, 64, 63));
+    }
+
+    /**
      * #466, #467: with a Reels auto-hide the reel runs behind the pill, so it keeps one size as the pill
      * slides instead of growing into its slot, and leaves no black band while it's away (#335).
      */
