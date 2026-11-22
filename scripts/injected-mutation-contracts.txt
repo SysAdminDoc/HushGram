@@ -3261,6 +3261,13 @@ once-call Lapp/hushgram/extension/instagram/reels/ReelOrigin;->postsTileBound(Lj
 # isn't the hook the patch wrote. FeedReelHeaderHookTest checks on every 456 build where each lands.
 once-call Lapp/hushgram/extension/instagram/reels/ReelOrigin;->openingFromFeed(Ljava/lang/Object;)V in instance (Ljava/lang/Object;)V calling static LX/*;->*(Landroidx/fragment/app/Fragment;Lcom/instagram/common/session/UserSession;LX/*;Ljava/lang/String;Ljava/lang/String;)V pooled holding media_username
 once-call Lapp/hushgram/extension/instagram/reels/ReelOrigin;->openingFromFeed(Ljava/lang/Object;)V in instance (Ljava/lang/Object;)V calling static LX/*;->*(Landroid/app/Activity;Landroid/os/Bundle;LX/*;Ljava/lang/Class;Ljava/lang/String;)LX/*; pooled holding media_username
+# A tap on the post's name reaches neither: it goes through Instagram's labelled feed header profile
+# open (00QE.A06 on 386214574, and its static twin 00QE.A04), so each of the two hands its Media
+# parameter to openingFromFeed first. Left out, a name tap on a feed reel holds nothing.
+start-call Lapp/hushgram/extension/instagram/reels/ReelOrigin;->openingFromFeed(Ljava/lang/Object;)V in instance (Lcom/instagram/feed/media/Media;LX/*;Ljava/lang/String;IZ)V pooled holding DefaultMediaHeaderViewBinderDelegateImpl.gotoUserProfile
+once-call Lapp/hushgram/extension/instagram/reels/ReelOrigin;->openingFromFeed(Ljava/lang/Object;)V in instance (Lcom/instagram/feed/media/Media;LX/*;Ljava/lang/String;IZ)V pooled holding DefaultMediaHeaderViewBinderDelegateImpl.gotoUserProfile
+start-call Lapp/hushgram/extension/instagram/reels/ReelOrigin;->openingFromFeed(Ljava/lang/Object;)V in static (Lcom/instagram/feed/media/Media;LX/*;LX/*;LX/*;LX/*;Ljava/lang/String;)V pooled holding DefaultMediaHeaderViewBinderDelegateImpl.gotoUserProfile
+once-call Lapp/hushgram/extension/instagram/reels/ReelOrigin;->openingFromFeed(Ljava/lang/Object;)V in static (Lcom/instagram/feed/media/Media;LX/*;LX/*;LX/*;LX/*;Ljava/lang/String;)V pooled holding DefaultMediaHeaderViewBinderDelegateImpl.gotoUserProfile
 # Blur the bars around Reels hands ReelBlurBars.pager the Reels pager (AndroidX's ViewPager2, whose pages
 # each hold the reel's TextureView) right after the viewer's pager setup stores it (04QD.HRh on 452),
 # the same method Stop Reels scrolling finds by the trace name of the pager's setup. Left out, the switch does nothing;

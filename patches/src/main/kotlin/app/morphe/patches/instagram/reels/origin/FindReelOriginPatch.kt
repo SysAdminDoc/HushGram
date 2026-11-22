@@ -41,6 +41,8 @@ val findReelOriginPatch = bytecodePatch(
         hookReelOrigin()
         // A reel in the feed opens its author's profile from the post's header, not the opener (#795).
         for (tap in findFeedHeaderTapsOrWarn()) hookFeedHeaderTap(tap)
+        // A tap on the post's name reaches Instagram's own profile open instead, on the main feed of 456 at least.
+        for (open in findFeedProfileOpensOrWarn()) hookFeedProfileOpen(open)
         enableStatus("reelOrigin")
     }
 }
