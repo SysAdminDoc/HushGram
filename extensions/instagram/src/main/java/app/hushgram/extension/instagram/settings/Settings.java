@@ -3449,7 +3449,7 @@ public class Settings extends BaseSettings {
     /**
      * The items left out of the menus behind the three dots on posts, reels and stories
      * ({@link app.hushgram.extension.instagram.feed.MenuItems}, #697, #707), with commas between: any
-     * of REPORT, MUTE, UNFOLLOW, NOT_INTERESTED, INTERESTED, WHY, PLAYBACK_SPEED and PLAYBACK. Nothing
+     * of {@link app.hushgram.extension.instagram.feed.MenuItems#OFFERED}, HushGram's own rows among them. Nothing
      * named is the start, so every item shows. Read each time a menu is built, so a change shows the
      * next time one opens. Stories only have Report and Mute to leave out.
      */

@@ -47,7 +47,8 @@ import app.hushgram.extension.shared.settings.PauseForTests;
 public class MenuItemsTest {
     /** Stand-in for Instagram's option enum: the names are all the hooks read. */
     private enum Option { REPORT, REPORT_AD, MUTE_USER, UNFOLLOW_USER, NOT_INTERESTED, INTERESTED, WHY_AM_I_SEEING_THIS,
-        PLAYBACK_SPEED, PLAYBACK_CONTROLS, SAVE, DOWNLOAD }
+        PLAYBACK_SPEED, PLAYBACK_CONTROLS, SAVE, DOWNLOAD, SEE_MORE, SEE_FEWER, ABOUT_THIS_ACCOUNT, QR_CODE,
+        HUSHGRAM_POST_DETAILS, HUSHGRAM_POST_BLOCK, HUSHGRAM_HIDE_ACCOUNT }
 
     /** A feed menu row the way Instagram's hold theirs: the option in a field of its own type. */
     private static final class Row {
@@ -103,6 +104,28 @@ public class MenuItemsTest {
         assertTrue(report, report.contains("Counted: " + MenuItems.LEFT_OFF + " 3"));
     }
 
+    /**
+     * #707: a suggested feed video's menu on Instagram 456, as it's built: Interested and Not interested
+     * carry SEE_MORE and SEE_FEWER there, and HushGram's own Details, Block and Hide posts rows go by
+     * their names too. QR code isn't offered and stays.
+     */
+    @Test
+    public void aSuggestedFeedVideosMenuLosesItsUntickedRowsToo() {
+        List<Row> rows = new ArrayList<>(Arrays.asList(new Row("Download", Option.DOWNLOAD),
+                new Row("Details", Option.HUSHGRAM_POST_DETAILS), new Row("Block", Option.HUSHGRAM_POST_BLOCK),
+                new Row("Why you're seeing this", Option.WHY_AM_I_SEEING_THIS), new Row("Interested", Option.SEE_MORE),
+                new Row("Not interested", Option.SEE_FEWER), new Row("Report", Option.REPORT),
+                new Row("Hide posts from this account", Option.HUSHGRAM_HIDE_ACCOUNT),
+                new Row("About this account", Option.ABOUT_THIS_ACCOUNT), new Row("QR code", Option.QR_CODE),
+                new Row("Save", Option.SAVE)));
+        MenuItems.feedRows(rows, () -> hiding("INTERESTED", "NOT_INTERESTED", "DETAILS", "HIDE_ACCOUNT"),
+                () -> Option.REPORT, FeedSaveRow::optionOf);
+        assertEquals("[Download/DOWNLOAD, Block/HUSHGRAM_POST_BLOCK, Why you're seeing this/WHY_AM_I_SEEING_THIS, "
+                + "Report/REPORT, About this account/ABOUT_THIS_ACCOUNT, QR code/QR_CODE, Save/SAVE]", rows.toString());
+        MenuItems.feedRows(rows, () -> hiding("DOWNLOAD", "BLOCK", "ABOUT", "SAVE"), () -> Option.REPORT, FeedSaveRow::optionOf);
+        assertEquals("[Why you're seeing this/WHY_AM_I_SEEING_THIS, Report/REPORT, QR code/QR_CODE]", rows.toString());
+    }
+
     @Test
     public void nothingTickedOffLeavesTheFeedMenuAlone() {
         List<Row> rows = feedMenu();
@@ -132,6 +155,7 @@ public class MenuItemsTest {
         assertTrue(MenuItems.reelRow(Option.INTERESTED, () -> hiding("INTERESTED")));
         assertFalse("Interested and Not interested are two items",
                 MenuItems.reelRow(Option.NOT_INTERESTED, () -> hiding("INTERESTED")));
+        assertTrue("456's name for Not interested", MenuItems.reelRow(Option.SEE_FEWER, () -> hiding("NOT_INTERESTED")));
         assertFalse(MenuItems.reelRow(Option.DOWNLOAD, () -> hiding("REPORT", "MUTE", "PLAYBACK")));
         assertFalse(MenuItems.reelRow(null, () -> hiding("REPORT")));
         assertFalse(MenuItems.reelRow("REPORT", () -> hiding("REPORT")));
@@ -223,8 +247,8 @@ public class MenuItemsTest {
 
     @Test
     public void theSavedValueKeepsOnlyOfferedNamesInListOrder() {
-        assertEquals(hiding("REPORT", "WHY"), MenuItems.parse(" WHY , REPORT,REPORT,, SAVE"));
-        assertEquals("REPORT,MUTE,PLAYBACK", MenuItems.join(hiding("PLAYBACK", "MUTE", "REPORT", "DOWNLOAD")));
+        assertEquals(hiding("REPORT", "WHY"), MenuItems.parse(" WHY , REPORT,REPORT,, QR_CODE"));
+        assertEquals("REPORT,MUTE,PLAYBACK", MenuItems.join(hiding("PLAYBACK", "MUTE", "REPORT", "QR_CODE")));
         assertEquals("", MenuItems.join(Collections.emptySet()));
         assertEquals(Collections.emptySet(), MenuItems.parse(null));
         for (String name : MenuItems.OFFERED) {
@@ -328,6 +352,20 @@ public class MenuItemsTest {
                 return "WHY_AM_I_SEEING_THIS";
             case "PLAYBACK":
                 return "PLAYBACK_CONTROLS";
+            case "DOWNLOAD_PHOTO":
+                return "HUSHGRAM_DOWNLOAD_AS_PHOTO";
+            case "DOWNLOAD_VIDEO":
+                return "HUSHGRAM_DOWNLOAD_AS_VIDEO";
+            case "DOWNLOAD_COVER":
+                return "HUSHGRAM_DOWNLOAD_COVER";
+            case "DETAILS":
+                return "HUSHGRAM_POST_DETAILS";
+            case "ABOUT":
+                return "ABOUT_THIS_ACCOUNT";
+            case "BLOCK":
+                return "HUSHGRAM_POST_BLOCK";
+            case "HIDE_ACCOUNT":
+                return "HUSHGRAM_HIDE_ACCOUNT";
             default:
                 return item;
         }

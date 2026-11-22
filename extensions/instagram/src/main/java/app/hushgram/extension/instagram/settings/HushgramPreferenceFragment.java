@@ -1562,6 +1562,24 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 return L10n.t("Get Edits");
             case "LOOP":
                 return L10n.t("Loop this video");
+            case "SAVE":
+                return L10n.t("Save");
+            case "DOWNLOAD":
+                return L10n.t("Download");
+            case "DOWNLOAD_PHOTO":
+                return L10n.t("Download as photo");
+            case "DOWNLOAD_VIDEO":
+                return L10n.t("Download as video");
+            case "DOWNLOAD_COVER":
+                return L10n.t("Download cover");
+            case "DETAILS":
+                return L10n.t("Details");
+            case "ABOUT":
+                return L10n.t("About this account");
+            case "BLOCK":
+                return L10n.t("Block");
+            case "HIDE_ACCOUNT":
+                return L10n.t("Hide posts from this account");
             default:
                 return L10n.t("Playback");
         }

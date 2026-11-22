@@ -30,6 +30,7 @@ Every HushGram release, newest first.
 * Saving a reel gets its picture and sound at the same time now, instead of one after the other, so saves finish sooner. Asked about in #493.
 * A feed post's three-dot menu can now show Block and Playback speed. Turn on `Block in a post's menu` and `Speed in a post's menu` under Downloads. Requested in #743.
 * `Items in the three-dot menus` under Feed has five more to untick. A reel's menu can drop Remix and sequence, Use as reference, Use template and Get Edits, and the Made with Edits heading goes too once none of them is left. `Loop this video` can come off the reel and feed video menus as well. Asked for in #707.
+* `Items in the three-dot menus` can drop nine more rows: Save, Download, Download as photo, Download as video, Download cover, Details, About this account, Block and Hide posts from this account. Asked for in #707.
 * Press and hold the Download button on a story to pick `Download` or `Save all`, which saves every story in the set you're watching. It comes with `Download button on stories`. Requested in #745.
 * Under `Default playback quality` there's a new `Drop quality to keep playing` switch. It's on to start, so a slow connection drops a rung instead of stalling. Turn it off to keep the quality you picked. Requested in #761.
 * Two new switches under Feed, next to `Hide the Like button`. `Hide counts on posts` takes the like, comment, share and repost numbers off feed posts and keeps the buttons. `Hide Liked by` takes the "Liked by" line off them. Asked for in #762.
@@ -62,6 +63,7 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
+* Unticking Interested or Not interested in `Items in the three-dot menus` takes them off a suggested post's menu in Home again. Instagram 456 renamed those two rows there. Reported in #707.
 * The time on a feed video's seek bar is smaller now and sits under the tags and sound buttons, so tapping it no longer opens the tags instead. Reported in #711.
 * The dot beside a new setting stays until you've scrolled to it. Going back out of a page cleared every dot on it, even the ones further down you never saw. Reported in #689.
 * `Show if a profile follows you` now labels profiles that have a name but no pronouns. The label and badges were only showing up on profiles with no name at all. Reported in #727.

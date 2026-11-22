@@ -53,7 +53,8 @@ public final class MenuItems {
     /** The items the setting can leave out, in the order the list shows them. */
     public static final List<String> OFFERED = Collections.unmodifiableList(Arrays.asList(
             "REPORT", "MUTE", "UNFOLLOW", "NOT_INTERESTED", "INTERESTED", "WHY", "PLAYBACK_SPEED", "PLAYBACK",
-            "REMIX", "REFERENCE", "TEMPLATE", "GET_EDITS", "LOOP"));
+            "REMIX", "REFERENCE", "TEMPLATE", "GET_EDITS", "LOOP", "SAVE", "DOWNLOAD", "DOWNLOAD_PHOTO",
+            "DOWNLOAD_VIDEO", "DOWNLOAD_COVER", "DETAILS", "ABOUT", "BLOCK", "HIDE_ACCOUNT"));
 
     /** What's counted for each row left out of a menu. */
     static final String LEFT_OFF = "Three-dot menu items left off";
@@ -102,7 +103,12 @@ public final class MenuItems {
         }
     }
 
-    /** The item Instagram's option named [option] is, or null when the setting doesn't offer it. */
+    /**
+     * The item Instagram's option named [option] is, or null when the setting doesn't offer it. The
+     * rows HushGram adds to these menus carry options of its own, named HUSHGRAM_ and the rest, and go
+     * by the same names. Instagram 456 gives a feed video's Interested and Not interested rows SEE_MORE
+     * and SEE_FEWER (#707).
+     */
     @Nullable
     static String itemOf(@Nullable String option) {
         if (option == null) return null;
@@ -115,15 +121,40 @@ public final class MenuItems {
             case "UNFOLLOW_USER":
                 return "UNFOLLOW";
             case "NOT_INTERESTED":
+            case "SEE_FEWER":
                 return "NOT_INTERESTED";
             case "INTERESTED":
+            case "SEE_MORE":
                 return "INTERESTED";
             case "WHY_AM_I_SEEING_THIS":
                 return "WHY";
             case "PLAYBACK_SPEED":
+            case "HUSHGRAM_POST_SPEED":
+            case "HUSHGRAM_REEL_SPEED":
                 return "PLAYBACK_SPEED";
             case "PLAYBACK_CONTROLS":
                 return "PLAYBACK";
+            case "SAVE":
+            case "UNSAVE":
+                return "SAVE";
+            case "DOWNLOAD":
+            case "HUSHGRAM_DOWNLOAD_REEL":
+                return "DOWNLOAD";
+            case "HUSHGRAM_DOWNLOAD_AS_PHOTO":
+                return "DOWNLOAD_PHOTO";
+            case "HUSHGRAM_DOWNLOAD_AS_VIDEO":
+                return "DOWNLOAD_VIDEO";
+            case "HUSHGRAM_DOWNLOAD_COVER":
+                return "DOWNLOAD_COVER";
+            case "HUSHGRAM_POST_DETAILS":
+            case "HUSHGRAM_REEL_DETAILS":
+                return "DETAILS";
+            case "ABOUT_THIS_ACCOUNT":
+                return "ABOUT";
+            case "HUSHGRAM_POST_BLOCK":
+                return "BLOCK";
+            case "HUSHGRAM_HIDE_ACCOUNT":
+                return "HIDE_ACCOUNT";
             default:
                 return null;
         }
