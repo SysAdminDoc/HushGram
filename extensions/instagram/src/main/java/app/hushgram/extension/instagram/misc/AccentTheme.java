@@ -221,6 +221,12 @@ public final class AccentTheme {
     /** What's counted each time an opened chat's black or white background or header takes the page shade (#528). */
     static final String CHAT_BACKGROUNDS = "Chat backgrounds and headers given the page shade";
 
+    /** The key Instagram keeps its Dark mode choice under in its default preferences, -1 for the system's. */
+    static final String DARK_MODE_KEY = "dark_mode_toggle_setting";
+
+    /** {@link #DARK_MODE_KEY}'s value for Dark mode on, and for off. */
+    static final int DARK_MODE_ON = 2, DARK_MODE_OFF = 1;
+
     /** The theme attribute Instagram's other secondary buttons read their fill from, the first of the patch's SECONDARY_BUTTONS. */
     static final String SECONDARY_BUTTON_ATTRIBUTE = "igds_color_secondary_button_panavision";
 
@@ -465,23 +471,76 @@ public final class AccentTheme {
      * either. Answers [value] itself for any other color. Never throws.
      */
     public static long composeSurface(long value) {
+        return composeSurface(value, null);
+    }
+
+    /**
+     * {@link #composeSurface(long)}, reading the shades from the styles through [context] (the app's when
+     * null) when no theme has been styled yet. See {@link #styledSurfaces}.
+     */
+    static long composeSurface(long value, @Nullable Context context) {
         try {
             HookStatus.invoked(FamilyNames.ACCENT_COLOR);
             if ((value & 0xffffffffL) != 0) return value;
             int argb = (int) (value >>> 32);
             int step = surfaceStep(argb & 0xffffff);
-            int[] surfaces = paintedSurfaces();
-            if (step < 0) {
-                step = lightStep(argb & 0xffffff);
-                surfaces = paintedLightSurfaces();
-            }
-            if (step < 0 || surfaces == null) return value;
+            boolean dark = step >= 0;
+            if (!dark) step = lightStep(argb & 0xffffff);
+            if (step < 0) return value;
+            int[] surfaces = dark ? paintedSurfaces() : paintedLightSurfaces();
+            if (surfaces == null) surfaces = styledSurfaces(context, dark);
+            if (surfaces == null) return value;
             HookStatus.counted(FamilyNames.ACCENT_COLOR, SURFACES);
             return (long) (argb & 0xff000000 | surfaces[step] & 0xffffff) << 32;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.ACCENT_COLOR, "Compose surface", failure);
             return value;
         }
+    }
+
+    /**
+     * The shades a [dark] theme or a light one takes from Classic colors' style, or from the picked
+     * color's backgrounds, read from the style alone through [context] (the app's when null) and kept as
+     * {@link #rememberSurfaces} keeps a styled theme's. Instagram builds its Compose palettes on a thread
+     * of its own as it starts, while the first screen's theme is still being styled, so the first grays
+     * they asked for were answered as Instagram's own and the Messages rows stayed black all session
+     * (#528). Only for the kind of screen the app will show, since a light screen writes its text in
+     * the dark grays, and not for Material You's or a typed color, whose shades load with the first
+     * screen. Null when none of that holds or the style can't be read.
+     */
+    @Nullable
+    static int[] styledSurfaces(@Nullable Context context, boolean dark) {
+        if (!Utils.settingsReady()) return null;
+        Context app = context != null ? context : Utils.getContext();
+        if (app == null || showsDark(app) != dark) return null;
+        Resources resources = app.getResources();
+        String style = null;
+        if (Settings.CLASSIC_COLORS.get()) {
+            style = classicStyle(dark);
+        } else if (dark && Settings.ACCENT_BACKGROUNDS.get()) {
+            AccentHue hue = AccentColor.picked();
+            if (hue != null && hue != AccentHue.WALLPAPER && hue != AccentHue.CUSTOM) style = backgroundStyle(hue, true);
+        }
+        if (style == null) return null;
+        String pkg = Utils.resourcePackage(app);
+        int id = id(resources, style, "style", pkg);
+        if (id == 0) return null;
+        Resources.Theme theme = resources.newTheme();
+        theme.applyStyle(id, true);
+        rememberSurfaces(resources, theme, pkg, dark);
+        return dark ? paintedSurfaces() : paintedLightSurfaces();
+    }
+
+    /**
+     * Instagram's own Dark mode choice, kept in its default preferences under {@link #DARK_MODE_KEY}:
+     * {@link #DARK_MODE_ON} or {@link #DARK_MODE_OFF}, else the system's. Each screen lays it on as it
+     * opens, so the app's configuration still holds the system's while the palettes are built.
+     */
+    static boolean showsDark(Context app) {
+        int mode = app.getSharedPreferences(app.getPackageName() + "_preferences", Context.MODE_PRIVATE).getInt(DARK_MODE_KEY, -1);
+        if (mode == DARK_MODE_ON) return true;
+        if (mode == DARK_MODE_OFF) return false;
+        return (app.getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES;
     }
 
     /**

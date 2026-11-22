@@ -11,6 +11,7 @@ import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
 import android.content.ContextWrapper;
+import android.content.SharedPreferences;
 import android.content.res.Resources;
 import android.graphics.Canvas;
 import android.graphics.ColorFilter;
@@ -494,6 +495,65 @@ public class AccentThemeTest {
             AccentTheme.darkSurfacesForTests(null);
             AccentTheme.lightSurfacesForTests(null);
         }
+    }
+
+    /**
+     * Instagram builds its Compose palettes on a thread of its own as it starts, before the first
+     * screen's theme is styled, so with Classic colors on the grays come straight from the classic
+     * style for the kind of screen Instagram's Dark mode choice will show, and the other kind's stay
+     * (#528).
+     */
+    @Test
+    public void composeReadsTheClassicStyleBeforeAnyScreenIsStyled() {
+        Settings.CLASSIC_COLORS.save(true);
+        AccentTheme.darkSurfacesForTests(null);
+        AccentTheme.lightSurfacesForTests(null);
+        String pkg = THEMED + ".classic.early";
+        SharedPreferences prefs = RuntimeEnvironment.getApplication().getSharedPreferences(pkg + "_preferences", Context.MODE_PRIVATE);
+        try {
+            Context app = themed(pkg, (name, type) -> {
+                if (type.equals("style") && name.equals("HushGramClassicBackgrounds_dark")) return android.R.style.Theme_Material;
+                if (type.equals("style") && name.equals("HushGramClassicBackgrounds_light")) return android.R.style.Theme_Material_Light;
+                return type.equals("attr") && name.startsWith("igds_color_") ? android.R.attr.colorBackground : 0;
+            });
+            long black = (long) 0xff000000 << 32;
+            long white = (long) 0xffffffff << 32;
+            long darkPage = (long) (0xff000000 | page(app, android.R.style.Theme_Material)) << 32;
+            long lightPage = (long) (0xff000000 | page(app, android.R.style.Theme_Material_Light)) << 32;
+            assertTrue("page colors unlike Compose's own", darkPage != black && lightPage != white);
+
+            prefs.edit().putInt(AccentTheme.DARK_MODE_KEY, AccentTheme.DARK_MODE_ON).commit();
+            assertEquals("Dark mode on", darkPage, AccentTheme.composeSurface(black, app));
+            assertEquals("a light screen's white with Dark mode on", white, AccentTheme.composeSurface(white, app));
+            AccentTheme.darkSurfacesForTests(null);
+
+            prefs.edit().putInt(AccentTheme.DARK_MODE_KEY, AccentTheme.DARK_MODE_OFF).commit();
+            assertEquals("a light screen's black text with Dark mode off", black, AccentTheme.composeSurface(black, app));
+            assertEquals("Dark mode off", lightPage, AccentTheme.composeSurface(white, app));
+            AccentTheme.lightSurfacesForTests(null);
+
+            prefs.edit().clear().commit();
+            assertEquals("the system's light mode", black, AccentTheme.composeSurface(black, app));
+            assertEquals("the system's light mode", lightPage, AccentTheme.composeSurface(white, app));
+            AccentTheme.lightSurfacesForTests(null);
+
+            Settings.CLASSIC_COLORS.save(false);
+            prefs.edit().putInt(AccentTheme.DARK_MODE_KEY, AccentTheme.DARK_MODE_ON).commit();
+            assertEquals("Classic colors off", black, AccentTheme.composeSurface(black, app));
+        } finally {
+            prefs.edit().clear().commit();
+            AccentTheme.darkSurfacesForTests(null);
+            AccentTheme.lightSurfacesForTests(null);
+        }
+    }
+
+    /** The RGB of the window background [style] gives a theme of [context]'s resources. */
+    private static int page(Context context, int style) {
+        Resources.Theme theme = context.getResources().newTheme();
+        theme.applyStyle(style, true);
+        TypedValue value = new TypedValue();
+        assertTrue(theme.resolveAttribute(android.R.attr.colorBackground, value, true));
+        return value.data & 0xffffff;
     }
 
     /**
