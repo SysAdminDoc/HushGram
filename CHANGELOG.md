@@ -105,6 +105,7 @@ Every HushGram release, newest first.
 * With `Keep 2x after you let go`, the name over a feed video comes back when you let go, and the time readout goes away. Before, they stayed the way they look while you hold. Reported in #552.
 * With `Classic colors` or `Backgrounds in the accent color` on, an open chat takes your page color behind the messages and in its header instead of staying black. Chats with a theme of their own keep it. Reported in #528.
 * The Messages list keeps your page color when Instagram opens straight into it from a notification. Its rows stayed black until a restart. Reported in #528.
+* With `Glass in chats` on, messages no longer jump up and down as a chat opens or the message bar changes height, and the newest one no longer ends up hidden behind the bar. Reported in #528.
 
 ## 0.0.21 (2026-11-18)
 

@@ -21,6 +21,9 @@ import app.morphe.patches.shared.compat.AppCompatibilities
  * watching. This patch switches the status method on, so the settings screen offers the switches and the
  * extension acts. Video stays on a TextureView while either switch is on, through [videoSurfacePatch], so
  * a video under the glass comes through the blur. Included in the default selection with its switches off.
+ *
+ * The bottom padding Instagram gives a chat's messages goes through the extension, so the room the glass
+ * gives them under the message bar stays as the bar changes height (see [keepChatPadding]).
  */
 @Suppress("unused")
 val glassChatPatch = bytecodePatch(
@@ -38,5 +41,6 @@ val glassChatPatch = bytecodePatch(
     execute {
         requireStatusMethod("glassChat")
         enableStatus("glassChat")
+        keepChatPadding()
     }
 }

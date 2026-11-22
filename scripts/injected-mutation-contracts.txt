@@ -2617,6 +2617,16 @@ once-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->chatBackground(La
 # the header to AccentTheme.chatHeader right after that call. Left out, the header stays black over the
 # chat's navy page under Classic colors (#528). ChatBackgroundTest checks every build.
 once-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->chatHeader(Landroid/view/View;)V in instance (LX/*;)V holding const:0x14d400c4
+# A chat pads its message list at the bottom each time the message bar changes height, through Instagram's
+# helper setting a view's bottom padding (07tl.A0j on 386214534, the one of the two such helpers with the
+# null check first), then scrolls the list by the difference to keep the newest message in view. Glass in
+# chats hands that padding to GlassTopBar.bottomPadding right before the helper's setPadding, which adds
+# the room the glass gives the messages under the bar, and the chat's read of the list's padding to
+# GlassTopBar.ownBottomPadding (05LM.A0d), which takes it off again. Left out, the padding undid the
+# glass's and the messages jumped by the room and back, or stayed behind the bar (#528, #757).
+# ChatListPaddingTest checks every build.
+once-call Lapp/hushgram/extension/instagram/feed/GlassTopBar;->bottomPadding(Landroid/view/View;I)I in static (Landroid/view/View;I)V holding Landroid/view/View;->getPaddingLeft()I Landroid/view/View;->getPaddingTop()I Landroid/view/View;->getPaddingRight()I Landroid/view/View;->setPadding(IIII)V LX/*;->*(Ljava/lang/Object;I)V
+once-call Lapp/hushgram/extension/instagram/feed/GlassTopBar;->ownBottomPadding(Landroid/view/View;I)I in instance (IIZ)V holding LX/*;->*:Lcom/instagram/ui/recyclerview/CustomFadingEdgeRecyclerView; Landroid/view/View;->getPaddingBottom()I Ljava/lang/Math;->max(II)I
 # The unread dot on the Messages folder chips (Primary, Requests) is Compose, a background whose color
 # the chip content (0F24.invoke on 386014758, 0YXX.invoke on 386014704) reads from a static palette
 # object, so no theme style reaches it. Accent color hands that one color to AccentTheme.composeBadge

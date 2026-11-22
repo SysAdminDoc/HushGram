@@ -363,6 +363,50 @@ public class ChatReachTest {
         return header.getViewTreeObserver().dispatchOnPreDraw();
     }
 
+    /**
+     * Instagram's own helper pads the messages with the room the reach gives them in it, and the chat reads its
+     * padding back without it, so a message bar changing height moves nothing and no frame is held back. Before,
+     * its padding undid the reach's and the messages dropped behind the bar until it was put back (#528).
+     */
+    @Test
+    @Config(qualifiers = "w1080dp-h2000dp")
+    public void instagramsOwnPaddingKeepsTheRoomUnderTheMessageBar() {
+        aboveTheNavigationBar();
+        glaze();
+        assertFalse(preDraw());
+        assertEquals("read back as Instagram set it", 0, GlassTopBar.ownBottomPadding(list, list.getPaddingBottom()));
+
+        // The message bar grows a line and Instagram pads the list for it through its helper.
+        padBottom(list, 20);
+        assertEquals(20 + ENDS + NAV, list.getPaddingBottom());
+        assertFalse("nothing to put back, so the frame is drawn", preDraw());
+        layout();
+        assertFalse(preDraw());
+        assertEquals(TALL, windowBottom(list));
+        assertEquals(20 + ENDS + NAV, list.getPaddingBottom());
+        assertEquals(20, GlassTopBar.ownBottomPadding(list, list.getPaddingBottom()));
+
+        // Any other view's padding is Instagram's.
+        assertEquals(20, GlassTopBar.bottomPadding(header, 20));
+        assertEquals(20, GlassTopBar.ownBottomPadding(header, 20));
+        assertEquals(20, GlassTopBar.bottomPadding(null, 20));
+
+        // Off, the list keeps Instagram's last padding, and its helper sets the next as it is.
+        on.set(false);
+        frame();
+        assertEquals(20, list.getPaddingBottom());
+        padBottom(list, 30);
+        assertEquals(30, list.getPaddingBottom());
+        assertEquals(30, GlassTopBar.ownBottomPadding(list, 30));
+        String report = HookStatus.report().toString();
+        assertFalse(report, report.contains(GlassTopBar.HOOK));
+    }
+
+    /** Instagram's helper setting [view]'s bottom padding, as the patch has it: left, top and right kept. */
+    private static void padBottom(View view, int bottom) {
+        view.setPadding(view.getPaddingLeft(), view.getPaddingTop(), view.getPaddingRight(), GlassTopBar.bottomPadding(view, bottom));
+    }
+
     @Test
     @Config(qualifiers = "w1080dp-h2000dp")
     public void offTheMessagesComeBackUpFromTheBottom() {

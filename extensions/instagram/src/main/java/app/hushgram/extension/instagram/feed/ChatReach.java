@@ -17,7 +17,9 @@ import androidx.annotation.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.WeakHashMap;
 import java.util.function.ToIntFunction;
 
 import app.hushgram.extension.shared.Logger;
@@ -56,6 +58,9 @@ final class ChatReach {
     /** The height of [view]'s window, and of the navigation bar at its bottom. Swapped in tests. */
     static ToIntFunction<View> window = view -> view.getRootView().getHeight();
     static ToIntFunction<View> navigation = ChatReach::navigationBar;
+
+    /** The lists taken down now, by the reach that took each. Weak, so a chat that's gone goes with it. Main thread. */
+    private static final Map<View, ChatReach> STRETCHED = new WeakHashMap<>();
 
     /** The ids of the view beside the header holding the messages, and of the list in it. */
     private final int messagesId;
@@ -99,6 +104,26 @@ final class ChatReach {
     ChatReach(int messagesId, int listId) {
         this.messagesId = messagesId;
         this.listId = listId;
+    }
+
+    /**
+     * [bottom], the padding Instagram's helper is setting at the bottom of [view], with the room this gives the list
+     * when [view] is one taken down. Instagram pads a chat's messages again each time the message bar changes height
+     * and scrolls them by the difference to keep the newest in view, so without the room in it the messages dropped
+     * behind the bar until it was put back, and could stay there (#528, #757).
+     */
+    static int bottomPadding(@Nullable View view, int bottom) {
+        ChatReach reach = view == null || STRETCHED.isEmpty() ? null : STRETCHED.get(view);
+        if (reach == null || reach.list != view) return bottom;
+        reach.listBottomPadding = bottom;
+        return bottom + reach.down;
+    }
+
+    /** [bottom], [view]'s bottom padding as read, as Instagram set it: without the room this gives a list taken down. */
+    static int ownBottomPadding(@Nullable View view, int bottom) {
+        ChatReach reach = view == null || STRETCHED.isEmpty() ? null : STRETCHED.get(view);
+        if (reach == null || reach.list != view || bottom != reach.listBottomPadding + reach.down) return bottom;
+        return reach.listBottomPadding;
     }
 
     static int navigationBar(View view) {
@@ -272,6 +297,11 @@ final class ChatReach {
         }
         if (found.getPaddingBottom() != listBottomPadding + want) pad(found, found.getPaddingTop(), listBottomPadding + want);
         down = want;
+        if (want > 0) {
+            STRETCHED.put(found, this);
+        } else if (STRETCHED.get(found) == this) {
+            STRETCHED.remove(found);
+        }
     }
 
     /** Puts the stretched view's margin and the list's bottom padding back as Instagram had them. */
@@ -288,6 +318,7 @@ final class ChatReach {
         if (stretch != null && found != null && found.getPaddingBottom() == listBottomPadding + down) {
             pad(found, found.getPaddingTop(), listBottomPadding);
         }
+        if (found != null && STRETCHED.get(found) == this) STRETCHED.remove(found);
         stretched = null;
         down = 0;
         beneath = 0;

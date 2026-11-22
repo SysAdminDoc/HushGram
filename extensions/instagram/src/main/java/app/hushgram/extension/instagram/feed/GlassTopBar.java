@@ -152,6 +152,35 @@ public final class GlassTopBar {
     }
 
     /**
+     * Injected in Instagram's helper setting a view's bottom padding, which a chat runs on its messages each time
+     * the message bar changes height: [bottom], with the room the glass gives the messages under the bar when
+     * [view] is a chat's list it took down (#528). Answers [bottom] itself for any other view. Never throws.
+     */
+    public static int bottomPadding(@Nullable View view, int bottom) {
+        try {
+            HookStatus.invoked(FamilyNames.GLASS_CHAT);
+            return ChatReach.bottomPadding(view, bottom);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.GLASS_CHAT, HOOK, failure);
+            return bottom;
+        }
+    }
+
+    /**
+     * Injected where a chat reads its message list's bottom padding to work out the next one: [bottom], as
+     * Instagram set it, without the room {@link #bottomPadding} adds (#528). Never throws.
+     */
+    public static int ownBottomPadding(@Nullable View view, int bottom) {
+        try {
+            HookStatus.invoked(FamilyNames.GLASS_CHAT);
+            return ChatReach.ownBottomPadding(view, bottom);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.GLASS_CHAT, HOOK, failure);
+            return bottom;
+        }
+    }
+
+    /**
      * Gives a message box, [box], the glass as a pill while [on] says so (#391): a chat's message bar or the
      * reply box on a story. The glass records what the view with the id [source] draws before the view holding
      * the box, the messages or the story, and [dark] keeps it dark whatever the theme, as the story viewer is.
