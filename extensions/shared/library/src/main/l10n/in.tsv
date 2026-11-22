@@ -2795,3 +2795,5 @@ Waiting for the saves before it	Menunggu simpanan sebelumnya
 Even on silent	Juga saat senyap
 # context: Summary of Even on silent, a switch under Start feed videos with sound (#762)
 Feed videos start with sound with the phone on silent or vibrate too. Only the media volume counts.	Video feed tetap mulai dengan suara saat ponsel dalam mode senyap atau getar. Hanya volume media yang dihitung.
+Also in search	Juga di pencarian
+Takes rows of the Explore grid and of search results out when a post in them holds a word or phrase from the list, or comes from an account the list names with @.	Menghapus baris dari kisi Jelajahi dan hasil pencarian jika ada postingan di dalamnya yang berisi kata atau frasa dari daftar, atau berasal dari akun yang disebut daftar dengan @.

@@ -34,8 +34,10 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * {@code @name} in the list also takes out that account's own reels, the author read through the
  * post's user and its username (#807). A reel with no caption from an account not named stays.
  * With Also on Home on, Home's posts are matched against the same list
- * ({@link app.hushgram.extension.instagram.feed.FeedSuggestions#homeItem}), and with Also in comments
- * on, so is each comment in a post's comments as its row is built ({@link #dropsComment}).
+ * ({@link app.hushgram.extension.instagram.feed.FeedSuggestions#homeItem}), with Also in comments
+ * on, so is each comment in a post's comments as its row is built ({@link #dropsComment}), and with
+ * Also in search on, so are the posts in the Explore grid and under search results
+ * ({@link CaptionWordSearch}).
  *
  * <p>A page where every reel would go keeps every item, so the viewer always has a reel to show,
  * and the report counts it. Off, paused, with an empty list, before the settings are read, or when
@@ -71,7 +73,7 @@ public final class CaptionWordReels {
         }
     }
 
-    private static final Reader PATCHED = new Reader() {
+    static final Reader PATCHED = new Reader() {
         @Override
         public Object media(Object item) {
             return CaptionWordReels.media(item);
@@ -273,6 +275,16 @@ public final class CaptionWordReels {
      */
     static List<String> commentWordsWhenOn() {
         if (!Utils.settingsReady() || !Settings.HIDE_CAPTION_WORD_COMMENTS.get()) return Collections.emptyList();
+        return wordsWhenOn();
+    }
+
+    /**
+     * The blocked words the Explore grid's and search results' posts are matched against (#807): the
+     * list while the switch and its Also in search are both on, and none while either is off, while
+     * paused or before the settings are read.
+     */
+    static List<String> searchWordsWhenOn() {
+        if (!Utils.settingsReady() || !Settings.HIDE_CAPTION_WORD_SEARCH.get()) return Collections.emptyList();
         return wordsWhenOn();
     }
 

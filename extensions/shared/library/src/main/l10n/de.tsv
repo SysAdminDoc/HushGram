@@ -2795,3 +2795,5 @@ Waiting for the saves before it	Wartet auf die Speicherungen davor
 Even on silent	Auch im Lautlos-Modus
 # context: Summary of Even on silent, a switch under Start feed videos with sound (#762)
 Feed videos start with sound with the phone on silent or vibrate too. Only the media volume counts.	Feed-Videos starten auch mit Ton, wenn das Handy lautlos oder auf Vibration steht. Nur die Medienlautstärke zählt.
+Also in search	Auch in der Suche
+Takes rows of the Explore grid and of search results out when a post in them holds a word or phrase from the list, or comes from an account the list names with @.	Entfernt Zeilen aus dem Explore-Raster und aus Suchergebnissen, wenn ein Beitrag darin ein Wort oder eine Wortgruppe aus der Liste enthält oder von einem Konto stammt, das die Liste mit @ nennt.

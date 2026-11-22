@@ -67,8 +67,8 @@ private const val LIST = "Ljava/util/List;"
 val hideCaptionWordReelsPatch = bytecodePatch(
     name = "Hide reels by caption words",
     description = "Leaves out reels whose caption holds a word or phrase from your list, or is in a language " +
-        "you don't keep. Also on Home does the same for Home's posts, and Also in comments hides matching " +
-        "comments. Starts off. " +
+        "you don't keep. Also on Home does the same for Home's posts, Also in comments hides matching " +
+        "comments, and Also in search takes matching rows out of the Explore grid and search results. Starts off. " +
         "Turn it on and type the words or languages in HushGram settings > Reels.",
 ) {
     category("Reels")
@@ -80,8 +80,10 @@ val hideCaptionWordReelsPatch = bytecodePatch(
         val page = findReelsPage(PATCH)
         val caption = findCaptionWordReels()
         val comments = findCommentWordsOrWarn()
+        val search = findSearchSectionPages()
         hideCaptionWordReels(page, caption)
         comments?.let { hideCommentWords(it) }
+        search.forEach { filterSearchSections(it) }
         enableStatus("captionWordReels")
     }
 }

@@ -95,6 +95,9 @@ final class ReelsCategory {
             reels.add(toggle(context, Settings.HIDE_CAPTION_WORD_COMMENTS, L10n.t("Also in comments"),
                     L10n.t("Hides comments that hold a word or phrase from the list too, and comments by an account "
                             + "the list names with @. A hidden comment's replies go with it.")));
+            reels.add(toggle(context, Settings.HIDE_CAPTION_WORD_SEARCH, L10n.t("Also in search"),
+                    L10n.t("Takes rows of the Explore grid and of search results out when a post in them holds a "
+                            + "word or phrase from the list, or comes from an account the list names with @.")));
             reels.add(toggle(context, Settings.HIDE_OTHER_LANGUAGE_REELS, L10n.t("Hide reels in other languages"),
                     L10n.t("Leaves out reels in the Reels tab whose caption is in a language you didn't list below. "
                             + "A caption too short to tell, or a reel you open yourself, still shows.")));

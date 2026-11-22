@@ -60,6 +60,7 @@ public class CaptionWordSettingsTest {
         Settings.REELS_BLOCKED_WORDS.resetToDefault();
         Settings.HIDE_CAPTION_WORD_HOME.resetToDefault();
         Settings.HIDE_CAPTION_WORD_COMMENTS.resetToDefault();
+        Settings.HIDE_CAPTION_WORD_SEARCH.resetToDefault();
         Settings.HIDE_OTHER_LANGUAGE_REELS.resetToDefault();
         Settings.HIDE_OTHER_LANGUAGE_HOME.resetToDefault();
         Settings.REELS_KEPT_LANGUAGES.resetToDefault();
@@ -199,6 +200,33 @@ public class CaptionWordSettingsTest {
             PatchFamily.feedTypesForTests = null;
         }
     }
+    /** #807: Also in search sits under Also in comments, off to start, waits for the switch and goes in a backup. */
+    @Test public void alsoInSearchSitsUnderAlsoInCommentsAndWaitsForTheSwitch() throws Exception {
+        PatchFamily.feedTypesForTests = false;
+        try {
+            open(true);
+            SwitchPreference hide = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.HIDE_CAPTION_WORD_REELS.key);
+            Preference comments = page.getPreferenceScreen().findPreference(Settings.HIDE_CAPTION_WORD_COMMENTS.key);
+            SwitchPreference search = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.HIDE_CAPTION_WORD_SEARCH.key);
+            assertNotNull(search);
+            assertEquals("Also in search", search.getTitle().toString());
+            assertEquals("Takes rows of the Explore grid and of search results out when a post in them holds a "
+                    + "word or phrase from the list, or comes from an account the list names with @.", search.getSummary().toString());
+            assertFalse("off to start", search.isChecked());
+            PreferenceCategory section = categoryHolding(page.getPreferenceScreen(), comments);
+            assertEquals("right under Also in comments", indexIn(section, comments) + 1, indexIn(section, search));
+            assertFalse("waits for the switch", search.isEnabled());
+            hide.setChecked(true);
+            ShadowLooper.idleMainLooper();
+            assertTrue(search.isEnabled());
+            assertTrue("a backup keeps it", ConfigurationBackup.eligible().containsKey(Settings.HIDE_CAPTION_WORD_SEARCH.key));
+            page.searchSettings("hide reels by caption words");
+            assertNotNull("the patch's name finds it", search.getParent());
+            page.searchSettings("");
+        } finally {
+            PatchFamily.feedTypesForTests = null;
+        }
+    }
     /** Hide reels in other languages (#495): its switch, the languages row and Also on Home sit under the caption word rows and wait for the switch. */
     @Test public void theLanguageRowsSitUnderTheCaptionWordRowsAndWaitForTheirSwitch() throws Exception {
         PatchFamily.feedTypesForTests = true;
@@ -220,8 +248,10 @@ public class CaptionWordSettingsTest {
             PreferenceCategory section = categoryHolding(page.getPreferenceScreen(), words);
             assertSame(section, categoryHolding(page.getPreferenceScreen(), hide));
             Preference comments = page.getPreferenceScreen().findPreference(Settings.HIDE_CAPTION_WORD_COMMENTS.key);
+            Preference search = page.getPreferenceScreen().findPreference(Settings.HIDE_CAPTION_WORD_SEARCH.key);
             assertEquals("Also in comments after Also on Home", indexIn(section, home) + 1, indexIn(section, comments));
-            assertEquals("right after the caption word rows", indexIn(section, comments) + 1, indexIn(section, hide));
+            assertEquals("Also in search after Also in comments", indexIn(section, comments) + 1, indexIn(section, search));
+            assertEquals("right after the caption word rows", indexIn(section, search) + 1, indexIn(section, hide));
             assertEquals(indexIn(section, hide) + 1, indexIn(section, kept));
             assertEquals(indexIn(section, kept) + 1, indexIn(section, otherHome));
 

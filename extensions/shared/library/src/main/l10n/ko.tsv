@@ -2794,3 +2794,5 @@ Waiting for the saves before it	앞의 저장이 끝나기를 기다리는 중
 Even on silent	무음 모드에서도
 # context: Summary of Even on silent, a switch under Start feed videos with sound (#762)
 Feed videos start with sound with the phone on silent or vibrate too. Only the media volume counts.	휴대전화가 무음이나 진동 모드여도 피드 동영상이 소리와 함께 시작됩니다. 미디어 볼륨만 적용됩니다.
+Also in search	검색에도 적용
+Takes rows of the Explore grid and of search results out when a post in them holds a word or phrase from the list, or comes from an account the list names with @.	목록의 단어나 문구가 들어간 게시물이나, 목록에 @로 적은 계정의 게시물이 있는 탐색 그리드와 검색 결과의 줄을 뺍니다.

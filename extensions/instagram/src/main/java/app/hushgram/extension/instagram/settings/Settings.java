@@ -3053,6 +3053,16 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_caption_word_comments", FALSE, parent(HIDE_CAPTION_WORD_REELS));
 
     /**
+     * {@link #REELS_BLOCKED_WORDS} in the Search tab's Explore grid and under search results too
+     * (#807): a row of the grid holding a post whose caption holds one, or whose author the list
+     * names with an @name, leaves the grid
+     * ({@link app.hushgram.extension.instagram.reels.CaptionWordSearch}). Waits for
+     * {@link #HIDE_CAPTION_WORD_REELS}, and is off to start.
+     */
+    public static final BooleanSetting HIDE_CAPTION_WORD_SEARCH =
+            new BooleanSetting("hushgram_hide_caption_word_search", FALSE, parent(HIDE_CAPTION_WORD_REELS));
+
+    /**
      * Reels whose caption is in a language not listed in {@link #REELS_KEPT_LANGUAGES}
      * ({@link app.hushgram.extension.instagram.reels.CaptionLanguage}). Read as each page of reels
      * arrives. Off to start (#495).

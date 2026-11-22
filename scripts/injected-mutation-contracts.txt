@@ -3003,6 +3003,14 @@ once-call Lapp/hushgram/extension/instagram/reels/AiLabeledReels;->page(Ljava/ut
 # the three 452 builds. HidePaidPartnershipReelsHookTest checks the three filters meet at the join.
 once-call Lapp/hushgram/extension/instagram/reels/CaptionWordReels;->page(Ljava/util/List;Ljava/lang/String;)Ljava/util/List; in instance (L*;)V holding clips_delivery_prefetch
 
+# Its Also in search hands two pages' section lists to CaptionWordSearch.sections, once each, right
+# before the parser hands the page back (#807): the topical Explore page's, in the parser Hide the
+# Explore grid asks too, and the search results grid's, the one parser loading sections,
+# has_more_reels and rank_token (0P4J.unsafeParseFromJson on 456's 386214574). Both fill their
+# sections through the same section reader. CaptionWordSearchHookTest checks both sites on every build.
+once-call Lapp/hushgram/extension/instagram/reels/CaptionWordSearch;->sections(Ljava/util/List;)V in instance (LX/*;)Ljava/lang/Object; holding sectional_items session_paging_token
+once-call Lapp/hushgram/extension/instagram/reels/CaptionWordSearch;->sections(Ljava/util/List;)V in instance (LX/*;)Ljava/lang/Object; holding sections has_more_reels rank_token
+
 # Hide reels by sound hands the same pages, at the same join, to HiddenSounds.page, once (#191). Its
 # stub reads the item's post, and the sound comes from the clips_metadata bridges, which
 # DownloadReelHookTest checks on every build.

@@ -2792,3 +2792,5 @@ Waiting for the saves before it	กำลังรอรายการก่อ
 Even on silent	แม้อยู่ในโหมดเงียบ
 # context: Summary of Even on silent, a switch under Start feed videos with sound (#762)
 Feed videos start with sound with the phone on silent or vibrate too. Only the media volume counts.	วิดีโอในฟีดจะเริ่มพร้อมเสียงแม้โทรศัพท์อยู่ในโหมดเงียบหรือสั่น นับเฉพาะระดับเสียงสื่อ
+Also in search	ในการค้นหาด้วย
+Takes rows of the Explore grid and of search results out when a post in them holds a word or phrase from the list, or comes from an account the list names with @.	นำแถวในตาราง Explore และในผลการค้นหาออก เมื่อมีโพสต์ในแถวนั้นที่มีคำหรือวลีจากรายการ หรือมาจากบัญชีที่รายการระบุด้วย @

@@ -2702,7 +2702,7 @@
     },
     {
       "name": "Hide reels by caption words",
-      "description": "Leaves out reels whose caption holds a word or phrase from your list, or is in a language you don't keep. Also on Home does the same for Home's posts, and Also in comments hides matching comments. Starts off. Turn it on and type the words or languages in HushGram settings > Reels.",
+      "description": "Leaves out reels whose caption holds a word or phrase from your list, or is in a language you don't keep. Also on Home does the same for Home's posts, Also in comments hides matching comments, and Also in search takes matching rows out of the Explore grid and search results. Starts off. Turn it on and type the words or languages in HushGram settings > Reels.",
       "category": "Reels",
       "use": true,
       "dependencies": [

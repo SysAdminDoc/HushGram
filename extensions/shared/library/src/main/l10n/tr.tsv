@@ -2795,3 +2795,5 @@ Waiting for the saves before it	Önceki kayıtlar bekleniyor
 Even on silent	Sessizdeyken de
 # context: Summary of Even on silent, a switch under Start feed videos with sound (#762)
 Feed videos start with sound with the phone on silent or vibrate too. Only the media volume counts.	Telefon sessizde ya da titreşimdeyken de akış videoları sesli başlar. Yalnızca medya sesi dikkate alınır.
+Also in search	Aramada da
+Takes rows of the Explore grid and of search results out when a post in them holds a word or phrase from the list, or comes from an account the list names with @.	İçlerindeki bir gönderi listedeki bir kelimeyi veya ifadeyi içerdiğinde ya da listenin @ ile andığı bir hesaptan geldiğinde, Keşfet ızgarasının ve arama sonuçlarının satırlarını kaldırır.

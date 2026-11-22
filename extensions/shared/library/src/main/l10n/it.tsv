@@ -2795,3 +2795,5 @@ Waiting for the saves before it	In attesa dei salvataggi precedenti
 Even on silent	Anche in silenzioso
 # context: Summary of Even on silent, a switch under Start feed videos with sound (#762)
 Feed videos start with sound with the phone on silent or vibrate too. Only the media volume counts.	I video del feed partono con l'audio anche con il telefono in silenzioso o in vibrazione. Conta solo il volume multimediale.
+Also in search	Anche nella ricerca
+Takes rows of the Explore grid and of search results out when a post in them holds a word or phrase from the list, or comes from an account the list names with @.	Toglie le righe della griglia Esplora e dei risultati di ricerca quando un post al loro interno contiene una parola o una frase dell'elenco, o viene da un account che l'elenco indica con @.

@@ -2798,3 +2798,5 @@ Waiting for the saves before it	正在等待前面的儲存
 Even on silent	靜音時也播放聲音
 # context: Summary of Even on silent, a switch under Start feed videos with sound (#762)
 Feed videos start with sound with the phone on silent or vibrate too. Only the media volume counts.	手機處於靜音或震動模式時，動態影片也會以有聲方式開始播放。只看媒體音量.
+Also in search	同時套用至搜尋
+Takes rows of the Explore grid and of search results out when a post in them holds a word or phrase from the list, or comes from an account the list names with @.	當探索格狀畫面或搜尋結果中的某一列有貼文含有清單中的字詞，或來自清單用 @ 指名的帳號時，會移除該列.

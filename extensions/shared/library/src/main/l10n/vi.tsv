@@ -2710,3 +2710,5 @@ Waiting for the saves before it	Đang chờ các lượt lưu trước
 Even on silent	Kể cả khi im lặng
 # context: Summary of Even on silent, a switch under Start feed videos with sound (#762)
 Feed videos start with sound with the phone on silent or vibrate too. Only the media volume counts.	Video trong bảng feed vẫn bắt đầu có tiếng khi điện thoại ở chế độ im lặng hoặc rung. Chỉ âm lượng nội dung nghe nhìn được tính.
+Also in search	Cả trong tìm kiếm
+Takes rows of the Explore grid and of search results out when a post in them holds a word or phrase from the list, or comes from an account the list names with @.	Bỏ các hàng trong lưới Khám phá và kết quả tìm kiếm khi có bài viết trong đó chứa từ hoặc cụm từ trong danh sách, hoặc đến từ tài khoản mà danh sách ghi bằng @.
