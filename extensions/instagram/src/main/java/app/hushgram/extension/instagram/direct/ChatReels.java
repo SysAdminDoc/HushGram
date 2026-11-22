@@ -627,6 +627,27 @@ public final class ChatReels {
         return fromChat(source) && stop();
     }
 
+    /**
+     * Whether a reel opened from a chat that has a Blend goes through the chat's other shared reels
+     * before the Blend's (#804). Instagram's viewer otherwise pages only the Blend's reels for such a
+     * chat. Yes while the switch is on, for a viewer whose ClipsViewerSource [source] is a chat's and
+     * whose chat has an id, [thread]. No while HushGram is paused, the settings aren't ready, or a
+     * shared comment's tap opened the viewer, which keeps Instagram's own answer. Never throws.
+     */
+    public static boolean blendAfterChat(@Nullable Object source, @Nullable String thread) {
+        try {
+            HookStatus.invoked(FamilyNames.CHAT_REELS);
+            if (thread == null || thread.isEmpty() || !fromChat(source)) return false;
+            if (!Utils.settingsReady() || HushgramPause.isPaused()) return false;
+            if (!Settings.SWIPE_CHAT_REELS.get() || onACommentsViewer()) return false;
+            HookStatus.counted(FamilyNames.CHAT_REELS, "chat's reels before its Blend");
+            return true;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.CHAT_REELS, "chat reels before a Blend", failure);
+            return false;
+        }
+    }
+
     /** Whether [source], a viewer's ClipsViewerSource, is a chat's. */
     static boolean fromChat(@Nullable Object source) {
         return source instanceof Enum && CHAT_SOURCE.equals(((Enum<?>) source).name());

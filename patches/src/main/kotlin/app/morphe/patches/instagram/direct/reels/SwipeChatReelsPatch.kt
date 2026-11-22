@@ -191,6 +191,7 @@ val swipeChatReelsPatch = bytecodePatch(
         // Every finder refuses before either switch changes any code.
         val read = findChatReels()
         val end = findChatReelsEnd()
+        val blend = findBlendAfterChat(end.chat)
         val more = findMoreReels(end)
         val cached = findCachedReels()
         val placeholders = findPlaceholders()
@@ -208,6 +209,7 @@ val swipeChatReelsPatch = bytecodePatch(
         pointOutMessagesAfterReels(collector, replies, page)
         leaveOutSentReels(placeholders)
         stopAfterChatReels(end)
+        keepChatReelsBeforeBlend(blend)
         stopMoreReels(more)
         stopCachedReels(cached)
         skipPlaceholders(placeholders)

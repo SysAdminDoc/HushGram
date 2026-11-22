@@ -546,6 +546,45 @@ public class ChatReelsTest {
         assertTrue(HookStatus.missing(FamilyNames.CHAT_REELS).toString(), HookStatus.missing(FamilyNames.CHAT_REELS).isEmpty());
     }
 
+    /**
+     * A chat with a Blend pages its own shared reels first (#804): yes for a chat's viewer with the
+     * chat's id while the switch is on, and no for any other viewer, a chat without an id, the switch
+     * off, paused or unready settings, so Instagram's Blend source stays.
+     */
+    @Test
+    public void aChatWithABlendGoesThroughItsOwnReelsFirst() {
+        assertTrue("a chat with an id", ChatReels.blendAfterChat(Source.DIRECT, "340282366841710300949128"));
+        assertFalse("a search's viewer", ChatReels.blendAfterChat(Source.DIRECT_SEARCH, "340282366841710300949128"));
+        assertFalse("the Reels tab", ChatReels.blendAfterChat(Source.CLIPS_TAB, "340282366841710300949128"));
+        assertFalse("no source", ChatReels.blendAfterChat(null, "340282366841710300949128"));
+        assertFalse("not an enum", ChatReels.blendAfterChat("DIRECT", "340282366841710300949128"));
+        assertFalse("no id", ChatReels.blendAfterChat(Source.DIRECT, null));
+        assertFalse("an empty id", ChatReels.blendAfterChat(Source.DIRECT, ""));
+        assertTrue(HookStatus.missing(FamilyNames.CHAT_REELS).toString(), HookStatus.missing(FamilyNames.CHAT_REELS).isEmpty());
+
+        Settings.SWIPE_CHAT_REELS.save(false);
+        assertFalse("off", ChatReels.blendAfterChat(Source.DIRECT, "340282366841710300949128"));
+        Settings.SWIPE_CHAT_REELS.save(true);
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertFalse("paused", ChatReels.blendAfterChat(Source.DIRECT, "340282366841710300949128"));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+
+        SettingsContextRule.withoutContext(() ->
+                assertFalse("no context", ChatReels.blendAfterChat(Source.DIRECT, "340282366841710300949128")));
+        assertTrue("back on", ChatReels.blendAfterChat(Source.DIRECT, "340282366841710300949128"));
+    }
+
+    /** The viewer a shared comment's tap opens keeps Instagram's Blend, as it keeps Instagram's chain answer (#662). */
+    @Test
+    public void aSharedCommentsViewerKeepsInstagramsBlend() {
+        Robolectric.buildActivity(Activity.class).setup();
+        ChatReels.commentTapped();
+        assertFalse(ChatReels.blendAfterChat(Source.DIRECT, "340282366841710300949128"));
+    }
+
     /** A comment's tap that opens nothing within the wait lets go, and the next viewer chains as before. */
     @Test
     public void aSharedCommentsTapWithNoViewerLetsGo() {

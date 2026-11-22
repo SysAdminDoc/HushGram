@@ -1025,6 +1025,12 @@ once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->stop()Z in instan
 # out, a chat's reels go on to suggested reels with the switch on; twice or elsewhere, a viewer
 # opened anywhere else stops asking for more.
 once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->stop()Z in instance (Ljava/util/List;ZZZ)V holding active_section_on_start
+# In a chat with a Blend the Reels viewer's source picker (06CU.A00 on 456's 386214574, #804) builds
+# the Blend's source, which pages only the Blend's reels. Right after that it asks blendAfterChat,
+# and on a yes builds the chat's own source with the Blend's as its second side. The picker is the
+# one method naming ClipsPocketFeedDataSource. Left out, a chat with a Blend swipes straight into
+# the Blend; twice or elsewhere, some other viewer's source is swapped.
+once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->blendAfterChat(Ljava/lang/Object;Ljava/lang/String;)Z in static (Landroid/content/Context;LX/*;Lcom/instagram/clips/intf/ClipsViewerConfig;*)LX/*; holding ClipsPocketFeedDataSource
 # And stopCached first in the static insert of one of the reels Instagram keeps cached for the
 # Reels tab (04HZ.A0A on 453's 385914283, #390), the one method holding its trace name, handed the
 # viewer's source. Near the last reel the viewer puts one in without asking the server. Left out, a
