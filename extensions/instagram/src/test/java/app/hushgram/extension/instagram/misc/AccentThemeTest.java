@@ -22,8 +22,11 @@ import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.LayerDrawable;
+import android.graphics.drawable.ShapeDrawable;
+import android.graphics.drawable.shapes.RectShape;
 import android.util.TypedValue;
 import android.view.ContextThemeWrapper;
+import android.view.View;
 
 import org.junit.After;
 import org.junit.Before;
@@ -540,8 +543,8 @@ public class AccentThemeTest {
 
     /**
      * An opened chat's default background, a bottom layer of Instagram's page black (or white on a light
-     * screen) under the chat's own layers, takes the painted page shade, and a chat theme of its own
-     * keeps its look (#528).
+     * screen) and a strip of the header's black behind the status bar, takes the painted page shade, the
+     * strip as a copy of its shape, and a chat theme of its own keeps its look (#528).
      */
     @Test
     public void aChatsPageBlackBackgroundTakesThePageShade() {
@@ -552,24 +555,28 @@ public class AccentThemeTest {
         try {
             LayerDrawable off = chat(0xff000000);
             AccentTheme.chatBackground(off);
-            assertEquals("the switches off", 0xff000000, bottom(off));
+            assertEquals("the switches off", List.of(0xff000000, 0xff000000), colors(off));
 
             Settings.CLASSIC_COLORS.save(true);
             LayerDrawable black = chat(0xff000000);
-            Drawable above = black.getDrawable(1);
+            ShapeDrawable strip = (ShapeDrawable) black.getDrawable(1);
+            Drawable above = black.getDrawable(2);
             AccentTheme.chatBackground(black);
-            assertEquals(dark[0], bottom(black));
-            assertEquals("the chat's own layer above it", above, black.getDrawable(1));
+            assertEquals(List.of(dark[0], dark[0]), colors(black));
+            assertEquals("the strip kept for the next chat", 0xff000000, strip.getPaint().getColor());
+            // Android 9 clones the shape with the copy and later versions share it.
+            assertEquals("the strip's shape", strip.getShape().getClass(), ((ShapeDrawable) black.getDrawable(1)).getShape().getClass());
+            assertEquals("the chat's own layer above them", above, black.getDrawable(2));
             LayerDrawable instagramsBlack = chat(0xff0c1014);
             AccentTheme.chatBackground(instagramsBlack);
-            assertEquals(dark[0], bottom(instagramsBlack));
+            assertEquals(List.of(dark[0], dark[0]), colors(instagramsBlack));
             LayerDrawable white = chat(0xffffffff);
             AccentTheme.chatBackground(white);
-            assertEquals(light[0], bottom(white));
+            assertEquals(List.of(light[0], light[0]), colors(white));
             for (int own : new int[] {0xff3a1f5d, 0x80000000, 0xff191c1f}) {
                 LayerDrawable themed = chat(own);
                 AccentTheme.chatBackground(themed);
-                assertEquals("a chat theme's own color", own, bottom(themed));
+                assertEquals("a chat theme's own color", List.of(own, own), colors(themed));
             }
             Drawable gradient = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, new int[] {0xff000000, 0xff3a1f5d});
             LayerDrawable pictured = new LayerDrawable(new Drawable[] {gradient});
@@ -585,29 +592,71 @@ public class AccentThemeTest {
             Settings.ACCENT_BACKGROUNDS.save(true);
             LayerDrawable accent = chat(0xff000000);
             AccentTheme.chatBackground(accent);
-            assertEquals("the accent's backgrounds", dark[0], bottom(accent));
+            assertEquals("the accent's backgrounds", List.of(dark[0], dark[0]), colors(accent));
             LayerDrawable lightAccent = chat(0xffffffff);
             AccentTheme.chatBackground(lightAccent);
-            assertEquals("a light page without Classic colors", 0xffffffff, bottom(lightAccent));
+            assertEquals("a light page without Classic colors", List.of(0xffffffff, 0xffffffff), colors(lightAccent));
 
             BaseSettings.PAUSED.save(true);
             PauseForTests.pause(HushgramPause.Reason.SWITCH);
             LayerDrawable paused = chat(0xff000000);
             AccentTheme.chatBackground(paused);
-            assertEquals("paused", 0xff000000, bottom(paused));
+            assertEquals("paused", List.of(0xff000000, 0xff000000), colors(paused));
         } finally {
             AccentTheme.darkSurfacesForTests(null);
             AccentTheme.lightSurfacesForTests(null);
         }
     }
 
-    /** A chat's background the way Instagram builds it: the theme's color under a layer of its own. */
-    private static LayerDrawable chat(int color) {
-        return new LayerDrawable(new Drawable[] {new ColorDrawable(color), new GradientDrawable()});
+    /**
+     * An opened chat's header row, given the default theme's plain black or white, takes the page shade
+     * after Instagram sets it, and a theme's own header color stays (#528).
+     */
+    @Test
+    public void aChatsPageBlackHeaderTakesThePageShade() {
+        int[] dark = {0xff101b2d, 0xff182030, 0xff203040};
+        int[] light = {0xfffafafa, 0xfff0f0f0, 0xffe8e8e8};
+        AccentTheme.darkSurfacesForTests(dark);
+        AccentTheme.lightSurfacesForTests(light);
+        try {
+            View header = new View(RuntimeEnvironment.getApplication());
+            header.setBackgroundColor(0xff000000);
+            AccentTheme.chatHeader(header);
+            assertEquals("the switches off", 0xff000000, ((ColorDrawable) header.getBackground()).getColor());
+
+            Settings.CLASSIC_COLORS.save(true);
+            AccentTheme.chatHeader(header);
+            assertEquals(dark[0], ((ColorDrawable) header.getBackground()).getColor());
+            header.setBackgroundColor(0xffffffff);
+            AccentTheme.chatHeader(header);
+            assertEquals(light[0], ((ColorDrawable) header.getBackground()).getColor());
+            header.setBackgroundColor(0xff3a1f5d);
+            AccentTheme.chatHeader(header);
+            assertEquals("a chat theme's own header", 0xff3a1f5d, ((ColorDrawable) header.getBackground()).getColor());
+            Drawable gradient = new GradientDrawable();
+            header.setBackground(gradient);
+            AccentTheme.chatHeader(header);
+            assertEquals("a gradient", gradient, header.getBackground());
+            AccentTheme.chatHeader(null);
+        } finally {
+            AccentTheme.darkSurfacesForTests(null);
+            AccentTheme.lightSurfacesForTests(null);
+        }
     }
 
-    private static int bottom(LayerDrawable layers) {
-        return ((ColorDrawable) layers.getDrawable(0)).getColor();
+    /**
+     * A chat's background the way Instagram builds it: the theme's color, a strip of the header's color
+     * behind the status bar, and a layer of the chat's own.
+     */
+    private static LayerDrawable chat(int color) {
+        ShapeDrawable strip = new ShapeDrawable(new RectShape());
+        strip.getPaint().setColor(color);
+        return new LayerDrawable(new Drawable[] {new ColorDrawable(color), strip, new GradientDrawable()});
+    }
+
+    /** The colors of a chat's page and of its strip. */
+    private static List<Integer> colors(LayerDrawable layers) {
+        return List.of(((ColorDrawable) layers.getDrawable(0)).getColor(), ((ShapeDrawable) layers.getDrawable(1)).getPaint().getColor());
     }
 
     /** An attribute the theme doesn't hold, one holding a size or one that isn't opaque isn't a background of its own (#187). */

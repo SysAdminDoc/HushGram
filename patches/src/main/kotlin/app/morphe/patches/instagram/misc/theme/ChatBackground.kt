@@ -4,6 +4,7 @@
  */
 package app.morphe.patches.instagram.misc.theme
 
+import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patches.instagram.misc.extension.classesLoading
@@ -15,8 +16,10 @@ import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.SwitchPayload
 
 private const val PATCH = "Accent color"
 
@@ -104,6 +107,94 @@ internal fun BytecodePatchContext.paintChatBackground() {
             it.returnType == site.method.returnType
     }
     method.addInstructionsAtControlFlowLabel(site.call, "invoke-static/range { v${site.layers} .. v${site.layers} }, $CHAT_BACKGROUND")
+}
+
+/**
+ * The trace key Instagram's view helper names when an opened chat's header row takes the header color of
+ * the chat's theme (06Eo.A09 on 456's 386214574 hands it with the header and the color): 0x14d400c4 on
+ * every 456 build, and no other method loads it.
+ */
+internal const val CHAT_HEADER_TRACE = 0x14d400c4L
+
+/** The extension's hook given an opened chat's header once its color is set (#528). */
+internal const val CHAT_HEADER = "$ACCENT_THEME->chatHeader(Landroid/view/View;)V"
+
+/** The end of the static call setting a view's background color under a trace key. */
+private const val COLORS_VIEW = "(Landroid/view/View;II)V"
+
+/** The method setting an opened chat's header color: the index of the call setting it, and the header's register. */
+internal class ChatHeaderSite(val method: Method, val call: Int, val header: Int)
+
+/**
+ * The one method loading [CHAT_HEADER_TRACE] whose next static call ending in [COLORS_VIEW] takes it last,
+ * with nothing jumping onto the instruction after that call. Answers none with a warning otherwise, and
+ * refuses without the extension's hook.
+ */
+internal fun BytecodePatchContext.findChatHeader(): ChatHeaderSite? {
+    val sites = classesLoading(CHAT_HEADER_TRACE).flatMap { classDef -> classDef.methods.mapNotNull(::headerSite) }
+        .distinctBy { "${it.method.definingClass}->${it.method.name}(${it.method.parameterTypes.joinToString("")})" }
+    val site = sites.singleOrNull() ?: run {
+        patchLog.warning("$PATCH: found ${sites.size} methods coloring a chat's header, so chat headers keep Instagram's black")
+        return null
+    }
+    if (classDefByOrNull(ACCENT_THEME)?.methods?.any {
+            "${it.definingClass}->${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" == CHAT_HEADER &&
+                AccessFlags.STATIC.isSet(it.accessFlags) && AccessFlags.PUBLIC.isSet(it.accessFlags)
+        } != true
+    ) {
+        refuse("the extension has no public static $CHAT_HEADER")
+    }
+    return site
+}
+
+/** [method]'s chat header site, when it loads [CHAT_HEADER_TRACE] into the last argument of a later [COLORS_VIEW] call. */
+private fun headerSite(method: Method): ChatHeaderSite? {
+    val code = method.implementation?.instructions?.toList() ?: return null
+    val load = code.indexOfFirst { it is NarrowLiteralInstruction && (it.narrowLiteral.toLong() and 0xffffffffL) == CHAT_HEADER_TRACE }
+    if (load < 0) return null
+    val key = (code[load] as OneRegisterInstruction).registerA
+    val call = (load + 1 until code.size).firstOrNull {
+        code[it].opcode == Opcode.INVOKE_STATIC && (code[it] as ReferenceInstruction).reference.toString().endsWith(COLORS_VIEW)
+    } ?: return null
+    val colors = code[call] as FiveRegisterInstruction
+    if (colors.registerCount != 3 || colors.registerE != key || (load + 1 until call).any { code[it].writes(key) }) return null
+    val addresses = code.runningFold(0) { address, instruction -> address + instruction.codeUnits }
+    if (call + 1 >= code.size || addresses[call + 1] in jumpTargets(method, code, addresses)) return null
+    return ChatHeaderSite(method, call, colors.registerC)
+}
+
+/**
+ * Hands the header [findChatHeader] found to AccentTheme.chatHeader right after Instagram colors it, so an
+ * opened chat's black header takes the page shade the strip above it and the page below it take (#528).
+ * Leaves the header as it is when there's no such method.
+ */
+internal fun BytecodePatchContext.paintChatHeader() {
+    val site = findChatHeader() ?: return
+    val method = mutableClassDefBy(site.method.definingClass).methods.single {
+        it.name == site.method.name && it.parameterTypes.map(Any::toString) == site.method.parameterTypes.map(Any::toString) &&
+            it.returnType == site.method.returnType
+    }
+    method.addInstructions(site.call + 1, "invoke-static/range { v${site.header} .. v${site.header} }, $CHAT_HEADER")
+}
+
+/**
+ * The code addresses [code] of [method] can jump or be thrown to: its gotos' and branches' targets, its
+ * switches' through their payloads (offsets from the switch), and its exception handlers.
+ */
+private fun jumpTargets(method: Method, code: List<Instruction>, addresses: List<Int>): Set<Int> {
+    val targets = HashSet<Int>()
+    code.forEachIndexed { at, instruction ->
+        when (instruction.opcode) {
+            Opcode.PACKED_SWITCH, Opcode.SPARSE_SWITCH -> {
+                val payload = code.getOrNull(addresses.indexOf(addresses[at] + (instruction as OffsetInstruction).codeOffset)) as? SwitchPayload
+                payload?.switchElements?.forEach { targets += addresses[at] + it.offset }
+            }
+            Opcode.FILL_ARRAY_DATA -> Unit
+            else -> if (instruction is OffsetInstruction) targets += addresses[at] + instruction.codeOffset
+        }
+    }
+    method.implementation?.tryBlocks?.forEach { block -> block.exceptionHandlers.forEach { targets += it.handlerCodeAddress } }
+    return targets
 }
 
 /** Whether this writes [register], or a wide value over it. */

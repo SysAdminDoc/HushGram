@@ -7,6 +7,7 @@ package app.morphe.patches.instagram.misc.theme
 import app.morphe.ExtensionDex
 import app.morphe.Fixtures
 import app.morphe.PatchContexts
+import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.shared.compat.AppCompatibilities
@@ -49,6 +50,7 @@ class ChatBackgroundTest {
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.definingClass}->${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
         assertTrue("$CHAT_BACKGROUND is not in the extension: $declared", CHAT_BACKGROUND in declared)
+        assertTrue("$CHAT_HEADER is not in the extension: $declared", CHAT_HEADER in declared)
     }
 
     @Test
@@ -132,9 +134,10 @@ class ChatBackgroundTest {
         // A payload's alignment nop can come or go with the insert.
         val kept = code.filterIndexed { index, it -> index != site.call && it.opcode != Opcode.NOP }
         assertEquals("$label: Instagram's own code around it", before.filter { it.opcode != Opcode.NOP }.map { kind(it.opcode) }, kept.map { kind(it.opcode) })
+        hooksHeader(context, label)
     }
 
-    /** The bundle's classes loading an id of [THREAD_BACKGROUND_IDS]. */
+    /** The bundle's classes loading an id of [THREAD_BACKGROUND_IDS] or the header's trace key. */
     private fun chatClasses(bundle: File): List<ClassDef> {
         val found = mutableListOf<ClassDef>()
         FixtureDex.forEach(bundle) { dex ->
@@ -146,7 +149,32 @@ class ChatBackgroundTest {
     }
 
     private fun Instruction.loadsId(): Boolean =
-        this is NarrowLiteralInstruction && (narrowLiteral.toLong() and 0xffffffffL) in THREAD_BACKGROUND_IDS
+        this is NarrowLiteralInstruction && (narrowLiteral.toLong() and 0xffffffffL).let { it in THREAD_BACKGROUND_IDS || it == CHAT_HEADER_TRACE }
+
+    /**
+     * The one method loading the header's trace key gets the hook right after the call coloring the header,
+     * with the header that call took, and keeps Instagram's code around it.
+     */
+    private fun hooksHeader(context: BytecodePatchContext, label: String) {
+        val site = context.findChatHeader()
+        assertNotNull("$label: the chat header", site)
+        val before = site!!.method.code()
+        val call = before[site.call] as FiveRegisterInstruction
+        assertEquals("$label: the header the call colors", site.header, call.registerC)
+        assertEquals("$label: the trace key", CHAT_HEADER_TRACE, before.take(site.call).last { it.loadsId() }.let { (it as NarrowLiteralInstruction).narrowLiteral.toLong() and 0xffffffffL })
+
+        context.paintChatHeader()
+
+        val code = context.mutableClassDefBy(site.method.definingClass).methods.single {
+            it.name == site.method.name && it.parameterTypes.map(Any::toString) == site.method.parameterTypes.map(Any::toString)
+        }.code()
+        val hooks = code.indices.filter { (code[it] as? ReferenceInstruction)?.reference?.toString() == CHAT_HEADER }
+        assertEquals("$label: one hook, after the call", listOf(site.call + 1), hooks)
+        assertEquals("$label: the header", listOf(site.header, 1), (code[site.call + 1] as RegisterRangeInstruction).let { listOf(it.startRegister, it.registerCount) })
+        assertEquals("$label: the call before it", (call as ReferenceInstruction).reference.toString(), (code[site.call] as ReferenceInstruction).reference.toString())
+        val kept = code.filterIndexed { index, it -> index != site.call + 1 && it.opcode != Opcode.NOP }
+        assertEquals("$label: Instagram's own code around it", before.filter { it.opcode != Opcode.NOP }.map { kind(it.opcode) }, kept.map { kind(it.opcode) })
+    }
 
     /**
      * A chat class: paint loads the id, builds layers into v1, branches onto the call handing them to the
@@ -199,10 +227,61 @@ class ChatBackgroundTest {
         else -> opcode
     }
 
+    /**
+     * The header's hook follows the call coloring it, with the header that call took. A method where
+     * something jumps onto the instruction after the call isn't hooked, and without the hook in the
+     * extension it refuses under the patch's name.
+     */
+    @Test
+    fun theHeaderHookFollowsTheCallUnlessSomethingJumpsPastIt() {
+        val context = PatchContexts.of(listOf(header(), ImmutableClassDef.of(ExtensionDex.classDef(ACCENT_THEME))))
+        val site = context.findChatHeader()
+        assertNotNull(site)
+        assertEquals(listOf("color", 1, 1), listOf(site!!.method.name, site.call, site.header))
+
+        context.paintChatHeader()
+
+        val methods = context.mutableClassDefBy(HEADER).methods.associateBy { it.name }
+        val code = methods.getValue("color").code()
+        assertEquals("the hook after the call", listOf(2), code.indices.filter { (code[it] as? ReferenceInstruction)?.reference?.toString() == CHAT_HEADER })
+        assertEquals("the header", 1, (code[2] as RegisterRangeInstruction).startRegister)
+        assertTrue("jumped onto: no hook", methods.getValue("jumped").code().none { it.opcode == Opcode.INVOKE_STATIC_RANGE })
+        val failure = assertThrows(PatchException::class.java) { PatchContexts.of(listOf(header())).paintChatHeader() }
+        assertTrue(failure.message, failure.message!!.startsWith("Accent color"))
+    }
+
+    /**
+     * A header class: color loads the trace key and colors the header, `const v0, key; invoke-static {p0, p1, v0}; return-void`,
+     * and jumped branches past the call onto the return after it.
+     */
+    private fun header(): ClassDef {
+        val key = CHAT_HEADER_TRACE.toInt()
+        val color = listOf(
+            ImmutableInstruction31i(Opcode.CONST, 0, key),
+            ImmutableInstruction35c(Opcode.INVOKE_STATIC, 3, 1, 2, 0, 0, 0, COLORS),
+            ImmutableInstruction10x(Opcode.RETURN_VOID),
+        )
+        val jumped = listOf(
+            ImmutableInstruction31i(Opcode.CONST, 0, key),
+            ImmutableInstruction21t(Opcode.IF_EQZ, 2, 5),
+            ImmutableInstruction35c(Opcode.INVOKE_STATIC, 3, 1, 2, 0, 0, 0, COLORS),
+            ImmutableInstruction10x(Opcode.RETURN_VOID),
+        )
+        val methods = listOf(color to "color", jumped to "jumped").map { (code, name) ->
+            ImmutableMethod(
+                HEADER, name, listOf("Landroid/view/View;", "I").map { ImmutableMethodParameter(it, null, null) }, "V",
+                AccessFlags.PUBLIC.value or AccessFlags.STATIC.value, null, null, ImmutableMethodImplementation(3, code, null, null),
+            )
+        }
+        return ImmutableClassDef(HEADER, AccessFlags.PUBLIC.value, "Ljava/lang/Object;", null, null, null, null, methods)
+    }
+
     private companion object {
         const val CHAT = "Lfixture/Chat;"
+        const val HEADER = "Lfixture/Header;"
         val APPLY = ImmutableMethodReference(
             "Lfixture/Apply;", "set", listOf("Landroid/graphics/drawable/Drawable;", "Landroid/view/View;", "I"), "V",
         )
+        val COLORS = ImmutableMethodReference("Lfixture/Apply;", "color", listOf("Landroid/view/View;", "I", "I"), "V")
     }
 }

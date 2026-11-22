@@ -2612,6 +2612,11 @@ shared-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->secondaryButton
 # builds and 0x7f0b4206 on the other two, so the rule names the method's layer and hand-off calls.
 # Left out, a chat stays black under Classic colors' navy page (#528). ChatBackgroundTest checks every build.
 once-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->chatBackground(Landroid/graphics/drawable/Drawable;)V in instance (Landroid/view/View;IZ)V holding Landroid/graphics/drawable/LayerDrawable;->setLayerInset(IIIII)V LX/*;->*(Landroid/graphics/drawable/Drawable;Landroid/view/View;I)V
+# The chat's header row takes the header color of the chat's theme in one method (06Eo.A09 on 386214574),
+# through a static call that traces it under the key 0x14d400c4 and sets the color. Accent color hands
+# the header to AccentTheme.chatHeader right after that call. Left out, the header stays black over the
+# chat's navy page under Classic colors (#528). ChatBackgroundTest checks every build.
+once-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->chatHeader(Landroid/view/View;)V in instance (LX/*;)V holding const:0x14d400c4
 # The unread dot on the Messages folder chips (Primary, Requests) is Compose, a background whose color
 # the chip content (0F24.invoke on 386014758, 0YXX.invoke on 386014704) reads from a static palette
 # object, so no theme style reaches it. Accent color hands that one color to AccentTheme.composeBadge
