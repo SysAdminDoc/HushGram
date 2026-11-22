@@ -98,7 +98,7 @@ internal fun BytecodePatchContext.keepVideoOnTexture(): MutableMethod? {
  * its own: each of those patches names it, and their switches decide.
  */
 internal val videoSurfacePatch = bytecodePatch {
-    dependsOn(instagramExtensionPatch)
+    dependsOn(instagramExtensionPatch, playerSurfacesPatch)
 
     execute {
         keepVideoOnTexture()

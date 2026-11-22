@@ -7,8 +7,6 @@ package app.hushgram.extension.instagram.misc;
 import android.graphics.Bitmap;
 import android.os.Handler;
 import android.os.Looper;
-import android.view.PixelCopy;
-import android.view.Surface;
 import android.view.SurfaceView;
 import android.view.View;
 
@@ -20,6 +18,8 @@ import java.util.Set;
 import java.util.WeakHashMap;
 import java.util.function.Predicate;
 
+import app.hushgram.extension.instagram.media.PlayerSurfaces;
+
 /**
  * Small copies of the frames playing in the SurfaceViews under the glass (#144), for the pill to blur in
  * their place. A SurfaceView's video is a layer of its own under the window, never in the views, so the
@@ -28,7 +28,7 @@ import java.util.function.Predicate;
  * drew there instead, a feed post's black background, and the pill went black over a playing video.
  *
  * <p>Each copy is the whole frame at {@code downsample} of the view's size, at most {@link #MOST_PX} on its
- * long side, read with {@link PixelCopy} and handed back on the main thread. One copy is in flight for each
+ * long side, read with PixelCopy through {@link PlayerSurfaces} and handed back on the main thread. One copy is in flight for each
  * SurfaceView, at most one every {@link #COPY_EVERY_MS}, into the spare of two bitmaps, so the one the last
  * recording drew isn't the one being written. A copy that fails keeps the last one that landed, and after
  * {@link #TRIES} in a row that SurfaceView rests for {@link #REST_MS}. Clearing the place on a miss showed the
@@ -58,11 +58,8 @@ final class SurfaceFrames {
     /** How frames are copied. Tests stand in. */
     static volatile Copier copier = SurfaceFrames::pixelCopy;
 
-    /** Whether a SurfaceView has a surface to copy from. Tests stand in. */
-    static volatile Predicate<SurfaceView> hasSurface = view -> {
-        Surface surface = view.getHolder().getSurface();
-        return surface != null && surface.isValid();
-    };
+    /** Whether a SurfaceView has a surface to copy from, its player's (#583) or its own. Tests stand in. */
+    static volatile Predicate<SurfaceView> hasSurface = PlayerSurfaces::hasFrame;
 
     @Nullable private static Handler main;
 
@@ -172,6 +169,6 @@ final class SurfaceFrames {
     private static void pixelCopy(SurfaceView view, Bitmap into, Done done) {
         Handler handler = main;
         if (handler == null) main = handler = new Handler(Looper.getMainLooper());
-        PixelCopy.request(view, into, result -> done.copied(result == PixelCopy.SUCCESS), handler);
+        PlayerSurfaces.copy(view, into, handler, worked -> done.copied(Boolean.TRUE.equals(worked)));
     }
 }

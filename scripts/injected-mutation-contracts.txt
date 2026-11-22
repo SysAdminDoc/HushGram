@@ -854,6 +854,11 @@ once-call Lapp/hushgram/extension/instagram/media/HdrBoost;->enhancementMode(I)I
 # hook the patch wrote.
 start-call Lapp/hushgram/extension/instagram/media/VideoSurface;->textureOnly()Z in static (Lcom/instagram/common/session/UserSession;Ljava/lang/String;)Z holding Landroid/os/Build;->MODEL:Ljava/lang/String; Landroid/os/Build$VERSION;->SDK_INT:I
 once-call Lapp/hushgram/extension/instagram/media/VideoSurface;->textureOnly()Z in static (Lcom/instagram/common/session/UserSession;Ljava/lang/String;)Z holding Landroid/os/Build;->MODEL:Ljava/lang/String; Landroid/os/Build$VERSION;->SDK_INT:I
+# The patches that copy a video's frame have Groot's surfaceCreated hand PlayerSurfaces the Surface its
+# player draws a SurfaceView's video into, right after storing it. Left out, a reel the player draws
+# there copies as black to the glass and Lens (#462, #583, #801); twice or elsewhere, it isn't the hook
+# the patch wrote.
+once-call Lapp/hushgram/extension/instagram/media/PlayerSurfaces;->drawsInto(Landroid/view/SurfaceView;Landroid/view/Surface;)V in instance (Landroid/view/SurfaceHolder;)V holding GrootControlSurfaceViewListenerImpl.surfaceCreated
 #
 # Not pinned:
 # Sanitize sharing links also sends ClipboardManager.setPrimaryClip and both Intent.createChooser

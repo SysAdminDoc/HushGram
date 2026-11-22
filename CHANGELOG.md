@@ -84,6 +84,7 @@ Every HushGram release, newest first.
 * On a narrow phone, HushGram's buttons at the top of a chat fold into one More button that holds all of them, so the chat's name shows and the last call button isn't cut off. Reported in #802.
 * Bigger text from Text size no longer makes a chat's message box taller. The space above and below the text gives way first, and only when that runs out does the box's own text come down a little, still bigger than the phone's size. Reported in #806.
 * `See who a story mentions` brings its list back after you watch the story of a profile you opened from it. Watching that story still closed the list, so going back to the first story left it shut. Reported in #403.
+* The Lens button on reels and stories sees the video now instead of a black box, and the glass tab bar keeps up with every reel, not just some. Instagram plays some videos on a layer of its own that HushGram couldn't read before. Reported in #801 and #583.
 
 ## 0.0.21 (2026-11-18)
 

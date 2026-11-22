@@ -39,6 +39,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
+import app.hushgram.extension.instagram.media.PlayerSurfaces;
 import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.Utils;
@@ -118,12 +119,8 @@ public final class TextGrab {
         }
 
         @Override public void surface(SurfaceView view, Bitmap into, Consumer<Boolean> done) {
-            if (view.getHolder().getSurface() == null || !view.getHolder().getSurface().isValid()) {
-                done.accept(false);
-                return;
-            }
-            PixelCopy.request(view, into, result -> done.accept(result == PixelCopy.SUCCESS),
-                    new Handler(Looper.getMainLooper()));
+            // The player's own surface first: a reel it plays there leaves the SurfaceView's empty (#801).
+            PlayerSurfaces.copy(view, into, new Handler(Looper.getMainLooper()), done);
         }
     };
 

@@ -27,6 +27,7 @@ import app.morphe.patches.instagram.misc.extension.classesAccessing
 import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
+import app.morphe.patches.instagram.media.surface.playerSurfacesPatch
 import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.patchLog
@@ -228,7 +229,7 @@ val downloadReelPatch = bytecodePatch(
     category("Downloads")
     dependsOn(settingsPatch)
     compatibleWith(*AppCompatibilities.instagram())
-    dependsOn(instagramExtensionPatch, playerQueriesPatch)
+    dependsOn(instagramExtensionPatch, playerQueriesPatch, playerSurfacesPatch)
 
     execute {
         requireStatusMethod("reelDownload")

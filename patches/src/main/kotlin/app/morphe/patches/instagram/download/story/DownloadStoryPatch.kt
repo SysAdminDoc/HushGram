@@ -22,6 +22,7 @@ import app.morphe.patches.instagram.download.storyMusicBridges
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
+import app.morphe.patches.instagram.media.surface.playerSurfacesPatch
 import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
 import app.morphe.patches.instagram.misc.extension.originalName
@@ -126,7 +127,7 @@ val downloadStoryPatch = bytecodePatch(
     category("Downloads")
     dependsOn(settingsPatch)
     compatibleWith(*AppCompatibilities.instagram())
-    dependsOn(instagramExtensionPatch)
+    dependsOn(instagramExtensionPatch, playerSurfacesPatch)
 
     execute {
         requireStatusMethod("storyDownload")

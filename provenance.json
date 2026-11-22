@@ -644,6 +644,10 @@
         "patches/src/test/kotlin/app/morphe/patches/instagram/reels/linktabbar/ReelLinkTabBarPatchTest.kt",
         "extensions/instagram/src/main/java/app/hushgram/extension/instagram/stories/StoryCopyText.java",
         "extensions/instagram/src/test/java/app/hushgram/extension/instagram/stories/StoryCopyTextTest.java",
+        "extensions/instagram/src/main/java/app/hushgram/extension/instagram/media/PlayerSurfaces.java",
+        "extensions/instagram/src/test/java/app/hushgram/extension/instagram/media/PlayerSurfacesTest.java",
+        "patches/src/main/kotlin/app/morphe/patches/instagram/media/surface/PlayerSurfacesPatch.kt",
+        "patches/src/test/kotlin/app/morphe/patches/instagram/media/surface/PlayerSurfacesHookTest.kt",
         "scripts/gen-readme-patches.py"
       ],
       "origin": "original",
