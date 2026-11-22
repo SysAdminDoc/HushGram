@@ -22,10 +22,23 @@ import app.hushgram.extension.instagram.settings.Settings;
  * <p>The frame fills the screen, and the video sits in it at its own size. A reel shorter than the
  * screen has black bars above and below, so the frame is cut around the video it holds, not at its own
  * edges, or the corners would round in the bars and the video would stay square (#456).
+ *
+ * <p>A photo reel has no video frame: one photo sits in a frame of its own size, and each page of a
+ * photo carousel is the photo's view itself ({@link #PHOTO_FRAMES}), so those are rounded too (#796).
+ * A carousel's videos keep the video frame, a page's size.
  */
 public final class ReelCorners {
     /** The frame a reel's video sits in, alone, under the viewer's overlay. */
     static final String FRAME = "clips_viewer_video_layout";
+
+    /** The frame a one photo reel's picture sits in, the picture's own size. */
+    static final String PHOTO_FRAME = "clips_single_image_media_content";
+
+    /** A photo carousel page's picture, which is its own frame. */
+    static final String CAROUSEL_PHOTO = "clips_carousel_image_media_content";
+
+    /** The photo reels' frames, rounded and lit like a video's frame. */
+    static final String[] PHOTO_FRAMES = {PHOTO_FRAME, CAROUSEL_PHOTO};
 
     /** The most views looked at in one search, so a strange tree can't make a long one. */
     static final int MAX_VIEWS = FrameCorners.MAX_VIEWS;
@@ -33,7 +46,7 @@ public final class ReelCorners {
     static final String HOOK = "reel frame";
     static final String COUNT_ROUNDED = "reel frames rounded";
 
-    private static final FrameCorners corners = new FrameCorners(FRAME, Settings.ROUNDED_REEL_CORNERS, HOOK,
+    private static final FrameCorners corners = new FrameCorners(FRAME, PHOTO_FRAMES, Settings.ROUNDED_REEL_CORNERS, HOOK,
             COUNT_ROUNDED, "Rounded corners on Reels: rounded a reel's video frame", true);
 
     private ReelCorners() {
@@ -66,6 +79,11 @@ public final class ReelCorners {
     /** Tests give the frame an id of their own, since a test app has none of Instagram's. */
     static void idForTests(Context context, int id) {
         corners.idForTests(context, id);
+    }
+
+    /** Tests give a photo reel's frame, [name] one of {@link #PHOTO_FRAMES}, an id of their own. */
+    static void photoIdForTests(Context context, String name, int id) {
+        corners.idForTests(context, name, id);
     }
 
     static int roundedForTests() {

@@ -24,6 +24,7 @@ import android.graphics.drawable.Drawable;
 import android.graphics.drawable.DrawableWrapper;
 import android.os.Looper;
 import android.view.Gravity;
+import android.view.SurfaceView;
 import android.view.TextureView;
 import android.view.View;
 import android.view.ViewGroup;
@@ -826,6 +827,146 @@ public class AmbientLightTest {
         assertNull("the reel's outermost view wears no glow", root.getChildAt(0).getBackground());
     }
 
+    /**
+     * A carousel reel's video as 456 lays it out: the reel's page, then the video's frame and the view
+     * round it, both the video's own size, centred in the page.
+     */
+    private TextureView carouselVideo(int height) {
+        FrameLayout reelRoot = new FrameLayout(activity);
+        FrameLayout page = new FrameLayout(activity);
+        reelRoot.addView(page, new FrameLayout.LayoutParams(WIDTH, REEL));
+        FrameLayout content = new FrameLayout(activity);
+        int carouselVideo = View.generateViewId();
+        AmbientLight.reelIdForTests(activity, AmbientLight.CAROUSEL_VIDEO, carouselVideo);
+        content.setId(carouselVideo);
+        FrameLayout frame = new FrameLayout(activity);
+        frame.setId(frameId);
+        FrameLayout container = new FrameLayout(activity);
+        TextureView video = new TextureView(activity);
+        container.addView(video, match());
+        frame.addView(container, match());
+        content.addView(frame, match());
+        page.addView(content, new FrameLayout.LayoutParams(WIDTH, height, Gravity.CENTER));
+        activity.setContentView(reelRoot);
+        root = reelRoot;
+        shadowOf(Looper.getMainLooper()).idle();
+        return video;
+    }
+
+    /** A carousel's video fills its frame and the view round it, which left it nowhere to glow (#796). The page takes it. */
+    @Test
+    public void aCarouselsVideoGlowsOnThePageAroundIt() {
+        TextureView video = carouselVideo(REEL / 2);
+        ViewGroup content = (ViewGroup) video.getParent().getParent().getParent();
+        ViewGroup page = (ViewGroup) content.getParent();
+
+        on();
+
+        assertEquals(1, AmbientLight.litForTests());
+        assertNull("the video's own view leaves the glow no room", content.getBackground());
+        assertGlowsAboveAndBelow(page, video);
+    }
+
+    /**
+     * A photo reel as 456 lays it out: the reel's page, then one photo's frame the photo's own size,
+     * or with [carousel] a carousel page's photo that is its own frame. Neither has the video frame's id.
+     */
+    private ImageView photoReel456(boolean carousel) {
+        int photoFrame = View.generateViewId();
+        AmbientLight.reelIdForTests(activity, carousel ? ReelCorners.CAROUSEL_PHOTO : ReelCorners.PHOTO_FRAME, photoFrame);
+        FrameLayout reelRoot = new FrameLayout(activity);
+        FrameLayout page = new FrameLayout(activity);
+        reelRoot.addView(page, new FrameLayout.LayoutParams(WIDTH, REEL));
+        ImageView photo = new ImageView(activity);
+        photo.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        photo.setImageBitmap(Bitmap.createBitmap(WIDTH, REEL / 2, Bitmap.Config.ARGB_8888));
+        FrameLayout.LayoutParams centred = new FrameLayout.LayoutParams(WIDTH, REEL / 2, Gravity.CENTER);
+        if (carousel) {
+            photo.setId(photoFrame);
+            page.addView(photo, centred);
+        } else {
+            FrameLayout frame = new FrameLayout(activity);
+            frame.setId(photoFrame);
+            frame.addView(photo, match());
+            page.addView(frame, centred);
+        }
+        activity.setContentView(reelRoot);
+        root = reelRoot;
+        shadowOf(Looper.getMainLooper()).idle();
+        return photo;
+    }
+
+    /** A one photo reel sits in a frame of its own on 456, not the video's, and stayed dark (#796). */
+    @Test
+    public void aPhotoReelInItsOwnFrameGlowsOnThePageAroundIt() {
+        ImageView photo = photoReel456(false);
+
+        on();
+
+        assertEquals(1, AmbientLight.litForTests());
+        assertGlowsAboveAndBelow((ViewGroup) root.getChildAt(0), photo);
+    }
+
+    /** A photo carousel's page is the photo's own view, and stayed dark (#796). */
+    @Test
+    public void aPhotoCarouselsPageGlowsOnThePageAroundIt() {
+        ImageView photo = photoReel456(true);
+
+        on();
+
+        assertEquals(1, AmbientLight.litForTests());
+        assertGlowsAboveAndBelow((ViewGroup) root.getChildAt(0), photo);
+    }
+
+    /** [stage] wears the glow, and its bands above and below [media], the middle of the reel, show its top and bottom. */
+    private void assertGlowsAboveAndBelow(ViewGroup stage, View media) {
+        assertTrue(String.valueOf(stage.getBackground()), stage.getBackground() instanceof AmbientLight.Glow);
+        assertEquals(new Rect(0, REEL / 4, WIDTH, REEL * 3 / 4), AmbientLight.litRectForTests(media));
+        advance(AmbientSpeed.MEDIUM.fadeMillis);
+        Bitmap drawn = background(stage);
+        int band = drawn.getPixel(WIDTH / 2, REEL / 4 - 4);
+        assertTrue("the band above shows the top: " + hex(band), Color.blue(band) > 80 && Color.alpha(band) > 80);
+        int under = drawn.getPixel(WIDTH / 2, REEL * 3 / 4 + 4);
+        assertTrue("the band below the bottom: " + hex(under), Color.red(under) > 80 && Color.alpha(under) > 80);
+        assertEquals("nothing behind the picture", 0, Color.alpha(drawn.getPixel(WIDTH / 2, REEL / 2)));
+    }
+
+    /**
+     * Instagram's player can still put a reel on a SurfaceView while a switch here asks for
+     * TextureViews, and that reel stayed dark, black bands and all (#796). It's lit, and its copy is
+     * asked of the SurfaceView.
+     */
+    @Test
+    public void aReelOnASurfaceViewGlowsInItsBands() {
+        FrameLayout reelRoot = new FrameLayout(activity);
+        FrameLayout frame = new FrameLayout(activity);
+        frame.setId(frameId);
+        FrameLayout container = new FrameLayout(activity);
+        SurfaceView video = new SurfaceView(activity);
+        container.addView(video, new FrameLayout.LayoutParams(WIDTH, REEL / 2, Gravity.CENTER));
+        frame.addView(container, match());
+        reelRoot.addView(frame, new FrameLayout.LayoutParams(WIDTH, REEL));
+        activity.setContentView(reelRoot);
+        root = reelRoot;
+        shadowOf(Looper.getMainLooper()).idle();
+        View[] asked = new View[1];
+        AmbientLight.samplerForTests((owner, source, inWindow, into, done) -> {
+            asked[0] = source;
+            int[] pixels = new int[into.getWidth() * into.getHeight()];
+            for (int i = 0; i < pixels.length; i++) pixels[i] = i < pixels.length / 2 ? top : bottom;
+            into.setPixels(pixels, 0, into.getWidth(), 0, 0, into.getWidth(), into.getHeight());
+            done.accept(true);
+        });
+
+        on();
+
+        assertEquals(1, AmbientLight.litForTests());
+        assertSame(video, asked[0]);
+        assertGlowsAboveAndBelow(container, video);
+        String report = HookStatus.report().toString();
+        assertTrue(report, report.contains(AmbientLight.COUNT_SURFACE_REELS + " 1"));
+    }
+
     /** A video starting over the photo it showed first takes the glow, and the photo's goes out. */
     @Test
     public void aVideoStartingOverItsCoverTakesTheGlow() {
@@ -1129,6 +1270,63 @@ public class AmbientLightTest {
         relayout();
         assertTrue("the bar gone, the strip glows again",
                 Color.alpha(background(host).getPixel(width / 2, strip)) > 20);
+    }
+
+    /**
+     * With the comment box hidden and its room kept, the bar under a reel opened from Explore shows
+     * nothing of its own, and its black covered the glow (#796). It wears the glow like the tab bar,
+     * and the strip under it glows too, until the comment box shows again.
+     */
+    @Test
+    public void anEmptyCommentBarsRoomGlowsUntilItsBoxShowsAgain() {
+        FrameLayout host = new FrameLayout(activity);
+        activity.setContentView(host);
+        root = host;
+        if (activity.getActionBar() != null) activity.getActionBar().hide();
+        shadowOf(Looper.getMainLooper()).idle();
+        View window = activity.getWindow().getDecorView();
+        int width = window.getWidth(), height = window.getHeight();
+        int statusBar = height / 25, gestureBar = height / 20, footerHeight = 50;
+        FrameLayout frame = new FrameLayout(activity);
+        frame.setId(frameId);
+        FrameLayout container = new FrameLayout(activity);
+        container.addView(new TextureView(activity), match());
+        frame.addView(container, match());
+        FrameLayout.LayoutParams between = match();
+        between.topMargin = statusBar;
+        between.bottomMargin = gestureBar + footerHeight;
+        host.addView(frame, between);
+        FrameLayout footer = new FrameLayout(activity);
+        int footerId = View.generateViewId();
+        footer.setId(footerId);
+        ColorDrawable footerBlack = new ColorDrawable(Color.BLACK);
+        footer.setBackground(footerBlack);
+        View commentBox = new View(activity);
+        commentBox.setVisibility(View.INVISIBLE);
+        footer.addView(commentBox, match());
+        FrameLayout.LayoutParams under = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, footerHeight, Gravity.BOTTOM);
+        under.bottomMargin = gestureBar;
+        host.addView(footer, under);
+        AmbientLight.footerIdForTests(activity, footerId);
+        shadowOf(Looper.getMainLooper()).idle();
+
+        on();
+        advance(AmbientSpeed.MEDIUM.fadeMillis);
+        frame();
+
+        assertTrue(String.valueOf(footer.getBackground()), footer.getBackground() instanceof AmbientLight.Glow);
+        int room = background(footer).getPixel(width / 2, footerHeight / 2);
+        assertTrue("the room glows over its black: " + hex(room), Color.red(room) > 20);
+        int strip = height - gestureBar - footerHeight + 4;
+        int behind = Color.alpha(background(host).getPixel(width / 2, strip));
+        assertTrue("and the band behind it isn't cut at its top: " + behind, behind > 20);
+
+        commentBox.setVisibility(View.VISIBLE);
+        shadowOf(Looper.getMainLooper()).idle();
+        relayout();
+
+        assertSame("the comment box showing, the bar keeps its own black", footerBlack, footer.getBackground());
+        assertEquals("and nothing glows under it", 0, Color.alpha(background(host).getPixel(width / 2, strip)));
     }
 
     @Test

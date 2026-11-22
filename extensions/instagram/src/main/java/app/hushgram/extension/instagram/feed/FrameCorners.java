@@ -48,6 +48,8 @@ final class FrameCorners {
     static final int MAX_VIEWS = 6000;
 
     private final String frame;
+    /** More frames rounded the same way, which an Instagram build may not have. */
+    private final String[] also;
     private final BooleanSetting setting;
     private final String hook;
     private final String countRounded;
@@ -68,7 +70,17 @@ final class FrameCorners {
      */
     FrameCorners(String frame, BooleanSetting setting, String hook, String countRounded, String roundedLine,
                  boolean aroundChildren) {
+        this(frame, new String[0], setting, hook, countRounded, roundedLine, aroundChildren);
+    }
+
+    /**
+     * @param also the id names of more frames rounded the same way, each left alone when the build has
+     *             no such id, as the report only misses [frame]
+     */
+    FrameCorners(String frame, String[] also, BooleanSetting setting, String hook, String countRounded,
+                 String roundedLine, boolean aroundChildren) {
         this.frame = frame;
+        this.also = also;
         this.setting = setting;
         this.hook = hook;
         this.countRounded = countRounded;
@@ -139,6 +151,11 @@ final class FrameCorners {
         ids.putForTests(Utils.resourcePackage(context), frame, id);
     }
 
+    /** Tests give one of the other frames, by its id [name], an id of their own. */
+    void idForTests(Context context, String name, int id) {
+        ids.putForTests(Utils.resourcePackage(context), name, id);
+    }
+
     int roundedForTests() {
         return rounded.size();
     }
@@ -205,8 +222,13 @@ final class FrameCorners {
                         return false;
                     }
                     HookStatus.recoveredViewId(FamilyNames.ROUNDED_POST_CORNERS, frame);
+                    int[] frames = new int[1 + also.length];
+                    frames[0] = id;
+                    for (int i = 0; i < also.length; i++) {
+                        frames[i + 1] = ids.resolve(owner.getResources(), Utils.resourcePackage(owner), also[i], false);
+                    }
                     float radius = Settings.ROUNDED_CORNER_SIZE.get().dp * owner.getResources().getDisplayMetrics().density;
-                    walk(owner.getWindow().getDecorView(), id, radius, new int[] {MAX_VIEWS});
+                    walk(owner.getWindow().getDecorView(), frames, radius, new int[] {MAX_VIEWS});
                 } else {
                     rounded.followChildren();
                 }
@@ -217,9 +239,9 @@ final class FrameCorners {
             return false;
         }
 
-        private void walk(View view, int id, float radius, int[] budget) {
+        private void walk(View view, int[] frames, float radius, int[] budget) {
             if (budget[0]-- <= 0) return;
-            if (view.getId() == id) {
+            if (isFrame(view.getId(), frames)) {
                 if (rounded.round(view, radius)) {
                     HookStatus.counted(FamilyNames.ROUNDED_POST_CORNERS, countRounded);
                     if (!logged) {
@@ -231,8 +253,17 @@ final class FrameCorners {
             }
             if (view instanceof ViewGroup) {
                 ViewGroup group = (ViewGroup) view;
-                for (int i = 0; i < group.getChildCount(); i++) walk(group.getChildAt(i), id, radius, budget);
+                for (int i = 0; i < group.getChildCount(); i++) walk(group.getChildAt(i), frames, radius, budget);
             }
+        }
+
+        /** Whether [id] is one of [frames], none of which is 0. */
+        private boolean isFrame(int id, int[] frames) {
+            if (id == View.NO_ID) return false;
+            for (int frame : frames) {
+                if (frame != 0 && frame == id) return true;
+            }
+            return false;
         }
     }
 }

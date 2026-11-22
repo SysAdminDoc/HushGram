@@ -203,6 +203,41 @@ public class ReelCornersTest {
         assertEquals("scaled from its top left corner", new Rect(0, 280, 200, 400), outlineRect(frame));
     }
 
+    /**
+     * A photo reel has no video frame: one photo sits in a frame of its own size, and a photo
+     * carousel's page is the photo's view itself. Both stayed square while videos were rounded (#796).
+     */
+    @Test
+    public void aPhotoReelsFrameAndACarouselsPhotoAreRounded() {
+        int photoId = View.generateViewId(), carouselId = View.generateViewId();
+        ReelCorners.photoIdForTests(activity, ReelCorners.PHOTO_FRAME, photoId);
+        ReelCorners.photoIdForTests(activity, ReelCorners.CAROUSEL_PHOTO, carouselId);
+        FrameLayout single = new FrameLayout(activity);
+        single.setId(photoId);
+        single.addView(new View(activity), new FrameLayout.LayoutParams(400, 300));
+        pager.addView(single, new FrameLayout.LayoutParams(400, 300, Gravity.CENTER));
+        View page = new View(activity);
+        page.setId(carouselId);
+        pager.addView(page, new FrameLayout.LayoutParams(400, 500, Gravity.CENTER));
+        shadowOf(Looper.getMainLooper()).idle();
+        Settings.ROUNDED_REEL_CORNERS.save(true);
+
+        ReelCorners.watch(activity);
+        frame();
+
+        assertTrue("the one photo's frame", single.getClipToOutline());
+        assertEquals(new Rect(0, 0, 400, 300), outlineRect(single));
+        assertTrue("the carousel's photo", page.getClipToOutline());
+        assertEquals(new Rect(0, 0, 400, 500), outlineRect(page));
+        assertTrue(radius(page) > 0);
+        assertTrue("video frames still rounded", first.getClipToOutline());
+
+        Settings.ROUNDED_REEL_CORNERS.save(false);
+        ReelCorners.watch(activity);
+        assertFalse(single.getClipToOutline());
+        assertFalse(page.getClipToOutline());
+    }
+
     @Test
     public void offToStartLeavesReelsAlone() {
         assertFalse(Settings.ROUNDED_REEL_CORNERS.get());
