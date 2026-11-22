@@ -208,6 +208,23 @@ public class LockedCollectionItemsTest {
         assertNull(LockedCollectionItems.leaveOutFound(null, null));
     }
 
+    /** A search that found only locked posts says it found nothing, as Instagram's own empty search does. */
+    @Test
+    public void aSearchThatFoundOnlyLockedPostsFoundNothing() {
+        List<?> none = LockedCollectionItems.found(Arrays.asList("locked 1", "locked 2"), post -> true);
+        assertTrue(none.isEmpty());
+        assertEquals("the search shows its page for finding nothing", 1, LockedCollectionItems.leftNothing(none));
+
+        List<?> some = LockedCollectionItems.found(Arrays.asList("a", "locked"), post -> post.toString().startsWith("locked"));
+        assertEquals(Collections.singletonList("a"), some);
+        assertEquals("one it can show keeps the grid", 0, LockedCollectionItems.leftNothing(some));
+        List<Object> empty = new ArrayList<>();
+        assertTrue("an empty search stays Instagram's own", empty == LockedCollectionItems.found(empty, post -> true));
+        assertEquals(0, LockedCollectionItems.leftNothing(empty));
+        assertEquals(0, LockedCollectionItems.leftNothing(Collections.emptyList()));
+        assertEquals(0, LockedCollectionItems.leftNothing(null));
+    }
+
     /** Stands in for Saved's search screen, a Fragment, as far as its arguments go. */
     public static final class SearchScreen {
         private final Bundle arguments;

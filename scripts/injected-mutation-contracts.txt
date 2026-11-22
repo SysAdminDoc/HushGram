@@ -310,11 +310,12 @@ once-call Lapp/hushgram/extension/instagram/feed/HomeLeftSwipe;->touch(Landroid/
 # hand their tile over once, just before its thumbnail lookup and ahead of the binder's
 # accessibility setup (which keeps the long click flag it finds), on every declared build.
 # A locked collection's posts leaving Saved's All, Posts, Reels and search (LockedCollectionItems
-# read, leaveOut, leaveOutReels and leaveOutFound, #678) have no rule for the same reason: the patch
-# leaves them out with a warning when a build's collection reader, Saved grid, Reels screen or search
-# has moved. LockedCollectionGridHookTest proves the reader hands over each collection it returns, the
-# grid asks before each row, the Reels screen's listener arm hands each batch over, and the search
-# hands what it found over before its screen keeps it, on every declared build.
+# read, leaveOut, leaveOutReels, leaveOutFound and leftNothing, #678) have no rule for the same reason:
+# the patch leaves them out with a warning when a build's collection reader, Saved grid, Reels screen
+# or search has moved. LockedCollectionGridHookTest proves the reader hands over each collection it
+# returns, the grid asks before each row, the Reels screen's listener arm hands each batch over, and
+# the search hands what it found over before its screen keeps it, then takes its Empty state when the
+# lock left nothing, on every declared build.
 # View live anonymously asks LiveSeen.hold(broadcast id) first where the live heartbeat manager's
 # tick asks for a viewer's or guest's heartbeat (IgLiveHeartbeatManager.A00 calling 036w.A00 on 450,
 # the request adding live_with_eligibility), and the tick returns its plain result while the switch

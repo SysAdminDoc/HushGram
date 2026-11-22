@@ -14,6 +14,7 @@ import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesAccessing
 import app.morphe.patches.instagram.misc.extension.classesLoadingString
+import app.morphe.patches.instagram.misc.extension.freeLocalsAt
 import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.liveAcrossInjection
 import app.morphe.patches.instagram.misc.extension.loadsString
@@ -37,6 +38,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.TypeReference
+import com.android.tools.smali.dexlib2.immutable.reference.ImmutableFieldReference
 
 /** Posts saved into a locked collection stay out of Saved's other grids while the lock is shut (#678). */
 internal const val LOCKED_ITEMS = "$EXTENSION_PACKAGE/direct/LockedCollectionItems;"
@@ -65,6 +67,10 @@ internal const val SAVED_REELS_FETCHER = "clipsSavedTabFetcher"
 internal const val LEAVE_OUT_FOUND = "$LOCKED_ITEMS->leaveOutFound(Ljava/util/List;Ljava/lang/Object;)Ljava/util/List;"
 /** The module name Saved's search screen gives, from its getModuleName. */
 internal const val SAVED_SEARCH_MODULE = "saved_search"
+/** Asked with what Saved's search just took: non-zero when the lock left none of what it found. */
+internal const val LEFT_NOTHING = "$LOCKED_ITEMS->leftNothing(Ljava/lang/Object;)I"
+/** Instagram's page for a search that found nothing, which Saved's search screen keeps. */
+internal const val EMPTY_STATE_VIEW = "Lcom/instagram/igds/components/emptystate/IgdsEmptyState;"
 
 /** The method reading a collection from JSON, each return of the collection it made, and its id and name fields. */
 internal class CollectionReader(
@@ -106,9 +112,21 @@ internal class SavedReelsBatch(
 
 /**
  * Where what Saved's search found goes into the search screen: [at], the screen's own List field
- * taking the posts in [posts], the screen being in [screen].
+ * taking the posts in [posts], the screen being in [screen]. The posts came out of the search's state
+ * in [state], and [shown] holds whether that's the state with results, which shows the grid. [empty]
+ * is the one instance of the state for finding nothing, which shows Instagram's empty page, and
+ * [scratch] a register nothing reads after the write.
  */
-internal class SavedSearchResults(val method: MutableMethod, val at: Int, val posts: Int, val screen: Int)
+internal class SavedSearchResults(
+    val method: MutableMethod,
+    val at: Int,
+    val posts: Int,
+    val screen: Int,
+    val state: Int,
+    val shown: Int,
+    val empty: FieldReference,
+    val scratch: Int,
+)
 
 internal class LockedGridTargets(
     val reader: CollectionReader,
@@ -169,6 +187,12 @@ internal fun BytecodePatchContext.findLockedGrid(): LockedGridTargets {
  * loads [SAVED_SEARCH_MODULE], and the place is the one write of a List field of it, outside the
  * screen, that goes straight on to make a row of each post in that List. The hook goes on the write
  * itself, under any label it has, so every way there passes through it.
+ *
+ * The same code then shows the grid when the state the posts came from is the one with results, and
+ * Instagram's empty page when it's the one for finding nothing. Right after the write, a search the
+ * lock left nothing of takes that state instead ([LEFT_NOTHING]), so it says it found nothing rather
+ * than showing an empty grid. Nothing jumps there, and nothing changes either register before the
+ * empty page is decided on.
  */
 internal fun BytecodePatchContext.findSavedSearchResults(): SavedSearchResults {
     val screens = classesLoadingString(SAVED_SEARCH_MODULE).filter { owner ->
@@ -187,8 +211,63 @@ internal fun BytecodePatchContext.findSavedSearchResults(): SavedSearchResults {
     val (stock, at) = found.singleOrNull()
         ?: refuseGrid("expected one place Saved's search gets what it found, found ${found.size}")
     val method = mutableClassDefBy(stock.definingClass).methods.single { it.sameAs(stock) }
-    val write = method.implementation!!.instructions.toList()[at] as TwoRegisterInstruction
-    return SavedSearchResults(method, at, write.registerA, write.registerB)
+    val code = method.implementation!!.instructions.toList()
+    val write = code[at] as TwoRegisterInstruction
+    if (write.registerA > 15 || write.registerB > 15) {
+        refuseGrid("Saved's search keeps what it found in v${write.registerA} and its screen in v${write.registerB}, past what an invoke names")
+    }
+    if (at + 1 in method.jumpTargets()) refuseGrid("something jumps to just after Saved's search takes what it found")
+    val (state, shown) = searchResultsCheck(method, code, at, write.registerA)
+    val (decided, empty) = searchEmptyCheck(code, at, state, screen.type)
+    for (register in listOf(state, shown)) {
+        val writes = reachingWrites(method, code, register, decided)
+        if (register > 255 || writes.isEmpty() || writes.any { it >= at }) {
+            refuseGrid("Saved's search changes v$register before it decides on its empty page")
+        }
+    }
+    val scratch = method.freeLocalsAt(LOCK_PATCH, at + 1, 1, except = listOf(state, shown, write.registerA, write.registerB)).first()
+    return SavedSearchResults(method, at, write.registerA, write.registerB, state, shown, empty, scratch)
+}
+
+/**
+ * The registers of Saved's search's state and of whether it's the state with results: the posts
+ * written at [at] in [posts] come out of a List field of one class, the state with results, and the
+ * last instance-of that class before [at] asks it of the state.
+ */
+private fun searchResultsCheck(method: Method, code: List<Instruction>, at: Int, posts: Int): Pair<Int, Int> {
+    val kinds = reachingWrites(method, code, posts, at).filter { it >= 0 }.mapNotNull { i ->
+        val field = (code[i] as? ReferenceInstruction)?.reference as? FieldReference
+        field?.takeIf { code[i].opcode == Opcode.IGET_OBJECT && it.type == "Ljava/util/List;" }?.definingClass
+    }.distinct()
+    val results = kinds.singleOrNull()
+        ?: refuseGrid("Saved's search takes what it found out of ${kinds.size} kinds of state, not one")
+    val check = (at - 1 downTo 0).firstOrNull { i ->
+        code[i].opcode == Opcode.INSTANCE_OF && ((code[i] as ReferenceInstruction).reference as TypeReference).type == results
+    } ?: refuseGrid("Saved's search never asks whether its state has results")
+    val asked = code[check] as TwoRegisterInstruction
+    return asked.registerB to asked.registerA
+}
+
+/**
+ * Where Saved's search asks whether its state in [state] is the one for finding nothing: the first
+ * instance-of of it after the code past [at] fetches [screen]'s empty page. Answers that index and
+ * the one instance of that state, its own static field.
+ */
+private fun BytecodePatchContext.searchEmptyCheck(code: List<Instruction>, at: Int, state: Int, screen: String): Pair<Int, FieldReference> {
+    val page = (at + 1 until minOf(code.size, at + 80)).firstOrNull { i ->
+        val field = (code[i] as? ReferenceInstruction)?.reference as? FieldReference
+        code[i].opcode == Opcode.IGET_OBJECT && field?.definingClass == screen && field.type == EMPTY_STATE_VIEW
+    } ?: refuseGrid("Saved's search doesn't fetch its empty page after taking what it found")
+    val check = (page + 1 until minOf(code.size, page + 8)).firstOrNull { i ->
+        code[i].opcode == Opcode.INSTANCE_OF && (code[i] as TwoRegisterInstruction).registerB == state
+    } ?: refuseGrid("Saved's search shows its empty page without asking its state")
+    val type = ((code[check] as ReferenceInstruction).reference as TypeReference).type
+    val instances = classDefByOrNull(type)?.fields?.toList().orEmpty().filter {
+        AccessFlags.STATIC.isSet(it.accessFlags) && it.type == type
+    }
+    val instance = instances.singleOrNull()
+        ?: refuseGrid("Saved's search's state for finding nothing has ${instances.size} instances, not one")
+    return check to ImmutableFieldReference(type, instance.name, type)
 }
 
 /**
@@ -476,6 +555,18 @@ internal fun hookLockedGrid(targets: LockedGridTargets) {
         """.trimIndent(),
     )
     targets.search?.let { search ->
+        // After the write first, so search.at still names the write for the hook in front of it.
+        search.method.addInstructionsWithLabels(
+            search.at + 1,
+            """
+                invoke-static { v${search.posts} }, $LEFT_NOTHING
+                move-result v${search.scratch}
+                if-eqz v${search.scratch}, :shown
+                sget-object v${search.state}, ${search.empty}
+                const/16 v${search.shown}, 0x0
+            """.trimIndent(),
+            ExternalLabel("shown", search.method.getInstruction(search.at + 1)),
+        )
         search.method.addInstructionsAtControlFlowLabel(
             search.at,
             """

@@ -16,6 +16,7 @@ import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
@@ -23,6 +24,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstructio
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
+import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
@@ -45,7 +47,7 @@ class LockedCollectionGridHookTest {
         val declared = ExtensionDex.classDef(LOCKED_ITEMS).methods
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
-        for (hook in listOf(READ_COLLECTION, LEAVE_OUT_POST, LEAVE_OUT_REELS, LEAVE_OUT_FOUND)) {
+        for (hook in listOf(READ_COLLECTION, LEAVE_OUT_POST, LEAVE_OUT_REELS, LEAVE_OUT_FOUND, LEFT_NOTHING)) {
             assertTrue("$hook is not in the extension: $declared", hook.substringAfter("->") in declared)
         }
         for (bridge in listOf("savedIn(Ljava/lang/Object;)Ljava/util/List;", "idOf(Ljava/lang/Object;)Ljava/lang/String;",
@@ -81,7 +83,22 @@ class LockedCollectionGridHookTest {
                 } == true
             }
         }
-        val context = PatchContexts.of(classes + ExtensionDex.classDef(LOCKED_ITEMS))
+        // And the states it shows the grid or its empty page by, which it asks about with instance-of.
+        val sliced = classes.map { it.type }.toSet()
+        val states = classes.filter { owner ->
+            owner.methods.any { method ->
+                method.implementation?.instructions?.any {
+                    it.opcode == Opcode.IPUT_OBJECT && ((it as ReferenceInstruction).reference as FieldReference).definingClass in searchScreens
+                } == true
+            }
+        }.flatMap { owner ->
+            owner.methods.flatMap { method ->
+                method.implementation?.instructions?.filter { it.opcode == Opcode.INSTANCE_OF }?.map {
+                    ((it as ReferenceInstruction).reference as TypeReference).type
+                }.orEmpty()
+            }
+        }.toSet() - sliced
+        val context = PatchContexts.of(classes + FixtureDex.classes(bundle, states).values + ExtensionDex.classDef(LOCKED_ITEMS))
         val targets = try {
             context.findLockedGrid()
         } catch (failure: PatchException) {
@@ -110,6 +127,14 @@ class LockedCollectionGridHookTest {
         // Whatever jumped to the write jumps to the hook after.
         val searchCode = search.method.instructions()
         val jumpsToWrite = searchCode.indices.filter { it in jumping(searchCode) && targetOf(searchCode, it) == search.at }
+        val afterWrite = text(searchCode[search.at + 1])
+        // The state for finding nothing is its own singleton, and not the state with results.
+        assertEquals("$label: the empty state's one instance", search.empty.definingClass, search.empty.type)
+        val results = searchCode.take(search.at).last {
+            it.opcode == Opcode.INSTANCE_OF && (it as TwoRegisterInstruction).registerB == search.state
+        }
+        assertNotEquals("$label: finding nothing isn't having results", search.empty.type, (results as ReferenceInstruction).reference.toString())
+        assertEquals("$label: whether it has results", search.shown, (results as TwoRegisterInstruction).registerA)
 
         hookLockedGrid(targets)
 
@@ -170,11 +195,29 @@ class LockedCollectionGridHookTest {
         assertEquals("$label: the posts to show", Opcode.MOVE_RESULT_OBJECT, found[search.at + 1].opcode)
         assertEquals("$label: in the same register", search.posts, (found[search.at + 1] as OneRegisterInstruction).registerA)
         assertEquals("$label: then the screen keeps them", Opcode.IPUT_OBJECT, found[search.at + 2].opcode)
+        // A search the lock left nothing of takes the state for finding nothing, which hides the grid.
+        val nothing = found[search.at + 3] as FiveRegisterInstruction
+        assertEquals("$label: then asks whether the lock left nothing", LEFT_NOTHING, (nothing as ReferenceInstruction).reference.toString())
+        assertEquals("$label: of what the screen kept", listOf(1, search.posts), listOf(nothing.registerCount, nothing.registerC))
+        assertEquals("$label: the answer", Opcode.MOVE_RESULT, found[search.at + 4].opcode)
+        assertEquals("$label: in the scratch register", search.scratch, (found[search.at + 4] as OneRegisterInstruction).registerA)
+        assertEquals("$label: on a no", Opcode.IF_EQZ, found[search.at + 5].opcode)
+        assertEquals("$label: goes on as before", search.at + 8, targetOf(found, search.at + 5))
+        assertEquals("$label: which is what followed the write", afterWrite, text(found[search.at + 8]))
+        assertEquals("$label: on a yes the state", Opcode.SGET_OBJECT, found[search.at + 6].opcode)
+        assertEquals("$label: is the empty one", search.empty.toString(), (found[search.at + 6] as ReferenceInstruction).reference.toString())
+        assertEquals("$label: in the state's register", search.state, (found[search.at + 6] as OneRegisterInstruction).registerA)
+        assertEquals("$label: and it has no results", Opcode.CONST_16, found[search.at + 7].opcode)
+        assertEquals("$label: in that register", search.shown, (found[search.at + 7] as OneRegisterInstruction).registerA)
+        assertEquals("$label: as false", 0L, (found[search.at + 7] as NarrowLiteralInstruction).wideLiteral)
+        assertEquals("$label: nothing reads the scratch register after", emptyList<Int>(),
+            search.method.readsAfter(search.at + 5, search.scratch))
+        val added = (search.at until search.at + 2) + (search.at + 3 until search.at + 8)
         assertEquals("$label: the search's own code stays", searchBefore,
-            found.filterIndexed { index, each -> index !in search.at until search.at + 2 && each.opcode != Opcode.NOP }.map(::text))
+            found.filterIndexed { index, each -> index !in added && each.opcode != Opcode.NOP }.map(::text))
         for (jump in jumpsToWrite) {
-            // A jump after the write moved down by the two instructions that went in.
-            val now = if (jump < search.at) jump else jump + 2
+            // A jump after the write moved down by the seven instructions that went in.
+            val now = if (jump < search.at) jump else jump + 7
             assertEquals("$label: the jump at $jump lands on the hook", search.at, targetOf(found, now))
         }
 

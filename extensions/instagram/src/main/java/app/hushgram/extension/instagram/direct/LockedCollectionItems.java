@@ -35,7 +35,8 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  *
  * <p>Saved's grid asks {@link #leaveOut} about each post as it makes its rows, and its Reels screen
  * hands {@link #leaveOutReels} each batch of reels it gets before making rows of them, as Saved's search
- * hands {@link #leaveOutFound} what it found. A post is left out
+ * hands {@link #leaveOutFound} what it found. A search that found only locked posts shows that it found
+ * nothing ({@link #leftNothing}), as one that found nothing at all does. A post is left out
  * while the lock is shut and one of its collections is on the list for the account in front, unless
  * the grid belongs to one of the post's own collections: a collection's page always shows all of
  * itself, and an unlocked collection sharing a post with a locked one keeps it. After an unlock the
@@ -172,9 +173,15 @@ public final class LockedCollectionItems {
     static final String SEARCH_COLLECTION = "SavedSearchFragment.ARGUMENT_COLLECTION_ID";
 
     /**
+     * What {@link #leaveOutFound} answers when it left out everything the search found. Empty, and
+     * {@link #leftNothing} knows it by itself, so the search shows that it found nothing.
+     */
+    static final List<Object> NOTHING_LEFT = Collections.unmodifiableList(new ArrayList<>(0));
+
+    /**
      * [posts], what Saved's search [screen] found, without those {@link #leaveOut} leaves out of the
      * collection the search is in, or of all of Saved when it's in none. Answers [posts] itself when
-     * none is left out. Fails open, never throws.
+     * none is left out, and {@link #NOTHING_LEFT} when all of them are. Fails open, never throws.
      */
     @Nullable
     public static List<?> leaveOutFound(@Nullable List<?> posts, @Nullable Object screen) {
@@ -182,11 +189,26 @@ public final class LockedCollectionItems {
         try {
             if (!MessagesLock.collectionListLocked()) return posts;
             String shown = searchedIn(screen);
-            return leaveOutEach(posts, post -> post != null && leaveOut(() -> savedIn(post), () -> shown) != 0);
+            return found(posts, post -> post != null && leaveOut(() -> savedIn(post), () -> shown) != 0);
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.MESSAGES_LOCK, STEP, t);
             return posts;
         }
+    }
+
+    /** {@link #leaveOutEach} for a search, answering {@link #NOTHING_LEFT} when [out] took every one of [posts]. */
+    static List<?> found(List<?> posts, Predicate<Object> out) {
+        List<?> kept = leaveOutEach(posts, out);
+        return kept != posts && kept.isEmpty() ? NOTHING_LEFT : kept;
+    }
+
+    /**
+     * Non-zero when [found], what Saved's search just took, is {@link #NOTHING_LEFT}: everything it
+     * found is in a locked collection. The search then shows Instagram's own page for a search that
+     * found nothing, and not an empty grid. Never throws.
+     */
+    public static int leftNothing(@Nullable Object found) {
+        return found == NOTHING_LEFT ? 1 : 0;
     }
 
     /** The id of the collection Saved's search [screen] searches in, from its arguments, or null for all of Saved. */
