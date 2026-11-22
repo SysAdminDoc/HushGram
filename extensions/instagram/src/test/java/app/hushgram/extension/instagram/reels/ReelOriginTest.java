@@ -1179,6 +1179,100 @@ public class ReelOriginTest {
     }
 
     /**
+     * A reel in the main feed opens its author's profile from the post's header, onto the feed's own
+     * tab, and no activity is created (#795). The profile's first grid resumed in a profile's screen
+     * gives its activity and screen, and the Reels tab there finds the reel; another screen's isn't
+     * searched.
+     */
+    @Test
+    public void aFeedReelsProfileOnTheFeedsTabFindsTheReel() {
+        openProfile(List.of("3000_7", REEL, "2900_7"), null);
+        ReelOrigin.openingFromFeed(new Reel(REEL), ON, VIDEO, media -> null);
+        assertEquals(REEL, ReelOrigin.heldForTests());
+        assertNull("no activity came yet", ReelOrigin.hostForTests());
+
+        UserDetailFragment screen = new UserDetailFragment();
+        ReelOrigin.postsGridResumed(new PostsGrid(profile, grid, ReelOrigin.POSTS), ON, OFF);
+        assertNull("a grid in no profile's screen takes nothing", ReelOrigin.hostForTests());
+        ReelOrigin.postsGridResumed(in(screen, new PostsGrid(profile, grid, ReelOrigin.POSTS)), ON, OFF);
+        assertSame("the feed's activity is the profile's", profile, ReelOrigin.hostForTests());
+        idleSeconds(1);
+        assertTrue("the posts grid doesn't look for a video", shown.isEmpty());
+
+        ReelOrigin.reelsTabResumed(in(new UserDetailFragment(), new Tab(profile, grid, AUTHOR)), ON);
+        idleSeconds(2);
+        assertTrue("another screen's Reels tab isn't searched", shown.isEmpty());
+        ReelOrigin.reelsTabResumed(in(screen, new Tab(profile, grid, AUTHOR)), ON);
+        idleSeconds(2);
+        assertEquals(List.of(REEL), shown);
+        String report = HookStatus.report().toString();
+        assertTrue(report, report.contains(ReelOrigin.REMEMBERED + " 1"));
+        assertTrue(report, report.contains(ReelOrigin.FEED_ON_TAB + " 1"));
+        assertTrue(report, report.contains(ReelOrigin.OTHER_PROFILE + " 1"));
+        assertTrue(HookStatus.missing(FamilyNames.REEL_ORIGIN).toString(), HookStatus.missing(FamilyNames.REEL_ORIGIN).isEmpty());
+    }
+
+    /**
+     * Other feeds open the profile in an activity of its own, taken as from Reels. A Reels tab can
+     * give the profile too, when the posts grid wasn't the first to resume.
+     */
+    @Test
+    public void aFeedReelsProfileInItsOwnActivityOrFirstOnItsReelsTabFindsTheReel() {
+        ReelOrigin.openingFromFeed(new Reel(REEL), ON, VIDEO, media -> null);
+        openProfile(List.of("3000_7", REEL), null);
+        assertSame(profile, ReelOrigin.hostForTests());
+        ReelOrigin.reelsTabResumed(in(new UserDetailFragment(), new Tab(profile, grid, AUTHOR)), ON);
+        ShadowLooper.idleMainLooper();
+        assertEquals(List.of(REEL), shown);
+
+        shown.clear();
+        Activity feed = profile;
+        ReelOrigin.openingFromFeed(new Reel(REEL), ON, VIDEO, media -> null);
+        ReelOrigin.reelsTabResumed(in(new UserDetailFragment(), new Tab(feed, grid, AUTHOR)), ON);
+        assertSame(feed, ReelOrigin.hostForTests());
+        ShadowLooper.idleMainLooper();
+        assertEquals(List.of(REEL), shown);
+    }
+
+    /**
+     * Only a video in the feed is held, the kind a reel is there: a photo, a carousel, or a post
+     * whose type can't be read holds nothing and keeps nothing held before. A trial reel holds
+     * nothing either, and a profile that comes after the window, or a reel opened from Reels, takes
+     * no grid's activity.
+     */
+    @Test
+    public void onlyAFeedVideoTappedMomentsBeforeIsHeld() {
+        for (Function<Object, Integer> type : List.of(PHOTO, CAROUSEL, UNKNOWN)) {
+            ReelOrigin.openingFromFeed(new Reel(REEL), ON, type, media -> null);
+            assertNull(ReelOrigin.heldForTests());
+        }
+        ReelOrigin.openingFromFeed(new Reel(REEL), OFF, VIDEO, media -> null);
+        ReelOrigin.openingFromFeed(null, ON, VIDEO, media -> null);
+        assertNull(ReelOrigin.heldForTests());
+        ReelOrigin.openingFromFeed(new Reel(REEL), ON, VIDEO, media -> true);
+        assertNull("a trial reel isn't on the profile", ReelOrigin.heldForTests());
+
+        openProfile(List.of(REEL), null);
+        ReelOrigin.openingFromFeed(new Reel(REEL), ON, VIDEO, media -> null);
+        idleSeconds(6);
+        ReelOrigin.postsGridResumed(in(new UserDetailFragment(), new PostsGrid(profile, grid, ReelOrigin.POSTS)), ON, OFF);
+        assertNull("the profile came too late, so the reel is dropped", ReelOrigin.heldForTests());
+
+        ReelOrigin.opening(new Reel(REEL), ON, VIDEO);
+        ReelOrigin.postsGridResumed(in(new UserDetailFragment(), new PostsGrid(profile, grid, ReelOrigin.POSTS)), ON, OFF);
+        assertNull("a reel from Reels waits for its own activity", ReelOrigin.hostForTests());
+        assertEquals(REEL, ReelOrigin.heldForTests());
+
+        Function<Object, Integer> throwing = media -> {
+            throw new ClassCastException("not a Media");
+        };
+        ReelOrigin.openingFromFeed(new Reel(REEL), ON, throwing, media -> null);
+        assertNull("a failure holds nothing", ReelOrigin.heldForTests());
+        String missing = HookStatus.missing(FamilyNames.REEL_ORIGIN).toString();
+        assertTrue(missing, missing.contains("'" + ReelOrigin.FEED + "'"));
+    }
+
+    /**
      * Told the profile went onto the tab, nothing changes unless a reel was tapped moments before:
      * nothing held, or held too long ago, and the activity isn't taken.
      */

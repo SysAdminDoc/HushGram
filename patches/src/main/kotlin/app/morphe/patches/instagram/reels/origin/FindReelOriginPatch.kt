@@ -20,7 +20,8 @@ internal const val REEL_ORIGIN_PATCH = "Find the reel you came from"
 
 /**
  * Takes you back to the reel you were watching from its creator's profile (#30). Opening a profile
- * from a reel remembers the reel, and the profile's Reels tab scrolls its grid to that reel's tile
+ * from a reel, in Reels or from a reel's header in the feed (#795), remembers the reel, and the
+ * profile's Reels tab scrolls its grid to that reel's tile
  * and labels it You just watched (#781), or for a photo reel the profile's posts grid does (#225).
  * In the default selection with its switch off.
  */
@@ -38,6 +39,8 @@ val findReelOriginPatch = bytecodePatch(
     execute {
         requireStatusMethod("reelOrigin")
         hookReelOrigin()
+        // A reel in the feed opens its author's profile from the post's header, not the opener (#795).
+        for (tap in findFeedHeaderTapsOrWarn()) hookFeedHeaderTap(tap)
         enableStatus("reelOrigin")
     }
 }

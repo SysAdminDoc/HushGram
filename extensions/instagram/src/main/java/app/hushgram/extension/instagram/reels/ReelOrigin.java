@@ -74,6 +74,14 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * taken as the profile's, a grid in another is left alone, and the id is dropped once that screen
  * is gone.
  *
+ * <p>A reel in the feed opens its author's profile from the post's header instead, which never
+ * reaches navigateToNormalProfile, so nothing was held (#795). The patch calls
+ * {@link #openingFromFeed} as the header tap reads the post's media, and a video is held the same
+ * way. The main feed puts that profile on its own tab, in the activity already there, so when no
+ * activity comes, the first grid or Reels tab resumed in a profile's screen within the window
+ * gives the profile's activity and screen, as {@link #profileOnTab} does. Other feeds open it in an
+ * activity of its own, taken as above.
+ *
  * <p>The patch also calls {@link #reelsTabResumed} first in the onResume of a profile's Reels tab
  * (ClipsProfileTabFragment). When that tab is in the profile's activity and shows the reel's author
  * (the id ends with the author's user id), the tab's grid is dragged up most of a screen at a time,
@@ -133,6 +141,8 @@ public final class ReelOrigin {
     /** Instagram's media types of a photo and of a carousel, the two a photo reel comes as. */
     static final int PHOTO = 1;
     static final int CAROUSEL = 8;
+    /** Instagram's media type of a video, which every reel in the feed is. */
+    static final int VIDEO = 2;
     /** The type of the Reels tab's one grid field, and the posts grid's. */
     static final String GRID_TYPE = "androidx.recyclerview.widget.RecyclerView";
 
@@ -144,6 +154,9 @@ public final class ReelOrigin {
     static final String LOOK = "looking for the reel";
     static final String WATCH = "profile screen watched";
     static final String ON_TAB = "profile opened on the tab";
+    static final String FEED = "profile opened from a feed reel";
+    /** Counted when a profile opened from a feed reel is taken as the one on the feed's tab. */
+    static final String FEED_ON_TAB = "feed reel's profile on the tab";
     /** Counted when a reel's id is held, found in the grid, not found, and when the tab was left first. */
     static final String REMEMBERED = "reel remembered";
     static final String FOUND = "reel found";
@@ -235,6 +248,8 @@ public final class ReelOrigin {
      */
     private static boolean onTab;
     private static WeakReference<Object> tabProfile;
+    /** Whether the reel held was tapped in the feed, whose profile may open on the feed's own tab. */
+    private static boolean fromFeed;
     /** Where the watcher is registered while an id is held. */
     private static Application watched;
     /** The search running, at most one. */
@@ -264,9 +279,29 @@ public final class ReelOrigin {
 
     /** [type] reads the media's type and [trial] whether it's a trial reel, each null when it can't be told. */
     static void opening(Object media, BooleanSupplier on, Function<Object, Integer> type, Function<Object, Boolean> trial) {
+        hold(media, on, type, trial, false);
+    }
+
+    /**
+     * Called in a feed post's header tap as it reads the post's media, before the author's profile
+     * opens (#795). Only a video, which is what a reel in the feed is, is held: a photo post was never
+     * a reel to go back to. The main feed puts the profile on its own tab, in the activity already
+     * there, so that profile is taken at its first grid's resume instead. Never throws.
+     */
+    public static void openingFromFeed(Object media) {
+        openingFromFeed(media, ReelOrigin::switchedOn, InstagramMedia::mediaType, InstagramMedia::activeTrial);
+    }
+
+    static void openingFromFeed(Object media, BooleanSupplier on, Function<Object, Integer> type, Function<Object, Boolean> trial) {
+        hold(media, on, type, trial, true);
+    }
+
+    private static void hold(Object media, BooleanSupplier on, Function<Object, Integer> type, Function<Object, Boolean> trial, boolean feed) {
         try {
             HookStatus.invoked(FamilyNames.REEL_ORIGIN);
             if (media == null || !on.getAsBoolean()) return;
+            Integer kind = type.apply(media);
+            if (feed && (kind == null || kind != VIDEO)) return;
             String id = mediaId(media);
             if (id == null || id.isEmpty()) return;
             if (isTrial(media, trial)) {
@@ -275,7 +310,6 @@ public final class ReelOrigin {
                 Utils.showToastShort(L10n.t("That's a trial reel, so it isn't on their profile"));
                 return;
             }
-            Integer kind = type.apply(media);
             boolean photo = kind != null && (kind == PHOTO || kind == CAROUSEL);
             Application application = application();
             if (application == null) return;
@@ -288,6 +322,7 @@ public final class ReelOrigin {
                 postsGrid = null;
                 onTab = false;
                 tabProfile = null;
+                fromFeed = feed;
                 if (watched == null) {
                     application.registerActivityLifecycleCallbacks(WATCHER);
                     watched = application;
@@ -295,9 +330,33 @@ public final class ReelOrigin {
             }
             HookStatus.counted(FamilyNames.REEL_ORIGIN, REMEMBERED);
         } catch (Throwable failure) {
-            HookStatus.threw(FamilyNames.REEL_ORIGIN, OPENING, failure);
+            HookStatus.threw(FamilyNames.REEL_ORIGIN, feed ? FEED : OPENING, failure);
             forget();
         }
+    }
+
+    /**
+     * A profile opened from a feed reel that no new activity came for went onto the feed's tab, so
+     * the activity of [fragment], its first grid or Reels tab resumed within the window, is taken as
+     * the profile's, with the profile's screen [fragment] sits in (#795). A fragment in no profile's
+     * screen takes nothing.
+     */
+    private static void adoptFeedProfile(Object fragment) throws ReflectiveOperationException {
+        synchronized (LOCK) {
+            if (held == null || host != null || !fromFeed || SystemClock.uptimeMillis() - heldAt > HOST_WINDOW_MS) return;
+        }
+        Object screen = profileScreen(fragment);
+        if (screen == null) return;
+        Method activity = method(fragment, "getActivity");
+        Object found = activity == null ? null : activity.invoke(fragment);
+        if (!(found instanceof Activity)) return;
+        synchronized (LOCK) {
+            if (held == null || host != null || !fromFeed) return;
+            host = new WeakReference<>((Activity) found);
+            onTab = true;
+            tabProfile = new WeakReference<>(screen);
+        }
+        HookStatus.counted(FamilyNames.REEL_ORIGIN, FEED_ON_TAB);
     }
 
     /**
@@ -385,6 +444,7 @@ public final class ReelOrigin {
         try {
             HookStatus.invoked(FamilyNames.REEL_ORIGIN);
             if (tab == null || !on.getAsBoolean()) return;
+            adoptFeedProfile(tab);
             String id;
             Activity profile;
             boolean photo;
@@ -428,6 +488,7 @@ public final class ReelOrigin {
         try {
             HookStatus.invoked(FamilyNames.REEL_ORIGIN);
             if (grid == null || !on.getAsBoolean()) return;
+            adoptFeedProfile(grid);
             String id;
             Activity profile;
             boolean photo;
@@ -566,6 +627,7 @@ public final class ReelOrigin {
             postsGrid = null;
             onTab = false;
             tabProfile = null;
+            fromFeed = false;
             stopLooking();
             synchronized (TILE_IDS) {
                 TILE_IDS.clear();

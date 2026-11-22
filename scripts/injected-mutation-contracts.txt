@@ -3253,6 +3253,14 @@ once-call Lapp/hushgram/extension/instagram/reels/ReelOrigin;->postsGridResumed(
 # photo reel is never found among the posts; twice or elsewhere, it isn't the hook the patch wrote.
 # NativeFindReelOriginTest checks on the ten 454 builds where it lands.
 once-call Lapp/hushgram/extension/instagram/reels/ReelOrigin;->postsTileBound(Ljava/lang/Object;Ljava/lang/Object;)V in instance (*)V pooled holding profile_grid_item_
+# A reel in the feed opens its author's profile from the post's header (#795), so it also hands the
+# post's media to ReelOrigin.openingFromFeed right after each header tap reads it from the tap's
+# event. 456 has two taps loading the entry point below: the main feed's (07p6.Fhr on 386214574),
+# which pushes the profile onto its tab, and the other feeds' (08NA.Fhr), which open it in an
+# activity; each is told by that call. Left out, a feed reel is never held; twice or elsewhere, it
+# isn't the hook the patch wrote. FeedReelHeaderHookTest checks on every 456 build where each lands.
+once-call Lapp/hushgram/extension/instagram/reels/ReelOrigin;->openingFromFeed(Ljava/lang/Object;)V in instance (Ljava/lang/Object;)V calling static LX/*;->*(Landroidx/fragment/app/Fragment;Lcom/instagram/common/session/UserSession;LX/*;Ljava/lang/String;Ljava/lang/String;)V pooled holding media_username
+once-call Lapp/hushgram/extension/instagram/reels/ReelOrigin;->openingFromFeed(Ljava/lang/Object;)V in instance (Ljava/lang/Object;)V calling static LX/*;->*(Landroid/app/Activity;Landroid/os/Bundle;LX/*;Ljava/lang/Class;Ljava/lang/String;)LX/*; pooled holding media_username
 # Blur the bars around Reels hands ReelBlurBars.pager the Reels pager (AndroidX's ViewPager2, whose pages
 # each hold the reel's TextureView) right after the viewer's pager setup stores it (04QD.HRh on 452),
 # the same method Stop Reels scrolling finds by the trace name of the pager's setup. Left out, the switch does nothing;

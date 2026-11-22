@@ -87,6 +87,7 @@ Every HushGram release, newest first.
 * `See who a story mentions` brings its list back after you watch the story of a profile you opened from it. Watching that story still closed the list, so going back to the first story left it shut. Reported in #403.
 * The Lens button on reels and stories sees the video now instead of a black box, and the glass tab bar keeps up with every reel, not just some. Instagram plays some videos on a layer of its own that HushGram couldn't read before. Reported in #801 and #583.
 * `Hide Suggested for you on follow lists` keeps the suggested people off the Follow requests screen now, even when Instagram sends them anyway. Before, the screen only asked for none and showed whatever came back. Reported in #814.
+* `Find the reel you came from` works for reels in your feed too. Tap the name at the top of a reel in Home, open their Reels tab, and it scrolls to that reel. Before, only a profile opened from the Reels viewer remembered it. Reported in #795.
 
 ## 0.0.21 (2026-11-18)
 
