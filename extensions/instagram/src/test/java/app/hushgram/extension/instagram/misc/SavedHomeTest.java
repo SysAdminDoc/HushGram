@@ -13,6 +13,11 @@ import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -31,7 +36,8 @@ import app.hushgram.extension.shared.settings.PauseForTests;
 
 /**
  * The bookmark's Saved (#762): it opens on All, the tabbed Saved the menu opens, with the menu's back
- * arrow, and a switch leaves the + for a new collection off the top of both Saved screens.
+ * arrow, and a switch leaves the + for a new collection off the top of both Saved screens. Two more
+ * (#810) leave the Reels tab out of Saved and the Saved bookmark off the Search tab.
  */
 @RunWith(RobolectricTestRunner.class)
 public class SavedHomeTest {
@@ -53,6 +59,8 @@ public class SavedHomeTest {
 
     @After public void restore() {
         Settings.HIDE_SAVED_NEW_COLLECTION.resetToDefault();
+        Settings.HIDE_SAVED_REELS_TAB.resetToDefault();
+        Settings.HIDE_EXPLORE_SAVED.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         BaseSettings.SAFE_MODE.save(false);
@@ -138,5 +146,71 @@ public class SavedHomeTest {
             throw new IllegalStateException("not read yet");
         }));
         assertTrue(savedLine(), !savedLine().contains(SavedHome.NEW_COLLECTION_HIDDEN));
+    }
+
+    /** Saved's tabs as Instagram names them: an enum whose names it keeps. */
+    enum Tab { ALL_CONTENT, REELS, POSTS, COLLECTIONS }
+
+    private static List<Tab> savedTabs() {
+        return new ArrayList<>(Arrays.asList(Tab.ALL_CONTENT, Tab.REELS, Tab.POSTS, Tab.COLLECTIONS));
+    }
+
+    @Test public void theReelsTabStaysUntilTheSwitchIsOn() {
+        List<Tab> tabs = savedTabs();
+        SavedHome.tabs(tabs);
+        assertEquals(savedTabs(), tabs);
+        Settings.HIDE_SAVED_REELS_TAB.save(true);
+        SavedHome.tabs(tabs);
+        assertEquals(Arrays.asList(Tab.ALL_CONTENT, Tab.POSTS, Tab.COLLECTIONS), tabs);
+        assertTrue(savedLine(), savedLine().contains(SavedHome.REELS_TAB_HIDDEN + " 1"));
+        List<Tab> again = savedTabs();
+        Settings.HIDE_SAVED_REELS_TAB.save(false);
+        SavedHome.tabs(again);
+        assertEquals(savedTabs(), again);
+    }
+
+    @Test public void savedKeepsATabToOpenOn() {
+        Settings.HIDE_SAVED_REELS_TAB.save(true);
+        List<Tab> onlyReels = new ArrayList<>(Collections.singletonList(Tab.REELS));
+        SavedHome.tabs(onlyReels);
+        assertEquals(Collections.singletonList(Tab.REELS), onlyReels);
+        List<Object> none = new ArrayList<>(Arrays.asList("REELS", Tab.POSTS));
+        SavedHome.tabs(none);
+        assertEquals("only Instagram's tab, not a string that reads like it", 2, none.size());
+        SavedHome.tabs(null);
+    }
+
+    @Test public void aPauseOrAFailingReadKeepsTheReelsTab() {
+        Settings.HIDE_SAVED_REELS_TAB.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        List<Tab> paused = savedTabs();
+        SavedHome.tabs(paused);
+        assertEquals(savedTabs(), paused);
+        PauseForTests.resume();
+
+        List<Tab> failing = savedTabs();
+        assertEquals(0, SavedHome.tabs(failing, () -> {
+            throw new IllegalStateException("not read yet");
+        }));
+        assertEquals(savedTabs(), failing);
+        // A list Instagram made unchangeable stays as it is, and Saved still opens.
+        List<Tab> fixed = Collections.unmodifiableList(savedTabs());
+        assertEquals(0, SavedHome.tabs(fixed, () -> true));
+        assertEquals(savedTabs(), fixed);
+    }
+
+    @Test public void theSearchTabsSavedStaysUntilTheSwitchIsOn() {
+        assertEquals(0, SavedHome.hideExploreSaved());
+        Settings.HIDE_EXPLORE_SAVED.save(true);
+        assertEquals(1, SavedHome.hideExploreSaved());
+        assertTrue(savedLine(), savedLine().contains(SavedHome.EXPLORE_SAVED_HIDDEN + " 1"));
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertEquals(0, SavedHome.hideExploreSaved());
+        PauseForTests.resume();
+        assertEquals(0, SavedHome.hideExploreSaved(() -> {
+            throw new IllegalStateException("not read yet");
+        }));
+        Settings.HIDE_EXPLORE_SAVED.save(false);
+        assertEquals(0, SavedHome.hideExploreSaved());
     }
 }

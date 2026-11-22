@@ -103,6 +103,10 @@ public class TabBarAndBatterySettingsTest {
         Settings.SAVED_FAST_SCROLL.resetToDefault();
         Settings.HIDE_SAVED_NEW_COLLECTION.resetToDefault();
         PatchFamily.savedNewCollectionForTests = null;
+        Settings.HIDE_SAVED_REELS_TAB.resetToDefault();
+        PatchFamily.savedReelsTabForTests = null;
+        Settings.HIDE_EXPLORE_SAVED.resetToDefault();
+        PatchFamily.exploreSavedForTests = null;
         Settings.STOP_HEARTBEAT.resetToDefault();
         Settings.STOP_UPLOAD_ALARM.resetToDefault();
         Settings.STOP_BACKGROUND_FETCH.resetToDefault();
@@ -125,7 +129,7 @@ public class TabBarAndBatterySettingsTest {
     @Test public void withoutThePatchesNoneOfTheirRowsShow() throws Exception {
         open();
         for (String key : List.of(Settings.GLASS_TAB_BAR.key, Settings.GLASS_TAB_BAR_HAPTIC_STYLE.key, Settings.GLASS_TAB_BAR_OPACITY.key, Settings.GLASS_TAB_BAR_HEIGHT.key,
-                Settings.GLASS_TAB_BAR_CORNERS.key, Settings.GLASS_TAB_BAR_LIFT.key, Settings.GLASS_TAB_BAR_BLUR_RADIUS.key, Settings.GLASS_TAB_BAR_REELS_HIDE.key, Settings.SAVED_ON_PROFILE.key, Settings.SAVED_FAST_SCROLL.key, Settings.HIDE_SAVED_NEW_COLLECTION.key, Settings.STOP_HEARTBEAT.key,
+                Settings.GLASS_TAB_BAR_CORNERS.key, Settings.GLASS_TAB_BAR_LIFT.key, Settings.GLASS_TAB_BAR_BLUR_RADIUS.key, Settings.GLASS_TAB_BAR_REELS_HIDE.key, Settings.SAVED_ON_PROFILE.key, Settings.SAVED_FAST_SCROLL.key, Settings.HIDE_SAVED_NEW_COLLECTION.key, Settings.HIDE_SAVED_REELS_TAB.key, Settings.HIDE_EXPLORE_SAVED.key, Settings.STOP_HEARTBEAT.key,
                 Settings.STOP_UPLOAD_ALARM.key, Settings.STOP_BACKGROUND_FETCH.key, Settings.GLASS_TAB_BAR_HAPTIC_STRENGTH.key,
                 Settings.GLASS_TAB_BAR_TAP_SOUND.key, Settings.GLASS_TAB_BAR_TAP_SOUND_VOLUME.key)) {
             assertNull(key, row(key));
@@ -792,6 +796,43 @@ public class TabBarAndBatterySettingsTest {
         assertNotNull(row(Settings.SAVED_ON_PROFILE.key));
         assertNotNull(row(Settings.SAVED_FAST_SCROLL.key));
         assertNull(row(Settings.HIDE_SAVED_NEW_COLLECTION.key));
+    }
+
+    /**
+     * Saved's Reels tab sits right under the +, without a restart, and the Search tab's Saved right
+     * under that, with one (#810). Both start off.
+     */
+    @Test public void savedsReelsTabAndTheSearchTabsSavedFollowThePlus() throws Exception {
+        open(PatchFamily.SAVED_ON_PROFILE);
+        SwitchPreference plus = (SwitchPreference) row(Settings.HIDE_SAVED_NEW_COLLECTION.key);
+        SwitchPreference reels = (SwitchPreference) row(Settings.HIDE_SAVED_REELS_TAB.key);
+        SwitchPreference explore = (SwitchPreference) row(Settings.HIDE_EXPLORE_SAVED.key);
+        assertNotNull(reels);
+        assertNotNull(explore);
+        assertEquals("Hide the Reels tab in Saved", String.valueOf(reels.getTitle()));
+        assertEquals("Takes the Reels tab out of Saved. Your saved reels stay saved.", String.valueOf(reels.getSummary()));
+        assertEquals("Hide Saved on the Search tab", String.valueOf(explore.getTitle()));
+        assertEquals("Takes the Saved bookmark off the top of the Search tab. Restart Instagram after changing it.",
+                String.valueOf(explore.getSummary()));
+        assertSame(sectionOf(page.getPreferenceScreen(), plus), sectionOf(page.getPreferenceScreen(), reels));
+        assertSame(sectionOf(page.getPreferenceScreen(), plus), sectionOf(page.getPreferenceScreen(), explore));
+        assertEquals(plus.getOrder() + 1, reels.getOrder());
+        assertEquals(reels.getOrder() + 1, explore.getOrder());
+        assertFalse(reels.isChecked());
+        assertFalse(explore.isChecked());
+        assertFalse(Settings.HIDE_SAVED_REELS_TAB.rebootApp);
+        assertTrue(Settings.HIDE_EXPLORE_SAVED.rebootApp);
+    }
+
+    /** A build where Saved's tab list or the Search tab's bar didn't match leaves that switch out, and keeps the rest. */
+    @Test public void withoutTheirHooksTheReelsTabAndSearchTabSwitchesAreLeftOut() throws Exception {
+        PatchFamily.savedReelsTabForTests = false;
+        PatchFamily.exploreSavedForTests = false;
+        open(PatchFamily.SAVED_ON_PROFILE);
+        assertNotNull(row(Settings.SAVED_ON_PROFILE.key));
+        assertNotNull(row(Settings.HIDE_SAVED_NEW_COLLECTION.key));
+        assertNull(row(Settings.HIDE_SAVED_REELS_TAB.key));
+        assertNull(row(Settings.HIDE_EXPLORE_SAVED.key));
     }
 
     @Test public void batteryHoldsAllThreeWakeUpSwitchesAndAllStartOff() throws Exception {

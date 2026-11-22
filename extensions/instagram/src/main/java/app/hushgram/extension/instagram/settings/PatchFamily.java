@@ -189,7 +189,8 @@ public enum PatchFamily {
             Settings.FILL_REEL_SCREEN, Settings.FIT_REEL_SCREEN, Settings.FULL_SCREEN_HOME, Settings.FULL_SCREEN_MESSAGES,
             Settings.FILL_STORY_SCREEN),
     SAVED_ON_PROFILE(FamilyNames.SAVED_ON_PROFILE, "savedOnProfile", null, Settings.SAVED_ON_PROFILE,
-            Settings.SAVED_FAST_SCROLL, Settings.HIDE_SAVED_NEW_COLLECTION),
+            Settings.SAVED_FAST_SCROLL, Settings.HIDE_SAVED_NEW_COLLECTION, Settings.HIDE_SAVED_REELS_TAB,
+            Settings.HIDE_EXPLORE_SAVED),
     STOP_HEARTBEAT(FamilyNames.STOP_HEARTBEAT, "stopHeartbeat", null, Settings.STOP_HEARTBEAT,
             Settings.STOP_UPLOAD_ALARM, Settings.STOP_BACKGROUND_FETCH),
     REFRESH_RATE(FamilyNames.REFRESH_RATE, "refreshRate", null, Settings.HIGHEST_REFRESH_RATE),
@@ -645,6 +646,40 @@ public enum PatchFamily {
         return SAVED_ON_PROFILE.inBuild() && SettingsStatus.savedNewCollection();
     }
 
+    /** Whether a test says this build hides Saved's Reels tab, instead of asking {@link SettingsStatus}. */
+    @Nullable
+    static volatile Boolean savedReelsTabForTests;
+
+    /**
+     * Whether this build can leave the Reels tab out of the tabbed Saved screen (#810). Saved on your
+     * profile goes in without it when the tabbed screen's tab list didn't match, so its switch isn't
+     * offered then.
+     */
+    public static boolean savedReelsTabInBuild() {
+        Boolean forced = savedReelsTabForTests;
+        if (forced != null) return forced;
+        Set<PatchFamily> families = inBuildForTests;
+        if (families != null) return families.contains(SAVED_ON_PROFILE);
+        return SAVED_ON_PROFILE.inBuild() && SettingsStatus.savedReelsTab();
+    }
+
+    /** Whether a test says this build hides the Search tab's Saved, instead of asking {@link SettingsStatus}. */
+    @Nullable
+    static volatile Boolean exploreSavedForTests;
+
+    /**
+     * Whether this build can leave the Saved bookmark off the top of the Search tab (#810). Saved on
+     * your profile goes in without it when the Search tab's top bar didn't match, so its switch isn't
+     * offered then.
+     */
+    public static boolean exploreSavedInBuild() {
+        Boolean forced = exploreSavedForTests;
+        if (forced != null) return forced;
+        Set<PatchFamily> families = inBuildForTests;
+        if (families != null) return families.contains(SAVED_ON_PROFILE);
+        return SAVED_ON_PROFILE.inBuild() && SettingsStatus.exploreSaved();
+    }
+
     /** Whether this build's Saved bookmark opens the tabbed Saved on All, instead of the collections grid. */
     public static boolean savedOnAllInBuild() {
         Set<PatchFamily> families = inBuildForTests;
@@ -721,6 +756,12 @@ public enum PatchFamily {
                 }
                 if (family == SAVED_ON_PROFILE && !savedNewCollectionInBuild()) {
                     lines.add("  Hide the New collection button: not in this build (neither Saved screen's top bar matched)");
+                }
+                if (family == SAVED_ON_PROFILE && !savedReelsTabInBuild()) {
+                    lines.add("  Hide the Reels tab in Saved: not in this build (Saved's tab list didn't match)");
+                }
+                if (family == SAVED_ON_PROFILE && !exploreSavedInBuild()) {
+                    lines.add("  Hide Saved on the Search tab: not in this build (the Search tab's top bar didn't match)");
                 }
                 if (family == FOLLOWING_FEED && !favoritesFeedInBuild()) {
                     lines.add("  Favorites from the tab bar: not in this build (Home's feed switch or the tab bar didn't match)");

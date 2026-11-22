@@ -656,6 +656,14 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean savedReelsTab() {
+        return false;
+    }
+
+    public static boolean exploreSaved() {
+        return false;
+    }
+
     public static boolean stopHeartbeat() {
         return false;
     }

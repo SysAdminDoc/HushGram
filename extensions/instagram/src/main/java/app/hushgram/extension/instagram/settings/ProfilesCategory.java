@@ -227,6 +227,17 @@ final class ProfilesCategory {
                             L10n.t("Hide the New collection button"),
                             L10n.t("Takes the + for a new collection off the top of Saved. Your collections stay.")));
                 }
+                if (PatchFamily.savedReelsTabInBuild()) {
+                    profiles.addPreference(toggle(context, Settings.HIDE_SAVED_REELS_TAB,
+                            L10n.t("Hide the Reels tab in Saved"),
+                            L10n.t("Takes the Reels tab out of Saved. Your saved reels stay saved.")));
+                }
+                if (PatchFamily.exploreSavedInBuild()) {
+                    profiles.addPreference(toggle(context, Settings.HIDE_EXPLORE_SAVED,
+                            L10n.t("Hide Saved on the Search tab"),
+                            L10n.t("Takes the Saved bookmark off the top of the Search tab. Restart Instagram "
+                                    + "after changing it.")));
+                }
             }
             if (build.contains(PatchFamily.THREADS_BUTTON)) {
                 profiles.addPreference(toggle(context, Settings.HIDE_THREADS_BUTTON, L10n.t("Hide the Threads button"),

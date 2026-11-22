@@ -2334,6 +2334,22 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_saved_new_collection", FALSE);
 
     /**
+     * Leaves the Reels tab out of the tabbed Saved screen
+     * ({@link app.hushgram.extension.instagram.misc.SavedHome}, #810). Saved reels stay saved and still
+     * show under All. Read each time Saved lists its tabs, so it takes no restart. Off to start.
+     */
+    public static final BooleanSetting HIDE_SAVED_REELS_TAB =
+            new BooleanSetting("hushgram_hide_saved_reels_tab", FALSE);
+
+    /**
+     * Leaves the Saved bookmark off the top of the Search tab
+     * ({@link app.hushgram.extension.instagram.misc.SavedHome}, #810). The Search tab's top bar is built
+     * once, so a change takes a restart. Off to start.
+     */
+    public static final BooleanSetting HIDE_EXPLORE_SAVED =
+            new BooleanSetting("hushgram_hide_explore_saved", FALSE, true);
+
+    /**
      * Instagram stops waking itself with an alarm every minute or two to note that it is still running
      * ({@link app.hushgram.extension.instagram.misc.Heartbeat}). Read each time the next alarm would be set.
      * Off to start.

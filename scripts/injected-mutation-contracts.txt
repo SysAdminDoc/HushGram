@@ -3650,6 +3650,13 @@ once-call Lapp/hushgram/extension/instagram/misc/Heartbeat;->skipBackgroundFetch
 # shape with its class's other (bar)V methods. SavedHomeHookTest finds all four through the tab key
 # the menu's maker loads, on every declared build and the other builds of 456, and checks each call
 # and branch target and that nothing else in those classes changed.
+# The same patch (#810) hands SavedHome.tabs the tabbed Saved's list of its tabs right before it
+# hands it back (0HwF.A00 on 456's 386214574, the one instance ()ArrayList loading its tabs' names),
+# and asks SavedHome.hideExploreSaved in ExploreActionBar's one method loading the Saved stub's id,
+# right before it reads the field holding the bookmark, skipping the make-and-keep when it answers
+# yes. Left out, Saved keeps its Reels tab or the Search tab keeps its Saved with the switch on.
+once-call Lapp/hushgram/extension/instagram/misc/SavedHome;->tabs(Ljava/util/List;)V in instance ()Ljava/util/ArrayList; sites returns pooled holding REELS COLLECTIONS ALL
+once-call Lapp/hushgram/extension/instagram/misc/SavedHome;->hideExploreSaved()I in instance (Landroidx/fragment/app/Fragment;Landroidx/fragment/app/FragmentActivity;Lcom/instagram/common/session/UserSession;LX/*;LX/*;LX/*;Z)V holding const:0x7f0b1680
 # Hide New message button and suggestions (#762) hands NewMessageButton.bind each button either inbox
 # top bar binds and what it's bound to: first thing in IgdsActionBar's binder, ahead of the ghost
 # call, and in the older bar's binder (01tS.A0e on 456's 386214574, the one instance (View, built

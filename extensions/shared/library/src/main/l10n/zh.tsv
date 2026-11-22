@@ -1041,6 +1041,14 @@ Shows a handle at the right edge of Saved and your collections while they scroll
 Hide the New collection button	隐藏新建珍藏分类按钮
 # context: Profiles > summary of Hide the New collection button; Saved is Instagram's own Saved page (#762)
 Takes the + for a new collection off the top of Saved. Your collections stay.	移除“已收藏”顶部用来新建珍藏分类的 + 按钮。你的珍藏分类会保留。
+# context: Profiles > switch right after Hide the New collection button; Reels is Instagram's own label for the Reels tab at the top of Saved, Saved is Instagram's own Saved page (#810)
+Hide the Reels tab in Saved	隐藏“已收藏”中的 Reels 标签页
+# context: Profiles > summary of Hide the Reels tab in Saved; saved reels still show under All (#810)
+Takes the Reels tab out of Saved. Your saved reels stay saved.	移除“已收藏”中的 Reels 标签页。你收藏的 Reels 仍会保留。
+# context: Profiles > switch right after Hide the Reels tab in Saved; Saved is Instagram's own label for the bookmark at the top right of the Search tab, beside the search bar (#810)
+Hide Saved on the Search tab	隐藏搜索标签页上的“已收藏”
+# context: Profiles > summary of Hide Saved on the Search tab (#810)
+Takes the Saved bookmark off the top of the Search tab. Restart Instagram after changing it.	移除搜索标签页顶部的“已收藏”书签。变更后请重新启动 Instagram。
 Battery	电池
 Stop the background heartbeat	禁用背景存活上报
 Instagram wakes your phone every minute or two, screen off included, only to note that it is still running. This stops that. Messages, notifications and everything you see are unaffected.	Instagram 每隔一两分钟就会唤醒手机，即使屏幕关闭也一样，目的只是记录自己仍在运行。此选项会停止该行为。消息、通知与画面上的功能不受影响。

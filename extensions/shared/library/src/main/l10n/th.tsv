@@ -1045,6 +1045,14 @@ Shows a handle at the right edge of Saved and your collections while they scroll
 Hide the New collection button	ซ่อนปุ่มคอลเลกชันใหม่
 # context: Profiles > summary of Hide the New collection button; Saved is Instagram's own Saved page (#762)
 Takes the + for a new collection off the top of Saved. Your collections stay.	นำปุ่ม + สำหรับคอลเลกชันใหม่ออกจากด้านบนของ "บันทึกแล้ว" คอลเลกชันของคุณยังอยู่
+# context: Profiles > switch right after Hide the New collection button; Reels is Instagram's own label for the Reels tab at the top of Saved, Saved is Instagram's own Saved page (#810)
+Hide the Reels tab in Saved	ซ่อนแท็บรีลส์ใน "บันทึกแล้ว"
+# context: Profiles > summary of Hide the Reels tab in Saved; saved reels still show under All (#810)
+Takes the Reels tab out of Saved. Your saved reels stay saved.	นำแท็บรีลส์ออกจาก "บันทึกแล้ว" รีลส์ที่คุณบันทึกไว้ยังคงอยู่
+# context: Profiles > switch right after Hide the Reels tab in Saved; Saved is Instagram's own label for the bookmark at the top right of the Search tab, beside the search bar (#810)
+Hide Saved on the Search tab	ซ่อน "บันทึกแล้ว" ในแท็บค้นหา
+# context: Profiles > summary of Hide Saved on the Search tab (#810)
+Takes the Saved bookmark off the top of the Search tab. Restart Instagram after changing it.	นำที่คั่นหน้า "บันทึกแล้ว" ออกจากด้านบนของแท็บค้นหา โปรดรีสตาร์ท Instagram หลังจากเปลี่ยนการตั้งค่านี้
 Battery	แบตเตอรี่
 Stop the background heartbeat	หยุดสัญญาณชีพในเบื้องหลัง
 Instagram wakes your phone every minute or two, screen off included, only to note that it is still running. This stops that. Messages, notifications and everything you see are unaffected.	Instagram ปลุกโทรศัพท์ของคุณทุกหนึ่งถึงสองนาที แม้กระทั่งในขณะปิดหน้าจอ เพียงเพื่อบันทึกว่าแอปยังคงทำงานอยู่ การตั้งค่านี้จะหยุดการทำงานดังกล่าว โดยข้อความ การแจ้งเตือน และทุกสิ่งที่คุณเห็นจะไม่ได้รับผลกระทบ

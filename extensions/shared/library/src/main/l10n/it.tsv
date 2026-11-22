@@ -1052,6 +1052,14 @@ Shows a handle at the right edge of Saved and your collections while they scroll
 Hide the New collection button	Nascondi il pulsante Nuova raccolta
 # context: Profiles > summary of Hide the New collection button; Saved is Instagram's own Saved page (#762)
 Takes the + for a new collection off the top of Saved. Your collections stay.	Toglie il + per una nuova raccolta dalla parte alta di Salvati. Le tue raccolte restano.
+# context: Profiles > switch right after Hide the New collection button; Reels is Instagram's own label for the Reels tab at the top of Saved, Saved is Instagram's own Saved page (#810)
+Hide the Reels tab in Saved	Nascondi la scheda Reel in Salvati
+# context: Profiles > summary of Hide the Reels tab in Saved; saved reels still show under All (#810)
+Takes the Reels tab out of Saved. Your saved reels stay saved.	Toglie la scheda Reel da Salvati. I reel che hai salvato restano salvati.
+# context: Profiles > switch right after Hide the Reels tab in Saved; Saved is Instagram's own label for the bookmark at the top right of the Search tab, beside the search bar (#810)
+Hide Saved on the Search tab	Nascondi Salvati nella scheda Cerca
+# context: Profiles > summary of Hide Saved on the Search tab (#810)
+Takes the Saved bookmark off the top of the Search tab. Restart Instagram after changing it.	Toglie il segnalibro di Salvati dalla parte alta della scheda Cerca. Riavvia Instagram dopo averlo cambiato.
 Battery	Batteria
 Stop the background heartbeat	Ferma il battito in background
 Instagram wakes your phone every minute or two, screen off included, only to note that it is still running. This stops that. Messages, notifications and everything you see are unaffected.	Instagram sveglia il telefono ogni minuto o due, anche a schermo spento, solo per segnalare che è ancora in esecuzione. Questo lo ferma. Messaggi, notifiche e tutto ciò che vedi non cambiano.

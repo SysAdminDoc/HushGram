@@ -34,13 +34,14 @@ import java.io.File
  * Saved on All and the + (#762): the Saved link's screen, which the bookmark starts, makes the menu's
  * tabbed Saved when the bookmark started it, that screen asks the extension for its back arrow when
  * nothing sits under it, and both Saved screens ask the extension before they make and add the + for
- * a new collection. On every declared build and the other builds of that version, and nothing else
- * changes.
+ * a new collection. For #810 the tabbed Saved hands the extension its list of tabs on the way out, and
+ * the Search tab's bar asks before it makes its Saved bookmark. On every declared build and the other
+ * builds of that version, and nothing else changes.
  */
 class SavedHomeHookTest {
     @Test
     fun theHooksAreInTheExtension() {
-        for (hook in listOf(FROM_BOOKMARK, PICK_SCREEN, HIDE_NEW_COLLECTION, SHOW_BACK)) {
+        for (hook in listOf(FROM_BOOKMARK, PICK_SCREEN, HIDE_NEW_COLLECTION, SHOW_BACK, SAVED_TABS, HIDE_EXPLORE_SAVED)) {
             val declared = ExtensionDex.classDef(hook.substringBefore("->")).methods
                 .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
                 .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
@@ -58,7 +59,7 @@ class SavedHomeHookTest {
         assertEquals("every build was checked", bundles.size + others.size, checked.size)
     }
 
-    /** Both hooks found, the patch switches all three statuses on. */
+    /** Every hook found, the patch switches all five statuses on. */
     @Test
     fun thePatchSwitchesOnWhatItHooked() {
         val bundle = declaredBundles().first()
@@ -67,9 +68,11 @@ class SavedHomeHookTest {
         assertEquals(1, context.status("savedOnProfile"))
         assertEquals(1, context.status("savedOnAll"))
         assertEquals(1, context.status("savedNewCollection"))
+        assertEquals(1, context.status("savedReelsTab"))
+        assertEquals(1, context.status("exploreSaved"))
     }
 
-    /** A build with neither Saved screen keeps the bookmark and changes nothing, and the two new rows stay out. */
+    /** A build with neither Saved screen nor the Search tab's bar keeps the bookmark and changes nothing, and the new rows stay out. */
     @Test
     fun aBuildWithoutTheSavedScreensKeepsTheBookmarkOnly() {
         val context = PatchContexts.of(listOf(ExtensionDex.classDef(SETTINGS_STATUS)))
@@ -77,10 +80,32 @@ class SavedHomeHookTest {
         assertFalse(hooked.opensOnAll)
         assertEquals(0, hooked.newCollectionScreens)
         assertFalse(hooked.backArrow)
+        assertFalse(hooked.reelsTab)
+        assertFalse(hooked.exploreSaved)
         savedOnProfilePatch.execute(context)
         assertEquals(1, context.status("savedOnProfile"))
         assertEquals(0, context.status("savedOnAll"))
         assertEquals(0, context.status("savedNewCollection"))
+        assertEquals(0, context.status("savedReelsTab"))
+        assertEquals(0, context.status("exploreSaved"))
+    }
+
+    /** The Search tab's Saved needs neither Saved screen, and nothing on Saved needs the Search tab's bar. */
+    @Test
+    fun theSearchTabsSavedGoesInOnItsOwn() {
+        val all = slice(declaredBundles().first())
+        val exploreOnly = PatchContexts.of(all.filter { it.type == EXPLORE_ACTION_BAR }).hookSavedHome()
+        assertTrue(exploreOnly.exploreSaved)
+        assertFalse(exploreOnly.reelsTab)
+        assertFalse(exploreOnly.opensOnAll)
+        assertEquals(0, exploreOnly.newCollectionScreens)
+
+        val withoutExplore = PatchContexts.of(all.filter { it.type != EXPLORE_ACTION_BAR }).hookSavedHome()
+        assertFalse(withoutExplore.exploreSaved)
+        assertTrue(withoutExplore.reelsTab)
+        assertTrue(withoutExplore.opensOnAll)
+        assertEquals(2, withoutExplore.newCollectionScreens)
+        assertTrue(withoutExplore.backArrow)
     }
 
     /** Without the link's screen the + still goes on both Saved screens, and the link's screen is all Saved on All needs. */
@@ -94,6 +119,8 @@ class SavedHomeHookTest {
         assertEquals(2, buttonsOnly.newCollectionScreens)
         // The arrow only matters on the screen the link's hook hands the bookmark.
         assertFalse(buttonsOnly.backArrow)
+        assertTrue(buttonsOnly.reelsTab)
+        assertTrue(buttonsOnly.exploreSaved)
 
         val screens = PatchContexts.of(all).findSavedScreens()
         // The maker names both screens in its own code, so it's still found without their classes.
@@ -102,6 +129,8 @@ class SavedHomeHookTest {
         assertTrue(linkOnly.opensOnAll)
         assertEquals(0, linkOnly.newCollectionScreens)
         assertFalse(linkOnly.backArrow)
+        assertFalse(linkOnly.reelsTab)
+        assertTrue(linkOnly.exploreSaved)
     }
 
     /** Returns the build's name, so the caller can count the builds it read. */
@@ -116,6 +145,15 @@ class SavedHomeHookTest {
         assertEquals("$where: both Saved screens' +", setOf(screens.tabbed, screens.grid), buttons.map { it.screen }.toSet())
         assertTrue("$where: the + loads its label", buttons.all { it.label != null })
         val back = context.findBackArrow(screens.tabbed)
+        val tabs = context.findSavedTabs(screens)
+        val explore = context.findExploreSaved()
+        val tabsSignature = signature(screens.tabbed, tabs.method)
+        val exploreSignature = signature(EXPLORE_ACTION_BAR, explore.method)
+        assertNotEquals("$where: the tabs aren't made in the top bar", signature(screens.tabbed, back.method), tabsSignature)
+        val stockTabs = method(context, screens.tabbed, tabs.method).visualCode()
+        val tabLists = tabs.returns.map { stockTabs[it].namedRegisters().single() }
+        // Each hook before a return pushes the later returns one further.
+        val tabHooks = tabs.returns.sorted().mapIndexed { k, at -> at + k }
         val before = classes.associate { it.type to context.mutableClassDefBy(it.type).methods.associate { method -> signature(it.type, method) to method.visualCode() } }
         val linkSignature = signature(SAVED_LINK_SCREEN, link.method)
         val buttonSignatures = buttons.associateBy { signature(it.screen, it.method) }
@@ -132,6 +170,37 @@ class SavedHomeHookTest {
         assertTrue("$where: opens on All", hooked.opensOnAll)
         assertEquals("$where: both +", 2, hooked.newCollectionScreens)
         assertTrue("$where: the back arrow", hooked.backArrow)
+        assertTrue("$where: Saved's Reels tab", hooked.reelsTab)
+        assertTrue("$where: the Search tab's Saved", hooked.exploreSaved)
+
+        // Saved's tabs: each list goes to the extension on its way out, and every branch to the return reaches the hook first.
+        val tabsCode = method(context, screens.tabbed, tabs.method).visualCode()
+        val branches = tabsCode.indices.filter {
+            tabsCode[it] is OffsetInstruction && tabsCode[it].opcode !in setOf(Opcode.PACKED_SWITCH, Opcode.SPARSE_SWITCH)
+        }
+        for ((k, at) in tabHooks.withIndex()) {
+            assertEquals("$where: hands its tabs over", SAVED_TABS, tabsCode[at].visualReference().toString())
+            assertEquals("$where: the list it hands back", listOf(tabLists[k]), tabsCode[at].namedRegisters())
+            assertEquals("$where: then hands it back", Opcode.RETURN_OBJECT, tabsCode[at + 1].opcode)
+            assertEquals("$where: the same list", listOf(tabLists[k]), tabsCode[at + 1].namedRegisters())
+            assertTrue("$where: nothing jumps past the hand-over", branches.none { target(tabsCode, it) == at + 1 })
+        }
+        assertEquals("$where: one hand-over a return", tabs.returns.size, tabsCode.count { it.visualReference().toString() == SAVED_TABS })
+
+        // The Search tab's bar: asked before it looks for its Saved bookmark, a yes skips making it.
+        val exploreCode = method(context, EXPLORE_ACTION_BAR, explore.method).visualCode()
+        val ask = explore.at
+        assertEquals("$where: asks first", HIDE_EXPLORE_SAVED, exploreCode[ask].visualReference().toString())
+        assertEquals("$where: the answer", Opcode.MOVE_RESULT, exploreCode[ask + 1].opcode)
+        assertEquals("$where: in the register Instagram reads the bookmark into", listOf(explore.scratch), exploreCode[ask + 1].namedRegisters())
+        assertEquals("$where: yes skips the bookmark", Opcode.IF_NEZ, exploreCode[ask + 2].opcode)
+        assertEquals("$where: to where the bar goes on", explore.skip + 3, target(exploreCode, ask + 2))
+        assertEquals("$where: Instagram's own read follows", Opcode.IGET_OBJECT, exploreCode[ask + 3].opcode)
+        assertEquals("$where: and its own check", Opcode.IF_NEZ, exploreCode[ask + 4].opcode)
+        assertEquals("$where: which goes to the same place", explore.skip + 3, target(exploreCode, ask + 4))
+        assertEquals("$where: before the Saved stub", EXPLORE_SAVED_STUB, (exploreCode[ask + 5] as NarrowLiteralInstruction).narrowLiteral)
+        assertTrue("$where: registers in reach", exploreCode.subList(ask, ask + 3).flatMap { it.namedRegisters() }.all { it <= 15 })
+        assertEquals("$where: one ask", 1, exploreCode.count { it.visualReference().toString() == HIDE_EXPLORE_SAVED })
 
         // The link's screen: right after it has its grid, it asks whether the bookmark started it.
         val linkCode = method(context, SAVED_LINK_SCREEN, link.method).visualCode()
@@ -190,6 +259,8 @@ class SavedHomeHookTest {
                     if (method == linkSignature) add(linkAt to 9)
                     buttonSignatures[method]?.let { add(buttonAt(it) to 3) }
                     if (method == backSignature) add(backAt to 3)
+                    if (method == tabsSignature) tabHooks.forEach { add(it to 1) }
+                    if (method == exploreSignature) add(explore.at to 3)
                 }
                 for ((start, size) in blocks.sortedByDescending { it.first }) repeat(size) { after.removeAt(start) }
                 assertEquals("$where: $method changed", shape(instructions), shape(after))
@@ -230,12 +301,16 @@ class SavedHomeHookTest {
             Triple(kind, it.visualReference()?.toString(), if (kind == Opcode.GOTO) emptyList() else it.namedRegisters())
         }
 
-        /** The classes loading the tab key (the menu's maker and the tabbed screen, with their pools), the grid, and the Saved link's screen. */
+        /**
+         * The classes loading the tab key (the menu's maker and the tabbed screen, with their pools), the
+         * grid, the Saved link's screen, and the Search tab's bar.
+         */
         fun slice(bundle: File): List<ClassDef> = slices.getOrPut(bundle) {
             val kept = LinkedHashMap<String, ClassDef>()
             for (classDef in FixtureDex.classesLoading(bundle, INITIAL_TAB)) kept.putIfAbsent(classDef.type, classDef)
             val screens = PatchContexts.of(kept.values.toList()).findSavedScreens()
-            for (classDef in FixtureDex.classes(bundle, setOf(screens.tabbed, screens.grid, SAVED_LINK_SCREEN)).values) kept.putIfAbsent(classDef.type, classDef)
+            val more = setOf(screens.tabbed, screens.grid, SAVED_LINK_SCREEN, EXPLORE_ACTION_BAR)
+            for (classDef in FixtureDex.classes(bundle, more).values) kept.putIfAbsent(classDef.type, classDef)
             kept.values.toList()
         }
 
