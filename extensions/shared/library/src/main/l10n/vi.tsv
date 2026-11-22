@@ -7,6 +7,7 @@
 %1$s. They were set when you patched, so Pause can't turn them off. To rule one out, patch again and leave out the patch in brackets after it.	%1$s. Các mục này được đặt khi bạn vá nên Tạm dừng không tắt được. Để loại trừ một mục, hãy vá lại và bỏ bản vá ghi trong ngoặc sau mục đó ra.
 A diagnostic report is already being saved.	Một báo cáo chẩn đoán đang được lưu.
 A file named %1$s in %2$s paused HushGram.	Một tệp tên %1$s trong %2$s đã tạm dừng HushGram.
+A reel someone shares in a chat stays closed when you tap it. Photos, videos and shared posts still open.	Reel mà ai đó chia sẻ trong cuộc trò chuyện sẽ không mở khi bạn chạm vào. Ảnh, video và bài viết được chia sẻ vẫn mở như thường.
 About	Giới thiệu
 Add the source to saved photos and videos	Thêm nguồn vào ảnh và video đã lưu
 Ads and privacy	Quảng cáo và quyền riêng tư
@@ -31,6 +32,7 @@ Debug logging	Ghi nhật ký gỡ lỗi
 Diagnostic data cleared. Tap again to put it back.	Đã xóa dữ liệu chẩn đoán. Nhấn lại để khôi phục.
 Diagnostic data put back.	Đã khôi phục dữ liệu chẩn đoán.
 Diagnostic report copied to the clipboard.	Đã sao chép báo cáo chẩn đoán.
+Don't open reels from chats	Không mở reel từ cuộc trò chuyện
 Download failed	Tải xuống thất bại
 Downloading	Đang tải xuống
 Empties the activity log and any kept crash that a diagnostic report would include.	Xóa nhật ký hoạt động và mọi bản ghi lỗi sập được giữ lại mà báo cáo chẩn đoán sẽ gồm.
@@ -56,6 +58,7 @@ Reacting to a message in a chat lets the other person see that you've read up to
 No messages found to save.	Không có tin nhắn nào để lưu.
 Pick a wait from 1 to 72 hours. Locked, nothing here changes until you ask to unlock and the wait is over.	Chọn thời gian chờ từ 1 đến 72 giờ. Khi đã khóa, không có gì ở đây thay đổi được cho đến khi bạn yêu cầu mở khóa và hết thời gian chờ.
 Ask to unlock	Yêu cầu mở khóa
+Reels from chats are off	Đã tắt reel từ trò chuyện
 Saved to %1$s in lower quality because storage is low	Đã lưu vào %1$s với chất lượng thấp hơn vì bộ nhớ sắp đầy
 Saved to the gallery in lower quality because storage is low	Đã lưu vào thư viện với chất lượng thấp hơn vì bộ nhớ sắp đầy
 Sending a message in a chat lets the other person see that you've read what they sent before it. Chats you don't answer stay unseen to them.	Khi bạn gửi tin nhắn trong một cuộc trò chuyện, người kia sẽ thấy bạn đã đọc những gì họ gửi trước đó. Với các cuộc trò chuyện bạn không trả lời, họ vẫn không thấy bạn đã xem.

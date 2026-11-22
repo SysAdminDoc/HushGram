@@ -8,6 +8,7 @@
 %1$s. They were set when you patched, so Pause can't turn them off. To rule one out, patch again and leave out the patch in brackets after it.	%1$s การตั้งค่าเหล่านี้ถูกกำหนดไว้ตอนที่คุณแพตช์ ดังนั้นการหยุดชั่วคราวจะไม่สามารถปิดได้ หากต้องการตัดปัญหา ให้แพตช์ใหม่อีกครั้งโดยไม่ต้องเลือกแพตช์ที่ระบุในวงเล็บด้านหลัง
 A diagnostic report is already being saved.	กำลังบันทึกรายงานการวินิจฉัยอยู่แล้ว
 A file named %1$s in %2$s paused HushGram.	ไฟล์ชื่อ %1$s ใน %2$s ทำให้ HushGram หยุดทำงานชั่วคราว
+A reel someone shares in a chat stays closed when you tap it. Photos, videos and shared posts still open.	รีลส์ที่มีคนแชร์ในแชทจะไม่เปิดเมื่อคุณแตะ รูปภาพ วิดีโอ และโพสต์ที่แชร์ยังเปิดได้ตามปกติ
 About	เกี่ยวกับ
 Add the source to saved photos and videos	เพิ่มแหล่งที่มาลงในรูปภาพและวิดีโอที่บันทึก
 Ads and privacy	โฆษณาและความเป็นส่วนตัว
@@ -32,6 +33,7 @@ Debug logging	การบันทึกข้อมูลดีบัก
 Diagnostic data cleared. Tap again to put it back.	ล้างข้อมูลการวินิจฉัยแล้ว แตะอีกครั้งเพื่อกู้คืน
 Diagnostic data put back.	กู้คืนข้อมูลการวินิจฉัยแล้ว
 Diagnostic report copied to the clipboard.	คัดลอกรายงานการวินิจฉัยไปยังคลิปบอร์ดแล้ว
+Don't open reels from chats	ไม่เปิดรีลส์จากแชท
 Download failed	ดาวน์โหลดไม่สำเร็จ
 Downloading	กำลังดาวน์โหลด
 Empties the activity log and any kept crash that a diagnostic report would include.	ล้างบันทึกกิจกรรมและข้อมูลการขัดข้องทั้งหมดที่รายงานการวินิจฉัยจะรวมไว้
@@ -57,6 +59,7 @@ Reacting to a message in a chat lets the other person see that you've read up to
 No messages found to save.	ไม่พบข้อความที่จะบันทึก
 Pick a wait from 1 to 72 hours. Locked, nothing here changes until you ask to unlock and the wait is over.	เลือกระยะเวลารอตั้งแต่ 1 ถึง 72 ชั่วโมง เมื่อล็อกแล้ว จะไม่สามารถเปลี่ยนสิ่งใดที่นี่ได้จนกว่าคุณจะขอปลดล็อกและระยะเวลารอสิ้นสุดลง
 Ask to unlock	ขอปลดล็อก
+Reels from chats are off	ปิดรีลส์จากแชทอยู่
 Saved to %1$s in lower quality because storage is low	บันทึกไปยัง %1$s ในคุณภาพที่ต่ำลงเนื่องจากพื้นที่เก็บข้อมูลเหลือน้อย
 Saved to the gallery in lower quality because storage is low	บันทึกไปยังแกลเลอรีในคุณภาพที่ต่ำลงเนื่องจากพื้นที่เก็บข้อมูลเหลือน้อย
 Sending a message in a chat lets the other person see that you've read what they sent before it. Chats you don't answer stay unseen to them.	การส่งข้อความในแชทจะทำให้อีกฝ่ายเห็นว่าคุณได้อ่านข้อความที่พวกเขาส่งมาก่อนหน้านั้นแล้ว ส่วนแชทที่คุณไม่ได้ตอบกลับจะยังคงไม่ขึ้นว่าอ่านแล้วสำหรับพวกเขา

@@ -7,6 +7,7 @@
 %1$s. They were set when you patched, so Pause can't turn them off. To rule one out, patch again and leave out the patch in brackets after it.	%1$s. Ini diatur saat Anda menambal, jadi Jeda tidak dapat mematikannya. Untuk memastikan bukan ini penyebabnya, tambal ulang tanpa tambalan yang tertera dalam kurung setelahnya.
 A diagnostic report is already being saved.	Sudah ada laporan diagnostik yang sedang disimpan.
 A file named %1$s in %2$s paused HushGram.	File bernama %1$s di %2$s menjeda HushGram.
+A reel someone shares in a chat stays closed when you tap it. Photos, videos and shared posts still open.	Reel yang dibagikan seseorang di chat tetap tertutup saat kamu mengetuknya. Foto, video, dan postingan yang dibagikan tetap terbuka.
 About	Tentang
 Add the source to saved photos and videos	Tambahkan sumber ke foto dan video tersimpan
 Ads and privacy	Iklan dan privasi
@@ -31,6 +32,7 @@ Debug logging	Pencatatan debug
 Diagnostic data cleared. Tap again to put it back.	Data diagnostik dihapus. Ketuk lagi untuk memulihkan.
 Diagnostic data put back.	Data diagnostik dikembalikan.
 Diagnostic report copied to the clipboard.	Laporan diagnostik disalin ke papan klip.
+Don't open reels from chats	Jangan buka reel dari chat
 Download failed	Unduhan gagal
 Downloading	Mengunduh
 Empties the activity log and any kept crash that a diagnostic report would include.	Mengosongkan log aktivitas dan crash tersimpan yang akan disertakan dalam laporan diagnostik.
@@ -56,6 +58,7 @@ Reacting to a message in a chat lets the other person see that you've read up to
 No messages found to save.	Tidak ada pesan untuk disimpan.
 Pick a wait from 1 to 72 hours. Locked, nothing here changes until you ask to unlock and the wait is over.	Pilih waktu tunggu 1 sampai 72 jam. Saat terkunci, tidak ada yang berubah di sini sampai kamu meminta buka kunci dan waktu tunggunya selesai.
 Ask to unlock	Minta buka kunci
+Reels from chats are off	Reel dari chat dimatikan
 Saved to %1$s in lower quality because storage is low	Disimpan ke %1$s dengan kualitas lebih rendah karena penyimpanan hampir penuh
 Saved to the gallery in lower quality because storage is low	Disimpan ke galeri dengan kualitas lebih rendah karena penyimpanan hampir penuh
 Sending a message in a chat lets the other person see that you've read what they sent before it. Chats you don't answer stay unseen to them.	Saat kamu mengirim pesan di obrolan, orang lain melihat bahwa kamu sudah membaca pesan mereka sebelumnya. Obrolan yang tidak kamu balas tetap belum terlihat oleh mereka.

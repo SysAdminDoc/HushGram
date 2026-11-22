@@ -172,14 +172,15 @@ internal const val NOTICE_PAGE = "$CHAT_REELS_NOTICE->page(Ljava/lang/Object;I)V
  * loads nothing, and a swipe up past its last reel goes back to the chat (#390). Whatever the
  * switches, a repeat tap on media in a chat waits for the first tap's viewer instead of opening
  * another (#390). With Messages after a reel on, a banner over the viewer says when the other person
- * wrote after the reel on screen, and a tap on it goes back to the chat at that message (#489).
+ * wrote after the reel on screen, and a tap on it goes back to the chat at that message (#489). With
+ * Don't open reels from chats on, a tap on a reel shared in a chat leaves it closed (#810).
  */
 @Suppress("unused")
 val swipeChatReelsPatch = bytecodePatch(
     name = "Swipe through a chat's reels",
     description = "Swiping up on a reel you opened from a chat goes through the other reels shared in that chat before " +
-        "any suggested reels, can stop after them and can leave out the ones you sent. All start off. Turn them on in " +
-        "HushGram settings > Messages.",
+        "any suggested reels, can stop after them and can leave out the ones you sent. Reels shared in chats can also " +
+        "stay closed when tapped. All start off. Turn them on in HushGram settings > Messages.",
 ) {
     category("Messages")
     dependsOn(settingsPatch, instagramExtensionPatch)
@@ -199,6 +200,7 @@ val swipeChatReelsPatch = bytecodePatch(
         val collector = findReelCollector(read)
         val replies = findReplyBar(collector)
         val page = findReplyPage(collector, replies)
+        val opener = findChatReelOpener(read, collector)
         checkAddTakesReels(placeholders, collector)
         chainChatReels(read)
         skipSentReels(collector)
@@ -210,6 +212,7 @@ val swipeChatReelsPatch = bytecodePatch(
         stopCachedReels(cached)
         skipPlaceholders(placeholders)
         guardChatMediaTaps(tap)
+        keepChatReelsShut(opener)
         watchChatViewers(viewers)
         refreshFromChats(refreshes)
         enableStatus("chatReels")

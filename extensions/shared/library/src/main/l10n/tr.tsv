@@ -7,6 +7,7 @@
 %1$s. They were set when you patched, so Pause can't turn them off. To rule one out, patch again and leave out the patch in brackets after it.	%1$s. Yamaladığında ayarlandıkları için Duraklatma bunları kapatamaz. Birini elemek için yeniden yamala ve onun ardından parantez içinde yazan yamayı dışarıda bırak.
 A diagnostic report is already being saved.	Bir tanılama raporu zaten kaydediliyor.
 A file named %1$s in %2$s paused HushGram.	%2$s içindeki %1$s adlı bir dosya HushGram'u duraklattı.
+A reel someone shares in a chat stays closed when you tap it. Photos, videos and shared posts still open.	Birinin bir sohbette paylaştığı reels videosu dokunduğunda kapalı kalır. Fotoğraflar, videolar ve paylaşılan gönderiler yine açılır.
 About	Hakkında
 Add the source to saved photos and videos	Kayıtlı fotoğraf ve videolara kaynağı ekle
 Ads and privacy	Reklamlar ve gizlilik
@@ -31,6 +32,7 @@ Debug logging	Hata ayıklama günlüğü
 Diagnostic data cleared. Tap again to put it back.	Tanılama verileri silindi. Geri almak için dokun.
 Diagnostic data put back.	Tanılama verileri geri getirildi.
 Diagnostic report copied to the clipboard.	Tanılama raporu panoya kopyalandı.
+Don't open reels from chats	Sohbetlerdeki reels videolarını açma
 Download failed	İndirme başarısız oldu
 Downloading	İndiriliyor
 Empties the activity log and any kept crash that a diagnostic report would include.	Bir tanılama raporuna dahil edilecek etkinlik günlüğünü ve kayıtlı çökme kaydını boşaltır.
@@ -56,6 +58,7 @@ Reacting to a message in a chat lets the other person see that you've read up to
 No messages found to save.	Kaydedilecek mesaj yok.
 Pick a wait from 1 to 72 hours. Locked, nothing here changes until you ask to unlock and the wait is over.	1 ile 72 saat arasında bir bekleme seç. Kilitliyken, kilidi açmayı isteyip bekleme bitene kadar burada hiçbir şey değişmez.
 Ask to unlock	Kilidi açmayı iste
+Reels from chats are off	Sohbetlerdeki reels kapalı
 Saved to %1$s in lower quality because storage is low	Depolama alanı azaldığı için %1$s konumuna daha düşük kaliteyle kaydedildi
 Saved to the gallery in lower quality because storage is low	Depolama alanı azaldığı için galeriye daha düşük kaliteyle kaydedildi
 Sending a message in a chat lets the other person see that you've read what they sent before it. Chats you don't answer stay unseen to them.	Bir sohbette mesaj göndermen, karşı tarafın öncesinde yazdıklarını okuduğunu görmesini sağlar. Yanıtlamadığın sohbetler onlar için görülmemiş kalır.

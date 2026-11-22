@@ -1097,6 +1097,12 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_messages_after_chat_reels", FALSE, parent(SWIPE_CHAT_REELS));
 
     /**
+     * A reel shared in a chat stays closed when it's tapped, while photos, videos and shared posts still
+     * open ({@link app.hushgram.extension.instagram.direct.ChatReels#mayOpen(Object)}, #810). Off to start.
+     */
+    public static final BooleanSetting BLOCK_CHAT_REELS = new BooleanSetting("hushgram_block_chat_reels", FALSE);
+
+    /**
      * A photo or video opened from a chat pages up and down through the chat's other photos, videos and
      * shared posts, in chat order ({@link app.hushgram.extension.instagram.direct.ChatMediaWalk}, #350).
      * Off to start.

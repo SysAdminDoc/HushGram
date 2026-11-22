@@ -199,6 +199,9 @@ final class MessagesCategory {
                         L10n.t("While you swipe through a chat's reels, a banner says when the other person sent a message "
                                 + "after the reel on screen. Tap it to go back to the chat at that message. Works with Swipe "
                                 + "through a chat's reels on.")));
+                messages.addPreference(toggle(context, Settings.BLOCK_CHAT_REELS, L10n.t("Don't open reels from chats"),
+                        L10n.t("A reel someone shares in a chat stays closed when you tap it. Photos, videos and shared "
+                                + "posts still open.")));
             }
             if (build.contains(PatchFamily.CHAT_MEDIA_WALK)) {
                 messages.addPreference(toggle(context, Settings.SWIPE_CHAT_MEDIA, L10n.t("Swipe through a chat's photos and posts"),

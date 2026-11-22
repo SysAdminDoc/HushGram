@@ -7,6 +7,7 @@
 %1$s. They were set when you patched, so Pause can't turn them off. To rule one out, patch again and leave out the patch in brackets after it.	%1$s. Estos cambios se aplicaron al parchear, así que Pausar no puede desactivarlos. Para descartar uno, vuelve a parchear sin el parche que aparece entre paréntesis después de él.
 A diagnostic report is already being saved.	Ya se está guardando un informe de diagnóstico.
 A file named %1$s in %2$s paused HushGram.	Un archivo llamado %1$s en %2$s pausó HushGram.
+A reel someone shares in a chat stays closed when you tap it. Photos, videos and shared posts still open.	Un reel que alguien comparte en un chat no se abre al tocarlo. Las fotos, los videos y las publicaciones compartidas se siguen abriendo.
 About	Acerca de
 Add the source to saved photos and videos	Añadir el origen a las fotos y vídeos guardados
 Ads and privacy	Anuncios y privacidad
@@ -31,6 +32,7 @@ Debug logging	Registro de depuración
 Diagnostic data cleared. Tap again to put it back.	Diagnóstico borrado. Toca de nuevo para restaurarlo.
 Diagnostic data put back.	Se restauraron los datos de diagnóstico.
 Diagnostic report copied to the clipboard.	Informe de diagnóstico copiado en el portapapeles.
+Don't open reels from chats	No abrir reels de los chats
 Download failed	No se pudo descargar
 Downloading	Descargando
 Empties the activity log and any kept crash that a diagnostic report would include.	Vacía el registro de actividad y cualquier fallo guardado que incluiría un informe de diagnóstico.
@@ -56,6 +58,7 @@ Reacting to a message in a chat lets the other person see that you've read up to
 No messages found to save.	No hay mensajes que guardar.
 Pick a wait from 1 to 72 hours. Locked, nothing here changes until you ask to unlock and the wait is over.	Elige una espera de 1 a 72 horas. Con el bloqueo, aquí no cambia nada hasta que pidas desbloquear y termine la espera.
 Ask to unlock	Pedir desbloqueo
+Reels from chats are off	Reels de chats desactivados
 Saved to %1$s in lower quality because storage is low	Se guardó en %1$s con menos calidad porque queda poco almacenamiento
 Saved to the gallery in lower quality because storage is low	Se guardó en la galería con menos calidad porque queda poco almacenamiento
 Sending a message in a chat lets the other person see that you've read what they sent before it. Chats you don't answer stay unseen to them.	Al enviar un mensaje en un chat, la otra persona ve que leíste lo que te mandó antes. Los chats que no respondes siguen sin verse para ella.

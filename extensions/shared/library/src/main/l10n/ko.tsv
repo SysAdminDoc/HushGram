@@ -8,6 +8,7 @@
 %1$s. They were set when you patched, so Pause can't turn them off. To rule one out, patch again and leave out the patch in brackets after it.	%1$s. 패치할 때 적용되었기 때문에 HushGram 일시 정지로는 비활성화할 수 없습니다. 이 중 하나가 원인인지 확인하려면 다시 패치하면서 뒤에 괄호로 표시된 해당 패치를 제외하세요
 A diagnostic report is already being saved.	진단 보고서를 이미 저장하고 있습니다
 A file named %1$s in %2$s paused HushGram.	%2$s에 있는 %1$s 파일 때문에 HushGram이 일시 정지되었습니다
+A reel someone shares in a chat stays closed when you tap it. Photos, videos and shared posts still open.	누군가 채팅에서 공유한 릴스는 탭해도 열리지 않습니다. 사진, 동영상, 공유된 게시물은 그대로 열립니다.
 About	정보
 Add the source to saved photos and videos	저장한 사진과 동영상에 출처 추가
 Ads and privacy	광고 및 개인정보 보호
@@ -32,6 +33,7 @@ Debug logging	디버그 로그
 Diagnostic data cleared. Tap again to put it back.	진단 데이터가 지워졌습니다. 다시 탭하여 복원하세요
 Diagnostic data put back.	진단 데이터가 복원되었습니다
 Diagnostic report copied to the clipboard.	진단 데이터가 클립보드에 복사되었습니다
+Don't open reels from chats	채팅의 릴스 열지 않기
 Download failed	다운로드 실패
 Downloading	다운로드하는 중
 Empties the activity log and any kept crash that a diagnostic report would include.	진단 보고서에 포함될 활동 기록과 저장된 충돌 기록을 비웁니다.
@@ -57,6 +59,7 @@ Reacting to a message in a chat lets the other person see that you've read up to
 No messages found to save.	저장할 메시지가 없어요.
 Pick a wait from 1 to 72 hours. Locked, nothing here changes until you ask to unlock and the wait is over.	1~72시간 중 대기 시간을 고르세요. 잠기면 잠금 해제를 요청하고 대기 시간이 끝날 때까지 여기서 아무것도 바뀌지 않습니다.
 Ask to unlock	잠금 해제 요청
+Reels from chats are off	채팅의 릴스가 꺼져 있습니다
 Saved to %1$s in lower quality because storage is low	저장 공간이 부족해 %1$s에 낮은 화질로 저장했습니다
 Saved to the gallery in lower quality because storage is low	저장 공간이 부족해 낮은 화질로 갤러리에 저장했습니다
 Sending a message in a chat lets the other person see that you've read what they sent before it. Chats you don't answer stay unseen to them.	채팅에서 메시지를 보내면 상대가 그 이전에 보낸 메시지를 읽었다는 것을 볼 수 있습니다. 답하지 않은 채팅은 상대에게 읽지 않은 상태로 남습니다.

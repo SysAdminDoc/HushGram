@@ -12,6 +12,7 @@
 %1$s. They were set when you patched, so Pause can't turn them off. To rule one out, patch again and leave out the patch in brackets after it.	%1$s。这些是在打补丁时设置的，暂停也无法禁用。若要排查其中一项，请重新打补丁，并排除该项后方括号内的补丁。
 A diagnostic report is already being saved.	已有诊断报告正在保存。
 A file named %1$s in %2$s paused HushGram.	%2$s 中名为 %1$s 的文件使 HushGram 暂停。
+A reel someone shares in a chat stays closed when you tap it. Photos, videos and shared posts still open.	别人在聊天中分享的 Reel，点了也不会打开。照片、视频和分享的帖子仍会照常打开。
 About	关于
 Add the source to saved photos and videos	在保存的照片和视频中加入来源信息
 Ads and privacy	广告与隐私
@@ -36,6 +37,7 @@ Debug logging	调试记录
 Diagnostic data cleared. Tap again to put it back.	已清除诊断数据。再次点击即可还原。
 Diagnostic data put back.	已还原诊断数据。
 Diagnostic report copied to the clipboard.	已将诊断报告复制到剪贴板。
+Don't open reels from chats	不打开聊天中的 Reels
 Download failed	下载失败
 Downloading	下载中
 Empties the activity log and any kept crash that a diagnostic report would include.	清空诊断报告会包含的活动记录与已保存的当机记录。
@@ -61,6 +63,7 @@ Reacting to a message in a chat lets the other person see that you've read up to
 No messages found to save.	没有可保存的消息。
 Pick a wait from 1 to 72 hours. Locked, nothing here changes until you ask to unlock and the wait is over.	选择 1 至 72 小时的等待时间。锁定后，必须提出解锁申请并等待时间结束，才能变更此处的设置。
 Ask to unlock	请求解锁
+Reels from chats are off	聊天中的 Reels 已关闭
 Saved to %1$s in lower quality because storage is low	存储空间不足，已以较低画质保存到 %1$s
 Saved to the gallery in lower quality because storage is low	存储空间不足，已以较低画质保存到相册
 Sending a message in a chat lets the other person see that you've read what they sent before it. Chats you don't answer stay unseen to them.	在聊天中发送消息后，对方会看到你已读过他们先前传来的内容。你没有回复的聊天，对方仍看不到已读。

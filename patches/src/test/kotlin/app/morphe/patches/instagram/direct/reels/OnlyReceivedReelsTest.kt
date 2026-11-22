@@ -376,11 +376,32 @@ class OnlyReceivedReelsTest {
         classes += FixtureDex.classes(bundle, held.filter { it.startsWith("L") }.toSet() - classes.keys)
         classes[CHAT_REELS_NOTICE] = ImmutableClassDef.of(ExtensionDex.classDef(CHAT_REELS_NOTICE))
 
+        // What the chat's static openers read and call, the share card and its first pick included (#810).
+        val openers = classes.values.flatMap { c -> c.methods }.filter { m ->
+            val takes = m.parameterTypes.map(CharSequence::toString)
+            AccessFlags.STATIC.isSet(m.accessFlags) && THREAD_KEY in takes && MESSAGE_ID in takes
+        }
+        val touched = openers.flatMap { m ->
+            m.visualCode().mapNotNull { instruction ->
+                when (val reference = instruction.visualReference()) {
+                    is MethodReference -> reference.definingClass
+                    is FieldReference -> reference.definingClass
+                    else -> null
+                }
+            }
+        }
+        classes += FixtureDex.classes(bundle, touched.filter { it.startsWith("L") }.toSet() - classes.keys)
+
         val context = PatchContexts.of(classes.values)
         val (found, replies, page) = try {
             val found = context.findReelCollector(context.findChatReels(), context.findMessageFields())
             val replies = context.findReplyBar(found)
             Triple(found, replies, context.findReplyPage(found, replies))
+        } catch (failure: PatchException) {
+            throw AssertionError("$name: ${failure.message}", failure)
+        }
+        val shut = try {
+            context.findChatReelOpener(context.findChatReels(), found)
         } catch (failure: PatchException) {
             throw AssertionError("$name: ${failure.message}", failure)
         }
@@ -421,6 +442,24 @@ class OnlyReceivedReelsTest {
         val hook = select.indexOfFirst { it.text() == NOTICE_PAGE }
         assertEquals("$name: hooked once", 1, select.count { it.text() == NOTICE_PAGE })
         assertEquals("$name: right after the hint update", "${replies.hint.definingClass}->${replies.hint.name}(I)V", select[hook - 1].text())
+
+        // A tap on media shared in the chat asks the extension right after the opener looks the message
+        // up, and the bridges read the product type and share link Instagram's own reel test reads (#810).
+        assertEquals("$name: the reel's product type name", MEDIA, shut.product.definingClass)
+        assertEquals("$name: the message's media", found.message.type, shut.media.definingClass)
+        assertEquals("$name: the share card's link", "Ljava/lang/String;", shut.link.type)
+        val stock = shut.opener.implementation!!.instructions.toList()
+        context.keepChatReelsShut(shut)
+        val opened = shut.opener.implementation!!.instructions.toList()
+        assertEquals("$name: added to the opener", stock.count { it.opcode != Opcode.NOP } + 4, opened.count { it.opcode != Opcode.NOP })
+        assertEquals("$name: asked once", 1, opened.count { it.text() == MAY_OPEN })
+        assertEquals("$name: right after the lookup", MAY_OPEN, opened[shut.index].text())
+        assertEquals("$name: the lookup's answer", Opcode.MOVE_RESULT_OBJECT, opened[shut.index - 1].opcode)
+        assertEquals("$name: then a no returns", Opcode.RETURN_VOID, opened[shut.index + 3].opcode)
+        assertEquals("$name: Instagram's next step is kept", stock[shut.index].opcode, opened[shut.index + 4].opcode)
+        val shutBridges = context.mutableClassDefBy(CHAT_REELS).methods.associateBy { it.name }
+        assertTrue("$name: the product bridge", shutBridges.getValue("sharedProduct").visualCode().any { it.text() == "${shut.product}" })
+        assertTrue("$name: the link bridge", shutBridges.getValue("shareLink").visualCode().any { it.text() == "${shut.link}" })
 
         // The adapter's add takes the reel items the wrappers answer.
         val adds = PatchContexts.of(FixtureDex.withStringPools(bundle, FixtureDex.classesLoading(bundle, ADD_REELS)))

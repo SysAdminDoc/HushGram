@@ -12,6 +12,7 @@
 %1$s. They were set when you patched, so Pause can't turn them off. To rule one out, patch again and leave out the patch in brackets after it.	%1$s。這些是在套用修補程式時設定的，暫停也無法停用。若要排查其中一項，請重新套用修補程式，並排除該項後方括號內的修補程式。
 A diagnostic report is already being saved.	已有診斷報告正在儲存。
 A file named %1$s in %2$s paused HushGram.	%2$s 中名為 %1$s 的檔案使 HushGram 暫停。
+A reel someone shares in a chat stays closed when you tap it. Photos, videos and shared posts still open.	有人在聊天室分享的 Reel，點一下也不會開啟。相片、影片和分享的貼文仍會照常開啟。
 About	關於
 Add the source to saved photos and videos	在儲存的照片和影片中加入來源資訊
 Ads and privacy	廣告與隱私
@@ -36,6 +37,7 @@ Debug logging	偵錯記錄
 Diagnostic data cleared. Tap again to put it back.	已清除診斷資料。再次點擊即可還原。
 Diagnostic data put back.	已還原診斷資料。
 Diagnostic report copied to the clipboard.	已將診斷報告複製到剪貼簿。
+Don't open reels from chats	不開啟聊天室的 Reels
 Download failed	下載失敗
 Downloading	下載中
 Empties the activity log and any kept crash that a diagnostic report would include.	清空診斷報告會包含的活動記錄與已保存的當機記錄。
@@ -61,6 +63,7 @@ Reacting to a message in a chat lets the other person see that you've read up to
 No messages found to save.	沒有可儲存的訊息。
 Pick a wait from 1 to 72 hours. Locked, nothing here changes until you ask to unlock and the wait is over.	選擇 1 至 72 小時的等待時間。鎖定後，必須提出解鎖申請並等待時間結束，才能變更此處的設定。
 Ask to unlock	請求解鎖
+Reels from chats are off	聊天室的 Reels 已關閉
 Saved to %1$s in lower quality because storage is low	儲存空間不足，已以較低畫質儲存到 %1$s
 Saved to the gallery in lower quality because storage is low	儲存空間不足，已以較低畫質儲存到相簿
 Sending a message in a chat lets the other person see that you've read what they sent before it. Chats you don't answer stay unseen to them.	在聊天中傳送訊息後，對方會看到你已讀過他們先前傳來的內容。你沒有回覆的聊天，對方仍看不到已讀。

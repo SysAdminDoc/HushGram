@@ -7,6 +7,7 @@ package app.hushgram.extension.instagram.direct;
 import android.app.Activity;
 import android.app.Application;
 import android.content.Context;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.SystemClock;
 import android.view.View;
@@ -24,6 +25,7 @@ import java.util.function.Function;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
+import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
@@ -66,6 +68,9 @@ import app.hushgram.extension.shared.settings.HushgramPause;
 public final class ChatReels {
     /** The name of Instagram's viewer source for a reel opened from a chat. */
     private static final String CHAT_SOURCE = "DIRECT";
+
+    /** The product type name Instagram gives a reel's media. */
+    private static final String REEL_PRODUCT = "clips";
 
     /** How long a repeat tap on a message waits at most for the first tap's viewer, in ms. */
     static final long OPENING_MS = 10_000;
@@ -672,6 +677,62 @@ public final class ChatReels {
             HookStatus.threw(FamilyNames.CHAT_REELS, "chat media tap", failure);
             return true;
         }
+    }
+
+    /**
+     * Whether a tap on media shared in a chat goes on to open it, handed [wrapper], the tapped message's
+     * wrapper, once Instagram has looked it up (#810). No for a reel while "Don't open reels from chats"
+     * is on, as {@link #isReel(String, String)} reads it from {@link #sharedProduct(Object)} and
+     * {@link #shareLink(Object)}, with a short note that reels from chats are off. Yes for anything else,
+     * with the switch off, while HushGram is paused, before the settings are ready, for a missing wrapper
+     * and on any failure. Never throws.
+     */
+    public static boolean mayOpen(@Nullable Object wrapper) {
+        return mayOpen(wrapper, ChatReels::sharedProduct, ChatReels::shareLink);
+    }
+
+    /** {@link #mayOpen(Object)}, reading the share's product type name with [products] and its link with [links]. */
+    static boolean mayOpen(@Nullable Object wrapper, Function<Object, String> products, Function<Object, String> links) {
+        try {
+            HookStatus.invoked(FamilyNames.CHAT_REELS);
+            if (wrapper == null || !Utils.settingsReady() || HushgramPause.isPaused() || !Settings.BLOCK_CHAT_REELS.get()) {
+                return true;
+            }
+            if (!isReel(products.apply(wrapper), links.apply(wrapper))) return true;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.CHAT_REELS, "chat reel open", failure);
+            return true;
+        }
+        covered();
+        HookStatus.counted(FamilyNames.CHAT_REELS, "reel from a chat kept closed");
+        Utils.showToastShort(L10n.t("Reels from chats are off"));
+        return false;
+    }
+
+    /**
+     * Whether a share in a chat is a reel, the way Instagram's own opener tells: [product], the shared
+     * media's product type name, is a reel's, or with no media, [link], the address of the share's first
+     * card, starts its path with reel or reels.
+     */
+    static boolean isReel(@Nullable String product, @Nullable String link) {
+        if (product != null) return REEL_PRODUCT.equals(product);
+        if (link == null || link.isEmpty()) return false;
+        List<String> path = Uri.parse(link).getPathSegments();
+        if (path == null || path.isEmpty()) return false;
+        String first = path.get(0);
+        return "reel".equals(first) || "reels".equals(first);
+    }
+
+    /** Stub: the patch writes this, answering the product type name of the media shared in [wrapper], a message's wrapper, or null. */
+    @Nullable
+    public static String sharedProduct(Object wrapper) {
+        return null;
+    }
+
+    /** Stub: the patch writes this, answering the link of the first share card in [wrapper]'s message, or null. */
+    @Nullable
+    public static String shareLink(Object wrapper) {
+        return null;
     }
 
     /** The viewer covers the chat, or the chat is gone, so the next tap opens again. */

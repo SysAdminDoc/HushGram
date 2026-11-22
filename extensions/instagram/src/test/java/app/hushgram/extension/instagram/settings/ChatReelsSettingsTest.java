@@ -121,6 +121,38 @@ public class ChatReelsSettingsTest {
             Settings.MESSAGES_AFTER_CHAT_REELS.resetToDefault();
         }
     }
+    /**
+     * Don't open reels from chats (#810) sits right under Messages after a reel, off to start, works with the
+     * swipe switch off, is backed up and goes quiet while paused.
+     */
+    @Test public void dontOpenReelsFromChatsStartsOffUnderTheChatReelsRowsAndStandsAlone() throws Exception {
+        try {
+            open(true);
+            SwitchPreference after = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.MESSAGES_AFTER_CHAT_REELS.key);
+            SwitchPreference row = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.BLOCK_CHAT_REELS.key);
+            assertNotNull(row);
+            assertEquals("Don't open reels from chats", row.getTitle().toString());
+            assertTrue(String.valueOf(row.getSummary()), String.valueOf(row.getSummary()).contains("stays closed when you tap it"));
+            PreferenceGroup section = StoryTimeSettingsTest.sectionOf(page.getPreferenceScreen(), row);
+            assertEquals("Messages", String.valueOf(section.getTitle()));
+            assertEquals("right under Messages after a reel", indexIn(section, after) + 1, indexIn(section, row));
+            assertFalse(row.isChecked());
+            assertFalse(Settings.BLOCK_CHAT_REELS.get());
+            assertTrue("works with the swipe switch off", Settings.BLOCK_CHAT_REELS.isAvailable());
+            assertTrue(ConfigurationBackup.eligible().containsKey(Settings.BLOCK_CHAT_REELS.key));
+
+            Settings.BLOCK_CHAT_REELS.save(true);
+            BaseSettings.PAUSED.save(true);
+            PauseForTests.pause(HushgramPause.Reason.SWITCH);
+            assertFalse(Settings.BLOCK_CHAT_REELS.get());
+            assertTrue(Settings.BLOCK_CHAT_REELS.savedValue());
+            BaseSettings.PAUSED.save(false);
+            PauseForTests.resume();
+            assertTrue(Settings.BLOCK_CHAT_REELS.get());
+        } finally {
+            Settings.BLOCK_CHAT_REELS.resetToDefault();
+        }
+    }
     private static int indexIn(PreferenceGroup section, Preference row) {
         for (int i = 0; i < section.getPreferenceCount(); i++) {
             if (section.getPreference(i) == row) return i;
@@ -136,7 +168,7 @@ public class ChatReelsSettingsTest {
         assertFalse(row.isChecked());
         assertFalse(Settings.SWIPE_CHAT_REELS.get());
         assertEquals(Arrays.asList(Settings.SWIPE_CHAT_REELS, Settings.STOP_AFTER_CHAT_REELS, Settings.ONLY_RECEIVED_CHAT_REELS,
-                Settings.MESSAGES_AFTER_CHAT_REELS), PatchFamily.CHAT_REELS.switches);
+                Settings.MESSAGES_AFTER_CHAT_REELS, Settings.BLOCK_CHAT_REELS), PatchFamily.CHAT_REELS.switches);
         assertEquals("Swipe through a chat's reels", PatchFamily.CHAT_REELS.patchName);
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.SWIPE_CHAT_REELS.key));
 
