@@ -12,6 +12,7 @@ A file named %1$s in %2$s paused HushGram.	%2$s에 있는 %1$s 파일 때문에 
 A reel someone shares in a chat stays closed when you tap it. Photos, videos and shared posts still open.	누군가 채팅에서 공유한 릴스는 탭해도 열리지 않습니다. 사진, 동영상, 공유된 게시물은 그대로 열립니다.
 About	정보
 Add the source to saved photos and videos	저장한 사진과 동영상에 출처 추가
+Adds Copy text to the menu a story's three dots open. It copies the words Instagram found in the picture, and when it found none, Google Lens opens on the story so you can copy them there.	스토리의 점 세 개를 누르면 열리는 메뉴에 텍스트 복사를 추가합니다. Instagram이 사진에서 찾은 단어를 복사하고, 찾은 단어가 없으면 스토리에서 Google 렌즈가 열려 거기서 복사할 수 있습니다.
 Ads and privacy	광고 및 개인정보 보호
 Also in comments	댓글에도 적용
 Asks Android to run Instagram at your screen's fastest refresh rate, at the same resolution. Some phones keep their own limit for apps, and battery saver can still lower it.	화면의 가장 높은 주사율, 같은 해상도로 Instagram을 실행하도록 Android에 요청합니다. 일부 휴대전화는 앱에 자체 제한을 두며, 절전 모드가 주사율을 낮출 수도 있습니다.
@@ -24,6 +25,7 @@ Clear diagnostic data	진단 데이터 지우기
 Copy a quick report or save the full one to %1$s. Links, IDs, cookies and sign-in details are left out. Check it for other private text before you share it.	간단한 보고서를 복사하거나 전체 보고서를 %1$s에 저장하세요. 링크, ID, 쿠키, 로그인 정보는 제외됩니다. 공유하기 전에 다른 개인 정보가 없는지 확인하세요.
 Copy a short report to the clipboard.	간단한 진단 보고서를 클립보드에 복사합니다
 Copy quick report	빠른 보고서 복사
+Copy text in the story menu	스토리 메뉴에 텍스트 복사 추가
 Copying to the gallery	갤러리에 복사하는 중
 Couldn't find this chat's messages.	채팅 메시지를 찾지 못했어요.
 Couldn't put back the diagnostic data. Try again.	진단 데이터를 복원할 수 없습니다. 다시 시도하세요

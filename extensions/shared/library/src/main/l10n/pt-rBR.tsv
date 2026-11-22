@@ -11,6 +11,7 @@ A file named %1$s in %2$s paused HushGram.	Um arquivo chamado %1$s em %2$s pauso
 A reel someone shares in a chat stays closed when you tap it. Photos, videos and shared posts still open.	Um reel que alguém compartilha em uma conversa fica fechado quando você toca nele. Fotos, vídeos e publicações compartilhadas continuam abrindo.
 About	Sobre
 Add the source to saved photos and videos	Adicionar a origem às fotos e vídeos salvos
+Adds Copy text to the menu a story's three dots open. It copies the words Instagram found in the picture, and when it found none, Google Lens opens on the story so you can copy them there.	Adiciona Copiar texto ao menu que os três pontos de um story abrem. Ele copia as palavras que o Instagram encontrou na imagem e, quando não encontra nenhuma, o Google Lens abre no story para você copiá-las lá.
 Ads and privacy	Anúncios e privacidade
 Also in comments	Também nos comentários
 Asks Android to run Instagram at your screen's fastest refresh rate, at the same resolution. Some phones keep their own limit for apps, and battery saver can still lower it.	Pede ao Android que execute o Instagram na maior taxa de atualização da tela, na mesma resolução. Alguns celulares mantêm um limite próprio para apps, e a economia de bateria ainda pode reduzi-la.
@@ -23,6 +24,7 @@ Clear diagnostic data	Limpar dados de diagnóstico
 Copy a quick report or save the full one to %1$s. Links, IDs, cookies and sign-in details are left out. Check it for other private text before you share it.	Copie um relatório rápido ou salve o completo em %1$s. Links, IDs, cookies e dados de acesso ficam de fora. Confira se há outro texto privado antes de compartilhar.
 Copy a short report to the clipboard.	Copie um relatório curto para a área de transferência.
 Copy quick report	Copiar relatório rápido
+Copy text in the story menu	Copiar texto no menu do story
 Copying to the gallery	Copiando para a galeria
 Couldn't find this chat's messages.	Mensagens não encontradas.
 Couldn't put back the diagnostic data. Try again.	Erro ao restaurar o diagnóstico. Tente de novo.

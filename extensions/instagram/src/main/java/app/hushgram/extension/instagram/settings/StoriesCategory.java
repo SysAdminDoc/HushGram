@@ -254,6 +254,10 @@ final class StoriesCategory {
             stories.add(toggle(context, Settings.TEXT_BUTTON_ON_STORIES, L10n.t("Copy text button on stories"),
                     L10n.t("Puts a Lens icon at the top of a story, beside the three dots. Tap it and Google Lens "
                             + "opens on what's showing, so you can select and copy its text.")));
+            stories.add(toggle(context, Settings.STORY_COPY_TEXT_IN_MENU, L10n.t("Copy text in the story menu"),
+                    L10n.t("Adds Copy text to the menu a story's three dots open. It copies the words Instagram "
+                            + "found in the picture, and when it found none, Google Lens opens on the story so you "
+                            + "can copy them there.")));
         }
         if (build.contains(PatchFamily.STORY_SEEN) || build.contains(PatchFamily.STORY_DOWNLOAD)) {
             stories.add(toggle(context, Settings.STORY_BUTTONS_BY_THUMB, L10n.t("Story buttons at the bottom"),

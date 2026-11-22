@@ -14,6 +14,8 @@ import static org.junit.Assert.assertTrue;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.ClipboardManager;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.os.Looper;
 import android.text.SpannableString;
@@ -33,6 +35,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
+import org.robolectric.RuntimeEnvironment;
 import org.robolectric.Shadows;
 import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.Config;
@@ -67,6 +70,7 @@ public class StoryDownloadTest {
         Story.posted = null;
         Story.id = null;
         Story.account = null;
+        Story.altText = null;
         ListHold.over.clear();
         Built.storyLoop = false;
         Built.storySpeed = false;
@@ -78,6 +82,7 @@ public class StoryDownloadTest {
         Settings.DOWNLOAD_STORIES.save(true);
         Settings.LOOP_STORIES.resetToDefault();
         Settings.STORY_SPEED_IN_MENU.resetToDefault();
+        Settings.STORY_COPY_TEXT_IN_MENU.resetToDefault();
         Settings.STORY_PRIORITY.resetToDefault();
         Settings.STORY_PRIORITY_ACCOUNTS.resetToDefault();
         Utils.setActivity(null);
@@ -409,6 +414,11 @@ public class StoryDownloadTest {
         @Implementation protected static Boolean storyImageWithMusic(Object media) { return flagged; }
         @Implementation protected static Integer originalMediaType(Object media) { return posted; }
 
+        /** Instagram's description of the story, which quotes the words it read in the picture. */
+        static String altText;
+
+        @Implementation protected static String accessibilityCaption(Object media) { return altText; }
+
         static String id;
 
         @Implementation protected static String mediaId(Object media) { return media == null ? null : id; }
@@ -637,6 +647,67 @@ public class StoryDownloadTest {
         Built.storyDownload = false;
         CharSequence[] unpatched = {"Report"};
         assertSame("without Download any story", unpatched, StoryDownload.labels(unpatched));
+    }
+
+    /**
+     * #789: with Copy text in the story menu on, a story's menu gets Copy text after Download, with
+     * Download off too, and only once, in your own highlights' list as well. A tap copies the words
+     * Instagram quoted in its description of the story and says so. A story whose Media can't be
+     * read, the switch off, a paused HushGram and a build without Download any story get no row, and
+     * the label is Instagram's again.
+     */
+    @Test
+    @Config(shadows = {Story.class, Built.class})
+    public void aStoryGetsCopyText() {
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        Built.storyDownload = true;
+        Settings.STORY_COPY_TEXT_IN_MENU.save(true);
+        Object menu = new Object();
+        StoryDownload.building(menu);
+        Story.media = new Object();
+        Story.altText = "Photo by Sam on November 20, 2026. May be an image of text that says 'Doors open at 7, don't be late'.";
+
+        assertArrayEquals(new CharSequence[] {"Report", "Download", "Copy text"},
+                StoryDownload.labels(new CharSequence[] {"Report"}));
+        CharSequence[] already = {"Report", "Download", new SpannableString("Copy text")};
+        assertSame("added twice", already, StoryDownload.labels(already));
+        List<Object> list = new ArrayList<>(Arrays.asList("Edit highlight"));
+        StoryDownload.labelList(list);
+        assertEquals(Arrays.asList("Edit highlight", "Download", "Copy text"), list);
+        StoryDownload.labelList(list);
+        assertEquals("added twice", 3, list.size());
+
+        ShadowToast.reset();
+        assertTrue(StoryDownload.save(new SpannableString("Copy text"), menu));
+        ClipboardManager clipboard = (ClipboardManager) RuntimeEnvironment.getApplication().getSystemService(Context.CLIPBOARD_SERVICE);
+        assertEquals("Doors open at 7, don't be late", String.valueOf(clipboard.getPrimaryClip().getItemAt(0).getText()));
+        Shadows.shadowOf(Looper.getMainLooper()).idle();
+        assertEquals("Copied", String.valueOf(ShadowToast.getTextOfLatestToast()));
+        String report = String.valueOf(HookStatus.report());
+        assertTrue(report, report.contains("story text copied from Instagram's description 1"));
+
+        Settings.DOWNLOAD_STORIES.save(false);
+        assertArrayEquals("with Download off", new CharSequence[] {"Report", "Copy text"},
+                StoryDownload.labels(new CharSequence[] {"Report"}));
+        Story.media = null;
+        CharSequence[] unread = {"Report"};
+        assertSame("a story whose Media can't be read", unread, StoryDownload.labels(unread));
+        Story.media = new Object();
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        CharSequence[] paused = {"Report"};
+        assertSame("paused", paused, StoryDownload.labels(paused));
+        assertFalse("paused, the label is Instagram's", StoryDownload.save("Copy text", menu));
+        PauseForTests.resume();
+        Built.storyDownload = false;
+        CharSequence[] unpatched = {"Report"};
+        assertSame("without Download any story", unpatched, StoryDownload.labels(unpatched));
+        assertFalse("without Download any story, the label is Instagram's", StoryDownload.save("Copy text", menu));
+        Built.storyDownload = true;
+        Settings.STORY_COPY_TEXT_IN_MENU.save(false);
+        CharSequence[] off = {"Report"};
+        assertSame("off", off, StoryDownload.labels(off));
+        assertFalse("off, the label is Instagram's", StoryDownload.save("Copy text", menu));
     }
 
     /** Each of HushGram's rows is HushGram's to handle, however the menu styled it, and Instagram's aren't. */

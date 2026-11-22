@@ -16,6 +16,7 @@ A file named %1$s in %2$s paused HushGram.	%2$s 中名为 %1$s 的文件使 Hush
 A reel someone shares in a chat stays closed when you tap it. Photos, videos and shared posts still open.	别人在聊天中分享的 Reel，点了也不会打开。照片、视频和分享的帖子仍会照常打开。
 About	关于
 Add the source to saved photos and videos	在保存的照片和视频中加入来源信息
+Adds Copy text to the menu a story's three dots open. It copies the words Instagram found in the picture, and when it found none, Google Lens opens on the story so you can copy them there.	在快拍三个点打开的菜单中加入“复制文字”。它会复制 Instagram 在图片中找到的文字；如果没有找到，Google 智能镜头会在快拍上打开，让你在那里复制。
 Ads and privacy	广告与隐私
 Also in comments	同时应用至评论
 Asks Android to run Instagram at your screen's fastest refresh rate, at the same resolution. Some phones keep their own limit for apps, and battery saver can still lower it.	要求 Android 以屏幕最高的更新率、相同的分辨率运行 Instagram。部分手机会为应用程序设置自己的上限，省电模式也仍可能调低更新率。
@@ -28,6 +29,7 @@ Clear diagnostic data	清除诊断数据
 Copy a quick report or save the full one to %1$s. Links, IDs, cookies and sign-in details are left out. Check it for other private text before you share it.	复制简要报告，或将完整报告保存至 %1$s。报告不含链接、ID、Cookie 与登录信息。分享前，请确认是否还有其他私人文字。
 Copy a short report to the clipboard.	将简要报告复制到剪贴板。
 Copy quick report	复制简要报告
+Copy text in the story menu	快拍菜单中的复制文字
 Copying to the gallery	正在复制到相册
 Couldn't find this chat's messages.	找不到这个聊天的消息。
 Couldn't put back the diagnostic data. Try again.	无法还原诊断数据，请再试一次。

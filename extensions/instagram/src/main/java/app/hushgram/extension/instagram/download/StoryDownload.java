@@ -22,6 +22,7 @@ import java.util.function.Consumer;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
+import app.hushgram.extension.instagram.stories.StoryCopyText;
 import app.hushgram.extension.instagram.stories.StoryListHold;
 import app.hushgram.extension.instagram.stories.StoryLoop;
 import app.hushgram.extension.instagram.stories.StoryPriority;
@@ -59,6 +60,10 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * <p>With Speed in the story menu on, a video story's menu also gets Playback speed after that,
  * whatever the Download switch says, and a tap on it opens the speeds through {@link StorySpeed}
  * (#621). The story stays paused until that list closes.
+ *
+ * <p>With Copy text in the story menu on, the menu of a story whose Media it can read gets Copy text
+ * after that, whatever the Download switch says, and a tap on it copies the words Instagram read in
+ * the story, or opens Google Lens on it, through {@link StoryCopyText} (#789).
  *
  * <p>With Stories priority in the build, the menu of a story whose account it can read gets Add to
  * Stories priority last, whatever the switches say, and a tap on it puts that account on the list
@@ -137,15 +142,15 @@ public final class StoryDownload {
      * The labels [labels] of a story's menu, with HushGram's rows at the end when the switch is on:
      * Download, Download as video and Download as photo for a photo story with music, or Download
      * and Download as photo for a filmed video. Loop this story goes after them when the story gets
-     * it ({@link #loopLabel}), then Playback speed ({@link #speedLabel}), and Add to Stories priority
-     * last ({@link #priorityLabel}). A menu that has the rows already is left alone. Never throws.
+     * it ({@link #loopLabel}), then Playback speed ({@link #speedLabel}), then Copy text
+     * ({@link #copyTextLabel}), and Add to Stories priority last ({@link #priorityLabel}). A menu that has the rows already is left alone. Never throws.
      */
     public static CharSequence[] labels(CharSequence[] labels) {
         try {
             HookStatus.invoked(FamilyNames.STORY_DOWNLOAD);
             if (labels == null) return labels;
             Object menu = building.get();
-            return withPriority(withSpeed(withLoop(on() ? labels(labels, rows(menu)) : labels, menu), menu), menu);
+            return withPriority(withCopyText(withSpeed(withLoop(on() ? labels(labels, rows(menu)) : labels, menu), menu), menu), menu);
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.STORY_DOWNLOAD, "story menu", t);
             return labels;
@@ -164,6 +169,13 @@ public final class StoryDownload {
         String speed = speedLabel(menu);
         if (speed == null || hasSpeed(Arrays.asList(labels))) return labels;
         return plus(labels, speed);
+    }
+
+    /** [labels] with Copy text at the end when the story [menu] is open on gets it. */
+    private static CharSequence[] withCopyText(CharSequence[] labels, Object menu) {
+        String copy = copyTextLabel(menu);
+        if (copy == null || hasCopyText(Arrays.asList(labels))) return labels;
+        return plus(labels, copy);
     }
 
     /** [labels] with Add to Stories priority at the end when the story [menu] is open on gets it. */
@@ -205,6 +217,8 @@ public final class StoryDownload {
             if (loop != null && !hasLoop(labels)) labels.add(loop);
             String speed = speedLabel(menu);
             if (speed != null && !hasSpeed(labels)) labels.add(speed);
+            String copy = copyTextLabel(menu);
+            if (copy != null && !hasCopyText(labels)) labels.add(copy);
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.STORY_DOWNLOAD, "story menu", t);
         }
@@ -264,6 +278,25 @@ public final class StoryDownload {
     private static boolean hasSpeed(List<?> labels) {
         for (Object label : labels) {
             if (label instanceof CharSequence && StorySpeed.isMenuLabel((CharSequence) label)) return true;
+        }
+        return false;
+    }
+
+    /**
+     * Copy text for the story [menu] is open on, or null when its menu doesn't get the row: Copy text
+     * in the story menu is off, or the story's Media can't be read.
+     */
+    @Nullable
+    static String copyTextLabel(Object menu) {
+        if (menu == null || !StoryCopyText.offersRow()) return null;
+        if (InstagramMedia.storyMedia(menu) == null) return null;
+        return StoryCopyText.menuLabel();
+    }
+
+    /** Whether [labels] has Copy text already. */
+    private static boolean hasCopyText(List<?> labels) {
+        for (Object label : labels) {
+            if (label instanceof CharSequence && StoryCopyText.isMenuLabel((CharSequence) label)) return true;
         }
         return false;
     }
@@ -363,6 +396,10 @@ public final class StoryDownload {
             }
             if (StoryPriority.offersRow() && StoryPriority.isMenuLabel(label)) {
                 togglePriority(menu);
+                return true;
+            }
+            if (StoryCopyText.offersRow() && StoryCopyText.isMenuLabel(label)) {
+                StoryCopyText.copy(InstagramMedia.storyMedia(menu));
                 return true;
             }
             if (!on()) return false;

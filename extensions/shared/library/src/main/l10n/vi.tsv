@@ -11,6 +11,7 @@ A file named %1$s in %2$s paused HushGram.	Một tệp tên %1$s trong %2$s đã
 A reel someone shares in a chat stays closed when you tap it. Photos, videos and shared posts still open.	Reel mà ai đó chia sẻ trong cuộc trò chuyện sẽ không mở khi bạn chạm vào. Ảnh, video và bài viết được chia sẻ vẫn mở như thường.
 About	Giới thiệu
 Add the source to saved photos and videos	Thêm nguồn vào ảnh và video đã lưu
+Adds Copy text to the menu a story's three dots open. It copies the words Instagram found in the picture, and when it found none, Google Lens opens on the story so you can copy them there.	Thêm Sao chép văn bản vào menu mở ra từ ba dấu chấm của tin. Mục này sao chép các từ Instagram tìm thấy trong ảnh, và khi không tìm thấy từ nào, Google Lens mở trên tin để bạn sao chép ở đó.
 Ads and privacy	Quảng cáo và quyền riêng tư
 Also in comments	Cả trong bình luận
 Asks Android to run Instagram at your screen's fastest refresh rate, at the same resolution. Some phones keep their own limit for apps, and battery saver can still lower it.	Yêu cầu Android chạy Instagram ở tốc độ làm mới cao nhất của màn hình, với cùng độ phân giải. Một số điện thoại vẫn giữ giới hạn riêng cho ứng dụng và chế độ tiết kiệm pin có thể hạ tốc độ này xuống.
@@ -23,6 +24,7 @@ Clear diagnostic data	Xóa dữ liệu chẩn đoán
 Copy a quick report or save the full one to %1$s. Links, IDs, cookies and sign-in details are left out. Check it for other private text before you share it.	Sao chép báo cáo nhanh hoặc lưu báo cáo đầy đủ vào %1$s. Liên kết, ID, cookie và thông tin đăng nhập đã được loại bỏ. Hãy kiểm tra xem còn văn bản riêng tư nào khác không trước khi chia sẻ.
 Copy a short report to the clipboard.	Sao chép báo cáo ngắn vào bộ nhớ tạm.
 Copy quick report	Sao chép báo cáo nhanh
+Copy text in the story menu	Chép văn bản trong menu tin
 Copying to the gallery	Đang chép vào thư viện ảnh
 Couldn't find this chat's messages.	Không tìm thấy tin nhắn của cuộc trò chuyện này.
 Couldn't put back the diagnostic data. Try again.	Không khôi phục được dữ liệu chẩn đoán. Hãy thử lại.

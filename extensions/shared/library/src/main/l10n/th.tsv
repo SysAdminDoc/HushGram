@@ -12,6 +12,7 @@ A file named %1$s in %2$s paused HushGram.	ไฟล์ชื่อ %1$s ใน 
 A reel someone shares in a chat stays closed when you tap it. Photos, videos and shared posts still open.	รีลส์ที่มีคนแชร์ในแชทจะไม่เปิดเมื่อคุณแตะ รูปภาพ วิดีโอ และโพสต์ที่แชร์ยังเปิดได้ตามปกติ
 About	เกี่ยวกับ
 Add the source to saved photos and videos	เพิ่มแหล่งที่มาลงในรูปภาพและวิดีโอที่บันทึก
+Adds Copy text to the menu a story's three dots open. It copies the words Instagram found in the picture, and when it found none, Google Lens opens on the story so you can copy them there.	เพิ่ม "คัดลอกข้อความ" ลงในเมนูที่เปิดจากจุดสามจุดของสตอรี่ โดยจะคัดลอกคำที่ Instagram พบในภาพ และถ้าไม่พบคำใดเลย Google Lens จะเปิดบนสตอรี่เพื่อให้คุณคัดลอกได้จากที่นั่น
 Ads and privacy	โฆษณาและความเป็นส่วนตัว
 Also in comments	ในความคิดเห็นด้วย
 Asks Android to run Instagram at your screen's fastest refresh rate, at the same resolution. Some phones keep their own limit for apps, and battery saver can still lower it.	ขอให้ Android ใช้งาน Instagram ด้วยอัตรารีเฟรชสูงสุดของหน้าจอที่ความละเอียดเดิม โทรศัพท์บางรุ่นอาจจำกัดอัตราสำหรับแอปไว้ และโหมดประหยัดแบตเตอรี่ยังคงลดอัตราดังกล่าวลงได้
@@ -24,6 +25,7 @@ Clear diagnostic data	ล้างข้อมูลการวินิจฉ�
 Copy a quick report or save the full one to %1$s. Links, IDs, cookies and sign-in details are left out. Check it for other private text before you share it.	คัดลอกรายงานฉบับย่อหรือบันทึกรายงานฉบับเต็มไปยัง %1$s ระบบจะไม่รวมลิงก์, ID, คุกกี้ และรายละเอียดการเข้าสู่ระบบ โปรดตรวจสอบข้อความส่วนตัวอื่นๆ ก่อนแชร์
 Copy a short report to the clipboard.	คัดลอกรายงานฉบับย่อไปยังคลิปบอร์ด
 Copy quick report	คัดลอกรายงานฉบับย่อ
+Copy text in the story menu	คัดลอกข้อความในเมนูสตอรี่
 Copying to the gallery	กำลังคัดลอกไปยังแกลเลอรี
 Couldn't find this chat's messages.	ไม่พบข้อความของแชทนี้
 Couldn't put back the diagnostic data. Try again.	ไม่สามารถกู้คืนข้อมูลการวินิจฉัย โปรดลองอีกครั้ง

@@ -11,6 +11,7 @@ A file named %1$s in %2$s paused HushGram.	Un archivo llamado %1$s en %2$s paus�
 A reel someone shares in a chat stays closed when you tap it. Photos, videos and shared posts still open.	Un reel que alguien comparte en un chat no se abre al tocarlo. Las fotos, los videos y las publicaciones compartidas se siguen abriendo.
 About	Acerca de
 Add the source to saved photos and videos	Añadir el origen a las fotos y vídeos guardados
+Adds Copy text to the menu a story's three dots open. It copies the words Instagram found in the picture, and when it found none, Google Lens opens on the story so you can copy them there.	Añade Copiar texto al menú que abren los tres puntos de una historia. Copia las palabras que Instagram encontró en la imagen y, si no encontró ninguna, Google Lens se abre en la historia para que puedas copiarlas allí.
 Ads and privacy	Anuncios y privacidad
 Also in comments	También en los comentarios
 Asks Android to run Instagram at your screen's fastest refresh rate, at the same resolution. Some phones keep their own limit for apps, and battery saver can still lower it.	Pide a Android que ejecute Instagram a la tasa de refresco más alta de tu pantalla, con la misma resolución. Algunos teléfonos ponen su propio límite a las apps, y el ahorro de batería aún puede bajarla.
@@ -23,6 +24,7 @@ Clear diagnostic data	Borrar datos de diagnóstico
 Copy a quick report or save the full one to %1$s. Links, IDs, cookies and sign-in details are left out. Check it for other private text before you share it.	Copia un informe rápido o guarda el completo en %1$s. Se omiten enlaces, ID, cookies y datos de inicio de sesión. Revisa si hay otro texto privado antes de compartirlo.
 Copy a short report to the clipboard.	Copia un informe breve en el portapapeles.
 Copy quick report	Copiar informe rápido
+Copy text in the story menu	Copiar texto en el menú de la historia
 Copying to the gallery	Copiando a la galería
 Couldn't find this chat's messages.	No se hallan los mensajes.
 Couldn't put back the diagnostic data. Try again.	No se restauraron los datos de diagnóstico. Reinténtalo.

@@ -73,9 +73,10 @@ public class StoryUploadQualitySettingsTest {
         for (int i = 0; i < keys.length; i++) keys[i] = stories.getPreference(i).getKey();
         int at = Arrays.asList(keys).indexOf(Settings.UPLOAD_STORIES_AT_FULL_QUALITY.key);
         assertEquals(Arrays.toString(keys), Settings.STORY_BUTTONS_BY_THUMB.key, keys[at - 1]);
-        assertEquals(Arrays.toString(keys), Settings.TEXT_BUTTON_ON_STORIES.key, keys[at - 2]);
-        assertEquals(Arrays.toString(keys), Settings.DOWNLOAD_BUTTON_ON_STORIES.key, keys[at - 3]);
-        assertEquals(Arrays.toString(keys), Settings.DOWNLOAD_STORIES.key, keys[at - 4]);
+        assertEquals(Arrays.toString(keys), Settings.STORY_COPY_TEXT_IN_MENU.key, keys[at - 2]);
+        assertEquals(Arrays.toString(keys), Settings.TEXT_BUTTON_ON_STORIES.key, keys[at - 3]);
+        assertEquals(Arrays.toString(keys), Settings.DOWNLOAD_BUTTON_ON_STORIES.key, keys[at - 4]);
+        assertEquals(Arrays.toString(keys), Settings.DOWNLOAD_STORIES.key, keys[at - 5]);
         assertEquals(Arrays.toString(keys), Settings.UPLOAD_QUALITY_APPLIES_TO.key, keys[at + 1]);
         assertEquals(Arrays.toString(keys), Settings.UPLOAD_VIDEO_BITRATE.key, keys[at + 2]);
         assertEquals(Arrays.toString(keys), Settings.UPLOAD_VIDEO_RESOLUTION.key, keys[at + 3]);

@@ -11,6 +11,7 @@ A file named %1$s in %2$s paused HushGram.	Eine Datei namens %1$s in %2$s hat Hu
 A reel someone shares in a chat stays closed when you tap it. Photos, videos and shared posts still open.	Ein Reel, das jemand in einem Chat teilt, bleibt geschlossen, wenn du darauf tippst. Fotos, Videos und geteilte Beiträge öffnen sich weiter.
 About	Info
 Add the source to saved photos and videos	Quelle zu gespeicherten Fotos und Videos hinzufügen
+Adds Copy text to the menu a story's three dots open. It copies the words Instagram found in the picture, and when it found none, Google Lens opens on the story so you can copy them there.	Fügt „Text kopieren“ zum Menü hinzu, das die drei Punkte einer Story öffnen. Es kopiert die Wörter, die Instagram im Bild gefunden hat, und wenn es keine gefunden hat, öffnet sich Google Lens mit der Story, damit du sie dort kopieren kannst.
 Ads and privacy	Werbung und Datenschutz
 Also in comments	Auch in Kommentaren
 Asks Android to run Instagram at your screen's fastest refresh rate, at the same resolution. Some phones keep their own limit for apps, and battery saver can still lower it.	Bittet Android, Instagram mit der schnellsten Bildwiederholrate deines Displays bei gleicher Auflösung laufen zu lassen. Manche Handys setzen Apps ein eigenes Limit, und der Energiesparmodus kann die Rate trotzdem senken.
@@ -23,6 +24,7 @@ Clear diagnostic data	Diagnosedaten löschen
 Copy a quick report or save the full one to %1$s. Links, IDs, cookies and sign-in details are left out. Check it for other private text before you share it.	Kopiere einen Kurzbericht oder speichere den vollständigen Bericht unter %1$s. Links, IDs, Cookies und Anmeldedaten werden ausgelassen. Prüfe ihn auf anderen privaten Text, bevor du ihn teilst.
 Copy a short report to the clipboard.	Kurzen Bericht in die Zwischenablage kopieren.
 Copy quick report	Kurzbericht kopieren
+Copy text in the story menu	Text kopieren im Story-Menü
 Copying to the gallery	Wird in die Galerie kopiert
 Couldn't find this chat's messages.	Die Nachrichten dieses Chats fehlen.
 Couldn't put back the diagnostic data. Try again.	Diagnosedaten nicht wiederhergestellt.

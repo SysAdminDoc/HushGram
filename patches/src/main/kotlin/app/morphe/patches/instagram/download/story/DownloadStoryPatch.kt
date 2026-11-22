@@ -15,6 +15,7 @@ import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.instagram.download.INSTAGRAM_MEDIA
 import app.morphe.patches.instagram.download.MEDIA
+import app.morphe.patches.instagram.download.altTextBridge
 import app.morphe.patches.instagram.download.imageBridges
 import app.morphe.patches.instagram.download.mediaBridges
 import app.morphe.patches.instagram.download.storyMusicBridges
@@ -24,6 +25,7 @@ import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
 import app.morphe.patches.instagram.misc.extension.originalName
+import app.morphe.patches.instagram.misc.extension.patchLog
 import app.morphe.patches.instagram.misc.extension.parameterRegister
 import app.morphe.patches.instagram.misc.extension.requireLocals
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
@@ -117,7 +119,8 @@ val downloadStoryPatch = bytecodePatch(
     description = "Adds Download to the menu of anyone's story. Videos save at the quality you choose and photos " +
         "at their largest size, and Download as photo saves a still from a video story. " +
         "A Download button at the top of a story is a separate switch, off to start, and so is a Copy text button " +
-        "that opens Google Lens on the story. Turn them on or off in HushGram settings > Stories.",
+        "that opens Google Lens on the story. Another switch puts Copy text in the menu, copying the words Instagram " +
+        "read in the picture. Turn them on or off in HushGram settings > Stories.",
     default = true,
 ) {
     category("Downloads")
@@ -188,6 +191,7 @@ internal fun BytecodePatchContext.offerDownloadOnEveryStory(withButton: Boolean 
     val writeVideoBridges = mediaBridges(PATCH)
     val writeImageBridges = imageBridges(PATCH)
     val writeMusicBridges = storyMusicBridges(PATCH)
+    val writeAltTextBridge = findAltTextBridge()
     // Each builder's menu, its parameter of the menu's class, read before the body can reuse it.
     val menus = returns.keys.associateWith { builder ->
         val parameters = builder.parameterTypes.map(Any::toString)
@@ -296,6 +300,7 @@ internal fun BytecodePatchContext.offerDownloadOnEveryStory(withButton: Boolean 
     writeVideoBridges()
     writeImageBridges()
     writeMusicBridges()
+    writeAltTextBridge?.invoke()
     if (button != null) hookStoryButton(button)
     if (listHold != null) hookStoryListHold(listHold)
 }
@@ -612,6 +617,18 @@ private fun Instruction.argumentRegisters(): List<Int> = when (this) {
 /** The returns of [this] builder, each answering its labels. */
 internal fun Method.labelReturns(): List<Int> =
     implementation?.instructions?.withIndex()?.filter { it.value.opcode == Opcode.RETURN_OBJECT }?.map { it.index }.orEmpty()
+
+/**
+ * Media's one getter of `accessibility_caption`, which Copy text in the story menu reads for the
+ * words Instagram found in a story (#789). Only that row needs it, so a build where it can't be told
+ * answers null, after the patch log says why, and the row sends every story to Google Lens.
+ */
+private fun BytecodePatchContext.findAltTextBridge(): (() -> Unit)? = try {
+    altTextBridge(PATCH)
+} catch (unknown: PatchException) {
+    patchLog.warning("${unknown.message}. $PATCH goes in with Copy text sending every story to Google Lens.")
+    null
+}
 
 /** The one instance field of [type] in [owner], the story menu's class, as a field reference. */
 private fun BytecodePatchContext.instanceField(owner: String, type: String): String {

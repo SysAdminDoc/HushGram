@@ -312,6 +312,15 @@ internal fun BytecodePatchContext.storyMusicBridges(patch: String): () -> Unit {
 }
 
 /**
+ * The same for a story's `accessibility_caption`, Instagram's description of what a photo shows,
+ * which quotes the words it read in the picture. Copy text in the story menu copies those (#789).
+ */
+internal fun BytecodePatchContext.altTextBridge(patch: String): () -> Unit {
+    val altText = pandoGetter(patch, MEDIA, "accessibility_caption", "Ljava/lang/String;")
+    return bridgeWriter(patch, listOf(Bridge("accessibilityCaption", MEDIA, virtual(altText))))
+}
+
+/**
  * The same for a post's `media_type`, which Find the reel you came from reads to tell a photo reel,
  * a photo or carousel played in Reels, from a video one (#225).
  */

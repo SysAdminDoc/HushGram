@@ -4446,6 +4446,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_text_button_on_stories", FALSE);
 
     /**
+     * Copy text in the menu a story's three dots open (#789,
+     * {@link app.hushgram.extension.instagram.stories.StoryCopyText}): it copies the words Instagram
+     * read in the story's picture, and opens Google Lens on the story when it read none. The row
+     * rides on Download any story's menu hooks. Off to start.
+     */
+    public static final BooleanSetting STORY_COPY_TEXT_IN_MENU =
+            new BooleanSetting("hushgram_story_copy_text_in_menu", FALSE);
+
+    /**
      * The Mark as seen and Download buttons sit at the bottom right of a story, in the row with Like
      * and Share, where a thumb reaches them, instead of in the header (#647,
      * {@link app.hushgram.extension.instagram.stories.StoryButtonRows}). A story whose bottom row

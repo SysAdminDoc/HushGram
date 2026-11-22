@@ -52,6 +52,7 @@ Every HushGram release, newest first.
 * `Don't open reels from chats` is new under Messages. A reel someone shares in a chat stays closed when you tap it, and a short note says reels from chats are off. Photos, videos and shared posts still open. Asked for in #810.
 * `Reels on Home below the name` is new under Feed. Reels on Home show like any other post, with the name and the three-dot menu in a row above the video, so nothing sits on top of it. Live videos and reels everywhere else keep Instagram's layout. Asked for in #788.
 * `Time on the seek bar` is new under `Seek bar on stories`. It shows the time played and the story's length at the start of the bar, like 0:03 / 0:15, and a tap on it (or `Show the time left`) counts down what's left instead. Asked for in #784.
+* `Copy text in the story menu` is new under Stories. It puts Copy text in a story's three-dot menu, and a tap copies the words Instagram read in the picture. When Instagram didn't find any, Google Lens opens on the story so you can copy them there. Starts off. Asked for in #789.
 * **Tooling:** The GitHub release notes leave out the Tooling bullets and the What was checked part now. They're still here in the changelog, and Manager's notes keep their Validation line.
 
 ### Bug Fixes

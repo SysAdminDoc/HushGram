@@ -109,6 +109,16 @@ public final class InstagramMedia {
     }
 
     /**
+     * A Media's {@code accessibility_caption}: the description Instagram writes of what a photo
+     * shows, which quotes the words it read in the picture ("May be an image of text that says
+     * '...'"). Null when it wrote none, as for most videos. Written by the Download any story patch,
+     * and left unwritten on a build where the getter can't be told.
+     */
+    public static String accessibilityCaption(Object media) {
+        return null;
+    }
+
+    /**
      * A Media's {@code media_type}: 1 for a photo, 2 for a video, 8 for a carousel. Written by the
      * Find the reel you came from patch alone, which looks for a photo reel in a profile's posts grid.
      */

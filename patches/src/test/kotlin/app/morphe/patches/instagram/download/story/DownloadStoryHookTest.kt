@@ -273,6 +273,7 @@ class DownloadStoryHookTest {
             "candidateHeight" to ("$IMAGE_URL->getHeight()I" to Opcode.MOVE_RESULT),
             "storyImageWithMusic" to ("$MEDIA->A5d()Ljava/lang/Boolean;" to Opcode.MOVE_RESULT_OBJECT),
             "originalMediaType" to ("$MEDIA->A6P()Ljava/lang/Integer;" to Opcode.MOVE_RESULT_OBJECT),
+            "accessibilityCaption" to ("$MEDIA->A72()Ljava/lang/String;" to Opcode.MOVE_RESULT_OBJECT),
         )
         expected.forEach { (bridge, call) ->
             val code = context.method(INSTAGRAM_MEDIA, bridge).code()
@@ -332,6 +333,22 @@ class DownloadStoryHookTest {
         val failure = assertThrows(PatchException::class.java) { context.offerDownloadOnEveryStory() }
         assertTrue(failure.message!!, failure.message!!.contains("original_media_type"))
         assertUntouched(context)
+    }
+
+    /**
+     * #789: without the getter for Instagram's description of a story, only Copy text in the story
+     * menu loses it, so the patch goes on, Download still offered, and the description's bridge stays
+     * as built, answering null, which sends every story to Lens.
+     */
+    @Test
+    fun aMissingAltTextGetterLeavesTheRestOfThePatch() {
+        val context = PatchContexts.of(classes(leaveOutAltText = true))
+
+        context.offerDownloadOnEveryStory()
+
+        assertEquals("the posted type bridge", Opcode.CHECK_CAST, context.method(INSTAGRAM_MEDIA, "originalMediaType").code().first().opcode)
+        val unwritten = context.method(INSTAGRAM_MEDIA, "accessibilityCaption").code()
+        assertEquals("the description's bridge was written", listOf(Opcode.CONST_4, Opcode.RETURN_OBJECT), unwritten.map { it.opcode })
     }
 
     @Test
@@ -636,7 +653,7 @@ class DownloadStoryHookTest {
     private val storyBridges = setOf(
         "videoVersions", "dashManifest", "mediaId", "owner", "takenAt", "username", "versionUrl", "versionWidth", "versionHeight",
         "imageVersions", "imageCandidates", "candidateUrl", "candidateWidth", "candidateHeight", "storyMedia", "storyImageWithMusic",
-        "originalMediaType",
+        "originalMediaType", "accessibilityCaption",
     )
 
     /** A dialog click listener that calls a static method answering labels. */
@@ -682,6 +699,7 @@ class DownloadStoryHookTest {
         handlerLocals: Int = 11,
         leaveOutMusic: Boolean = false,
         leaveOutPostedType: Boolean = false,
+        leaveOutAltText: Boolean = false,
         arrayReadAgain: Boolean = false,
         jumpToLookup: Boolean = false,
     ): List<ClassDef> {
@@ -767,6 +785,7 @@ class DownloadStoryHookTest {
             "A3F" to ("image_versions2" to IMAGE_INFO),
         ).plus(if (leaveOutMusic) emptyList() else listOf("A5d" to ("is_story_image_with_music" to "Ljava/lang/Boolean;")))
             .plus(if (leaveOutPostedType) emptyList() else listOf("A6P" to ("original_media_type" to "Ljava/lang/Integer;")))
+            .plus(if (leaveOutAltText) emptyList() else listOf("A72" to ("accessibility_caption" to "Ljava/lang/String;")))
             .map { (name, field) -> getter(MEDIA, name, field.first, field.second) } +
             method(MEDIA, "getId", emptyList(), "Ljava/lang/String;", 1, static = false, body = """
                 const/4 v0, 0x0
