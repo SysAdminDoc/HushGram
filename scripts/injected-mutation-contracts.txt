@@ -3311,10 +3311,13 @@ once-call Lapp/hushgram/extension/instagram/reels/ReelOrigin;->postsTileBound(Lj
 # post's media to ReelOrigin.openingFromFeed right after each header tap reads it from the tap's
 # event. 456 has two taps loading the entry point below: the main feed's (07p6.Fhr on 386214574),
 # which pushes the profile onto its tab, and the other feeds' (08NA.Fhr), which open it in an
-# activity; each is told by that call. Left out, a feed reel is never held; twice or elsewhere, it
-# isn't the hook the patch wrote. FeedReelHeaderHookTest checks on every 456 build where each lands.
+# activity; each is told by that call. The activity launch takes (Activity, Bundle, X, Class, String)
+# on 386214574 and 386214562 but only (Activity, Bundle, X) on 386214575 (023W.A0W, called from
+# 0HPI.Fi6), so its rule leaves the parameters after the third open. Left out, a feed reel is never
+# held; twice or elsewhere, it isn't the hook the patch wrote. FeedReelHeaderHookTest checks on every
+# 456 build where each lands.
 once-call Lapp/hushgram/extension/instagram/reels/ReelOrigin;->openingFromFeed(Ljava/lang/Object;)V in instance (Ljava/lang/Object;)V calling static LX/*;->*(Landroidx/fragment/app/Fragment;Lcom/instagram/common/session/UserSession;LX/*;Ljava/lang/String;Ljava/lang/String;)V pooled holding media_username
-once-call Lapp/hushgram/extension/instagram/reels/ReelOrigin;->openingFromFeed(Ljava/lang/Object;)V in instance (Ljava/lang/Object;)V calling static LX/*;->*(Landroid/app/Activity;Landroid/os/Bundle;LX/*;Ljava/lang/Class;Ljava/lang/String;)LX/*; pooled holding media_username
+once-call Lapp/hushgram/extension/instagram/reels/ReelOrigin;->openingFromFeed(Ljava/lang/Object;)V in instance (Ljava/lang/Object;)V calling static LX/*;->*(Landroid/app/Activity;Landroid/os/Bundle;LX/*;*)LX/*; pooled holding media_username
 # A tap on the post's name reaches neither: it goes through Instagram's labelled feed header profile
 # open (00QE.A06 on 386214574, and its static twin 00QE.A04), so each of the two hands its Media
 # parameter to openingFromFeed first. Left out, a name tap on a feed reel holds nothing.
