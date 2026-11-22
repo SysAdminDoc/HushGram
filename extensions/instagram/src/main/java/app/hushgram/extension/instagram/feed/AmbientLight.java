@@ -635,20 +635,25 @@ public final class AmbientLight {
      * A photo reel's picture under [view] in the reel's [frame]: the first photo that shows with a
      * picture of its own, nine tenths of the frame's width and a fifth of its height or more, so the
      * profile picture, the song's cover and the buttons over the reel are passed by.
+     *
+     * <p>With [sizeless], [frame] is a photo reel's own ({@link ReelCorners#PHOTO_FRAMES}), and a picture
+     * with no size of its own counts: Instagram draws those photos through a drawable of its own that
+     * fills the view and says -1 for its size, so they stayed dark (#796). A video's frame still wants
+     * a sized picture, so a cover that hasn't loaded is passed by.
      */
     @Nullable
-    static ImageView reelPhotoIn(View view, View frame, int[] budget) {
+    static ImageView reelPhotoIn(View view, View frame, boolean sizeless, int[] budget) {
         if (budget[0]-- <= 0 || view.getVisibility() != View.VISIBLE) return null;
         if (view instanceof ImageView) {
             Drawable picture = ((ImageView) view).getDrawable();
             boolean big = view.getWidth() >= frame.getWidth() * 0.9f && view.getHeight() >= frame.getHeight() / 5;
-            return big && picture != null && picture.getIntrinsicWidth() > 0 && picture.getIntrinsicHeight() > 0
-                    ? (ImageView) view : null;
+            boolean sized = picture != null && (sizeless || picture.getIntrinsicWidth() > 0 && picture.getIntrinsicHeight() > 0);
+            return big && sized ? (ImageView) view : null;
         }
         if (view instanceof ViewGroup) {
             ViewGroup group = (ViewGroup) view;
             for (int i = 0; i < group.getChildCount(); i++) {
-                ImageView found = reelPhotoIn(group.getChildAt(i), frame, budget);
+                ImageView found = reelPhotoIn(group.getChildAt(i), frame, sizeless, budget);
                 if (found != null) return found;
             }
         }
@@ -1650,7 +1655,9 @@ public final class AmbientLight {
                 onHost.set(at);
                 onto(stage, band, onHost);
             }
-            if (fills) at.setEmpty();
+            // The host leaves the stage to draw its own part, so a picture just short of the stage keeps
+            // its glow there: 456's reels sit 12 px in from their page, and those rims stayed black (#796).
+            if (fills && (onHost.isEmpty() || coversToThePixel(at, stage))) at.setEmpty();
             int reach = Math.round(Settings.AMBIENT_LIGHT_SPREAD.get().dp * stage.getResources().getDisplayMetrics().density);
             // A story's bands can be deeper than the glow reaches, so the glow reaches the edge of the
             // host, or of the stage without one. Both draw it the same way, so it runs on unbroken. A
@@ -1718,6 +1725,12 @@ public final class AmbientLight {
             corner = rounded;
             spread = reach;
             return true;
+        }
+
+        /** Whether [at], a picture on [stage], reaches each of the stage's edges to within {@link #ROUNDING}. */
+        private static boolean coversToThePixel(Rect at, View stage) {
+            return at.left <= ROUNDING && at.top <= ROUNDING
+                    && at.right >= stage.getWidth() - ROUNDING && at.bottom >= stage.getHeight() - ROUNDING;
         }
 
         /** How far in the Rounded corners switch for this kind of picture cuts it, in pixels, or 0 with it off. */
@@ -2324,7 +2337,7 @@ public final class AmbientLight {
          */
         private void lightReel(Activity owner, View frame, int[] budget) {
             View media = videoIn(frame, budget);
-            if (media == null) media = reelPhotoIn(frame, frame, budget);
+            if (media == null) media = reelPhotoIn(frame, frame, photoFrame(frame.getId()), budget);
             View stale = null;
             for (Map.Entry<View, Light> entry : lights.entrySet()) {
                 View lit = entry.getKey();

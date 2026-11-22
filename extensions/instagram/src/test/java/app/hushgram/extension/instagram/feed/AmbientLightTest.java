@@ -738,6 +738,18 @@ public class AmbientLightTest {
         return photo;
     }
 
+    /** A cover in a video's frame with no size of its own hasn't loaded, so it isn't taken for a photo reel. */
+    @Test
+    public void aVideoFramesCoverWithNoSizeStaysDark() {
+        ImageView cover = photoReel();
+        cover.setImageDrawable(new ColorDrawable(Color.GRAY));
+        shadowOf(Looper.getMainLooper()).idle();
+
+        on();
+
+        assertEquals(0, AmbientLight.litForTests());
+    }
+
     /** A photo reel has no video to light, and it stayed dark (#689). Its picture glows in the bands round it. */
     @Test
     public void aPhotoReelGlowsInTheBandsAroundItsPicture() {
@@ -870,6 +882,8 @@ public class AmbientLightTest {
     /**
      * A photo reel as 456 lays it out: the reel's page, then one photo's frame the photo's own size,
      * or with [carousel] a carousel page's photo that is its own frame. Neither has the video frame's id.
+     * The picture is drawn as Instagram draws it, through a drawable that fills the view and has no
+     * size of its own.
      */
     private ImageView photoReel456(boolean carousel) {
         int photoFrame = View.generateViewId();
@@ -879,7 +893,9 @@ public class AmbientLightTest {
         reelRoot.addView(page, new FrameLayout.LayoutParams(WIDTH, REEL));
         ImageView photo = new ImageView(activity);
         photo.setScaleType(ImageView.ScaleType.CENTER_CROP);
-        photo.setImageBitmap(Bitmap.createBitmap(WIDTH, REEL / 2, Bitmap.Config.ARGB_8888));
+        ColorDrawable sizeless = new ColorDrawable(Color.GRAY);
+        assertEquals(-1, sizeless.getIntrinsicWidth());
+        photo.setImageDrawable(sizeless);
         FrameLayout.LayoutParams centred = new FrameLayout.LayoutParams(WIDTH, REEL / 2, Gravity.CENTER);
         if (carousel) {
             photo.setId(photoFrame);
@@ -1270,6 +1286,53 @@ public class AmbientLightTest {
         relayout();
         assertTrue("the bar gone, the strip glows again",
                 Color.alpha(background(host).getPixel(width / 2, strip)) > 20);
+    }
+
+    /**
+     * 456 sits a reel's video a little in from the top and bottom of its page, 12 px each on a 720 px
+     * wide phone. That's over 98% of the page, so the page drew no glow of its own, and the host leaves
+     * the page to it: those rims stayed black above and below the video (#796).
+     */
+    @Test
+    public void theRimsBetweenAReelAndItsPageGlow() {
+        FrameLayout host = new FrameLayout(activity);
+        activity.setContentView(host);
+        root = host;
+        if (activity.getActionBar() != null) activity.getActionBar().hide();
+        shadowOf(Looper.getMainLooper()).idle();
+        View window = activity.getWindow().getDecorView();
+        int width = window.getWidth(), height = window.getHeight();
+        int statusBar = height / 25, gestureBar = height / 20;
+        FrameLayout page = new FrameLayout(activity);
+        FrameLayout.LayoutParams between = match();
+        between.topMargin = statusBar;
+        between.bottomMargin = gestureBar;
+        host.addView(page, between);
+        FrameLayout frame = new FrameLayout(activity);
+        frame.setId(frameId);
+        page.addView(frame, match());
+        int pageHeight = height - statusBar - gestureBar, rim = pageHeight / 100;
+        assertTrue("a rim wider than the rounding: " + rim, rim > AmbientLight.ROUNDING);
+        FrameLayout container = new FrameLayout(activity);
+        TextureView video = new TextureView(activity);
+        container.addView(video, match());
+        FrameLayout.LayoutParams inset = match();
+        inset.topMargin = rim;
+        inset.bottomMargin = rim;
+        frame.addView(container, inset);
+        shadowOf(Looper.getMainLooper()).idle();
+
+        on();
+        advance(AmbientSpeed.MEDIUM.fadeMillis);
+
+        assertTrue(String.valueOf(page.getBackground()), page.getBackground() instanceof AmbientLight.Glow);
+        assertEquals(new Rect(0, rim, width, pageHeight - rim), AmbientLight.litRectForTests(video));
+        Bitmap drawn = background(page);
+        int above = drawn.getPixel(width / 2, rim / 2);
+        assertTrue("the rim above the video glows: " + hex(above), Color.alpha(above) > 20);
+        int below = drawn.getPixel(width / 2, pageHeight - rim / 2 - 1);
+        assertTrue("the rim below it: " + hex(below), Color.alpha(below) > 20);
+        assertEquals("nothing behind the video", 0, Color.alpha(drawn.getPixel(width / 2, pageHeight / 2)));
     }
 
     /**
