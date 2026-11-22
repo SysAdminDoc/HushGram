@@ -4112,6 +4112,14 @@ public class Settings extends BaseSettings {
             new EnumSetting<>("hushgram_tab_icon_size", app.hushgram.extension.instagram.misc.TabIconSize.INSTAGRAM);
 
     /**
+     * Draws the Reels tab's icon a bit bigger than Instagram does ({@link app.hushgram.extension.instagram.misc.TabIcons},
+     * #793), since its narrow glyph looks smaller than the icons beside it. Tab icon size scales it on top.
+     * It takes effect on the next frame. Starts off.
+     */
+    public static final BooleanSetting FULL_SIZE_REELS_ICON =
+            new BooleanSetting("hushgram_full_size_reels_icon", FALSE);
+
+    /**
      * The speed locked with Instagram's own 2x lock on a reel stays for the next reels, until the
      * lock is slid off, a hold at the edge is let go of, or Instagram restarts.
      */

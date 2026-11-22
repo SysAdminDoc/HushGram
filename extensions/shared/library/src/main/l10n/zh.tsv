@@ -43,12 +43,14 @@ Diagnostic report copied to the clipboard.	已将诊断报告复制到剪贴板�
 Don't open reels from chats	不打开聊天中的 Reels
 Download failed	下载失败
 Downloading	下载中
+Draws the Reels icon on the tab bar a bit bigger, so it looks as big as the icons beside it. Tab icon size still sizes every icon on top of that.	把标签栏上的 Reels 图标画得稍大一点，看起来和旁边的图标一样大。标签页图标大小仍会在此之上调整所有图标。
 Empties the activity log and any kept crash that a diagnostic report would include.	清空诊断报告会包含的活动记录与已保存的当机记录。
 Every switch but Debug logging acts as if it were off, and what was set when you patched stays in. Your settings stay as they are.	除了“调试记录”以外，所有开关都会视为关闭；打补丁时的变更仍会保留。你保存的设置不会改变。
 Export a chat as text	将聊天导出为文字
 Export chat	导出聊天
 Export diagnostic report	导出诊断报告
 From the next start, every switch but Debug logging acts as if it were off. Changes made when you patched stay in, and your choices stay saved.	下次启动起，除了“调试记录”以外，所有开关都会视为关闭。打补丁时的变更仍会保留，你选择的设置也会继续保存。
+Full-size Reels icon	完整大小的 Reels 图标
 Here it is.	就在这里。
 Hides comments that hold a word or phrase from the list too, and comments by an account the list names with @. A hidden comment's replies go with it.	也会隐藏包含列表中字词的评论，以及列表用 @ 点名的账号所写的评论。被隐藏评论的回复也会一起消失.
 Instagram settings page	Instagram 设置页面

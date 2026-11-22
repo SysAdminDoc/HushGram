@@ -39,12 +39,14 @@ Diagnostic report copied to the clipboard.	คัดลอกรายงาน�
 Don't open reels from chats	ไม่เปิดรีลส์จากแชท
 Download failed	ดาวน์โหลดไม่สำเร็จ
 Downloading	กำลังดาวน์โหลด
+Draws the Reels icon on the tab bar a bit bigger, so it looks as big as the icons beside it. Tab icon size still sizes every icon on top of that.	วาดไอคอนรีลส์บนแถบแท็บให้ใหญ่ขึ้นเล็กน้อย เพื่อให้ดูใหญ่เท่าไอคอนข้าง ๆ ขนาดไอคอนแท็บยังปรับขนาดไอคอนทั้งหมดเพิ่มจากนั้นได้เหมือนเดิม
 Empties the activity log and any kept crash that a diagnostic report would include.	ล้างบันทึกกิจกรรมและข้อมูลการขัดข้องทั้งหมดที่รายงานการวินิจฉัยจะรวมไว้
 Every switch but Debug logging acts as if it were off, and what was set when you patched stays in. Your settings stay as they are.	สวิตช์ทุกตัวยกเว้นการบันทึกข้อมูลดีบักจะทำงานเสมือนปิดอยู่ และสิ่งที่กำหนดไว้ตอนที่คุณแพตช์จะยังคงมีผล การตั้งค่าของคุณจะยังคงเดิม
 Export a chat as text	ส่งออกแชทเป็นข้อความ
 Export chat	ส่งออกแชท
 Export diagnostic report	ส่งออกรายงานการวินิจฉัย
 From the next start, every switch but Debug logging acts as if it were off. Changes made when you patched stay in, and your choices stay saved.	เมื่อเริ่มแอปใหม่ในครั้งถัดไป สวิตช์ทุกตัวยกเว้นการบันทึกข้อมูลดีบักจะทำงานเสมือนปิดอยู่ การเปลี่ยนแปลงที่ทำไว้ตอนที่คุณแพตช์จะยังคงมีผล และตัวเลือกที่คุณตั้งไว้จะยังได้รับการบันทึก
+Full-size Reels icon	ไอคอนรีลส์ขนาดเต็ม
 Here it is.	อยู่ที่นี่แล้ว
 Hides comments that hold a word or phrase from the list too, and comments by an account the list names with @. A hidden comment's replies go with it.	ซ่อนความคิดเห็นที่มีคำหรือวลีจากรายการด้วย และความคิดเห็นของบัญชีที่รายการระบุด้วย @ คำตอบของความคิดเห็นที่ซ่อนจะหายไปด้วย
 Instagram settings page	หน้าการตั้งค่าแบบ Instagram

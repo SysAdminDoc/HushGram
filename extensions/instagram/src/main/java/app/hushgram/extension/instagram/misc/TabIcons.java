@@ -37,6 +37,10 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * it's pressed, so an icon caught at a size that is neither Instagram's nor the one given here is left
  * to finish, and gets its size again once it's back. Instagram's size, a pause, or anything thrown puts
  * every icon back as it was.
+ *
+ * <p>Full-size Reels icon draws the Reels tab's icon {@link #REELS_BOOST} times bigger on top of that
+ * (#793): its glyph is narrower than the ones beside it, so at the same size it looks smaller. The tab
+ * is told by its own name, wherever Tab order put it.
  */
 public final class TabIcons {
     /** Instagram's tab bar, whose children are the tabs. */
@@ -45,6 +49,13 @@ public final class TabIcons {
     static final String ICON = "tab_icon";
     /** The Profile tab's picture, which it shows in place of an icon. */
     static final String AVATAR = "tab_avatar";
+    /** The Reels tab. */
+    static final String REELS_TAB = "clips_tab";
+    /**
+     * How much bigger Full-size Reels icon draws the Reels icon: its glyph is about 58 pixels wide where
+     * Home's and Messages' are about 68 on a phone at 480 dpi.
+     */
+    static final float REELS_BOOST = 1.15f;
     static final String HOOK = "tab icon size";
     static final String COUNT_SIZED = "tab icons resized";
     /** The most tabs looked at on one bar. */
@@ -82,6 +93,12 @@ public final class TabIcons {
         return size == null ? 1f : size.scale;
     }
 
+    /** How much bigger the Reels icon is drawn than the others: 1 while the settings aren't read, while paused, or with the switch off. */
+    static float reelsScale() {
+        if (!Utils.settingsReady() || HushgramPause.isPaused()) return 1f;
+        return Settings.FULL_SIZE_REELS_ICON.get() ? REELS_BOOST : 1f;
+    }
+
     static void watch(Activity activity) {
         try {
             if (!Utils.settingsReady()) return;
@@ -114,14 +131,23 @@ public final class TabIcons {
 
     /** Gives each tab's icon on [bar] the [wanted] scale. Answers whether one changed. */
     static boolean size(ViewGroup bar, int iconId, int avatarId, float wanted) {
+        return size(bar, iconId, avatarId, 0, wanted, 1f);
+    }
+
+    /**
+     * Gives each tab's icon on [bar] the [wanted] scale, and the tab whose id is [reelsTabId] [reels]
+     * times that. Answers whether one changed.
+     */
+    static boolean size(ViewGroup bar, int iconId, int avatarId, int reelsTabId, float wanted, float reels) {
         boolean changed = false;
         int count = Math.min(bar.getChildCount(), MAX_TABS);
         for (int i = 0; i < count; i++) {
             View tab = bar.getChildAt(i);
             View icon = iconOf(tab, iconId, avatarId);
             if (icon == null) continue;
-            changed |= scale(icon, wanted);
-            if (wanted != 1f) changed |= unclip(icon, tab);
+            float scale = reelsTabId != 0 && tab.getId() == reelsTabId ? wanted * reels : wanted;
+            changed |= scale(icon, scale);
+            if (scale != 1f) changed |= unclip(icon, tab);
         }
         return changed;
     }
@@ -222,7 +248,8 @@ public final class TabIcons {
      */
     private static boolean apply(Activity owner, Session session, boolean laidOut) {
         float wanted = wantedScale();
-        if (wanted == 1f) return (!sized.isEmpty() || !unclipped.isEmpty()) && putBack();
+        float reels = reelsScale();
+        if (wanted == 1f && reels == 1f) return (!sized.isEmpty() || !unclipped.isEmpty()) && putBack();
         View bar = session.bar == null ? null : session.bar.get();
         if (laidOut || bar == null || !bar.isAttachedToWindow()) {
             int barId = id(owner, TAB_BAR);
@@ -234,7 +261,9 @@ public final class TabIcons {
             session.bar = bar == null ? null : new WeakReference<>(bar);
         }
         if (!(bar instanceof ViewGroup) || !bar.isShown()) return false;
-        return size((ViewGroup) bar, id(owner, ICON), id(owner, AVATAR), wanted);
+        int reelsTab = reels == 1f ? 0 : id(owner, REELS_TAB);
+        if (reels != 1f && reelsTab == 0) HookStatus.missingViewId(FamilyNames.REELS_TAB, REELS_TAB);
+        return size((ViewGroup) bar, id(owner, ICON), id(owner, AVATAR), reelsTab, wanted, reels);
     }
 
     private static int id(Activity activity, String name) {

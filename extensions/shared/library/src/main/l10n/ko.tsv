@@ -39,12 +39,14 @@ Diagnostic report copied to the clipboard.	진단 데이터가 클립보드에 �
 Don't open reels from chats	채팅의 릴스 열지 않기
 Download failed	다운로드 실패
 Downloading	다운로드하는 중
+Draws the Reels icon on the tab bar a bit bigger, so it looks as big as the icons beside it. Tab icon size still sizes every icon on top of that.	탭 바의 릴스 아이콘을 조금 더 크게 그려 옆의 아이콘들과 같은 크기로 보이게 합니다. 탭 아이콘 크기는 그 위에 모든 아이콘의 크기를 계속 조절합니다.
 Empties the activity log and any kept crash that a diagnostic report would include.	진단 보고서에 포함될 활동 기록과 저장된 충돌 기록을 비웁니다.
 Every switch but Debug logging acts as if it were off, and what was set when you patched stays in. Your settings stay as they are.	모든 스위치는 디버그 로깅을 제외하고 활성화된 것처럼 작동하며, 패치할 때 설정되어 있던 상태가 그대로 유지됩니다. 현재 설정은 변경되지 않습니다
 Export a chat as text	채팅을 텍스트로 내보내기
 Export chat	채팅 내보내기
 Export diagnostic report	진단 보고서 내보내기
 From the next start, every switch but Debug logging acts as if it were off. Changes made when you patched stay in, and your choices stay saved.	다음 시작부터 디버그 로깅을 제외한 모든 스위치가 비활성화된 것처럼 작동합니다. 패치할 때 적용된 변경 사항은 그대로 유지되며, 사용자가 선택한 설정도 저장된 상태로 유지됩니다
+Full-size Reels icon	릴스 아이콘 원래 크기로
 Here it is.	여기예요.
 Hides comments that hold a word or phrase from the list too, and comments by an account the list names with @. A hidden comment's replies go with it.	목록의 단어나 문구가 들어간 댓글과, 목록에 @로 적은 계정이 쓴 댓글도 숨깁니다. 숨긴 댓글의 답글도 함께 사라집니다.
 Instagram settings page	Instagram 설정 페이지

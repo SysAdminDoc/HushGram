@@ -165,6 +165,28 @@ public class TabSwitchesSettingsTest {
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.HIDE_MESSAGES_BADGE.key));
     }
 
+    /** #793: Full-size Reels icon sits under Tab bar right after Tab icon size, starts off and needs no restart. */
+    @Test public void fullSizeReelsIconIsATabBarRowAfterTabIconSize() throws Exception {
+        open(PatchFamily.REELS_TAB);
+        SwitchPreference toggle = (SwitchPreference) row(Settings.FULL_SIZE_REELS_ICON.key);
+        assertNotNull(toggle);
+        assertEquals("Full-size Reels icon", String.valueOf(toggle.getTitle()));
+        PreferenceGroup section = sectionOf(page.getPreferenceScreen(), toggle);
+        assertEquals("Tab bar", String.valueOf(section.getTitle()));
+        int at = -1;
+        for (int i = 0; i < section.getPreferenceCount(); i++) {
+            if (section.getPreference(i) == toggle) at = i;
+        }
+        assertTrue(at > 0);
+        assertEquals(Settings.TAB_ICON_SIZE.key, section.getPreference(at - 1).getKey());
+        assertFalse(toggle.isChecked());
+        assertEquals(Boolean.FALSE, Settings.FULL_SIZE_REELS_ICON.defaultValue);
+        assertFalse("the icon changes on the next frame", Settings.FULL_SIZE_REELS_ICON.rebootApp);
+        assertTrue(String.valueOf(toggle.getSummary()).contains("as big as the icons beside it"));
+        assertTrue(PatchFamily.REELS_TAB.switches.stream().anyMatch(setting -> setting.key.equals(Settings.FULL_SIZE_REELS_ICON.key)));
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.FULL_SIZE_REELS_ICON.key));
+    }
+
     @Test public void withoutThePatchThereIsNoTabIconSize() throws Exception {
         open();
         assertNull(row(Settings.TAB_ICON_SIZE.key));

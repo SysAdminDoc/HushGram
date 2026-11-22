@@ -97,6 +97,7 @@ public class TabIconsTest {
     private static void resetAll() {
         TabIcons.resetForTests();
         Settings.TAB_ICON_SIZE.resetToDefault();
+        Settings.FULL_SIZE_REELS_ICON.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -233,6 +234,65 @@ public class TabIconsTest {
         assertTrue("the tab clips again", reelsTab.getClipChildren());
         assertTrue("the tab's padding clips again", reelsTab.getClipToPadding());
         assertFalse("a tab that didn't clip before still doesn't", searchTab.getClipChildren());
+    }
+
+    /**
+     * #793: Full-size Reels icon draws the Reels tab's icon bigger, wherever the tab sits, and only that
+     * icon. A picked Tab icon size sizes it on top, and with both back at Instagram's it's put back.
+     */
+    @Test
+    public void fullSizeReelsIconDrawsOnlyTheReelsIconBigger() {
+        int reelsTabId = View.generateViewId();
+        TabIcons.idForTests(activity, TabIcons.REELS_TAB, reelsTabId);
+        ImageView reels = icon(home.getId());
+        FrameLayout reelsTab = tab(reels);
+        reelsTab.setId(reelsTabId);
+        bar.addView(reelsTab, 1, tabParams());
+        Settings.FULL_SIZE_REELS_ICON.save(true);
+        TabIcons.watch(activity);
+
+        frame();
+
+        assertScale("reels", TabIcons.REELS_BOOST, reels);
+        assertScale("home stays Instagram's", 1f, home);
+        assertScale("search stays Instagram's", 1f, search);
+        assertScale("the Profile picture stays Instagram's", 1f, profile);
+        assertFalse("the Reels tab doesn't cut it off", reelsTab.getClipChildren());
+
+        Settings.TAB_ICON_SIZE.save(TabIconSize.PERCENT_120);
+        root.getViewTreeObserver().dispatchOnPreDraw();
+        assertScale("reels on top of the picked size", TabIconSize.PERCENT_120.scale * TabIcons.REELS_BOOST, reels);
+        assertScale("home at the picked size", TabIconSize.PERCENT_120.scale, home);
+
+        Settings.FULL_SIZE_REELS_ICON.save(false);
+        root.getViewTreeObserver().dispatchOnPreDraw();
+        assertScale("reels at the picked size alone", TabIconSize.PERCENT_120.scale, reels);
+
+        Settings.TAB_ICON_SIZE.save(TabIconSize.INSTAGRAM);
+        root.getViewTreeObserver().dispatchOnPreDraw();
+        assertScale("reels back", 1f, reels);
+        assertTrue("the Reels tab clips again", reelsTab.getClipChildren());
+    }
+
+    /** Paused, the Reels icon goes back to Instagram's size too. */
+    @Test
+    public void pausedPutsTheReelsIconBack() {
+        int reelsTabId = View.generateViewId();
+        TabIcons.idForTests(activity, TabIcons.REELS_TAB, reelsTabId);
+        ImageView reels = icon(home.getId());
+        FrameLayout reelsTab = tab(reels);
+        reelsTab.setId(reelsTabId);
+        bar.addView(reelsTab, tabParams());
+        Settings.FULL_SIZE_REELS_ICON.save(true);
+        TabIcons.watch(activity);
+        frame();
+        assertScale("reels", TabIcons.REELS_BOOST, reels);
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        root.getViewTreeObserver().dispatchOnPreDraw();
+
+        assertScale("reels", 1f, reels);
     }
 
     @Test

@@ -38,12 +38,14 @@ Diagnostic report copied to the clipboard.	Report diagnostico copiato negli appu
 Don't open reels from chats	Non aprire i reel dalle chat
 Download failed	Download non riuscito
 Downloading	Download in corso
+Draws the Reels icon on the tab bar a bit bigger, so it looks as big as the icons beside it. Tab icon size still sizes every icon on top of that.	Disegna l'icona dei Reel nella barra delle schede un po' più grande, così sembra grande quanto le icone accanto. Dimensione delle icone delle schede continua a ridimensionare tutte le icone oltre a questo.
 Empties the activity log and any kept crash that a diagnostic report would include.	Svuota il registro attività e l'eventuale arresto anomalo salvato che includerebbe un report diagnostico.
 Every switch but Debug logging acts as if it were off, and what was set when you patched stays in. Your settings stay as they are.	Tutti gli interruttori tranne Log di debug agiscono come se fossero off, e ciò che è stato impostato durante la patch resta attivo. Le tue impostazioni restano invariate.
 Export a chat as text	Esporta una chat come testo
 Export chat	Esporta chat
 Export diagnostic report	Esporta report diagnostico
 From the next start, every switch but Debug logging acts as if it were off. Changes made when you patched stay in, and your choices stay saved.	Dal prossimo avvio, tutti gli interruttori tranne Log di debug agiscono come se fossero off. Le modifiche fatte durante la patch restano attive e le tue scelte restano salvate.
+Full-size Reels icon	Icona dei Reel a grandezza piena
 Here it is.	Eccolo.
 Hides comments that hold a word or phrase from the list too, and comments by an account the list names with @. A hidden comment's replies go with it.	Nasconde anche i commenti che contengono una parola o una frase dell'elenco e i commenti degli account che l'elenco indica con @. Le risposte a un commento nascosto spariscono insieme a lui.
 Instagram settings page	Pagina delle impostazioni di Instagram

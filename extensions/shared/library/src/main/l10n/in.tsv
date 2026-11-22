@@ -38,12 +38,14 @@ Diagnostic report copied to the clipboard.	Laporan diagnostik disalin ke papan k
 Don't open reels from chats	Jangan buka reel dari chat
 Download failed	Unduhan gagal
 Downloading	Mengunduh
+Draws the Reels icon on the tab bar a bit bigger, so it looks as big as the icons beside it. Tab icon size still sizes every icon on top of that.	Menggambar ikon Reels di bilah tab sedikit lebih besar, supaya terlihat sebesar ikon di sebelahnya. Ukuran ikon tab tetap mengatur semua ikon di atas itu.
 Empties the activity log and any kept crash that a diagnostic report would include.	Mengosongkan log aktivitas dan crash tersimpan yang akan disertakan dalam laporan diagnostik.
 Every switch but Debug logging acts as if it were off, and what was set when you patched stays in. Your settings stay as they are.	Semua sakelar kecuali Pencatatan debug dianggap nonaktif, dan yang diatur saat Anda menambal tetap aktif. Pengaturan Anda tetap seperti semula.
 Export a chat as text	Ekspor obrolan sebagai teks
 Export chat	Ekspor obrolan
 Export diagnostic report	Ekspor laporan diagnostik
 From the next start, every switch but Debug logging acts as if it were off. Changes made when you patched stay in, and your choices stay saved.	Mulai peluncuran berikutnya, semua sakelar kecuali Pencatatan debug dianggap nonaktif. Yang diatur saat Anda menambal tetap aktif, dan pilihan Anda tetap tersimpan.
+Full-size Reels icon	Ikon Reels ukuran penuh
 Here it is.	Ini dia.
 Hides comments that hold a word or phrase from the list too, and comments by an account the list names with @. A hidden comment's replies go with it.	Juga menyembunyikan komentar yang berisi kata atau frasa dari daftar, dan komentar dari akun yang disebut daftar dengan @. Balasan dari komentar yang disembunyikan ikut hilang.
 Instagram settings page	Halaman pengaturan Instagram

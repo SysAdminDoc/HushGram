@@ -38,12 +38,14 @@ Diagnostic report copied to the clipboard.	Đã sao chép báo cáo chẩn đoá
 Don't open reels from chats	Không mở reel từ cuộc trò chuyện
 Download failed	Tải xuống thất bại
 Downloading	Đang tải xuống
+Draws the Reels icon on the tab bar a bit bigger, so it looks as big as the icons beside it. Tab icon size still sizes every icon on top of that.	Vẽ biểu tượng Reels trên thanh tab lớn hơn một chút để trông to bằng các biểu tượng bên cạnh. Kích thước biểu tượng tab vẫn chỉnh cỡ mọi biểu tượng thêm trên đó.
 Empties the activity log and any kept crash that a diagnostic report would include.	Xóa nhật ký hoạt động và mọi bản ghi lỗi sập được giữ lại mà báo cáo chẩn đoán sẽ gồm.
 Every switch but Debug logging acts as if it were off, and what was set when you patched stays in. Your settings stay as they are.	Mọi công tắc trừ Ghi nhật ký gỡ lỗi đều hoạt động như đã tắt, còn những gì đặt lúc vá vẫn giữ nguyên. Cài đặt của bạn vẫn được giữ.
 Export a chat as text	Xuất cuộc trò chuyện thành văn bản
 Export chat	Xuất cuộc trò chuyện
 Export diagnostic report	Xuất báo cáo chẩn đoán
 From the next start, every switch but Debug logging acts as if it were off. Changes made when you patched stay in, and your choices stay saved.	Từ lần khởi động sau, mọi công tắc trừ Ghi nhật ký gỡ lỗi đều hoạt động như đã tắt. Những thay đổi đặt lúc vá vẫn giữ nguyên và lựa chọn của bạn vẫn được lưu.
+Full-size Reels icon	Biểu tượng Reels cỡ đầy đủ
 Here it is.	Đây rồi.
 Hides comments that hold a word or phrase from the list too, and comments by an account the list names with @. A hidden comment's replies go with it.	Ẩn cả bình luận chứa từ hoặc cụm từ trong danh sách, và bình luận của tài khoản mà danh sách ghi bằng @. Các trả lời của bình luận bị ẩn cũng biến mất theo.
 Instagram settings page	Trang cài đặt kiểu Instagram

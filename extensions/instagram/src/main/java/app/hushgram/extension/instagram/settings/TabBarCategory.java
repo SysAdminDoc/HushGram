@@ -125,6 +125,9 @@ final class TabBarCategory {
                 glass.addPreference(page.tabOrderRow(context));
                 glass.addPreference(startTabRow(context));
                 glass.addPreference(tabIconSizeRow(context));
+                glass.addPreference(toggle(context, Settings.FULL_SIZE_REELS_ICON, L10n.t("Full-size Reels icon"),
+                        L10n.t("Draws the Reels icon on the tab bar a bit bigger, so it looks as big as the icons beside it. "
+                                + "Tab icon size still sizes every icon on top of that.")));
             }
             if (build.contains(PatchFamily.GLASS_TAB_BAR)) {
                 // Before Glass tab bar, since it works on Instagram's own bar too (#201).

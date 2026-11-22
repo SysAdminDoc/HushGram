@@ -38,12 +38,14 @@ Diagnostic report copied to the clipboard.	Tanılama raporu panoya kopyalandı.
 Don't open reels from chats	Sohbetlerdeki reels videolarını açma
 Download failed	İndirme başarısız oldu
 Downloading	İndiriliyor
+Draws the Reels icon on the tab bar a bit bigger, so it looks as big as the icons beside it. Tab icon size still sizes every icon on top of that.	Sekme çubuğundaki Reels simgesini biraz daha büyük çizer, böylece yanındaki simgeler kadar büyük görünür. Sekme simgesi boyutu bunun üstüne tüm simgeleri boyutlandırmaya devam eder.
 Empties the activity log and any kept crash that a diagnostic report would include.	Bir tanılama raporuna dahil edilecek etkinlik günlüğünü ve kayıtlı çökme kaydını boşaltır.
 Every switch but Debug logging acts as if it were off, and what was set when you patched stays in. Your settings stay as they are.	Hata ayıklama günlüğü dışındaki her anahtar kapalıymış gibi davranır, yamaladığında ayarlananlar ise devrede kalır. Ayarların olduğu gibi kalır.
 Export a chat as text	Bir sohbeti metin olarak dışa aktar
 Export chat	Sohbeti dışa aktar
 Export diagnostic report	Tanılama raporunu dışa aktar
 From the next start, every switch but Debug logging acts as if it were off. Changes made when you patched stay in, and your choices stay saved.	Sonraki açılıştan itibaren Hata ayıklama günlüğü dışındaki her anahtar kapalıymış gibi davranır. Yamaladığında ayarlananlar devrede kalır ve tercihlerin kayıtlı kalır.
+Full-size Reels icon	Tam boyutlu Reels simgesi
 Here it is.	İşte burada.
 Hides comments that hold a word or phrase from the list too, and comments by an account the list names with @. A hidden comment's replies go with it.	Listedeki bir kelimeyi veya ifadeyi içeren yorumları ve listenin @ ile andığı hesapların yorumlarını da gizler. Gizlenen bir yorumun yanıtları da onunla birlikte gider.
 Instagram settings page	Instagram ayarlar sayfası
