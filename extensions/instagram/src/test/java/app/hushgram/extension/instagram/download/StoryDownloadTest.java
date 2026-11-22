@@ -76,6 +76,8 @@ public class StoryDownloadTest {
         Built.storySpeed = false;
         Built.storyDownload = false;
         Built.storyPriority = false;
+        Built.menuItems = false;
+        Settings.HIDDEN_MENU_ITEMS.resetToDefault();
         StoryLoop.forget();
         StoryDownload.building(null);
         HookStatus.clear();
@@ -437,7 +439,9 @@ public class StoryDownloadTest {
         static boolean storySpeed;
         static boolean storyDownload;
         static boolean storyPriority;
+        static boolean menuItems;
 
+        @Implementation protected static boolean menuItems() { return menuItems; }
         @Implementation protected static boolean storyLoop() { return storyLoop; }
         @Implementation protected static boolean storySpeed() { return storySpeed; }
         @Implementation protected static boolean storyDownload() { return storyDownload; }
@@ -512,6 +516,42 @@ public class StoryDownloadTest {
         Built.storyPriority = false;
         CharSequence[] unpatched = {"Report"};
         assertSame("without the patch", unpatched, StoryDownload.labels(unpatched));
+    }
+
+    /**
+     * #707: an item unticked in Items in the three-dot menus leaves HushGram's own story row out too,
+     * Download, Download as photo and Loop this story each by its own item. Without that patch in the
+     * build every row stays.
+     */
+    @Test
+    @Config(shadows = {Story.class, Built.class})
+    public void untickedItemsLeaveHushGramsStoryRowsOut() {
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        Built.storyLoop = true;
+        Built.menuItems = true;
+        Settings.LOOP_STORIES.save(false);
+        StoryDownload.building(new Object());
+        Story.media = new Object();
+        Story.id = "3456789_123";
+
+        Settings.HIDDEN_MENU_ITEMS.save("STORY_LOOP");
+        assertArrayEquals(new CharSequence[] {"Report", "Download"}, StoryDownload.labels(new CharSequence[] {"Report"}));
+        Settings.HIDDEN_MENU_ITEMS.save("DOWNLOAD");
+        assertArrayEquals(new CharSequence[] {"Report", "Loop this story"}, StoryDownload.labels(new CharSequence[] {"Report"}));
+
+        CharSequence[] menu = {"Report", "Mute"};
+        Settings.HIDDEN_MENU_ITEMS.save("DOWNLOAD_PHOTO");
+        assertArrayEquals(new CharSequence[] {"Report", "Mute", "Download"},
+                StoryDownload.labels(menu, StoryDownload.Rows.DOWNLOAD_AND_PHOTO));
+        Settings.HIDDEN_MENU_ITEMS.save("DOWNLOAD,DOWNLOAD_PHOTO");
+        assertSame(menu, StoryDownload.labels(menu, StoryDownload.Rows.DOWNLOAD_AND_PHOTO));
+
+        Built.menuItems = false;
+        assertArrayEquals(new CharSequence[] {"Report", "Mute", "Download", "Download as photo"},
+                StoryDownload.labels(menu, StoryDownload.Rows.DOWNLOAD_AND_PHOTO));
+        assertArrayEquals(new CharSequence[] {"Report", "Download", "Loop this story"},
+                StoryDownload.labels(new CharSequence[] {"Report"}));
     }
 
     /**

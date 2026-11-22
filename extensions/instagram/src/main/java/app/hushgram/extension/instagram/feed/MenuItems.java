@@ -54,7 +54,7 @@ public final class MenuItems {
     public static final List<String> OFFERED = Collections.unmodifiableList(Arrays.asList(
             "REPORT", "MUTE", "UNFOLLOW", "NOT_INTERESTED", "INTERESTED", "WHY", "PLAYBACK_SPEED", "PLAYBACK",
             "REMIX", "REFERENCE", "TEMPLATE", "GET_EDITS", "LOOP", "SAVE", "DOWNLOAD", "DOWNLOAD_PHOTO",
-            "DOWNLOAD_VIDEO", "DOWNLOAD_COVER", "DETAILS", "ABOUT", "BLOCK", "HIDE_ACCOUNT"));
+            "DOWNLOAD_VIDEO", "DOWNLOAD_COVER", "DETAILS", "ABOUT", "BLOCK", "HIDE_ACCOUNT", "STORY_LOOP", "PRIORITY"));
 
     /** What's counted for each row left out of a menu. */
     static final String LEFT_OFF = "Three-dot menu items left off";
@@ -267,8 +267,17 @@ public final class MenuItems {
      * videos. Answers no without this patch in the build. Never throws.
      */
     public static boolean hidesLoop() {
+        return hidesOwn("LOOP");
+    }
+
+    /**
+     * Whether the setting leaves out [item], a row HushGram adds to a menu itself rather than one
+     * Instagram builds, like a story's Download or Loop this story (#707). Answers no without this
+     * patch in the build. Never throws.
+     */
+    public static boolean hidesOwn(String item) {
         try {
-            return SettingsStatus.menuItems() && hidden().contains("LOOP");
+            return SettingsStatus.menuItems() && hidden().contains(item);
         } catch (Throwable failure) {
             return false;
         }

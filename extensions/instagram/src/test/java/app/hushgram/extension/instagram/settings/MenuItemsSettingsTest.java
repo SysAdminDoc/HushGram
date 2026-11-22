@@ -119,7 +119,8 @@ public class MenuItemsSettingsTest {
         String[] expected = {"Report", "Mute", "Unfollow", "Not interested", "Interested", "Why you're seeing this post",
                 "Playback speed", "Playback", "Remix and sequence", "Use as reference", "Use template", "Get Edits",
                 "Loop this video", "Save", "Download", "Download as photo", "Download as video", "Download cover",
-                "Details", "About this account", "Block", "Hide posts from this account"};
+                "Details", "About this account", "Block", "Hide posts from this account", "Loop this story",
+                "Add to Stories priority"};
         assertEquals(expected.length, list.getCount());
         for (int i = 0; i < expected.length; i++) {
             assertEquals(expected[i], list.getItemAtPosition(i).toString());

@@ -253,7 +253,7 @@ public class MenuItemsTest {
         assertEquals(Collections.emptySet(), MenuItems.parse(null));
         for (String name : MenuItems.OFFERED) {
             boolean read = MenuItems.itemOf(optionFor(name)) != null || name.equals(MenuItems.itemOfEditsKey(keyFor(name)))
-                    || name.equals("LOOP");
+                    || name.equals("LOOP") || name.equals("STORY_LOOP") || name.equals("PRIORITY");
             assertTrue(name, read);
         }
     }

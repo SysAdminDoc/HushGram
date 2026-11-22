@@ -1580,6 +1580,10 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 return L10n.t("Block");
             case "HIDE_ACCOUNT":
                 return L10n.t("Hide posts from this account");
+            case "STORY_LOOP":
+                return L10n.t("Loop this story");
+            case "PRIORITY":
+                return L10n.t("Add to Stories priority");
             default:
                 return L10n.t("Playback");
         }
