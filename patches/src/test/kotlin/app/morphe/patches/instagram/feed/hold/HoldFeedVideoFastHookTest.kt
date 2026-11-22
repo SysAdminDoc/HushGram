@@ -147,6 +147,10 @@ class HoldFeedVideoFastHookTest {
         assertEquals("$label: loads answered", 7, found.loads.size)
         val lock = context.findFeedLock(found.press)
         assertEquals("$label: the release's class", handlers.single().type, lock.release.definingClass)
+        val look = lock.look
+        assertTrue("$label: the reset puts the 2x look to rest", look != null)
+        assertEquals("$label: the feed item the look is on is the one the release is handed",
+            lock.release.parameterTypes[2].toString(), look!!.item.substringAfterLast(':'))
         val stock = found.press.code()
         val stockRelease = lock.release.code()
         context.holdFast(found)

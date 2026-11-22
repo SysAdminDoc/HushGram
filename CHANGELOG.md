@@ -91,6 +91,7 @@ Every HushGram release, newest first.
 * `Hide Suggested for you on follow lists` keeps the suggested people off the Follow requests screen now, even when Instagram sends them anyway. Before, the screen only asked for none and showed whatever came back. Reported in #814.
 * `Find the reel you came from` works for reels in your feed too. Tap the name at the top of a reel in Home, open their Reels tab, and it scrolls to that reel. Before, only a profile opened from the Reels viewer remembered it. Reported in #795.
 * With the wave `Seek bar shape`, the story you're watching no longer shows Instagram's straight bar running under the wave. The straight part now starts where the wave ends. Reported in #796.
+* With `Keep 2x after you let go`, the name over a feed video comes back when you let go, and the time readout goes away. Before, they stayed the way they look while you hold. Reported in #552.
 
 ## 0.0.21 (2026-11-18)
 

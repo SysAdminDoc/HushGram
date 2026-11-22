@@ -37,7 +37,8 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * that says its video plays fast, and puts the speed back through one reset that clears it, which
  * both the press entry and the release call. The release asks {@link #lifted} before its reset, and
  * a yes skips it: the video goes on at 2x and the lift counts as a fast one, so it doesn't open
- * Reels. The next held press resets the speed as it always does and plays fast again, and its lift
+ * Reels. The patch still puts the post's 2x look to rest, the part of the reset that brings the
+ * name over the video back and takes the time off. The next held press resets the speed as it always does and plays fast again, and its lift
  * lets the speed go back. The press entry tells {@link #pressed} before its reset, so a kept flag
  * Instagram has cleared since, because the video went off the screen, isn't taken for a kept one.
  *
