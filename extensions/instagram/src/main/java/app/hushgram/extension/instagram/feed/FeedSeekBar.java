@@ -112,6 +112,13 @@ public final class FeedSeekBar {
     /** How far above the video's frame the row is looked for: the post's media holds both. */
     static final int ROW_LEVELS = 2;
 
+    /**
+     * How far above a carousel video's frame its sound button is looked for (#711): Instagram 456 puts
+     * the video four wrappers, each the video's size, under the post's row that also holds the overlay
+     * with the sound button's corner.
+     */
+    static final int CAROUSEL_LEVELS = 4;
+
     private static final ResourceIdCache ids = new ResourceIdCache();
 
     /** The feed's video player, through the patch's stubs; tests stand in. */
@@ -478,7 +485,7 @@ public final class FeedSeekBar {
             }
             int size = dp(view, BUTTON_DP);
             int[] place = {dp(view, 8), barHeight(view, bar) + dp(view, 4)};
-            if (row != null) inRow(row, lift, size, dp(view, BUTTON_GAP_DP), place);
+            if (row != null) inRow(row, across(frame, row), frame.getWidth(), lift, size, dp(view, BUTTON_GAP_DP), place);
             Toggle shown = button;
             if (shown != null && shown.getParent() == frame) {
                 fit(shown, size, size, place[1]);
@@ -766,8 +773,10 @@ public final class FeedSeekBar {
     /**
      * Instagram's row of buttons along the bottom of the video in [frame] (#794): the nearest holder
      * of a sound button, in the post's media around the frame, that's as wide as the video, ends at
-     * its bottom and takes less than half its height. Null when there's none, which leaves Instagram's
-     * buttons where they are.
+     * its bottom and takes less than half its height. A carousel's video has no such row: its sound
+     * button sits in a holder of its own in the video's bottom corner, in the post's overlay a few
+     * wrappers further up, so that holder is the row there. Null when there's none, which leaves
+     * Instagram's buttons where they are.
      */
     @Nullable
     static ViewGroup buttonRow(FrameLayout frame) {
@@ -775,17 +784,46 @@ public final class FeedSeekBar {
         if (sound == 0) return null;
         ViewGroup root = frame;
         for (int up = 0; up < ROW_LEVELS && root.getParent() instanceof ViewGroup; up++) root = (ViewGroup) root.getParent();
+        ViewGroup row = rowIn(root, frame, sound, true);
+        if (row != null) return row;
+        for (int up = ROW_LEVELS; up < CAROUSEL_LEVELS && wraps(root.getParent(), frame); up++) root = (ViewGroup) root.getParent();
+        return rowIn(root, frame, sound, false);
+    }
+
+    /**
+     * Under [root], the holder of a sound button that ends at [frame]'s bottom and takes less than half
+     * its height: the nearest one as wide as the video when [wide], else the outermost one lying
+     * within the video's width.
+     */
+    @Nullable
+    private static ViewGroup rowIn(ViewGroup root, FrameLayout frame, int sound, boolean wide) {
         ArrayList<View> icons = new ArrayList<>();
         collect(root, sound, icons);
         int bottom = top(frame, root) + frame.getHeight();
+        int start = left(frame, root);
         for (View icon : icons) {
+            ViewGroup corner = null;
             for (ViewParent at = icon.getParent(); at instanceof ViewGroup && at != root && at != frame; at = at.getParent()) {
                 ViewGroup holder = (ViewGroup) at;
-                if (holder.getWidth() != frame.getWidth() || holder.getHeight() * 2 >= frame.getHeight()) continue;
-                if (Math.abs(top(holder, root) + holder.getHeight() - bottom) <= 1) return holder;
+                if (holder.getHeight() * 2 >= frame.getHeight()) continue;
+                if (Math.abs(top(holder, root) + holder.getHeight() - bottom) > 1) continue;
+                if (wide) {
+                    if (holder.getWidth() == frame.getWidth()) return holder;
+                    continue;
+                }
+                int left = left(holder, root);
+                if (left >= start && left + holder.getWidth() <= start + frame.getWidth()) corner = holder;
             }
+            if (corner != null) return corner;
         }
         return null;
+    }
+
+    /** Whether [parent] is one more wrapper of [frame]'s media: a view group as wide and, within a pixel or two, as tall. */
+    private static boolean wraps(ViewParent parent, View frame) {
+        if (!(parent instanceof ViewGroup)) return false;
+        ViewGroup group = (ViewGroup) parent;
+        return group.getWidth() == frame.getWidth() && Math.abs(group.getHeight() - frame.getHeight()) <= 2;
     }
 
     /** Adds every shown view with [id] under [group] to [found]. */
@@ -808,21 +846,40 @@ public final class FeedSeekBar {
         return top;
     }
 
+    /** Where [view] is laid out past [root]'s left, leaving out any translation; -1 when it isn't under [root]. */
+    private static int left(View view, ViewGroup root) {
+        int left = 0;
+        for (View at = view; at != root; at = (View) at.getParent()) {
+            left += at.getLeft();
+            if (!(at.getParent() instanceof View)) return -1;
+        }
+        return left;
+    }
+
+    /** How far [row] starts past [frame]'s left on screen: 0 for a row as wide as the video, more for a carousel's corner. */
+    static int across(View frame, View row) {
+        int[] at = new int[2];
+        row.getLocationInWindow(at);
+        int x = at[0];
+        frame.getLocationInWindow(at);
+        return x - at[0];
+    }
+
     /**
      * The toggle's place in Instagram's [row], lifted [lift] pixels, written into [place] as its start
      * margin and bottom margin in the video's frame (#794): centered on the row's buttons, and past
-     * the end of any of them on the start side, [gap] after it. Each of the row's buttons is its child,
-     * or that child's only shown child when it's a group padding one.
+     * the end of any of them on the start side, [gap] after it. The row starts [offset] pixels into
+     * the video, which is [width] wide. Each of the row's buttons is its child, or that child's only
+     * shown child when it's a group padding one.
      */
-    static void inRow(ViewGroup row, int lift, int size, int gap, int[] place) {
+    static void inRow(ViewGroup row, int offset, int width, int lift, int size, int gap, int[] place) {
         boolean rtl = row.getLayoutDirection() == View.LAYOUT_DIRECTION_RTL;
-        int width = row.getWidth();
         int middle = -1;
         int start = place[0];
         for (int i = 0; i < row.getChildCount(); i++) {
             View child = row.getChildAt(i);
             if (child.getVisibility() != View.VISIBLE || child.getWidth() == 0) continue;
-            int left = child.getLeft();
+            int left = offset + child.getLeft();
             int top = child.getTop();
             View button = child;
             if (child instanceof ViewGroup) {
