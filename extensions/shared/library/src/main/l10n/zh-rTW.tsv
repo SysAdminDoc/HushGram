@@ -5,6 +5,7 @@
 # Reference: piko-instagram-en-zh-TW.md (432 English/Traditional Chinese pairs, 2026-10-24).
 # Reference upstream: https://github.com/crimera/piko (GPL-3.0).
 # Reference upstream: SysAdminDoc/HushGram main (16dc74421b1c06fb4e1eef5b20b94cb368868e8c; 2026-10-25).
+%1$d hidden in the last 24 hours, %2$d in all	過去 24 小時隱藏了 %1$d 則，總共 %2$d 則
 %1$d of them because storage is low.	其中 %1$d 個是因為儲存空間不足。
 %1$s of %2$s	%1$s / %2$s
 %1$s so far	目前共 %1$s

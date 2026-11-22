@@ -1,5 +1,6 @@
 # Brazilian Portuguese for HushGram: the English key, a tab, the translation. One row per string.
 # After editing, run python scripts/gen-l10n.py from the repository root.
+%1$d hidden in the last 24 hours, %2$d in all	%1$d ocultos nas últimas 24 horas, %2$d no total
 %1$d of them because storage is low.	%1$d deles porque o armazenamento está quase cheio.
 %1$s of %2$s	%1$s de %2$s
 %1$s so far	%1$s até o momento

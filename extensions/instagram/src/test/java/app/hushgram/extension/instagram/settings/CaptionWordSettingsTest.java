@@ -44,6 +44,9 @@ public class CaptionWordSettingsTest {
         RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
         Settings.HIDE_CAPTION_WORD_REELS.resetToDefault();
         Settings.REELS_BLOCKED_WORDS.resetToDefault();
+        // Other classes' filters count what they hide in these, and a count adds a line to the row.
+        Settings.CAPTION_WORD_HIDDEN_TOTAL.resetToDefault();
+        Settings.CAPTION_WORD_HIDDEN_HOURS.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         BaseSettings.SAFE_MODE.save(false);
@@ -60,6 +63,8 @@ public class CaptionWordSettingsTest {
         Settings.HIDE_OTHER_LANGUAGE_REELS.resetToDefault();
         Settings.HIDE_OTHER_LANGUAGE_HOME.resetToDefault();
         Settings.REELS_KEPT_LANGUAGES.resetToDefault();
+        Settings.CAPTION_WORD_HIDDEN_TOTAL.resetToDefault();
+        Settings.CAPTION_WORD_HIDDEN_HOURS.resetToDefault();
         Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
     }
     private void open(boolean installed) throws Exception {
@@ -116,6 +121,23 @@ public class CaptionWordSettingsTest {
         InputFilter[] filters = words.getEditText().getFilters();
         assertEquals(1, filters.length);
         assertEquals(ConfigurationBackup.MAX_WORDS_TEXT, ((InputFilter.LengthFilter) filters[0]).getMax());
+    }
+    /** Once the list has hidden something, the row says how much on a line under its count of words (#807). */
+    @Test public void theRowSaysHowMuchTheListHid() throws Exception {
+        long hour = System.currentTimeMillis() / (60L * 60L * 1000L);
+        Settings.CAPTION_WORD_HIDDEN_TOTAL.save(340L);
+        Settings.CAPTION_WORD_HIDDEN_HOURS.save((hour - 30) + ":200," + (hour - 2) + ":5," + hour + ":7");
+        open(true);
+        HushgramPreferenceFragment.WordsRow words =
+                (HushgramPreferenceFragment.WordsRow) page.getPreferenceScreen().findPreference(Settings.REELS_BLOCKED_WORDS.key);
+        words.setText("spoiler\n@clickbait.daily");
+        assertEquals("the hours more than a day old don't count", "2 words\n12 hidden in the last 24 hours, 340 in all",
+                words.getSummary().toString());
+
+        Settings.CAPTION_WORD_HIDDEN_TOTAL.resetToDefault();
+        Settings.CAPTION_WORD_HIDDEN_HOURS.resetToDefault();
+        words.setText("spoiler");
+        assertEquals("nothing hidden yet, no line for it", "1 word", words.getSummary().toString());
     }
     /** Also on Home sits under the list, off to start and waiting for the switch, only with Home's reads in the build. */
     @Test public void alsoOnHomeSitsUnderTheListWithHomesReadsInTheBuild() throws Exception {

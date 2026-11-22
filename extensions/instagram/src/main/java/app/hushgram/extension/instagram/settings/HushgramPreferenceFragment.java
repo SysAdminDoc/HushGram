@@ -162,6 +162,7 @@ import app.hushgram.extension.instagram.reels.BurnInMode;
 import app.hushgram.extension.instagram.reels.BurnInWait;
 import app.hushgram.extension.instagram.reels.CaptionLanguage;
 import app.hushgram.extension.instagram.reels.CaptionWordReels;
+import app.hushgram.extension.instagram.reels.CaptionWordStats;
 import app.hushgram.extension.instagram.reels.HiddenBars;
 import app.hushgram.extension.instagram.reels.HiddenSounds;
 import app.hushgram.extension.instagram.reels.ReelTapChoice;
@@ -8392,11 +8393,16 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         return row;
     }
 
-    /** What the blocked words row says under its title: how many words it holds, or that it has none. */
+    /**
+     * What the blocked words row says under its title: how many words it holds, or that it has none,
+     * and on a line of its own how much they've hidden once they've hidden anything (#807).
+     */
     static String blockedWordsSummary(String stored) {
         int count = CaptionWordReels.words(stored).size();
-        return count == 0 ? L10n.t("No words yet")
+        String words = count == 0 ? L10n.t("No words yet")
                 : L10n.quantity(count, "%1$d word", "%1$d words", count);
+        String hidden = CaptionWordStats.summary();
+        return hidden == null ? words : words + "\n" + hidden;
     }
 
     /**

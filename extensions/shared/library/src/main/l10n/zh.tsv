@@ -5,6 +5,7 @@
 # Converted from the Traditional Chinese (Taiwan) table, JhouHank's work from https://github.com/JhouHank/HushGram (PR #313),
 # with OpenCC tw2sp, then Instagram's own mainland labels from its zh_CN strings (快拍, 帖子, 主页, 关注, 账户).
 # Reference upstream: https://github.com/crimera/piko (GPL-3.0).
+%1$d hidden in the last 24 hours, %2$d in all	过去 24 小时隐藏了 %1$d 条，总共 %2$d 条
 %1$d of them because storage is low.	其中 %1$d 个是因为存储空间不足。
 %1$s of %2$s	%1$s / %2$s
 %1$s so far	目前共 %1$s

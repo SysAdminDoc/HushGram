@@ -1,5 +1,6 @@
 # Vietnamese for HushGram: the English key, a tab, the translation. One row per string.
 # After editing, run python scripts/gen-l10n.py from the repository root.
+%1$d hidden in the last 24 hours, %2$d in all	Đã ẩn %1$d trong 24 giờ qua, tổng cộng %2$d
 %1$d of them because storage is low.	%1$d trong số đó vì bộ nhớ sắp đầy.
 %1$s of %2$s	%1$s / %2$s
 %1$s so far	Đã được %1$s

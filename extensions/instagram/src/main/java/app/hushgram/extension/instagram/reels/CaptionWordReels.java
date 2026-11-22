@@ -136,6 +136,8 @@ public final class CaptionWordReels {
             boolean accounts = namesAccounts(blocked);
 
             boolean[] goes = new boolean[size];
+            Object[] blockedMedia = new Object[size];
+            String[] blockedCaption = new String[size];
             int matched = 0;
             int foreign = 0;
             int reels = 0;
@@ -150,6 +152,8 @@ public final class CaptionWordReels {
                 boolean foreignHit = !hit && other != null && other.isOther(caption);
                 if (hit) {
                     matched++;
+                    blockedMedia[at] = media;
+                    blockedCaption[at] = caption;
                     FeedFilterCounters.sawKind(ROUTE, BLOCKED);
                 } else if (foreignHit) {
                     matched++;
@@ -171,6 +175,11 @@ public final class CaptionWordReels {
             at = 0;
             for (Object item : items) {
                 if (!goes[at++]) kept.add(item);
+            }
+            for (int i = 0; i < size; i++) {
+                if (blockedMedia[i] != null) {
+                    CaptionWordStats.hidden(accounts ? reader.author(blockedMedia[i]) : null, blockedCaption[i]);
+                }
             }
             if (matched - foreign > 0) FeedFilterCounters.removed(ROUTE, matched - foreign, BLOCKED);
             if (foreign > 0) FeedFilterCounters.removed(ROUTE, foreign, OTHER_LANGUAGE);
@@ -298,6 +307,7 @@ public final class CaptionWordReels {
             boolean hit = holdsAny(text, blocked)
                     || user != null && namesAccounts(blocked) && postedByAny(username.apply(user), blocked);
             if (!hit) return false;
+            CaptionWordStats.hidden(user != null && namesAccounts(blocked) ? username.apply(user) : null, text);
             FeedFilterCounters.removed(COMMENT_ROUTE, 1, BLOCKED);
             Logger.printDebug(() -> "Caption word comments: left a comment out of a post's comments");
             return true;

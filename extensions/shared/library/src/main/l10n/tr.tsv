@@ -1,5 +1,6 @@
 # Turkish for HushGram: the English key, a tab, the translation. One row per string.
 # After editing, run python scripts/gen-l10n.py from the repository root.
+%1$d hidden in the last 24 hours, %2$d in all	Son 24 saatte %1$d gizlendi, toplam %2$d
 %1$d of them because storage is low.	Bunların %1$d tanesi depolama alanı azaldığı için.
 %1$s of %2$s	%1$s / %2$s
 %1$s so far	Şimdiye kadar %1$s

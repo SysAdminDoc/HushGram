@@ -1,6 +1,7 @@
 # Thai for HushGram: the English key, a tab, the translation. One row per string.
 # After editing, run python scripts/gen-l10n.py from the repository root.
 # Translated by MangaThatsFine: https://github.com/MangaThatsFine/HushGram (PR #593, commit 302a414fca5ff81bb626e67e08ff6261069559c4). GPL-3.0-only.
+%1$d hidden in the last 24 hours, %2$d in all	ซ่อน %1$d รายการใน 24 ชั่วโมงที่ผ่านมา ทั้งหมด %2$d รายการ
 %1$d of them because storage is low.	%1$d รายการเนื่องจากพื้นที่เก็บข้อมูลเหลือน้อย
 %1$s of %2$s	%1$s จาก %2$s
 %1$s so far	%1$s จนถึงตอนนี้

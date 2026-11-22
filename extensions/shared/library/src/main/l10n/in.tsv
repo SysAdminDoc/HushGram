@@ -1,5 +1,6 @@
 # Indonesian for HushGram: the English key, a tab, the translation. One row per string.
 # After editing, run python scripts/gen-l10n.py from the repository root.
+%1$d hidden in the last 24 hours, %2$d in all	%1$d disembunyikan dalam 24 jam terakhir, %2$d total
 %1$d of them because storage is low.	%1$d di antaranya karena penyimpanan hampir penuh.
 %1$s of %2$s	%1$s dari %2$s
 %1$s so far	%1$s terunduh

@@ -20,6 +20,7 @@ import java.util.function.ToIntFunction;
 import app.hushgram.extension.instagram.download.InstagramMedia;
 import app.hushgram.extension.instagram.reels.CaptionLanguage;
 import app.hushgram.extension.instagram.reels.CaptionWordReels;
+import app.hushgram.extension.instagram.reels.CaptionWordStats;
 import app.hushgram.extension.instagram.reels.FeedReels;
 import app.hushgram.extension.instagram.reels.LowViewReels;
 import app.hushgram.extension.instagram.settings.FamilyNames;
@@ -706,6 +707,7 @@ public final class FeedSuggestions {
             String caption = captionOf.apply(item);
             if (CaptionWordReels.holdsAny(caption, words)
                     || CaptionWordReels.namesAccounts(words) && CaptionWordReels.postedByAny(authorOf.apply(item), words)) {
+                CaptionWordStats.hidden(CaptionWordReels.namesAccounts(words) ? authorOf.apply(item) : null, caption);
                 FeedFilterCounters.removed(TYPES_ROUTE, 1, CAPTION_WORD);
                 HookStatus.counted(FamilyNames.FEED_SUGGESTIONS, CAPTION_WORD_REMOVED);
                 typesTookOut = true;

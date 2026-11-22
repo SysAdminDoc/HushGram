@@ -3354,6 +3354,26 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_home_reels_below_name", FALSE);
 
     /**
+     * How many reels, Home posts and comments Blocked words has hidden in all (#807,
+     * {@link app.hushgram.extension.instagram.reels.CaptionWordStats}). Kept out of exported
+     * configurations.
+     */
+    public static final LongSetting CAPTION_WORD_HIDDEN_TOTAL =
+            new LongSetting("hushgram_caption_word_hidden_total", 0L, false, false);
+
+    /**
+     * The last 24 hours of {@link #CAPTION_WORD_HIDDEN_TOTAL}, a count per hour as "hour:count" pairs
+     * between commas (#807). Kept out of exported configurations.
+     */
+    public static final StringSetting CAPTION_WORD_HIDDEN_HOURS =
+            new StringSetting("hushgram_caption_word_hidden_hours", "", false, false);
+
+    static {
+        // The counts are a record, not a switch: Pause HushGram still shows them as they were.
+        Setting.keepWhenPaused(CAPTION_WORD_HIDDEN_TOTAL, CAPTION_WORD_HIDDEN_HOURS);
+    }
+
+    /**
      * A Save row in a feed post's menu, or Remove from saved on a saved post (#569,
      * {@link app.hushgram.extension.instagram.feed.FeedSaveRow}). Read as the menu opens. Off to start.
      */
