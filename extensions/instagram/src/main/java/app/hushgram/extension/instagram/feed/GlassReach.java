@@ -340,6 +340,12 @@ final class GlassReach {
         gap = 0;
     }
 
+    /** Home's list while the glass reaches up over it, null otherwise. */
+    @Nullable
+    View home() {
+        return home;
+    }
+
     /** Whether the glass reaches up by moving Home's feed, not over Instagram's own, for the debug log. */
     boolean pulledUp() {
         return !pulled.isEmpty();

@@ -91,6 +91,7 @@ Every HushGram release, newest first.
 * The Lens button on reels and stories sees the video now instead of a black box, and the glass tab bar keeps up with every reel, not just some. Instagram plays some videos on a layer of its own that HushGram couldn't read before. Reported in #801 and #583.
 * Tap download on more than three things at once and the extra ones wait their turn instead of failing with Download failed. The toasts say whose media it is now, like "Saving from @name...". Asked for in #792.
 * With `Pure black dark mode`, the little bars that pop up at the bottom (Link copied, Saved and the like) are black now too. They stayed dark gray. Asked for in #816.
+* With `See-through top bar` and the glass tab bar both on, the stories row on Home gets the header's glass shine too, so it no longer sits there as a black band between the glass and the posts. Asked for in #800.
 * `Hide Suggested for you on follow lists` keeps the suggested people off both Follow requests screens now, the old one and the newer page Notifications opens, even when Instagram sends them anyway. Reported in #814.
 * `Find the reel you came from` works for reels in your feed too. Tap the name at the top of a reel in Home, open their Reels tab, and it scrolls to that reel. Before, only a profile opened from the Reels viewer remembered it. Reported in #795.
 * With the wave `Seek bar shape`, the story you're watching no longer shows Instagram's straight bar running under the wave. The straight part now starts where the wave ends. Reported in #796.

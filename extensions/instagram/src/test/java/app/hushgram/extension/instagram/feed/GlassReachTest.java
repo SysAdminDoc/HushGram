@@ -35,6 +35,7 @@ import org.robolectric.shadows.ShadowLooper;
 import java.util.Collections;
 import java.util.List;
 
+import app.hushgram.extension.instagram.misc.GlassTabBar;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
@@ -51,6 +52,8 @@ public class GlassReachTest {
     private static final int TALL = 2000;
     private static final int STATUS = 75;
     private static final int HEADER = 150;
+    private static final int STORIES = 300;
+    private static final int STORIES_ID = 0x7f0b3a01;
 
     @Rule public final SettingsContextRule settings = new SettingsContextRule();
 
@@ -95,12 +98,14 @@ public class GlassReachTest {
     @After
     public void restore() {
         GlassReach.insets = GlassReach::statusBar;
+        TraySheen.trayId = 0;
         resetSwitches();
     }
 
     private static void resetSwitches() {
         Settings.SEE_THROUGH_HOME_TOP_BAR.resetToDefault();
         Settings.KEEP_HOME_TOP_BAR.resetToDefault();
+        Settings.GLASS_TAB_BAR.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -360,6 +365,76 @@ public class GlassReachTest {
                     halfway > Color.alpha(middle) / 4 && halfway < Color.alpha(middle) * 3 / 4);
             assertEquals("gone where the fade ends", 0, Color.alpha(drawn.getPixel(WIDE / 2, bottom + fade)));
         }
+    }
+
+    /**
+     * With the glass tab bar on, the sheen on Home's header runs on down over the stories row under it to the row's
+     * bottom, so the row doesn't read as a dark band between the glass and the posts (#800). With the row scrolled
+     * up under the header, or the tab bar's glass off, it ends with the glass's soft edge as it always did.
+     */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    @Config(sdk = 33)
+    public void theSheenRunsOnOverTheStoriesRow() {
+        View row = storiesRow();
+        logoInHeader();
+        Settings.GLASS_TAB_BAR.save(true);
+        glaze();
+        int end = HEADER + STORIES;
+        assertEquals("down to the row's bottom", end, GlassTopBar.sheenTo(header));
+
+        // The sheen runs from the window's top, where the glass starts, to the row's bottom.
+        Bitmap drawn = drawn(0, STORIES + 10);
+        int length = STATUS + end;
+        int top = Color.alpha(GlassTabBar.sheenTop(true));
+        for (int y : new int[] {STATUS + HEADER + fade() + 10, STATUS + HEADER + STORIES / 2, length - 20}) {
+            int expected = Math.round(top * (float) (length - y) / length);
+            assertNotEquals(0, expected);
+            assertEquals("the header's sheen carried on at " + y, expected, Color.alpha(drawn.getPixel(WIDE / 2, y)), 2);
+        }
+        assertEquals("gone at the row's bottom", 0, Color.alpha(drawn.getPixel(WIDE / 2, length)));
+
+        // Slid up behind the clock, the strip left there runs its sheen on over the row the same way.
+        header.setTranslationY(-HEADER);
+        frame();
+        assertTrue(GlassTopBar.hollow(header));
+        assertEquals("down to the row's bottom from the slid header's top", HEADER + end, GlassTopBar.sheenTo(header));
+        Bitmap slid = drawn(-HEADER, STORIES + 10);
+        int pastStrip = STATUS + fade() + 10;
+        assertEquals("from the strip on over the row", Math.round(top * (float) (length - pastStrip) / length),
+                Color.alpha(slid.getPixel(WIDE / 2, pastStrip)), 2);
+        assertEquals("gone at the row's bottom", 0, Color.alpha(slid.getPixel(WIDE / 2, length)));
+        header.setTranslationY(0f);
+        frame();
+
+        row.setTranslationY(-100f);
+        frame();
+        assertEquals("scrolled part way under the header, to where the row ends now", end - 100, GlassTopBar.sheenTo(header));
+
+        row.setTranslationY(-STORIES);
+        frame();
+        assertEquals("scrolled up under the header", 0, GlassTopBar.sheenTo(header));
+        Bitmap under = drawn(0, STORIES + 10);
+        assertEquals("ends with the soft edge", 0, Color.alpha(under.getPixel(WIDE / 2, STATUS + HEADER + fade() + 10)));
+
+        row.setTranslationY(0f);
+        Settings.GLASS_TAB_BAR.save(false);
+        frame();
+        assertEquals("no sheen without the glass tab bar's look", 0, GlassTopBar.sheenTo(header));
+        assertEquals(0, Color.alpha(drawn(0, STORIES + 10).getPixel(WIDE / 2, STATUS + HEADER + fade() + 10)));
+    }
+
+    /** Home's stories row as Instagram lays it out, the list's first row, just below the header. */
+    private View storiesRow() {
+        TraySheen.trayId = STORIES_ID;
+        list.removeAllViews();
+        FrameLayout row = new FrameLayout(list.getContext());
+        row.setId(STORIES_ID);
+        FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(MATCH, STORIES);
+        params.topMargin = HEADER;
+        list.addView(row, params);
+        layout();
+        return row;
     }
 
     /** The glass from the window's top down past the header at rest, with the header slid by [moved]. */

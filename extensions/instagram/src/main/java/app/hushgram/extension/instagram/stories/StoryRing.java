@@ -52,7 +52,7 @@ public final class StoryRing {
     private static final float[] INSTAGRAM_STOPS = {FIRST_STOP, SECOND_STOP, THIRD_STOP, FOURTH_STOP};
 
     /** The view holding the stories row at the top of Home, under the name Instagram's resources give it. */
-    static final String TRAY = "reels_tray_container";
+    public static final String TRAY = "reels_tray_container";
     /** How many levels up from a ring to look for {@link #TRAY}. A ring in the row sits six below it. */
     static final int TRAY_DEPTH = 12;
 
