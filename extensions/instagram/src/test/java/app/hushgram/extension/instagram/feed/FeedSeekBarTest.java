@@ -429,6 +429,57 @@ public class FeedSeekBarTest {
         assertEquals("lifted once, not again on each tick", -lift, post.row.getTranslationY(), 0f);
     }
 
+    /**
+     * #711: with the time showing, Instagram's tags and sound buttons go up past it, so the time sits
+     * under the tags button and a touch on it can't land on tags. The time is smaller than the reels'
+     * 12sp. With the time off the row only clears the bar again.
+     */
+    @Test
+    public void theTimeSitsUnderInstagramsButtons() {
+        Post post = post();
+        // The tags button slid out wide over the middle of the video, low in its row.
+        FrameLayout.LayoutParams slidOut = (FrameLayout.LayoutParams) post.tags.getLayoutParams();
+        slidOut.width = 400;
+        slidOut.gravity = Gravity.START | Gravity.BOTTOM;
+        slidOut.bottomMargin = 2;
+        post.tags.setLayoutParams(slidOut);
+        idle();
+        Settings.FEED_SEEK_BAR.save(true);
+        Settings.FEED_SEEK_BUTTON.save(true);
+        Settings.FEED_SEEK_TIME.save(true);
+        FeedSeekBar.progress(player, 3000, 15000);
+        idle();
+        SeekBar bar = bar();
+        TextView time = FeedSeekBar.timeForTests();
+        assertNotNull(time);
+        float density = post.video.getResources().getDisplayMetrics().density;
+        float scaled = post.video.getResources().getDisplayMetrics().scaledDensity;
+        assertTrue("smaller than the reels' time", time.getTextSize() < 12f * scaled);
+        int barHeight = FeedSeekBar.barHeight(post.video, bar);
+        int gap = Math.round(FeedSeekBar.TIME_GAP_DP * density);
+        assertEquals("the time stays just over the bar", barHeight + gap,
+                ((FrameLayout.LayoutParams) time.getLayoutParams()).bottomMargin);
+        float lift = -post.row.getTranslationY();
+        assertTrue("the row goes up past the time, not just the bar", lift > barHeight);
+
+        int[] at = new int[2];
+        time.getLocationOnScreen(at);
+        int timeTop = at[1];
+        int timeLeft = at[0];
+        post.tags.getLocationOnScreen(at);
+        int tagsBottom = at[1] + post.tags.getHeight();
+        assertTrue("the tags button reaches over the time", at[0] + post.tags.getWidth() > timeLeft);
+        assertTrue("and ends above it: " + tagsBottom + " vs " + timeTop, tagsBottom + gap <= timeTop);
+        assertEquals("by no more than it needs", timeTop - gap, tagsBottom);
+        int size = Math.round(FeedSeekBar.BUTTON_DP * density);
+        assertEquals("the toggle goes up with the row", 2 + 32 + Math.round(lift) - size / 2, buttonAt().bottomMargin);
+
+        Settings.FEED_SEEK_TIME.save(false);
+        tick();
+        assertNull(FeedSeekBar.timeForTests());
+        assertEquals("with the time off the row only clears the bar", -barHeight, post.row.getTranslationY(), 0f);
+    }
+
     /** #794: the row goes back where it was when the bar moves to another video or goes, and only then. */
     @Test
     public void instagramsButtonsGoBackWhenTheBarMovesOnOrGoes() {

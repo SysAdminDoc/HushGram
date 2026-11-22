@@ -119,6 +119,9 @@ public final class StorySeekBar {
     static final int TIME_START_DP = 8;
     static final int TIME_GAP_DP = 2;
 
+    /** The time's text size, as the reel's time label has it. */
+    static final float TIME_SP = 12f;
+
     /** The viewer's player, through the patch's stubs; tests stand in. */
     interface Player {
         @Nullable View view(Object viewer);
@@ -587,7 +590,7 @@ public final class StorySeekBar {
             if (parent == null) return;
             TextView shown = time;
             if (shown == null) {
-                shown = FeedSeekBar.timeLabel(seek.getContext());
+                shown = FeedSeekBar.timeLabel(seek.getContext(), TIME_SP);
                 shown.setOnClickListener(clicked -> flipTime());
                 time = shown;
             }

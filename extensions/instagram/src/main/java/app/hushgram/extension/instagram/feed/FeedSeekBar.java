@@ -91,8 +91,11 @@ public final class FeedSeekBar {
     /** The gap between the bar and the time over it (#711). */
     static final int TIME_GAP_DP = 2;
 
-    /** The time's text size, as the reel's time label has it. */
-    static final float TIME_SP = 12f;
+    /**
+     * The time's text size on a feed video, small enough to sit between the bar and Instagram's tags
+     * and sound buttons, which go up above it (#711).
+     */
+    static final float TIME_SP = 10f;
 
     /** The toggle button's size, a small circle at the bottom start of the video (#437). */
     static final int BUTTON_DP = 28;
@@ -162,14 +165,14 @@ public final class FeedSeekBar {
     }
 
     /**
-     * The time's label, white bold text with a shadow over the video, a tap on it flipping what it counts.
-     * The story seek bar's time is one too (#784).
+     * The time's label, white bold text [sp] big with a shadow over the video, a tap on it flipping what
+     * it counts. The story seek bar's time is one too (#784).
      */
-    public static TextView timeLabel(Context context) {
+    public static TextView timeLabel(Context context, float sp) {
         float density = context.getResources().getDisplayMetrics().density;
         int gap = Math.round(4 * density);
         TextView label = new TextView(context);
-        label.setTextSize(TypedValue.COMPLEX_UNIT_SP, TIME_SP);
+        label.setTextSize(TypedValue.COMPLEX_UNIT_SP, sp);
         label.setTypeface(Typeface.DEFAULT_BOLD);
         label.setTextColor(Color.WHITE);
         // Over the video, the shadow keeps white text readable on a bright frame.
@@ -360,11 +363,30 @@ public final class FeedSeekBar {
             int barState = wanted() ? View.VISIBLE : View.GONE;
             if (seek.getVisibility() != barState) seek.setVisibility(barState);
             if (barState == View.GONE) dragging = false;
+            showTime(frame, view, seek);
             ViewGroup row = buttonRow(frame);
-            int lift = barState == View.VISIBLE && row != null ? barHeight(view, seek) : 0;
+            int lift = barState == View.VISIBLE && row != null ? barHeight(view, seek) + clearOfTime(row, view) : 0;
             lift(row, lift);
             showButton(frame, view, row, lift);
-            showTime(frame, view, seek);
+        }
+
+        /**
+         * How much higher than the bar Instagram's [row] goes so its buttons end above the time showing
+         * over the bar, a gap clear of it (#711): the time's height and a gap on each side of it, less the
+         * room the row already leaves under its lowest button. Zero with no time showing.
+         */
+        private int clearOfTime(ViewGroup row, View view) {
+            TextView shown = time;
+            if (shown == null || shown.getParent() == null) return 0;
+            int under = roomUnder(row);
+            if (under < 0) return 0;
+            int height = shown.getHeight();
+            if (height == 0) {
+                int any = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED);
+                shown.measure(any, any);
+                height = shown.getMeasuredHeight();
+            }
+            return Math.max(0, height + 2 * dp(view, TIME_GAP_DP) - under);
         }
 
         /**
@@ -388,8 +410,8 @@ public final class FeedSeekBar {
 
         /**
          * Puts the time over the middle of the bar in [frame], or takes it away while its switch is off
-         * or the bar is hidden (#711). It sits in the middle since Instagram keeps its tags and sound
-         * buttons in the video's bottom corners.
+         * or the bar is hidden (#711). It sits in the middle, under Instagram's tags and sound buttons,
+         * so a tags button that slides out wide over the middle still doesn't cover it.
          */
         private void showTime(FrameLayout frame, View view, SeekBar seek) {
             if (!timeWanted() || seek.getVisibility() != View.VISIBLE) {
@@ -398,7 +420,7 @@ public final class FeedSeekBar {
             }
             TextView shown = time;
             if (shown == null) {
-                shown = timeLabel(view.getContext());
+                shown = timeLabel(view.getContext(), TIME_SP);
                 shown.setOnClickListener(tapped -> flipTime());
                 time = shown;
             }
@@ -819,6 +841,25 @@ public final class FeedSeekBar {
         if (middle < 0) return;
         place[0] = start;
         place[1] = Math.max(0, row.getHeight() - middle + lift - size / 2);
+    }
+
+    /**
+     * How far above [row]'s bottom its lowest button ends, its buttons read as {@link #inRow} reads them;
+     * -1 when it shows none (#711).
+     */
+    static int roomUnder(ViewGroup row) {
+        int lowest = -1;
+        for (int i = 0; i < row.getChildCount(); i++) {
+            View child = row.getChildAt(i);
+            if (child.getVisibility() != View.VISIBLE || child.getWidth() == 0) continue;
+            int bottom = child.getBottom();
+            if (child instanceof ViewGroup) {
+                View only = onlyShown((ViewGroup) child);
+                if (only != null) bottom = child.getTop() + only.getBottom();
+            }
+            lowest = Math.max(lowest, bottom);
+        }
+        return lowest < 0 ? -1 : row.getHeight() - lowest;
     }
 
     /** [group]'s one shown child, or null when it shows none or more than one. */

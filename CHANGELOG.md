@@ -62,6 +62,7 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
+* The time on a feed video's seek bar is smaller now and sits under the tags and sound buttons, so tapping it no longer opens the tags instead. Reported in #711.
 * The dot beside a new setting stays until you've scrolled to it. Going back out of a page cleared every dot on it, even the ones further down you never saw. Reported in #689.
 * `Show if a profile follows you` now labels profiles that have a name but no pronouns. The label and badges were only showing up on profiles with no name at all. Reported in #727.
 * `Ambient light in stories` no longer flashes white bars on a light theme when a story opens or you swipe to the next one. The glow also stays on until the next story's is ready. Reported in #751.
