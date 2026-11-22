@@ -4409,7 +4409,7 @@
     {
       "name": "Keep the tab bar on reel links",
       "description": "A reel link you open from another app plays on the tab you were on, with the tab bar under it. Back goes back to that tab. Starts off. Turn it on in HushGram settings > Reels.",
-      "category": "Reels",
+      "category": "Interaction",
       "use": true,
       "dependencies": [
         "BytecodePatch",

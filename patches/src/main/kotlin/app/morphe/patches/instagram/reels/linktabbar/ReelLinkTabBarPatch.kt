@@ -133,7 +133,7 @@ val reelLinkTabBarPatch = bytecodePatch(
     description = "A reel link you open from another app plays on the tab you were on, with the tab bar under it. " +
         "Back goes back to that tab. Starts off. Turn it on in HushGram settings > Reels.",
 ) {
-    category("Reels")
+    category("Interaction")
     dependsOn(settingsPatch, instagramExtensionPatch)
     compatibleWith(*AppCompatibilities.instagram())
 
