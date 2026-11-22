@@ -1898,6 +1898,10 @@ Glass top bar in chats	กระจกที่แถบด้านบนขอ
 Turn it off to leave a chat's top bar as Instagram draws it, with no frosted band behind it. The round glass buttons and the glass message bar stay.	ปิดเพื่อให้แถบด้านบนของแชทเป็นแบบที่ Instagram แสดงตามปกติ โดยไม่มีแถบกระจกฝ้าด้านหลัง ปุ่มกระจกทรงกลมและแถบข้อความกระจกยังคงอยู่
 Top bar tint in chats	โทนสีของแถบด้านบนในแชท
 Message bar tint	โทนสีของแถบข้อความ
+Glass buttons in chats	ปุ่มกระจกในแชท
+Turn it off for a plain blur with no round glass behind the buttons at the top of a chat.	ปิดเพื่อใช้เอฟเฟกต์เบลอธรรมดา โดยไม่มีกระจกทรงกลมหลังปุ่มที่ด้านบนของแชท
+Blur the chat behind a held message	เบลอแชทด้านหลังข้อความที่กดค้าง
+Hold a message and the rest of the chat blurs behind it and its reactions. Needs Android 12 or newer.	กดข้อความค้างไว้ แล้วส่วนที่เหลือของแชทจะเบลออยู่ด้านหลังข้อความนั้นและรีแอคชัน ต้องใช้ Android 12 ขึ้นไป
 # context: Reels switch Hide reels with few views, its summary, the Minimum views row, its dialog message and the row's summary, then the Minimum likes row, its dialog message, its summary and its summary at 0; %1$s is a number with thousands separators (#444)
 Hide reels with few views	ซ่อนรีลส์ที่มียอดดูน้อย
 Leaves out reels in the Reels tab outside the numbers below. Reels from accounts you follow, reels sent to you and reels that don't show a number still play.	ละเว้นรีลส์ในแท็บรีลส์ที่อยู่นอกจำนวนด้านล่างนี้ โดยรีลส์จากบัญชีที่คุณติดตาม รีลส์ที่ส่งถึงคุณ และรีลส์ที่ไม่แสดงจำนวนจะยังคงเล่นตามปกติ

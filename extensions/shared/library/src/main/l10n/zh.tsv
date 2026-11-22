@@ -1914,6 +1914,10 @@ Glass top bar in chats	聊天顶栏玻璃效果
 Turn it off to leave a chat's top bar as Instagram draws it, with no frosted band behind it. The round glass buttons and the glass message bar stay.	关闭后聊天顶栏保持 Instagram 原本的样子，背后没有毛玻璃色带。圆形玻璃按钮和玻璃消息栏会保留。
 Top bar tint in chats	聊天顶栏染色
 Message bar tint	消息栏染色
+Glass buttons in chats	聊天玻璃按钮
+Turn it off for a plain blur with no round glass behind the buttons at the top of a chat.	关闭后改为普通模糊，聊天顶部按钮后面不再有圆形玻璃。
+Blur the chat behind a held message	长按消息时模糊聊天背景
+Hold a message and the rest of the chat blurs behind it and its reactions. Needs Android 12 or newer.	长按一条消息，聊天的其余部分会在这条消息及其回应后面变模糊。需要 Android 12 或更新版本。
 # context: Reels switch Hide reels with few views, its summary, the Minimum views row, its dialog message and the row's summary, then the Minimum likes row, its dialog message, its summary and its summary at 0; %1$s is a number with thousands separators (#444)
 Hide reels with few views	隐藏观看次数少的 Reels
 Leaves out reels in the Reels tab outside the numbers below. Reels from accounts you follow, reels sent to you and reels that don't show a number still play.	在 Reels 标签页中略过超出下方数字范围的 Reels。你关注的账户、别人传给你的 Reels，以及没有显示数字的 Reels 仍会播放。

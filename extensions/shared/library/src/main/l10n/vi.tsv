@@ -1826,6 +1826,10 @@ Glass top bar in chats	Kính ở thanh trên cùng của cuộc trò chuyện
 Turn it off to leave a chat's top bar as Instagram draws it, with no frosted band behind it. The round glass buttons and the glass message bar stay.	Tắt để thanh trên cùng của cuộc trò chuyện giữ nguyên như Instagram vẽ, không có dải kính mờ phía sau. Các nút kính tròn và thanh tin nhắn kính vẫn giữ nguyên.
 Top bar tint in chats	Độ đậm màu thanh trên cùng trong cuộc trò chuyện
 Message bar tint	Độ đậm màu thanh tin nhắn
+Glass buttons in chats	Nút kính trong trò chuyện
+Turn it off for a plain blur with no round glass behind the buttons at the top of a chat.	Tắt để chỉ làm mờ đơn giản, không có kính tròn sau các nút ở đầu cuộc trò chuyện.
+Blur the chat behind a held message	Làm mờ cuộc trò chuyện sau tin nhắn đang giữ
+Hold a message and the rest of the chat blurs behind it and its reactions. Needs Android 12 or newer.	Nhấn giữ một tin nhắn, phần còn lại của cuộc trò chuyện sẽ mờ đi phía sau tin nhắn đó và các cảm xúc của nó. Cần Android 12 trở lên.
 # context: Reels switch Hide reels with few views, its summary, the Minimum views row, its dialog message and the row's summary, then the Minimum likes row, its dialog message, its summary and its summary at 0; %1$s is a number with thousands separators (#444)
 Hide reels with few views	Ẩn reel có ít lượt xem
 Leaves out reels in the Reels tab outside the numbers below. Reels from accounts you follow, reels sent to you and reels that don't show a number still play.	Bỏ qua các reel trong tab Reels nằm ngoài các con số bên dưới. Reel của tài khoản bạn theo dõi, reel được gửi cho bạn và reel không hiện con số vẫn phát bình thường.

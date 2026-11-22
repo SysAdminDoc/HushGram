@@ -1911,6 +1911,10 @@ Glass top bar in chats	Kaca di bilah atas chat
 Turn it off to leave a chat's top bar as Instagram draws it, with no frosted band behind it. The round glass buttons and the glass message bar stay.	Matikan agar bilah atas chat tetap seperti yang digambar Instagram, tanpa pita kaca buram di belakangnya. Tombol kaca bulat dan bilah pesan kaca tetap ada.
 Top bar tint in chats	Warna bilah atas chat
 Message bar tint	Warna bilah pesan
+Glass buttons in chats	Tombol kaca di chat
+Turn it off for a plain blur with no round glass behind the buttons at the top of a chat.	Matikan untuk blur polos tanpa kaca bulat di balik tombol di bagian atas chat.
+Blur the chat behind a held message	Blur chat di balik pesan yang ditahan
+Hold a message and the rest of the chat blurs behind it and its reactions. Needs Android 12 or newer.	Tahan sebuah pesan dan bagian chat lainnya menjadi blur di belakang pesan itu dan reaksinya. Butuh Android 12 atau lebih baru.
 # context: Reels switch Hide reels with few views, its summary, the Minimum views row, its dialog message and the row's summary, then the Minimum likes row, its dialog message, its summary and its summary at 0; %1$s is a number with thousands separators (#444)
 Hide reels with few views	Sembunyikan reel dengan sedikit tayangan
 Leaves out reels in the Reels tab outside the numbers below. Reels from accounts you follow, reels sent to you and reels that don't show a number still play.	Menyembunyikan reel di tab Reels yang berada di luar angka di bawah. Reel dari akun yang kamu ikuti, reel yang dikirim kepadamu, dan reel yang tidak menampilkan angka tetap diputar.

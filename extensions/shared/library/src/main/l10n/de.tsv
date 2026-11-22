@@ -1911,6 +1911,10 @@ Glass top bar in chats	Glas in der oberen Leiste von Chats
 Turn it off to leave a chat's top bar as Instagram draws it, with no frosted band behind it. The round glass buttons and the glass message bar stay.	Schalte es aus, damit die obere Leiste eines Chats so bleibt, wie Instagram sie zeichnet, ohne Milchglasband dahinter. Die runden Glasbuttons und die Glas-Nachrichtenleiste bleiben.
 Top bar tint in chats	Tönung der oberen Leiste in Chats
 Message bar tint	Tönung der Nachrichtenleiste
+Glass buttons in chats	Glas-Knöpfe in Chats
+Turn it off for a plain blur with no round glass behind the buttons at the top of a chat.	Schalte es aus für einen schlichten Weichzeichner ohne runde Glasflächen hinter den Knöpfen oben in einem Chat.
+Blur the chat behind a held message	Chat hinter einer gehaltenen Nachricht weichzeichnen
+Hold a message and the rest of the chat blurs behind it and its reactions. Needs Android 12 or newer.	Halte eine Nachricht gedrückt, und der Rest des Chats wird hinter ihr und ihren Reaktionen weichgezeichnet. Braucht Android 12 oder neuer.
 # context: Reels switch Hide reels with few views, its summary, the Minimum views row, its dialog message and the row's summary, then the Minimum likes row, its dialog message, its summary and its summary at 0; %1$s is a number with thousands separators (#444)
 Hide reels with few views	Reels mit wenigen Aufrufen ausblenden
 Leaves out reels in the Reels tab outside the numbers below. Reels from accounts you follow, reels sent to you and reels that don't show a number still play.	Lässt im Reels-Tab Reels weg, die außerhalb der Zahlen unten liegen. Reels von Konten, denen du folgst, Reels, die man dir schickt, und Reels, die keine Zahl zeigen, laufen weiter.

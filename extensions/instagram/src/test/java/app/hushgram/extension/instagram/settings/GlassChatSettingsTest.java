@@ -62,7 +62,8 @@ public class GlassChatSettingsTest {
         Utils.awaitBackgroundTasksForTests();
     }
     private static BooleanSetting[] all() {
-        return new BooleanSetting[]{Settings.GLASS_CHAT, Settings.GLASS_CHAT_TOP_BAR, Settings.GLASS_STORY_REPLY_BOX};
+        return new BooleanSetting[]{Settings.GLASS_CHAT, Settings.GLASS_CHAT_TOP_BAR, Settings.GLASS_STORY_REPLY_BOX,
+                Settings.GLASS_CHAT_BUTTONS, Settings.HELD_MESSAGE_BLUR};
     }
     private static void resetAll() {
         for (BooleanSetting each : all()) each.resetToDefault();
@@ -130,9 +131,10 @@ public class GlassChatSettingsTest {
     /** The top bar's glass (#670) sits under Glass in chats and starts on, so turning Glass in chats on looks as before. */
     @Test public void theSwitchesSitUnderMessagesAndStories() throws Exception {
         open(true);
-        String[] titles = {"Glass in chats", "Glass top bar in chats", "Glass reply box on stories"};
-        String[] sections = {"Messages", "Messages", "Stories"};
-        boolean[] starts = {false, true, false};
+        String[] titles = {"Glass in chats", "Glass top bar in chats", "Glass reply box on stories",
+                "Glass buttons in chats", "Blur the chat behind a held message"};
+        String[] sections = {"Messages", "Messages", "Stories", "Messages", "Messages"};
+        boolean[] starts = {false, true, false, true, false};
         BooleanSetting[] switches = all();
         for (int i = 0; i < switches.length; i++) {
             SwitchPreference row = (SwitchPreference) page.getPreferenceScreen().findPreference(switches[i].key);
@@ -148,7 +150,25 @@ public class GlassChatSettingsTest {
             assertEquals(titles[i], !starts[i], switches[i].get());
         }
         assertEquals(Collections.singletonList(Settings.GLASS_CHAT), Settings.GLASS_CHAT_TOP_BAR.getParentSettings());
+        assertEquals(Collections.singletonList(Settings.GLASS_CHAT), Settings.GLASS_CHAT_BUTTONS.getParentSettings());
+        assertTrue("the held message blur works without the glass", Settings.HELD_MESSAGE_BLUR.getParentSettings().isEmpty());
         assertEquals(java.util.Arrays.asList(switches), PatchFamily.GLASS_CHAT.switches);
+    }
+    /** #684: the round buttons' switch and the held message blur come right after the two tint sliders. */
+    @Test public void theButtonsAndHeldBlurSwitchesFollowTheTintSliders() throws Exception {
+        open(true);
+        PreferenceCategory messages = categoryHolding(page.getPreferenceScreen(),
+                page.getPreferenceScreen().findPreference(Settings.GLASS_CHAT_TOP_BAR.key));
+        assertNotNull(messages);
+        int boxTintAt = -1;
+        for (int i = 0; i < messages.getPreferenceCount(); i++) {
+            if (Settings.GLASS_CHAT_BOX_OPACITY.key.equals(messages.getPreference(i).getKey())) boxTintAt = i;
+        }
+        assertTrue(boxTintAt >= 0);
+        assertEquals(Settings.GLASS_CHAT_BUTTONS.key, messages.getPreference(boxTintAt + 1).getKey());
+        assertEquals(Settings.HELD_MESSAGE_BLUR.key, messages.getPreference(boxTintAt + 2).getKey());
+        assertEquals("Hold a message and the rest of the chat blurs behind it and its reactions. Needs Android 12 or newer.",
+                String.valueOf(messages.getPreference(boxTintAt + 2).getSummary()));
     }
     private static PreferenceCategory categoryHolding(PreferenceGroup group, Preference row) {
         for (int i = 0; i < group.getPreferenceCount(); i++) {

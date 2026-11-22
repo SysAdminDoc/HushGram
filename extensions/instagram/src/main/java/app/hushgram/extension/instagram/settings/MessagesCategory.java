@@ -276,6 +276,10 @@ final class MessagesCategory {
                         L10n.t("Top bar tint in chats")));
                 messages.addPreference(chatGlassTintRow(context, Settings.GLASS_CHAT_BOX_OPACITY,
                         L10n.t("Message bar tint")));
+                messages.addPreference(toggle(context, Settings.GLASS_CHAT_BUTTONS, L10n.t("Glass buttons in chats"),
+                        L10n.t("Turn it off for a plain blur with no round glass behind the buttons at the top of a chat.")));
+                messages.addPreference(toggle(context, Settings.HELD_MESSAGE_BLUR, L10n.t("Blur the chat behind a held message"),
+                        L10n.t("Hold a message and the rest of the chat blurs behind it and its reactions. Needs Android 12 or newer.")));
             }
             if (build.contains(PatchFamily.CENTER_CHAT_NAME)) {
                 messages.addPreference(toggle(context, Settings.CENTER_CHAT_NAME, L10n.t("Center names in chats"),

@@ -87,7 +87,8 @@ public class CenterChatNameSettingsTest {
         for (int i = 0; i < messages.getPreferenceCount(); i++) {
             if (messages.getPreference(i) == row) at = i;
         }
-        assertEquals(Settings.GLASS_CHAT_BOX_OPACITY.key, messages.getPreference(at - 1).getKey());
+        // The last of the glass rows is the held message blur (#684).
+        assertEquals(Settings.HELD_MESSAGE_BLUR.key, messages.getPreference(at - 1).getKey());
     }
     private static PreferenceCategory categoryHolding(PreferenceGroup group, Preference row) {
         for (int i = 0; i < group.getPreferenceCount(); i++) {

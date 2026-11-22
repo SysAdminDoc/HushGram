@@ -1911,6 +1911,10 @@ Glass top bar in chats	Cristal en la barra superior de los chats
 Turn it off to leave a chat's top bar as Instagram draws it, with no frosted band behind it. The round glass buttons and the glass message bar stay.	Desactívalo para dejar la barra superior de un chat como la dibuja Instagram, sin la franja de cristal esmerilado detrás. Los botones redondos de cristal y la barra de mensajes de cristal se mantienen.
 Top bar tint in chats	Tinte de la barra superior de los chats
 Message bar tint	Tinte de la barra de mensajes
+Glass buttons in chats	Botones de cristal en los chats
+Turn it off for a plain blur with no round glass behind the buttons at the top of a chat.	Desactívalo para un desenfoque simple sin cristal redondo detrás de los botones de la parte superior de un chat.
+Blur the chat behind a held message	Desenfocar el chat detrás de un mensaje mantenido
+Hold a message and the rest of the chat blurs behind it and its reactions. Needs Android 12 or newer.	Mantén pulsado un mensaje y el resto del chat se desenfoca detrás de él y de sus reacciones. Necesita Android 12 o más reciente.
 # context: Reels switch Hide reels with few views, its summary, the Minimum views row, its dialog message and the row's summary, then the Minimum likes row, its dialog message, its summary and its summary at 0; %1$s is a number with thousands separators (#444)
 Hide reels with few views	Ocultar reels con pocas reproducciones
 Leaves out reels in the Reels tab outside the numbers below. Reels from accounts you follow, reels sent to you and reels that don't show a number still play.	Omite en la pestaña Reels los reels que quedan fuera de los números de abajo. Los reels de cuentas que sigues, los que te envían y los que no muestran cifras se siguen viendo.

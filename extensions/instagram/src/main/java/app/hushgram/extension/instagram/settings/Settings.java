@@ -1204,6 +1204,17 @@ public class Settings extends BaseSettings {
     public static final IntegerSetting GLASS_CHAT_BOX_OPACITY =
             new IntegerSetting("hushgram_glass_chat_box_opacity_percent", 100, false, parent(GLASS_CHAT))
                     .withRange(0, 150);
+    /**
+     * Under {@link #GLASS_CHAT}: the round glass behind a chat's top bar buttons. Off leaves a plain blur, the way
+     * Instagram's own design draws it (#684). On to start.
+     */
+    public static final BooleanSetting GLASS_CHAT_BUTTONS =
+            new BooleanSetting("hushgram_glass_chat_buttons", TRUE, parent(GLASS_CHAT));
+    /**
+     * Holding a message blurs the rest of the chat behind it and its reactions, with or without the glass
+     * ({@link app.hushgram.extension.instagram.direct.HeldMessageBlur}, #684). Off to start.
+     */
+    public static final BooleanSetting HELD_MESSAGE_BLUR = new BooleanSetting("hushgram_held_message_blur", FALSE);
     /** The Send message box on other people's stories takes the same glass, as a pill (#391). Off to start. */
     public static final BooleanSetting GLASS_STORY_REPLY_BOX = new BooleanSetting("hushgram_glass_story_reply_box", FALSE);
     /**

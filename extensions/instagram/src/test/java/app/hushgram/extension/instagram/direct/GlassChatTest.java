@@ -137,6 +137,7 @@ public class GlassChatTest {
         Settings.GLASS_STORY_REPLY_BOX.resetToDefault();
         Settings.GLASS_CHAT_TOP_BAR_OPACITY.resetToDefault();
         Settings.GLASS_CHAT_BOX_OPACITY.resetToDefault();
+        Settings.GLASS_CHAT_BUTTONS.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -232,6 +233,8 @@ public class GlassChatTest {
         assertEquals(Boolean.FALSE, Settings.GLASS_CHAT.defaultValue);
         assertEquals(Boolean.FALSE, Settings.GLASS_STORY_REPLY_BOX.defaultValue);
         assertEquals("the top bar's glass comes with Glass in chats", Boolean.TRUE, Settings.GLASS_CHAT_TOP_BAR.defaultValue);
+        assertEquals("the round buttons come with Glass in chats", Boolean.TRUE, Settings.GLASS_CHAT_BUTTONS.defaultValue);
+        assertEquals(Boolean.FALSE, Settings.HELD_MESSAGE_BLUR.defaultValue);
     }
 
     /**
@@ -264,6 +267,34 @@ public class GlassChatTest {
         assertSame(fill, header.getBackground());
         assertTrue(hasDisc(back));
         assertTrue(GlassTopBar.boxShowing(pill));
+    }
+
+    /**
+     * #684: with Glass buttons in chats off, the buttons give their discs back on the next frame and keep the
+     * backgrounds they had, while the top bar and the message bar keep their glass. On again, the discs come back.
+     */
+    @Test
+    public void theButtonsSwitchLeavesAPlainBlur() {
+        Drawable under = back.getBackground();
+        Settings.GLASS_CHAT.save(true);
+        ImageView pill = messageBar();
+        frame();
+        assertTrue(hasDisc(back));
+        assertTrue(hasDisc(call));
+
+        Settings.GLASS_CHAT_BUTTONS.save(false);
+        frame();
+        assertFalse(hasDisc(back));
+        assertFalse(hasDisc(call));
+        assertFalse(hasDisc(video));
+        assertSame("the back button's own background is back", under, back.getBackground());
+        assertTrue("the top bar keeps its blur", GlassTopBar.showing(header));
+        assertTrue(GlassTopBar.boxShowing(pill));
+
+        Settings.GLASS_CHAT_BUTTONS.save(true);
+        frame();
+        assertTrue(hasDisc(back));
+        assertTrue(hasDisc(video));
     }
 
     /**

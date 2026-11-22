@@ -194,6 +194,8 @@ public final class GlassChat {
      */
     static void check(Activity activity) {
         checkChat(activity);
+        // Its own switch, on with or without the glass (#684).
+        HeldMessageBlur.check(activity);
         try {
             if (storiesOn()) glazeStories(activity);
         } catch (Throwable failure) {
@@ -434,6 +436,11 @@ public final class GlassChat {
             GlassTopBar.glazeBox(box, id(activity, MESSAGES), false, GlassChat::on, FamilyNames.GLASS_CHAT,
                     Settings.GLASS_CHAT_BOX_OPACITY, id(activity, MESSAGE_BOX_BUTTON));
         }
+        if (!Settings.GLASS_CHAT_BUTTONS.get()) {
+            // A plain blur, Instagram's own look, with no glass behind the buttons (#684).
+            takeDiscsOff();
+            return;
+        }
         boolean night = (container.getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK)
                 == Configuration.UI_MODE_NIGHT_YES;
         float density = container.getResources().getDisplayMetrics().density;
@@ -462,8 +469,18 @@ public final class GlassChat {
         HookStatus.counted(FamilyNames.GLASS_CHAT, COUNT_DISCS);
     }
 
-    /** Takes every disc off and gives back the backgrounds under them. */
+    /** Takes every disc off and gives back the backgrounds under them, and forgets the header. */
     static void restore() {
+        takeDiscsOff();
+        header = new WeakReference<>(null);
+        messageBox = new WeakReference<>(null);
+        hiddenPill = new WeakReference<>(null);
+        searchedAt = -SEARCH_EVERY_MS;
+        boxSearchedAt = -SEARCH_EVERY_MS;
+    }
+
+    /** Takes every disc off and gives back the backgrounds under them. */
+    static void takeDiscsOff() {
         for (WeakReference<View> reference : discs) {
             View button = reference.get();
             if (button == null) continue;
@@ -471,11 +488,6 @@ public final class GlassChat {
             if (now instanceof Rim) button.setBackground(((Rim) now).original);
         }
         discs.clear();
-        header = new WeakReference<>(null);
-        messageBox = new WeakReference<>(null);
-        hiddenPill = new WeakReference<>(null);
-        searchedAt = -SEARCH_EVERY_MS;
-        boxSearchedAt = -SEARCH_EVERY_MS;
     }
 
     /**
@@ -633,6 +645,7 @@ public final class GlassChat {
         storiesSearchedAt = -SEARCH_EVERY_MS;
         try {
             restore();
+            HeldMessageBlur.forget();
             if (activity == null) return;
             View decor = activity.getWindow().getDecorView();
             if (later != null) decor.removeCallbacks(later);
