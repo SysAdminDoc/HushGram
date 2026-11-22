@@ -734,6 +734,14 @@ once-call Lapp/hushgram/extension/instagram/feed/HomeTopBar;->slidingViews(Ljava
 # Left out, a warm start back into Home fades the logo and buttons away for good.
 start-call Lapp/hushgram/extension/instagram/feed/HomeTopBar;->slideBy(Ljava/util/List;F)F in static (LX/*;F)V holding setAlpha Ljava/lang/Math;->min(FF)F Ljava/lang/Math;->max(FF)F
 once-call Lapp/hushgram/extension/instagram/feed/HomeTopBar;->slideBy(Ljava/util/List;F)F in static (LX/*;F)V holding setAlpha Ljava/lang/Math;->min(FF)F Ljava/lang/Math;->max(FF)F
+# Reels on Home below the name asks HomeReelHeader.belowName with the feed's module name in the two
+# tests Home's row picker asks before it lays a reel out as a tall card with the name on top (#788):
+# the feed test (02pV.A0E on 456, the instance (object, String) boolean loading the live kind and
+# itas-android), right where its live video branch ends, and the row maker's tall test (0069.A09,
+# the instance (object) boolean asking the full-height config and a dimension), first thing. Left
+# out, a reel on Home keeps its name and menu on top of the video with the switch on.
+once-call Lapp/hushgram/extension/instagram/feed/HomeReelHeader;->belowName(Ljava/lang/String;)Z in instance (LX/*;Ljava/lang/String;)Z pooled holding recommended_live_in_feed itas-android
+once-call Lapp/hushgram/extension/instagram/feed/HomeReelHeader;->belowName(Ljava/lang/String;)Z in instance (LX/*;)Z holding const:0x712d1c64 Landroid/content/res/Resources;->getDimensionPixelSize(I)I
 # Spoof location sends every read of a Location's latitude, longitude and distance to SpoofLocation,
 # which answers the set place for a fix from the phone while the switch is on. One left in
 # Instagram's code is a read that tells Instagram where the phone really is.

@@ -3346,6 +3346,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_reel_header_line", FALSE);
 
     /**
+     * Reels on Home laid out like other posts, the name and the three-dot menu above the video
+     * instead of on top of it (#788, {@link app.hushgram.extension.instagram.feed.HomeReelHeader}).
+     * Read as each row of Home is laid out, so it needs no restart. Off to start.
+     */
+    public static final BooleanSetting HOME_REELS_BELOW_NAME =
+            new BooleanSetting("hushgram_home_reels_below_name", FALSE);
+
+    /**
      * A Save row in a feed post's menu, or Remove from saved on a saved post (#569,
      * {@link app.hushgram.extension.instagram.feed.FeedSaveRow}). Read as the menu opens. Off to start.
      */

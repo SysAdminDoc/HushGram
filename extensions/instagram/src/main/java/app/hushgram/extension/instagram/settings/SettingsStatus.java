@@ -540,6 +540,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean homeReelsBelowName() {
+        return false;
+    }
+
     public static boolean feedSave() {
         return false;
     }

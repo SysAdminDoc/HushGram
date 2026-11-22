@@ -249,6 +249,7 @@ public enum PatchFamily {
     EDITS_LABEL(FamilyNames.EDITS_LABEL, "editsLabel", null, Settings.HIDE_EDITS_LABEL),
     FEED_HEADER_LINE(FamilyNames.FEED_HEADER_LINE, "feedHeaderLine", null, Settings.HIDE_FEED_HEADER_LINE,
             Settings.HIDE_REEL_HEADER_LINE),
+    HOME_REELS_BELOW_NAME(FamilyNames.HOME_REELS_BELOW_NAME, "homeReelsBelowName", null, Settings.HOME_REELS_BELOW_NAME),
     FEED_SAVE(FamilyNames.FEED_SAVE, "feedSave", null, Settings.SAVE_IN_POST_MENU, Settings.HIDE_FEED_SAVE_BUTTON,
             Settings.HIDE_FEED_LIKE_BUTTON, Settings.HIDE_FEED_COUNTS, Settings.HIDE_LIKED_BY),
     MENU_ITEMS(FamilyNames.MENU_ITEMS, "menuItems", null),

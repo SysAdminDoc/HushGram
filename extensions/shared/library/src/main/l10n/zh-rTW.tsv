@@ -64,9 +64,11 @@ No messages found to save.	沒有可儲存的訊息。
 Pick a wait from 1 to 72 hours. Locked, nothing here changes until you ask to unlock and the wait is over.	選擇 1 至 72 小時的等待時間。鎖定後，必須提出解鎖申請並等待時間結束，才能變更此處的設定。
 Ask to unlock	請求解鎖
 Reels from chats are off	聊天室的 Reels 已關閉
+Reels on Home below the name	首頁的 Reels 顯示在名稱下方
 Saved to %1$s in lower quality because storage is low	儲存空間不足，已以較低畫質儲存到 %1$s
 Saved to the gallery in lower quality because storage is low	儲存空間不足，已以較低畫質儲存到相簿
 Sending a message in a chat lets the other person see that you've read what they sent before it. Chats you don't answer stay unseen to them.	在聊天中傳送訊息後，對方會看到你已讀過他們先前傳來的內容。你沒有回覆的聊天，對方仍看不到已讀。
+Shows reels on Home like other posts, with the name and the three-dot menu above the video instead of on top of it. Posts already on screen change when they load again.	讓首頁的 Reels 像其他貼文一樣顯示，名稱和三點選單位於影片上方，不會疊在影片上。畫面上已有的貼文會在重新載入時改變。
 Shows the time played and the story's length at the start of its seek bar, like 0:03 / 0:15. Tap the time to see the time left instead.	在限時動態拖曳列的開頭顯示已播放時間和長度，例如 0:03 / 0:15。點一下時間即可改看剩餘時間.
 That's as far back as this chat goes.	這個聊天只到這裡。
 These settings are locked. Tap to start the %1$s wait, then they open for 10 minutes.	這些設定已鎖定。點擊開始等待 %1$s，之後會開放設定 10 分鐘。

@@ -60,9 +60,11 @@ No messages found to save.	ไม่พบข้อความที่จะ�
 Pick a wait from 1 to 72 hours. Locked, nothing here changes until you ask to unlock and the wait is over.	เลือกระยะเวลารอตั้งแต่ 1 ถึง 72 ชั่วโมง เมื่อล็อกแล้ว จะไม่สามารถเปลี่ยนสิ่งใดที่นี่ได้จนกว่าคุณจะขอปลดล็อกและระยะเวลารอสิ้นสุดลง
 Ask to unlock	ขอปลดล็อก
 Reels from chats are off	ปิดรีลส์จากแชทอยู่
+Reels on Home below the name	รีลส์ในหน้าหลักอยู่ใต้ชื่อ
 Saved to %1$s in lower quality because storage is low	บันทึกไปยัง %1$s ในคุณภาพที่ต่ำลงเนื่องจากพื้นที่เก็บข้อมูลเหลือน้อย
 Saved to the gallery in lower quality because storage is low	บันทึกไปยังแกลเลอรีในคุณภาพที่ต่ำลงเนื่องจากพื้นที่เก็บข้อมูลเหลือน้อย
 Sending a message in a chat lets the other person see that you've read what they sent before it. Chats you don't answer stay unseen to them.	การส่งข้อความในแชทจะทำให้อีกฝ่ายเห็นว่าคุณได้อ่านข้อความที่พวกเขาส่งมาก่อนหน้านั้นแล้ว ส่วนแชทที่คุณไม่ได้ตอบกลับจะยังคงไม่ขึ้นว่าอ่านแล้วสำหรับพวกเขา
+Shows reels on Home like other posts, with the name and the three-dot menu above the video instead of on top of it. Posts already on screen change when they load again.	แสดงรีลส์ในหน้าหลักเหมือนโพสต์อื่น โดยมีชื่อและเมนูสามจุดอยู่เหนือวิดีโอแทนที่จะทับอยู่บนวิดีโอ โพสต์ที่แสดงอยู่แล้วจะเปลี่ยนเมื่อโหลดใหม่
 Shows the time played and the story's length at the start of its seek bar, like 0:03 / 0:15. Tap the time to see the time left instead.	แสดงเวลาที่เล่นไปแล้วและความยาวของสตอรี่ที่ต้นแถบเลื่อนเวลา เช่น 0:03 / 0:15 แตะที่เวลาเพื่อดูเวลาที่เหลือแทน
 That's as far back as this chat goes.	นี่คือข้อความย้อนหลังที่สุดของแชทนี้แล้ว
 These settings are locked. Tap to start the %1$s wait, then they open for 10 minutes.	การตั้งค่าเหล่านี้ถูกล็อกไว้ แตะเพื่อเริ่มเวลารอ %1$s จากนั้นการตั้งค่าจะเปิดให้ใช้งานเป็นเวลา 10 นาที
