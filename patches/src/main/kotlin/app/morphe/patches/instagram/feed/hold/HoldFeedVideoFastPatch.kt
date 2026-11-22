@@ -67,7 +67,8 @@ internal const val STRIP_FLAG = 0x840e900007038dL
 val holdFeedVideoFastPatch = bytecodePatch(
     name = "Hold for 2x on feed videos",
     description = "Press and hold a video in a feed to play it at 2x with Instagram's own speed-up, and let go " +
-        "for normal speed, or keep it at 2x until you hold it again. Starts off. Turn it on in HushGram settings > Feed.",
+        "for normal speed, or keep it at 2x until you hold it again (every hold, or only one of about 3 seconds). " +
+        "The name over the video can stay put while you hold. Starts off. Turn it on in HushGram settings > Feed.",
 ) {
     // Manager's Feed group is full at the fifteen PatchCategoriesTest allows. The switch is under Feed in settings.
     category("Playback")

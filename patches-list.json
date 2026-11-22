@@ -3443,7 +3443,7 @@
     },
     {
       "name": "Hide the line under names",
-      "description": "Takes the song, the place and the other labels off the line under the name on posts in your feed and on reels. Sponsored and Paid partnership stay. Starts off. Turn it on in HushGram settings > Feed and Reels.",
+      "description": "Takes the song, the place and the other labels off the line under the name on posts in your feed and on reels. Sponsored and Paid partnership stay, and `Keep the place` can leave a post's place there on its own. Starts off. Turn it on in HushGram settings > Feed and Reels.",
       "category": "Interaction",
       "use": true,
       "dependencies": [
@@ -3638,7 +3638,7 @@
     },
     {
       "name": "Hold for 2x on feed videos",
-      "description": "Press and hold a video in a feed to play it at 2x with Instagram's own speed-up, and let go for normal speed, or keep it at 2x until you hold it again. Starts off. Turn it on in HushGram settings > Feed.",
+      "description": "Press and hold a video in a feed to play it at 2x with Instagram's own speed-up, and let go for normal speed, or keep it at 2x until you hold it again (every hold, or only one of about 3 seconds). The name over the video can stay put while you hold. Starts off. Turn it on in HushGram settings > Feed.",
       "category": "Playback",
       "use": true,
       "dependencies": [
@@ -6557,7 +6557,7 @@
     },
     {
       "name": "Start feed videos with sound",
-      "description": "Starts videos on Home with their sound on, the same as tapping a video's speaker, or keeps them muted while reels play with sound. Your phone's ringer and volume still count. Starts off. Turn it on in HushGram settings > Feed.",
+      "description": "Starts videos on Home with their sound on, the same as tapping a video's speaker, or keeps them muted while reels play with sound. Your phone's ringer and volume still count, unless `Even on silent` under it is on. Starts off. Turn it on in HushGram settings > Feed.",
       "category": "Playback",
       "use": true,
       "dependencies": [

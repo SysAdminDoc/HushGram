@@ -249,7 +249,8 @@ private fun Instruction.reference() = (this as? ReferenceInstruction)?.reference
 val hideHeaderLinePatch = bytecodePatch(
     name = "Hide the line under names",
     description = "Takes the song, the place and the other labels off the line under the " +
-        "name on posts in your feed and on reels. Sponsored and Paid partnership stay. Starts off. " +
+        "name on posts in your feed and on reels. Sponsored and Paid partnership stay, and `Keep the place` can " +
+        "leave a post's place there on its own. Starts off. " +
         "Turn it on in HushGram settings > Feed and Reels.",
 ) {
     category("Interaction")

@@ -79,7 +79,8 @@ private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $det
 val startFeedVideosWithSoundPatch = bytecodePatch(
     name = "Start feed videos with sound",
     description = "Starts videos on Home with their sound on, the same as tapping a video's speaker, or keeps them " +
-        "muted while reels play with sound. Your phone's ringer and volume still count. Starts off. Turn it on in " +
+        "muted while reels play with sound. Your phone's ringer and volume still count, unless `Even on silent` " +
+        "under it is on. Starts off. Turn it on in " +
         "HushGram settings > Feed.",
 ) {
     category("Playback")
