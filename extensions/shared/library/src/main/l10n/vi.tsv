@@ -2706,3 +2706,7 @@ Queued: @%1$s	Đã xếp hàng: @%1$s
 Not saved: %1$d saves are already waiting	Chưa lưu: đã có %1$d mục đang chờ
 # context: a waiting save's notification text and its line in Downloads (#792)
 Waiting for the saves before it	Đang chờ các lượt lưu trước
+# context: Feed settings: a switch under Start feed videos with sound that starts them with sound while the phone is on silent or vibrate too (#762)
+Even on silent	Kể cả khi im lặng
+# context: Summary of Even on silent, a switch under Start feed videos with sound (#762)
+Feed videos start with sound with the phone on silent or vibrate too. Only the media volume counts.	Video trong bảng feed vẫn bắt đầu có tiếng khi điện thoại ở chế độ im lặng hoặc rung. Chỉ âm lượng nội dung nghe nhìn được tính.

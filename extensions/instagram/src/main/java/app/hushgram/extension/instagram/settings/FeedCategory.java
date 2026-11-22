@@ -252,6 +252,9 @@ final class FeedCategory {
                     L10n.t("Videos on Home play with their sound on, the same as tapping a video's speaker. Mute one and the "
                             + "ones after it stay muted. Your phone's ringer and volume still count, so on silent or with "
                             + "the volume down, they stay quiet.")));
+            feed.addPreference(toggle(context, Settings.START_FEED_VIDEOS_ON_SILENT, L10n.t("Even on silent"),
+                    L10n.t("Feed videos start with sound with the phone on silent or vibrate too. Only the media "
+                            + "volume counts.")));
             feed.addPreference(toggle(context, Settings.START_FEED_VIDEOS_MUTED, L10n.t("Start feed videos muted"),
                     L10n.t("Videos on Home start silent, even after you turn the sound on in Reels, so reels keep their "
                             + "sound. Tap a video's speaker to hear that one. Wins over Start feed videos with sound.")));

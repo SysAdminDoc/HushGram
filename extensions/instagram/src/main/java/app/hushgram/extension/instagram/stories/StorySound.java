@@ -170,4 +170,12 @@ public final class StorySound {
         return audio.getRingerMode() == AudioManager.RINGER_MODE_NORMAL
                 && audio.getStreamVolume(AudioManager.STREAM_MUSIC) > 0;
     }
+
+    /** Whether the phone's media volume is above zero, whatever its ringer is set to. */
+    public static boolean mediaVolumeUp() {
+        Context context = Utils.getContext();
+        if (context == null) return false;
+        AudioManager audio = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+        return audio != null && audio.getStreamVolume(AudioManager.STREAM_MUSIC) > 0;
+    }
 }

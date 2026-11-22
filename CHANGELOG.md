@@ -6,6 +6,7 @@ Every HushGram release, newest first.
 
 ### Improvements
 
+* `Even on silent` is new under `Start feed videos with sound`. With your phone on silent or vibrate, Home's videos still start with their sound, as long as the media volume is up. Starts off. Asked for in #762.
 * `Record calls` is new under Messages. It puts a Record button on the call screen, and tapping it saves the call's sound from both sides as an audio file in your phone's Recordings folder (Music on Android 11 or older). The button shows how long it's been recording, you can drag it out of the way, and it stops on its own when the call ends. Some places require everyone on a call to agree to being recorded. Starts off. Asked for in #732.
 * `Chat bubbles` is new under Notifications. A chat's message notification gets Android's bubble button, so the chat can float over your other apps. Hidden and locked chats never get one, and neither does the cover notification `Lock your messages` shows while it's shut. Needs Android 11 or newer. Starts off. Asked for in #747.
 * Press and hold a collection in Saved to lock it or take its lock off, with no trip to settings. Taking a lock off always asks first, the same way your other locks unlock, even with the collection open. Asked for in #678.

@@ -76,7 +76,7 @@ public enum PatchFamily {
     STORY_FONTS(FamilyNames.STORY_FONTS, "storyFonts", null, Settings.STORY_FONTS, Settings.STORY_EMOJI),
     STORY_UPLOAD_QUALITY(FamilyNames.STORY_UPLOAD_QUALITY, "storyUploadQuality", null, Settings.UPLOAD_STORIES_AT_FULL_QUALITY),
     FEED_SOUND(FamilyNames.FEED_SOUND, "feedSound", null, Settings.START_FEED_VIDEOS_WITH_SOUND,
-            Settings.START_FEED_VIDEOS_MUTED),
+            Settings.START_FEED_VIDEOS_ON_SILENT, Settings.START_FEED_VIDEOS_MUTED),
     FEED_TAP_PAUSE(FamilyNames.FEED_TAP_PAUSE, "feedTapPause", null, Settings.TAP_FEED_VIDEO_TO_PAUSE,
             Settings.FEED_TAPS_STAY_IN_FEED),
     FEED_HOLD_FAST(FamilyNames.FEED_HOLD_FAST, "feedHoldFast", null, Settings.HOLD_FEED_VIDEO_FAST, Settings.HOLD_FEED_VIDEO_KEEP,

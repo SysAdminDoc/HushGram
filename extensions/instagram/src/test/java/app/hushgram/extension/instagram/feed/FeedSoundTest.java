@@ -42,6 +42,7 @@ public class FeedSoundTest {
     public void clean() {
         Settings.START_FEED_VIDEOS_WITH_SOUND.resetToDefault();
         Settings.START_FEED_VIDEOS_MUTED.resetToDefault();
+        Settings.START_FEED_VIDEOS_ON_SILENT.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -55,6 +56,7 @@ public class FeedSoundTest {
     public void restore() {
         Settings.START_FEED_VIDEOS_WITH_SOUND.resetToDefault();
         Settings.START_FEED_VIDEOS_MUTED.resetToDefault();
+        Settings.START_FEED_VIDEOS_ON_SILENT.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -126,6 +128,22 @@ public class FeedSoundTest {
         assertFalse(report(), report().contains(FeedSound.STARTED));
         audio.setStreamVolume(AudioManager.STREAM_MUSIC, 3, 0);
         assertEquals("back up, the turn was kept", 1, FeedSound.startWithSound(feed));
+    }
+
+    /** Even on silent leaves the ringer out: silent and vibrate start with sound, a media volume of zero still doesn't (#762). */
+    @Test
+    public void evenOnSilentOnlyTheMediaVolumeCounts() {
+        Settings.START_FEED_VIDEOS_WITH_SOUND.save(true);
+        Settings.START_FEED_VIDEOS_ON_SILENT.save(true);
+        audio.setRingerMode(AudioManager.RINGER_MODE_SILENT);
+        audio.setStreamVolume(AudioManager.STREAM_MUSIC, 0, 0);
+        Object feed = new Object();
+        assertEquals("silent with the volume down", 0, FeedSound.startWithSound(feed));
+        audio.setStreamVolume(AudioManager.STREAM_MUSIC, 4, 0);
+        assertEquals("silent with the volume up", 1, FeedSound.startWithSound(feed));
+        audio.setRingerMode(AudioManager.RINGER_MODE_VIBRATE);
+        assertEquals("vibrate with the volume up", 1, FeedSound.startWithSound(new Object()));
+        assertTrue(report(), report().contains(FeedSound.STARTED + " 2"));
     }
 
     /** Paused, a saved switch answers Instagram's own and counts nothing. */

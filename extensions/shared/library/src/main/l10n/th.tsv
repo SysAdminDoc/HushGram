@@ -2788,3 +2788,7 @@ Queued: @%1$s	เข้าคิวแล้ว: @%1$s
 Not saved: %1$d saves are already waiting	ไม่ได้บันทึก: มี %1$d รายการรออยู่แล้ว
 # context: a waiting save's notification text and its line in Downloads (#792)
 Waiting for the saves before it	กำลังรอรายการก่อนหน้า
+# context: Feed settings: a switch under Start feed videos with sound that starts them with sound while the phone is on silent or vibrate too (#762)
+Even on silent	แม้อยู่ในโหมดเงียบ
+# context: Summary of Even on silent, a switch under Start feed videos with sound (#762)
+Feed videos start with sound with the phone on silent or vibrate too. Only the media volume counts.	วิดีโอในฟีดจะเริ่มพร้อมเสียงแม้โทรศัพท์อยู่ในโหมดเงียบหรือสั่น นับเฉพาะระดับเสียงสื่อ

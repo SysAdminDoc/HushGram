@@ -2790,3 +2790,7 @@ Queued: @%1$s	대기 중: @%1$s
 Not saved: %1$d saves are already waiting	저장 안 됨: 이미 %1$d개가 대기 중
 # context: a waiting save's notification text and its line in Downloads (#792)
 Waiting for the saves before it	앞의 저장이 끝나기를 기다리는 중
+# context: Feed settings: a switch under Start feed videos with sound that starts them with sound while the phone is on silent or vibrate too (#762)
+Even on silent	무음 모드에서도
+# context: Summary of Even on silent, a switch under Start feed videos with sound (#762)
+Feed videos start with sound with the phone on silent or vibrate too. Only the media volume counts.	휴대전화가 무음이나 진동 모드여도 피드 동영상이 소리와 함께 시작됩니다. 미디어 볼륨만 적용됩니다.

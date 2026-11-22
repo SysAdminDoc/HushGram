@@ -73,6 +73,20 @@ public class FeedSoundSettingsTest {
         assertEquals("Start feed videos with sound", PatchFamily.FEED_SOUND.patchName);
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.START_FEED_VIDEOS_WITH_SOUND.key));
     }
+    /** Even on silent sits right under Start feed videos with sound, starts off and is kept in a backup (#762). */
+    @Test public void evenOnSilentSitsUnderTheSwitchAndStartsOff() throws Exception {
+        open(EnumSet.of(PatchFamily.FEED_SOUND));
+        android.preference.Preference row = page.getPreferenceScreen().findPreference(Settings.START_FEED_VIDEOS_ON_SILENT.key);
+        assertNotNull(row);
+        assertEquals("Even on silent", row.getTitle().toString());
+        assertFalse(Settings.START_FEED_VIDEOS_ON_SILENT.get());
+        PreferenceGroup feed = row.getParent();
+        String[] keys = new String[feed.getPreferenceCount()];
+        for (int i = 0; i < keys.length; i++) keys[i] = feed.getPreference(i).getKey();
+        assertEquals(Arrays.toString(keys), Settings.START_FEED_VIDEOS_WITH_SOUND.key,
+                keys[Arrays.asList(keys).indexOf(Settings.START_FEED_VIDEOS_ON_SILENT.key) - 1]);
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.START_FEED_VIDEOS_ON_SILENT.key));
+    }
     @Test public void theSwitchAloneStillMakesTheFeedSection() throws Exception {
         open(EnumSet.of(PatchFamily.FEED_SOUND));
         android.preference.Preference row = page.getPreferenceScreen().findPreference(Settings.START_FEED_VIDEOS_WITH_SOUND.key);

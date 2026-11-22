@@ -508,6 +508,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_start_feed_videos_with_sound", FALSE);
 
     /**
+     * {@link #START_FEED_VIDEOS_WITH_SOUND} leaves the phone's ringer out of it: on silent or vibrate the
+     * first feed video still starts with its sound, as long as the media volume is up
+     * ({@link app.hushgram.extension.instagram.feed.FeedSound}). Off to start (#762).
+     */
+    public static final BooleanSetting START_FEED_VIDEOS_ON_SILENT =
+            new BooleanSetting("hushgram_start_feed_videos_on_silent", FALSE, parent(START_FEED_VIDEOS_WITH_SOUND));
+
+    /**
      * Every feed video starts with its sound off, even with the account's audio state on, which Reels
      * share, so reels keep their sound and the feed stays quiet. The account's state is left alone.
      * Wins over {@link #START_FEED_VIDEOS_WITH_SOUND} when both are on. Off to start (#718).

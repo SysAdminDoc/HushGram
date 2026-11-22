@@ -2794,3 +2794,7 @@ Queued: @%1$s	已加入队列：@%1$s
 Not saved: %1$d saves are already waiting	未保存：已有 %1$d 个在等待
 # context: a waiting save's notification text and its line in Downloads (#792)
 Waiting for the saves before it	正在等待前面的保存
+# context: Feed settings: a switch under Start feed videos with sound that starts them with sound while the phone is on silent or vibrate too (#762)
+Even on silent	静音时也播放声音
+# context: Summary of Even on silent, a switch under Start feed videos with sound (#762)
+Feed videos start with sound with the phone on silent or vibrate too. Only the media volume counts.	手机处于静音或振动模式时，动态视频也会带声音开始播放。只看媒体音量.

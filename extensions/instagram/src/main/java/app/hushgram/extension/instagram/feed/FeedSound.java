@@ -30,8 +30,8 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * tap on the speaker sets, and the videos after the first start by that state (#504). A video you
  * mute with the speaker turns it off again, so the next one doesn't get its sound turned back on.
  * The phone's ringer and volume are respected: with the ringer on silent or vibrate, or the media
- * volume at zero, the answer is no and the video stays muted. A no doesn't use up the controller's
- * turn.
+ * volume at zero, the answer is no and the video stays muted. With Even on silent on, only the media
+ * volume counts (#762). A no doesn't use up the controller's turn.
  *
  * <p>The feed and Reels share the account's audio state, so a reel you unmute made the feed play with
  * sound too (#718). With Start feed videos muted on, the patch asks {@link #keepsMuted()} each time
@@ -69,7 +69,8 @@ public final class FeedSound {
             HookStatus.invoked(FamilyNames.FEED_SOUND);
             if (controller == null || !Utils.settingsReady() || !Settings.START_FEED_VIDEOS_WITH_SOUND.get()) return 0;
             if (Settings.START_FEED_VIDEOS_MUTED.get()) return 0;
-            if (!StorySound.phoneAllowsSound()) return 0;
+            boolean allowed = Settings.START_FEED_VIDEOS_ON_SILENT.get() ? StorySound.mediaVolumeUp() : StorySound.phoneAllowsSound();
+            if (!allowed) return 0;
             synchronized (FeedSound.class) {
                 if (!served.add(controller)) return 0;
             }
