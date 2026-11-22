@@ -67,6 +67,7 @@ Every HushGram release, newest first.
 * `Copy text in the story menu` is new under Stories. Copy text in a story's three-dot menu copies the words Instagram read in the picture, or opens Google Lens when it found none. Starts off. Asked for in #789.
 * `Full-size Reels icon` is new under Tab bar. Instagram's Reels icon is narrower than the others, so it looks small. This draws it a bit bigger to match, on top of your Tab icon size. Starts off. Asked for in #793.
 * **Tooling:** The GitHub release notes leave out the Tooling bullets and the What was checked part now. They're still here in the changelog, and Manager's notes keep their Validation line.
+* **Tooling:** Each patch test area starts a fresh test JVM every 10 classes. A fingerprint keeps its last match, so one JVM per area held every fixture build it patched and ran out of heap.
 
 ### Bug Fixes
 

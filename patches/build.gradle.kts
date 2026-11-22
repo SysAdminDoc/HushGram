@@ -1039,6 +1039,13 @@ val patchAreaTasks = patchTestAreas.map { area ->
         include("app/morphe/patches/instagram/$area/*Test.class", "app/morphe/patches/instagram/$area/**/*Test.class")
         reports.junitXml.outputLocation.set(layout.buildDirectory.dir("test-results/test/$area"))
         binaryResultsDirectory.set(layout.buildDirectory.dir("test-binary-results/$area"))
+        // A patcher Fingerprint is a static object that keeps its last match, and the match keeps the
+        // method it found and the dex it came from. Every class that patches a fixture build leaves
+        // its fingerprints holding that build, so one JVM for a whole area grows until it runs out
+        // of heap (the 0.0.22 release gate's direct area, 56 classes, failed 20 cases that way, and
+        // still 3 with a fork every 20, while NativePreviewChatsTest passes on its own). A fresh JVM
+        // every 10 classes lets those builds go.
+        forkEvery = 10L
         inputs.property("sourceTopology", "$areaMainTopology\n$areaTestTopology")
         val selectedPatterns = providers.provider {
             (tasks.named<Test>("test").get().filter as DefaultTestFilter).commandLineIncludePatterns.toList()
