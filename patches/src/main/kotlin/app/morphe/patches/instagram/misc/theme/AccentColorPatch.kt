@@ -129,6 +129,7 @@ val accentColorPatch = bytecodePatch(
         swapComposeSurfaces()
         swapDspColors()
         fillSecondaryButtons()
+        paintChatBackground()
         tintHeaderIcons()
         tintTabIcons()
         tintLithoIcons()

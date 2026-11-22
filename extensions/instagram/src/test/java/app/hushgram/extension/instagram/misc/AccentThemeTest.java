@@ -18,7 +18,10 @@ import android.graphics.Paint;
 import android.graphics.PixelFormat;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffColorFilter;
+import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
+import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.LayerDrawable;
 import android.util.TypedValue;
 import android.view.ContextThemeWrapper;
 
@@ -533,6 +536,78 @@ public class AccentThemeTest {
             AccentTheme.darkSurfacesForTests(null);
             AccentTheme.lightSurfacesForTests(null);
         }
+    }
+
+    /**
+     * An opened chat's default background, a bottom layer of Instagram's page black (or white on a light
+     * screen) under the chat's own layers, takes the painted page shade, and a chat theme of its own
+     * keeps its look (#528).
+     */
+    @Test
+    public void aChatsPageBlackBackgroundTakesThePageShade() {
+        int[] dark = {0xff101b2d, 0xff182030, 0xff203040};
+        int[] light = {0xfffafafa, 0xfff0f0f0, 0xffe8e8e8};
+        AccentTheme.darkSurfacesForTests(dark);
+        AccentTheme.lightSurfacesForTests(light);
+        try {
+            LayerDrawable off = chat(0xff000000);
+            AccentTheme.chatBackground(off);
+            assertEquals("the switches off", 0xff000000, bottom(off));
+
+            Settings.CLASSIC_COLORS.save(true);
+            LayerDrawable black = chat(0xff000000);
+            Drawable above = black.getDrawable(1);
+            AccentTheme.chatBackground(black);
+            assertEquals(dark[0], bottom(black));
+            assertEquals("the chat's own layer above it", above, black.getDrawable(1));
+            LayerDrawable instagramsBlack = chat(0xff0c1014);
+            AccentTheme.chatBackground(instagramsBlack);
+            assertEquals(dark[0], bottom(instagramsBlack));
+            LayerDrawable white = chat(0xffffffff);
+            AccentTheme.chatBackground(white);
+            assertEquals(light[0], bottom(white));
+            for (int own : new int[] {0xff3a1f5d, 0x80000000, 0xff191c1f}) {
+                LayerDrawable themed = chat(own);
+                AccentTheme.chatBackground(themed);
+                assertEquals("a chat theme's own color", own, bottom(themed));
+            }
+            Drawable gradient = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, new int[] {0xff000000, 0xff3a1f5d});
+            LayerDrawable pictured = new LayerDrawable(new Drawable[] {gradient});
+            AccentTheme.chatBackground(pictured);
+            assertEquals("a gradient", gradient, pictured.getDrawable(0));
+            AccentTheme.chatBackground(new ColorDrawable(0xff000000));
+            AccentTheme.chatBackground(new LayerDrawable(new Drawable[0]));
+            AccentTheme.chatBackground(null);
+
+            Settings.CLASSIC_COLORS.save(false);
+            Settings.ACCENT_COLOR.save(true);
+            Settings.ACCENT_HUE.save(AccentHue.PINK);
+            Settings.ACCENT_BACKGROUNDS.save(true);
+            LayerDrawable accent = chat(0xff000000);
+            AccentTheme.chatBackground(accent);
+            assertEquals("the accent's backgrounds", dark[0], bottom(accent));
+            LayerDrawable lightAccent = chat(0xffffffff);
+            AccentTheme.chatBackground(lightAccent);
+            assertEquals("a light page without Classic colors", 0xffffffff, bottom(lightAccent));
+
+            BaseSettings.PAUSED.save(true);
+            PauseForTests.pause(HushgramPause.Reason.SWITCH);
+            LayerDrawable paused = chat(0xff000000);
+            AccentTheme.chatBackground(paused);
+            assertEquals("paused", 0xff000000, bottom(paused));
+        } finally {
+            AccentTheme.darkSurfacesForTests(null);
+            AccentTheme.lightSurfacesForTests(null);
+        }
+    }
+
+    /** A chat's background the way Instagram builds it: the theme's color under a layer of its own. */
+    private static LayerDrawable chat(int color) {
+        return new LayerDrawable(new Drawable[] {new ColorDrawable(color), new GradientDrawable()});
+    }
+
+    private static int bottom(LayerDrawable layers) {
+        return ((ColorDrawable) layers.getDrawable(0)).getColor();
     }
 
     /** An attribute the theme doesn't hold, one holding a size or one that isn't opaque isn't a background of its own (#187). */

@@ -103,6 +103,7 @@ Every HushGram release, newest first.
 * With the wave `Seek bar shape`, the story you're watching no longer shows Instagram's straight bar running under the wave. The straight part now starts where the wave ends. Reported in #796.
 * `Ambient light` now glows around photo and carousel reels and reels Instagram plays on its own video layer, and fills the thin black bars above and below a reel. `Rounded corners on Reels` rounds photo reels too. Reported in #796.
 * With `Keep 2x after you let go`, the name over a feed video comes back when you let go, and the time readout goes away. Before, they stayed the way they look while you hold. Reported in #552.
+* With `Classic colors` or `Backgrounds in the accent color` on, an open chat takes your page color behind the messages instead of staying black. Chats with a theme of their own keep it. Reported in #528.
 
 ## 0.0.21 (2026-11-18)
 

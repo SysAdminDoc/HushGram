@@ -2605,6 +2605,13 @@ once-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->tabIcons(Ljava/la
 # SecondaryButtonsTest checks every build.
 shared-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->secondaryButtonFill(Landroid/content/Context;I)I in static (Landroid/content/Context;LX/*;)I holding const:0x7f06038b
 shared-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->secondaryButtonFill(Landroid/content/Context;I)I in instance (Landroid/content/Context;LX/*;)I holding const:0x7f060389
+# An opened chat paints the view behind its messages (id/thread_background_view_container) in one
+# method (04v3.A0D on 456's 386214574), which stacks its own layers over the chat theme's color and
+# hands the LayerDrawable to a static call taking a drawable, a view and an int. Accent color hands the
+# layers to AccentTheme.chatBackground right before that call. The id is 0x7f0b4205 on two of 456's
+# builds and 0x7f0b4206 on the other two, so the rule names the method's layer and hand-off calls.
+# Left out, a chat stays black under Classic colors' navy page (#528). ChatBackgroundTest checks every build.
+once-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->chatBackground(Landroid/graphics/drawable/Drawable;)V in instance (Landroid/view/View;IZ)V holding Landroid/graphics/drawable/LayerDrawable;->setLayerInset(IIIII)V LX/*;->*(Landroid/graphics/drawable/Drawable;Landroid/view/View;I)V
 # The unread dot on the Messages folder chips (Primary, Requests) is Compose, a background whose color
 # the chip content (0F24.invoke on 386014758, 0YXX.invoke on 386014704) reads from a static palette
 # object, so no theme style reaches it. Accent color hands that one color to AccentTheme.composeBadge
