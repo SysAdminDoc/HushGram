@@ -19,6 +19,7 @@ import android.view.View;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.SeekBar;
+import android.widget.TextView;
 
 import org.junit.After;
 import org.junit.Before;
@@ -105,6 +106,8 @@ public class StorySeekBarTest {
         Settings.STORY_SEEK_BAR.resetToDefault();
         Settings.STORY_SEEK_BAR_LOOK.resetToDefault();
         Settings.STORY_SEEK_BAR_POSITION.resetToDefault();
+        Settings.STORY_SEEK_TIME.resetToDefault();
+        Settings.STORY_SEEK_TIME_LEFT.resetToDefault();
         HookStatus.clear();
     }
 
@@ -114,6 +117,8 @@ public class StorySeekBarTest {
         Settings.STORY_SEEK_BAR.resetToDefault();
         Settings.STORY_SEEK_BAR_LOOK.resetToDefault();
         Settings.STORY_SEEK_BAR_POSITION.resetToDefault();
+        Settings.STORY_SEEK_TIME.resetToDefault();
+        Settings.STORY_SEEK_TIME_LEFT.resetToDefault();
         Settings.SEEK_BAR_SHAPE.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
@@ -742,6 +747,118 @@ public class StorySeekBarTest {
     }
 
     /** The bar's own drag callbacks, as a finger on it gives them. */
+    private static TextView time() {
+        TextView time = StorySeekBar.timeForTests();
+        assertNotNull("the bar has its time", time);
+        return time;
+    }
+
+    /**
+     * #784: the time sits at the start of the bar, over the bar's box, and follows the video and a
+     * drag. A tap on it counts down what's left, and another tap counts up again.
+     */
+    @Test
+    public void theTimeSitsAtTheBarsStartAndATapCountsWhatsLeft() {
+        Settings.STORY_SEEK_BAR.save(true);
+        Settings.STORY_SEEK_TIME.save(true);
+        StorySeekBar.resumed(viewer);
+        idle();
+        SeekBar bar = bar();
+        TextView time = time();
+        assertSame(content, time.getParent());
+        assertEquals("right after the bar", content.indexOfChild(bar) + 1, content.indexOfChild(time));
+        FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) time.getLayoutParams();
+        assertEquals(Gravity.BOTTOM | Gravity.START, params.gravity);
+        assertEquals("over the 32 pixel bar on the 120 pixel box", 120 + 32 + 2, params.bottomMargin);
+        assertTrue("in from the edge", params.getMarginStart() >= 8);
+        assertEquals(View.VISIBLE, time.getVisibility());
+        assertEquals("0:03 / 0:15", time.getText().toString());
+
+        player.position = 9000;
+        tick();
+        assertEquals("0:09 / 0:15", time.getText().toString());
+
+        assertTrue(time.performClick());
+        assertTrue(Settings.STORY_SEEK_TIME_LEFT.get());
+        assertEquals("-0:06 / 0:15", time.getText().toString());
+        assertTrue(player.calls.isEmpty());
+
+        Listener drag = new Listener(bar);
+        drag.start();
+        bar.setProgress(12000);
+        assertEquals("a drag moves it too", "-0:03 / 0:15", time.getText().toString());
+        drag.stop();
+
+        assertTrue(time.performClick());
+        assertFalse(Settings.STORY_SEEK_TIME_LEFT.get());
+        assertEquals("0:12 / 0:15", time.getText().toString());
+    }
+
+    /**
+     * #784: with the bar placed under the story's bottom row there's no room for the time beside it,
+     * so the time goes over the row, lifted with it, and back over the bar once that's above again.
+     */
+    @Test
+    public void belowTheTimeGoesOverTheRowAndRidesItsLift() {
+        View footer = rowOver(10);
+        Settings.STORY_SEEK_BAR_POSITION.save(StorySeekBarPosition.BELOW);
+        Settings.STORY_SEEK_BAR.save(true);
+        Settings.STORY_SEEK_TIME.save(true);
+        StorySeekBar.resumed(viewer);
+        idle();
+        assertEquals(-6f, footer.getTranslationY(), 0f);
+        assertEquals("the bar under the row", 0, margin(bar()));
+        FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) time().getLayoutParams();
+        assertEquals("over the 181 pixel row 10 up, lifted 6", 10 + 181 + 6 + 2, params.bottomMargin);
+
+        Settings.STORY_SEEK_BAR_POSITION.save(StorySeekBarPosition.ABOVE);
+        tick();
+        idle();
+        assertEquals(191, margin(bar()));
+        params = (FrameLayout.LayoutParams) time().getLayoutParams();
+        assertEquals("over the bar again", 191 + 32 + 2, params.bottomMargin);
+    }
+
+    /** #784: the time goes with its switch, hides with the bar on a photo, and leaves with the viewer. */
+    @Test
+    public void theTimeGoesWithItsSwitchAPhotoAndTheViewer() {
+        Settings.STORY_SEEK_BAR.save(true);
+        StorySeekBar.resumed(viewer);
+        idle();
+        assertNull("off to start", StorySeekBar.timeForTests());
+        assertEquals("the viewer and its bar", 2, content.getChildCount());
+
+        Settings.STORY_SEEK_TIME.save(true);
+        tick();
+        TextView time = time();
+        assertEquals(View.VISIBLE, time.getVisibility());
+
+        player.duration = -1;
+        tick();
+        assertEquals("a photo has no time", View.GONE, time.getVisibility());
+        player.duration = 15000;
+        tick();
+        assertEquals(View.VISIBLE, time.getVisibility());
+
+        Settings.STORY_SEEK_TIME.save(false);
+        tick();
+        assertNull(StorySeekBar.timeForTests());
+        assertNull("taken out of the frame", time.getParent());
+
+        Settings.STORY_SEEK_TIME.save(true);
+        tick();
+        time = time();
+        Settings.STORY_SEEK_BAR.save(false);
+        tick();
+        assertEquals("the bar off takes the time too", View.GONE, time.getVisibility());
+
+        Settings.STORY_SEEK_BAR.save(true);
+        tick();
+        StorySeekBar.paused(viewer);
+        assertNull("gone with the viewer", time.getParent());
+        assertEquals(1, content.getChildCount());
+    }
+
     private static final class Listener {
         private final SeekBar bar;
 

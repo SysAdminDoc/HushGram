@@ -45,6 +45,7 @@ Every HushGram release, newest first.
 * In Manager's Expert mode the six comment patches have a Comments group of their own now, like the Comments page in HushGram settings, and `HushGram launch screen` moved to Settings. Interaction and Interface were getting too long to scan.
 * `Keep the tab bar on reel links` is new under Reels. A reel link you open from another app, like WhatsApp, plays on the tab you were on with the tab bar under it, so the seek bar sits up where your thumb reaches. It works when Instagram was closed too, and Back takes you to that tab. It starts off. Asked for in #385.
 * `Blocked words` under `Hide reels by caption words` takes an @name too, like `@cnn`. That account's reels leave the Reels tab, and with `Also on Home` on its posts leave Home as well. Asked for in #807.
+* `Time on the seek bar` is new under `Seek bar on stories`. It shows the time played and the story's length at the start of the bar, like 0:03 / 0:15, and a tap on it (or `Show the time left`) counts down what's left instead. Asked for in #784.
 * **Tooling:** The GitHub release notes leave out the Tooling bullets and the What was checked part now. They're still here in the changelog, and Manager's notes keep their Validation line.
 
 ### Bug Fixes
@@ -58,6 +59,7 @@ Every HushGram release, newest first.
 * With `Ask for VP9 instead of AV1` on, a post or reel that Instagram still hands over as AV1 now saves as VP9 from Instagram's website when the website has it. HushGram asks the website logged out and sends only the post's number. Stories can still come as AV1, and `Convert to keep the full size` turns those into H.264. Reported in #546.
 * Letting go after `Hold for 2x on feed videos` no longer pauses the video when `Tap a feed video to pause it` is on too.
 * The tags and sound buttons on a feed video now move up above its seek bar while the bar shows, so they don't cover its ends, and the seek bar's toggle button lines up beside them instead of on top of the tags button. Reported in #794.
+* An exported settings file now keeps `Time on the seek bar` and `Show the time left` for feed videos too.
 * The `Show if a profile follows you` label no longer lands on top of the post count on profiles with no name.
 * `Glass in chats` keeps the message bar's glass when Instagram switches the bar to its newer layout, and `Message bar tint` works on it again. Reported in #759.
 * Messages in a chat no longer jump and snap back while you type a long message with `Glass in chats` on. Reported in #757.

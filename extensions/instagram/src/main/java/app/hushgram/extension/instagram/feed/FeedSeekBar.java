@@ -153,16 +153,19 @@ public final class FeedSeekBar {
 
     /**
      * The time over the bar: the time played, past the end counted as the end, and the length, "0:12 / 0:45",
-     * or with [left] the time still to go, "-0:33 / 0:45".
+     * or with [left] the time still to go, "-0:33 / 0:45". The story seek bar's time reads it too (#784).
      */
-    static String timeText(int at, int length, boolean left) {
+    public static String timeText(int at, int length, boolean left) {
         int played = Math.max(0, Math.min(at, length));
         String total = SeekPreview.time(Math.max(0, length));
         return (left ? "-" + SeekPreview.time(length - played) : SeekPreview.time(played)) + " / " + total;
     }
 
-    /** The time's label, white bold text with a shadow over the video, a tap on it flipping what it counts. */
-    static TextView timeLabel(Context context) {
+    /**
+     * The time's label, white bold text with a shadow over the video, a tap on it flipping what it counts.
+     * The story seek bar's time is one too (#784).
+     */
+    public static TextView timeLabel(Context context) {
         float density = context.getResources().getDisplayMetrics().density;
         int gap = Math.round(4 * density);
         TextView label = new TextView(context);

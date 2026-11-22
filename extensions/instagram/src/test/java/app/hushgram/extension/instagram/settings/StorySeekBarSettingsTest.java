@@ -80,11 +80,20 @@ public class StorySeekBarSettingsTest {
         assertEquals(Arrays.toString(keys), Settings.STORY_BAR_THICKNESS.key, keys[at - 1]);
         assertEquals("its look right under it", Settings.STORY_SEEK_BAR_LOOK.key, keys[at + 1]);
         assertEquals("then its position (#636)", Settings.STORY_SEEK_BAR_POSITION.key, keys[at + 2]);
-        assertEquals(Arrays.toString(keys), Settings.BLOCK_STORY_AUTO_ADVANCE.key, keys[at + 3]);
+        assertEquals("then its time (#784)", Settings.STORY_SEEK_TIME.key, keys[at + 3]);
+        assertEquals("and the time left", Settings.STORY_SEEK_TIME_LEFT.key, keys[at + 4]);
+        assertEquals(Arrays.toString(keys), Settings.BLOCK_STORY_AUTO_ADVANCE.key, keys[at + 5]);
+        Preference time = stories.getPreference(at + 3);
+        assertEquals("Time on the seek bar", time.getTitle().toString());
+        assertEquals("Shows the time played and the story's length at the start of its seek bar, like 0:03 / 0:15. "
+                + "Tap the time to see the time left instead.", time.getSummary().toString());
+        assertFalse(((SwitchPreference) time).isChecked());
 
         ((SwitchPreference) row).setChecked(true);
         assertTrue(Settings.STORY_SEEK_BAR.get());
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.STORY_SEEK_BAR.key));
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.STORY_SEEK_TIME.key));
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.STORY_SEEK_TIME_LEFT.key));
     }
     @Test public void aSavedSwitchAnswersOffWhilePaused() throws Exception {
         open(EnumSet.of(PatchFamily.STORY_SEEK_BAR));

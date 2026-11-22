@@ -873,7 +873,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     belongs |= family == PatchFamily.FEED_SEEK_BAR && (Settings.FEED_SEEK_BAR_LOOK.key.equals(key)
                             || Settings.SEEK_BAR_SHAPE.key.equals(key)
                             || Settings.FEED_SEEK_SHAPE.key.equals(key)
-                            || Settings.FEED_DOUBLE_TAP_SKIP_SECONDS.key.equals(key));
+                            || Settings.FEED_DOUBLE_TAP_SKIP_SECONDS.key.equals(key)
+                            || Settings.FEED_SEEK_TIME.key.equals(key) || Settings.FEED_SEEK_TIME_LEFT.key.equals(key));
                     belongs |= family == PatchFamily.REEL_DOUBLE_TAP_SKIP
                             && Settings.DOUBLE_TAP_SKIP_REELS_SECONDS.key.equals(key);
                     belongs |= family == PatchFamily.FEED_AUTO_SCROLL && Settings.FEED_AUTO_SCROLL_SECONDS.key.equals(key);
@@ -881,7 +882,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     belongs |= family == PatchFamily.MEDIA_CACHE && (Settings.MEDIA_CACHE_LIMIT_MB.key.equals(key)
                             || CLEAR_MEDIA_CACHE_NOW.equals(key));
                     belongs |= family == PatchFamily.STORY_SEEK_BAR && (Settings.STORY_SEEK_BAR_LOOK.key.equals(key)
-                            || Settings.STORY_SEEK_BAR_POSITION.key.equals(key));
+                            || Settings.STORY_SEEK_BAR_POSITION.key.equals(key)
+                            || Settings.STORY_SEEK_TIME.key.equals(key) || Settings.STORY_SEEK_TIME_LEFT.key.equals(key));
                     belongs |= family == PatchFamily.REEL_POST_TIME && (Settings.REEL_POST_TIME_SECONDS.key.equals(key)
                             || Settings.REEL_POST_TIME_AGO.key.equals(key));
                     belongs |= family == PatchFamily.FRIENDSHIP_STATUS && Settings.FOLLOW_LABEL_PLACE.key.equals(key);

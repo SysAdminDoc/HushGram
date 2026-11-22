@@ -1634,6 +1634,20 @@ public class Settings extends BaseSettings {
             new EnumSetting<>("hushgram_story_seek_bar_position", StorySeekBarPosition.ABOVE, parent(STORY_SEEK_BAR));
 
     /**
+     * The time played and the story's length at the start of {@link #STORY_SEEK_BAR}'s bar, "0:03 / 0:15"
+     * (#784, {@link app.hushgram.extension.instagram.stories.StorySeekBar}). Read as the bar updates. Off to start.
+     */
+    public static final BooleanSetting STORY_SEEK_TIME =
+            new BooleanSetting("hushgram_story_seek_bar_time", FALSE, parent(STORY_SEEK_BAR));
+
+    /**
+     * The time on the story seek bar counts down what's left, "-0:12 / 0:15" (#784). A tap on the time
+     * flips it. Off to start.
+     */
+    public static final BooleanSetting STORY_SEEK_TIME_LEFT =
+            new BooleanSetting("hushgram_story_seek_bar_time_left", FALSE, parent(STORY_SEEK_TIME));
+
+    /**
      * A speed button in a video story's header that plays it at 1x, 1.5x or 2x, kept for the next
      * video stories until Instagram restarts
      * ({@link app.hushgram.extension.instagram.stories.StorySpeed}, #469). The speed lives in memory

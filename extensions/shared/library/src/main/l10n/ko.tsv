@@ -56,6 +56,7 @@ Ask to unlock	잠금 해제 요청
 Saved to %1$s in lower quality because storage is low	저장 공간이 부족해 %1$s에 낮은 화질로 저장했습니다
 Saved to the gallery in lower quality because storage is low	저장 공간이 부족해 낮은 화질로 갤러리에 저장했습니다
 Sending a message in a chat lets the other person see that you've read what they sent before it. Chats you don't answer stay unseen to them.	채팅에서 메시지를 보내면 상대가 그 이전에 보낸 메시지를 읽었다는 것을 볼 수 있습니다. 답하지 않은 채팅은 상대에게 읽지 않은 상태로 남습니다.
+Shows the time played and the story's length at the start of its seek bar, like 0:03 / 0:15. Tap the time to see the time left instead.	스토리 탐색 막대의 시작 부분에 재생한 시간과 스토리 길이를 0:03 / 0:15처럼 표시합니다. 시간을 탭하면 남은 시간이 표시됩니다.
 That's as far back as this chat goes.	이 채팅은 여기까지입니다.
 These settings are locked. Tap to start the %1$s wait, then they open for 10 minutes.	이 설정은 잠겨 있습니다. 탭하면 %1$s 대기가 시작되고, 끝나면 10분 동안 열립니다.
 Unlock asked	잠금 해제 요청됨

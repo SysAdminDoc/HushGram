@@ -260,6 +260,8 @@ public final class ConfigurationBackup {
             settings.put(Settings.SEEK_BAR_SHAPE.key, Settings.SEEK_BAR_SHAPE);
             settings.put(Settings.FEED_SEEK_SHAPE.key, Settings.FEED_SEEK_SHAPE);
             settings.put(Settings.FEED_DOUBLE_TAP_SKIP_SECONDS.key, Settings.FEED_DOUBLE_TAP_SKIP_SECONDS);
+            settings.put(Settings.FEED_SEEK_TIME.key, Settings.FEED_SEEK_TIME);
+            settings.put(Settings.FEED_SEEK_TIME_LEFT.key, Settings.FEED_SEEK_TIME_LEFT);
         }
         if (PatchFamily.REEL_DOUBLE_TAP_SKIP.inBuild()) {
             settings.put(Settings.DOUBLE_TAP_SKIP_REELS_SECONDS.key, Settings.DOUBLE_TAP_SKIP_REELS_SECONDS);
@@ -270,6 +272,8 @@ public final class ConfigurationBackup {
         if (PatchFamily.STORY_SEEK_BAR.inBuild()) {
             settings.put(Settings.STORY_SEEK_BAR_LOOK.key, Settings.STORY_SEEK_BAR_LOOK);
             settings.put(Settings.STORY_SEEK_BAR_POSITION.key, Settings.STORY_SEEK_BAR_POSITION);
+            settings.put(Settings.STORY_SEEK_TIME.key, Settings.STORY_SEEK_TIME);
+            settings.put(Settings.STORY_SEEK_TIME_LEFT.key, Settings.STORY_SEEK_TIME_LEFT);
         }
         if (PatchFamily.FRIENDSHIP_STATUS.inBuild()) settings.put(Settings.FOLLOW_LABEL_PLACE.key, Settings.FOLLOW_LABEL_PLACE);
         if (PatchFamily.FULL_SCREEN_BARS.inBuild()) settings.put(Settings.FULL_SCREEN_HIDES.key, Settings.FULL_SCREEN_HIDES);

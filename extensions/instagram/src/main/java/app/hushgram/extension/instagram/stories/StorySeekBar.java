@@ -12,6 +12,7 @@ import android.view.ViewGroup;
 import android.view.WindowInsets;
 import android.widget.FrameLayout;
 import android.widget.SeekBar;
+import android.widget.TextView;
 
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
@@ -22,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
 
+import app.hushgram.extension.instagram.feed.FeedSeekBar;
 import app.hushgram.extension.instagram.feed.GlassSeekBar;
 import app.hushgram.extension.instagram.feed.SeekPreview;
 import app.hushgram.extension.instagram.feed.SeekShapes;
@@ -108,6 +110,14 @@ public final class StorySeekBar {
 
     static final String HOOK = "story seek bar";
     static final String COUNT_SEEKS = "story seeks";
+    static final String COUNT_TIME_FLIPS = "story seek time flips";
+
+    /**
+     * The time (#784) sits at the start of the bar, this far in at least, in dp, and this far above
+     * the bar's box, or above the story's bottom row when the bar is placed under it.
+     */
+    static final int TIME_START_DP = 8;
+    static final int TIME_GAP_DP = 2;
 
     /** The viewer's player, through the patch's stubs; tests stand in. */
     interface Player {
@@ -143,6 +153,11 @@ public final class StorySeekBar {
     /** Whether the bar shows now: the switch on, HushGram not paused, the settings read. */
     static boolean wanted() {
         return Utils.settingsReady() && Settings.STORY_SEEK_BAR.get();
+    }
+
+    /** Whether the time shows at the start of a showing bar (#784): its switch on as well. */
+    static boolean timeWanted() {
+        return wanted() && Settings.STORY_SEEK_TIME.get();
     }
 
     /** Called by the story viewer's onResume, on the main thread, with the viewer. */
@@ -210,6 +225,13 @@ public final class StorySeekBar {
     }
 
     @VisibleForTesting
+    @Nullable
+    static TextView timeForTests() {
+        Overlay overlay = current;
+        return overlay == null ? null : overlay.time;
+    }
+
+    @VisibleForTesting
     static void resetForTests() {
         Overlay overlay = current;
         if (overlay != null) overlay.remove();
@@ -243,6 +265,9 @@ public final class StorySeekBar {
          */
         final Map<View, Float> lifted = new WeakHashMap<>();
         int liftedBy;
+        /** The time at the start of the bar (#784), while its switch is on, and how far up it sits. */
+        @Nullable TextView time;
+        int timeBottom;
 
         Overlay(Object viewer) {
             this.viewer = new WeakReference<>(viewer);
@@ -292,6 +317,7 @@ public final class StorySeekBar {
             }
             place(owner, seek);
             if (seek.getVisibility() != View.VISIBLE) seek.setVisibility(View.VISIBLE);
+            showTime(seek);
         }
 
         /**
@@ -351,6 +377,7 @@ public final class StorySeekBar {
             forget();
             lift(new ArrayList<>(), 0);
             if (bar != null && bar.getVisibility() != View.GONE) bar.setVisibility(View.GONE);
+            if (time != null && time.getVisibility() != View.GONE) time.setVisibility(View.GONE);
             if (dragging) {
                 dragging = false;
                 resume(owner);
@@ -404,11 +431,12 @@ public final class StorySeekBar {
             int bottom = dp(seek, BOTTOM_DP);
             ArrayList<View> rows = new ArrayList<>();
             int lift = 0;
+            int highest = 0;
+            boolean underRows = false;
             if (parent.getHeight() > 0) {
                 findAnchors(owner, parent);
                 int[] frame = new int[2];
                 parent.getLocationInWindow(frame);
-                int highest = 0;
                 int under = -1;
                 for (int i = 0; i < ANCHORS.length; i++) {
                     View box = anchors[i] == null ? null : anchors[i].get();
@@ -440,14 +468,18 @@ public final class StorySeekBar {
                     if (room >= least) {
                         height = Math.min(height, room);
                         bottom = covered + (room - height) / 2;
+                        underRows = true;
                     } else if (under >= hidden) {
                         lift = least - room;
                         height = least;
                         bottom = covered;
+                        underRows = true;
                     }
                 }
             }
             lift(outermost(rows), lift);
+            // Under the rows there's no room for the time, so it goes over them, where they'll be after the lift.
+            timeBottom = (underRows ? highest + lift : bottom + height) + dp(seek, TIME_GAP_DP);
             FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) seek.getLayoutParams();
             if (params.bottomMargin != bottom || params.height != height) {
                 params.bottomMargin = bottom;
@@ -542,9 +574,75 @@ public final class StorySeekBar {
             }
         }
 
+        /**
+         * Puts the time at the start of [seek] (#784), {@link #timeBottom} up, the text's start where the
+         * bar's line starts, or takes it away with its switch off.
+         */
+        private void showTime(SeekBar seek) {
+            if (!timeWanted()) {
+                removeTime();
+                return;
+            }
+            ViewGroup parent = (ViewGroup) seek.getParent();
+            if (parent == null) return;
+            TextView shown = time;
+            if (shown == null) {
+                shown = FeedSeekBar.timeLabel(seek.getContext());
+                shown.setOnClickListener(clicked -> flipTime());
+                time = shown;
+            }
+            if (shown.getParent() != parent) {
+                if (shown.getParent() != null) ((ViewGroup) shown.getParent()).removeView(shown);
+                parent.addView(shown, parent.indexOfChild(seek) + 1, new FrameLayout.LayoutParams(
+                        ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT,
+                        Gravity.BOTTOM | Gravity.START));
+            }
+            int start = Math.max(dp(seek, TIME_START_DP), seek.getPaddingStart() - shown.getPaddingStart());
+            FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) shown.getLayoutParams();
+            if (params.bottomMargin != timeBottom || params.getMarginStart() != start) {
+                params.bottomMargin = timeBottom;
+                params.setMarginStart(start);
+                shown.setLayoutParams(params);
+            }
+            if (shown.getVisibility() != View.VISIBLE) shown.setVisibility(View.VISIBLE);
+            showTimeAt(seek.getProgress());
+        }
+
+        /** Writes the time at [at] into the label, when there is one. */
+        private void showTimeAt(int at) {
+            TextView shown = time;
+            SeekBar seek = bar;
+            if (shown == null || seek == null) return;
+            String text = FeedSeekBar.timeText(at, seek.getMax(), Settings.STORY_SEEK_TIME_LEFT.get());
+            if (!text.contentEquals(shown.getText())) shown.setText(text);
+        }
+
+        /** A tap on the time flips it between the time played and the time left, through its own switch. */
+        private void flipTime() {
+            try {
+                if (removed || !timeWanted()) return;
+                Settings.STORY_SEEK_TIME_LEFT.save(!Settings.STORY_SEEK_TIME_LEFT.get());
+                HookStatus.counted(FamilyNames.STORY_SEEK_BAR, COUNT_TIME_FLIPS);
+                SeekBar seek = bar;
+                if (seek != null) showTimeAt(seek.getProgress());
+            } catch (Throwable failure) {
+                HookStatus.threw(FamilyNames.STORY_SEEK_BAR, HOOK, failure);
+            }
+        }
+
+        private void removeTime() {
+            TextView shown = time;
+            time = null;
+            if (shown == null) return;
+            shown.setOnClickListener(null);
+            ViewGroup parent = (ViewGroup) shown.getParent();
+            if (parent != null) parent.removeView(shown);
+        }
+
         void remove() {
             removed = true;
             lift(new ArrayList<>(), 0);
+            removeTime();
             SeekBar seek = bar;
             bar = null;
             if (seek != null) {
@@ -574,6 +672,7 @@ public final class StorySeekBar {
         @Override
         public void onProgressChanged(SeekBar seek, int progress, boolean fromUser) {
             if (fromUser && dragging) SeekPreview.dragged(seek, progress, null, StorySpeed.current(), FamilyNames.STORY_SEEK_BAR);
+            showTimeAt(progress);
         }
 
         @Override

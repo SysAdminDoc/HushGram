@@ -55,6 +55,7 @@ Ask to unlock	Kilidi açmayı iste
 Saved to %1$s in lower quality because storage is low	Depolama alanı azaldığı için %1$s konumuna daha düşük kaliteyle kaydedildi
 Saved to the gallery in lower quality because storage is low	Depolama alanı azaldığı için galeriye daha düşük kaliteyle kaydedildi
 Sending a message in a chat lets the other person see that you've read what they sent before it. Chats you don't answer stay unseen to them.	Bir sohbette mesaj göndermen, karşı tarafın öncesinde yazdıklarını okuduğunu görmesini sağlar. Yanıtlamadığın sohbetler onlar için görülmemiş kalır.
+Shows the time played and the story's length at the start of its seek bar, like 0:03 / 0:15. Tap the time to see the time left instead.	Hikayenin oynatılan süresini ve uzunluğunu ilerleme çubuğunun başında gösterir, örneğin 0:03 / 0:15. Kalan süreyi görmek için süreye dokun.
 That's as far back as this chat goes.	Sohbet bundan öteye gitmiyor.
 These settings are locked. Tap to start the %1$s wait, then they open for 10 minutes.	Bu ayarlar kilitli. %1$s beklemeyi başlatmak için dokun, sonra 10 dakika açık kalırlar.
 Unlock asked	Kilit açma istendi

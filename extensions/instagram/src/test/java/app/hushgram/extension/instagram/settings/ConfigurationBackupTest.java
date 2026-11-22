@@ -125,6 +125,15 @@ public class ConfigurationBackupTest {
         assertNotNull("the file it wrote opens again", ConfigurationBackup.restore(ConfigurationBackup.export()));
     }
 
+    /** #711 and #784: the time switches under both seek bars go in the backup with the bars' other choices. */
+    @Test public void theSeekBarsTimeSwitchesAreBackedUp() {
+        java.util.Map<String, ?> settings = ConfigurationBackup.eligible();
+        assertTrue(settings.containsKey(Settings.FEED_SEEK_TIME.key));
+        assertTrue(settings.containsKey(Settings.FEED_SEEK_TIME_LEFT.key));
+        assertTrue(settings.containsKey(Settings.STORY_SEEK_TIME.key));
+        assertTrue(settings.containsKey(Settings.STORY_SEEK_TIME_LEFT.key));
+    }
+
     @Test public void exportUsesSavedChoicesAndOnlyInstalledControls() throws Exception {
         Settings.HIDE_ADS.save(true);
         Settings.SIGN_IN_NOTICE_HIDDEN.save(true);
