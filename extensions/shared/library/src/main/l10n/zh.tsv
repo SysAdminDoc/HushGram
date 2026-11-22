@@ -2180,6 +2180,9 @@ Takes the "Made with Edits" label out of the line under a post's author. The son
 # context: "Sponsored" and "Paid partnership" are Instagram's own labels on feed posts; use the text Instagram shows in this language (#771)
 Hide the line under names	隐藏名称下方那一行
 Takes the song, the place and the other labels off the line under the name on posts in your feed. Sponsored and Paid partnership stay. Posts already on screen change when they load again.	移除动态中帖子名称下方那一行的歌曲、地点和其他标签。“赞助内容”和“付费合作”会保留。屏幕上已有的帖子会在重新加载时改变。
+# context: a switch under Hide the line under names in HushGram's Feed settings
+Keep the place	保留地点
+Leaves the place on the line under names, on its own, so it stays put instead of taking turns with the song.	名称下方那一行只留下地点，所以会固定不动，不再和歌曲轮流显示。
 # context: "Sponsored" and "Paid partnership" are Instagram's own labels on reels; use the text Instagram shows in this language (#771)
 Hide the line under names on reels	隐藏 Reels 名称下方那一行
 Takes the song, the place and the other labels off the line under the name on reels. Sponsored and Paid partnership stay. Reels already on screen change when they load again.	移除 Reels 名称下方那一行的歌曲、地点和其他标签。“赞助内容”和“付费合作”会保留。屏幕上已有的 Reels 会在重新加载时改变。

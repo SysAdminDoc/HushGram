@@ -46,6 +46,7 @@ public class HeaderLineSettingsTest {
         if (controller != null) controller.close();
         Utils.awaitBackgroundTasksForTests();
         PatchFamily.inBuildForTests = null;
+        Settings.KEEP_FEED_HEADER_PLACE.resetToDefault();
         Settings.HIDE_FEED_HEADER_LINE.resetToDefault();
         Settings.HIDE_REEL_HEADER_LINE.resetToDefault();
         BaseSettings.PAUSED.save(false);
@@ -87,10 +88,31 @@ public class HeaderLineSettingsTest {
         assertFalse(row.isChecked());
         assertFalse(Settings.HIDE_FEED_HEADER_LINE.get());
         assertFalse("each header reads the switch as it's built, so no restart prompt", Settings.HIDE_FEED_HEADER_LINE.rebootApp);
-        assertEquals(Arrays.asList(Settings.HIDE_FEED_HEADER_LINE, Settings.HIDE_REEL_HEADER_LINE), PatchFamily.FEED_HEADER_LINE.switches);
+        assertEquals(Arrays.asList(Settings.HIDE_FEED_HEADER_LINE, Settings.KEEP_FEED_HEADER_PLACE, Settings.HIDE_REEL_HEADER_LINE),
+                PatchFamily.FEED_HEADER_LINE.switches);
         assertEquals("Hide the line under names", PatchFamily.FEED_HEADER_LINE.patchName);
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.HIDE_FEED_HEADER_LINE.key));
     }
+    /** #771: Keep the place sits right under the switch it goes with, off to start, and rests until that one is on. */
+    @Test public void keepThePlaceSitsUnderTheLineSwitch() throws Exception {
+        open(EnumSet.of(PatchFamily.FULL_SCREEN_BARS, PatchFamily.EDITS_LABEL, PatchFamily.FEED_HEADER_LINE));
+        SwitchPreference line = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.HIDE_FEED_HEADER_LINE.key);
+        SwitchPreference place = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.KEEP_FEED_HEADER_PLACE.key);
+        assertNotNull(place);
+        assertEquals("Keep the place", place.getTitle().toString());
+        assertEquals("Leaves the place on the line under names, on its own, so it stays put instead of taking turns "
+                + "with the song.", place.getSummary().toString());
+        assertSame(line.getParent(), place.getParent());
+        assertEquals(line.getOrder() + 1, place.getOrder());
+        assertFalse(place.isChecked());
+        assertFalse(Settings.KEEP_FEED_HEADER_PLACE.get());
+        assertFalse("each header reads it as it's built, so no restart prompt", Settings.KEEP_FEED_HEADER_PLACE.rebootApp);
+        assertFalse("it rests while the line shows", Settings.KEEP_FEED_HEADER_PLACE.isAvailable());
+        Settings.HIDE_FEED_HEADER_LINE.save(true);
+        assertTrue(Settings.KEEP_FEED_HEADER_PLACE.isAvailable());
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.KEEP_FEED_HEADER_PLACE.key));
+    }
+
     /** The reel switch sits in Reels with the same patch, before Clean up Reels' rows, off to start. */
     @Test public void reelSwitchStartsOffInReelsBeforeCleanUp() throws Exception {
         open(EnumSet.of(PatchFamily.FEED_HEADER_LINE, PatchFamily.LOW_VIEW_REELS, PatchFamily.REEL_DECLUTTER));

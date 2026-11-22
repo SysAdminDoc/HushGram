@@ -383,6 +383,9 @@ final class FeedCategory {
                     L10n.t("Takes the song, the place and the other labels off the line under the "
                             + "name on posts in your feed. Sponsored and Paid partnership stay. Posts already on screen "
                             + "change when they load again.")));
+            feed.addPreference(toggle(context, Settings.KEEP_FEED_HEADER_PLACE, L10n.t("Keep the place"),
+                    L10n.t("Leaves the place on the line under names, on its own, so it stays put instead of "
+                            + "taking turns with the song.")));
         }
         if (homeReels) {
             feed.addPreference(toggle(context, Settings.HOME_REELS_BELOW_NAME, L10n.t("Reels on Home below the name"),

@@ -2176,6 +2176,9 @@ Takes the "Made with Edits" label out of the line under a post's author. The son
 # context: "Sponsored" and "Paid partnership" are Instagram's own labels on feed posts; use the text Instagram shows in this language (#771)
 Hide the line under names	이름 아래 줄 숨기기
 Takes the song, the place and the other labels off the line under the name on posts in your feed. Sponsored and Paid partnership stay. Posts already on screen change when they load again.	피드 게시물에서 이름 아래 줄의 노래, 장소 및 기타 표시를 없앱니다. '광고'와 '유료 광고 포함'은 그대로 둡니다. 이미 화면에 있는 게시물은 다시 불러올 때 바뀝니다.
+# context: a switch under Hide the line under names in HushGram's Feed settings
+Keep the place	장소 유지
+Leaves the place on the line under names, on its own, so it stays put instead of taking turns with the song.	이름 아래 줄에 장소만 남겨서 노래와 번갈아 바뀌지 않고 그대로 있게 합니다.
 # context: "Sponsored" and "Paid partnership" are Instagram's own labels on reels; use the text Instagram shows in this language (#771)
 Hide the line under names on reels	릴스의 이름 아래 줄 숨기기
 Takes the song, the place and the other labels off the line under the name on reels. Sponsored and Paid partnership stay. Reels already on screen change when they load again.	릴스에서 이름 아래 줄의 노래, 장소 및 기타 표시를 없앱니다. '광고'와 '유료 광고 포함'은 그대로 둡니다. 이미 화면에 있는 릴스는 다시 불러올 때 바뀝니다.

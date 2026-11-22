@@ -29,7 +29,8 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * when there are two or more. Instagram decides that from a list of label kinds (an enum whose
  * constants keep their own names, LOCATION, CLIPS_AUDIO_ATTRIBUTION, MUSIC_ATTRIBUTION and the rest)
  * while it builds the post's header: two or more slide, one stays put, none gives the header with the
- * name alone, centered beside the picture.
+ * name alone, centered beside the picture. With Keep the place on, the place stays too: alone, it
+ * stays put instead of taking turns.
  *
  * <p>The patch hands that list over right where Instagram counts it, and with the switch on this
  * keeps only the disclosure labels, Sponsored and Paid partnership. So most posts get Instagram's own
@@ -45,6 +46,9 @@ public final class HeaderLine {
 
     /** The kinds that stay: an ad's Sponsored and a paid partnership's label. */
     static final Set<String> KEPT = new HashSet<>(Arrays.asList("SPONSORED", "ORGANIC_BRANDED_CONTENT"));
+
+    /** The place's kind, kept too with Keep the place on (#771). */
+    static final String PLACE = "LOCATION";
 
     static final String REEL_HOOK = "reel header line";
     static final String COUNT_REEL_HIDDEN = "reel header lines hidden";
@@ -62,19 +66,29 @@ public final class HeaderLine {
     /** The label kinds of a feed post's header: [kinds] with only the disclosure labels while the switch is on. */
     @Nullable
     public static List<?> kinds(@Nullable List<?> kinds) {
-        return kinds(kinds, HeaderLine::wanted);
+        return kinds(kinds, HeaderLine::wanted, HeaderLine::placeWanted);
     }
 
     static List<?> kinds(@Nullable List<?> kinds, BooleanSupplier on) {
+        return kinds(kinds, on, () -> false);
+    }
+
+    /** [kinds] with only the disclosure labels while [on], and the place too while [place] (#771): alone, it stays put. */
+    static List<?> kinds(@Nullable List<?> kinds, BooleanSupplier on, BooleanSupplier place) {
         if (kinds == null || kinds.isEmpty()) return kinds;
         try {
             HookStatus.invoked(FamilyNames.FEED_HEADER_LINE);
             if (!on.getAsBoolean()) return kinds;
+            boolean keepPlace = place.getAsBoolean();
             List<Object> kept = new ArrayList<>(kinds.size());
             for (Object kind : kinds) {
                 // Anything that isn't one of Instagram's kinds stays, so a changed list is left as it came.
-                if (!(kind instanceof Enum) || KEPT.contains(((Enum<?>) kind).name())) kept.add(kind);
-                else HookStatus.counted(FamilyNames.FEED_HEADER_LINE, COUNT_HIDDEN);
+                if (!(kind instanceof Enum) || KEPT.contains(((Enum<?>) kind).name())
+                        || (keepPlace && PLACE.equals(((Enum<?>) kind).name()))) {
+                    kept.add(kind);
+                } else {
+                    HookStatus.counted(FamilyNames.FEED_HEADER_LINE, COUNT_HIDDEN);
+                }
             }
             return kept.size() == kinds.size() ? kinds : kept;
         } catch (Throwable failure) {
@@ -85,6 +99,10 @@ public final class HeaderLine {
 
     static boolean wanted() {
         return Utils.settingsReady() && !HushgramPause.isPaused() && Settings.HIDE_FEED_HEADER_LINE.get();
+    }
+
+    static boolean placeWanted() {
+        return Settings.KEEP_FEED_HEADER_PLACE.get();
     }
 
     /**

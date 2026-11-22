@@ -3338,6 +3338,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_feed_header_line", FALSE);
 
     /**
+     * With Hide the line under names on, the place stays on that line, alone, so it stays put instead
+     * of taking turns with the song and the labels (#771). Read as each post's header is built, so it
+     * needs no restart. Off to start.
+     */
+    public static final BooleanSetting KEEP_FEED_HEADER_PLACE =
+            new BooleanSetting("hushgram_keep_feed_header_place", FALSE, parent(HIDE_FEED_HEADER_LINE));
+
+    /**
      * The line under a reel's author: the song, the place and the other labels taking turns there
      * (#771, {@link app.hushgram.extension.instagram.feed.HeaderLine#reelLine}). Sponsored and Paid
      * partnership stay. Read as each reel's author row is built, so it needs no restart. Off to start.

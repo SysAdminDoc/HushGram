@@ -49,6 +49,7 @@ public class HeaderLineTest {
 
     @After
     public void restore() {
+        Settings.KEEP_FEED_HEADER_PLACE.resetToDefault();
         Settings.HIDE_FEED_HEADER_LINE.resetToDefault();
         Settings.HIDE_REEL_HEADER_LINE.resetToDefault();
         BaseSettings.PAUSED.save(false);
@@ -76,6 +77,26 @@ public class HeaderLineTest {
         assertTrue(report, report.contains(HeaderLine.COUNT_HIDDEN));
         assertTrue(HookStatus.missing(FamilyNames.FEED_HEADER_LINE).toString(),
                 HookStatus.missing(FamilyNames.FEED_HEADER_LINE).isEmpty());
+    }
+
+    /**
+     * #771: Keep the place leaves the place on the line on its own, so it stays put instead of taking
+     * turns with the song. An ad keeps its Sponsored beside it, and with the line shown, nothing changes.
+     */
+    @Test
+    public void keepThePlaceLeavesItOnItsOwn() {
+        Settings.KEEP_FEED_HEADER_PLACE.save(true);
+
+        assertEquals(Collections.singletonList(Kind.LOCATION),
+                HeaderLine.kinds(Arrays.asList(Kind.CLIPS_AUDIO_ATTRIBUTION, Kind.LOCATION, Kind.MEDIA_TOPIC)));
+        assertEquals(Arrays.asList(Kind.SPONSORED, Kind.LOCATION),
+                HeaderLine.kinds(Arrays.asList(Kind.SPONSORED, Kind.MUSIC_ATTRIBUTION, Kind.LOCATION)));
+        assertEquals("a post with no place gets the name alone", Collections.emptyList(),
+                HeaderLine.kinds(Arrays.asList(Kind.MUSIC_ATTRIBUTION, Kind.BASEL_ATTRIBUTION)));
+
+        Settings.HIDE_FEED_HEADER_LINE.save(false);
+        List<Kind> kinds = Arrays.asList(Kind.MUSIC_ATTRIBUTION, Kind.LOCATION);
+        assertSame("on its own it does nothing", kinds, HeaderLine.kinds(kinds));
     }
 
     /** An ad keeps Sponsored and a paid partnership its label, in their order, and the rest goes. */

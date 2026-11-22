@@ -2177,6 +2177,9 @@ Takes the "Made with Edits" label out of the line under a post's author. The son
 # context: "Sponsored" and "Paid partnership" are Instagram's own labels on feed posts; use the text Instagram shows in this language (#771)
 Hide the line under names	İsimlerin altındaki satırı gizle
 Takes the song, the place and the other labels off the line under the name on posts in your feed. Sponsored and Paid partnership stay. Posts already on screen change when they load again.	Akışındaki gönderilerde ismin altındaki satırdan şarkıyı, konumu ve diğer etiketleri kaldırır. "Sponsorlu" ve "Ücretli ortaklık" kalır. Ekranda olan gönderiler yeniden yüklendiğinde değişir.
+# context: a switch under Hide the line under names in HushGram's Feed settings
+Keep the place	Konumu koru
+Leaves the place on the line under names, on its own, so it stays put instead of taking turns with the song.	Konumu ismin altındaki satırda tek başına bırakır, böylece şarkıyla sırayla değişmek yerine sabit kalır.
 # context: "Sponsored" and "Paid partnership" are Instagram's own labels on reels; use the text Instagram shows in this language (#771)
 Hide the line under names on reels	Reels'te isimlerin altındaki satırı gizle
 Takes the song, the place and the other labels off the line under the name on reels. Sponsored and Paid partnership stay. Reels already on screen change when they load again.	Reels'te ismin altındaki satırdan şarkıyı, konumu ve diğer etiketleri kaldırır. "Sponsorlu" ve "Ücretli ortaklık" kalır. Ekranda olan reels videoları yeniden yüklendiğinde değişir.

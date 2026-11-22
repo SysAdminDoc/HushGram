@@ -82,7 +82,9 @@ public class HomeReelsSettingsTest {
         PreferenceGroup feed = row.getParent();
         assertEquals("Feed", feed.getTitle().toString());
         assertSame(feed, line.getParent());
-        assertEquals(line.getOrder() + 1, row.getOrder());
+        SwitchPreference place = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.KEEP_FEED_HEADER_PLACE.key);
+        assertEquals("right under Keep the place, which goes with the line", place.getOrder() + 1, row.getOrder());
+        assertEquals(line.getOrder() + 2, row.getOrder());
         assertFalse(row.isChecked());
         assertFalse(Settings.HOME_REELS_BELOW_NAME.get());
         assertFalse("each row of Home reads the switch as it's laid out, so no restart prompt", Settings.HOME_REELS_BELOW_NAME.rebootApp);
