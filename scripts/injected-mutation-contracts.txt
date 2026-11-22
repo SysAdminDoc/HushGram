@@ -1038,6 +1038,12 @@ once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->stopCached(Ljava/
 # and Back has to close each one; twice or elsewhere, some other tap gets dropped.
 start-call Lapp/hushgram/extension/instagram/direct/ChatReels;->open(Ljava/lang/Object;Landroid/view/View;)Z in instance (Landroid/graphics/RectF;Landroid/view/View;*)V holding sparse_media_viewer_reply_thread_subtype Must\spass\seither\smediaId\sor\smediaCode
 once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->open(Ljava/lang/Object;Landroid/view/View;)Z in instance (Landroid/graphics/RectF;Landroid/view/View;*)V holding sparse_media_viewer_reply_thread_subtype Must\spass\seither\smediaId\sor\smediaCode
+# Don't open reels from chats (#810) asks ChatReels.mayOpen in the opener of media shared in a chat
+# (0aoY.A01 on 456's 386214574), the static one handed the chat and the message, right after it looks
+# the message's wrapper up by its id and before its own reel test reads the media's product type and
+# the share link's first path segment against "reel" and "reels". Left out, a reel shared in a chat
+# opens with the switch on; twice or elsewhere, some other media in a chat stays shut.
+once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->mayOpen(Ljava/lang/Object;)Z in static (*Lcom/instagram/model/direct/DirectThreadKey;Lcom/instagram/model/direct/messageid/MessageIdentifier;*)V holding reel reels Landroid/net/Uri;->getPathSegments()Ljava/util/List;
 # Swipe through a chat's photos and posts (#350) asks ChatMediaWalk first thing in the media viewer's opener,
 # which hands the viewer the chat's pages, the tapped slot and the album mode, and hands the pager to it right
 # after the opener readies it. Left out, a photo opens on its own. Twice or elsewhere, a walk's list is replaced
