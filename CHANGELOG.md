@@ -61,6 +61,7 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
+* The dot beside a new setting stays until you've scrolled to it. Going back out of a page cleared every dot on it, even the ones further down you never saw. Reported in #689.
 * `Show if a profile follows you` now labels profiles that have a name but no pronouns. The label and badges were only showing up on profiles with no name at all. Reported in #727.
 * `Ambient light in stories` no longer flashes white bars on a light theme when a story opens or you swipe to the next one. The glow also stays on until the next story's is ready. Reported in #751.
 * `Long press a profile picture to view it` works on accounts with an avatar too. Their picture turns between the photo and the avatar, and a long press there used to open Instagram's avatar card instead of the picture. Reported in #758.

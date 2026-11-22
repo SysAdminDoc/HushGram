@@ -32,9 +32,10 @@ import app.hushgram.extension.shared.settings.Setting;
  * <p>There is no list of which release added what. The keys of the rows the person has already been
  * shown are kept in a file of their own, apart from the settings, so a backup neither exports nor
  * imports them. The first time the settings open with none stored, every row there now counts as
- * seen: a fresh install never shows a dot. A row whose key isn't in the set is new. Leaving a
- * expanded category (or closing the settings) adds its rows, so a dot shows for the visit that
- * reveals it and is gone by the next. With the categories off, the one long list is the page.
+ * seen: a fresh install never shows a dot. A row whose key isn't in the set is new. Leaving an
+ * expanded category (or closing the settings) adds the new rows whose dot came on screen, so a dot
+ * shows for the visit that reveals it and is gone by the next, and one further down the page waits
+ * until it's scrolled to. With the categories off, the one long list is the page.
  *
  * <p>Only rows that are a saved setting count. A row that comes and goes on its own would
  * otherwise read as new each time it came back. Anything that goes wrong shows no dot.
@@ -50,6 +51,12 @@ final class NewRowDots {
 
     private final SharedPreferences store;
     private final Set<String> seen = new HashSet<>();
+    /**
+     * The new rows whose dot has been drawn on this visit. Leaving a page counts only these as
+     * seen, so a new row further down that never came on screen keeps its dot, and its category's,
+     * for the next visit (#689).
+     */
+    private final Set<String> drawn = new HashSet<>();
     /** Each category opener row and the category it opens. */
     private final Map<Preference, PreferenceCategory> openers = new HashMap<>();
     private final Map<PreferenceCategory, List<Preference>> pages;
@@ -134,7 +141,9 @@ final class NewRowDots {
 
     private void leave(List<Preference> rows) {
         int before = seen.size();
-        addKeys(rows);
+        for (Preference row : rows) {
+            if (counts(row) && drawn.contains(row.getKey())) seen.add(row.getKey());
+        }
         if (seen.size() != before) save();
     }
 
@@ -176,6 +185,7 @@ final class NewRowDots {
         try {
             NewRowDots dots = current;
             fresh = dots != null && dots.fresh(preference);
+            if (fresh && counts(preference)) dots.drawn.add(preference.getKey());
         } catch (RuntimeException failed) {
             // No dot.
         }

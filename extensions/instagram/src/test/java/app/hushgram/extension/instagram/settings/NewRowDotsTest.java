@@ -42,6 +42,7 @@ import java.util.Set;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.settings.BaseSettings;
 import app.hushgram.extension.shared.settings.PauseForTests;
+import app.hushgram.extension.shared.settings.Setting;
 
 /**
  * The dot beside a setting added since the settings were last opened (#274): none on a first
@@ -161,6 +162,22 @@ public class NewRowDotsTest {
         throw new AssertionError("no opener for " + categoryTitle);
     }
 
+    /** Scrolls the page until [key]'s row is on screen, as a person scrolling to it would. */
+    private void scrollTo(String key) {
+        ListView list = list();
+        for (int i = 0; i < list.getAdapter().getCount(); i++) {
+            Object item = list.getAdapter().getItem(i);
+            if (item instanceof Preference && key.equals(((Preference) item).getKey())) {
+                list.setSelection(i);
+                ShadowLooper.idleMainLooper();
+                assertTrue(key + " came on screen",
+                        i >= list.getFirstVisiblePosition() && i <= list.getLastVisiblePosition());
+                return;
+            }
+        }
+        throw new AssertionError("no row for " + key);
+    }
+
     private void enter() {
         Preference opener = opener();
         assertTrue(opener.getOnPreferenceClickListener().onPreferenceClick(opener));
@@ -199,9 +216,51 @@ public class NewRowDotsTest {
         assertEquals(new ArrayList<String>(), dottedTitles());
     }
 
-    @Test public void closingTheSettingsOnAPageCountsItAsSeen() {
+    /**
+     * Leaving a page counts only the new rows that came on screen. One further down that was never
+     * scrolled to keeps its dot, and its category's, for the next visit (#689): going back before
+     * reaching it used to clear it unseen.
+     */
+    @Test public void aNewRowThatNeverCameOnScreenKeepsItsDot() {
+        open();
+        enter();
+        ListView list = list();
+        int lastOnScreen = list.getLastVisiblePosition();
+        assertTrue("the page is laid out", lastOnScreen >= 0);
+        String near = null;
+        String far = null;
+        for (int i = 0; i < list.getAdapter().getCount(); i++) {
+            Object item = list.getAdapter().getItem(i);
+            if (!(item instanceof Preference)) continue;
+            String rowKey = ((Preference) item).getKey();
+            if (rowKey == null || Setting.getSettingFromPath(rowKey) == null) continue;
+            if (i <= lastOnScreen && near == null) near = rowKey;
+            if (i > lastOnScreen + 2) far = rowKey;
+        }
+        assertNotNull("a setting on screen", near);
+        assertNotNull("the page runs on past the screen", far);
+        controller.close();
+        controller = null;
+        Set<String> seen = new HashSet<>(store().getStringSet(NewRowDots.SEEN, new HashSet<>()));
+        assertTrue(seen.remove(near));
+        assertTrue(seen.remove(far));
+        assertTrue(store().edit().putStringSet(NewRowDots.SEEN, seen).commit());
+
+        open();
+        enter();
+        enter();
+        ShadowLooper.idleMainLooper();
+
+        Set<String> after = store().getStringSet(NewRowDots.SEEN, null);
+        assertTrue("the new row on screen is seen", after.contains(near));
+        assertFalse("the one never scrolled to is still new", after.contains(far));
+        assertEquals("so its category keeps its dot", Collections.singletonList(categoryTitle), dottedTitles());
+    }
+
+    @Test public void closingTheSettingsOnAPageCountsWhatCameOnScreenAsSeen() {
         forget(key());
         enter();
+        scrollTo(key());
         open();
         assertEquals(new ArrayList<String>(), dottedTitles());
     }
