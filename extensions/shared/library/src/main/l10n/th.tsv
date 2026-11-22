@@ -2553,6 +2553,10 @@ Left off the three-dot menus: %1$s.	นำออกจากเมนูสา�
 Keep 2x after you let go	คง 2 เท่าไว้หลังปล่อยนิ้ว
 # context: Summary of Keep 2x after you let go, a switch under Hold for 2x on feed videos (#552)
 A feed video you hold for 2x keeps playing at 2x after you let go. Hold it again to go back to normal speed.	วิดีโอในฟีดที่คุณกดค้างเพื่อเล่น 2 เท่าจะเล่นด้วยความเร็ว 2 เท่าต่อไปหลังปล่อยนิ้ว กดค้างอีกครั้งเพื่อกลับสู่ความเร็วปกติ
+# context: Feed settings: a switch under Keep 2x after you let go that keeps 2x only after a hold of about 3 seconds (#552)
+Only after a long hold	เฉพาะเมื่อกดค้างนาน
+# context: Summary of Only after a long hold, a switch under Keep 2x after you let go (#552)
+Keeps 2x only when you hold the video for about 3 seconds. Let go sooner and it goes back to normal speed.	คง 2 เท่าไว้เฉพาะเมื่อคุณกดวิดีโอค้างไว้ประมาณ 3 วินาที ปล่อยเร็วกว่านั้นจะกลับสู่ความเร็วปกติ
 # context: Stories settings: title and dialog title of the list under Story ring size that picks how thick story rings are drawn (#528)
 Ring thickness	ความหนาของวงแหวน
 # context: Stories settings: the Ring thickness choice that keeps the thickness Instagram gives story rings (#528)

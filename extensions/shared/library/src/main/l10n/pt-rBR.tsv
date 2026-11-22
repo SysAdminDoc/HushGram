@@ -2556,6 +2556,10 @@ Left off the three-dot menus: %1$s.	Fora dos menus de três pontos: %1$s.
 Keep 2x after you let go	Manter 2x ao soltar
 # context: Summary of Keep 2x after you let go, a switch under Hold for 2x on feed videos (#552)
 A feed video you hold for 2x keeps playing at 2x after you let go. Hold it again to go back to normal speed.	Um vídeo do feed que você segura para 2x continua em 2x quando você solta. Segure de novo para voltar à velocidade normal.
+# context: Feed settings: a switch under Keep 2x after you let go that keeps 2x only after a hold of about 3 seconds (#552)
+Only after a long hold	Só depois de segurar por um tempo
+# context: Summary of Only after a long hold, a switch under Keep 2x after you let go (#552)
+Keeps 2x only when you hold the video for about 3 seconds. Let go sooner and it goes back to normal speed.	Mantém 2x só quando você segura o vídeo por cerca de 3 segundos. Se soltar antes, volta à velocidade normal.
 # context: Stories settings: title and dialog title of the list under Story ring size that picks how thick story rings are drawn (#528)
 Ring thickness	Espessura dos anéis
 # context: Stories settings: the Ring thickness choice that keeps the thickness Instagram gives story rings (#528)

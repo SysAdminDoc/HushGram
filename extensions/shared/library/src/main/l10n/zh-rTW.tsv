@@ -2559,6 +2559,10 @@ Left off the three-dot menus: %1$s.	已從三點選單中移除：%1$s.
 Keep 2x after you let go	放開後維持 2 倍速
 # context: Summary of Keep 2x after you let go, a switch under Hold for 2x on feed videos (#552)
 A feed video you hold for 2x keeps playing at 2x after you let go. Hold it again to go back to normal speed.	長按以 2 倍速播放的動態影片，放開後仍以 2 倍速播放。再次長按即可恢復正常速度.
+# context: Feed settings: a switch under Keep 2x after you let go that keeps 2x only after a hold of about 3 seconds (#552)
+Only after a long hold	僅在長按較久後
+# context: Summary of Only after a long hold, a switch under Keep 2x after you let go (#552)
+Keeps 2x only when you hold the video for about 3 seconds. Let go sooner and it goes back to normal speed.	只有長按影片約 3 秒時才維持 2 倍速。提早放開就會恢復正常速度.
 # context: Stories settings: title and dialog title of the list under Story ring size that picks how thick story rings are drawn (#528)
 Ring thickness	光圈粗細
 # context: Stories settings: the Ring thickness choice that keeps the thickness Instagram gives story rings (#528)

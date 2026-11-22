@@ -43,6 +43,8 @@ public class FeedHoldSpeedTest {
     public void restore() {
         Settings.HOLD_FEED_VIDEO_FAST.resetToDefault();
         Settings.HOLD_FEED_VIDEO_KEEP.resetToDefault();
+        Settings.HOLD_FEED_VIDEO_KEEP_LONG.resetToDefault();
+        FeedHoldSpeed.clock = android.os.SystemClock::uptimeMillis;
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -137,6 +139,48 @@ public class FeedHoldSpeedTest {
         assertTrue(report, report.contains(FeedHoldSpeed.LET_GO + " 1"));
         assertTrue(HookStatus.missing(FamilyNames.FEED_HOLD_FAST).toString(),
                 HookStatus.missing(FamilyNames.FEED_HOLD_FAST).isEmpty());
+    }
+
+    /**
+     * #552: with Only after a long hold on, a quick hold to peek at 2x goes back to normal on the
+     * lift, and a hold that played at 2x for about 3 seconds keeps it, until the next hold's lift as
+     * before. Without Keep 2x after you let go it keeps nothing.
+     */
+    @Test
+    public void onlyALongHoldKeeps2x() {
+        Settings.HOLD_FEED_VIDEO_KEEP.save(true);
+        Settings.HOLD_FEED_VIDEO_KEEP_LONG.save(true);
+        long[] now = {10_000L};
+        FeedHoldSpeed.clock = () -> now[0];
+        AtomicBoolean fast = new AtomicBoolean(false);
+
+        hold(fast);
+        now[0] += FeedHoldSpeed.LONG_HOLD_MS - 1;
+        assertFalse("a short hold lets 2x go", FeedHoldSpeed.lifted(fast));
+
+        fast.set(false);
+        hold(fast);
+        now[0] += FeedHoldSpeed.LONG_HOLD_MS;
+        assertTrue("a long one keeps it", FeedHoldSpeed.lifted(fast));
+        hold(fast);
+        now[0] += 100;
+        assertFalse("and the next lift lets it go", FeedHoldSpeed.lifted(fast));
+
+        fast.set(false);
+        FeedHoldSpeed.lifted(fast);
+        fast.set(true);
+        assertFalse("a lift with no press told is short", FeedHoldSpeed.lifted(fast));
+
+        Settings.HOLD_FEED_VIDEO_KEEP.save(false);
+        fast.set(false);
+        hold(fast);
+        now[0] += FeedHoldSpeed.LONG_HOLD_MS * 2;
+        assertFalse("it needs Keep 2x after you let go", FeedHoldSpeed.lifted(fast));
+        assertEquals(Collections.singletonList(Settings.HOLD_FEED_VIDEO_KEEP), Settings.HOLD_FEED_VIDEO_KEEP_LONG.getParentSettings());
+        assertFalse(Settings.HOLD_FEED_VIDEO_KEEP_LONG.rebootApp);
+        String report = report();
+        assertTrue(report, report.contains(FeedHoldSpeed.SHORT + " 2"));
+        assertTrue(report, report.contains(FeedHoldSpeed.KEPT + " 1"));
     }
 
     /**

@@ -4,12 +4,16 @@
  */
 package app.hushgram.extension.instagram.feed;
 
+import android.os.SystemClock;
+
 import androidx.annotation.Nullable;
 
 import java.util.Collections;
+import java.util.Map;
 import java.util.Set;
 import java.util.WeakHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.LongSupplier;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
@@ -36,6 +40,10 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * Reels. The next held press resets the speed as it always does and plays fast again, and its lift
  * lets the speed go back. The press entry tells {@link #pressed} before its reset, so a kept flag
  * Instagram has cleared since, because the video went off the screen, isn't taken for a kept one.
+ *
+ * <p>Only after a long hold (#552) keeps the speed only past a hold that played at 2x for
+ * {@link #LONG_HOLD_MS}, timed from that press entry, so a quick hold to peek at 2x goes back to
+ * normal on the lift.
  */
 public final class FeedHoldSpeed {
     /** Each side's strip as a share of the video's width: half, so a hold anywhere on it counts. */
@@ -48,8 +56,23 @@ public final class FeedHoldSpeed {
     private static final String HOOK = "feed hold for 2x flag";
     private static final String LOCK_HOOK = "feed 2x lock";
 
+    /** Lifts that went back to normal speed because Only after a long hold wanted a longer hold. */
+    static final String SHORT = "short feed holds back to normal speed";
+
+    /**
+     * How long a hold plays at 2x before Only after a long hold keeps it (#552). The press entry comes
+     * after Instagram's hold delay, so with that it's about 3 seconds of finger on the video.
+     */
+    static final long LONG_HOLD_MS = 2500L;
+
     /** The flags a lift has kept at 2x. Weak, so a feed that goes away takes its flag with it. */
     private static final Set<AtomicBoolean> KEPT_FLAGS = Collections.newSetFromMap(new WeakHashMap<>());
+
+    /** When each feed's held press last started, by its flag, guarded by {@link #KEPT_FLAGS}. */
+    private static final Map<AtomicBoolean, Long> PRESSED_AT = new WeakHashMap<>();
+
+    /** The clock a hold is timed by; a test steps its own. */
+    static volatile LongSupplier clock = SystemClock::uptimeMillis;
 
     /** Whether a test says this build has the patch, instead of asking {@link SettingsStatus}. */
     @Nullable
@@ -102,7 +125,8 @@ public final class FeedHoldSpeed {
     /**
      * Told with the feed's fast flag as a held press starts, before Instagram resets the speed for
      * it. A kept flag that's clear again was reset by Instagram on its own, so it's forgotten and
-     * this press's lift is a first one. Never throws.
+     * this press's lift is a first one. The press's start is noted for Only after a long hold. Never
+     * throws.
      */
     public static void pressed(@Nullable AtomicBoolean fast) {
         try {
@@ -110,6 +134,7 @@ public final class FeedHoldSpeed {
             if (fast == null) return;
             synchronized (KEPT_FLAGS) {
                 if (!fast.get()) KEPT_FLAGS.remove(fast);
+                PRESSED_AT.put(fast, clock.getAsLong());
             }
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.FEED_HOLD_FAST, LOCK_HOOK, failure);
@@ -119,13 +144,15 @@ public final class FeedHoldSpeed {
     /**
      * Whether the lift that ends a held press keeps the feed video at 2x: yes when the hold sped it
      * up, both switches are on and the speed wasn't already kept from the hold before, which this
-     * lift lets go. No lets Instagram reset the speed. Never throws.
+     * lift lets go. With Only after a long hold on, the hold must also have played at 2x for
+     * {@link #LONG_HOLD_MS}. No lets Instagram reset the speed. Never throws.
      */
     public static boolean lifted(@Nullable AtomicBoolean fast) {
         try {
             HookStatus.invoked(FamilyNames.FEED_HOLD_FAST);
             if (fast == null) return false;
             synchronized (KEPT_FLAGS) {
+                Long pressedAt = PRESSED_AT.remove(fast);
                 if (!fast.get()) {
                     KEPT_FLAGS.remove(fast);
                     return false;
@@ -135,6 +162,10 @@ public final class FeedHoldSpeed {
                     return false;
                 }
                 if (!keeps()) return false;
+                if (longOnly() && (pressedAt == null || clock.getAsLong() - pressedAt < LONG_HOLD_MS)) {
+                    HookStatus.counted(FamilyNames.FEED_HOLD_FAST, SHORT);
+                    return false;
+                }
                 KEPT_FLAGS.add(fast);
             }
             HookStatus.counted(FamilyNames.FEED_HOLD_FAST, KEPT);
@@ -164,5 +195,9 @@ public final class FeedHoldSpeed {
 
     private static boolean keeps() {
         return on() && Settings.HOLD_FEED_VIDEO_KEEP.get();
+    }
+
+    private static boolean longOnly() {
+        return Settings.HOLD_FEED_VIDEO_KEEP_LONG.get();
     }
 }

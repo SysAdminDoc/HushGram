@@ -50,6 +50,7 @@ public class FeedHoldKeepSettingsTest {
         PatchFamily.inBuildForTests = null;
         Settings.HOLD_FEED_VIDEO_FAST.resetToDefault();
         Settings.HOLD_FEED_VIDEO_KEEP.resetToDefault();
+        Settings.HOLD_FEED_VIDEO_KEEP_LONG.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
@@ -84,6 +85,27 @@ public class FeedHoldKeepSettingsTest {
         assertNotNull(row);
         assertTrue(row.isEnabled());
     }
+    /** #552: Only after a long hold sits right under Keep 2x after you let go, off, and rests until that one is on. */
+    @Test public void theLongHoldSwitchSitsUnderTheKeepSwitch() throws Exception {
+        Settings.HOLD_FEED_VIDEO_FAST.save(true);
+        open(EnumSet.of(PatchFamily.FEED_HOLD_FAST));
+        Preference row = page.getPreferenceScreen().findPreference(Settings.HOLD_FEED_VIDEO_KEEP_LONG.key);
+        assertNotNull(row);
+        assertEquals("Only after a long hold", row.getTitle().toString());
+        assertEquals("Keeps 2x only when you hold the video for about 3 seconds. Let go sooner and it goes back to "
+                + "normal speed.", row.getSummary().toString());
+        assertFalse(((SwitchPreference) row).isChecked());
+        assertFalse("greyed out with Keep 2x after you let go off", row.isEnabled());
+        PreferenceGroup feed = row.getParent();
+        String[] keys = new String[feed.getPreferenceCount()];
+        for (int i = 0; i < keys.length; i++) keys[i] = feed.getPreference(i).getKey();
+        int at = Arrays.asList(keys).indexOf(Settings.HOLD_FEED_VIDEO_KEEP_LONG.key);
+        assertEquals(Arrays.toString(keys), Settings.HOLD_FEED_VIDEO_KEEP.key, keys[at - 1]);
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.HOLD_FEED_VIDEO_KEEP_LONG.key));
+        assertEquals(Arrays.asList(Settings.HOLD_FEED_VIDEO_FAST, Settings.HOLD_FEED_VIDEO_KEEP, Settings.HOLD_FEED_VIDEO_KEEP_LONG),
+                PatchFamily.FEED_HOLD_FAST.switches);
+    }
+
     @Test public void missingPatchHasNoKeepSwitch() throws Exception {
         open(EnumSet.of(PatchFamily.FEED_TAP_PAUSE));
         assertNull(page.getPreferenceScreen().findPreference(Settings.HOLD_FEED_VIDEO_KEEP.key));

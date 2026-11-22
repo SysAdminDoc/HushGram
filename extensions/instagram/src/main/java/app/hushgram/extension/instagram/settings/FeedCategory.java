@@ -277,6 +277,9 @@ final class FeedCategory {
             feed.addPreference(toggle(context, Settings.HOLD_FEED_VIDEO_KEEP, L10n.t("Keep 2x after you let go"),
                     L10n.t("A feed video you hold for 2x keeps playing at 2x after you let go. Hold it again to go back "
                             + "to normal speed.")));
+            feed.addPreference(toggle(context, Settings.HOLD_FEED_VIDEO_KEEP_LONG, L10n.t("Only after a long hold"),
+                    L10n.t("Keeps 2x only when you hold the video for about 3 seconds. Let go sooner and it goes back "
+                            + "to normal speed.")));
         }
         if (feedSeekBar) {
             feed.addPreference(toggle(context, Settings.FEED_SEEK_BAR, L10n.t("Seek bar on feed videos"),

@@ -2555,6 +2555,10 @@ Left off the three-dot menus: %1$s.	점 세 개 메뉴에서 뺀 항목: %1$s.
 Keep 2x after you let go	손을 떼도 2배속 유지
 # context: Summary of Keep 2x after you let go, a switch under Hold for 2x on feed videos (#552)
 A feed video you hold for 2x keeps playing at 2x after you let go. Hold it again to go back to normal speed.	길게 눌러 2배속으로 재생한 피드 동영상은 손을 떼도 2배속으로 계속 재생됩니다. 다시 길게 누르면 보통 속도로 돌아갑니다.
+# context: Feed settings: a switch under Keep 2x after you let go that keeps 2x only after a hold of about 3 seconds (#552)
+Only after a long hold	길게 눌렀을 때만
+# context: Summary of Only after a long hold, a switch under Keep 2x after you let go (#552)
+Keeps 2x only when you hold the video for about 3 seconds. Let go sooner and it goes back to normal speed.	동영상을 약 3초 동안 길게 눌렀을 때만 2배속을 유지합니다. 더 빨리 손을 떼면 보통 속도로 돌아갑니다.
 # context: Stories settings: title and dialog title of the list under Story ring size that picks how thick story rings are drawn (#528)
 Ring thickness	링 두께
 # context: Stories settings: the Ring thickness choice that keeps the thickness Instagram gives story rings (#528)
