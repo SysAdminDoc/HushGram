@@ -2779,3 +2779,15 @@ Couldn't start recording this call	No se pudo empezar a grabar la llamada
 Couldn't save the call recording	No se pudo guardar la grabación de la llamada
 # context: a toast when a recording ends with no sound in it (#732)
 Nothing was recorded	No se grabó nada
+# context: a toast when a save starts, naming the account the media is from (#792)
+Saving from @%1$s...	Guardando de @%1$s...
+# context: a second toast after the one above, when notifications are off (#792)
+You can cancel from Downloads in HushGram settings.	Puedes cancelar desde Descargas en los ajustes de HushGram.
+# context: a toast when a save waits for the ones already running, the account unknown (#792)
+Queued	En cola
+# context: a toast when a save waits for the ones already running, naming the account (#792)
+Queued: @%1$s	En cola: @%1$s
+# context: a toast when too many saves already wait their turn (#792)
+Not saved: %1$d saves are already waiting	No guardado: ya hay %1$d en espera
+# context: a waiting save's notification text and its line in Downloads (#792)
+Waiting for the saves before it	Esperando a los guardados anteriores

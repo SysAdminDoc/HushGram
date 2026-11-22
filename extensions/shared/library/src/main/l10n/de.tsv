@@ -2779,3 +2779,15 @@ Couldn't start recording this call	Aufnahme des Anrufs konnte nicht starten
 Couldn't save the call recording	Anrufaufnahme konnte nicht gespeichert werden
 # context: a toast when a recording ends with no sound in it (#732)
 Nothing was recorded	Nichts wurde aufgenommen
+# context: a toast when a save starts, naming the account the media is from (#792)
+Saving from @%1$s...	Speichern von @%1$s …
+# context: a second toast after the one above, when notifications are off (#792)
+You can cancel from Downloads in HushGram settings.	Abbrechen kannst du unter „Downloads“ in den HushGram-Einstellungen.
+# context: a toast when a save waits for the ones already running, the account unknown (#792)
+Queued	In der Warteschlange
+# context: a toast when a save waits for the ones already running, naming the account (#792)
+Queued: @%1$s	In der Warteschlange: @%1$s
+# context: a toast when too many saves already wait their turn (#792)
+Not saved: %1$d saves are already waiting	Nicht gespeichert: %1$d warten schon
+# context: a waiting save's notification text and its line in Downloads (#792)
+Waiting for the saves before it	Wartet auf die Speicherungen davor

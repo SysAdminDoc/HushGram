@@ -405,7 +405,8 @@ public class CarouselSaveTest {
 
     /**
      * A batch uses one slot. A second Download all while it saves waits its turn instead of being
-     * refused, and starts once the first ends (#115). A single save past the limit is still refused.
+     * refused, and starts once the first ends (#115). A single save past the limit waits its turn
+     * too, where it used to be refused (#792).
      */
     @Test public void aBatchUsesOneSlotAndASecondWaitsItsTurn() throws Exception {
         CountDownLatch singles = new CountDownLatch(2);
@@ -425,13 +426,16 @@ public class CarouselSaveTest {
         assertEquals(1, MediaSave.batchesWaiting());
         Shadows.shadowOf(Looper.getMainLooper()).idle();
         assertEquals("Queued. It starts once the post before it is saved.", ShadowToast.getTextOfLatestToast());
-        assertFalse(MediaSave.saveVideo(context, SavesForTests.renditions(server.origin() + "/held.mp4"), null, null));
+        assertTrue("a single save past the limit waits its turn",
+                MediaSave.saveVideo(context, SavesForTests.renditions(server.origin() + "/held.mp4"), null, null));
+        assertEquals(1, MediaSave.savesQueued());
+        assertEquals("two singles and a batch saving, a single waiting", 4, MediaSave.savesInFlight() - MediaSave.batchesWaiting());
         release.countDown();
         ended.get(20, TimeUnit.SECONDS);
         second.get(20, TimeUnit.SECONDS);
         for (Thread worker : workers) worker.join(10_000);
         waitForSaves();
-        assertEquals("each batch fetched both its pages once", 4, server.hits("/held.mp4"));
+        assertEquals("each batch fetched both its pages once, and the waiting save its file", 5, server.hits("/held.mp4"));
         assertEquals(0, MediaSave.batchesWaiting());
         assertClean();
     }

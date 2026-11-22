@@ -2779,3 +2779,15 @@ Couldn't start recording this call	Tidak dapat mulai merekam panggilan ini
 Couldn't save the call recording	Rekaman panggilan tidak dapat disimpan
 # context: a toast when a recording ends with no sound in it (#732)
 Nothing was recorded	Tidak ada yang terekam
+# context: a toast when a save starts, naming the account the media is from (#792)
+Saving from @%1$s...	Menyimpan dari @%1$s...
+# context: a second toast after the one above, when notifications are off (#792)
+You can cancel from Downloads in HushGram settings.	Kamu bisa membatalkan dari Unduhan di pengaturan HushGram.
+# context: a toast when a save waits for the ones already running, the account unknown (#792)
+Queued	Dalam antrean
+# context: a toast when a save waits for the ones already running, naming the account (#792)
+Queued: @%1$s	Dalam antrean: @%1$s
+# context: a toast when too many saves already wait their turn (#792)
+Not saved: %1$d saves are already waiting	Tidak disimpan: %1$d sudah menunggu
+# context: a waiting save's notification text and its line in Downloads (#792)
+Waiting for the saves before it	Menunggu simpanan sebelumnya

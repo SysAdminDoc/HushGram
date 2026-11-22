@@ -73,8 +73,8 @@ public final class SaveControl {
     private static final Set<Watcher> WATCHERS = new CopyOnWriteArraySet<>();
     private static volatile MediaSave.BatchResult lastBatch;
 
-    /** What a running save is doing. */
-    public enum Phase { DOWNLOADING, CONVERTING, JOINING, SAVING }
+    /** What a running save is doing. WAITING is a save in line behind the ones running (#792). */
+    public enum Phase { WAITING, DOWNLOADING, CONVERTING, JOINING, SAVING }
 
     /**
      * Told when a save starts, moves on to its next phase or ends, and at most twice a second while
@@ -153,6 +153,9 @@ public final class SaveControl {
     public static String status(Running save) {
         String phase;
         switch (save.phase) {
+            case WAITING:
+                phase = L10n.t("Waiting for the saves before it");
+                break;
             case CONVERTING:
                 phase = L10n.t("Converting to H.264");
                 break;
@@ -385,6 +388,23 @@ public final class SaveControl {
             this.manager = button == null ? null : manager;
         }
 
+        /**
+         * The save waits its turn behind the ones running, and its notification and line say so.
+         * For a save not shown yet, which this reveals.
+         */
+        void waiting() {
+            phase = Phase.WAITING;
+            reveal();
+        }
+
+        /** Its turn came: it starts downloading. */
+        void started() {
+            if (phase != Phase.WAITING) return;
+            phase = Phase.DOWNLOADING;
+            tell();
+            show(-1, 0, -1);
+        }
+
         /** The next page keeps the same Cancel identity, with fresh phase and byte progress. */
         void page(int number, boolean video) {
             batchPage = number;
@@ -518,6 +538,7 @@ public final class SaveControl {
                     .addAction(new Notification.Action.Builder((Icon) null,
                         L10n.t(application, "Cancel"), cancel).build());
                 String text = batchPages > 0 ? status(new Running(this))
+                    : phase == Phase.WAITING ? L10n.t(application, "Waiting for the saves before it")
                     : phase == Phase.CONVERTING ? L10n.t(application, "Converting to H.264") : progressText(done, total);
                 if (text != null) builder.setContentText(text);
                 manager.notify(TAG, id, builder.build());

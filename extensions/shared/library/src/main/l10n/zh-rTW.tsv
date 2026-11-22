@@ -2782,3 +2782,15 @@ Couldn't start recording this call	無法開始錄製這通電話
 Couldn't save the call recording	無法儲存通話錄音
 # context: a toast when a recording ends with no sound in it (#732)
 Nothing was recorded	沒有錄到任何聲音
+# context: a toast when a save starts, naming the account the media is from (#792)
+Saving from @%1$s...	正在儲存 @%1$s 的內容…
+# context: a second toast after the one above, when notifications are off (#792)
+You can cancel from Downloads in HushGram settings.	你可以從 HushGram 設定中的「下載」取消。
+# context: a toast when a save waits for the ones already running, the account unknown (#792)
+Queued	已加入佇列
+# context: a toast when a save waits for the ones already running, naming the account (#792)
+Queued: @%1$s	已加入佇列：@%1$s
+# context: a toast when too many saves already wait their turn (#792)
+Not saved: %1$d saves are already waiting	未儲存：已有 %1$d 個在等待
+# context: a waiting save's notification text and its line in Downloads (#792)
+Waiting for the saves before it	正在等待前面的儲存

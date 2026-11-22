@@ -69,15 +69,35 @@ public final class MediaSave {
         Logger.diagnosticError(DiagnosticCategory.DOWNLOADS, SOURCE, message, cause);
     }
 
-    /** A guard against a rapid tap, not a work queue. */
-    private static final int MAX_IN_FLIGHT = 3;
+    /** How many saves run at once. A tap past them waits its turn, in the order they were asked for (#792). */
+    static final int MAX_IN_FLIGHT = 3;
 
+    /**
+     * How many saves wait for a turn. A wait is minutes at most, far inside the hours an address
+     * lives, and the fetch still starts with the address it was given on the tap. A tap past this
+     * many says the line is full.
+     */
+    static final int MAX_QUEUED = 20;
+
+    /** Saves running now. Changed only while holding {@link #QUEUED}. */
     private static final AtomicInteger IN_FLIGHT = new AtomicInteger();
 
-    /** Saves still running, and Download all requests waiting their turn. A test waits on this for the ones it started. */
+    /** The workers of saves waiting for a turn, made but not started, oldest first. */
+    private static final ArrayDeque<Thread> QUEUED = new ArrayDeque<>();
+
+    /** Saves still running or waiting, and Download all requests waiting their turn. A test waits on this for the ones it started. */
     static int savesInFlight() {
         synchronized (WAITING) {
-            return IN_FLIGHT.get() + WAITING.size() + handingOver;
+            synchronized (QUEUED) {
+                return IN_FLIGHT.get() + QUEUED.size() + WAITING.size() + handingOver;
+            }
+        }
+    }
+
+    /** Saves waiting for a turn. */
+    static int savesQueued() {
+        synchronized (QUEUED) {
+            return QUEUED.size();
         }
     }
 
@@ -287,7 +307,7 @@ public final class MediaSave {
             List<String> passedOver = new ArrayList<>();
             // The pages the check let through, each held until the carousel ends.
             List<String> held = new ArrayList<>();
-            boolean started = launch(application, false, snapshot.size(), save -> {
+            boolean started = launch(application, false, snapshot.size(), poster(snapshot), save -> {
                 int saved = 0, failed = 0, skipped = 0, lower = 0, lowStorage = 0, already = 0;
                 boolean cancelled = false;
                 for (int index = 0; index < snapshot.size(); index++) {
@@ -376,6 +396,14 @@ public final class MediaSave {
             failure(() -> "the carousel save could not start", failure);
             return false;
         }
+    }
+
+    /** The account that posted the first page that names one, for the messages, or null. */
+    static String poster(List<Item> pages) {
+        for (Item page : pages) {
+            if (page != null && page.details != null && page.details.owner != null) return page.details.owner;
+        }
+        return null;
     }
 
     /**
@@ -1591,7 +1619,7 @@ public final class MediaSave {
         // Read on the tap, for the account in front now. Null with Skip what's already saved off,
         // or for a save that doesn't know the media's id: it's saved as it always was.
         final String key = DownloadHistory.key(DownloadHistory.ownerIfOn(), known, kind);
-        return launch(application, video, audio, 0, key != null, save -> {
+        return launch(application, video, audio, 0, key != null, known.owner, save -> {
             if (key != null && DownloadHistory.saved(application, key)) {
                 info(() -> "save skipped: already saved");
                 DownloadHistory.offerAgain(Collections.singletonList(key));
@@ -1600,7 +1628,7 @@ public final class MediaSave {
                 return;
             }
             try {
-                if (key != null) announce(application, save);
+                if (key != null) announce(application, save, known.owner);
                 observeDetails(known);
                 MediaStoreWriter writer = audio ? MediaStoreWriter.forAudio(application, known)
                     : new MediaStoreWriter(application, video, known);
@@ -1640,91 +1668,157 @@ public final class MediaSave {
     private interface Work { void run(SaveControl.Save save); }
 
     /** Atomically admits one logical save and retires it for every normal result. */
-    private static Thread launch(Context application, boolean video, int pages, Work work,
+    private static Thread launch(Context application, boolean video, int pages, String poster, Work work,
             Consumer<SaveControl.Save> finishing, Runnable finished) {
-        return launch(application, video, false, pages, false, work, finishing, finished);
+        return launch(application, video, false, pages, false, poster, work, finishing, finished);
     }
 
     /**
-     * The start's toast. With no notification to cancel it from, the list of saves in the settings
-     * is the only way to stop it, so the start says where that is, for long enough to read.
+     * The start's toast, naming the account the media is from when that's known (#792). With no
+     * notification to cancel it from, the list of saves in the settings is the only way to stop
+     * it, so the start says where that is in a second toast, for long enough to read.
      */
-    private static void announce(Context application, SaveControl.Save save) {
+    private static void announce(Context application, SaveControl.Save save, String poster) {
         save.reveal();
-        if (save.manager != null) {
-            Feedback.show(application, L10n.t(application, "Saving..."), false);
-        } else {
-            Feedback.show(application,
-                L10n.t(application, "Saving... You can cancel from Downloads in HushGram settings."), true);
+        if (poster == null) {
+            Feedback.show(application, save.manager != null ? L10n.t(application, "Saving...")
+                    : L10n.t(application, "Saving... You can cancel from Downloads in HushGram settings."),
+                    save.manager == null);
+            return;
         }
+        String saving = L10n.f(application, "Saving from @%1$s...", L10n.isolate(poster));
+        Feedback.show(application, save.manager != null ? saving
+                : saving + "\n" + L10n.t(application, "You can cancel from Downloads in HushGram settings."),
+                save.manager == null);
     }
 
     /**
      * As above. [quiet] leaves the start's toast to [work], for a save that may turn out to be
-     * one already saved and should say only that.
+     * one already saved and should say only that. [poster] is the account the media is from, or
+     * null. With {@link #MAX_IN_FLIGHT} saves running it waits its turn in line, and the answer is
+     * its worker, which starts when a save before it ends. Null when the line is full too.
      */
     private static Thread launch(Context application, boolean video, boolean audio, int pages, boolean quiet,
-            Work work, Consumer<SaveControl.Save> finishing, Runnable finished) {
-        int running;
-        do {
-            running = IN_FLIGHT.get();
-            if (running >= MAX_IN_FLIGHT) {
-                failure(() -> "too many saves at once", null);
-                return null;
-            }
-        } while (!IN_FLIGHT.compareAndSet(running, running + 1));
-        SaveControl.Save save;
+            String poster, Work work, Consumer<SaveControl.Save> finishing, Runnable finished) {
+        // Shown once it's known whether the save starts now or waits.
+        SaveControl.Save save = SaveControl.begin(application, video && !audio, audio, pages, false);
+        boolean[] queued = new boolean[1];
+        Thread worker;
         try {
-            // A quiet save shows its notification once announce() says it's going ahead.
-            save = SaveControl.begin(application, video && !audio, audio, pages, !quiet);
+            worker = new Thread(() -> runSave(application, save, pages, quiet, queued[0], poster, work,
+                    finishing, finished), "hushgram-save");
+            // A thread that ends when the copy ends leaves nothing behind in a process that is not
+            // ours. A pool parks a thread there for as long as the app runs.
+            worker.setDaemon(true);
+            worker.setPriority(Thread.NORM_PRIORITY - 1);
         } catch (Throwable failure) {
-            IN_FLIGHT.decrementAndGet();
+            save.end();
             throw failure;
         }
-        if (!quiet) announce(application, save);
+        int place;
+        synchronized (QUEUED) {
+            if (IN_FLIGHT.get() < MAX_IN_FLIGHT && QUEUED.isEmpty()) {
+                IN_FLIGHT.incrementAndGet();
+                place = 0;
+            } else if (QUEUED.size() < MAX_QUEUED) {
+                // Written before the worker can start: whoever starts it takes this lock first.
+                queued[0] = true;
+                QUEUED.add(worker);
+                place = QUEUED.size();
+            } else {
+                place = -1;
+            }
+        }
+        if (place < 0) {
+            save.end();
+            failure(() -> "save not queued: " + MAX_QUEUED + " already waiting", null);
+            Feedback.show(application, L10n.f(application, "Not saved: %1$d saves are already waiting", MAX_QUEUED), true);
+            return null;
+        }
+        if (place > 0) {
+            final int waiting = place;
+            info(() -> "save queued, " + waiting + " waiting");
+            save.waiting();
+            Feedback.show(application, poster == null ? L10n.t(application, "Queued")
+                    : L10n.f(application, "Queued: @%1$s", L10n.isolate(poster)), false);
+            return worker;
+        }
+        if (!quiet) announce(application, save, poster);
+        try { worker.start(); }
+        catch (Throwable failure) {
+            save.end();
+            synchronized (QUEUED) {
+                IN_FLIGHT.decrementAndGet();
+            }
+            throw failure;
+        }
+        return worker;
+    }
 
-        Thread worker = new Thread(() -> {
-            String marker = null;
-            try {
+    /** One save on its worker thread, from its turn to its end, which hands the turn on. */
+    private static void runSave(Context application, SaveControl.Save save, int pages, boolean quiet, boolean queued,
+            String poster, Work work, Consumer<SaveControl.Save> finishing, Runnable finished) {
+        String marker = null;
+        try {
+            if (queued && save.cancelled()) {
+                // Cancelled while it waited: nothing was fetched, and nothing is.
+                info(() -> "a waiting save was cancelled before its turn");
+                if (pages == 0) Feedback.show(application, L10n.t(application, "Save canceled"), false);
+            } else {
+                if (queued) {
+                    save.started();
+                    if (!quiet) announce(application, save, poster);
+                }
                 // What a save in a process Android ended left behind goes before this one makes
                 // anything. It runs once per process.
                 SaveLeftovers.sweepOnce(application);
                 marker = SaveLeftovers.beginJob(application);
                 work.run(save);
-            } catch (Throwable t) {
-                // Nothing can leave this thread. The app installs its own handler for uncaught
-                // exceptions and reports them as its own crashes.
-                failure(() -> "the save failed", t);
-                if (pages == 0) Feedback.show(application, L10n.t(application, "Download failed"), true);
-            } finally {
-                // Each step is guarded on its own: one that throws must not keep the in-flight slot
-                // or the Download all turn, or every later Download all would wait forever (#115).
-                try { SaveLeftovers.finishJob(application, marker); }
-                catch (Throwable failure) { failure(() -> "could not close a save's job marker", failure); }
-                // Publish the batch outcome before the end notification asks the settings to redraw.
-                if (pages > 0) {
-                    try { finishing.accept(save); }
-                    catch (Throwable failure) { failure(() -> "could not deliver a save's completion", failure); }
-                }
-                try { save.end(); }
-                catch (Throwable failure) { failure(() -> "could not end a save", failure); }
-                IN_FLIGHT.decrementAndGet();
-                try { finished.run(); }
+            }
+        } catch (Throwable t) {
+            // Nothing can leave this thread. The app installs its own handler for uncaught
+            // exceptions and reports them as its own crashes.
+            failure(() -> "the save failed", t);
+            if (pages == 0) Feedback.show(application, L10n.t(application, "Download failed"), true);
+        } finally {
+            // Each step is guarded on its own: one that throws must not keep the in-flight slot
+            // or the Download all turn, or every later Download all would wait forever (#115).
+            try { SaveLeftovers.finishJob(application, marker); }
+            catch (Throwable failure) { failure(() -> "could not close a save's job marker", failure); }
+            // Publish the batch outcome before the end notification asks the settings to redraw.
+            if (pages > 0) {
+                try { finishing.accept(save); }
                 catch (Throwable failure) { failure(() -> "could not deliver a save's completion", failure); }
             }
-        }, "hushgram-save");
-
-        // A thread that ends when the copy ends leaves nothing behind in a process that is not
-        // ours. A pool parks a thread there for as long as the app runs.
-        worker.setDaemon(true);
-        worker.setPriority(Thread.NORM_PRIORITY - 1);
-        try { worker.start(); }
-        catch (Throwable failure) {
-            save.end();
-            IN_FLIGHT.decrementAndGet();
-            throw failure;
+            try { save.end(); }
+            catch (Throwable failure) { failure(() -> "could not end a save", failure); }
+            nextTurn();
+            try { finished.run(); }
+            catch (Throwable failure) { failure(() -> "could not deliver a save's completion", failure); }
         }
-        return worker;
+    }
+
+    /**
+     * A running save ended: the oldest waiting one takes its turn straight away, so a tap in
+     * between can't take it, or the turn is given up when none waits.
+     */
+    private static void nextTurn() {
+        Thread next;
+        synchronized (QUEUED) {
+            next = QUEUED.poll();
+            if (next == null) {
+                IN_FLIGHT.decrementAndGet();
+                return;
+            }
+        }
+        try {
+            next.start();
+        } catch (Throwable failure) {
+            // No thread to be had: it runs here instead, so it still ends, ends its notification
+            // and hands the turn on. Thread.run() on a worker never started runs its work.
+            failure(() -> "a waiting save could not get a thread, running it after this one", failure);
+            next.run();
+        }
     }
 
     /** A reason for the report, cut to 160 characters. */

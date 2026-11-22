@@ -182,6 +182,118 @@ public class SaveProgressTest {
         return sent.getIntExtra(SaveControl.EXTRA_ID, -1);
     }
 
+    /** A save that holds until [gate] opens, noting its [number] in [began] as it starts. */
+    private static MediaSave.Job held(int number, List<Integer> began, CountDownLatch gate) {
+        return (writer, progress) -> {
+            began.add(number);
+            try {
+                gate.await(30, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            return Downloader.Result.fail(Downloader.Status.BUILD_ERROR, "held by the test");
+        };
+    }
+
+    private static void waitFor(java.util.function.BooleanSupplier done, java.util.function.Supplier<String> what)
+            throws InterruptedException {
+        long until = System.currentTimeMillis() + 20_000;
+        while (!done.getAsBoolean()) {
+            if (System.currentTimeMillis() > until) throw new AssertionError(what.get());
+            Thread.sleep(20);
+        }
+    }
+
+    private static int waitingNotifications() {
+        int waiting = 0;
+        for (Notification shown : Shadows.shadowOf(notifications()).getAllNotifications()) {
+            CharSequence text = shown.extras.getCharSequence(Notification.EXTRA_TEXT);
+            if (text != null && "Waiting for the saves before it".contentEquals(text)) waiting++;
+        }
+        return waiting;
+    }
+
+    /**
+     * A tap while three saves ran failed with Download failed, so a quick run of taps lost saves.
+     * It waits its turn now: its toast and notification say so and name the account, it starts
+     * when a save before it ends, in the order it was asked for, and a Cancel while it waits stops
+     * it before it fetches anything (#792).
+     */
+    @Test
+    public void aSavePastTheRunningOnesWaitsItsTurnInOrder() throws Exception {
+        int total = MediaSave.MAX_IN_FLIGHT + 3;
+        List<Integer> began = java.util.Collections.synchronizedList(new ArrayList<>());
+        List<CountDownLatch> gates = new ArrayList<>();
+        List<Thread> workers = new ArrayList<>();
+        try {
+            for (int number = 0; number < total; number++) {
+                CountDownLatch gate = new CountDownLatch(1);
+                gates.add(gate);
+                workers.add(MediaSave.start(context, true, PostDetails.of(null, "poster" + number, null),
+                        held(number, began, gate)));
+                Shadows.shadowOf(Looper.getMainLooper()).idle();
+                assertEquals("save " + number + "'s toast",
+                        number < MediaSave.MAX_IN_FLIGHT
+                                ? "Saving from @" + L10n.isolate("poster" + number) + "..."
+                                : "Queued: @" + L10n.isolate("poster" + number),
+                        ShadowToast.getTextOfLatestToast());
+            }
+            for (Thread worker : workers) assertNotNull("a save past the running ones was refused", worker);
+            waitFor(() -> began.size() == MediaSave.MAX_IN_FLIGHT, () -> "the first three never started: " + began);
+            assertEquals("waiting", 3, MediaSave.savesQueued());
+            assertEquals("each waiting save's notification says it waits", 3, waitingNotifications());
+
+            List<SaveControl.Running> listed = SaveControl.running();
+            assertEquals(total, listed.size());
+            assertEquals("Downloads lists the last one as waiting", SaveControl.Phase.WAITING, listed.get(total - 1).phase);
+            assertEquals("Waiting for the saves before it", SaveControl.status(listed.get(total - 1)));
+            assertTrue(SaveControl.cancel(listed.get(total - 1).id));
+
+            // The first save ends: the oldest waiting one takes its turn, and the next still waits.
+            gates.get(0).countDown();
+            waitFor(() -> began.contains(3), () -> "the first waiting save never started: " + began);
+            Thread.sleep(300);
+            assertFalse("the second waiting save started out of turn: " + began, began.contains(4));
+            gates.get(1).countDown();
+            waitFor(() -> began.contains(4), () -> "the second waiting save never started: " + began);
+        } finally {
+            for (CountDownLatch gate : gates) gate.countDown();
+        }
+        for (Thread worker : workers) finish(worker);
+        assertFalse("the save cancelled while it waited still ran: " + began, began.contains(5));
+        assertEquals(total - 1, began.size());
+        assertEquals(0, MediaSave.savesInFlight());
+    }
+
+    /** Past the running saves and a full line, a tap says the line is full instead of saving (#792). */
+    @Test
+    public void aSavePastAFullLineSaysSo() throws Exception {
+        CountDownLatch gate = new CountDownLatch(1);
+        List<Integer> began = java.util.Collections.synchronizedList(new ArrayList<>());
+        List<Thread> workers = new ArrayList<>();
+        int admitted = MediaSave.MAX_IN_FLIGHT + MediaSave.MAX_QUEUED;
+        try {
+            for (int number = 0; number < admitted; number++) {
+                Thread worker = MediaSave.start(context, true, held(number, began, gate));
+                assertNotNull("save " + number + " was refused", worker);
+                workers.add(worker);
+            }
+            Shadows.shadowOf(Looper.getMainLooper()).idle();
+            assertEquals("Queued", ShadowToast.getTextOfLatestToast());
+            assertNull("a save past a full line started", MediaSave.start(context, true, held(-1, began, gate)));
+            Shadows.shadowOf(Looper.getMainLooper()).idle();
+            assertEquals("Not saved: " + MediaSave.MAX_QUEUED + " saves are already waiting",
+                    ShadowToast.getTextOfLatestToast());
+            assertEquals(MediaSave.MAX_QUEUED, MediaSave.savesQueued());
+        } finally {
+            gate.countDown();
+        }
+        for (Thread worker : workers) finish(worker);
+        assertFalse("the refused save ran", began.contains(-1));
+        assertEquals(admitted, began.size());
+        assertEquals(0, MediaSave.savesInFlight());
+    }
+
     @Test
     @Config(sdk = {28, 30, 37})
     public void aSaveShowsItsProgressAtOnceAndCancelStopsIt() throws Exception {

@@ -2778,3 +2778,15 @@ Couldn't start recording this call	통화 녹음을 시작하지 못했어요
 Couldn't save the call recording	통화 녹음을 저장하지 못했어요
 # context: a toast when a recording ends with no sound in it (#732)
 Nothing was recorded	녹음된 내용이 없어요
+# context: a toast when a save starts, naming the account the media is from (#792)
+Saving from @%1$s...	@%1$s의 미디어를 저장하는 중…
+# context: a second toast after the one above, when notifications are off (#792)
+You can cancel from Downloads in HushGram settings.	HushGram 설정의 다운로드에서 취소할 수 있습니다.
+# context: a toast when a save waits for the ones already running, the account unknown (#792)
+Queued	대기 중
+# context: a toast when a save waits for the ones already running, naming the account (#792)
+Queued: @%1$s	대기 중: @%1$s
+# context: a toast when too many saves already wait their turn (#792)
+Not saved: %1$d saves are already waiting	저장 안 됨: 이미 %1$d개가 대기 중
+# context: a waiting save's notification text and its line in Downloads (#792)
+Waiting for the saves before it	앞의 저장이 끝나기를 기다리는 중
