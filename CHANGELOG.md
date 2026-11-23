@@ -10,6 +10,7 @@ Every HushGram release, newest first.
 * The glass tab bar keeps up with every reel now, not about half of them. A reel that was still loading when it reached the bar left its blur lagging until you scrolled away and back. Reported in #583.
 * `Also on Home` is new under `Hide reels by sound` in Reels. Posts on Home that use a sound you hid are left out too. Starts off. Asked for in #822.
 * If starting a call recording closes Instagram, `Record calls` turns itself off the next time Instagram opens and says so, so a call doesn't close it again. Reported in #831.
+* Going back to Home from Messages with the floating glass tab bar no longer flashes a black band under the pill for a frame. Reported in #835.
 
 ## 0.0.22 (2026-11-22)
 

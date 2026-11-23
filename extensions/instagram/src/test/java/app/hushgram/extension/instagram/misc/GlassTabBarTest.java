@@ -757,6 +757,54 @@ public class GlassTabBarTest {
         }
     }
 
+    /**
+     * #835: back on Home from Messages, Instagram puts Home's screen back with a bottom margin as tall as
+     * its own bar. Under a floating pill the screen runs to the bottom edge, and the margin went to 0 in
+     * that frame's look, but the frame was drawn first with the old layout: the feed stopped at the bar's
+     * top with black under the pill for a frame. That frame waits for the new layout now. A frame where
+     * nothing moved still draws.
+     */
+    @Test
+    @Config(sdk = 29, qualifiers = "en-rUS-w411dp-h891dp-xhdpi")
+    public void aScreenBackWithTheBarsMarginWaitsForItsNewLayout() {
+        GlassTabBar.resetForTests();
+        int contentId = 0x7f0b0130;
+        Map<String, Integer> ids = ReflectionHelpers.getStaticField(GlassTabBar.class, "IDS");
+        Integer previous;
+        synchronized (ids) { previous = ids.put(GlassTabBar.CONTENT, contentId); }
+        try (GlassHost host = new GlassHost(Color.BLACK, true, GlassHeight.STANDARD, false, false)) {
+            int barHeight = host.bar.getLayoutParams().height;
+            FrameLayout content = new FrameLayout(host.activity);
+            content.setId(contentId);
+            host.root.addView(content, 0, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT));
+            View messages = withMargin(new View(host.activity), barHeight);
+            content.addView(messages);
+            host.controller.pause().resume();
+            host.frame();
+            host.frame();
+            assertEquals("Messages runs to the bottom edge", 0, margin(messages));
+            org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(200));
+            assertFalse("nothing moved, so the frame draws", host.bar.getViewTreeObserver().dispatchOnPreDraw());
+
+            content.removeView(messages);
+            View home = withMargin(new View(host.activity), barHeight);
+            content.addView(home);
+            // The next frame's pre-draw, before the window's own pass gets to it.
+            boolean held = host.bar.getViewTreeObserver().dispatchOnPreDraw();
+            assertEquals("Home runs to the bottom edge", 0, margin(home));
+            assertTrue("the frame Home came back in waits for its new layout", held);
+            host.layout();
+            org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(200));
+            assertFalse("the next frame draws", host.bar.getViewTreeObserver().dispatchOnPreDraw());
+        } finally {
+            synchronized (ids) {
+                if (previous == null) ids.remove(GlassTabBar.CONTENT);
+                else ids.put(GlassTabBar.CONTENT, previous);
+            }
+        }
+    }
+
     /** FullScreenBars starts and ends with nothing offered, taken or kept, telling the patch's listeners. */
     private static void resetFullScreenHeights() throws Exception {
         Class<?> teller = Class.forName("app.hushgram.extension.instagram.reels.FullScreenBars$Teller");

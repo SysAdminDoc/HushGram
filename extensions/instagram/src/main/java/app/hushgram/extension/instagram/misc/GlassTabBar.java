@@ -1950,6 +1950,8 @@ public final class GlassTabBar {
         private long footerRedrawAt = Long.MIN_VALUE / 2;
         /** Whether a Reels viewer's margin changed in this frame's look, so the frame is laid out again before it's drawn. */
         private boolean reelsMoved;
+        /** Whether the content's or a screen's bottom margin changed in this frame's look, the same way (#835). */
+        private boolean screensMoved;
         /** When a frame was last held back for a layout ({@link #HOLD_BACK_MS}). */
         private long heldBackAt = Long.MIN_VALUE / 2;
         /**
@@ -2571,12 +2573,14 @@ public final class GlassTabBar {
                         if (margins.bottomMargin != 0) {
                             margins.bottomMargin = 0;
                             content.setLayoutParams(margins);
+                            screensMoved = true;
                         }
                     } else if (params != null && params.height > contentMargin && contentMargin > 0
                             && margins.bottomMargin == contentMargin) {
                         // The bar is taller than the one Instagram laid the content out for; stop the content at its top.
                         margins.bottomMargin = params.height;
                         content.setLayoutParams(margins);
+                        screensMoved = true;
                     }
                 }
                 if (content instanceof ViewGroup) keepScreensAboveTheBar((ViewGroup) content, params);
@@ -2887,8 +2891,9 @@ public final class GlassTabBar {
             if (originalBarHeight <= 0 || params == null || params.height <= 0) return;
             int wanted = floating ? 0 : params.height;
             if (wanted == originalBarHeight) return;
-            movedForReels("put the screens above the bar",
-                    screensAboveTheBar(content, id(content.getContext(), SWIPE_PAGER), originalBarHeight, wanted, lifted), wanted);
+            int moved = screensAboveTheBar(content, id(content.getContext(), SWIPE_PAGER), originalBarHeight, wanted, lifted);
+            if (moved > 0) screensMoved = true;
+            movedForReels("put the screens above the bar", moved, wanted);
         }
 
         @Override public boolean onPreDraw() {
@@ -2899,6 +2904,7 @@ public final class GlassTabBar {
                 stepAside();
                 footerMoved = false;
                 reelsMoved = false;
+                screensMoved = false;
                 keep();
                 if (footerMoved) {
                     // Instagram laid this frame out with the reel shrunk over the footer (#260). Hold the
@@ -2910,6 +2916,9 @@ public final class GlassTabBar {
                 }
                 // A Reels viewer laid out at a size it's about to lose isn't shown at it either.
                 if (reelsMoved) layOutAgain = true;
+                // Nor a screen Instagram just put back with its own bar's margin, as Home is coming back
+                // from Messages: drawn first, its old layout showed for a frame, black under the pill (#835).
+                if (screensMoved) layOutAgain = true;
                 // Screens given the navigation bar's height as the pill went hold the frame too (#618).
                 if (askForInsetsWhenShownChanges()) layOutAgain = true;
                 // Moved sheets hold the frame back for their new layout too, so a sheet never shows on the
