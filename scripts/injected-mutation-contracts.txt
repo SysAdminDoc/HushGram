@@ -2393,6 +2393,17 @@ once-call Lapp/hushgram/extension/instagram/share/ShareSheet;->hideGroupAction()
 once-call Lapp/hushgram/extension/instagram/share/ShareSheet;->hideGroupAction()Z in instance (Landroid/view/View;Landroid/os/Bundle;)V holding Linstagram/features/direct/fragment/sharesheet/DirectShareSheetFragment;->createGroupButton:Landroid/view/View;
 start-call Lapp/hushgram/extension/instagram/share/ShareSheet;->hideGroupSend()Z in instance (Ljava/util/List;ZLcom/instagram/common/session/UserSession;)V holding Landroid/view/ViewGroup$LayoutParams;->width:I
 once-call Lapp/hushgram/extension/instagram/share/ShareSheet;->hideGroupSend()Z in instance (Ljava/util/List;ZLcom/instagram/common/session/UserSession;)V holding Landroid/view/ViewGroup$LayoutParams;->width:I
+# More people when you hold Share asks QuickSend.people for each four the row a long press on Share
+# opens keeps: once in the method filling the row from the share sheet's list, the one instance
+# (*)V method loading add_content_note, right before its take of the first four; once in the row's
+# width clamp, the popup's one instance (I)V method; and once in the popup's constructor, right
+# before it keeps the most faces the row draws. The popup is the one class whose methods between
+# them load spring, make a PopupWindow and set a layout's width. Left out, the row stays four wide
+# or draws four faces in a wider bar; twice or elsewhere, it isn't the ask the patch wrote.
+# QuickSendHookTest checks on each 456.1 fixture that all three land where they should.
+once-call Lapp/hushgram/extension/instagram/share/QuickSend;->people(I)I in instance (*)V pooled holding add_content_note
+once-call Lapp/hushgram/extension/instagram/share/QuickSend;->people(I)I in instance (I)V pooled class-holding spring Landroid/widget/PopupWindow;-><init>()V Landroid/view/ViewGroup$LayoutParams;->width:I
+once-call Lapp/hushgram/extension/instagram/share/QuickSend;->people(I)I in instance (Landroid/app/Activity;Landroid/graphics/Rect;Landroid/view/ViewParent;LX/*;Lcom/instagram/common/session/UserSession;Lcom/instagram/feed/media/Media;Ljava/lang/Integer;IJ)V pooled class-holding spring Landroid/widget/PopupWindow;-><init>()V Landroid/view/ViewGroup$LayoutParams;->width:I
 # Story ring size passes the stories row's item size through StoryRing.size right after each of the
 # three places a method settles it, in the row's dimensions and in two static helpers on 449. It gets
 # no rule: none of the three loads a string or reads a field of its own the others don't, and every

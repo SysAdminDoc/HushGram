@@ -16,9 +16,10 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
 
 /**
  * More people in the row a long press on a post's Share button opens (discussion #811). Instagram
- * puts four faces there: it takes four people off the top of the share sheet's list and makes the
- * popup four faces wide. The patch asks {@link #people(int)} for both numbers instead, and with the
- * switch on the answer is as many faces as fit across the window, so the row fills it.
+ * puts four faces there: it takes four people off the top of the share sheet's list, draws no more
+ * than four faces from whichever list it has, and makes the popup four faces wide. The patch asks
+ * {@link #people(int)} for each of those fours instead, and with the switch on the answer is as many
+ * faces as fit across the window, so the row fills it.
  */
 public final class QuickSend {
     /** The popup's sizes on 456.1, in dp: each face, the gap between two, and the padding at each end. */

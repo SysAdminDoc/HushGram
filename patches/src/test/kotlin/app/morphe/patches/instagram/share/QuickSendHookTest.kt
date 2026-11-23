@@ -35,8 +35,9 @@ import java.io.File
 /**
  * More people in the row a long press on Share opens (discussion #811): on every declared build the
  * method filling the row asks the extension for the four it takes, the row's width clamp asks it for
- * the four it keeps the size at, and nothing else changes. A build where either can't be read keeps
- * the rest of the share sheet patch.
+ * the four it keeps the size at, the row's constructor asks it for the most faces it draws, and
+ * nothing else changes. A build where any of them can't be read keeps the rest of the share sheet
+ * patch.
  */
 class QuickSendHookTest {
     @Test
@@ -48,7 +49,7 @@ class QuickSendHookTest {
     }
 
     @Test
-    fun everyBuildAsksForThePeopleBothTimes() {
+    fun everyBuildAsksForThePeopleAllThreeTimes() {
         val checked = mutableListOf<String>()
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
         for (version in versions) {
@@ -112,6 +113,7 @@ class QuickSendHookTest {
         val sites = runCatching { context.findQuickSend() }.getOrElse { throw AssertionError("$label: ${it.message}", it) }
         val fillBefore = context.mutable(sites.fill).code()
         val clampBefore = context.mutable(sites.clamp).code()
+        val buildBefore = context.mutable(sites.build).code()
         context.askQuickSendPeople(sites)
 
         // The fill: the stock four stays where the loop over the list ends, and the answer goes into its register before the take.
@@ -144,7 +146,34 @@ class QuickSendHookTest {
         assertEquals("$at: a size past it takes the answer", listOf(Opcode.MOVE, size, sites.limit), listOf(cut.opcode, cut.registerA, cut.registerB))
         assertEquals("$at: the rest is Instagram's", clampBefore.drop(3).shapes(), clamp.drop(5).shapes())
         assertEquals("$at: one ask", 1, clamp.count { it.reference() == QUICK_SEND_PEOPLE })
+
+        // The constructor: the most faces the row draws, a four it kept in a field, is the answer instead.
+        val built = context.mutable(sites.build).code()
+        val made = "$label: ${sites.build.type} constructor"
+        assertEquals("$made: is a constructor", "<init>", sites.build.name)
+        val kept = buildBefore[sites.cap] as TwoRegisterInstruction
+        assertEquals("$made: keeps a four in an int field", listOf(Opcode.IPUT, sites.faces), listOf(kept.opcode, kept.registerA))
+        assertTrue("$made: the four", buildBefore.take(sites.cap).last { it.opcode.setsRegister() && it is OneRegisterInstruction && it.registerA == sites.faces }.isFour())
+        val capAsk = built[sites.cap] as RegisterRangeInstruction
+        assertEquals("$made: asks the extension", QUICK_SEND_PEOPLE, built[sites.cap].reference())
+        assertEquals("$made: with the four", listOf(Opcode.INVOKE_STATIC_RANGE, sites.faces, 1), listOf(capAsk.opcode, capAsk.startRegister, capAsk.registerCount))
+        assertEquals("$made: and keeps the answer", listOf(Opcode.MOVE_RESULT, sites.faces), listOf(built[sites.cap + 1].opcode, (built[sites.cap + 1] as OneRegisterInstruction).registerA))
+        assertEquals("$made: in the field", kept.reference(), built[sites.cap + 2].reference())
+        assertEquals("$made: one ask", 1, built.count { it.reference() == QUICK_SEND_PEOPLE })
+        assertEquals("$made: the rest is Instagram's", buildBefore.shapes(), built.filterIndexed { i, _ -> i != sites.cap && i != sites.cap + 1 }.shapes())
         return label
+    }
+
+    /** A constructor that no longer keeps four faces isn't the one the hook was written for. */
+    @Test
+    fun aRowThatNoLongerDrawsFourFacesLeavesTheSwitchOut() {
+        val context = firstOtherBuild()
+        val sites = context.findQuickSend()
+        val build = context.mutable(sites.build)
+        val four = build.code().take(sites.cap).indexOfLast { it.opcode.setsRegister() && it is OneRegisterInstruction && it.registerA == sites.faces }
+        build.replaceInstruction(four, "const/4 v${sites.faces}, 0x5")
+        refuses("keeping four faces, found 0") { context.findQuickSend() }
+        assertNull(context.findQuickSendOrWarn())
     }
 
     /** The patch refuses, for the reason given. */
@@ -152,6 +181,8 @@ class QuickSendHookTest {
         val refusal = assertThrows(PatchException::class.java) { search() }
         assertTrue("refused for another reason: ${refusal.message}", refusal.message.orEmpty().contains(reason))
     }
+
+    private fun Instruction.isFour() = opcode == Opcode.CONST_4 && (this as NarrowLiteralInstruction).narrowLiteral == 4
 
     private fun Instruction.isTakeOfFour(before: Instruction?): Boolean {
         val call = methodReference() ?: return false

@@ -351,9 +351,20 @@ internal fun BytecodePatchContext.hookSearchBox(site: SearchBoxSite) {
  * Where the row a long press on Share opens settles on four people: the method filling the row,
  * the index of its `const/4 vN, 4` right before the take of the first four, and vN; and the row's
  * width clamp, the `(I)V` method it hands the row's size to, which keeps the size at four or less
- * with a `const/4 vM, 4` and a `const/4 p1, 4`, and vM there.
+ * with a `const/4 vM, 4` and a `const/4 p1, 4`, and vM there; and the clamp class's constructor,
+ * the index of the `iput` keeping the most faces the row draws, and the register holding its four.
  */
-internal class QuickSendSites(val fill: SheetMethod, val four: Int, val count: Int, val clamp: SheetMethod, val limit: Int, val size: Int)
+internal class QuickSendSites(
+    val fill: SheetMethod,
+    val four: Int,
+    val count: Int,
+    val clamp: SheetMethod,
+    val limit: Int,
+    val size: Int,
+    val build: SheetMethod,
+    val cap: Int,
+    val faces: Int,
+)
 
 /**
  * Finds the row a long press on Share opens. The one method loading [QUICK_SEND_NOTE] leaves the
@@ -361,7 +372,8 @@ internal class QuickSendSites(val fill: SheetMethod, val four: Int, val count: I
  * `(Iterable, int)List` call right after `const/4 vN, 4`; a few lines on it hands the row's
  * `List.size()` to the clamp. The clamp opens `const/4 vM, 4`, `if-le p1, vM` past
  * `const/4 p1, 4`. Instagram's other way of filling the row (a ranked list it loads itself) goes
- * through the same clamp and takes no four of its own. Fails unless each is there once.
+ * through the same clamp, and both draw no more faces than an int field of the clamp's class that
+ * its constructor sets to four, which another of its methods reads. Fails unless each is there once.
  */
 internal fun BytecodePatchContext.findQuickSend(): QuickSendSites {
     val takes = classesLoadingString(QUICK_SEND_NOTE).flatMap { classDef ->
@@ -402,8 +414,47 @@ internal fun BytecodePatchContext.findQuickSend(): QuickSendSites {
     if (1 in targets || 2 in targets) refuse("a branch enters $clampAt inside its clamp")
     // The answer goes back into the clamp's own registers with move and a plain invoke, which reach v15.
     if (size > 15 || limit > 15) refuse("$clampAt keeps the size past v15")
-    return QuickSendSites(fill.site(type), four, count, clamp.site(call.definingClass), limit, size)
+
+    val caps = clampClass.methods.filter { it.name == "<init>" }.flatMap { build ->
+        val made = build.implementation?.instructions?.toList() ?: emptyList()
+        val targets = build.jumpTargets()
+        made.indices.mapNotNull { at -> made.fourKeptAt(at, call.definingClass, targets)?.let { (faces, field) -> Triple(build, at, faces) to field } }
+    }.filter { (_, field) ->
+        clampClass.methods.any { other -> other.name != "<init>" && other.readsIntField(call.definingClass, field) }
+    }.map { it.first }
+    val (build, cap, faces) = caps.singleOrNull() ?: refuse("expected one constructor of ${call.definingClass} keeping four faces, found ${caps.size}")
+    if (cap in build.jumpTargets()) refuse("a branch enters ${call.definingClass}'s constructor at its four faces")
+    return QuickSendSites(fill.site(type), four, count, clamp.site(call.definingClass), limit, size, build.site(call.definingClass), cap, faces)
 }
+
+/**
+ * The register this `iput` of an int field of [type] stores and the field's name, when the last
+ * write to the register before it is `const/4` four with no branch landing in between; null otherwise.
+ */
+private fun List<Instruction>.fourKeptAt(at: Int, type: String, targets: Set<Int>): Pair<Int, String>? {
+    val put = this[at]
+    if (put.opcode != Opcode.IPUT) return null
+    val field = (put as ReferenceInstruction).reference as? FieldReference ?: return null
+    if (field.definingClass != type || field.type != "I") return null
+    val register = (put as TwoRegisterInstruction).registerA
+    for (back in at - 1 downTo 0) {
+        if (back + 1 in targets) return null
+        val earlier = this[back]
+        if (!earlier.opcode.setsRegister() || earlier !is OneRegisterInstruction) continue
+        val written = earlier.registerA
+        if (written == register || (earlier.opcode.setsWideRegister() && written + 1 == register)) {
+            return if (earlier.isFourInto(register)) register to field.name else null
+        }
+    }
+    return null
+}
+
+/** Whether this method reads the int field [name] of [type]. */
+private fun Method.readsIntField(type: String, name: String) = implementation?.instructions?.any { instruction ->
+    if (instruction.opcode != Opcode.IGET) return@any false
+    val field = (instruction as ReferenceInstruction).reference as? FieldReference ?: return@any false
+    field.definingClass == type && field.name == name && field.type == "I"
+} == true
 
 /** The row a long press on Share opens, or null with a warning, so the rest still goes in. */
 internal fun BytecodePatchContext.findQuickSendOrWarn(): QuickSendSites? = try {
@@ -414,10 +465,11 @@ internal fun BytecodePatchContext.findQuickSendOrWarn(): QuickSendSites? = try {
 }
 
 /**
- * Hands both fours to [QUICK_SEND_PEOPLE] and goes on with its answer: right after the take's
- * `const/4`, where the loop over the list ends, so that label stays on the stock four; and in the
+ * Hands all three fours to [QUICK_SEND_PEOPLE] and goes on with its answer: right after the take's
+ * `const/4`, where the loop over the list ends, so that label stays on the stock four; in the
  * clamp right after its own four, where the `const/4 p1, 4` that cut the size becomes a move of
- * the answer. With the switch off the answer is four, so the row stays as Instagram makes it.
+ * the answer; and in the constructor right before the most faces is kept. With the switch off the
+ * answer is four, so the row stays as Instagram makes it.
  */
 internal fun BytecodePatchContext.askQuickSendPeople(sites: QuickSendSites) {
     mutableMethod(sites.fill).addInstructions(
@@ -436,6 +488,13 @@ internal fun BytecodePatchContext.askQuickSendPeople(sites: QuickSendSites) {
         """,
     )
     clamp.replaceInstruction(4, "move v${sites.size}, v${sites.limit}")
+    mutableMethod(sites.build).addInstructions(
+        sites.cap,
+        """
+            invoke-static/range { v${sites.faces} .. v${sites.faces} }, $QUICK_SEND_PEOPLE
+            move-result v${sites.faces}
+        """,
+    )
 }
 
 /** Whether this is a static `(Iterable, int)List` call, the take of a list's first few. */
