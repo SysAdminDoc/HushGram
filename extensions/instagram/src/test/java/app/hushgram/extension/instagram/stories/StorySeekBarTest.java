@@ -801,6 +801,9 @@ public class StorySeekBarTest {
     @Test
     public void belowTheTimeGoesOverTheRowAndRidesItsLift() {
         View footer = rowOver(10);
+        // The Send message box, the row's height, across the start where the time goes.
+        ((LinearLayout) footer).addView(new View(activity), new LinearLayout.LayoutParams(600, 181));
+        idle();
         Settings.STORY_SEEK_BAR_POSITION.save(StorySeekBarPosition.BELOW);
         Settings.STORY_SEEK_BAR.save(true);
         Settings.STORY_SEEK_TIME.save(true);
@@ -840,6 +843,59 @@ public class StorySeekBarTest {
         assertEquals("right over the bar's box", margin(bar) + 32 + 2, params.bottomMargin);
         time.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
         assertTrue("and under the row", params.bottomMargin + time.getMeasuredHeight() <= 200);
+    }
+
+    /**
+     * #784 on a story with no Send message box: the row under the story holds only its heart and share
+     * buttons, at the end, as tall as the row, so the bar under it has no room to spare. Nothing is
+     * drawn over the time's width though, so it sits right over the bar, not up over the row.
+     */
+    @Test
+    public void aRowWithOnlyItsEndButtonsLeavesTheTimeOverTheBar() {
+        LinearLayout footer = (LinearLayout) rowOver(10);
+        footer.setGravity(Gravity.END);
+        footer.addView(new View(activity), new LinearLayout.LayoutParams(96, 181));
+        idle();
+        Settings.STORY_SEEK_BAR_POSITION.save(StorySeekBarPosition.BELOW);
+        Settings.STORY_SEEK_BAR.save(true);
+        Settings.STORY_SEEK_TIME.save(true);
+        StorySeekBar.resumed(viewer);
+        idle();
+        assertEquals("lifted as with a box", -6f, footer.getTranslationY(), 0f);
+        assertEquals(0, margin(bar()));
+        TextView time = time();
+        FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) time.getLayoutParams();
+        assertEquals("right over the 16 pixel bar", 16 + 2, params.bottomMargin);
+        int[] at = new int[2];
+        time.getLocationInWindow(at);
+        int timeEnd = at[0] + time.getWidth();
+        footer.getChildAt(0).getLocationInWindow(at);
+        assertTrue("clear of the buttons: " + timeEnd + " vs " + at[0], timeEnd <= at[0]);
+    }
+
+    /** #784: what a row draws over a span, its children read where they sit and a group with a background whole. */
+    @Test
+    public void whatARowDrawsOverASpan() {
+        FrameLayout row = new FrameLayout(activity);
+        View send = new View(activity);
+        row.addView(send, new FrameLayout.LayoutParams(400, 100, Gravity.START | Gravity.TOP));
+        View heart = new View(activity);
+        FrameLayout.LayoutParams heartAt = new FrameLayout.LayoutParams(50, 150, Gravity.END | Gravity.TOP);
+        row.addView(heart, heartAt);
+        viewerView.addView(row, new FrameLayout.LayoutParams(720, 181, Gravity.TOP));
+        idle();
+        assertEquals("the box under the start", 100, StorySeekBar.drawnBottomAcross(row, 0, 8, 100, 0));
+        assertEquals("the heart at the end", 150, StorySeekBar.drawnBottomAcross(row, 0, 650, 30, 0));
+        assertEquals("both", 150, StorySeekBar.drawnBottomAcross(row, 0, 300, 400, 0));
+        assertEquals("nothing between them", -1, StorySeekBar.drawnBottomAcross(row, 0, 450, 100, 0));
+        assertEquals("a row further down", 110, StorySeekBar.drawnBottomAcross(row, 10, 8, 100, 0));
+        send.setTranslationX(200);
+        assertEquals("a moved box follows", -1, StorySeekBar.drawnBottomAcross(row, 0, 8, 100, 0));
+        row.setBackgroundColor(0xFF000000);
+        assertEquals("a row with a background draws all of itself", 181, StorySeekBar.drawnBottomAcross(row, 0, 450, 100, 0));
+        heart.setVisibility(View.GONE);
+        row.setBackground(null);
+        assertEquals("a gone heart draws nothing", -1, StorySeekBar.drawnBottomAcross(row, 0, 650, 30, 0));
     }
 
     /** #784: the time goes with its switch, hides with the bar on a photo, and leaves with the viewer. */

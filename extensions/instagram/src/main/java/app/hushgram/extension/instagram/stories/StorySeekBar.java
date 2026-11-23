@@ -271,12 +271,15 @@ public final class StorySeekBar {
         /**
          * The time at the start of the bar (#784), while its switch is on, and how far up it sits: right
          * over the bar's box, or over the story's bottom row when the bar sits under it with less room
-         * than the time needs between the two ({@link #timeOverRows}, {@link #roomOverBar}).
+         * than the time needs between the two ({@link #timeOverRows}, {@link #roomOverBar}). Only what the
+         * rows draw over the time's own width counts ({@link #timeRows}), so a row with just its heart and
+         * share buttons at the end leaves the time right over the bar.
          */
         @Nullable TextView time;
         int timeBottom;
         int timeOverRows = -1;
         int roomOverBar = Integer.MAX_VALUE;
+        final ArrayList<WeakReference<View>> timeRows = new ArrayList<>();
 
         Overlay(Object viewer) {
             this.viewer = new WeakReference<>(viewer);
@@ -439,6 +442,7 @@ public final class StorySeekBar {
             int height = dp(seek, HEIGHT_DP);
             int bottom = dp(seek, BOTTOM_DP);
             ArrayList<View> rows = new ArrayList<>();
+            ArrayList<View> boxed = new ArrayList<>();
             int lift = 0;
             int highest = 0;
             int under = -1;
@@ -461,6 +465,7 @@ public final class StorySeekBar {
                         int free = Math.max(box.getPaddingBottom(), emptyBelow(box));
                         int below = Math.max(0, above - box.getHeight() + free);
                         under = under < 0 ? below : Math.min(under, below);
+                        boxed.add(box);
                     }
                     highest = Math.max(highest, above);
                     rows.add(box);
@@ -493,6 +498,10 @@ public final class StorySeekBar {
             timeBottom = bottom + height + gap;
             timeOverRows = underRows ? highest + lift + gap : -1;
             roomOverBar = underRows ? under + lift - (bottom + height) : Integer.MAX_VALUE;
+            timeRows.clear();
+            if (underRows) {
+                for (View box : boxed) timeRows.add(new WeakReference<>(box));
+            }
             FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) seek.getLayoutParams();
             if (params.bottomMargin != bottom || params.height != height) {
                 params.bottomMargin = bottom;
@@ -611,7 +620,7 @@ public final class StorySeekBar {
                         Gravity.BOTTOM | Gravity.START));
             }
             int start = Math.max(dp(seek, TIME_START_DP), seek.getPaddingStart() - shown.getPaddingStart());
-            int over = timeBottomFor(shown);
+            int over = timeBottomFor(shown, start);
             FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) shown.getLayoutParams();
             if (params.bottomMargin != over || params.getMarginStart() != start) {
                 params.bottomMargin = over;
@@ -623,17 +632,46 @@ public final class StorySeekBar {
         }
 
         /**
-         * How far up the time [shown] sits: right over the bar while it fits under the rows, which a bar
-         * placed below them leaves it, else over the rows.
+         * How far up the time [shown], [start] pixels in from the start edge, sits: right over the bar
+         * while it fits under what the rows draw over its width, which a bar placed below them leaves
+         * it, else over the rows.
          */
-        private int timeBottomFor(TextView shown) {
+        private int timeBottomFor(TextView shown, int start) {
             if (timeOverRows < 0) return timeBottom;
             int tall = shown.getHeight();
-            if (tall <= 0) {
+            int wide = shown.getWidth();
+            if (tall <= 0 || wide <= 0) {
                 shown.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
                 tall = shown.getMeasuredHeight();
+                wide = shown.getMeasuredWidth();
             }
-            return roomOverBar >= tall + dp(shown, TIME_GAP_DP) ? timeBottom : timeOverRows;
+            int gap = dp(shown, TIME_GAP_DP);
+            return roomAcross(shown, start, wide, gap) >= tall + gap ? timeBottom : timeOverRows;
+        }
+
+        /**
+         * The room between the bar's box and the lowest thing {@link #timeRows} draw over the time's
+         * width, [wide] pixels from [start] in from the start edge of the time's frame (#784). A row that
+         * draws nothing there leaves room up to its top. {@link #roomOverBar} when no row is known.
+         */
+        private int roomAcross(TextView shown, int start, int wide, int gap) {
+            ViewGroup parent = (ViewGroup) shown.getParent();
+            if (parent == null || timeRows.isEmpty()) return roomOverBar;
+            int[] frame = new int[2];
+            parent.getLocationInWindow(frame);
+            int frameBottom = frame[1] + parent.getHeight();
+            int left = parent.getLayoutDirection() == View.LAYOUT_DIRECTION_RTL ? parent.getWidth() - start - wide : start;
+            int lowest = -1;
+            for (WeakReference<View> held : timeRows) {
+                View box = held.get();
+                if (box == null) continue;
+                int[] at = new int[2];
+                box.getLocationInWindow(at);
+                int drawn = drawnBottomAcross(box, 0, left - (at[0] - frame[0]), wide, 0);
+                int below = frameBottom - at[1] - Math.max(0, drawn);
+                lowest = lowest < 0 ? below : Math.min(lowest, below);
+            }
+            return lowest < 0 ? roomOverBar : lowest - (timeBottom - gap);
         }
 
         /** Writes the time at [at] into the label, when there is one. */
@@ -778,6 +816,27 @@ public final class StorySeekBar {
             View child = group.getChildAt(i);
             int at = top + child.getTop() + Math.round(child.getTranslationY());
             lowest = Math.max(lowest, drawnBottom(child, at, depth + 1));
+        }
+        return lowest;
+    }
+
+    /**
+     * The lowest edge of what [view] draws across a span [wide] pixels from [from] pixels in from its
+     * left, [top] pixels down from the row's top, or -1 for nothing there (#784). A group with a
+     * background draws all of itself, as {@link #drawnBottom} reads it.
+     */
+    static int drawnBottomAcross(View view, int top, int from, int wide, int depth) {
+        if (view.getVisibility() != View.VISIBLE || view.getWidth() <= 0 || view.getHeight() <= 0) return -1;
+        if (from >= view.getWidth() || from + wide <= 0) return -1;
+        int bottom = top + view.getHeight();
+        if (!(view instanceof ViewGroup) || view.getBackground() != null || depth >= 16) return bottom;
+        ViewGroup group = (ViewGroup) view;
+        int lowest = -1;
+        for (int i = 0; i < group.getChildCount(); i++) {
+            View child = group.getChildAt(i);
+            int at = top + child.getTop() + Math.round(child.getTranslationY());
+            int into = from - child.getLeft() - Math.round(child.getTranslationX());
+            lowest = Math.max(lowest, drawnBottomAcross(child, at, into, wide, depth + 1));
         }
         return lowest;
     }
