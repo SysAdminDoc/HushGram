@@ -22,6 +22,9 @@ import org.robolectric.RobolectricTestRunner;
 import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.Config;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.SettingsContextRule;
@@ -151,6 +154,32 @@ public class ChatReelRepliesTest {
         ChatReels.rememberReply(here, "m2", null, first);
         ChatReels.rememberReply(here, null, "d4", first);
         assertSame("no message, nothing remembered", second, ChatReels.reply("m2", "a1"));
+    }
+
+    /**
+     * A reel paged in past the chat's loaded messages has no message remembered, and Instagram's own
+     * lookup misses it too, so its quick reactions did nothing (#804). The info built from the message
+     * the reel came with answers it, unless it names no message or the one Instagram already quotes.
+     */
+    @Test
+    public void aReelPastTheLoadedMessagesAnswersTheMessageItCameWith() {
+        Map<Object, String> named = new HashMap<>();
+        named.put(first, "a1");
+        named.put(second, "b2");
+        named.put(again, "");
+        assertSame("Instagram had nothing", second, ChatReels.carried(null, second, named::get));
+        assertSame("Instagram quoted another message", second, ChatReels.carried("a1", second, named::get));
+        assertNull("Instagram already quotes it", ChatReels.carried("b2", second, named::get));
+        assertNull("the reel came with no message", ChatReels.carried(null, null, named::get));
+        assertNull("an empty message", ChatReels.carried(null, again, named::get));
+        assertNull("no message read", ChatReels.carried(null, new Object(), named::get));
+
+        ChatReels.rememberReply(here, "m2", "b2", second);
+        assertTrue("Instagram quotes one of the reel's remembered messages", ChatReels.remembers("m2", "b2"));
+        assertFalse("another message", ChatReels.remembers("m2", "a1"));
+        assertFalse("another reel", ChatReels.remembers("m3", "b2"));
+        assertFalse("no reel", ChatReels.remembers(null, "b2"));
+        assertFalse("Instagram quoted nothing", ChatReels.remembers("m2", null));
     }
 
     /** Only so many chats, reels of one chat and messages of one reel are kept. */

@@ -26,6 +26,7 @@ import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
 import app.morphe.patches.instagram.misc.extension.methodsCalling
 import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
+import app.morphe.patches.instagram.misc.extension.patchLog
 import app.morphe.patches.instagram.misc.extension.requireParameterIntact
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.extension.requireThisIntact
@@ -33,6 +34,7 @@ import app.morphe.patches.instagram.misc.flags.FlagLoad
 import app.morphe.patches.instagram.misc.flags.answerFlagLoads
 import app.morphe.patches.instagram.misc.flags.findFlagLoads
 import app.morphe.patches.instagram.misc.settings.settingsPatch
+import app.morphe.patches.instagram.reels.partnership.fillStub
 import app.morphe.patches.instagram.reels.scrolling.VIEW_PAGER
 import app.morphe.patches.instagram.reels.scrolling.reelsPager
 import app.morphe.patches.instagram.reels.scrolling.reelsPagerSetup
@@ -201,11 +203,13 @@ val swipeChatReelsPatch = bytecodePatch(
         val collector = findReelCollector(read)
         val replies = findReplyBar(collector)
         val page = findReplyPage(collector, replies)
+        val carried = findReelMessageOrWarn(collector, replies)
         val opener = findChatReelOpener(read, collector)
         checkAddTakesReels(placeholders, collector)
         chainChatReels(read)
         skipSentReels(collector)
         giveSwipedReelsTheirReplies(collector, replies)
+        carried?.let { buildRepliesFromReels(it) }
         pointOutMessagesAfterReels(collector, replies, page)
         leaveOutSentReels(placeholders)
         stopAfterChatReels(end)
@@ -1472,6 +1476,190 @@ internal fun BytecodePatchContext.giveSwipedReelsTheirReplies(collector: ReelCol
             invoke-virtual { p0, p1 }, ${found.item}
             move-result-object p0
             return-object p0
+        """,
+    )
+}
+
+/**
+ * What the extension builds a reel's reply info from when nothing it remembered and nothing Instagram
+ * kept answers it (#804): the [item] class's fields holding the reel's own message in the chat
+ * ([message], its direct_item_id), who sent it ([senders], users) and when ([sent], a Long), and how
+ * Instagram's Reels data source builds the info from them, in [builder]: a [sender] made with
+ * [senderInit] and given the [user] and the [time], then the [info] made with [init] from the sender,
+ * the message, a second String and a list.
+ */
+internal class ReelMessage(
+    val builder: String,
+    val item: String,
+    val message: FieldReference,
+    val senders: FieldReference,
+    val sent: FieldReference,
+    val sender: String,
+    val senderInit: MethodReference,
+    val user: FieldReference,
+    val time: FieldReference,
+    val info: String,
+    val init: String,
+)
+
+internal const val OWN_MESSAGE = "$CHAT_REELS->ownMessage(Ljava/lang/Object;)Ljava/lang/Object;"
+
+/** How far before Instagram's build of an info its reads of the reel's fields may sit. */
+private const val BUILD_WINDOW = 40
+
+/** The registers [instruction], a call, hands over, in order. */
+private fun callRegisters(instruction: Instruction): List<Int> = when (instruction) {
+    is FiveRegisterInstruction -> listOf(
+        instruction.registerC, instruction.registerD, instruction.registerE, instruction.registerF, instruction.registerG,
+    ).take(instruction.registerCount)
+    is RegisterRangeInstruction -> (instruction.startRegister until instruction.startRegister + instruction.registerCount).toList()
+    else -> emptyList()
+}
+
+/** The field [instruction] reads or writes, when it's [opcode] on a field of [owner] typed [type]. */
+private fun fieldOf(instruction: Instruction, opcode: Opcode, owner: String, type: String? = null): FieldReference? {
+    if (instruction.opcode != opcode) return null
+    val field = (instruction as ReferenceInstruction).reference as? FieldReference ?: return null
+    return if (field.definingClass == owner && (type == null || field.type == type)) field else null
+}
+
+/**
+ * Reads how [method] builds a reply info from a reel item, or null when it doesn't: at its one
+ * [init] call, the message String comes from one [item] String field read into that register, the
+ * sender is a new [senderType] made with a no-argument constructor and given one User and one long,
+ * and the reel's one List field and one Long field are read just before.
+ */
+private fun readReelMessage(method: Method, item: String, info: String, init: String, senderType: String): ReelMessage? {
+    val code = method.implementation?.instructions?.toList() ?: return null
+    val calls = code.indices.filter { at ->
+        (code[at].opcode == Opcode.INVOKE_DIRECT || code[at].opcode == Opcode.INVOKE_DIRECT_RANGE) &&
+            "${(code[at] as ReferenceInstruction).reference}" == init
+    }
+    val call = calls.singleOrNull() ?: return null
+    val handed = callRegisters(code[call])
+    if (handed.size != 5) return null
+    val (senderRegister, messageRegister) = handed[1] to handed[2]
+    val window = (call - BUILD_WINDOW).coerceAtLeast(0) until call
+    val messages = window.mapNotNull { at ->
+        val read = fieldOf(code[at], Opcode.IGET_OBJECT, item, STRING) ?: return@mapNotNull null
+        if ((code[at] as TwoRegisterInstruction).registerA == messageRegister) read else null
+    }.distinctBy { "$it" }
+    val message = messages.singleOrNull() ?: return null
+    val made = window.lastOrNull { at ->
+        code[at].opcode == Opcode.NEW_INSTANCE && (code[at] as OneRegisterInstruction).registerA == senderRegister &&
+            "${(code[at] as ReferenceInstruction).reference}" == senderType
+    } ?: return null
+    val construct = code.getOrNull(made + 1)?.takeIf { it.opcode == Opcode.INVOKE_DIRECT } ?: return null
+    val senderInit = (construct as ReferenceInstruction).reference as? MethodReference ?: return null
+    if (senderInit.name != "<init>" || senderInit.parameterTypes.isNotEmpty() || callRegisters(construct) != listOf(senderRegister)) return null
+    val users = (made + 2 until call).mapNotNull { at ->
+        fieldOf(code[at], Opcode.IPUT_OBJECT, senderType)?.takeIf { (code[at] as TwoRegisterInstruction).registerB == senderRegister }
+    }.distinctBy { "$it" }
+    val times = (made + 2 until call).mapNotNull { at ->
+        fieldOf(code[at], Opcode.IPUT_WIDE, senderType, "J")?.takeIf { (code[at] as TwoRegisterInstruction).registerB == senderRegister }
+    }.distinctBy { "$it" }
+    val user = users.singleOrNull() ?: return null
+    val time = times.singleOrNull() ?: return null
+    val before = (made - BUILD_WINDOW).coerceAtLeast(0) until call
+    val senders = before.mapNotNull { fieldOf(code[it], Opcode.IGET_OBJECT, item, "Ljava/util/List;") }.distinctBy { "$it" }
+    val sent = before.mapNotNull { fieldOf(code[it], Opcode.IGET_OBJECT, item, "Ljava/lang/Long;") }.distinctBy { "$it" }
+    if (senders.size != 1 || sent.size != 1) return null
+    return ReelMessage(
+        "${method.definingClass}->${method.name}", item, message, senders.single(), sent.single(),
+        senderType, senderInit, user, time, info, init,
+    )
+}
+
+/**
+ * Finds how Instagram's Reels data source builds the reply info for a reel it pages in from a chat,
+ * out of the reel's own message id, sender and time (`LX/07NS;->A1Z` on 456.1's 386215122), before
+ * anything changes. The info is the reply bar's, whose one constructor takes a sender, the message, a
+ * second String and a list, and exactly one method building one reads them off a reel item, the
+ * [collector]'s. Fails when any of it isn't so.
+ */
+internal fun BytecodePatchContext.findReelMessage(collector: ReelCollector, replies: ReplyBar): ReelMessage {
+    val item = collector.media.definingClass
+    val types = classDefBy(replies.info).methods.single { it.name == "<init>" }.parameterTypes.map { it.toString() }
+    if (types.size != 4 || types[1] != STRING || types[2] != STRING || types[3] != "Ljava/util/List;") {
+        refuse("${replies.info}'s constructor takes (${types.joinToString("")}), not a sender, two Strings and a list")
+    }
+    val senderType = types[0]
+    val builders = classesCalling(replies.info, "<init>").flatMap { it.methods }
+        .mapNotNull { readReelMessage(it, item, replies.info, replies.init, senderType) }
+    // Builders that read the same fields the same way agree; any other mix is a build this hasn't seen.
+    val ways = builders.distinctBy { listOf(it.message, it.senders, it.sent, it.user, it.time, it.senderInit).joinToString(" ") }
+    val found = ways.singleOrNull()
+        ?: refuse("expected one way to build a ${replies.info} from a $item's own message, found ${ways.size}")
+    fun declared(field: FieldReference) = classDefByOrNull(field.definingClass)?.fields
+        ?.singleOrNull { it.name == field.name && it.type == field.type }
+    for (field in listOf(found.message, found.senders, found.sent)) {
+        val flags = declared(field)?.accessFlags
+        if (flags == null || !AccessFlags.PUBLIC.isSet(flags) || AccessFlags.STATIC.isSet(flags)) {
+            refuse("$field, a reel's own message, isn't a public instance field the extension can read")
+        }
+    }
+    for (field in listOf(found.user, found.time)) {
+        val flags = declared(field)?.accessFlags
+        if (flags == null || !AccessFlags.PUBLIC.isSet(flags) || AccessFlags.STATIC.isSet(flags) || AccessFlags.FINAL.isSet(flags)) {
+            refuse("$field, the sender of a reel's message, isn't a public field the extension can set")
+        }
+    }
+    return found
+}
+
+/** [findReelMessage], or null with a warning, so the rest of the patch goes in without it. */
+internal fun BytecodePatchContext.findReelMessageOrWarn(collector: ReelCollector, replies: ReplyBar): ReelMessage? = try {
+    findReelMessage(collector, replies)
+} catch (refusal: PatchException) {
+    patchLog.warning("${refusal.message}. $PATCH goes in, but a reel past the chat's loaded messages keeps Instagram's reply bar.")
+    null
+}
+
+/**
+ * Writes the extension's [OWN_MESSAGE] bridge (#804): the reply info for a reel's own message in the
+ * chat, built as Instagram's data source builds it, from the message id, the first sender and the time
+ * the reel item carries, with an empty second String and list. Null when the reel carries no message,
+ * no sender or no time. Nothing is sent: the reply bar and its quick reactions only learn which message
+ * they answer.
+ */
+internal fun BytecodePatchContext.buildRepliesFromReels(found: ReelMessage) {
+    fillStub(
+        CHAT_REELS, "ownMessage", "Ljava/lang/Object;", 9,
+        """
+            check-cast p0, ${found.item}
+            iget-object v0, p0, ${found.message}
+            if-eqz v0, :none
+            invoke-virtual { v0 }, Ljava/lang/String;->isEmpty()Z
+            move-result v1
+            if-nez v1, :none
+            iget-object v1, p0, ${found.senders}
+            if-eqz v1, :none
+            invoke-interface { v1 }, Ljava/util/List;->isEmpty()Z
+            move-result v2
+            if-nez v2, :none
+            const/4 v2, 0x0
+            invoke-interface { v1, v2 }, Ljava/util/List;->get(I)Ljava/lang/Object;
+            move-result-object v1
+            instance-of v2, v1, ${found.user.type}
+            if-eqz v2, :none
+            check-cast v1, ${found.user.type}
+            iget-object v2, p0, ${found.sent}
+            if-eqz v2, :none
+            invoke-virtual { v2 }, Ljava/lang/Long;->longValue()J
+            move-result-wide v2
+            new-instance v4, ${found.sender}
+            invoke-direct { v4 }, ${found.senderInit}
+            iput-object v1, v4, ${found.user}
+            iput-wide v2, v4, ${found.time}
+            new-instance v5, ${found.info}
+            const-string v6, ""
+            invoke-static { }, Ljava/util/Collections;->emptyList()Ljava/util/List;
+            move-result-object v7
+            invoke-direct { v5, v4, v0, v6, v7 }, ${found.init}
+            return-object v5
+            :none
+            const/4 v0, 0x0
+            return-object v0
         """,
     )
 }

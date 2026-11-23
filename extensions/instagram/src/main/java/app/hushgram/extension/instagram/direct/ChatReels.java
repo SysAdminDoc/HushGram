@@ -96,6 +96,10 @@ public final class ChatReels {
     static final int REPLIES_KEPT = 500;
     /** How many of one reel's messages are kept at most. */
     static final int MESSAGES_KEPT = 50;
+    /** What a reply built from the message a swiped reel came with is counted as in the diagnostic report. */
+    static final String CARRIED = "reply bar given the message a swiped reel came with";
+    /** Whether that's been logged in this process. */
+    private static volatile boolean carriedLogged;
     /** The taps on media in a chat that went on to open, counted. */
     private static volatile int taps;
     /** The chats whose messages' reply infos are remembered, the one collected from last at the end. */
@@ -495,11 +499,49 @@ public final class ChatReels {
         return instagramChains || (Settings.SWIPE_CHAT_REELS.get() && !onACommentsViewer());
     }
 
-    /** The info of [item]'s own message in the chat in place of [instagram], or null to keep Instagram's. */
+    /**
+     * The info of [item]'s own message in the chat in place of [instagram], or null to keep Instagram's:
+     * the one remembered as the chat loaded (see {@link #reply(String, String)}), or else the one built
+     * from the message the reel itself carries ({@link #carried(String, Object, Function)}). A reel paged
+     * in past the chat's loaded messages has none remembered, and Instagram's own lookup misses it too,
+     * so its quick reactions did nothing (#804).
+     */
     @Nullable
     private static Object ownReply(@Nullable Object instagram, @Nullable Object item) {
         if (item == null) return null;
-        return reply(mediaId(item), instagram == null ? null : messageOf(instagram));
+        String quoted = instagram == null ? null : messageOf(instagram);
+        String media = mediaId(item);
+        Object remembered = reply(media, quoted);
+        if (remembered != null || remembers(media, quoted)) return remembered;
+        return carried(quoted, ownMessage(item), ChatReels::messageOf);
+    }
+
+    /**
+     * [built], the reply info for the message a reel carries, in place of Instagram's quoting [quoted],
+     * or null to keep Instagram's: when nothing was built, it names no message, or it names the one
+     * Instagram already quotes. [messages] reads an info's message.
+     */
+    @Nullable
+    static Object carried(@Nullable String quoted, @Nullable Object built, Function<Object, String> messages) {
+        if (built == null) return null;
+        String own = messages.apply(built);
+        if (own == null || own.isEmpty() || own.equals(quoted)) return null;
+        HookStatus.counted(FamilyNames.CHAT_REELS, CARRIED);
+        if (!carriedLogged) {
+            carriedLogged = true;
+            Logger.printDebug(() -> "Chat reels: a swiped reel's reply bar answers the message the reel came with");
+        }
+        return built;
+    }
+
+    /** Whether the viewer's chat remembers [quoted], Instagram's message, as one of the reel [media]'s own. */
+    static boolean remembers(@Nullable String media, @Nullable String quoted) {
+        if (media == null || quoted == null) return false;
+        synchronized (CHATS) {
+            ChatReplies chat = viewersChat(quoted);
+            Map<String, Object> messages = chat == null ? null : chat.reels.get(media);
+            return messages != null && messages.containsKey(quoted);
+        }
     }
 
     /**
@@ -586,6 +628,16 @@ public final class ChatReels {
     /** Counts a tap on media in a chat that goes on to open, for tests and {@link #open(Object, View)}. */
     static void tapped() {
         taps++;
+    }
+
+    /**
+     * Stub: the patch writes this, answering the reply info for the message [item], a reel the viewer
+     * holds, came with in the chat, built from the message id, sender and time the reel carries as
+     * Instagram's Reels data source builds it, or null when it carries none (#804).
+     */
+    @Nullable
+    public static Object ownMessage(Object item) {
+        return null;
     }
 
     /** Stub: the patch writes this, answering the message [info], a reply info, quotes. */
