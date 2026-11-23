@@ -6,13 +6,16 @@ package app.hushgram.extension.instagram.download;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.ActivityNotFoundException;
 import android.content.Context;
+import android.content.Intent;
 import android.content.res.ColorStateList;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.LayerDrawable;
 import android.graphics.drawable.RippleDrawable;
+import android.text.TextUtils;
 import android.text.format.DateUtils;
 import android.util.TypedValue;
 import android.view.Gravity;
@@ -25,7 +28,10 @@ import android.widget.TextView;
 import androidx.annotation.Nullable;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -49,8 +55,9 @@ import app.hushgram.extension.shared.ui.Dim;
  * it. A video Download would join from its manifest's picture and sound tracks has no one address,
  * so the button copies that single file, and its own size is shown beside the saved one. Under the
  * facts, Copy username copies who posted it and Copy caption the post's own words, exactly as
- * written, each only when the post has one. Copy caption without hashtags follows when the caption
- * has any. All read the post whose menu was opened, and a carousel's caption is the post's, never a
+ * written, each only when the post has one. Copy caption without hashtags and Copy hashtags follow
+ * when the caption has any, and Translate caption hands it to a translator on the phone (#839).
+ * All read the post whose menu was opened, and a carousel's caption is the post's, never a
  * page's. Nothing is fetched to show it.
  *
  * <p>The address is a signed link to the file on Meta's servers, so it goes on the clipboard marked
@@ -243,8 +250,9 @@ public final class PostInfo {
     }
 
     /**
-     * Copy username, Copy caption and Copy caption without hashtags, as rows under the facts, for
-     * what [facts] knows. Each closes [dialog] and copies. Null when the post has neither a username
+     * Copy username, Copy caption, Copy caption without hashtags, Copy hashtags and Translate
+     * caption, as rows under the facts, for what [facts] knows. Each closes [dialog] and copies, or
+     * for Translate caption opens a translator. Null when the post has neither a username
      * nor a caption. [themed] is the dialog's own context, so the rows take its colors.
      */
     @Nullable
@@ -282,8 +290,66 @@ public final class PostInfo {
                             L10n.t(activity, "Caption copied"), L10n.t(activity, "Couldn't copy the caption"));
                 }));
             }
+            String tags = hashtags(caption);
+            if (tags != null) {
+                rows.addView(row(themed, L10n.t(activity, "Copy hashtags"), () -> {
+                    dialog.dismiss();
+                    copy(activity, "copy hashtags", L10n.t(activity, "Hashtags"), tags,
+                            L10n.t(activity, "Hashtags copied"), L10n.t(activity, "Couldn't copy the hashtags"));
+                }));
+            }
+            rows.addView(row(themed, L10n.t(activity, "Translate caption"), () -> {
+                dialog.dismiss();
+                translate(activity, caption);
+            }));
         }
         return rows.getChildCount() == 0 ? null : rows;
+    }
+
+    /**
+     * Just the hashtags of [caption] (#839), for Copy hashtags: each tag once, in the order they
+     * first come, a space between two. A run like #a#b gives both tags, and one tag in another case
+     * than an earlier one is the same tag, as Instagram reads them. Null when there's none.
+     */
+    @Nullable
+    static String hashtags(String caption) {
+        Set<String> seen = new HashSet<>();
+        List<String> tags = new ArrayList<>();
+        Matcher run = HASHTAG.matcher(caption);
+        while (run.find()) {
+            for (String tag : run.group().split("(?=#)")) {
+                if (tag.length() > 1 && seen.add(tag.toLowerCase(Locale.ROOT))) tags.add(tag);
+            }
+        }
+        return tags.isEmpty() ? null : TextUtils.join(" ", tags);
+    }
+
+    /** What a phone's translator answers: Android's translate action, then the text selection menu's. */
+    static final String TRANSLATE = "android.intent.action.TRANSLATE";
+
+    /**
+     * Hands [caption] to a translator on the phone (#839): first through Android's translate action,
+     * which Google Translate takes, then through the action the text selection menu offers, which
+     * other translators take too. Nothing is sent from Instagram. Says so when no app takes either.
+     */
+    static void translate(Activity activity, String caption) {
+        Intent[] tries = {
+                new Intent(TRANSLATE).putExtra(Intent.EXTRA_TEXT, caption),
+                new Intent(Intent.ACTION_PROCESS_TEXT).setType("text/plain")
+                        .putExtra(Intent.EXTRA_PROCESS_TEXT, caption).putExtra(Intent.EXTRA_PROCESS_TEXT_READONLY, true),
+        };
+        for (Intent intent : tries) {
+            try {
+                activity.startActivity(intent);
+                return;
+            } catch (ActivityNotFoundException noApp) {
+                // The next way, then the toast.
+            } catch (Throwable failure) {
+                HookStatus.threw(FamilyNames.VIDEO_DOWNLOAD, "translate caption", failure);
+                break;
+            }
+        }
+        Utils.showToastShort(L10n.t(activity, "No app here can translate it"));
     }
 
     /**

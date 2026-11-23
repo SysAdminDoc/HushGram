@@ -15,7 +15,10 @@ import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
+import android.content.pm.ActivityInfo;
 import android.content.pm.ApplicationInfo;
+import android.content.pm.ResolveInfo;
 import android.text.format.DateUtils;
 import android.view.View;
 import android.view.ViewGroup;
@@ -45,6 +48,7 @@ import org.robolectric.shadows.ShadowLooper;
 import org.robolectric.shadows.ShadowToast;
 
 import app.hushgram.extension.instagram.settings.Settings;
+import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
@@ -291,7 +295,11 @@ public class PostInfoTest {
         ShadowLooper.idleMainLooper();
         AlertDialog dialog = ShadowAlertDialog.getLatestAlertDialog();
         TextView facts = dialog.findViewById(android.R.id.message);
-        for (TextView text : new TextView[]{facts, labelled(dialog, "Copy username"), labelled(dialog, "Copy caption")}) {
+        // The rows read in the dialog's language, Arabic here since #817.
+        TextView username = labelled(dialog, L10n.t(activity, "Copy username"));
+        TextView caption = labelled(dialog, L10n.t(activity, "Copy caption"));
+        assertFalse("the rows are in Arabic", "Copy username".equals(username.getText().toString()));
+        for (TextView text : new TextView[]{facts, username, caption}) {
             String what = text.getText().toString();
             assertEquals(what, View.LAYOUT_DIRECTION_RTL, text.getLayoutDirection());
             assertEquals(what, View.TEXT_ALIGNMENT_VIEW_START, text.getTextAlignment());
@@ -435,6 +443,84 @@ public class PostInfoTest {
         assertTrue(clip().getDescription().getExtras().getBoolean("android.content.extra.IS_SENSITIVE"));
         assertEquals("Caption copied", ShadowToast.getTextOfLatestToast());
         assertFalse("Details closes", dialog.isShowing());
+    }
+
+    /**
+     * Copy hashtags (#839) takes each tag once, in the order they first come, a run like #a#b as two
+     * tags and a tag in another case as the one before it. Numbers, C#, a link's #part and a tag in
+     * the middle of a word aren't hashtags.
+     */
+    @Test
+    public void captionsGiveUpJustTheirHashtags() {
+        assertEquals("#sunset #beach #goldenhour", PostInfo.hashtags("Golden hour\n.\n.\n#sunset #beach #goldenhour"));
+        assertEquals("#summer #blessed", PostInfo.hashtags("Loving #summer days, #1 fan of this #blessed #Summer"));
+        assertEquals("#a #b", PostInfo.hashtags("#a#b is fun"));
+        assertEquals("#tbt #a #b", PostInfo.hashtags("#tbt to last summer #a#b #A"));
+        assertNull("no hashtags", PostInfo.hashtags("C# and example.com/#top, see #1 and mid#word"));
+        assertNull("a number's tag", PostInfo.hashtags("Room #1 and Tom&#39;s"));
+    }
+
+    /** The row shows only for a caption with hashtags, and copies them like Copy caption copies the words. */
+    @Test
+    public void theDetailsCopyJustTheHashtags() {
+        Settings.POST_DETAILS.save(true);
+        Post post = photo();
+        post.caption = "No tags on this one";
+        PostInfo.show(post, null, activity);
+        AlertDialog dialog = ShadowAlertDialog.getLatestAlertDialog();
+        assertFalse("nothing to copy", labels(dialog).contains("Copy hashtags"));
+        dialog.dismiss();
+
+        post.caption = "Sunset at the pier\n.\n#golden #hour";
+        PostInfo.show(post, null, activity);
+        dialog = ShadowAlertDialog.getLatestAlertDialog();
+        labelled(dialog, "Copy hashtags").performClick();
+        ShadowLooper.idleMainLooper();
+        assertEquals("#golden #hour", clip().getItemAt(0).getText().toString());
+        assertTrue(clip().getDescription().getExtras().getBoolean("android.content.extra.IS_SENSITIVE"));
+        assertEquals("Hashtags copied", ShadowToast.getTextOfLatestToast());
+        assertFalse("Details closes", dialog.isShowing());
+    }
+
+    /**
+     * Translate caption (#839) hands the caption to Android's translate action, then to the text
+     * selection menu's action when nothing takes that, and says so when nothing takes either.
+     */
+    @Test
+    public void translateCaptionHandsTheCaptionToATranslator() {
+        Settings.POST_DETAILS.save(true);
+        Post post = photo();
+        post.caption = "Buenos dias #playa";
+        PostInfo.show(post, null, activity);
+        AlertDialog dialog = ShadowAlertDialog.getLatestAlertDialog();
+        labelled(dialog, "Translate caption").performClick();
+        ShadowLooper.idleMainLooper();
+        Intent started = Shadows.shadowOf(activity).getNextStartedActivity();
+        assertEquals(PostInfo.TRANSLATE, started.getAction());
+        assertEquals(post.caption, started.getStringExtra(Intent.EXTRA_TEXT));
+        assertFalse("Details closes", dialog.isShowing());
+
+        Shadows.shadowOf(RuntimeEnvironment.getApplication()).checkActivities(true);
+        try {
+            Intent selection = new Intent(Intent.ACTION_PROCESS_TEXT).setType("text/plain");
+            ResolveInfo translator = new ResolveInfo();
+            translator.activityInfo = new ActivityInfo();
+            translator.activityInfo.packageName = "com.example.translator";
+            translator.activityInfo.name = "com.example.translator.Translate";
+            Shadows.shadowOf(activity.getPackageManager()).addResolveInfoForIntent(selection, translator);
+            PostInfo.translate(activity, post.caption);
+            started = Shadows.shadowOf(activity).getNextStartedActivity();
+            assertEquals(Intent.ACTION_PROCESS_TEXT, started.getAction());
+            assertEquals(post.caption, started.getStringExtra(Intent.EXTRA_PROCESS_TEXT));
+            assertTrue(started.getBooleanExtra(Intent.EXTRA_PROCESS_TEXT_READONLY, false));
+
+            Shadows.shadowOf(activity.getPackageManager()).removeResolveInfosForIntent(selection, "com.example.translator");
+            PostInfo.translate(activity, post.caption);
+            assertNull("nothing takes it", Shadows.shadowOf(activity).getNextStartedActivity());
+            assertEquals("No app here can translate it", ShadowToast.getTextOfLatestToast());
+        } finally {
+            Shadows.shadowOf(RuntimeEnvironment.getApplication()).checkActivities(false);
+        }
     }
 
     private ClipData clip() {
