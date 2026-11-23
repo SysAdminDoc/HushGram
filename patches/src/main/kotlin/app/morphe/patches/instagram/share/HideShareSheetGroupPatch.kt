@@ -6,6 +6,7 @@ package app.morphe.patches.instagram.share
 
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
+import app.morphe.patcher.extensions.InstructionExtensions.replaceInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
@@ -25,6 +26,7 @@ import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
@@ -37,6 +39,14 @@ internal const val HIDE_GROUP_ACTION = "$EXTENSION_PACKAGE/share/ShareSheet;->hi
 internal const val HIDE_GROUP_SEND = "$EXTENSION_PACKAGE/share/ShareSheet;->hideGroupSend()Z"
 internal const val FILTER_ACTIONS = "$EXTENSION_PACKAGE/share/ShareSheetActions;->filter(Ljava/util/List;)Ljava/util/List;"
 internal const val HIDE_SEARCH_BOX = "$EXTENSION_PACKAGE/share/ShareSheet;->searchBox(Landroid/view/View;)V"
+internal const val QUICK_SEND_PEOPLE = "$EXTENSION_PACKAGE/share/QuickSend;->people(I)I"
+
+/**
+ * The name the share sheet's list gives its Add a note entry, which the row a long press on Share
+ * opens leaves out before taking its first [QUICK_SEND_STOCK] people. Only that method loads it.
+ */
+internal const val QUICK_SEND_NOTE = "add_content_note"
+internal const val QUICK_SEND_STOCK = 4
 
 /**
  * Names the share sheet gives its round buttons that only the code naming its row holds: the row's
@@ -74,7 +84,8 @@ val hideShareSheetGroupPatch = bytecodePatch(
     name = "Hide group buttons on the share sheet",
     description = "Takes the New group button and the button that sends to several people as a group off the " +
         "share sheet, and lets you pick which of the round buttons under the people it shows and hide its search " +
-        "bar. You can still start a group from your messages. All start off. Find them in HushGram settings > Sharing.",
+        "bar. It can also fill the row of people a long press on Share opens. You can still start a group from your " +
+        "messages. All start off. Find them in HushGram settings > Sharing.",
 ) {
     category("Interaction")
     dependsOn(settingsPatch, instagramExtensionPatch)
@@ -86,11 +97,13 @@ val hideShareSheetGroupPatch = bytecodePatch(
         val send = findGroupSend()
         val actions = findActionListOrWarn()
         val search = findSearchBoxOrWarn()
+        val quickSend = findQuickSendOrWarn()
         guardGroupButton(sheet.build)
         guardGroupAction(sheet.reveals)
         guardGroupSend(send)
         actions?.let { filterActionList(it) }
         search?.let { hookSearchBox(it) }
+        quickSend?.let { askQuickSendPeople(it) }
         enableStatus("shareSheet")
     }
 }
@@ -333,6 +346,109 @@ internal fun BytecodePatchContext.hookSearchBox(site: SearchBoxSite) {
         "invoke-static/range { v${site.box} .. v${site.box} }, $HIDE_SEARCH_BOX",
     )
 }
+
+/**
+ * Where the row a long press on Share opens settles on four people: the method filling the row,
+ * the index of its `const/4 vN, 4` right before the take of the first four, and vN; and the row's
+ * width clamp, the `(I)V` method it hands the row's size to, which keeps the size at four or less
+ * with a `const/4 vM, 4` and a `const/4 p1, 4`, and vM there.
+ */
+internal class QuickSendSites(val fill: SheetMethod, val four: Int, val count: Int, val clamp: SheetMethod, val limit: Int, val size: Int)
+
+/**
+ * Finds the row a long press on Share opens. The one method loading [QUICK_SEND_NOTE] leaves the
+ * note out of the share sheet's list and takes its first four with a static
+ * `(Iterable, int)List` call right after `const/4 vN, 4`; a few lines on it hands the row's
+ * `List.size()` to the clamp. The clamp opens `const/4 vM, 4`, `if-le p1, vM` past
+ * `const/4 p1, 4`. Instagram's other way of filling the row (a ranked list it loads itself) goes
+ * through the same clamp and takes no four of its own. Fails unless each is there once.
+ */
+internal fun BytecodePatchContext.findQuickSend(): QuickSendSites {
+    val takes = classesLoadingString(QUICK_SEND_NOTE).flatMap { classDef ->
+        classDef.methods.filter { loadsString(it, QUICK_SEND_NOTE) }.flatMap { method ->
+            val code = method.implementation?.instructions?.toList() ?: emptyList()
+            code.indices.filter { at -> code[at].isTake() && code.getOrNull(at - 1)?.isFourInto((code[at] as FiveRegisterInstruction).registerD) == true }
+                .map { at -> Triple(classDef.type, method, at - 1) }
+        }
+    }
+    val (type, fill, four) = takes.singleOrNull() ?: refuse("expected one take of four people by the method loading $QUICK_SEND_NOTE, found ${takes.size}")
+    val fillAt = "$type->${fill.name}"
+    if (four + 1 in fill.jumpTargets()) refuse("a branch enters $fillAt between its four and its take")
+    val code = fill.implementation!!.instructions.toList()
+    val count = (code[four] as OneRegisterInstruction).registerA
+
+    val clamps = (four + 2 until code.size).mapNotNull { at ->
+        val call = (code[at] as? ReferenceInstruction)?.reference as? MethodReference ?: return@mapNotNull null
+        val sized = code.getOrNull(at - 1)?.opcode == Opcode.MOVE_RESULT &&
+            ((code.getOrNull(at - 2) as? ReferenceInstruction)?.reference as? MethodReference)?.let { it.name == "size" && it.returnType == "I" } == true
+        if (!sized || code[at].opcode != Opcode.INVOKE_VIRTUAL || call.returnType != "V" || call.parameterTypes.map(CharSequence::toString) != listOf("I")) {
+            return@mapNotNull null
+        }
+        call
+    }
+    val call = clamps.firstOrNull() ?: refuse("$fillAt hands the row's size to no (I)V method after its take")
+    val clampClass = classDefByOrNull(call.definingClass) ?: refuse("${call.definingClass} isn't in this Instagram")
+    val clamp = clampClass.methods.singleOrNull { it.name == call.name && it.parameters() == listOf("I") && it.returnType == "V" && !it.isStatic() }
+        ?: refuse("${call.definingClass} defines no ${call.name}(I)V")
+    val clampAt = "${call.definingClass}->${call.name}"
+    val body = clamp.implementation!!.instructions.toList()
+    val size = clamp.implementation!!.registerCount - 1
+    val limit = (body.getOrNull(0) as? OneRegisterInstruction)?.registerA ?: refuse("$clampAt is empty")
+    val keeps = body.size > 3 && body[0].isFourInto(limit) && body[1].opcode == Opcode.IF_LE &&
+        (body[1] as TwoRegisterInstruction).let { it.registerA == size && it.registerB == limit } && body[2].isFourInto(size)
+    if (!keeps) refuse("$clampAt doesn't open by keeping the size at four")
+    val targets = clamp.jumpTargets()
+    if (3 !in targets) refuse("$clampAt doesn't jump past its four when the size fits")
+    if (1 in targets || 2 in targets) refuse("a branch enters $clampAt inside its clamp")
+    // The answer goes back into the clamp's own registers with move and a plain invoke, which reach v15.
+    if (size > 15 || limit > 15) refuse("$clampAt keeps the size past v15")
+    return QuickSendSites(fill.site(type), four, count, clamp.site(call.definingClass), limit, size)
+}
+
+/** The row a long press on Share opens, or null with a warning, so the rest still goes in. */
+internal fun BytecodePatchContext.findQuickSendOrWarn(): QuickSendSites? = try {
+    findQuickSend()
+} catch (refusal: PatchException) {
+    patchLog.warning("${refusal.message}. $PATCH goes in without the switch filling the row a long press on Share opens.")
+    null
+}
+
+/**
+ * Hands both fours to [QUICK_SEND_PEOPLE] and goes on with its answer: right after the take's
+ * `const/4`, where the loop over the list ends, so that label stays on the stock four; and in the
+ * clamp right after its own four, where the `const/4 p1, 4` that cut the size becomes a move of
+ * the answer. With the switch off the answer is four, so the row stays as Instagram makes it.
+ */
+internal fun BytecodePatchContext.askQuickSendPeople(sites: QuickSendSites) {
+    mutableMethod(sites.fill).addInstructions(
+        sites.four + 1,
+        """
+            invoke-static/range { v${sites.count} .. v${sites.count} }, $QUICK_SEND_PEOPLE
+            move-result v${sites.count}
+        """,
+    )
+    val clamp = mutableMethod(sites.clamp)
+    clamp.addInstructions(
+        1,
+        """
+            invoke-static { v${sites.limit} }, $QUICK_SEND_PEOPLE
+            move-result v${sites.limit}
+        """,
+    )
+    clamp.replaceInstruction(4, "move v${sites.size}, v${sites.limit}")
+}
+
+/** Whether this is a static `(Iterable, int)List` call, the take of a list's first few. */
+private fun Instruction.isTake(): Boolean {
+    if (opcode != Opcode.INVOKE_STATIC) return false
+    val call = (this as ReferenceInstruction).reference as? MethodReference ?: return false
+    return call.returnType == "Ljava/util/List;" && call.parameterTypes.map(CharSequence::toString) == listOf("Ljava/lang/Iterable;", "I") &&
+        (this as FiveRegisterInstruction).registerCount == 2
+}
+
+/** Whether this is `const/4 v[register], 4`. */
+private fun Instruction.isFourInto(register: Int) = opcode == Opcode.CONST_4 &&
+    (this as OneRegisterInstruction).registerA == register && (this as NarrowLiteralInstruction).narrowLiteral == QUICK_SEND_STOCK
 
 /**
  * Asks [HIDE_GROUP_BUTTON] first thing in the build, and on a yes returns before the stub is

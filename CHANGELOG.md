@@ -4,6 +4,7 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
+* `More people when you hold Share` is new under `Sharing`. Holding a post's Share button then shows as many people as fit across the screen instead of four. Starts off. Asked for in discussion #811.
 * With `Blur the chat behind a held message` on, a message the menu would cover now slides into view, or shrinks to fit, so you can see which one you're reacting to. Asked for in #828.
 * HushGram's settings are now in Arabic, thanks to hamedhani1998 in #817. It's a first draft, so if you read Arabic and a line sounds off, open an issue with the better wording.
 * `Loop this video` is back in the three-dot menu in the Reels tab, and reels stop at their end again once auto scroll is off. An auto scroll choice remembered from earlier kept both away. Reported in #829.

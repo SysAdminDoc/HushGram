@@ -1984,6 +1984,14 @@ public class Settings extends BaseSettings {
             new StringSetting("hushgram_hidden_share_sheet_buttons", "");
 
     /**
+     * As many people as fit across the window in the row a long press on Share opens, where
+     * Instagram shows four (discussion #811, {@link app.hushgram.extension.instagram.share.QuickSend}).
+     * Off to start.
+     */
+    public static final BooleanSetting MORE_QUICK_SEND_PEOPLE =
+            new BooleanSetting("hushgram_more_quick_send_people", FALSE);
+
+    /**
      * The Repost button under posts and beside reels, with its count: every post and reel reads as
      * one that can't be reposted ({@link app.hushgram.extension.instagram.share.RepostButton}).
      * Nothing Instagram stores is written, so off or paused, Repost is back on the next post drawn.
