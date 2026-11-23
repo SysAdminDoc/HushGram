@@ -14,7 +14,7 @@ Every HushGram release, newest first.
 * A reel's seek bar sits under the video again with the glass tab bar on. It was lifted onto the video's bottom edge, leaving a strip of the video showing under it. Reported in #827.
 * HushGram now patches Instagram 456.1.0.56.78 instead of 456.0.0.53.78. Get APKMirror's (arm64-v8a) (480-640dpi) (Android 9.0+) bundle, build 386215122. Its armeabi-v7a (386215121), x86 (386215123) and x86_64 (386215124) builds work too.
 * HushGram now builds on Morphe patcher 2.5.0, so patching needs Morphe Manager 2.7.0 or newer. On a computer, use Morphe Desktop 2.3.0 or newer.
-* `Expand captions on reels` reaches captions in the Reels tab now. Instagram 456 draws those another way, so they still cut off with the switch on. Reported in #821.
+* `Expand captions on reels` opens captions in the Reels tab too now. Instagram 456 builds those differently, so they used to stay cut off. Reported in #821.
 * The time on a story's seek bar sits right over the bar whenever there's room for it, instead of up over the reply row. Reported in #784.
 * `Pinch for clear mode` works when you spread two fingers apart now, not only when you pinch them together. Fingers that started close together were taken as a scroll. Reported in #744.
 * `Time under the tags button` is new under `Time on the seek bar` in Feed. It moves the time from the middle of the bar to the corner under the tags button. Starts off. Asked for in #711.
