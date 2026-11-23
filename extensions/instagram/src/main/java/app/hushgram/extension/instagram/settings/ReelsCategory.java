@@ -128,6 +128,11 @@ final class ReelsCategory {
                                 + "Pull down on Home to refresh after changing it.")));
             }
         }
+        if (build.contains(PatchFamily.SEEN_REELS)) {
+            reels.add(toggle(context, Settings.HIDE_SEEN_REELS, L10n.t("Hide reels you've seen"),
+                    L10n.t("Leaves reels you've already watched out of the Reels tab when Instagram shows them again. "
+                            + "Reels you open from a profile or a chat still play. The last 3000 are kept on this phone.")));
+        }
         if (build.contains(PatchFamily.EXPAND_CAPTIONS)) {
             reels.add(toggle(context, Settings.EXPAND_REEL_CAPTIONS, L10n.t("Expand captions on reels"),
                     L10n.t("Reels show their whole caption, with no \"more\" to tap. A long caption covers more of the video.")));

@@ -16,6 +16,7 @@ import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.requireLocals
 import app.morphe.patches.instagram.misc.extension.uniqueMethod
 import app.morphe.patches.instagram.misc.settings.settingsPatch
+import app.morphe.patches.instagram.reels.seen.watchedCallEnd
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.iface.Method
@@ -64,6 +65,8 @@ val dontSendReelWatchHistoryPatch = bytecodePatch(
  * Asks the extension first thing in each of the pending batch's record methods, and returns before
  * the reel goes in when it says to hold back. With nothing recorded, the batch Instagram flushes to
  * clips/write_seen_state/ stays empty, and so does the copy it keeps on disk to send again later.
+ * Where Hide reels you've seen already tells the extension of the reel first thing, the ask goes
+ * right after that, so a reel held back from Instagram is still kept on the phone.
  */
 internal fun BytecodePatchContext.holdBackWatchedReels() {
     val request = uniqueMethod(PATCH, "watched reels request", WatchedReelsRequestFingerprint)
@@ -76,15 +79,17 @@ internal fun BytecodePatchContext.holdBackWatchedReels() {
                 "${batch.type}, the $what",
         )
         record.requireLocals(PATCH, 1)
+        // Hide reels you've seen may have told the extension of the reel first; it keeps that.
+        val at = watchedCallEnd(record)
         record.addInstructionsWithLabels(
-            0,
+            at,
             """
                 invoke-static { }, $HOLD_BACK
                 move-result v0
                 if-eqz v0, :record
                 return-void
             """,
-            ExternalLabel("record", record.getInstruction(0)),
+            ExternalLabel("record", record.getInstruction(at)),
         )
     }
 }

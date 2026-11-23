@@ -2838,3 +2838,6 @@ Hashtags copied	已複製主題標籤
 Couldn't copy the hashtags	無法複製主題標籤
 Translate caption	翻譯說明文字
 No app here can translate it	沒有可翻譯的應用程式
+# context: Reels switch Hide reels you've seen and its summary (#830)
+Hide reels you've seen	隱藏已看過的 Reels
+Leaves reels you've already watched out of the Reels tab when Instagram shows them again. Reels you open from a profile or a chat still play. The last 3000 are kept on this phone.	Instagram 再次顯示你看過的 Reels 時，不讓它們出現在 Reels 分頁。從個人檔案或聊天開啟的 Reels 仍會播放。最近 3000 則會保存在這支手機上.

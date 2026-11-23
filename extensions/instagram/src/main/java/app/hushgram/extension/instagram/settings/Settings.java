@@ -3169,6 +3169,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_low_view_reels", FALSE);
 
     /**
+     * Reels already watched, left out of the Reels tab when Instagram shows them again
+     * ({@link app.hushgram.extension.instagram.reels.SeenReels}). Reels are only remembered while
+     * it's on. Read as each reel is reached and each page of reels arrives, so it needs no restart.
+     * Off to start (#830).
+     */
+    public static final BooleanSetting HIDE_SEEN_REELS =
+            new BooleanSetting("hushgram_hide_seen_reels", FALSE);
+
+    /**
      * Under {@link #HIDE_LOW_VIEW_REELS}: the view count a reel needs to stay, typed as a number,
      * and 0 to leave views alone. Starts at 1,000. A value control, not a switch.
      */

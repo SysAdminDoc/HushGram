@@ -2834,3 +2834,6 @@ Hashtags copied	해시태그를 복사했습니다
 Couldn't copy the hashtags	해시태그를 복사할 수 없습니다
 Translate caption	캡션 번역
 No app here can translate it	번역할 수 있는 앱이 없습니다
+# context: Reels switch Hide reels you've seen and its summary (#830)
+Hide reels you've seen	이미 본 릴스 숨기기
+Leaves reels you've already watched out of the Reels tab when Instagram shows them again. Reels you open from a profile or a chat still play. The last 3000 are kept on this phone.	이미 본 릴스를 Instagram이 다시 보여 줄 때 릴스 탭에서 빼 줍니다. 프로필이나 채팅에서 여는 릴스는 그대로 재생됩니다. 최근 3000개가 이 휴대폰에 저장됩니다.

@@ -445,7 +445,14 @@ no-call Lcom/facebook/mobileconfig/MobileConfigOverridesTableHolder;->updateOver
 # the reached record holds neither string, so it doesn't count against the progress record's rules.
 # 456 drops the app check marker, so the progress record is picked by the strings its class loads
 # (02qX.A0V on 386214574).
-start-call Lapp/hushgram/extension/instagram/reels/ReelWatchHistory;->holdBack()Z in instance (Ljava/lang/String;Ljava/lang/String;)V class-holding clips/write_seen_state/ PendingClipsSeenState#progressImpressionsEncodeFailure
+# Hide reels you've seen (#830) tells SeenReels.watched of the reel first thing in the reached
+# record, with its media id, and the hold back comes right after it, so a reel held back from
+# Instagram is still kept on the phone. With both patches in, that call leads the record, so the
+# hold back's rule there is the shared-call alone. Left out, the Reels tab keeps showing reels
+# you've seen; twice or elsewhere, it isn't the call the patch wrote. HideSeenReelsHookTest checks
+# the order on each 456.1 fixture, either patch going in first.
+start-call Lapp/hushgram/extension/instagram/reels/SeenReels;->watched(Ljava/lang/String;)V in instance (Ljava/lang/String;Ljava/lang/String;)V class-holding clips/write_seen_state/ PendingClipsSeenState#progressImpressionsEncodeFailure
+once-call Lapp/hushgram/extension/instagram/reels/SeenReels;->watched(Ljava/lang/String;)V in instance (Ljava/lang/String;Ljava/lang/String;)V class-holding clips/write_seen_state/ PendingClipsSeenState#progressImpressionsEncodeFailure
 shared-call Lapp/hushgram/extension/instagram/reels/ReelWatchHistory;->holdBack()Z in instance (Ljava/lang/String;Ljava/lang/String;)V class-holding clips/write_seen_state/ PendingClipsSeenState#progressImpressionsEncodeFailure
 start-call Lapp/hushgram/extension/instagram/reels/ReelWatchHistory;->holdBack()Z in static (LX/*;Ljava/lang/String;JJ)V class-holding clips/write_seen_state/ PendingClipsSeenState#progressImpressionsEncodeFailure
 shared-call Lapp/hushgram/extension/instagram/reels/ReelWatchHistory;->holdBack()Z in static (LX/*;Ljava/lang/String;JJ)V class-holding clips/write_seen_state/ PendingClipsSeenState#progressImpressionsEncodeFailure
@@ -3110,6 +3117,13 @@ shared-call Lapp/hushgram/extension/instagram/reels/FriendLanePicks;->added(Ljav
 shared-call Lapp/hushgram/extension/instagram/reels/FriendLanePicks;->added(Ljava/util/List;Ljava/lang/String;I)Ljava/util/List; in instance (ILjava/util/List;)Z holding ClipsStandaloneAdapterDataSource:insertItemsGranular
 shared-call Lapp/hushgram/extension/instagram/reels/LowViewReels;->added(Ljava/util/List;Ljava/lang/String;I)Ljava/util/List; in instance (Ljava/util/List;)V calling instance LX/*;->*(Lcom/instagram/common/session/UserSession;)Z class-holding ClipsStandaloneAdapterDataSource:insertItemsGranular addItemInternal()
 shared-call Lapp/hushgram/extension/instagram/reels/LowViewReels;->added(Ljava/util/List;Ljava/lang/String;I)Ljava/util/List; in instance (ILjava/util/List;)Z holding ClipsStandaloneAdapterDataSource:insertItemsGranular
+
+# Hide reels you've seen (#830) hands the same pages, at the same join, to SeenReels.page, once, and
+# what the data source takes in later to SeenReels.added, in both methods, as the three filters above
+# do. Its stubs read a reel item's post and the post's id. HideSeenReelsHookTest checks the pieces.
+once-call Lapp/hushgram/extension/instagram/reels/SeenReels;->page(Ljava/util/List;Ljava/lang/String;)Ljava/util/List; in instance (L*;)V holding clips_delivery_prefetch
+shared-call Lapp/hushgram/extension/instagram/reels/SeenReels;->added(Ljava/util/List;Ljava/lang/String;I)Ljava/util/List; in instance (Ljava/util/List;)V calling instance LX/*;->*(Lcom/instagram/common/session/UserSession;)Z class-holding ClipsStandaloneAdapterDataSource:insertItemsGranular addItemInternal()
+shared-call Lapp/hushgram/extension/instagram/reels/SeenReels;->added(Ljava/util/List;Ljava/lang/String;I)Ljava/util/List; in instance (ILjava/util/List;)Z holding ClipsStandaloneAdapterDataSource:insertItemsGranular
 
 # Hide lives in Reels also asks about each item the Reels adapter inserts on its own (#566): its
 # insertItem and insertItemGranular (item, int)Z each hand the item to LiveReels.single first thing,

@@ -159,6 +159,7 @@ public final class FamilyNames {
     public static final String AI_LABELED_REELS = "Hide AI-labeled reels";
     public static final String CAPTION_WORD_REELS = "Hide reels by caption words";
     public static final String LOW_VIEW_REELS = "Hide reels with few views";
+    public static final String SEEN_REELS = "Hide reels you've seen";
     public static final String KEEP_REEL_SPEED = "Keep the reel speed";
     public static final String REEL_ABOVE_COMMENTS = "Control the reel above comments";
     public static final String REEL_LINKS = "Open reel links on that reel";

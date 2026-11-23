@@ -459,6 +459,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean seenReels() {
+        return false;
+    }
+
     public static boolean commentCopy() {
         return false;
     }

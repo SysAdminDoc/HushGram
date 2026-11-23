@@ -2835,3 +2835,6 @@ Hashtags copied	Hashtag'ler kopyalandı
 Couldn't copy the hashtags	Hashtag'ler kopyalanamadı
 Translate caption	Açıklamayı çevir
 No app here can translate it	Çevirecek uygulama yok
+# context: Reels switch Hide reels you've seen and its summary (#830)
+Hide reels you've seen	İzlediğin reelleri gizle
+Leaves reels you've already watched out of the Reels tab when Instagram shows them again. Reels you open from a profile or a chat still play. The last 3000 are kept on this phone.	Daha önce izlediğin reelleri Instagram tekrar gösterdiğinde Reels sekmesinin dışında tutar. Bir profilden veya sohbetten açtığın reeller yine oynar. Son 3000 tanesi bu telefonda saklanır.

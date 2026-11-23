@@ -2832,3 +2832,6 @@ Hashtags copied	คัดลอกแฮชแท็กแล้ว
 Couldn't copy the hashtags	ไม่สามารถคัดลอกแฮชแท็กได้
 Translate caption	แปลคำบรรยาย
 No app here can translate it	ไม่มีแอปที่แปลได้
+# context: Reels switch Hide reels you've seen and its summary (#830)
+Hide reels you've seen	ซ่อนรีลส์ที่ดูแล้ว
+Leaves reels you've already watched out of the Reels tab when Instagram shows them again. Reels you open from a profile or a chat still play. The last 3000 are kept on this phone.	เอารีลส์ที่คุณดูไปแล้วออกจากแท็บรีลส์เมื่อ Instagram แสดงซ้ำ รีลส์ที่เปิดจากโปรไฟล์หรือแชทยังเล่นได้ตามปกติ เก็บ 3000 รายการล่าสุดไว้ในโทรศัพท์เครื่องนี้.

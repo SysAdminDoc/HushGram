@@ -4,6 +4,7 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
+* `Hide reels you've seen` is new under Reels. Reels you've already watched stay out of the Reels tab when Instagram serves them again, and the last 3000 are remembered on your phone. Starts off. Asked for in #830.
 * `Hide suggested accounts in Messages` now also takes More suggestions out of search in your messages, its heading included. Asked for in #826.
 * `Details in a post's menu` now has `Copy hashtags`, which copies just the caption's tags, and `Translate caption`, which opens the caption in a translator app on your phone. Asked for in #839.
 * `More people when you hold Share` is new under `Sharing`. Holding a post's Share button then shows as many people as fit across the screen instead of four. Starts off. Asked for in discussion #811.

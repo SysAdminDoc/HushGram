@@ -2850,6 +2850,46 @@
       "options": []
     },
     {
+      "name": "Hide reels you've seen",
+      "description": "Leaves reels you've already watched out of the Reels tab when Instagram shows them again. Reels you open from a profile or a chat still play. Starts off. Turn it on in HushGram settings > Reels.",
+      "category": "Privacy",
+      "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "456.1.0.56.78"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "456.1.0.56.78",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 386215122,
+                "ARMEABI_V7A": 386215121,
+                "X86": 386215123,
+                "X86_64": 386215124
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
       "name": "Hide rows in Instagram's settings",
       "description": "Lets you take the rows you don't use off Instagram's own Settings and activity screen. Open that screen once, then untick rows in HushGram settings > Layout > Rows in Instagram's settings. Every row shows to start.",
       "category": "Settings",
