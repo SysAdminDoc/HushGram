@@ -76,6 +76,12 @@ final class ReelFrames {
 
     /** After this many copies in a row come back empty, a video is read the old way, which holds the main thread. */
     static final int MOST_MISSES = 3;
+    /**
+     * How long a video read the old way waits before its surface is asked again. A reel still loading gives
+     * nothing back, so three misses came quickly, and the video it played in stayed on the old way for good:
+     * the blur fell behind on about half the reels until a scroll let go of the video (#583).
+     */
+    static final long SURFACE_AGAIN_MS = 500;
 
     /**
      * When the frame a video shows was made, or 0 when that isn't known. A paused reel keeps its frame, so
@@ -100,6 +106,8 @@ final class ReelFrames {
         /** A copy is on its way into {@link #spare}, which nothing else writes or draws until it lands. */
         boolean copying;
         int misses;
+        /** When the last copy that came back empty was asked for. */
+        long missedAt;
     }
 
     private final WeakHashMap<View, Map<TextureView, Held>> viewers = new WeakHashMap<>();
@@ -112,8 +120,9 @@ final class ReelFrames {
      * the next recording after it has it, and each recording asks for the next one ({@link #COPY_LATER_EVERY_MS}).
      * Before, {@link TextureView#getBitmap} held the main thread while the GPU copied the frame, up to 28 ms
      * each, and Reels stuttered under the glass (#672), so that copy is taken only {@link #COPY_EVERY_MS}
-     * apart. A video whose surface gives nothing back {@link #MOST_MISSES} times in a row is read that way.
-     * Either way a video still showing the frame copied last isn't copied again.
+     * apart. A video whose surface gives nothing back {@link #MOST_MISSES} times in a row is read that way,
+     * and its surface is asked again each {@link #SURFACE_AGAIN_MS}, so one that starts giving copies goes
+     * back to them. Either way a video still showing the frame copied last isn't copied again.
      */
     boolean copy(View viewer, ViewGroup parent, float top, float tall, long now) {
         Map<TextureView, Held> held = viewers.get(viewer);
@@ -131,7 +140,8 @@ final class ReelFrames {
             kept.put(video, frames);
             if (frames.copying) continue;
             Copier later = copier;
-            boolean fromSurface = later != null && frames.misses < MOST_MISSES;
+            boolean fromSurface = later != null
+                    && (frames.misses < MOST_MISSES || now - frames.missedAt >= SURFACE_AGAIN_MS);
             long every = fromSurface ? COPY_LATER_EVERY_MS : COPY_EVERY_MS;
             if (frames.shown != null && now - frames.copiedAt < every) continue;
             long made = frameAt.applyAsLong(video);
@@ -169,6 +179,7 @@ final class ReelFrames {
             frames.copying = false;
             if (!copied) {
                 frames.misses++;
+                frames.missedAt = now;
                 return;
             }
             frames.misses = 0;

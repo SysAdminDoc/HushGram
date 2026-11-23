@@ -3204,6 +3204,100 @@ public class GlassTabBarTest {
     }
 
     /**
+     * #583: a reel still loading gives nothing back, so its first copies missed in a row and the video it
+     * played in was read the old way for good, the blur falling behind on about half the reels until a
+     * scroll let go of it. Its surface is asked again a little later, and a copy that lands puts it back.
+     */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    @Config(sdk = 34)
+    public void aVideoReadTheOldWayHasItsSurfaceAskedAgain() {
+        Context context = RuntimeEnvironment.getApplication();
+        FrameLayout parent = new FrameLayout(context);
+        FrameLayout viewer = new FrameLayout(context);
+        TextureView video = new TextureView(context);
+        viewer.addView(video);
+        parent.addView(viewer);
+        parent.addView(new View(context));
+        parent.layout(0, 0, 100, 200);
+        viewer.layout(0, 0, 100, 200);
+        video.layout(0, 80, 100, 200);
+        Set<View> paths = new HashSet<>();
+        Set<View> skipped = new HashSet<>();
+        assertTrue(GlassTabBar.leaveOut(viewer, parent, paths, skipped));
+        ReelFrames reels = new ReelFrames();
+
+        ReelBlurBars.FrameSource originalSource = ReelFrames.source;
+        ReelFrames.Copier originalCopier = ReelFrames.copier;
+        java.util.List<Bitmap> into = new java.util.ArrayList<>();
+        java.util.List<java.util.function.Consumer<Boolean>> landing = new java.util.ArrayList<>();
+        AtomicInteger heldTheMainThread = new AtomicInteger();
+        ReelFrames.copier = (from, bitmap, done) -> {
+            into.add(bitmap);
+            landing.add(done);
+        };
+        ReelFrames.source = (from, reuse, width, height) -> {
+            heldTheMainThread.incrementAndGet();
+            Bitmap frame = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+            frame.eraseColor(Color.BLUE);
+            return frame;
+        };
+        try {
+            long now = 1000L;
+            for (int miss = 0; miss < ReelFrames.MOST_MISSES; miss++) {
+                reels.copy(viewer, parent, 150, 50, now);
+                assertEquals("still loading, so the surface is asked", 1 + miss, into.size());
+                landing.get(landing.size() - 1).accept(false);
+                now += ReelFrames.COPY_LATER_EVERY_MS;
+            }
+            long lastMiss = now - ReelFrames.COPY_LATER_EVERY_MS;
+            reels.copy(viewer, parent, 150, 50, now);
+            assertEquals("right after the misses it's read the old way", 1, heldTheMainThread.get());
+            assertEquals(ReelFrames.MOST_MISSES, into.size());
+
+            now = lastMiss + ReelFrames.SURFACE_AGAIN_MS;
+            reels.copy(viewer, parent, 150, 50, now);
+            assertEquals("a little later the surface is asked again", ReelFrames.MOST_MISSES + 1, into.size());
+            into.get(into.size() - 1).eraseColor(Color.YELLOW);
+            landing.get(landing.size() - 1).accept(true);
+            assertEquals("the reel's own copy is drawn", Color.YELLOW,
+                    glass(parent, paths, skipped, reels).getPixel(50, 170));
+
+            int held = heldTheMainThread.get();
+            for (int next = 0; next < ReelFrames.MOST_MISSES + 2; next++) {
+                now += ReelFrames.COPY_LATER_EVERY_MS;
+                reels.copy(viewer, parent, 150, 50, now);
+                assertEquals("each recording asks the surface again", ReelFrames.MOST_MISSES + 2 + next, into.size());
+                landing.get(landing.size() - 1).accept(true);
+            }
+            assertEquals("and the main thread is left alone", held, heldTheMainThread.get());
+
+            for (int miss = 0; miss < ReelFrames.MOST_MISSES; miss++) {
+                now += ReelFrames.COPY_LATER_EVERY_MS;
+                reels.copy(viewer, parent, 150, 50, now);
+                landing.get(landing.size() - 1).accept(false);
+            }
+            int asked = into.size();
+            long missedAgain = now;
+            now += ReelFrames.COPY_EVERY_MS;
+            reels.copy(viewer, parent, 150, 50, now);
+            assertEquals("a surface that stops giving copies is read the old way again", held + 1,
+                    heldTheMainThread.get());
+            now = missedAgain + ReelFrames.SURFACE_AGAIN_MS;
+            reels.copy(viewer, parent, 150, 50, now);
+            assertEquals("and asked again later", asked + 1, into.size());
+            landing.get(landing.size() - 1).accept(false);
+            now += ReelFrames.COPY_EVERY_MS;
+            reels.copy(viewer, parent, 150, 50, now);
+            assertEquals("a retry that misses waits again", asked + 1, into.size());
+            assertEquals(held + 2, heldTheMainThread.get());
+        } finally {
+            ReelFrames.source = originalSource;
+            ReelFrames.copier = originalCopier;
+        }
+    }
+
+    /**
      * #583: copied eight times a second, the blur under the pill stepped behind the reel. A copy from the
      * surface leaves the main thread alone, so each recording asks for the next one, and a paused reel,
      * still showing the frame copied last, isn't copied again either way.

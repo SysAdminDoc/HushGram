@@ -7,6 +7,7 @@ Every HushGram release, newest first.
 * HushGram's settings are now in Arabic, thanks to hamedhani1998 in #817. It's a first draft, so if you read Arabic and a line sounds off, open an issue with the better wording.
 * `Loop this video` is back in the three-dot menu in the Reels tab, and reels stop at their end again once auto scroll is off. An auto scroll choice remembered from earlier kept both away. Reported in #829.
 * `Pure black dark mode` now covers the share sheet and other pop up sheets on installs where Instagram uses its older dark colors, like a clone. They stayed dark grey there. Reported in #835.
+* The glass tab bar keeps up with every reel now, not about half of them. A reel that was still loading when it reached the bar left its blur lagging until you scrolled away and back. Reported in #583.
 
 ## 0.0.22 (2026-11-22)
 
