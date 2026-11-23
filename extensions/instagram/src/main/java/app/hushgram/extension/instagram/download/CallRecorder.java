@@ -151,9 +151,69 @@ public final class CallRecorder {
         try {
             if (registered || !(context instanceof Application) || !SettingsStatus.callRecorder()) return;
             registered = true;
+            offAfterACrash(context);
             ((Application) context).registerActivityLifecycleCallbacks(new Watcher());
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.CALL_RECORDER, "start", failure);
+        }
+    }
+
+    // The crash guard (#831).
+
+    /**
+     * Left in the app's own files while the call engine takes a recording's sinks, and taken away
+     * once {@link #MARK_MS} have passed with Instagram still running, or the recording ends. On some
+     * phones the engine closes Instagram as it takes them, and then this is still there when the app
+     * starts again.
+     */
+    static final String STARTING_MARK = "hushgram-call-recorder-starting";
+    /** How long after the engine takes a sink a crash still counts as the sink's. */
+    static final long MARK_MS = 3_000L;
+    /** How long after the app starts the note about it waits, so the first screen is up. */
+    private static final long NOTE_MS = 2_500L;
+
+    /**
+     * Turns Record calls off when the last recording's start closed Instagram, so the next tap on
+     * Record doesn't close it again, and says so. Answers whether it turned the switch off. Leaves
+     * the mark for the next start while the settings aren't read yet. Never throws.
+     */
+    static boolean offAfterACrash(Context context) {
+        try {
+            File mark = startingMark(context);
+            if (mark == null || !mark.exists() || !Utils.settingsReady()) return false;
+            if (!mark.delete()) {
+                Logger.diagnosticInfo(DiagnosticCategory.DOWNLOADS, SOURCE, () -> "the start mark stayed behind");
+            }
+            HookStatus.counted(FamilyNames.CALL_RECORDER, "closed Instagram");
+            Logger.diagnosticError(DiagnosticCategory.DOWNLOADS, SOURCE,
+                    () -> "Instagram closed while the call engine took the recording's sinks", null);
+            if (!Settings.CALL_RECORDER.savedValue()) return false;
+            Settings.CALL_RECORDER.save(false);
+            HookStatus.counted(FamilyNames.CALL_RECORDER, "turned off after a crash");
+            main().postDelayed(() -> Utils.showToastLong(L10n.t("Record calls closed Instagram, so it's off now.")), NOTE_MS);
+            return true;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.CALL_RECORDER, "crash guard", failure);
+            return false;
+        }
+    }
+
+    @Nullable
+    static File startingMark(Context context) {
+        File folder = context == null ? null : context.getNoBackupFilesDir();
+        return folder == null ? null : new File(folder, STARTING_MARK);
+    }
+
+    /** Puts the mark down while [starting], and takes it away otherwise. Never throws. */
+    static void markStarting(Context context, boolean starting) {
+        try {
+            File mark = startingMark(context);
+            if (mark == null) return;
+            if (starting ? !mark.exists() && !mark.createNewFile() : mark.exists() && !mark.delete()) {
+                Logger.diagnosticInfo(DiagnosticCategory.DOWNLOADS, SOURCE, () -> "the start mark couldn't change");
+            }
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.CALL_RECORDER, "start mark", failure);
         }
     }
 
@@ -715,6 +775,8 @@ public final class CallRecorder {
         private File file;
         private boolean ended;
         private String username;
+        /** When the engine last took one of this recording's sinks, while its mark is down; -1 once it's up. */
+        private long markedAt = -1L;
 
         Recording(Context app, Object api, List<Person> people) {
             this.app = app;
@@ -762,6 +824,8 @@ public final class CallRecorder {
             if (username == null && !person.self) username = person.username;
             Track track = new Track(person.id);
             try {
+                markStarting(app, true);
+                markedAt = SystemClock.elapsedRealtime();
                 sinkMethod(api, "addSink", track.sink).invoke(api, person.id, DEFAULT_STREAM, track.sink);
                 tracks.add(track);
             } catch (Throwable failure) {
@@ -776,6 +840,10 @@ public final class CallRecorder {
             @Override
             public void run() {
                 if (ended) return;
+                if (markedAt >= 0L && SystemClock.elapsedRealtime() - markedAt > MARK_MS) {
+                    markedAt = -1L;
+                    markStarting(app, false);
+                }
                 try {
                     mixDue();
                 } catch (Throwable failure) {
@@ -828,6 +896,10 @@ public final class CallRecorder {
         private void close(boolean save) {
             if (ended) return;
             ended = true;
+            if (markedAt >= 0L) {
+                markedAt = -1L;
+                markStarting(app, false);
+            }
             handler.removeCallbacks(mixing);
             handler.removeCallbacks(looking);
             over(this);

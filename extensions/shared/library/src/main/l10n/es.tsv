@@ -2788,6 +2788,7 @@ Record this call	Grabar esta llamada
 Stop recording	Dejar de grabar
 # context: a toast when the Record button can't start a recording (#732)
 Couldn't start recording this call	No se pudo empezar a grabar la llamada
+Record calls closed Instagram, so it's off now.	Grabar llamadas cerró Instagram y se desactivó.
 # context: a toast when a finished call recording can't be saved to the phone (#732)
 Couldn't save the call recording	No se pudo guardar la grabación de la llamada
 # context: a toast when a recording ends with no sound in it (#732)

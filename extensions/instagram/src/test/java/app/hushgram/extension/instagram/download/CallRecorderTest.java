@@ -11,26 +11,39 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import android.content.Context;
+
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
+import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
+import org.robolectric.shadows.ShadowLooper;
+import org.robolectric.shadows.ShadowToast;
 
+import java.io.File;
 import java.lang.reflect.Method;
+import java.util.concurrent.TimeUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
+import app.hushgram.extension.instagram.settings.Settings;
+import app.hushgram.extension.shared.SettingsContextRule;
+import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 
 /** Record calls (#732): the call's people, the engine's frames, the mix's queues and the button's clock. */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = 37)
 public class CallRecorderTest {
+    @Rule public final SettingsContextRule settings = new SettingsContextRule();
+
     @Before public void prepare() {
         CallRecorder.resetForTests();
         HookStatus.clear();
@@ -385,6 +398,57 @@ public class CallRecorderTest {
         assertEquals("0:59", CallRecorder.clock(59_999L));
         assertEquals("1:05", CallRecorder.clock(65_000L));
         assertEquals("1:02:05", CallRecorder.clock(3_725_000L));
+    }
+
+    // The crash guard (#831): the engine closed Instagram as a recording handed it its sinks.
+
+    @Test public void aStartThatClosedInstagramTurnsRecordCallsOffOnceAndSaysSo() {
+        Context app = RuntimeEnvironment.getApplication();
+        Utils.setContext(app);
+        Settings.CALL_RECORDER.save(true);
+        ShadowToast.reset();
+        try {
+            File mark = CallRecorder.startingMark(app);
+            CallRecorder.markStarting(app, true);
+            assertTrue("the mark is down while the engine takes the sinks", mark.exists());
+            assertTrue(CallRecorder.offAfterACrash(app));
+            assertFalse("the mark is used up", mark.exists());
+            assertFalse("Record calls is off", Settings.CALL_RECORDER.savedValue());
+            ShadowLooper.idleMainLooper(5, TimeUnit.SECONDS);
+            assertEquals("Record calls closed Instagram, so it's off now.", ShadowToast.getTextOfLatestToast());
+            assertTrue(HookStatus.report().toString().contains("turned off after a crash"));
+            assertFalse("only once", CallRecorder.offAfterACrash(app));
+        } finally {
+            Settings.CALL_RECORDER.resetToDefault();
+            CallRecorder.markStarting(app, false);
+        }
+    }
+
+    @Test public void withoutTheMarkRecordCallsStaysOn() {
+        Context app = RuntimeEnvironment.getApplication();
+        Utils.setContext(app);
+        Settings.CALL_RECORDER.save(true);
+        try {
+            CallRecorder.markStarting(app, false);
+            assertFalse(CallRecorder.offAfterACrash(app));
+            assertTrue(Settings.CALL_RECORDER.savedValue());
+        } finally {
+            Settings.CALL_RECORDER.resetToDefault();
+        }
+    }
+
+    @Test public void theMarkComesAndGoesAndNeverThrows() {
+        Context app = RuntimeEnvironment.getApplication();
+        File mark = CallRecorder.startingMark(app);
+        CallRecorder.markStarting(app, true);
+        CallRecorder.markStarting(app, true);
+        assertTrue(mark.exists());
+        CallRecorder.markStarting(app, false);
+        CallRecorder.markStarting(app, false);
+        assertFalse(mark.exists());
+        CallRecorder.markStarting(null, true);
+        assertNull(CallRecorder.startingMark(null));
+        assertFalse(CallRecorder.offAfterACrash(null));
     }
 
     // The engine's references.

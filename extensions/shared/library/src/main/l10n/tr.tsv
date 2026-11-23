@@ -2788,6 +2788,7 @@ Record this call	Bu aramayı kaydet
 Stop recording	Kaydı durdur
 # context: a toast when the Record button can't start a recording (#732)
 Couldn't start recording this call	Arama kaydı başlatılamadı
+Record calls closed Instagram, so it's off now.	Aramaları kaydet Instagram'ı kapattı, artık kapalı.
 # context: a toast when a finished call recording can't be saved to the phone (#732)
 Couldn't save the call recording	Arama kaydı saklanamadı
 # context: a toast when a recording ends with no sound in it (#732)

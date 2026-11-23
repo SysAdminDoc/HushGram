@@ -2785,6 +2785,7 @@ Record this call	บันทึกการโทรนี้
 Stop recording	หยุดบันทึก
 # context: a toast when the Record button can't start a recording (#732)
 Couldn't start recording this call	ไม่สามารถเริ่มบันทึกการโทรนี้ได้
+Record calls closed Instagram, so it's off now.	บันทึกเสียงการโทรทำให้ Instagram ปิด จึงปิดไว้แล้ว
 # context: a toast when a finished call recording can't be saved to the phone (#732)
 Couldn't save the call recording	ไม่สามารถบันทึกไฟล์เสียงการโทรได้
 # context: a toast when a recording ends with no sound in it (#732)
