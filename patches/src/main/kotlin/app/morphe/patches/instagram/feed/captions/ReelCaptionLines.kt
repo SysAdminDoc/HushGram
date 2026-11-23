@@ -4,6 +4,7 @@
  */
 package app.morphe.patches.instagram.feed.captions
 
+import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patches.instagram.misc.extension.classesLoadingString
@@ -22,6 +23,9 @@ private const val REEL_LINES_PATCH = "Expand captions"
 
 /** The question the reel caption's line count goes through: Instagram's count in, the one to use out. */
 internal const val CAPTION_REEL_LINES = "$CAPTION_LENGTH->reelLines(I)I"
+
+/** The question a reel caption render's open flag goes through: Instagram's flag in, whether to draw the caption open out. */
+internal const val CAPTION_REEL_OPEN = "$CAPTION_LENGTH->reelCaptionOpen(I)Z"
 
 private const val BOOLEAN_TO_STRING = "Ljava/lang/String;->valueOf(Z)Ljava/lang/String;"
 
@@ -67,7 +71,53 @@ internal class ReelCaptionLines(
  * where it lands is where every path to the count meets, which is where the hook goes. Each render must
  * have exactly one such read; anything else is an update this patch hasn't seen, and it stops.
  */
-internal fun BytecodePatchContext.findReelCaptionLines(): List<ReelCaptionLines> {
+internal fun BytecodePatchContext.findReelCaptionLines(): List<ReelCaptionLines> = reelCaptionRenders().map { reelCaptionLines(it) }
+
+/**
+ * A reel caption render's class and its caption-open flag (#821), whose every read in the class's methods goes
+ * through [CAPTION_REEL_OPEN].
+ */
+internal class ReelCaptionOpen(val type: String, val flag: String) {
+    /**
+     * Puts the question right after each read of [flag] in [type]'s methods, as they are now, its answer written
+     * back over the flag's register. A branch onto the instruction after a read still lands there, past the hook,
+     * as it never carried this read's value. Returns how many reads it hooked.
+     */
+    fun write(context: BytecodePatchContext): Int {
+        var hooked = 0
+        for (method in context.mutableClassDefBy(type).methods) {
+            val code = method.implementation?.instructions?.toList() ?: continue
+            for (at in code.indices.reversed()) {
+                val read = code[at]
+                if (read.opcode != Opcode.IGET_BOOLEAN || (read as ReferenceInstruction).reference.toString() != flag) continue
+                val register = (read as OneRegisterInstruction).registerA
+                method.addInstructions(
+                    at + 1,
+                    """
+                        invoke-static/range { v$register .. v$register }, $CAPTION_REEL_OPEN
+                        move-result v$register
+                    """,
+                )
+                hooked++
+            }
+        }
+        if (hooked == 0) refuseLines("$type no longer reads $flag")
+        return hooked
+    }
+}
+
+/**
+ * Finds the classes of the reel caption renders and their caption-open flag (#821). A longer line count
+ * ([findReelCaptionLines]) left the caption with Instagram's "...", which opens the caption and comments sheet
+ * on 456, since the render also reads the flag to pick the closed caption's truncation, its "more" text and
+ * the box it sits in. The render's class reads the same flag in its helpers too (the date under an open caption,
+ * the text with its "more"), so every read in the class goes through the question. One entry per class.
+ */
+internal fun BytecodePatchContext.findReelCaptionOpens(): List<ReelCaptionOpen> =
+    reelCaptionRenders().map { ReelCaptionOpen(it.definingClass, reelCaptionFlag(it)) }.distinctBy { it.type }
+
+/** The reel caption renders: each method loading [REEL_CAPTION_EXPANDED]. */
+private fun BytecodePatchContext.reelCaptionRenders(): List<Method> {
     val renders = classesLoadingString(REEL_CAPTION_EXPANDED).flatMap { classDef ->
         classDef.methods.filter { method ->
             val code = method.implementation?.instructions?.toList() ?: return@filter false
@@ -75,17 +125,23 @@ internal fun BytecodePatchContext.findReelCaptionLines(): List<ReelCaptionLines>
         }
     }
     if (renders.isEmpty()) refuseLines("expected a render holding $REEL_CAPTION_EXPANDED, found 0")
-    return renders.map { reelCaptionLines(it) }
+    return renders
+}
+
+/** The render's caption-open flag: the boolean field it hands to String.valueOf right before [REEL_CAPTION_EXPANDED]. */
+private fun BytecodePatchContext.reelCaptionFlag(method: Method): String = with(method) {
+    val code = implementation!!.instructions.toList()
+    val key = code.indices.first { stringLoadedAt(code, it) == REEL_CAPTION_EXPANDED }
+    val flagRead = (maxOf(0, key - 6) until key).lastOrNull { at ->
+        code[at].opcode == Opcode.IGET_BOOLEAN && code.getOrNull(at + 1)?.calls() == BOOLEAN_TO_STRING
+    } ?: refuseLines("$definingClass->$name doesn't hand a boolean field to String.valueOf before $REEL_CAPTION_EXPANDED")
+    (code[flagRead] as ReferenceInstruction).reference.toString()
 }
 
 private fun BytecodePatchContext.reelCaptionLines(method: Method): ReelCaptionLines = with(method) {
     val where = "$definingClass->$name"
     val code = implementation!!.instructions.toList()
-    val key = code.indices.first { stringLoadedAt(code, it) == REEL_CAPTION_EXPANDED }
-    val flagRead = (maxOf(0, key - 6) until key).lastOrNull { at ->
-        code[at].opcode == Opcode.IGET_BOOLEAN && code.getOrNull(at + 1)?.calls() == BOOLEAN_TO_STRING
-    } ?: refuseLines("$where doesn't hand a boolean field to String.valueOf before $REEL_CAPTION_EXPANDED")
-    val flag = (code[flagRead] as ReferenceInstruction).reference.toString()
+    val flag = reelCaptionFlag(method)
 
     val addresses = IntArray(code.size + 1)
     code.forEachIndexed { index, instruction -> addresses[index + 1] = addresses[index] + instruction.codeUnits }

@@ -51,6 +51,7 @@ public final class CaptionLength {
     static final String HOOK = "caption lines";
     static final String COUNT_CHANGED = "captions lengthened";
     static final String REEL_COUNT_CHANGED = "reel captions lengthened";
+    static final String REEL_OPENED = "reel captions opened";
 
     private CaptionLength() {
     }
@@ -111,6 +112,29 @@ public final class CaptionLength {
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.EXPAND_CAPTIONS, HOOK, failure);
             return instagram;
+        }
+    }
+
+    /**
+     * Whether a Reels caption render draws the caption open, where Instagram's own open flag is [instagram],
+     * non-zero for open (#821). Instagram 456 keeps a reel's caption cut short and opens it in the caption and
+     * comments sheet on a tap of its "...", so a longer line count alone still left the "...". With the reels
+     * switch on, the render reads its caption as open everywhere it asks, and draws it the way it draws a
+     * caption opened in place on the reel. Otherwise, or if anything throws, Instagram's own flag. Never throws.
+     */
+    public static boolean reelCaptionOpen(int instagram) {
+        return reelCaptionOpen(instagram, CaptionLength::reelsWanted);
+    }
+
+    static boolean reelCaptionOpen(int instagram, BooleanSupplier reelsOn) {
+        try {
+            HookStatus.invoked(FamilyNames.EXPAND_CAPTIONS);
+            if (instagram != 0 || !reelsOn.getAsBoolean()) return instagram != 0;
+            HookStatus.counted(FamilyNames.EXPAND_CAPTIONS, REEL_OPENED);
+            return true;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.EXPAND_CAPTIONS, HOOK, failure);
+            return instagram != 0;
         }
     }
 
