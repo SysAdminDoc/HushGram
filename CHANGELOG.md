@@ -4,6 +4,7 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
+* `Hide suggested accounts in Messages` now also clears the accounts Instagram suggests when you open search in your messages. Asked for in #826.
 * `Details in a post's menu` now has `Copy hashtags`, which copies just the caption's tags, and `Translate caption`, which opens the caption in a translator app on your phone. Asked for in #839.
 * `More people when you hold Share` is new under `Sharing`. Holding a post's Share button then shows as many people as fit across the screen instead of four. Starts off. Asked for in discussion #811.
 * With `Blur the chat behind a held message` on, a message the menu would cover now slides into view, or shrinks to fit, so you can see which one you're reacting to. Asked for in #828.

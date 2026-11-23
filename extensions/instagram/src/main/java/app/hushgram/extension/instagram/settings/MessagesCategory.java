@@ -80,8 +80,8 @@ final class MessagesCategory {
             if (build.contains(PatchFamily.INBOX_SUGGESTIONS)) {
                 messages.addPreference(toggle(context, Settings.HIDE_INBOX_SUGGESTIONS,
                         L10n.t("Hide suggested accounts in Messages"),
-                        L10n.t("Takes the accounts Instagram suggests off the bottom of your messages. Your chats "
-                                + "and follow requests stay. Restart Instagram to see the change.")));
+                        L10n.t("Takes the accounts Instagram suggests off the bottom of your messages and out of "
+                                + "the search there. Your chats and follow requests stay. Restart Instagram to see the change.")));
             }
             if (build.contains(PatchFamily.NEW_MESSAGE)) {
                 messages.addPreference(toggle(context, Settings.HIDE_NEW_MESSAGE_BUTTON,

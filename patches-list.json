@@ -2891,7 +2891,7 @@
     },
     {
       "name": "Hide suggested accounts in DMs",
-      "description": "Takes the Accounts to follow section off the bottom of your messages. Your chats and follow requests stay. Starts off. Turn it on in HushGram settings > Messages.",
+      "description": "Takes the Accounts to follow section off the bottom of your messages, and More suggestions out of Messages search. Your chats and follow requests stay. Starts off. Turn it on in HushGram settings > Messages.",
       "category": "Messages",
       "use": true,
       "dependencies": [

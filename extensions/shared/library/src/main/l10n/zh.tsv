@@ -1011,7 +1011,7 @@ Half a second	半秒
 1.5 seconds	1.5 秒
 On this Instagram build it covers %1$d of %2$d routes. The diagnostic report lists the rest.	在此 Instagram 版本上，已涵盖 %1$d 条路径，共 %2$d 条。其余路径列于诊断报告。
 Hide suggested accounts in Messages	隐藏消息中的推荐账户
-Takes the accounts Instagram suggests off the bottom of your messages. Your chats and follow requests stay. Restart Instagram to see the change.	移除消息底部 Instagram 推荐的账户。聊天与关注邀请仍会保留。请重新启动 Instagram 以应用变更。
+Takes the accounts Instagram suggests off the bottom of your messages and out of the search there. Your chats and follow requests stay. Restart Instagram to see the change.	移除消息底部与消息搜索中 Instagram 推荐的账户。聊天与关注邀请仍会保留。请重新启动 Instagram 以应用变更.
 # context: switch on the Messages page after Hide suggested accounts in Messages; New message is Instagram's own label for the pencil button in the inbox top bar and the screen it opens (#762)
 Hide the New message button	隐藏新消息按钮
 Takes the pencil button for a new message off the top of your messages.	移除消息顶部用来写新消息的铅笔按钮。

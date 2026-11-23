@@ -1022,7 +1022,7 @@ Half a second	Meio segundo
 1.5 seconds	1,5 segundo
 On this Instagram build it covers %1$d of %2$d routes. The diagnostic report lists the rest.	Nesta versão do Instagram, cobre %1$d de %2$d caminhos. O relatório de diagnóstico lista o restante.
 Hide suggested accounts in Messages	Ocultar contas sugeridas nas Mensagens
-Takes the accounts Instagram suggests off the bottom of your messages. Your chats and follow requests stay. Restart Instagram to see the change.	Tira da parte de baixo das suas mensagens as contas que o Instagram sugere. Suas conversas e as solicitações para seguir continuam lá. Reinicie o Instagram para ver a mudança.
+Takes the accounts Instagram suggests off the bottom of your messages and out of the search there. Your chats and follow requests stay. Restart Instagram to see the change.	Tira as contas que o Instagram sugere da parte de baixo das suas mensagens e da busca nelas. Suas conversas e as solicitações para seguir continuam lá. Reinicie o Instagram para ver a mudança.
 # context: switch on the Messages page after Hide suggested accounts in Messages; New message is Instagram's own label for the pencil button in the inbox top bar and the screen it opens (#762)
 Hide the New message button	Ocultar o botão Nova mensagem
 Takes the pencil button for a new message off the top of your messages.	Tira o botão de lápis para uma nova mensagem do topo das suas mensagens.

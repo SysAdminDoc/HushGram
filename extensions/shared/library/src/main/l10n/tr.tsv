@@ -1022,7 +1022,7 @@ Half a second	Yarım saniye
 1.5 seconds	1,5 saniye
 On this Instagram build it covers %1$d of %2$d routes. The diagnostic report lists the rest.	Bu Instagram sürümünde %2$d yolun %1$d tanesini kapsıyor. Kalanlar tanılama raporunda listelenir.
 Hide suggested accounts in Messages	Mesajlar'daki önerilen hesapları gizle
-Takes the accounts Instagram suggests off the bottom of your messages. Your chats and follow requests stay. Restart Instagram to see the change.	Instagram'ın önerdiği hesapları mesajlarının altından kaldırır. Sohbetlerin ve takip istekleri kalır. Değişikliği görmek için Instagram'ı yeniden başlat.
+Takes the accounts Instagram suggests off the bottom of your messages and out of the search there. Your chats and follow requests stay. Restart Instagram to see the change.	Instagram'ın önerdiği hesapları mesajlarının altından ve oradaki aramadan kaldırır. Sohbetlerin ve takip istekleri kalır. Değişikliği görmek için Instagram'ı yeniden başlat.
 # context: switch on the Messages page after Hide suggested accounts in Messages; New message is Instagram's own label for the pencil button in the inbox top bar and the screen it opens (#762)
 Hide the New message button	Yeni mesaj düğmesini gizle
 Takes the pencil button for a new message off the top of your messages.	Mesajlarının üstündeki yeni mesaj için kalem düğmesini kaldırır.

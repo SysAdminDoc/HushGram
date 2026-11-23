@@ -161,6 +161,48 @@ public class InboxSuggestionsTest {
         assertTrue(missing, missing.contains(IllegalStateException.class.getName()));
     }
 
+    /** On, More suggestions in Messages search comes back empty and new, Instagram's own list untouched, and it's counted. */
+    @Test
+    public void withTheSwitchOnSearchSuggestionsAreLeftOut() {
+        List<String> stock = new ArrayList<>(Arrays.asList("matt", "natgeo", "cnn"));
+
+        List<?> kept = InboxSuggestions.searchSuggestions(stock);
+
+        assertTrue(kept.isEmpty());
+        assertTrue("a list Instagram may add to", kept instanceof ArrayList);
+        assertEquals(Arrays.asList("matt", "natgeo", "cnn"), stock);
+        String report = FeedFilterCounters.report().toString();
+        assertTrue(report, report.contains(InboxSuggestions.SEARCH));
+        assertTrue(report, report.contains("3 removed"));
+    }
+
+    /** Off, paused, empty or null, Instagram's own suggestions go through as they are. */
+    @Test
+    public void offTheSearchKeepsItsSuggestions() {
+        List<String> stock = new ArrayList<>(Arrays.asList("matt", "natgeo"));
+        Settings.HIDE_INBOX_SUGGESTIONS.save(false);
+        assertSame(stock, InboxSuggestions.searchSuggestions(stock));
+
+        Settings.HIDE_INBOX_SUGGESTIONS.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertSame(stock, InboxSuggestions.searchSuggestions(stock));
+        PauseForTests.resume();
+
+        List<String> empty = Collections.emptyList();
+        assertSame(empty, InboxSuggestions.searchSuggestions(empty));
+        assertNull(InboxSuggestions.searchSuggestions(null));
+    }
+
+    /** A switch that throws keeps the search's suggestions and says the hook threw. */
+    @Test
+    public void aThrowingSwitchKeepsTheSearchSuggestionsAndIsReported() {
+        List<String> stock = new ArrayList<>(Collections.singletonList("matt"));
+        assertSame(stock, InboxSuggestions.searchSuggestions(stock, THROWS));
+
+        String missing = HookStatus.missing(FamilyNames.INBOX_SUGGESTIONS).toString();
+        assertTrue(missing, missing.contains("'" + InboxSuggestions.SEARCH + "'"));
+    }
+
     /** A unit whose name can't be read keeps the section and says the hook threw. */
     @Test
     public void aNameThatThrowsKeepsTheSectionAndIsReported() {

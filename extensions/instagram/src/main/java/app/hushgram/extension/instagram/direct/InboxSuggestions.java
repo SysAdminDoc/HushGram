@@ -5,6 +5,7 @@
 package app.hushgram.extension.instagram.direct;
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.BooleanSupplier;
@@ -26,6 +27,7 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * elsewhere. The patch hands the list to {@link #units} as the inbox starts building the section,
  * and while the switch is on a list led by Accounts to follow is answered with an empty one, so
  * the section isn't built. A list led by any other unit goes through, and follow requests stay.
+ * The same switch empties More suggestions in Messages search through {@link #searchSuggestions}.
  *
  * <p>The hook fails open: with the switch off, HushGram paused, the settings not read yet or
  * anything thrown, Instagram gets its own list.
@@ -38,8 +40,10 @@ public final class InboxSuggestions {
     static final String ROUTE = "Accounts to follow in messages";
 
     static final String SECTION = "accounts to follow";
+    static final String SEARCH = "More suggestions in search";
 
     private static volatile boolean logged;
+    private static volatile boolean searchLogged;
 
     private InboxSuggestions() {
     }
@@ -69,6 +73,34 @@ public final class InboxSuggestions {
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.INBOX_SUGGESTIONS, SECTION, failure);
             return units;
+        }
+    }
+
+    /**
+     * Injected first thing where Instagram sorts the accounts it suggests under More suggestions in
+     * Messages search (and its See all page), taking out the ones you removed. Answers a new empty
+     * list while the switch is on, so the search shows none, and [people] itself otherwise, or when
+     * anything goes wrong. Never throws, and never changes the list it's given.
+     */
+    public static List<?> searchSuggestions(List<?> people) {
+        return searchSuggestions(people, InboxSuggestions::switchedOn);
+    }
+
+    static List<?> searchSuggestions(List<?> people, BooleanSupplier on) {
+        if (people == null || people.isEmpty()) return people;
+        try {
+            HookStatus.invoked(FamilyNames.INBOX_SUGGESTIONS);
+            FeedFilterCounters.sawKind(ROUTE, SEARCH);
+            if (!on.getAsBoolean()) return people;
+            FeedFilterCounters.removed(ROUTE, people.size(), SEARCH);
+            if (!searchLogged) {
+                searchLogged = true;
+                Logger.printDebug(() -> "Inbox suggestions: left More suggestions out of Messages search");
+            }
+            return new ArrayList<>();
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.INBOX_SUGGESTIONS, SEARCH, failure);
+            return people;
         }
     }
 

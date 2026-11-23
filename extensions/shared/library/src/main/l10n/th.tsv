@@ -1015,7 +1015,7 @@ Half a second	ครึ่งวินาที
 1.5 seconds	1.5 วินาที
 On this Instagram build it covers %1$d of %2$d routes. The diagnostic report lists the rest.	ในบิลด์ Instagram นี้ครอบคลุม %1$d จาก %2$d เส้นทาง รายงานการวินิจฉัยจะแสดงรายการที่เหลือ
 Hide suggested accounts in Messages	ซ่อนบัญชีที่แนะนำในข้อความ
-Takes the accounts Instagram suggests off the bottom of your messages. Your chats and follow requests stay. Restart Instagram to see the change.	นำบัญชีที่ Instagram แนะนำออกจากด้านล่างของข้อความของคุณ โดยแชทและคำขอติดตามจะยังคงอยู่ โปรดรีสตาร์ท Instagram เพื่อดูการเปลี่ยนแปลง
+Takes the accounts Instagram suggests off the bottom of your messages and out of the search there. Your chats and follow requests stay. Restart Instagram to see the change.	นำบัญชีที่ Instagram แนะนำออกจากด้านล่างของข้อความของคุณและจากการค้นหาในข้อความ โดยแชทและคำขอติดตามจะยังคงอยู่ โปรดรีสตาร์ท Instagram เพื่อดูการเปลี่ยนแปลง
 # context: switch on the Messages page after Hide suggested accounts in Messages; New message is Instagram's own label for the pencil button in the inbox top bar and the screen it opens (#762)
 Hide the New message button	ซ่อนปุ่มข้อความใหม่
 Takes the pencil button for a new message off the top of your messages.	นำปุ่มรูปดินสอสำหรับข้อความใหม่ออกจากด้านบนของข้อความของคุณ

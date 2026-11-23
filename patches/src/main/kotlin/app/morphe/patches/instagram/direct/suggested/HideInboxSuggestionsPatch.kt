@@ -12,7 +12,9 @@ import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
+import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.loadsString
+import app.morphe.patches.instagram.misc.extension.patchLog
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
@@ -35,6 +37,17 @@ internal const val FOLLOW_REQUESTS = "pending_follow_requests"
 /** The parameters of the method building the section: the units and a string. */
 private val UNITS_SET = listOf("Ljava/util/List;", "Ljava/lang/String;")
 
+internal const val SEARCH_SUGGESTIONS = "$EXTENSION_PACKAGE/direct/InboxSuggestions;->searchSuggestions(Ljava/util/List;)Ljava/util/List;"
+
+/**
+ * The key of the accounts you took out of More suggestions in Messages search, which only the
+ * method sorting them out of that list and the one taking an account out read.
+ */
+internal const val REMOVED_SUGGESTIONS = "more_suggestions_removed_users"
+
+/** The parameters of the method sorting More suggestions: the session and the accounts. */
+private val SUGGESTIONS_SORT = listOf("Lcom/instagram/common/session/UserSession;", "Ljava/util/List;")
+
 /**
  * Leaves the section of accounts to follow out of the bottom of your messages. Included in the
  * default selection with its switch initially off, so hiding it remains the user's pick.
@@ -45,8 +58,8 @@ private val UNITS_SET = listOf("Ljava/util/List;", "Ljava/lang/String;")
 @Suppress("unused")
 val hideInboxSuggestionsPatch = bytecodePatch(
     name = "Hide suggested accounts in DMs",
-    description = "Takes the Accounts to follow section off the bottom of your messages. Your chats and follow " +
-        "requests stay. Starts off. Turn it on in HushGram settings > Messages.",
+    description = "Takes the Accounts to follow section off the bottom of your messages, and More suggestions out " +
+        "of Messages search. Your chats and follow requests stay. Starts off. Turn it on in HushGram settings > Messages.",
     default = true,
 ) {
     category("Messages")
@@ -56,6 +69,7 @@ val hideInboxSuggestionsPatch = bytecodePatch(
     execute {
         requireStatusMethod("inboxSuggestions")
         hookInboxUnits(findInboxUnitsSet())
+        findSearchSuggestionsOrWarn()?.let { hookSearchSuggestions(it) }
         enableStatus("inboxSuggestions")
     }
 }
@@ -137,6 +151,53 @@ internal fun BytecodePatchContext.hookInboxUnits(site: UnitsSite) {
         """
             invoke-static/range { v$units .. v$units }, $INBOX_UNITS
             move-result-object v$units
+        """,
+    )
+}
+
+/**
+ * Finds the method More suggestions in Messages search goes through before it shows: the one static
+ * `(UserSession, List)List` method loading [REMOVED_SUGGESTIONS], which takes out the accounts you
+ * removed from it. The search's own list, its See all page and the other lists of suggested people
+ * Instagram builds from the same answer all call it. Fails unless it's there once, with code, and
+ * nothing branches back to its start.
+ */
+internal fun BytecodePatchContext.findSearchSuggestions(): UnitsSite {
+    val found = classesLoadingString(REMOVED_SUGGESTIONS).flatMap { classDef ->
+        classDef.methods.filter { method ->
+            AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "Ljava/util/List;" &&
+                method.parameterTypes.map(CharSequence::toString) == SUGGESTIONS_SORT && loadsString(method, REMOVED_SUGGESTIONS)
+        }.map { classDef.type to it }
+    }
+    val (type, method) = found.singleOrNull() ?: refuse("expected one static method sorting More suggestions by $REMOVED_SUGGESTIONS, found ${found.size}")
+    if (method.implementation == null) refuse("$type->${method.name} has no code")
+    if (0 in method.jumpTargets()) refuse("a branch goes back to the start of $type->${method.name}")
+    return UnitsSite(type, method.name, SUGGESTIONS_SORT)
+}
+
+/** More suggestions in Messages search, or null with a warning, so the inbox's section still goes. */
+internal fun BytecodePatchContext.findSearchSuggestionsOrWarn(): UnitsSite? = try {
+    findSearchSuggestions()
+} catch (refusal: PatchException) {
+    patchLog.warning("${refusal.message}. $PATCH goes in without hiding More suggestions in Messages search.")
+    null
+}
+
+/**
+ * Hands the accounts to [SEARCH_SUGGESTIONS] first thing in the method at [site] and sorts its
+ * answer, an empty list while the switch is on, so every list of More suggestions comes out empty.
+ */
+internal fun BytecodePatchContext.hookSearchSuggestions(site: UnitsSite) {
+    val method = mutableClassDefBy(site.type).methods.single {
+        it.name == site.name && it.parameterTypes.map(CharSequence::toString) == site.parameters && it.returnType == "Ljava/util/List;"
+    }
+    // A static method's parameters are its last registers, and the accounts are the last of them.
+    val accounts = method.implementation!!.registerCount - 1
+    method.addInstructions(
+        0,
+        """
+            invoke-static/range { v$accounts .. v$accounts }, $SEARCH_SUGGESTIONS
+            move-result-object v$accounts
         """,
     )
 }

@@ -118,6 +118,14 @@ once-call Lapp/hushgram/extension/instagram/direct/InboxSearchBar;->sections([Lj
 # with the switch on; twice or elsewhere, it isn't the hook the patch wrote.
 start-call Lapp/hushgram/extension/instagram/direct/InboxSuggestions;->units(Ljava/util/List;)Ljava/util/List; in instance (Ljava/util/List;Ljava/lang/String;)V pooled class-holding pending_follow_requests
 once-call Lapp/hushgram/extension/instagram/direct/InboxSuggestions;->units(Ljava/util/List;)Ljava/util/List; in instance (Ljava/util/List;Ljava/lang/String;)V pooled class-holding pending_follow_requests
+# Hide suggested accounts in DMs also hands More suggestions in Messages search to
+# InboxSuggestions.searchSuggestions first thing in the one static (UserSession, List)List method
+# loading more_suggestions_removed_users, which sorts out the accounts you removed from it. The
+# search's list, its See all page and the other lists built from the same answer all call it. Left
+# out, the search keeps its suggestions; twice or elsewhere, it isn't the ask the patch wrote.
+# SearchSuggestionsHookTest checks on each 456.1 fixture that it lands there.
+start-call Lapp/hushgram/extension/instagram/direct/InboxSuggestions;->searchSuggestions(Ljava/util/List;)Ljava/util/List; in static (Lcom/instagram/common/session/UserSession;Ljava/util/List;)Ljava/util/List; pooled holding more_suggestions_removed_users
+once-call Lapp/hushgram/extension/instagram/direct/InboxSuggestions;->searchSuggestions(Ljava/util/List;)Ljava/util/List; in static (Lcom/instagram/common/session/UserSession;Ljava/util/List;)Ljava/util/List; pooled holding more_suggestions_removed_users
 # Hide Instants (#59) asks Instants.hide() first in Instagram's one Instants check (01vZ.A0T on 452),
 # the static (UserSession, boolean) method answering a boolean from two rollout flags. It holds no
 # string, so the rules pick it by the flag the patch looks for. Left out, Instants stay with the

@@ -1021,7 +1021,7 @@ Half a second	0.5초
 1.5 seconds	1.5초
 On this Instagram build it covers %1$d of %2$d routes. The diagnostic report lists the rest.	이 Instagram 빌드에서는 경로 %2$d개 중 %1$d개를 다룹니다. 나머지는 진단 보고서에 나와 있습니다.
 Hide suggested accounts in Messages	메시지에서 추천 계정 숨기기
-Takes the accounts Instagram suggests off the bottom of your messages. Your chats and follow requests stay. Restart Instagram to see the change.	메시지 하단에서 Instagram이 추천하는 계정을 숨깁니다. 채팅과 팔로우 요청은 그대로 유지됩니다. 변경 사항을 보려면 Instagram을 다시 시작하세요.
+Takes the accounts Instagram suggests off the bottom of your messages and out of the search there. Your chats and follow requests stay. Restart Instagram to see the change.	메시지 하단과 메시지 검색에서 Instagram이 추천하는 계정을 숨깁니다. 채팅과 팔로우 요청은 그대로 유지됩니다. 변경 사항을 보려면 Instagram을 다시 시작하세요.
 # context: switch on the Messages page after Hide suggested accounts in Messages; New message is Instagram's own label for the pencil button in the inbox top bar and the screen it opens (#762)
 Hide the New message button	새 메시지 버튼 숨기기
 Takes the pencil button for a new message off the top of your messages.	메시지 상단에서 새 메시지를 쓰는 연필 버튼을 숨깁니다.
