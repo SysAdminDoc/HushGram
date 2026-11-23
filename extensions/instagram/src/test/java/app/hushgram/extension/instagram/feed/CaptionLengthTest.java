@@ -132,6 +132,34 @@ public class CaptionLengthTest {
         }
     }
 
+    /**
+     * #821: the Reels tab's own caption render (Instagram 456) asks with its count alone. The reels switch
+     * opens it whole, the same as a reel surface through the feed builder.
+     */
+    @Test
+    public void theReelsTabsOwnCaptionOpensWholeWithTheReelSwitch() {
+        assertEquals(Integer.MAX_VALUE, CaptionLength.reelLines(2, () -> true));
+        assertEquals(Integer.MAX_VALUE, CaptionLength.reelLines(1, () -> true));
+        String report = HookStatus.report().toString();
+        assertTrue(report, report.contains(CaptionLength.REEL_COUNT_CHANGED));
+        assertTrue(HookStatus.missing(FamilyNames.EXPAND_CAPTIONS).toString(),
+                HookStatus.missing(FamilyNames.EXPAND_CAPTIONS).isEmpty());
+    }
+
+    @Test
+    public void theReelsTabsOwnCaptionKeepsInstagramsCountOtherwise() {
+        assertEquals("switch off", 2, CaptionLength.reelLines(2, () -> false));
+        assertEquals("no cut", 0, CaptionLength.reelLines(0, () -> true));
+        assertEquals("already open", Integer.MAX_VALUE, CaptionLength.reelLines(Integer.MAX_VALUE, () -> true));
+        assertEquals("a broken switch", 2, CaptionLength.reelLines(2, () -> {
+            throw new IllegalStateException("boom");
+        }));
+        // The public hook reads the saved switch, which starts off.
+        assertEquals(2, CaptionLength.reelLines(2));
+        Settings.EXPAND_REEL_CAPTIONS.save(true);
+        assertEquals(Integer.MAX_VALUE, CaptionLength.reelLines(2));
+    }
+
     @Test
     public void anUncutOrOpenedReelCaptionStaysThatWay() {
         assertEquals("no cut", 0, reels(Surface.CLIPS_VIEWER, 0, false, true));

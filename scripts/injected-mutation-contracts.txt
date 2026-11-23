@@ -4356,6 +4356,12 @@ once-call Lapp/hushgram/extension/instagram/feed/HideCaptions;->hideReelCaption(
 # SpannableStringBuilder, holding the itas-android schema name and " [...]". Left out, a feed
 # caption keeps Instagram's count; twice or elsewhere, it isn't the hook the patch wrote.
 once-call Lapp/hushgram/extension/instagram/feed/CaptionLength;->maxLines(Ljava/lang/Object;I)I in static (Landroid/content/Context;LX/*;Lcom/instagram/search/common/analytics/SearchContext;LX/*;Ljava/lang/String;Ljava/lang/String;Z)Landroid/text/SpannableStringBuilder; pooled holding itas-android \s[...]
+# Each of the reel caption's two renders, the same two Hide captions asks in, also asks
+# CaptionLength.reelLines for its line count where the open caption's count and the closed one's
+# meet (#821). Left out, a reel caption stays at Instagram's count with the switch on; twice or
+# elsewhere, it isn't the hook the patch wrote.
+once-call Lapp/hushgram/extension/instagram/feed/CaptionLength;->reelLines(I)I in instance (L*;)L*; holding is_reels_caption_expanded caption_vertical_scroll
+once-call Lapp/hushgram/extension/instagram/feed/CaptionLength;->reelLines(I)I in instance (L*;)L*; holding is_reels_caption_expanded :
 # Let the screen sleep when a reel stops hands ReelScreenSleep.keepAwake the window and the boolean
 # right after the Reels viewer's keep-awake helper gets its activity's window (#777). The helper is
 # the instance (boolean) void method loading FLAG_KEEP_SCREEN_ON and calling getWindow and

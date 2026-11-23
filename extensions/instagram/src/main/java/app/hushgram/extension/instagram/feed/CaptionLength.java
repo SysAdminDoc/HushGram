@@ -91,6 +91,29 @@ public final class CaptionLength {
         }
     }
 
+    /**
+     * The line count for the Reels tab's own caption render, where Instagram picked [instagram] (#821).
+     * Instagram 456 draws that caption without the builder {@link #maxLines} sits in, so it asks here where
+     * it settles its count: the whole caption with the reels switch on, the same as {@link #maxLines} gives
+     * a reel surface, and Instagram's count otherwise. An open caption (a count past {@link #MOST_PICKED})
+     * and zero or less stay as they are. Never throws.
+     */
+    public static int reelLines(int instagram) {
+        return reelLines(instagram, CaptionLength::reelsWanted);
+    }
+
+    static int reelLines(int instagram, BooleanSupplier reelsOn) {
+        try {
+            HookStatus.invoked(FamilyNames.EXPAND_CAPTIONS);
+            if (instagram < 1 || instagram > MOST_PICKED || !reelsOn.getAsBoolean()) return instagram;
+            HookStatus.counted(FamilyNames.EXPAND_CAPTIONS, REEL_COUNT_CHANGED);
+            return CaptionLines.WHOLE.lines;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.EXPAND_CAPTIONS, HOOK, failure);
+            return instagram;
+        }
+    }
+
     static boolean wanted() {
         return Utils.settingsReady() && !HushgramPause.isPaused() && Settings.EXPAND_CAPTIONS.get();
     }

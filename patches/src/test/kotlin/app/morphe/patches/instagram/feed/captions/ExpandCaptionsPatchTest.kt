@@ -22,8 +22,10 @@ import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
@@ -91,6 +93,79 @@ class ExpandCaptionsPatchTest {
         val measurer = context.mutableClassDefBy(MEASURER).methods.single().code()
         assertTrue("the measurer is left alone", measurer.none { it.method()?.toString() == CAPTION_MAX_LINES })
     }
+
+    /**
+     * #821: the Reels tab's own caption renders settle their line count where the open caption's
+     * Integer.MAX_VALUE meets the cut ones, after a goto in one look and by falling through in the other.
+     */
+    @Test
+    fun theReelCaptionCountsAreFound() {
+        val found = PatchContexts.of(classes()).findReelCaptionLines().associateBy { it.type }
+
+        assertEquals(setOf(REEL_GOTO, REEL_FALLTHROUGH), found.keys)
+        assertEquals("the goto look meets past its own count", 8, found.getValue(REEL_GOTO).merge)
+        assertEquals("the goto look counts in v3", 3, found.getValue(REEL_GOTO).lines)
+        assertEquals("the falling look meets after the const", 10, found.getValue(REEL_FALLTHROUGH).merge)
+        assertEquals("the falling look counts in v5", 5, found.getValue(REEL_FALLTHROUGH).lines)
+    }
+
+    /** The hook is where every path to the count meets, and the branches that went there now run it first. */
+    @Test
+    fun theReelCaptionCountAsksWhereThePathsMeet() {
+        val context = PatchContexts.of(classes())
+        for (found in context.findReelCaptionLines()) {
+            val stock = context.render(found.type).code()
+            found.write(context)
+            assertReelHooked(found.type, context.render(found.type).code(), stock, found.merge, found.lines)
+        }
+    }
+
+    /**
+     * Hide captions writes its question at the top of the same render first in a real patch run, which moves
+     * everything down; the count's hook still lands where the paths meet.
+     */
+    @Test
+    fun theReelCaptionCountFollowsCodeWrittenAboveIt() {
+        val context = PatchContexts.of(classes())
+        val found = context.findReelCaptionLines().single { it.type == REEL_GOTO }
+        val method = context.mutableClassDefBy(REEL_GOTO).methods.single { it.name == "A0p" }
+        method.addInstructionsWithLabels(0, "const/4 v0, 0x0\nconst/4 v1, 0x0\nconst/4 v2, 0x0")
+        val stock = method.code()
+
+        found.write(context)
+
+        assertReelHooked("moved down", context.render(REEL_GOTO).code(), stock, found.merge + 3, found.lines)
+    }
+
+    @Test
+    fun theWholePatchAsksInBothReelLooks() {
+        val context = PatchContexts.of(listOf(ExtensionDex.classDef(SETTINGS_STATUS)) + classes())
+        expandCaptionsPatch.execute(context)
+        for (type in listOf(REEL_GOTO, REEL_FALLTHROUGH)) {
+            val asks = context.render(type).code().count { it.method()?.toString() == CAPTION_REEL_LINES }
+            assertEquals("$type asks once", 1, asks)
+        }
+    }
+
+    @Test
+    fun theReelHookIsInTheExtension() {
+        val declared = ExtensionDex.classDef(CAPTION_LENGTH).methods
+            .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
+            .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
+        assertTrue("$CAPTION_REEL_LINES is not in the extension: $declared", CAPTION_REEL_LINES.substringAfter("->") in declared)
+    }
+
+    @Test
+    fun noReelCaptionFailsThePatch() = refusedLines("found 0", classes(reels = emptyList()))
+
+    @Test
+    fun aReelCaptionThatNeverOpensFailsThePatch() = refusedLines("found 0", classes(reels = listOf("never")))
+
+    @Test
+    fun aReelCaptionOpeningTwiceFailsThePatch() = refusedLines("found 2", classes(reels = listOf("twice")))
+
+    @Test
+    fun aReelCaptionWithoutItsFlagFailsThePatch() = refusedLines("doesn't hand a boolean field", classes(reels = listOf("unkeyed")))
 
     @Test
     fun noCaptionViewFailsThePatch() = refused("isn't in the app", classes(view = false))
@@ -172,13 +247,24 @@ class ExpandCaptionsPatchTest {
         val propsClasses = FixtureDex.classes(bundle, props).values
         val fieldTypes = propsClasses.flatMap { it.fields }.map { it.type }.filter { it.startsWith("L") }.toSet()
         val enums = FixtureDex.classes(bundle, fieldTypes).values.filter { it.superclass == ENUM }
-        val sliced = (callers.values + propsClasses + enums).distinctBy { it.type }
+        val reelHolders = FixtureDex.classesLoading(bundle, REEL_CAPTION_EXPANDED)
+        val sliced = (callers.values + propsClasses + enums + reelHolders).distinctBy { it.type }
         val context = PatchContexts.of(listOf(ExtensionDex.classDef(SETTINGS_STATUS)) + FixtureDex.withStringPools(bundle, sliced))
         val found = context.findCaptionTrim()
         val stock = context.builder(found).code()
         val propsRegister = context.builder(found).parameterRegisterNumber(1)
+        // #821: both looks of the Reels tab's own caption, on every build.
+        val reels = context.findReelCaptionLines()
+        assertEquals("$label: the reel caption's two looks", 2, reels.size)
+        val reelStock = reels.associate { it.type to context.render(it.type, it.name).code() }
 
         expandCaptionsPatch.execute(context)
+
+        for (reel in reels) {
+            assertReelHooked(
+                "$label ${reel.type}", context.render(reel.type, reel.name).code(), reelStock.getValue(reel.type), reel.merge, reel.lines,
+            )
+        }
 
         val status = context.method(SETTINGS_STATUS, EXPAND_CAPTIONS_STATUS).code()
         assertEquals("$label: status", 1, (status.first() as NarrowLiteralInstruction).narrowLiteral)
@@ -235,6 +321,44 @@ class ExpandCaptionsPatchTest {
     }
 
     private fun Opcode.kind() = if (this == Opcode.GOTO_16 || this == Opcode.GOTO_32) Opcode.GOTO else this
+
+    /**
+     * Two instructions at [merge]: the count into the extension as a one-register range, and its answer back
+     * in the same register. Whatever branched onto the merge now lands on the hook, nothing lands past it, and
+     * Instagram's own code is all still there.
+     */
+    private fun assertReelHooked(what: String, code: List<Instruction>, stock: List<Instruction>, merge: Int, lines: Int) {
+        val calls = code.indices.filter { code[it].method()?.toString() == CAPTION_REEL_LINES }
+        assertEquals("$what: one hook", listOf(merge), calls)
+        val call = code[merge] as RegisterRangeInstruction
+        assertEquals("$what: a range call", Opcode.INVOKE_STATIC_RANGE, code[merge].opcode)
+        assertEquals("$what: the count alone", listOf(lines, 1), listOf(call.startRegister, call.registerCount))
+        assertEquals("$what: its answer", Opcode.MOVE_RESULT, code[merge + 1].opcode)
+        assertEquals("$what: back in the count", lines, (code[merge + 1] as OneRegisterInstruction).registerA)
+        assertEquals("$what: Instagram's merge follows", stock[merge].opcode, code[merge + 2].opcode)
+        val targets = branchTargets(code)
+        assertTrue("$what: a branch lands on the hook", merge in targets)
+        assertTrue("$what: no branch skips the hook", merge + 2 !in targets)
+        assertStockKept(what, stock, code.filterIndexed { index, _ -> index != merge && index != merge + 1 })
+    }
+
+    private fun branchTargets(code: List<Instruction>): Set<Int> {
+        val addresses = IntArray(code.size + 1)
+        code.forEachIndexed { index, instruction -> addresses[index + 1] = addresses[index] + instruction.codeUnits }
+        val byAddress = code.indices.associateBy { addresses[it] }
+        return code.indices.mapNotNullTo(HashSet()) { at ->
+            (code[at] as? OffsetInstruction)?.let { byAddress[addresses[at] + it.codeOffset] }
+        }
+    }
+
+    private fun refusedLines(why: String, classes: List<ClassDef>) {
+        val failure = assertThrows(PatchException::class.java) { PatchContexts.of(classes).findReelCaptionLines() }
+        assertTrue(failure.message!!, failure.message!!.startsWith("Expand captions: the reel caption's lines: ") && failure.message!!.contains(why))
+    }
+
+    /** A render by its type and name: the fixtures' renders are A0p, a real build's are whatever its Redex named them. */
+    private fun BytecodePatchContext.render(type: String, name: String = "A0p"): Method =
+        mutableClassDefBy(type).methods.single { it.name == name }
 
     private fun refused(why: String, classes: List<ClassDef>) {
         val failure = assertThrows(PatchException::class.java) { PatchContexts.of(classes).findCaptionTrim() }
@@ -345,13 +469,93 @@ class ExpandCaptionsPatchTest {
             return ImmutableClassDef(type, PUBLIC_FINAL or AccessFlags.ENUM.value, ENUM, null, null, null, null, listOf(initializer))
         }
 
+        const val REEL_GOTO = "Lfixture/ReelCaption;"
+        const val REEL_FALLTHROUGH = "Lfixture/OtherReelCaption;"
+        const val SCOPE = "Lfixture/Scope;"
+        const val COMPONENT = "Lfixture/Component;"
+
+        /**
+         * A Reels caption render like 456's LX/0aex->A0p ("goto": the open count's const goes on to a goto
+         * back to the merge) or LX/0Ee1->A0p ("fallthrough": the const falls into it), as an instance
+         * (scope) -> component method with this in v8. Its open flag goes to String.valueOf before the key.
+         * "never" opens at 5 lines instead of MAX_VALUE, "twice" settles a count twice, "unkeyed" doesn't
+         * hand the flag to String.valueOf.
+         */
+        fun reelRender(owner: String, shape: String): ClassDef {
+            val flag = "$owner->open:Z"
+            val whole = if (shape == "never") "0x5" else "0x7fffffff"
+            val keyed = if (shape == "unkeyed") "const/4 v1, 0x0" else
+                "iget-boolean v0, v8, $flag\ninvoke-static {v0}, Ljava/lang/String;->valueOf(Z)Ljava/lang/String;\nmove-result-object v1"
+            val body = if (shape == "fallthrough") """
+                $keyed
+                const-string v0, "$REEL_CAPTION_EXPANDED"
+                iget v5, v8, $owner->lines:I
+                iget-boolean v7, v8, $flag
+                if-nez v7, :whole
+                const/4 v7, 0x1
+                if-ge v5, v7, :merge
+                :whole
+                const v5, $whole
+                :merge
+                iget-boolean v7, v8, $owner->other:Z
+                invoke-static {v5}, Lfixture/Text;->lines(I)V
+                const/4 v0, 0x0
+                return-object v0
+            """ else {
+                val again = if (shape == "twice") """
+                    iget-boolean v3, v8, $flag
+                    if-nez v3, :whole2
+                    const/4 v3, 0x2
+                    :merge2
+                    invoke-static {v3}, Lfixture/Text;->lines(I)V
+                    const/4 v0, 0x0
+                    return-object v0
+                    :whole2
+                    const v3, 0x7fffffff
+                    goto :merge2
+                """ else ""
+                """
+                $keyed
+                const-string v0, "$REEL_CAPTION_EXPANDED"
+                iget-boolean v3, v8, $flag
+                if-nez v3, :whole
+                if-eqz v2, :props
+                const/4 v3, 0x1
+                :merge
+                const/16 v7, 0xe
+                invoke-static {v3}, Lfixture/Text;->lines(I)V
+                $again
+                const/4 v0, 0x0
+                return-object v0
+                :props
+                iget v3, v8, $owner->lines:I
+                const/4 v4, 0x1
+                if-ge v3, v4, :merge
+                :whole
+                const v3, $whole
+                goto :merge
+                """
+            }
+            val render = method(owner, "A0p", listOf(SCOPE), COMPONENT, PUBLIC_FINAL, 10, body.trimIndent())
+            val fields = listOf(
+                ImmutableField(owner, "open", "Z", PUBLIC_FINAL, null, null, null),
+                ImmutableField(owner, "other", "Z", PUBLIC_FINAL, null, null, null),
+                ImmutableField(owner, "lines", "I", PUBLIC_FINAL, null, null, null),
+            )
+            return ImmutableClassDef(owner, PUBLIC_FINAL, "Lfixture/Render;", null, null, null, fields, listOf(render))
+        }
+
         fun classes(
             view: Boolean = true,
             secondHelper: Boolean = false,
             builders: Int = 1,
             variant: String = "ok",
             surfaces: Int = 1,
+            reels: List<String> = listOf("goto", "fallthrough"),
         ): List<ClassDef> {
+            val reelClasses = reels.mapIndexed { index, shape ->
+                reelRender(if (shape == "fallthrough" || index > 0) REEL_FALLTHROUGH else REEL_GOTO, shape)
+            }
             val surfaceFields = listOf("surface", "previous").take(surfaces).map { ImmutableField(PROPS, it, SURFACE, PUBLIC_FINAL, null, null, null) }
             val fields = surfaceFields + listOf(
                 ImmutableField(PROPS, "kind", KIND, PUBLIC_FINAL, null, null, null),
@@ -377,7 +581,7 @@ class ExpandCaptionsPatchTest {
             return (if (view) listOf(view(secondHelper)) else emptyList()) + builderClasses + props +
                 ImmutableClassDef(MEASURER, PUBLIC_FINAL, OBJECT, null, null, null, null, listOf(measurer)) +
                 enum(SURFACE, listOf("NOT_SET", "MAIN_FEED", "CLIPS_VIEWER", "STORY_VIEWER")) +
-                enum(KIND, listOf("PHOTO", "VIDEO", "CLIPS_VIEWER")) +
+                enum(KIND, listOf("PHOTO", "VIDEO", "CLIPS_VIEWER")) + reelClasses +
                 ImmutableClassDef("Lfixture/Unrelated;", PUBLIC, OBJECT, null, null, null, null, emptyList())
         }
     }

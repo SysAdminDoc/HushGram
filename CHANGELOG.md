@@ -14,6 +14,7 @@ Every HushGram release, newest first.
 * A reel's seek bar sits under the video again with the glass tab bar on. It was lifted onto the video's bottom edge, leaving a strip of the video showing under it. Reported in #827.
 * HushGram now patches Instagram 456.1.0.56.78 instead of 456.0.0.53.78. Get APKMirror's (arm64-v8a) (480-640dpi) (Android 9.0+) bundle, build 386215122. Its armeabi-v7a (386215121), x86 (386215123) and x86_64 (386215124) builds work too.
 * HushGram now builds on Morphe patcher 2.5.0, so patching needs Morphe Manager 2.7.0 or newer. On a computer, use Morphe Desktop 2.3.0 or newer.
+* `Expand captions on reels` reaches captions in the Reels tab now. Instagram 456 draws those another way, so they still cut off with the switch on. Reported in #821.
 
 ## 0.0.22 (2026-11-22)
 
