@@ -127,11 +127,11 @@ public final class ResourceTableCheck {
 
     private void run(TableBlock stock, ZipFile stockZip, TableBlock patched, ZipFile patchedZip) {
         Map<Integer, PackageBlock> patchedPackages = new LinkedHashMap<>();
-        for (PackageBlock block : patched.listPackages()) {
+        for (PackageBlock block : patched) {
             patchedPackages.put(block.getId(), block);
             for (ResourceEntry resource : resources(block)) patchedById.put(resource.getResourceId(), resource);
         }
-        for (PackageBlock block : stock.listPackages()) {
+        for (PackageBlock block : stock) {
             for (ResourceEntry resource : resources(block)) {
                 stockNames.put(resource.getResourceId(), label(resource));
                 stockById.put(resource.getResourceId(), resource);
@@ -139,7 +139,7 @@ public final class ResourceTableCheck {
         }
 
         Set<Integer> seen = new HashSet<>();
-        for (PackageBlock stockPackage : stock.listPackages()) {
+        for (PackageBlock stockPackage : stock) {
             PackageBlock patchedPackage = patchedPackages.get(stockPackage.getId());
             if (patchedPackage == null) {
                 failures.add(String.format(Locale.ROOT, "package 0x%02x %s: not in the patched table",
@@ -169,7 +169,7 @@ public final class ResourceTableCheck {
                 compareValues(resource, match, patched, patchedPackages.keySet());
             }
         }
-        for (PackageBlock block : patched.listPackages()) {
+        for (PackageBlock block : patched) {
             for (ResourceEntry resource : resources(block)) {
                 patchedResources++;
                 if (seen.contains(resource.getResourceId())) continue;
@@ -271,7 +271,7 @@ public final class ResourceTableCheck {
 
     /** Every file a patched value names is in the patched archive, unless the stock one lacked it too. */
     private void checkFiles(TableBlock stock, ZipFile stockZip, TableBlock patched, ZipFile patchedZip) {
-        for (PackageBlock block : patched.listPackages()) {
+        for (PackageBlock block : patched) {
             for (ResourceEntry resource : resources(block)) {
                 ResourceEntry original = stockById.get(resource.getResourceId());
                 for (Entry entry : values(resource)) {
