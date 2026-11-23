@@ -46,6 +46,16 @@ The Simplified Chinese table is converted from it with OpenCC.
 https://github.com/SysAdminDoc/HushGram/pull/313
 https://github.com/JhouHank/HushGram
 
+Arabic translation
+------------------
+
+hamedhani1998 contributed the Arabic translation in PR #817.
+The table was imported from commit
+1503f20f58f59b1efc2a36609227be19a8441abd, under GPL-3.0-only.
+Rows for strings added after that pull request are maintained here.
+https://github.com/SysAdminDoc/HushGram/pull/817
+https://github.com/hamedhani1998/HushGram
+
 Thai translation
 ----------------
 

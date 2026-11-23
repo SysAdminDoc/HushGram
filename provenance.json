@@ -14,6 +14,17 @@
     },
     {
       "paths": [
+        "extensions/shared/library/src/main/l10n/ar.tsv"
+      ],
+      "origin": "ported",
+      "upstream": "https://github.com/hamedhani1998/HushGram",
+      "commit": "1503f20f58f59b1efc2a36609227be19a8441abd",
+      "blob": "f24f977d6998ed801e7f760f5d25598358131a70",
+      "license": "GPL-3.0-only",
+      "changes": "hamedhani1998's Arabic table, imported from HushGram PR #817. A credit line was added to its header, 12 rows for strings added after the pull request were written here, and 5 toasts were shortened to fit two lines."
+    },
+    {
+      "paths": [
         "extensions/shared/library/src/main/l10n/zh-rTW.tsv",
         "extensions/shared/library/src/main/l10n/zh.tsv"
       ],
