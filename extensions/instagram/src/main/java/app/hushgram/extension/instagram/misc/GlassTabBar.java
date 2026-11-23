@@ -483,6 +483,59 @@ public final class GlassTabBar {
     }
 
     /**
+     * Whether the seek bar of [anchor]'s reel, raised [lift], sits in a strip of its own right under the
+     * reel's video: no higher than the video's bottom, and no further under it than the seek bar is tall.
+     * Instagram 456 lays out a reel with a seek bar that way, the video stopping short of the viewer's foot
+     * with the seek bar under it, so the gap {@link #reelsBandLift} keeps over the pill lifted the seek bar
+     * onto the video's bottom edge, a strip of video showing under it (#827). Positions are the views' laid
+     * out ones, so what this or Instagram moved them by doesn't count. [videos] is scratch space, left empty.
+     * False when anything isn't found.
+     */
+    static boolean seekBarUnderItsVideo(View anchor, int media, int scrubber, View stop, int lift,
+                                        java.util.List<View> videos) {
+        if (media == 0 || scrubber == 0) return false;
+        View holder = null;
+        View at = anchor;
+        for (int depth = 0; depth < 16 && at != stop && holder == null; depth++) {
+            if (!(at.getParent() instanceof ViewGroup)) return false;
+            ViewGroup up = (ViewGroup) at.getParent();
+            if (up.findViewById(media) != null) holder = up;
+            at = up;
+        }
+        if (holder == null) return false;
+        View seekBar = anchor.getId() == scrubber ? anchor : holder.findViewById(scrubber);
+        View video = holder.findViewById(media);
+        if (seekBar == null || video == null || seekBar.getVisibility() != View.VISIBLE || seekBar.getHeight() <= 0) {
+            return false;
+        }
+        videos.clear();
+        reelMedia(video, videos, 0);
+        int bottom = Integer.MIN_VALUE;
+        for (View each : videos) {
+            if (each.getVisibility() != View.VISIBLE || each.getHeight() <= 0) continue;
+            int top = laidOutTop(each, holder);
+            if (top != Integer.MIN_VALUE) bottom = Math.max(bottom, top + each.getHeight());
+        }
+        videos.clear();
+        int top = laidOutTop(seekBar, holder);
+        if (bottom == Integer.MIN_VALUE || top == Integer.MIN_VALUE) return false;
+        int under = top - lift - bottom;
+        return under >= 0 && under <= seekBar.getHeight();
+    }
+
+    /** [view]'s laid out top in [ancestor], leaving out translations and scrolls, or MIN_VALUE when it isn't in it. */
+    static int laidOutTop(View view, View ancestor) {
+        int top = 0;
+        View at = view;
+        for (int depth = 0; depth < 60 && at != ancestor; depth++) {
+            top += at.getTop();
+            if (!(at.getParent() instanceof View)) return Integer.MIN_VALUE;
+            at = (View) at.getParent();
+        }
+        return at == ancestor ? top : Integer.MIN_VALUE;
+    }
+
+    /**
      * How far [band]'s content can scroll up before a shown child of it is cut off at the band's top: the
      * top of the highest one, or 0 with none.
      */
@@ -1078,7 +1131,10 @@ public final class GlassTabBar {
      * and the bottom of that height.
      */
     static final int FIT_GAP_DP = 1;
-    /** The room a reel's seek bar keeps above the pill's slot on the Reels tab ({@link #reelsBandLift}, #187). */
+    /**
+     * The room a reel's seek bar keeps above the pill's slot on the Reels tab ({@link #reelsBandLift}, #187),
+     * unless Instagram put the seek bar in a strip of its own under the video ({@link #seekBarUnderItsVideo}, #827).
+     */
     static final int REELS_GAP_DP = 8;
     /**
      * Where the glass's blur slider starts (#391). Light enough that a post's thin white icons under the
@@ -1944,6 +2000,8 @@ public final class GlassTabBar {
         private final java.util.ArrayList<View> media = new java.util.ArrayList<>();
         private final java.util.ArrayList<View> anchors = new java.util.ArrayList<>();
         private final java.util.ArrayList<View> footerViews = new java.util.ArrayList<>();
+        /** Scratch space for {@link #seekBarUnderItsVideo}. */
+        private final java.util.ArrayList<View> videos = new java.util.ArrayList<>();
         private final java.util.Set<View> raisedNow = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
         /** Whether a footer's margin changed in this frame's look, so the frame is laid out again before it's drawn. */
         private boolean footerMoved;
@@ -2670,8 +2728,9 @@ public final class GlassTabBar {
                 reelAnchors(viewer, info, scrubber, footers, anchors, footerViews, 0);
                 int footer = 0;
                 for (View view : footerViews) footer += overlapFooter(view);
-                footer += reelsBandLift(reelsKept, reelsBehind, reelsSlot, reelsKept && !(away > 0f) ? 0 : navUnder(viewer),
-                        dp(REELS_GAP_DP), away);
+                int nav = reelsKept && !(away > 0f) ? 0 : navUnder(viewer);
+                int withGap = footer + reelsBandLift(reelsKept, reelsBehind, reelsSlot, nav, dp(REELS_GAP_DP), away);
+                int noGap = footer + reelsBandLift(reelsKept, reelsBehind, reelsSlot, nav, 0, away);
                 for (View anchor : anchors) {
                     View band = bands.get(anchor);
                     if (band == null || !holds(band, anchor)) {
@@ -2680,7 +2739,11 @@ public final class GlassTabBar {
                         bands.put(anchor, band);
                     }
                     if (!raisedNow.add(band)) continue;
-                    if (lift(band, -footer)) HookStatus.counted(FamilyNames.GLASS_TAB_BAR, COUNT_REEL_RAISED);
+                    // A seek bar Instagram already put in its own strip under the video keeps clear of the
+                    // pill there; the gap would only lift it onto the video (#827).
+                    int by = withGap != noGap && seekBarUnderItsVideo(anchor, media, scrubber, viewer, noGap, videos)
+                            ? noGap : withGap;
+                    if (lift(band, -by)) HookStatus.counted(FamilyNames.GLASS_TAB_BAR, COUNT_REEL_RAISED);
                     Float ours = raised.get(band);
                     if (ours != null && ours == band.getTranslationY() && keepUnderTheLift(band, PUT_BACK_DEPTH) > 0) {
                         HookStatus.counted(FamilyNames.GLASS_TAB_BAR, COUNT_LITHO_PUT_BACK);

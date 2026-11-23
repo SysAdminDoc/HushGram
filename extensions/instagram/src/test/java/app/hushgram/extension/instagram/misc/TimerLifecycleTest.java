@@ -464,6 +464,55 @@ public class TimerLifecycleTest {
     }
 
     /**
+     * #827: Instagram 456 lays out a reel that has a seek bar with its video stopping short of the
+     * viewer's foot and the seek bar in a strip of its own under it, which already keeps it clear of the
+     * pill. The gap for #187 lifted that seek bar onto the video, a strip of video showing under it. It
+     * stays in its strip now, the caption with it. A video that runs on under the seek bar, or that ends
+     * well above it, still gets the gap.
+     */
+    @Test public void aSeekBarUnderItsVideoStaysOffTheVideo() {
+        LinearLayout tabs = namedTabBar();
+        Reel reel = showReel();
+        int match = ViewGroup.LayoutParams.MATCH_PARENT;
+        ViewGroup page = (ViewGroup) reel.media.getParent();
+        int at = page.indexOfChild(reel.media);
+        page.removeView(reel.media);
+        FrameLayout holder = new FrameLayout(activity);
+        holder.setId(MEDIA_ID);
+        View video = new com.instagram.ui.simplevideolayout.SimpleVideoLayout(activity);
+        FrameLayout.LayoutParams inset = new FrameLayout.LayoutParams(match, match);
+        inset.topMargin = 36;
+        inset.bottomMargin = 36;
+        holder.addView(video, inset);
+        page.addView(holder, at, new FrameLayout.LayoutParams(match, match));
+        reel.media = holder;
+        Settings.GLASS_TAB_BAR.save(true);
+        assertTrue(Settings.GLASS_TAB_BAR_FLOAT.get());
+        GlassTabBar.apply(activity);
+        idle(500);
+        layout();
+        assertTrue(gap() > 0);
+        assertEquals("the seek bar's strip under the video", 6,
+                page.getHeight() - 30 - (video.getBottom() + holder.getTop()));
+        assertRaised(reel, 0);
+
+        inset.bottomMargin = 0;
+        video.setLayoutParams(inset);
+        layout();
+        tabs.getViewTreeObserver().dispatchOnPreDraw();
+        layout();
+        assertRaised(reel, gap());
+
+        inset.bottomMargin = 300;
+        video.setLayoutParams(inset);
+        layout();
+        tabs.getViewTreeObserver().dispatchOnPreDraw();
+        layout();
+        assertRaised(reel, gap());
+        GlassTabBar.restoreAll();
+    }
+
+    /**
      * #466, #467: with the wait on Reels the reel runs behind the pill and keeps that one size as the
      * pill slides away and back. Given the pill's slot only while the pill was all the way off (#335), the
      * video grew and jumped back with every slide. The caption, buttons and seek bar stay raised clear
