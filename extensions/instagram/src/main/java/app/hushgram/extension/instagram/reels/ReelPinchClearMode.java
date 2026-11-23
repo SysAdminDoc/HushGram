@@ -8,6 +8,9 @@ import android.graphics.Canvas;
 import android.graphics.ColorFilter;
 import android.graphics.PixelFormat;
 import android.graphics.drawable.Drawable;
+import android.view.MotionEvent;
+import android.view.View;
+import android.view.ViewParent;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -29,7 +32,8 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * to {@link #turn} (or {@link #write}), which turns clear mode on or off through the handler Instagram's own menu row
  * uses, with the reason Instagram's pinch gives ({@link ReelClearMode#pinched}). The listener only
  * gets the pinch while Instagram's zoom for Reels is off, so with Pinch to zoom on, two fingers zoom
- * instead.
+ * instead. The reel's touch hands each event to {@link #touch} first, and a second finger landing
+ * keeps the list around the reel out of the gesture, so fingers spreading apart get there too.
  *
  * <p>A reel in clear mode draws a round exit button in its corner. Hide the exit button in clear
  * mode keeps that button where it is and as big as it was, but draws nothing there and takes no tap:
@@ -135,8 +139,37 @@ public final class ReelPinchClearMode {
 
     /** Whether the exit button is hidden: both switches on, and no zoom taking the pinch. */
     static boolean hidden() {
-        return on() && Settings.HIDE_CLEAR_MODE_EXIT_BUTTON.get()
-                && !(Settings.PINCH_ZOOM_REELS.get() && PatchFamily.REEL_ZOOM.inBuild());
+        return on() && Settings.HIDE_CLEAR_MODE_EXIT_BUTTON.get() && !zoomTakesPinch();
+    }
+
+    /** What the diagnostic report counts each time a second finger keeps the list out. */
+    static final String KEPT_SPREAD = "pinch kept from the list";
+
+    /**
+     * The reel's touch, first thing, with the reel's view and the event. While Pinch for clear mode
+     * is on and nothing else takes the pinch, a second finger landing on a reel asks the list around
+     * it to leave the gesture alone. Without that, two fingers spreading out from close together
+     * only start Instagram's pinch once they're about an inch apart, and by then the list has taken
+     * them as a scroll or a pull to refresh, so only fingers closing in turned clear mode on or off.
+     * Any other event, or the switch off, changes nothing.
+     */
+    public static void touch(@Nullable View view, @Nullable MotionEvent event) {
+        try {
+            if (view == null || event == null || event.getActionMasked() != MotionEvent.ACTION_POINTER_DOWN) return;
+            if (!on() || zoomTakesPinch()) return;
+            ViewParent parent = view.getParent();
+            if (parent == null) return;
+            HookStatus.invoked(FAMILY);
+            parent.requestDisallowInterceptTouchEvent(true);
+            HookStatus.counted(FAMILY, KEPT_SPREAD);
+        } catch (Throwable failure) {
+            HookStatus.threw(FAMILY, "pinch for clear mode", failure);
+        }
+    }
+
+    /** Whether Pinch to zoom is on and in the build, so two fingers zoom the reel instead. */
+    private static boolean zoomTakesPinch() {
+        return Settings.PINCH_ZOOM_REELS.get() && PatchFamily.REEL_ZOOM.inBuild();
     }
 
     private static boolean on() {

@@ -16,6 +16,7 @@ Every HushGram release, newest first.
 * HushGram now builds on Morphe patcher 2.5.0, so patching needs Morphe Manager 2.7.0 or newer. On a computer, use Morphe Desktop 2.3.0 or newer.
 * `Expand captions on reels` reaches captions in the Reels tab now. Instagram 456 draws those another way, so they still cut off with the switch on. Reported in #821.
 * The time on a story's seek bar sits right over the bar whenever there's room for it, instead of up over the reply row. Reported in #784.
+* `Pinch for clear mode` works when you spread two fingers apart now, not only when you pinch them together. Fingers that started close together were taken as a scroll. Reported in #744.
 
 ## 0.0.22 (2026-11-22)
 

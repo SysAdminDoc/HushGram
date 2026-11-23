@@ -15,6 +15,9 @@ import android.graphics.PixelFormat;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.ShapeDrawable;
+import android.view.MotionEvent;
+import android.view.View;
+import android.widget.FrameLayout;
 
 import org.junit.After;
 import org.junit.Before;
@@ -22,6 +25,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
+import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
 
 import java.lang.reflect.Field;
@@ -175,6 +179,102 @@ public class ReelPinchClearModeTest {
         build(EnumSet.of(PatchFamily.REEL_DECLUTTER, PatchFamily.REEL_ZOOM));
         Settings.PINCH_ZOOM_REELS.save(false);
         assertHidden("Pinch to zoom off");
+    }
+
+    /** A list around the reel that remembers whether it was asked to leave the gesture alone. */
+    private static final class ReelList extends FrameLayout {
+        int asked;
+        boolean leftAlone;
+
+        ReelList() {
+            super(RuntimeEnvironment.getApplication());
+        }
+
+        @Override
+        public void requestDisallowInterceptTouchEvent(boolean disallow) {
+            asked++;
+            leftAlone = disallow;
+            super.requestDisallowInterceptTouchEvent(disallow);
+        }
+    }
+
+    private static View reelIn(ReelList list) {
+        View reel = new View(RuntimeEnvironment.getApplication());
+        list.addView(reel);
+        return reel;
+    }
+
+    /** One finger down, or a second landing, at two points an inch or so apart. */
+    private static MotionEvent fingers(int action, int count) {
+        MotionEvent.PointerProperties[] properties = new MotionEvent.PointerProperties[count];
+        MotionEvent.PointerCoords[] coords = new MotionEvent.PointerCoords[count];
+        for (int i = 0; i < count; i++) {
+            properties[i] = new MotionEvent.PointerProperties();
+            properties[i].id = i;
+            properties[i].toolType = MotionEvent.TOOL_TYPE_FINGER;
+            coords[i] = new MotionEvent.PointerCoords();
+            coords[i].x = 500 + 60 * i;
+            coords[i].y = 1100 + 60 * i;
+        }
+        return MotionEvent.obtain(0, 10, action, count, properties, coords, 0, 0, 1f, 1f, 0, 0, 0, 0);
+    }
+
+    private static MotionEvent secondFinger() {
+        return fingers(MotionEvent.ACTION_POINTER_DOWN | (1 << MotionEvent.ACTION_POINTER_INDEX_SHIFT), 2);
+    }
+
+    @Test
+    public void aSecondFingerKeepsTheListOutOfThePinchWhileTheSwitchIsOn() {
+        ReelList list = new ReelList();
+        View reel = reelIn(list);
+
+        ReelPinchClearMode.touch(reel, secondFinger());
+        assertEquals("off, the list is never asked", 0, list.asked);
+
+        Settings.PINCH_CLEAR_MODE.save(true);
+        ReelPinchClearMode.touch(reel, fingers(MotionEvent.ACTION_DOWN, 1));
+        ReelPinchClearMode.touch(reel, fingers(MotionEvent.ACTION_MOVE, 2));
+        ReelPinchClearMode.touch(reel, fingers(MotionEvent.ACTION_UP, 1));
+        assertEquals("one finger, a move or a lift leaves the list to scroll", 0, list.asked);
+
+        ReelPinchClearMode.touch(reel, secondFinger());
+        assertEquals("the second finger asks once", 1, list.asked);
+        assertTrue("and the list leaves the gesture alone", list.leftAlone);
+        assertTrue(HookStatus.report().toString(), HookStatus.report().toString().contains(ReelPinchClearMode.KEPT_SPREAD));
+
+        Settings.PINCH_CLEAR_MODE.save(false);
+        ReelPinchClearMode.touch(reel, secondFinger());
+        assertEquals("read at each touch", 1, list.asked);
+    }
+
+    @Test
+    public void aSecondFingerIsLeftToZoomOrToInstagramOtherwise() throws Exception {
+        ReelList list = new ReelList();
+        View reel = reelIn(list);
+        Settings.PINCH_CLEAR_MODE.save(true);
+        Settings.PINCH_ZOOM_REELS.save(true);
+        build(EnumSet.of(PatchFamily.REEL_DECLUTTER, PatchFamily.REEL_ZOOM));
+        ReelPinchClearMode.touch(reel, secondFinger());
+        assertEquals("Pinch to zoom takes two fingers", 0, list.asked);
+
+        build(EnumSet.of(PatchFamily.REEL_DECLUTTER));
+        ReelPinchClearMode.touch(reel, secondFinger());
+        assertEquals("a saved Pinch to zoom without its patch takes nothing", 1, list.asked);
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        ReelPinchClearMode.touch(reel, secondFinger());
+        assertEquals("paused", 1, list.asked);
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+
+        SettingsContextRule.withoutContext(() -> ReelPinchClearMode.touch(reel, secondFinger()));
+        assertEquals("unready", 1, list.asked);
+
+        ReelPinchClearMode.touch(new View(RuntimeEnvironment.getApplication()), secondFinger());
+        ReelPinchClearMode.touch(null, secondFinger());
+        ReelPinchClearMode.touch(reel, null);
+        assertEquals("no list, no view or no event changes nothing", 1, list.asked);
     }
 
     @Test

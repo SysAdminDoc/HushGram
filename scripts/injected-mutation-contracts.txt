@@ -632,6 +632,12 @@ once-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->current(Ljava/
 start-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->paged()V in instance (II)V pooled holding ClipsViewerViewPagerListener.onPageSelected
 once-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->paged()V in instance (II)V pooled holding ClipsViewerViewPagerListener.onPageSelected
 once-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->settled(Ljava/lang/Object;Ljava/lang/Object;)V in instance (LX/*;)V pooled holding ClipsViewerViewPagerListener.onScrollStateChanged
+# Pinch for clear mode hands each of a reel's touches, the view and the event, to
+# ReelPinchClearMode.touch first thing in the pinch listener's touch: the one method taking a View and
+# a MotionEvent and answering a boolean in the class whose scale end logs pinch_to_zoom (#744). Left
+# out, fingers spreading apart never reach the pinch; anywhere else, it isn't the hook the patch wrote.
+start-call Lapp/hushgram/extension/instagram/reels/ReelPinchClearMode;->touch(Landroid/view/View;Landroid/view/MotionEvent;)V in instance (Landroid/view/View;Landroid/view/MotionEvent;)Z pooled class-holding pinch_to_zoom
+once-call Lapp/hushgram/extension/instagram/reels/ReelPinchClearMode;->touch(Landroid/view/View;Landroid/view/MotionEvent;)V in instance (Landroid/view/View;Landroid/view/MotionEvent;)Z pooled class-holding pinch_to_zoom
 # The exit button's render, the one loading its icon and drawing its round background (0ErM.A0p on
 # 386214574), hands built() its reel first thing and asks quiet() once, right before its 30 ms buzz,
 # skipping the buzz on a yes (#480); left out, Don't vibrate in clear mode does nothing. Download any

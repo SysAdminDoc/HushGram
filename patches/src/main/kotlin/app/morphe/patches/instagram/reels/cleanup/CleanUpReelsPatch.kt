@@ -82,7 +82,9 @@ private const val PATCH = "Clean up Reels"
  * Pinch for clear mode answers the server flag behind Instagram's own pinch for clear mode, and
  * hands that pinch's write of the reel's state, which shows nothing, to the handler Keep clear mode
  * on found, so two fingers on a reel turn clear mode on and off. Hide the exit button in clear mode
- * draws the round button in its corner as nothing that takes no tap (#744). See PinchClearMode.kt. A
+ * draws the round button in its corner as nothing that takes no tap (#744). See PinchClearMode.kt.
+ * The reel's touch also hands a second finger to the extension, which keeps the list out of the
+ * gesture so fingers spreading apart reach the pinch too. See PinchTouch.kt. A
  * build where either doesn't fit, or where Keep clear mode on doesn't, gets the patch without it,
  * with a warning.
  *
@@ -109,6 +111,7 @@ val cleanUpReelsPatch = bytecodePatch(
         val clearMode = findClearModeWhereItFits()
         val clearModeStubs = clearModeStubs()
         val pinchClearMode = findPinchClearModeWhereItFits(clearMode)
+        val pinchTouch = if (pinchClearMode != null) findPinchTouch() else null
         val friendsTab = findFriendsTab()
         val friendsRow = findFriendsRow()
         val friendPicks = findFriendPicks()
@@ -126,6 +129,7 @@ val cleanUpReelsPatch = bytecodePatch(
         }
         // After Keep clear mode on's hooks, which go into the exit button's render first.
         pinchClearMode?.let { pinchClearMode(it) }
+        pinchTouch?.let { pinchTouch(it) }
         enableStatus("reelDeclutter")
     }
 }
