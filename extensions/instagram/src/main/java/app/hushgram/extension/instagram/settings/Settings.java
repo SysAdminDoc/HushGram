@@ -584,6 +584,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hold_feed_video_keep_name", FALSE, parent(HOLD_FEED_VIDEO_FAST));
 
     /**
+     * With {@link #HOLD_FEED_VIDEO_FAST} on, a hold on the middle third of a feed video pauses it until the finger
+     * lifts, and only a hold on its left or right third plays it at 2x (#639,
+     * {@link app.hushgram.extension.instagram.feed.FeedHoldSpeed#middlePauses}). Read on every press, so it needs no
+     * restart. Off to start.
+     */
+    public static final BooleanSetting HOLD_FEED_VIDEO_MIDDLE_PAUSES =
+            new BooleanSetting("hushgram_hold_feed_video_middle_pauses", FALSE, parent(HOLD_FEED_VIDEO_FAST));
+
+    /**
      * A seek bar along the bottom of the video playing in a feed, which moves the video to where a
      * drag lets go ({@link app.hushgram.extension.instagram.feed.FeedSeekBar}). Off to start.
      */

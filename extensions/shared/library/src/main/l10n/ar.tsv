@@ -2067,6 +2067,10 @@ The icons on the tab bar are the size Instagram gives them.	أيقونات شر�
 The last way into these settings stays on.	يبقى آخر مسار إلى هذه الإعدادات متاحاً.
 The latitude and the longitude in degrees, with a comma between them, like 40.758, -73.9855. North and east are positive, south and west negative. A map app shows both when you press and hold a spot.	خط العرض وخط الطول بالدرجات، بينهما فاصلة، مثل 40.758, -73.9855. الشمال والشرق موجبان والجنوب والغرب سالبان. يعرض تطبيق الخرائط كليهما عند الضغط المطوّل على نقطة.
 The name over a feed video stays while you hold it for 2x. Instagram's 2x and time labels don't show then.	يبقى الاسم فوق فيديو المتابَعات ظاهراً أثناء الضغط عليه للتشغيل بسرعة 2x. لا تظهر عندها علامتا 2x والوقت من Instagram.
+# context: Title of a switch under Hold for 2x on feed videos (#639)
+Hold the middle to pause it	اضغط مطولًا على المنتصف للإيقاف المؤقت
+# context: Summary of Hold the middle to pause it, a switch under Hold for 2x on feed videos (#639)
+Holding the middle of a feed video pauses it until you let go. Hold its left or right side for 2x.	الضغط المطول على منتصف فيديو المتابَعات يوقفه مؤقتًا حتى ترفع إصبعك. اضغط مطولًا على جانبه الأيسر أو الأيمن للتشغيل بسرعة 2x.
 The navigation bar only	شريط التنقل فقط
 The phone's font at its regular weight.	خط الهاتف بوزنه العادي.
 The pill sits in the top bar next to the menu and reads like @1 mention. Its list opens from the bottom of the screen.	تظهر الحبة في الشريط العلوي بجوار القائمة وتقرأ مثل @1 mention. تُفتح قائمتها من أسفل الشاشة.

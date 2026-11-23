@@ -2589,6 +2589,10 @@ Keeps 2x only when you hold the video for about 3 seconds. Let go sooner and it 
 Keep the name while you hold	Namen beim Halten zeigen
 # context: Summary of Keep the name while you hold, a switch under Hold for 2x on feed videos (#552)
 The name over a feed video stays while you hold it for 2x. Instagram's 2x and time labels don't show then.	Der Name über einem Feed-Video bleibt, während du es für 2x gedrückt hältst. Die 2x- und Zeitanzeige von Instagram erscheint dann nicht.
+# context: Title of a switch under Hold for 2x on feed videos (#639)
+Hold the middle to pause it	Mitte halten pausiert
+# context: Summary of Hold the middle to pause it, a switch under Hold for 2x on feed videos (#639)
+Holding the middle of a feed video pauses it until you let go. Hold its left or right side for 2x.	Wenn du die Mitte eines Feed-Videos hältst, pausiert es, bis du loslässt. Halte die linke oder rechte Seite für 2x.
 # context: Stories settings: title and dialog title of the list under Story ring size that picks how thick story rings are drawn (#528)
 Ring thickness	Ringstärke
 # context: Stories settings: the Ring thickness choice that keeps the thickness Instagram gives story rings (#528)

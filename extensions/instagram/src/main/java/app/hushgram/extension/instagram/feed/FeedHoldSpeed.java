@@ -50,10 +50,24 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * entry has the video at 2x, it hands the post its hold state, which hides the name over the video
  * and shows Instagram's 2x and time labels. The patch asks {@link #keepsLook} first, and a yes hands
  * it the resting state instead, so only the speed changes.
+ *
+ * <p>Hold the middle to pause it (#639) narrows the strips to a third each ({@link #SIDE_STRIP}), so a hold
+ * on the left or right third plays at 2x, and {@link FeedTapPause#pressed} takes a hold on the middle third
+ * before Instagram sees it: the video pauses while the finger stays down and plays again as it lifts.
  */
 public final class FeedHoldSpeed {
     /** Each side's strip as a share of the video's width: half, so a hold anywhere on it counts. */
     static final double STRIP = 0.5d;
+
+    /**
+     * Each side's strip with Hold the middle to pause it on (#639): a third, so only a hold on the left or right third
+     * plays at 2x, and the middle third is left to {@link FeedTapPause#pressed}, which pauses the video while it's held.
+     */
+    static final double SIDE_STRIP = 1d / 3d;
+
+    /** Whether a test says this build has the Tap a feed video to pause it patch, instead of asking {@link SettingsStatus}. */
+    @Nullable
+    static volatile Boolean tapPauseInBuildForTests;
 
     /** What {@link HookStatus} counts: lifts that kept a feed video at 2x, and lifts after one that let it go back. */
     static final String KEPT = "feed videos kept at 2x";
@@ -120,11 +134,15 @@ public final class FeedHoldSpeed {
         }
     }
 
-    /** Each side's strip as a share of the video's width: {@link #STRIP} while the switch is on, otherwise Instagram's. Never throws. */
+    /**
+     * Each side's strip as a share of the video's width: {@link #STRIP} while the switch is on, {@link #SIDE_STRIP}
+     * with Hold the middle to pause it on as well, otherwise Instagram's. Never throws.
+     */
     public static double strip(double answer) {
         try {
             HookStatus.invoked(FamilyNames.FEED_HOLD_FAST);
-            return on() ? STRIP : answer;
+            if (!on()) return answer;
+            return middlePauses() ? SIDE_STRIP : STRIP;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.FEED_HOLD_FAST, HOOK, failure);
             return answer;
@@ -217,6 +235,21 @@ public final class FeedHoldSpeed {
 
     private static boolean on() {
         return Utils.settingsReady() && Settings.HOLD_FEED_VIDEO_FAST.get();
+    }
+
+    /**
+     * Whether a hold on the middle third of a feed video pauses it (#639): Hold for 2x on in a build with it, Hold the
+     * middle to pause it on, and the Tap a feed video to pause it patch in the build, whose press hook does the pause.
+     * Never throws.
+     */
+    static boolean middlePauses() {
+        try {
+            if (!holding() || !Settings.HOLD_FEED_VIDEO_MIDDLE_PAUSES.get()) return false;
+            Boolean forced = tapPauseInBuildForTests;
+            return forced != null ? forced : SettingsStatus.feedTapPause();
+        } catch (Throwable failure) {
+            return false;
+        }
     }
 
     private static boolean keeps() {

@@ -2588,6 +2588,10 @@ Keeps 2x only when you hold the video for about 3 seconds. Let go sooner and it 
 Keep the name while you hold	길게 누르는 동안 이름 유지
 # context: Summary of Keep the name while you hold, a switch under Hold for 2x on feed videos (#552)
 The name over a feed video stays while you hold it for 2x. Instagram's 2x and time labels don't show then.	피드 동영상을 2배속으로 길게 누르는 동안 동영상 위의 이름이 그대로 있습니다. Instagram의 2배속 및 시간 표시는 나타나지 않습니다.
+# context: Title of a switch under Hold for 2x on feed videos (#639)
+Hold the middle to pause it	가운데를 길게 눌러 일시정지
+# context: Summary of Hold the middle to pause it, a switch under Hold for 2x on feed videos (#639)
+Holding the middle of a feed video pauses it until you let go. Hold its left or right side for 2x.	피드 동영상 가운데를 길게 누르면 손을 뗄 때까지 일시정지됩니다. 왼쪽이나 오른쪽을 길게 누르면 2x로 재생됩니다.
 # context: Stories settings: title and dialog title of the list under Story ring size that picks how thick story rings are drawn (#528)
 Ring thickness	링 두께
 # context: Stories settings: the Ring thickness choice that keeps the thickness Instagram gives story rings (#528)

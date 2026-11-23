@@ -52,6 +52,7 @@ public class FeedHoldKeepSettingsTest {
         Settings.HOLD_FEED_VIDEO_KEEP.resetToDefault();
         Settings.HOLD_FEED_VIDEO_KEEP_LONG.resetToDefault();
         Settings.HOLD_FEED_VIDEO_KEEP_NAME.resetToDefault();
+        Settings.HOLD_FEED_VIDEO_MIDDLE_PAUSES.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
@@ -104,7 +105,30 @@ public class FeedHoldKeepSettingsTest {
         assertEquals(Arrays.toString(keys), Settings.HOLD_FEED_VIDEO_KEEP.key, keys[at - 1]);
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.HOLD_FEED_VIDEO_KEEP_LONG.key));
         assertEquals(Arrays.asList(Settings.HOLD_FEED_VIDEO_FAST, Settings.HOLD_FEED_VIDEO_KEEP, Settings.HOLD_FEED_VIDEO_KEEP_LONG,
-                Settings.HOLD_FEED_VIDEO_KEEP_NAME), PatchFamily.FEED_HOLD_FAST.switches);
+                Settings.HOLD_FEED_VIDEO_KEEP_NAME, Settings.HOLD_FEED_VIDEO_MIDDLE_PAUSES), PatchFamily.FEED_HOLD_FAST.switches);
+    }
+
+    /** #639: Hold the middle to pause it follows Keep the name, off, rests until Hold for 2x on feed videos is on, and needs the tap patch. */
+    @Test public void theMiddlePausesSwitchFollowsKeepTheNameWhenTheTapPatchIsIn() throws Exception {
+        open(EnumSet.of(PatchFamily.FEED_HOLD_FAST, PatchFamily.FEED_TAP_PAUSE));
+        Preference row = page.getPreferenceScreen().findPreference(Settings.HOLD_FEED_VIDEO_MIDDLE_PAUSES.key);
+        assertNotNull(row);
+        assertEquals("Hold the middle to pause it", row.getTitle().toString());
+        assertEquals("Holding the middle of a feed video pauses it until you let go. Hold its left or right side for 2x.",
+                row.getSummary().toString());
+        assertFalse(((SwitchPreference) row).isChecked());
+        assertFalse("greyed out with Hold for 2x on feed videos off", row.isEnabled());
+        PreferenceGroup feed = row.getParent();
+        String[] keys = new String[feed.getPreferenceCount()];
+        for (int i = 0; i < keys.length; i++) keys[i] = feed.getPreference(i).getKey();
+        int at = Arrays.asList(keys).indexOf(Settings.HOLD_FEED_VIDEO_MIDDLE_PAUSES.key);
+        assertEquals(Arrays.toString(keys), Settings.HOLD_FEED_VIDEO_KEEP_NAME.key, keys[at - 1]);
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.HOLD_FEED_VIDEO_MIDDLE_PAUSES.key));
+        controller.close();
+        controller = null;
+        open(EnumSet.of(PatchFamily.FEED_HOLD_FAST));
+        assertNull("no tap patch, nothing to pause with", page.getPreferenceScreen().findPreference(
+                Settings.HOLD_FEED_VIDEO_MIDDLE_PAUSES.key));
     }
 
     /** #552: Keep the name while you hold comes after the Keep 2x switches, off, and rests until Hold for 2x on feed videos is on. */

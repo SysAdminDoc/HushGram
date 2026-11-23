@@ -50,6 +50,8 @@ public class FeedHoldSpeedTest {
         PauseForTests.resume();
         HookStatus.clear();
         FeedHoldSpeed.inBuildForTests = null;
+        Settings.HOLD_FEED_VIDEO_MIDDLE_PAUSES.resetToDefault();
+        FeedHoldSpeed.tapPauseInBuildForTests = null;
     }
 
     /** It starts off, and needs no restart: Instagram reads the flags again on every held press. */
@@ -107,6 +109,32 @@ public class FeedHoldSpeedTest {
         assertFalse("the stub says the patch is out", FeedHoldSpeed.holding());
         FeedHoldSpeed.inBuildForTests = true;
         SettingsContextRule.withoutContext(() -> assertFalse("no context", FeedHoldSpeed.holding()));
+    }
+
+    /**
+     * #639: with Hold the middle to pause it on and the tap patch in, the 2x strips shrink to a third each, leaving the
+     * middle third to the pause. Without the tap patch, with the switch off or with 2x off, the strips stay as they were.
+     */
+    @Test
+    public void holdingTheMiddleToPauseLeavesTheSidesAThirdEach() {
+        assertFalse(Settings.HOLD_FEED_VIDEO_MIDDLE_PAUSES.defaultValue);
+        assertEquals(Collections.singletonList(Settings.HOLD_FEED_VIDEO_FAST),
+                Settings.HOLD_FEED_VIDEO_MIDDLE_PAUSES.getParentSettings());
+        FeedHoldSpeed.inBuildForTests = true;
+        FeedHoldSpeed.tapPauseInBuildForTests = true;
+        assertEquals("switch off", 0.5d, FeedHoldSpeed.strip(0.2d), 0d);
+        Settings.HOLD_FEED_VIDEO_MIDDLE_PAUSES.save(true);
+        assertTrue(FeedHoldSpeed.middlePauses());
+        assertEquals(1d / 3d, FeedHoldSpeed.strip(0.2d), 0d);
+        FeedHoldSpeed.tapPauseInBuildForTests = false;
+        assertFalse("no tap patch", FeedHoldSpeed.middlePauses());
+        assertEquals("no tap patch", 0.5d, FeedHoldSpeed.strip(0.2d), 0d);
+        FeedHoldSpeed.tapPauseInBuildForTests = null;
+        assertFalse("the stub says the tap patch is out", FeedHoldSpeed.middlePauses());
+        FeedHoldSpeed.tapPauseInBuildForTests = true;
+        Settings.HOLD_FEED_VIDEO_FAST.save(false);
+        assertFalse("2x off", FeedHoldSpeed.middlePauses());
+        assertEquals("2x off", 0.2d, FeedHoldSpeed.strip(0.2d), 0d);
     }
 
     /** Keep 2x after you let go starts off, needs no restart and sits under the hold switch (#552). */

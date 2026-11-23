@@ -289,6 +289,11 @@ final class FeedCategory {
             feed.addPreference(toggle(context, Settings.HOLD_FEED_VIDEO_KEEP_NAME, L10n.t("Keep the name while you hold"),
                     L10n.t("The name over a feed video stays while you hold it for 2x. Instagram's 2x and time labels "
                             + "don't show then.")));
+            if (feedTapPause) {
+                feed.addPreference(toggle(context, Settings.HOLD_FEED_VIDEO_MIDDLE_PAUSES, L10n.t("Hold the middle to pause it"),
+                        L10n.t("Holding the middle of a feed video pauses it until you let go. Hold its left or right "
+                                + "side for 2x.")));
+            }
         }
         if (feedSeekBar) {
             feed.addPreference(toggle(context, Settings.FEED_SEEK_BAR, L10n.t("Seek bar on feed videos"),

@@ -80,7 +80,7 @@ public enum PatchFamily {
     FEED_TAP_PAUSE(FamilyNames.FEED_TAP_PAUSE, "feedTapPause", null, Settings.TAP_FEED_VIDEO_TO_PAUSE,
             Settings.FEED_TAPS_STAY_IN_FEED, Settings.FEED_TAP_MIDDLE_ONLY),
     FEED_HOLD_FAST(FamilyNames.FEED_HOLD_FAST, "feedHoldFast", null, Settings.HOLD_FEED_VIDEO_FAST, Settings.HOLD_FEED_VIDEO_KEEP,
-            Settings.HOLD_FEED_VIDEO_KEEP_LONG, Settings.HOLD_FEED_VIDEO_KEEP_NAME),
+            Settings.HOLD_FEED_VIDEO_KEEP_LONG, Settings.HOLD_FEED_VIDEO_KEEP_NAME, Settings.HOLD_FEED_VIDEO_MIDDLE_PAUSES),
     FEED_SEEK_BAR(FamilyNames.FEED_SEEK_BAR, "feedSeekBar", null, Settings.FEED_SEEK_BAR, Settings.FEED_SEEK_BUTTON,
             Settings.FEED_DOUBLE_TAP_SKIP),
     LONG_PRESS_ZOOM(FamilyNames.LONG_PRESS_ZOOM, "longPressZoom", null, Settings.LONG_PRESS_TO_ZOOM,

@@ -2589,6 +2589,10 @@ Keeps 2x only when you hold the video for about 3 seconds. Let go sooner and it 
 Keep the name while you hold	Basılı tutarken adı koru
 # context: Summary of Keep the name while you hold, a switch under Hold for 2x on feed videos (#552)
 The name over a feed video stays while you hold it for 2x. Instagram's 2x and time labels don't show then.	Akıştaki bir videoyu 2x için basılı tutarken üstündeki ad kalır. Instagram'ın 2x ve süre etiketleri görünmez.
+# context: Title of a switch under Hold for 2x on feed videos (#639)
+Hold the middle to pause it	Duraklatmak için ortayı basılı tut
+# context: Summary of Hold the middle to pause it, a switch under Hold for 2x on feed videos (#639)
+Holding the middle of a feed video pauses it until you let go. Hold its left or right side for 2x.	Bir akış videosunun ortasını basılı tutmak onu bırakana kadar duraklatır. 2x için sol veya sağ kenarını basılı tut.
 # context: Stories settings: title and dialog title of the list under Story ring size that picks how thick story rings are drawn (#528)
 Ring thickness	Halka kalınlığı
 # context: Stories settings: the Ring thickness choice that keeps the thickness Instagram gives story rings (#528)
