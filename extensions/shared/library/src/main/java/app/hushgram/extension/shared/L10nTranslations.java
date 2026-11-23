@@ -1773,7 +1773,7 @@ public final class L10nTranslations {
         table.put("Hide suggested accounts",
                 "\u0625\u062e\u0641\u0627\u0621 \u0627\u0644\u062d\u0633\u0627\u0628\u0627\u062a \u0627\u0644\u0645\u0642\u062a\u0631\u062d\u0629");
         table.put("Hide suggested accounts in Messages",
-                "\u0625\u062e\u0641\u0627\u0621 \u0627\u0644\u062d\u0633\u0627\u0628\u0627\u062a \u0627\u0644\u0645\u0642\u062a\u0631\u062d\u0629 \u0641\u064a Messages");
+                "\u0625\u062e\u0641\u0627\u0621 \u0627\u0644\u062d\u0633\u0627\u0628\u0627\u062a \u0627\u0644\u0645\u0642\u062a\u0631\u062d\u0629 \u0641\u064a \u0627\u0644\u0631\u0633\u0627\u0626\u0644");
         table.put("Hide suggested accounts in search",
                 "\u0625\u062e\u0641\u0627\u0621 \u0627\u0644\u062d\u0633\u0627\u0628\u0627\u062a \u0627\u0644\u0645\u0642\u062a\u0631\u062d\u0629 \u0641\u064a \u0627\u0644\u0628\u062d\u062b");
         table.put("Hide suggested people",
@@ -1832,9 +1832,9 @@ public final class L10nTranslations {
         table.put("Hide the Map bubble",
                 "\u0625\u062e\u0641\u0627\u0621 \u0641\u0642\u0627\u0639\u0629 \u0627\u0644\u062e\u0631\u064a\u0637\u0629");
         table.put("Hide the Messages badge",
-                "\u0625\u062e\u0641\u0627\u0621 \u0634\u0627\u0631\u0629 Messages");
+                "\u0625\u062e\u0641\u0627\u0621 \u0634\u0627\u0631\u0629 \u0627\u0644\u0631\u0633\u0627\u0626\u0644");
         table.put("Hide the Messages tab",
-                "\u0625\u062e\u0641\u0627\u0621 \u062a\u0628\u0648\u064a\u0628 Messages");
+                "\u0625\u062e\u0641\u0627\u0621 \u062a\u0628\u0648\u064a\u0628 \u0627\u0644\u0631\u0633\u0627\u0626\u0644");
         table.put("Hide the Muse button on your profile",
                 "\u0625\u062e\u0641\u0627\u0621 \u0632\u0631 Muse \u0641\u064a \u0645\u0644\u0641\u0643 \u0627\u0644\u0634\u062e\u0635\u064a");
         table.put("Hide the Muse card",
@@ -3878,7 +3878,7 @@ public final class L10nTranslations {
         table.put("Stop recording",
                 "\u0625\u064a\u0642\u0627\u0641 \u0627\u0644\u062a\u0633\u062c\u064a\u0644");
         table.put("Stop swipe to Messages",
-                "\u0625\u064a\u0642\u0627\u0641 \u0627\u0644\u0633\u062d\u0628 \u0625\u0644\u0649 Messages");
+                "\u0625\u064a\u0642\u0627\u0641 \u0627\u0644\u0633\u062d\u0628 \u0625\u0644\u0649 \u0627\u0644\u0631\u0633\u0627\u0626\u0644");
         table.put("Stop swipe to create",
                 "\u0625\u064a\u0642\u0627\u0641 \u0627\u0644\u0633\u062d\u0628 \u0644\u0644\u0625\u0646\u0634\u0627\u0621");
         table.put("Stop swipe up to reply",
