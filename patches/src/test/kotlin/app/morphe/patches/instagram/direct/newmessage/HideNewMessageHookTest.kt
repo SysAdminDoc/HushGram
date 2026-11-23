@@ -9,6 +9,7 @@ import app.morphe.Fixtures
 import app.morphe.PatchContexts
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
+import app.morphe.patches.instagram.FixtureCache
 import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.instagram.direct.ghost.GHOST_BIND_ACTION
 import app.morphe.patches.instagram.direct.ghost.GhostEntry
@@ -197,7 +198,7 @@ class HideNewMessageHookTest {
     }
 
     private companion object {
-        private val slices = HashMap<File, List<ClassDef>>()
+        private val slices = FixtureCache<List<ClassDef>>()
 
         fun declaredBundles(): List<File> {
             val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
@@ -225,7 +226,7 @@ class HideNewMessageHookTest {
          * bar's tap field (the built configuration copying it), the classes reading the built
          * configuration's tap field (the binder), and the classes loading the picker's two strings.
          */
-        fun slice(bundle: File): List<ClassDef> = slices.getOrPut(bundle) {
+        fun slice(bundle: File): List<ClassDef> = slices.get(bundle) {
             val kept = LinkedHashMap<String, ClassDef>()
             for (classDef in GhostModeEntryHookTest.slice(bundle) + GhostModeEntryHookTest.actionSlice(bundle)) kept.putIfAbsent(classDef.type, classDef)
             val tap = PatchContexts.of(kept.values.toList()).findGhostEntries().map { it.tap }.distinct().single()
