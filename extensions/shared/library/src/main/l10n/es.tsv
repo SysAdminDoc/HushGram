@@ -2551,6 +2551,10 @@ Puts the time in the corner under the tags button instead of the middle of the b
 Taps on feed videos stay in the feed	Los toques en videos del feed se quedan en el feed
 # context: Summary of Taps on feed videos stay in the feed; Tap a feed video to pause it is the switch above it, use its translation (#706)
 A tap on a feed video, or on the screen it shows when it ends, no longer opens it full screen in Reels. Tap a feed video to pause it still pauses it, and the buttons on that screen still work.	Un toque en un video del feed, o en la pantalla que muestra al terminar, ya no lo abre en pantalla completa en Reels. Toca un video del feed para pausarlo lo sigue pausando, y los botones de esa pantalla siguen funcionando.
+# context: Feed settings: a switch under Tap a feed video to pause it that pauses only for a tap in the middle of the video (#706)
+Only the middle pauses it	Solo el centro lo pausa
+# context: Summary of Only the middle pauses it; Taps on feed videos stay in the feed is another switch, use its translation (#706)
+Only a tap in the middle of the video, where Instagram puts its play button, pauses or plays it. A tap anywhere else opens it in Reels, unless Taps on feed videos stay in the feed is on.	Solo un toque en el centro del video, donde Instagram pone su botón de reproducir, lo pausa o lo reproduce. Un toque en cualquier otro lugar lo abre en Reels, salvo que Los toques en videos del feed se quedan en el feed esté activado.
 # context: Item in Items in the three-dot menus under Feed: Instagram's Report row in the menus behind the three dots (#697)
 Report	Reportar
 # context: Item in Items in the three-dot menus under Feed: Instagram's Unfollow row (#697)

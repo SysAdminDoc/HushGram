@@ -73,7 +73,8 @@ public class FeedTapPauseSettingsTest {
         int at = Arrays.asList(keys).indexOf(Settings.TAP_FEED_VIDEO_TO_PAUSE.key);
         assertEquals(Arrays.toString(keys), Settings.START_FEED_VIDEOS_MUTED.key, keys[at - 1]);
         assertEquals(Arrays.toString(keys), Settings.FEED_TAPS_STAY_IN_FEED.key, keys[at + 1]);
-        assertEquals(Arrays.toString(keys), Settings.LONG_PRESS_TO_ZOOM.key, keys[at + 2]);
+        assertEquals(Arrays.toString(keys), Settings.FEED_TAP_MIDDLE_ONLY.key, keys[at + 2]);
+        assertEquals(Arrays.toString(keys), Settings.LONG_PRESS_TO_ZOOM.key, keys[at + 3]);
         assertEquals("Tap a feed video to pause it", PatchFamily.FEED_TAP_PAUSE.patchName);
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.TAP_FEED_VIDEO_TO_PAUSE.key));
     }
@@ -95,6 +96,18 @@ public class FeedTapPauseSettingsTest {
         PauseForTests.pause(HushgramPause.Reason.SWITCH);
         assertFalse("off while paused", Settings.FEED_TAPS_STAY_IN_FEED.get());
         assertTrue(Settings.FEED_TAPS_STAY_IN_FEED.savedValue());
+    }
+    /** #706: Only the middle pauses it hangs off the pause switch, starts off, waits for it and is kept in a backup. */
+    @Test public void theMiddleOnlySwitchHangsOffThePause() throws Exception {
+        open(EnumSet.of(PatchFamily.FEED_TAP_PAUSE));
+        android.preference.Preference row = page.getPreferenceScreen().findPreference(Settings.FEED_TAP_MIDDLE_ONLY.key);
+        assertNotNull(row);
+        assertEquals("Only the middle pauses it", row.getTitle().toString());
+        assertEquals("Feed", ((PreferenceGroup) row.getParent()).getTitle().toString());
+        assertFalse(Settings.FEED_TAP_MIDDLE_ONLY.get());
+        assertTrue(Settings.FEED_TAP_MIDDLE_ONLY.getParentSettings().contains(Settings.TAP_FEED_VIDEO_TO_PAUSE));
+        assertFalse("waits for the pause switch", row.isEnabled());
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.FEED_TAP_MIDDLE_ONLY.key));
     }
     @Test public void theSwitchAloneStillMakesTheFeedSection() throws Exception {
         open(EnumSet.of(PatchFamily.FEED_TAP_PAUSE));

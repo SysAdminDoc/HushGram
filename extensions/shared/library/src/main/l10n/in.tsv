@@ -2551,6 +2551,10 @@ Puts the time in the corner under the tags button instead of the middle of the b
 Taps on feed videos stay in the feed	Ketukan di video feed tetap di feed
 # context: Summary of Taps on feed videos stay in the feed; Tap a feed video to pause it is the switch above it, use its translation (#706)
 A tap on a feed video, or on the screen it shows when it ends, no longer opens it full screen in Reels. Tap a feed video to pause it still pauses it, and the buttons on that screen still work.	Ketukan di video feed, atau di layar yang muncul saat video selesai, tidak lagi membukanya layar penuh di Reels. Ketuk video feed untuk menjedanya tetap menjedanya, dan tombol di layar itu tetap berfungsi.
+# context: Feed settings: a switch under Tap a feed video to pause it that pauses only for a tap in the middle of the video (#706)
+Only the middle pauses it	Hanya bagian tengah yang menjedanya
+# context: Summary of Only the middle pauses it; Taps on feed videos stay in the feed is another switch, use its translation (#706)
+Only a tap in the middle of the video, where Instagram puts its play button, pauses or plays it. A tap anywhere else opens it in Reels, unless Taps on feed videos stay in the feed is on.	Hanya ketukan di tengah video, tempat Instagram menaruh tombol putarnya, yang menjeda atau memutarnya. Ketukan di tempat lain membukanya di Reels, kecuali Ketukan di video feed tetap di feed aktif.
 # context: Item in Items in the three-dot menus under Feed: Instagram's Report row in the menus behind the three dots (#697)
 Report	Laporkan
 # context: Item in Items in the three-dot menus under Feed: Instagram's Unfollow row (#697)

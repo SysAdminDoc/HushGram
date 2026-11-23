@@ -542,6 +542,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_feed_taps_stay_in_feed", FALSE);
 
     /**
+     * With {@link #TAP_FEED_VIDEO_TO_PAUSE} on, only a tap in the middle of a feed video, where Instagram draws its play
+     * button, pauses or plays it, and a tap anywhere else goes to Instagram, which opens Reels unless
+     * {@link #FEED_TAPS_STAY_IN_FEED} keeps it in the feed (#706,
+     * {@link app.hushgram.extension.instagram.feed.FeedTapPause}). Off to start.
+     */
+    public static final BooleanSetting FEED_TAP_MIDDLE_ONLY =
+            new BooleanSetting("hushgram_feed_tap_middle_only", FALSE, parent(TAP_FEED_VIDEO_TO_PAUSE));
+
+    /**
      * A press held on a video in a feed plays it at 2x until the finger lifts, with Instagram's own
      * speed-up ({@link app.hushgram.extension.instagram.feed.FeedHoldSpeed}). Off to start.
      */

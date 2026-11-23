@@ -283,7 +283,7 @@ public class NeutralDefaultsSettingsTest {
         app.hushgram.extension.instagram.reels.ReelPostTime.line(new Object(), titleParts);
         assertEquals("a reel's title gets no line", units, titleParts);
         assertFalse("a tap on a feed video stays Instagram's",
-                app.hushgram.extension.instagram.feed.FeedTapPause.tapped(new Object(), new Object(), new Object()));
+                app.hushgram.extension.instagram.feed.FeedTapPause.tapped(new Object(), new Object(), new Object(), new Object()));
         Object pagerReel = new Object();
         assertSame("clear mode gets the reel the pager is on", pagerReel,
                 app.hushgram.extension.instagram.reels.ReelClearMode.current(pagerReel));

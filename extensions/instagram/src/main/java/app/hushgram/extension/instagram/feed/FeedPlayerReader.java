@@ -78,4 +78,12 @@ final class FeedPlayerReader {
     static Object mark(Object state, Object wasPlaying) {
         return FeedTapPause.NOT_PATCHED;
     }
+
+    /**
+     * Filled in by the patch: where a tap landed, read from the point Instagram's tap handler gets, as a float[] of the
+     * tapped view's width and height and the tap's x and y in it, with the spares as its registers.
+     */
+    static Object spotOf(Object point, @Nullable Object spare1, @Nullable Object spare2, @Nullable Object spare3) {
+        return FeedTapPause.NOT_PATCHED;
+    }
 }

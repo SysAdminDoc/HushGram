@@ -266,6 +266,9 @@ final class FeedCategory {
             feed.addPreference(toggle(context, Settings.FEED_TAPS_STAY_IN_FEED, L10n.t("Taps on feed videos stay in the feed"),
                     L10n.t("A tap on a feed video, or on the screen it shows when it ends, no longer opens it full screen "
                             + "in Reels. Tap a feed video to pause it still pauses it, and the buttons on that screen still work.")));
+            feed.addPreference(toggle(context, Settings.FEED_TAP_MIDDLE_ONLY, L10n.t("Only the middle pauses it"),
+                    L10n.t("Only a tap in the middle of the video, where Instagram puts its play button, pauses or plays "
+                            + "it. A tap anywhere else opens it in Reels, unless Taps on feed videos stay in the feed is on.")));
         }
         if (watchAgain) {
             feed.addPreference(toggle(context, Settings.WATCH_AGAIN_IN_FEED, L10n.t("Watch again in the feed"),

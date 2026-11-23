@@ -4126,15 +4126,16 @@ once-call Lapp/hushgram/extension/instagram/reels/ReelFill;->fitBox([Landroid/vi
 # Tap a feed video to pause it (#137) asks FeedTapPause.tapped first thing in the feed's tap handler,
 # the one instance (View, Media, five objects, int, boolean) void method that loads the handler's
 # soft error name (00G1.A05 on 451's 385713073; 450's had four objects), and returns on a yes before
-# Instagram picks what the tap does.
+# Instagram picks what the tap does. It and the press entry hand over the tap's point too, which
+# Only the middle pauses it (#706) reads.
 # Left out, a tap on a feed video still opens Reels with the switch on; later in the method,
 # Instagram has already acted on the tap; twice or elsewhere, it isn't the guard the patch wrote.
 # The reader's pause and play, which the patch fills with the feed video controller's own (01wy.A0F
 # and 01wy.A03 on 450), have to leave the extension before they return. Left unfilled, the tap stays
 # Instagram's with the switch on. TapFeedVideoToPauseHookTest finds the handler and fills every stub
 # on the three 452 builds.
-start-call Lapp/hushgram/extension/instagram/feed/FeedTapPause;->tapped(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Z in instance (Landroid/view/View;Lcom/instagram/feed/media/Media;L*;L*;L*;L*;L*;IZ)V holding FeedMediaTapHandlerV2-softError
-once-call Lapp/hushgram/extension/instagram/feed/FeedTapPause;->tapped(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Z in instance (Landroid/view/View;Lcom/instagram/feed/media/Media;L*;L*;L*;L*;L*;IZ)V holding FeedMediaTapHandlerV2-softError
+start-call Lapp/hushgram/extension/instagram/feed/FeedTapPause;->tapped(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Z in instance (Landroid/view/View;Lcom/instagram/feed/media/Media;L*;L*;L*;L*;L*;IZ)V holding FeedMediaTapHandlerV2-softError
+once-call Lapp/hushgram/extension/instagram/feed/FeedTapPause;->tapped(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Z in instance (Landroid/view/View;Lcom/instagram/feed/media/Media;L*;L*;L*;L*;L*;IZ)V holding FeedMediaTapHandlerV2-softError
 first-call Lapp/hushgram/extension/instagram/feed/FeedPlayerReader;->pause(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; outside Lapp/hushgram/extension/
 first-call Lapp/hushgram/extension/instagram/feed/FeedPlayerReader;->start(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; outside Lapp/hushgram/extension/
 # A press held past Instagram's hold delay skips that handler for its class's press entry, the one
@@ -4144,8 +4145,8 @@ first-call Lapp/hushgram/extension/instagram/feed/FeedPlayerReader;->start(Ljava
 # instance (Media, two objects, boolean) void method (00G1.A09), tells FeedTapPause.released first thing, so the lift
 # of a press it took pauses or plays the video, and goes on. Left out, a held tap still opens Reels
 # with the switch on, or its lift does nothing; later or twice, they aren't the guards the patch wrote.
-start-call Lapp/hushgram/extension/instagram/feed/FeedTapPause;->pressed(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Z in instance (Landroid/view/View;Lcom/instagram/feed/media/Media;L*;L*;L*;)V class-holding FeedMediaTapHandlerV2-softError
-once-call Lapp/hushgram/extension/instagram/feed/FeedTapPause;->pressed(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Z in instance (Landroid/view/View;Lcom/instagram/feed/media/Media;L*;L*;L*;)V class-holding FeedMediaTapHandlerV2-softError
+start-call Lapp/hushgram/extension/instagram/feed/FeedTapPause;->pressed(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Z in instance (Landroid/view/View;Lcom/instagram/feed/media/Media;L*;L*;L*;)V class-holding FeedMediaTapHandlerV2-softError
+once-call Lapp/hushgram/extension/instagram/feed/FeedTapPause;->pressed(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Z in instance (Landroid/view/View;Lcom/instagram/feed/media/Media;L*;L*;L*;)V class-holding FeedMediaTapHandlerV2-softError
 start-call Lapp/hushgram/extension/instagram/feed/FeedTapPause;->released(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;I)V in instance (Lcom/instagram/feed/media/Media;L*;L*;Z)V class-holding FeedMediaTapHandlerV2-softError
 once-call Lapp/hushgram/extension/instagram/feed/FeedTapPause;->released(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;I)V in instance (Lcom/instagram/feed/media/Media;L*;L*;Z)V class-holding FeedMediaTapHandlerV2-softError
 # Hold for 2x on feed videos answers the hold-for-2x flags in that same press entry (02g8.A05 on 454's

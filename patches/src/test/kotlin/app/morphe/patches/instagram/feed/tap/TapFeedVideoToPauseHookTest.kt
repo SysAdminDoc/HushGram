@@ -38,8 +38,8 @@ class TapFeedVideoToPauseHookTest {
     private val objectType = "Ljava/lang/Object;"
     private val marker = "$FEED_TAP_PAUSE->NOT_PATCHED:$objectType"
 
-    /** The instructions the tap and press hooks add: three moves, the call, its answer, the test and the return. */
-    private val hookLength = 7
+    /** The instructions the tap and press hooks add: four moves, the call, its answer, the test and the return. */
+    private val hookLength = 8
 
     /** The instructions the release hook adds: four moves and the call. */
     private val releaseLength = 5
@@ -125,6 +125,14 @@ class TapFeedVideoToPauseHookTest {
                 assertEquals("$what: the launcher's lazy field is its own", parts.launcher, found.launcherSupplier.definingClass)
                 assertEquals("$what: and is asked as the handler's is", found.supplierValue.toString(), found.launcherValue.toString())
                 assertEquals("$what: the controller's tap", parts.controller, found.tap.definingClass)
+                // Where a tap landed (#706): the handler's point, its constructor's width, height, x and y fields.
+                val spot = found.spot
+                assertNotNull("$what: the tap's spot", spot)
+                val spotFields = listOf(spot!!.width, spot.height, spot.x, spot.y)
+                assertEquals("$what: read from the handler's point", point, spot.point)
+                assertEquals("$what: the spot's fields", listOf("I", "I", "F", "F"), spotFields.map { it.type })
+                assertEquals("$what: the point's own fields", setOf(point), spotFields.map { it.definingClass }.toSet())
+                assertEquals("$what: four different fields", 4, spotFields.map { it.name }.toSet().size)
                 val handoff = found.handoff
                 assertNotNull("$what: the controller's tap hands the playing video over to Reels", handoff)
                 assertEquals("$what: the hand-off takes the module's name", listOf("Ljava/lang/String;"),
@@ -167,21 +175,21 @@ class TapFeedVideoToPauseHookTest {
                 assertEquals(
                     "$what: the hook comes first",
                     listOf(
-                        Opcode.MOVE_OBJECT_FROM16, Opcode.MOVE_OBJECT_FROM16, Opcode.MOVE_OBJECT_FROM16, Opcode.INVOKE_STATIC,
-                        Opcode.MOVE_RESULT, Opcode.IF_EQZ, Opcode.RETURN_VOID,
+                        Opcode.MOVE_OBJECT_FROM16, Opcode.MOVE_OBJECT_FROM16, Opcode.MOVE_OBJECT_FROM16, Opcode.MOVE_OBJECT_FROM16,
+                        Opcode.INVOKE_STATIC, Opcode.MOVE_RESULT, Opcode.IF_EQZ, Opcode.RETURN_VOID,
                     ),
                     code.take(hookLength).map { it.opcode },
                 )
                 val p0 = handler.implementation!!.registerCount - found.handler.parameterTypes.size - 1
-                assertEquals("$what: the handler, the post and the state are read from their own registers",
-                    listOf(p0, p0 + 2, p0 + 5), code.take(3).map { (it as TwoRegisterInstruction).registerB })
-                assertEquals("$what: into the first three locals", listOf(0, 1, 2), code.take(3).map { (it as OneRegisterInstruction).registerA })
-                assertEquals("$what: which the call hands over", listOf(0, 1, 2), code[3].arguments())
+                assertEquals("$what: the handler, the post, the state and the point are read from their own registers",
+                    listOf(p0, p0 + 2, p0 + 5, p0 + 3), code.take(4).map { (it as TwoRegisterInstruction).registerB })
+                assertEquals("$what: into the first four locals", listOf(0, 1, 2, 3), code.take(4).map { (it as OneRegisterInstruction).registerA })
+                assertEquals("$what: which the call hands over", listOf(0, 1, 2, 3), code[4].arguments())
                 assertEquals("$what: the answer is tested where it lands",
-                    (code[4] as OneRegisterInstruction).registerA, (code[5] as OneRegisterInstruction).registerA)
-                assertEquals("$what: and lands in the first local", 0, (code[4] as OneRegisterInstruction).registerA)
+                    (code[5] as OneRegisterInstruction).registerA, (code[6] as OneRegisterInstruction).registerA)
+                assertEquals("$what: and lands in the first local", 0, (code[5] as OneRegisterInstruction).registerA)
                 assertEquals("$what: a no goes on to the handler's first instruction", hookLength,
-                    (code[5] as BuilderOffsetInstruction).target.location.index)
+                    (code[6] as BuilderOffsetInstruction).target.location.index)
 
                 // The press entry: the same guard, on the post in p2 and the state in its last parameter, in no other method.
                 val pressing = listOf(parts.handler, parts.controller, FEED_PLAYER_READER).flatMap { type ->
@@ -195,21 +203,22 @@ class TapFeedVideoToPauseHookTest {
                 assertEquals(
                     "$what: the press hook comes first",
                     listOf(
-                        Opcode.MOVE_OBJECT_FROM16, Opcode.MOVE_OBJECT_FROM16, Opcode.MOVE_OBJECT_FROM16, Opcode.INVOKE_STATIC,
-                        Opcode.MOVE_RESULT, Opcode.IF_EQZ, Opcode.RETURN_VOID,
+                        Opcode.MOVE_OBJECT_FROM16, Opcode.MOVE_OBJECT_FROM16, Opcode.MOVE_OBJECT_FROM16, Opcode.MOVE_OBJECT_FROM16,
+                        Opcode.INVOKE_STATIC, Opcode.MOVE_RESULT, Opcode.IF_EQZ, Opcode.RETURN_VOID,
                     ),
                     pressCode.take(hookLength).map { it.opcode },
                 )
                 val pressP0 = press.implementation!!.registerCount - found.press.parameterTypes.size - 1
-                assertEquals("$what: the press's handler, post and state are read from their own registers",
-                    listOf(pressP0, pressP0 + 2, pressP0 + found.press.parameterTypes.size), pressCode.take(3).map { (it as TwoRegisterInstruction).registerB })
-                assertEquals("$what: into the press's first three locals", listOf(0, 1, 2),
-                    pressCode.take(3).map { (it as OneRegisterInstruction).registerA })
-                assertEquals("$what: which the press call hands over", listOf(0, 1, 2), pressCode[3].arguments())
+                assertEquals("$what: the press's handler, post, state and point are read from their own registers",
+                    listOf(pressP0, pressP0 + 2, pressP0 + found.press.parameterTypes.size, pressP0 + 3),
+                    pressCode.take(4).map { (it as TwoRegisterInstruction).registerB })
+                assertEquals("$what: into the press's first four locals", listOf(0, 1, 2, 3),
+                    pressCode.take(4).map { (it as OneRegisterInstruction).registerA })
+                assertEquals("$what: which the press call hands over", listOf(0, 1, 2, 3), pressCode[4].arguments())
                 assertEquals("$what: the press answer lands in the first local and is tested there", listOf(0, 0),
-                    listOf((pressCode[4] as OneRegisterInstruction).registerA, (pressCode[5] as OneRegisterInstruction).registerA))
+                    listOf((pressCode[5] as OneRegisterInstruction).registerA, (pressCode[6] as OneRegisterInstruction).registerA))
                 assertEquals("$what: a no goes on to the press entry's first instruction", hookLength,
-                    (pressCode[5] as BuilderOffsetInstruction).target.location.index)
+                    (pressCode[6] as BuilderOffsetInstruction).target.location.index)
 
                 // The release: told first thing, with the post in p1, the state in p3 and the lift in p4, and goes on.
                 val releasing = listOf(parts.handler, parts.controller, FEED_PLAYER_READER).flatMap { type ->
@@ -299,6 +308,8 @@ class TapFeedVideoToPauseHookTest {
                 }
 
                 val reader = context.mutableClassDefBy(FEED_PLAYER_READER)
+                assertEquals("$what: the spot reads the width, the height, x and y, in that order", spotFields.map(Any::toString),
+                    reader.methods.single { it.name == "spotOf" }.code().filter { it.opcode == Opcode.IGET }.map { it.referenceText() })
                 for ((stubName, _) in FEED_PLAYER_STUBS) {
                     val filled = reader.methods.single { it.name == stubName }.code()
                     val body = filled.take(filled.indexOfFirst { it.opcode == Opcode.RETURN_OBJECT } + 1)
@@ -363,6 +374,7 @@ class TapFeedVideoToPauseHookTest {
 
     private class Parts(
         val handler: String,
+        val point: String,
         val controller: String,
         val player: String,
         val launcher: String,
@@ -416,9 +428,13 @@ class TapFeedVideoToPauseHookTest {
         }
         assertEquals("$name: classes loading the Reels launcher's string with its shape", 1, launcher.size)
         val entryPoint = launcher.single().methods.first { it.parameterTypes.size == 9 }.parameterTypes[1].toString()
-        return Parts(handlers.single().type, controllers.single().type, players.single().type, launcher.single().type, entryPoint,
+        val point = handlers.single().methods.first { m ->
+            val p = m.parameterTypes.map(Any::toString)
+            p.size in 8..9 && p[0] == "Landroid/view/View;" && p[1] == media
+        }.parameterTypes[2].toString()
+        return Parts(handlers.single().type, point, controllers.single().type, players.single().type, launcher.single().type, entryPoint,
             named + launcherNamed + entryNamed + launchers.map { it.type } + handlers.single().type + controllers.single().type +
-                players.single().type + media)
+                players.single().type + media + point)
     }
 
     private fun Instruction.typesNamed(): List<String> = when (val reference = (this as? ReferenceInstruction)?.reference) {

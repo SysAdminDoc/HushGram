@@ -2554,6 +2554,10 @@ Puts the time in the corner under the tags button instead of the middle of the b
 Taps on feed videos stay in the feed	点击动态视频时留在动态
 # context: Summary of Taps on feed videos stay in the feed; Tap a feed video to pause it is the switch above it, use its translation (#706)
 A tap on a feed video, or on the screen it shows when it ends, no longer opens it full screen in Reels. Tap a feed video to pause it still pauses it, and the buttons on that screen still work.	点击动态视频，或视频结束时显示的画面，不会再在 Reels 中以全屏打开。点击动态首页视频以暂停仍会暂停视频，该画面上的按钮也照常运作.
+# context: Feed settings: a switch under Tap a feed video to pause it that pauses only for a tap in the middle of the video (#706)
+Only the middle pauses it	只有中间能暂停
+# context: Summary of Only the middle pauses it; Taps on feed videos stay in the feed is another switch, use its translation (#706)
+Only a tap in the middle of the video, where Instagram puts its play button, pauses or plays it. A tap anywhere else opens it in Reels, unless Taps on feed videos stay in the feed is on.	只有点击视频中间，也就是 Instagram 放播放按钮的地方，才会暂停或播放视频。点击其他地方会在 Reels 中打开视频，除非已开启点击动态视频时留在动态.
 # context: Item in Items in the three-dot menus under Feed: Instagram's Report row in the menus behind the three dots (#697)
 Report	举报
 # context: Item in Items in the three-dot menus under Feed: Instagram's Unfollow row (#697)

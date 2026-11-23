@@ -51,8 +51,8 @@ import com.android.tools.smali.dexlib2.immutable.reference.ImmutableMethodRefere
 
 private const val PATCH = "Tap a feed video to pause it"
 internal const val FEED_TAP_PAUSE = "$EXTENSION_PACKAGE/feed/FeedTapPause;"
-internal const val FEED_TAPPED = "$FEED_TAP_PAUSE->tapped(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Z"
-internal const val FEED_PRESSED = "$FEED_TAP_PAUSE->pressed(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Z"
+internal const val FEED_TAPPED = "$FEED_TAP_PAUSE->tapped(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Z"
+internal const val FEED_PRESSED = "$FEED_TAP_PAUSE->pressed(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Z"
 internal const val FEED_RELEASED = "$FEED_TAP_PAUSE->released(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;I)V"
 internal const val FEED_OPENING = "$FEED_TAP_PAUSE->opening(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Z"
 internal const val FEED_SKIPS_HANDOFF = "$FEED_TAP_PAUSE->skipsHandoff()Z"
@@ -66,7 +66,16 @@ internal const val FEED_PLAYER_READER = "$EXTENSION_PACKAGE/feed/FeedPlayerReade
 /** The reader's stubs the patch fills in, each (name, parameter count). */
 internal val FEED_PLAYER_STUBS = listOf(
     "controllerOf" to 1, "controllerOfLauncher" to 1, "shownOf" to 1, "pageOf" to 2, "adDetailsOf" to 1, "playerOf" to 1,
-    "playing" to 1, "pause" to 2, "start" to 4, "mark" to 2,
+    "playing" to 1, "pause" to 2, "start" to 4, "mark" to 2, "spotOf" to 4,
+)
+
+/** The point's constructor: the tapped view's width and height, the tap's x and y in it, and a flag. */
+private val SPOT_PARAMETERS = listOf("I", "I", "F", "F", "Z")
+
+/** What the point's factory hands its constructor's first four, in order. */
+private val SPOT_SOURCES = listOf(
+    "Landroid/view/View;->getWidth()I", "Landroid/view/View;->getHeight()I",
+    "Landroid/view/MotionEvent;->getX()F", "Landroid/view/MotionEvent;->getY()F",
 )
 
 /** A string only the feed's tap handler loads, for the soft error it logs when a tap has nowhere to go. */
@@ -186,11 +195,14 @@ val tapFeedVideoToPausePatch = bytecodePatch(
  *           and [launcherSupplier] its lazy field handing over the module, read through [launcherValue]
  * @property tap the controller's own tap, and [handoff] its call handing the playing video over to
  *           Reels before it asks the launcher, null on a build whose tap has none
+ * @property spot where on the video a tap landed, read from the handler's point, null on a build whose
+ *           point differs
  */
 internal class FeedTap(
     val handler: Method,
     val tap: Method,
     val handoff: Handoff?,
+    val spot: TapSpot?,
     val press: Method,
     val release: Method,
     val launcher: Method,
@@ -221,6 +233,53 @@ internal class FeedTap(
 
 /** The controller's tap's one [call] handing the playing video over to Reels, and a register [free] right there. */
 internal class Handoff(val call: MethodReference, val free: Int)
+
+/** Instagram's [point] for a tap, and its public fields for the tapped view's [width] and [height] and the tap's [x] and [y] in it. */
+internal class TapSpot(val point: String, val width: FieldReference, val height: FieldReference, val x: FieldReference, val y: FieldReference)
+
+/**
+ * Where on the video a tap landed, for Only the middle pauses it (#706), read from the [point] the tap handler and
+ * the press entry get (0C2g on 456's 386214575). Its one constructor taking (int, int, float, float, boolean) keeps
+ * its first four in public fields of its own, and its one static factory calling that constructor hands it a View's
+ * width and height and a MotionEvent's x and y, in that order. Null on a build that differs, which leaves the stub
+ * unfilled: the pause works as before, and the extension reports the spot missing once that switch is on.
+ */
+private fun BytecodePatchContext.findTapSpot(point: String): TapSpot? {
+    val pointClass = classDefByOrNull(point)?.takeIf { it.isPublic() } ?: return null
+    val maker = pointClass.methods.singleOrNull {
+        it.name == "<init>" && it.implementation != null && it.parameterTypes.map(Any::toString) == SPOT_PARAMETERS
+    } ?: return null
+    val made = maker.code()
+    val self = maker.localRegisterCount()
+    val fields = SPOT_SOURCES.indices.map { k ->
+        val stores = made.filter {
+            it.opcode == Opcode.IPUT && (it as TwoRegisterInstruction).registerA == maker.parameterRegisterNumber(k) &&
+                it.registerB == self
+        }
+        val field = stores.singleOrNull()?.fieldReference() ?: return null
+        if (field.definingClass != point || field.type != SPOT_PARAMETERS[k] || !pointClass.declares(field)) return null
+        field
+    }
+    if (fields.distinctBy { it.name }.size != fields.size) return null
+
+    fun makes(instruction: Instruction) =
+        instruction.opcode == Opcode.INVOKE_DIRECT_RANGE && instruction.methodReference()?.let { maker.matches(it) } == true
+    val factories = pointClass.methods.filter { method ->
+        val code = method.code()
+        AccessFlags.STATIC.isSet(method.accessFlags) && code.any(::makes) &&
+            code.any { it.methodReference()?.toString() == SPOT_SOURCES[0] }
+    }
+    val factory = factories.singleOrNull() ?: return null
+    val code = factory.code()
+    val at = code.indices.filter { makes(code[it]) }.singleOrNull() ?: return null
+    val first = (code[at] as RegisterRangeInstruction).startRegister + 1
+    val handed = SPOT_SOURCES.indices.all { k ->
+        val write = writesReaching(factory, at, first + k).singleOrNull() ?: return@all false
+        code[write].opcode == Opcode.MOVE_RESULT && write > 0 && code[write - 1].methodReference()?.toString() == SPOT_SOURCES[k]
+    }
+    if (!handed) return null
+    return TapSpot(point, fields[0], fields[1], fields[2], fields[3])
+}
 
 /**
  * The handler is the one instance method returning void with the parameters (View, Media, x, holder,
@@ -547,6 +606,7 @@ internal fun BytecodePatchContext.findFeedTap(): FeedTap {
         handler = handler,
         tap = tap,
         handoff = handoff,
+        spot = findTapSpot(point),
         press = press,
         release = release,
         launcher = launcher.method,
@@ -655,18 +715,18 @@ private val OBJECT_MOVES = setOf(Opcode.MOVE_OBJECT, Opcode.MOVE_OBJECT_FROM16, 
 private const val MOVES_FOLLOWED = 4
 
 /** The locals each hook borrows first thing in its method, where none holds anything yet. */
-private const val HOOK_LOCALS = 3
-private const val PRESS_LOCALS = 3
+private const val HOOK_LOCALS = 4
+private const val PRESS_LOCALS = 4
 private const val RELEASE_LOCALS = 4
 private const val LAUNCHER_LOCALS = 4
 
 /**
  * Fills the reader's stubs, then asks [FEED_TAPPED] first thing in the handler with the handler, the
- * post and the post's state. A yes returns from the handler, which answers nothing; a no goes on to
- * its first instruction.
+ * post, the post's state and the tap's point. A yes returns from the handler, which answers nothing; a
+ * no goes on to its first instruction.
  *
- * The press entry asks [FEED_PRESSED] first thing the same way, with the handler, the post and the
- * state, and returns on a yes, so a held press the extension takes neither opens Reels nor speeds the
+ * The press entry asks [FEED_PRESSED] first thing the same way, with the handler, the post, the state
+ * and the point, and returns on a yes, so a held press the extension takes neither opens Reels nor speeds the
  * video up. The release tells [FEED_RELEASED] first thing, with the handler, the post, the state and
  * whether the press ended in a lift, and then goes on: the lift of a press the extension took pauses
  * or plays the video, and the release only resets Instagram's hold, which a press entry that
@@ -806,6 +866,33 @@ internal fun BytecodePatchContext.applyFeedTapPause(found: FeedTap) {
             return-object p0
         """,
     )
+    // Answers an Object: a float[] of the tapped view's width and height and the tap's x and y in it.
+    found.spot?.let { spot ->
+        stub("spotOf").addInstructionsWithLabels(
+            0,
+            """
+                check-cast p0, ${spot.point}
+                const/4 p1, 0x4
+                new-array p1, p1, [F
+                iget p2, p0, ${spot.width}
+                int-to-float p2, p2
+                const/4 p3, 0x0
+                aput p2, p1, p3
+                iget p2, p0, ${spot.height}
+                int-to-float p2, p2
+                const/4 p3, 0x1
+                aput p2, p1, p3
+                iget p2, p0, ${spot.x}
+                const/4 p3, 0x2
+                aput p2, p1, p3
+                iget p2, p0, ${spot.y}
+                const/4 p3, 0x3
+                aput p2, p1, p3
+                return-object p1
+            """,
+        )
+    }
+    // The handler is (View, Media, point, holder, state, ...): the post is p2, the point p3 and the state p5.
     mutable(found.handler).apply {
         addInstructionsWithLabels(
             0,
@@ -813,7 +900,8 @@ internal fun BytecodePatchContext.applyFeedTapPause(found: FeedTap) {
                 move-object/from16 v0, p0
                 move-object/from16 v1, p2
                 move-object/from16 v2, p5
-                invoke-static { v0, v1, v2 }, $FEED_TAPPED
+                move-object/from16 v3, p3
+                invoke-static { v0, v1, v2, v3 }, $FEED_TAPPED
                 move-result v0
                 if-eqz v0, :stock
                 return-void
@@ -821,8 +909,8 @@ internal fun BytecodePatchContext.applyFeedTapPause(found: FeedTap) {
             ExternalLabel("stock", getInstruction(0)),
         )
     }
-    // The press entry is (View, Media, point[, holder], state): the post is p2 and the state its last
-    // parameter, p4 or p5.
+    // The press entry is (View, Media, point[, holder], state): the post is p2, the point p3 and the
+    // state its last parameter, p4 or p5.
     mutable(found.press).apply {
         addInstructionsWithLabels(
             0,
@@ -830,7 +918,8 @@ internal fun BytecodePatchContext.applyFeedTapPause(found: FeedTap) {
                 move-object/from16 v0, p0
                 move-object/from16 v1, p2
                 move-object/from16 v2, p${found.press.parameterTypes.size}
-                invoke-static { v0, v1, v2 }, $FEED_PRESSED
+                move-object/from16 v3, p3
+                invoke-static { v0, v1, v2, v3 }, $FEED_PRESSED
                 move-result v0
                 if-eqz v0, :stock
                 return-void

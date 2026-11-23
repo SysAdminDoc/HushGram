@@ -78,7 +78,7 @@ public enum PatchFamily {
     FEED_SOUND(FamilyNames.FEED_SOUND, "feedSound", null, Settings.START_FEED_VIDEOS_WITH_SOUND,
             Settings.START_FEED_VIDEOS_ON_SILENT, Settings.START_FEED_VIDEOS_MUTED),
     FEED_TAP_PAUSE(FamilyNames.FEED_TAP_PAUSE, "feedTapPause", null, Settings.TAP_FEED_VIDEO_TO_PAUSE,
-            Settings.FEED_TAPS_STAY_IN_FEED),
+            Settings.FEED_TAPS_STAY_IN_FEED, Settings.FEED_TAP_MIDDLE_ONLY),
     FEED_HOLD_FAST(FamilyNames.FEED_HOLD_FAST, "feedHoldFast", null, Settings.HOLD_FEED_VIDEO_FAST, Settings.HOLD_FEED_VIDEO_KEEP,
             Settings.HOLD_FEED_VIDEO_KEEP_LONG, Settings.HOLD_FEED_VIDEO_KEEP_NAME),
     FEED_SEEK_BAR(FamilyNames.FEED_SEEK_BAR, "feedSeekBar", null, Settings.FEED_SEEK_BAR, Settings.FEED_SEEK_BUTTON,

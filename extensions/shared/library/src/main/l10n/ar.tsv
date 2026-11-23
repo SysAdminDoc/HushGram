@@ -141,6 +141,10 @@ A swipe left on Home no longer opens Messages. The Messages button still does.	�
 A swipe right on Home opens %1$s. The + button still opens the camera.	السحب يمينًا في الرئيسية يفتح %1$s. زر + ما زال يفتح الكاميرا.
 A swipe up on someone's story no longer opens the reply box and its reactions. Tap Send message to reply.	لم يعد السحب لأعلى في قصة شخص يفتح مربع الرد وتفاعلاته. اضغط إرسال رسالة للرد.
 A tap on a feed video, or on the screen it shows when it ends, no longer opens it full screen in Reels. Tap a feed video to pause it still pauses it, and the buttons on that screen still work.	لم تعد النقرة على فيديو في العرض، أو على الشاشة التي تظهر عند انتهائه، تفتحه بملء الشاشة في Reels. النقر على فيديو في العرض لإيقافه ما زال يوقفه، والأزرار في تلك الشاشة ما زالت تعمل.
+# context: Feed settings: a switch under Tap a feed video to pause it that pauses only for a tap in the middle of the video (#706)
+Only the middle pauses it	المنتصف فقط يوقفه مؤقتًا
+# context: Summary of Only the middle pauses it; Taps on feed videos stay in the feed is another switch, use its translation (#706)
+Only a tap in the middle of the video, where Instagram puts its play button, pauses or plays it. A tap anywhere else opens it in Reels, unless Taps on feed videos stay in the feed is on.	فقط النقر في منتصف الفيديو، حيث يضع Instagram زر التشغيل، يوقفه مؤقتًا أو يشغّله. أي نقرة في مكان آخر تفتحه في Reels، إلا إذا كان خيار النقر على فيديوهات الخلاصة يبقى داخل الخلاصة مفعّلًا.
 A tap on a playing reel does nothing, so a stray touch doesn't stop it. A tap right on the play icon still pauses it, and a paused reel plays on a tap.	النقر على ريل قيد التشغيل لا يفعل شيئًا، حتى لا توقفه لمسة عابرة. النقر على أيقونة التشغيل مباشرة ما زال يوقفه، والريل المتوقف يعمل بنقرة.
 A tap on a playing reel turns its sound off or on and keeps it playing. A reel that's paused still plays on a tap.	النقر على ريل قيد التشغيل يكتم صوته أو يشغّله مع استمرار التشغيل. الريل المتوقف ما زال يعمل بنقرة.
 A tap on a reel	نقرة على ريل
