@@ -201,7 +201,7 @@ class ReelLinkTabBarPatchTest {
             assertEquals("${bundle.name}: a boolean of the config's own", "Z", declared.type)
             assertFalse("${bundle.name}: an instance flag", AccessFlags.STATIC.isSet(declared.accessFlags))
             // 386214574's toString loads shouldHideTabBar from A3V (dex probe, 2026-11-21).
-            if (bundle.name.contains("-386214574")) assertEquals("A3V", flag.name)
+            if (bundle.name.contains("-386215122")) assertEquals("A3V", flag.name)
             context.writeTabBarFlag(flag)
 
             val code = context.mutableClassDefBy(REEL_LINK_TARGETS).methods.single { it.name == "tabBarHiddenFlag" }.code()

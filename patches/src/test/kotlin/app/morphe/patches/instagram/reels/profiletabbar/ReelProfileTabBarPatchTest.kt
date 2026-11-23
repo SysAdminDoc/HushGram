@@ -43,8 +43,13 @@ class ReelProfileTabBarPatchTest {
         return versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } } + Fixtures.otherBuilds()
     }
 
-    private fun context(bundle: File, extra: List<ClassDef> = emptyList()): BytecodePatchContext =
-        PatchContexts.of(listOf(SHORT_DRAMA_PROFILE, PROFILE_TAG, FOLLOW_PROMPT, FEED_TAG).flatMap { FixtureDex.classesLoading(bundle, it) }.distinctBy { it.type } + extra)
+    // 456.1 asks a second string pool for open_profile_page, so every pool those classes call comes along.
+    private fun context(bundle: File, extra: List<ClassDef> = emptyList()): BytecodePatchContext = PatchContexts.of(
+        FixtureDex.withStringPools(
+            bundle,
+            listOf(SHORT_DRAMA_PROFILE, PROFILE_TAG, FOLLOW_PROMPT, FEED_TAG).flatMap { FixtureDex.classesLoading(bundle, it) }.distinctBy { it.type },
+        ) + extra,
+    )
 
     @Test
     fun theHookAndTheStubAreInTheExtension() {

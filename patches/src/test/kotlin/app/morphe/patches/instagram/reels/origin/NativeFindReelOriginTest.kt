@@ -219,7 +219,7 @@ class NativeFindReelOriginTest {
     }
 
     private companion object {
-        val BUILDS = listOf(386214574, 386214534, 386214562, 386214575)
+        val BUILDS = listOf(386215122, 386215069, 386215121, 386215123, 386215124)
         /** What the binder of a tile in a profile's Reels grid names the tile's thumbnail view by. */
         const val GRID_THUMB = "thumb_"
         const val SET_TRANSITION_NAME = "Landroid/view/View;->setTransitionName(Ljava/lang/String;)V"

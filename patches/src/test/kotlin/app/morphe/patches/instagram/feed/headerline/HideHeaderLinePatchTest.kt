@@ -129,14 +129,18 @@ class HideHeaderLinePatchTest {
             val site = context.findHeaderLine()
             val stock = context.method(site).code()
 
-            // The site is Instagram's own count against 2, read from the stock code.
-            val size = stock[site.at - 2]
+            // The site is Instagram's own count against 2, read from the stock code. 456.1's armeabi-v7a
+            // build moves the 2 in from a high register between the count and the compare.
+            val compared = (stock[site.at] as TwoRegisterInstruction).registerB
+            val moved = stock[site.at - 1].opcode in setOf(Opcode.MOVE, Opcode.MOVE_FROM16, Opcode.MOVE_16) &&
+                (stock[site.at - 1] as TwoRegisterInstruction).registerA == compared
+            val size = stock[site.at - if (moved) 3 else 2]
             assertEquals("${bundle.name}: the count", "Ljava/util/List;->size()I", (size.reference() as MethodReference).let { "${it.definingClass}->${it.name}()${it.returnType}" })
             assertEquals("${bundle.name}: of the kinds list", site.list, (size as Instruction35c).registerC)
             assertEquals("${bundle.name}: compared", Opcode.IF_LT, stock[site.at].opcode)
             assertEquals("${bundle.name}: the count is what's compared", site.count, (stock[site.at] as TwoRegisterInstruction).registerA)
-            val limit = (stock[site.at] as TwoRegisterInstruction).registerB
-            val set = (site.at - 1 downTo 0).first { stock[it].opcode.setsRegister() && (stock[it] as? OneRegisterInstruction)?.registerA == limit }
+            val limit = if (moved) (stock[site.at - 1] as TwoRegisterInstruction).registerB else compared
+            val set = (site.at - (if (moved) 2 else 1) downTo 0).first { stock[it].opcode.setsRegister() && (stock[it] as? OneRegisterInstruction)?.registerA == limit }
             assertEquals("${bundle.name}: against 2", 2, (stock[set] as NarrowLiteralInstruction).narrowLiteral)
             assertTrue("${bundle.name}: nothing branches onto the count's compare", branchesOnto(stock, site.at).isEmpty())
 

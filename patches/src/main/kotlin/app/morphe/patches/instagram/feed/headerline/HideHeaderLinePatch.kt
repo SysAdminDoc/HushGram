@@ -71,10 +71,10 @@ internal fun BytecodePatchContext.findHeaderLine(): HeaderLineSite {
         owner.methods.filter { loadsString(it, FEED_HEADER_BUILDER) && it.parameterTypes.any { type -> type.toString() == MEDIA } }
     }.singleOrNull() ?: refuse("expected one feed header builder")
     val code = builder.code()
-    val gates = code.indices.filter { at -> isTwoGate(code, at) }
-    val at = gates.firstOrNull() ?: refuse("no size check against 2 in ${builder.definingClass}->${builder.name}")
-    val list = (code[at - 2] as Instruction35c).registerC
-    val count = (code[at - 1] as OneRegisterInstruction).registerA
+    val gates = code.indices.mapNotNull { at -> twoGateSize(code, at)?.let { at to it } }
+    val (at, size) = gates.firstOrNull() ?: refuse("no size check against 2 in ${builder.definingClass}->${builder.name}")
+    val list = (code[size] as Instruction35c).registerC
+    val count = (code[size + 1] as OneRegisterInstruction).registerA
     if (list > 255 || count > 255) refuse("registers v$list and v$count need a wide form")
     val made = (at + 1 until minOf(code.size, at + 16)).firstOrNull { next ->
         val called = code[next].reference() as? MethodReference ?: return@firstOrNull false
@@ -86,20 +86,32 @@ internal fun BytecodePatchContext.findHeaderLine(): HeaderLineSite {
     return HeaderLineSite(builder.definingClass, "${builder.name}(${builder.parameterTypes.joinToString("")})${builder.returnType}", at, list, count)
 }
 
-/** At [at]: invoke-interface {vL} List.size(), move-result vS, if-lt vS, vT where vT was last set to 2. */
-private fun isTwoGate(code: List<Instruction>, at: Int): Boolean {
-    if (at < 2 || code[at].opcode != Opcode.IF_LT) return false
-    val size = code[at - 2]
-    if (size.opcode != Opcode.INVOKE_INTERFACE) return false
-    val called = size.reference() as? MethodReference ?: return false
-    if (called.definingClass != LIST || called.name != "size" || (size as? Instruction35c)?.registerCount != 1) return false
-    val result = code[at - 1]
-    if (result.opcode != Opcode.MOVE_RESULT) return false
+/**
+ * At [at]: invoke-interface {vL} List.size(), move-result vS, if-lt vS, vT where vT was last set to 2,
+ * and the index of the size call, or null. 456.1's armeabi-v7a build keeps the 2 in a high register
+ * and moves it into vT between the move-result and the if-lt.
+ */
+private fun twoGateSize(code: List<Instruction>, at: Int): Int? {
+    if (at < 2 || code[at].opcode != Opcode.IF_LT) return null
     val gate = code[at] as TwoRegisterInstruction
-    if (gate.registerA != (result as OneRegisterInstruction).registerA) return false
-    val limit = gate.registerB
-    val set = (at - 3 downTo 0).firstOrNull { back -> writes(code[back], limit) } ?: return false
-    return code[set].opcode in setOf(Opcode.CONST_4, Opcode.CONST_16) && (code[set] as NarrowLiteralInstruction).narrowLiteral == 2
+    var limit = gate.registerB
+    var resultAt = at - 1
+    val between = code[resultAt]
+    if (between.opcode in setOf(Opcode.MOVE, Opcode.MOVE_FROM16, Opcode.MOVE_16) && (between as TwoRegisterInstruction).registerA == limit) {
+        limit = between.registerB
+        resultAt--
+    }
+    if (resultAt < 1) return null
+    val size = code[resultAt - 1]
+    if (size.opcode != Opcode.INVOKE_INTERFACE) return null
+    val called = size.reference() as? MethodReference ?: return null
+    if (called.definingClass != LIST || called.name != "size" || (size as? Instruction35c)?.registerCount != 1) return null
+    val result = code[resultAt]
+    if (result.opcode != Opcode.MOVE_RESULT) return null
+    if (gate.registerA != (result as OneRegisterInstruction).registerA || limit == gate.registerA) return null
+    val set = (resultAt - 2 downTo 0).firstOrNull { back -> writes(code[back], limit) } ?: return null
+    val two = code[set].opcode in setOf(Opcode.CONST_4, Opcode.CONST_16) && (code[set] as NarrowLiteralInstruction).narrowLiteral == 2
+    return if (two) resultAt - 1 else null
 }
 
 private fun writes(instruction: Instruction, register: Int): Boolean =

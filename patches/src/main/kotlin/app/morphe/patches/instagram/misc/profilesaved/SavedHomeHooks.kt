@@ -457,14 +457,21 @@ internal fun BytecodePatchContext.findNewCollectionButton(screen: String): NewCo
 /**
  * The tabbed screen's top bar shows its back arrow when its fragment stack holds anything: it reads
  * the parent fragment manager's count, turns that into a yes or no with a static `(I)Z`, and hands
- * the answer to the bar's `(Z)V`. The hook goes right in front of that call.
+ * the answer to the bar's `(Z)V`. The hook goes right in front of that call. 456.1's armeabi-v7a
+ * build reads the count in a static `(Fragment)I` of its own, which counts as the read.
  */
 internal fun BytecodePatchContext.findBackArrow(screen: String): BackArrow {
     val bar = topBar(screen)
     val where = "$screen->${bar.name}"
     val code = bar.code()
+    fun readsParentStack(call: MethodReference) = classDefByOrNull(call.definingClass)?.methods?.singleOrNull {
+        it.name == call.name && it.parameters() == listOf(FRAGMENT) && it.returnType == "I"
+    }?.code()?.any { it.called()?.let { inner -> inner.definingClass == FRAGMENT && inner.name == "getParentFragmentManager" } == true } == true
     val stack = code.indexOfFirst { instruction ->
-        instruction.called()?.let { it.definingClass == FRAGMENT && it.name == "getParentFragmentManager" } == true
+        val call = instruction.called() ?: return@indexOfFirst false
+        call.definingClass == FRAGMENT && call.name == "getParentFragmentManager" ||
+            instruction.isStaticCall() && call.returnType == "I" && call.parameterTypes.map(CharSequence::toString) == listOf(FRAGMENT) &&
+            readsParentStack(call)
     }
     if (stack < 0) refuse("$where never reads its fragment stack")
     val sets = (stack + 1..minOf(code.size - 1, stack + STACK_TO_ARROW)).filter { code.setsArrowAt(it, bar.parameters()[0]) }

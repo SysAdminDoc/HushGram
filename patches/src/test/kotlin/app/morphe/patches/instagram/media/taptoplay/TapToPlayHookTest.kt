@@ -13,6 +13,7 @@ import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.instagram.misc.extension.PatchLogCapture
+import app.morphe.patches.instagram.misc.extension.stringLoadedAt
 import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.util.namedRegisters
 import com.android.tools.smali.dexlib2.AccessFlags
@@ -364,8 +365,16 @@ class TapToPlayHookTest {
         context.method(reader, name).code().takeWhile { it.opcode != Opcode.RETURN_OBJECT }.mapNotNull { it.referenceText() }
 
     /** The decision goes past the extension, with the navigator, just before the branch to the pause path. */
-    private fun assertReelTapHooked(code: List<Instruction>, decision: Int, navigatorRegister: Int, what: String = "the Reels tap") {
-        val pausePath = code.indexOfFirst { it.referenceText() == CLIPS_PAUSE }
+    private fun assertReelTapHooked(
+        code: List<Instruction>,
+        decision: Int,
+        navigatorRegister: Int,
+        what: String = "the Reels tap",
+        context: BytecodePatchContext? = null,
+    ) {
+        // A build asking a string pool for "clips_pause" (456.1) branches to the number it hands the pool.
+        val pausePath = code.indexOfFirst { it.referenceText() == CLIPS_PAUSE }.takeIf { it >= 0 }
+            ?: (code.indices.first { context?.stringLoadedAt(code, it) == CLIPS_PAUSE } - 1)
         val branch = code.indices.single { code[it].opcode == Opcode.IF_EQZ && code.target(it) == pausePath }
         assertEquals("$what: the hook", RESUME_ON_TAP, code[branch - 2].referenceText())
         assertEquals(
@@ -466,7 +475,7 @@ class TapToPlayHookTest {
         // The Reels tap's navigator and controller, then the classes the controller's pause
         // names, then the classes their methods return, which reaches the player interface
         // and its state enum.
-        val reel = FixtureDex.classesHolding(bundle, CLIPS_PAUSE) + FixtureDex.classesHolding(bundle, pauseCurrentPlayerLog)
+        val reel = FixtureDex.classesLoading(bundle, CLIPS_PAUSE) + FixtureDex.classesHolding(bundle, pauseCurrentPlayerLog)
         val pauses = reel.flatMap { it.methods }.filter { pauseCurrentPlayerLog in it.strings() }
         val near = FixtureDex.classes(bundle, pauses.flatMap { it.namedTypes() }.toSet()).values.toList()
         val returned = FixtureDex.classes(bundle, near.flatMap { it.methods }.map { it.returnType }.toSet()).values.toList()
@@ -551,7 +560,7 @@ class TapToPlayHookTest {
         returns.forEach { assertEquals("$label: the check's return at $it", AUTOPLAY_ALLOWED, check[it - 2].referenceText()) }
         assertEquals("$label: touch", TOUCH, after(hooks.touch)[0].referenceText())
         // `this` is the first register past the locals: the count less the three declared parameters and itself.
-        assertReelTapHooked(after(reelTap.tap), reelTap.decision, reelTap.tap.implementation!!.registerCount - 4, "$label: the Reels tap")
+        assertReelTapHooked(after(reelTap.tap), reelTap.decision, reelTap.tap.implementation!!.registerCount - 4, "$label: the Reels tap", context)
         assertEquals("$label: the state stub", reelTap.state.toString(), filled(context, "stateOf").last())
         assertEquals("$label: the controller stub", "$function0->invoke()$objectType", filled(context, "controllerOf").last())
         // `this` is the first register past the locals: the count less the two declared parameters and itself.

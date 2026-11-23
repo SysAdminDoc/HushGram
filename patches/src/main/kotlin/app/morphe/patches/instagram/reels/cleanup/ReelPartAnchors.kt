@@ -238,9 +238,24 @@ internal class ReelPartFinder(private val context: BytecodePatchContext) {
             COMMENT_BAR_SHOW -> controllerMethods(holding(COMMENT_BAR_CREATED)).filter { it.loadsLiteral(COMMENT_BAR_SHOWN) }
             COMMENT_BAR_HIDE -> commentBarHide()
             DIRECT_REPLY_BAR_CREATED -> methodsLoading(DIRECT_REPLY_BAR_NAME).filter { it.name == "onViewCreated" }
-            DIRECT_REPLY_BAR_SHOW -> found[SPOTLIGHT_REPLY_BAR_SHOW].orEmpty()
-            DIRECT_REPLY_BAR_HIDE -> found[SPOTLIGHT_REPLY_BAR_HIDE].orEmpty()
+            DIRECT_REPLY_BAR_SHOW -> directReplyBarOverride(found[SPOTLIGHT_REPLY_BAR_SHOW].orEmpty())
+            DIRECT_REPLY_BAR_HIDE -> directReplyBarOverride(found[SPOTLIGHT_REPLY_BAR_HIDE].orEmpty())
             else -> throw PatchException("it has none")
+        }
+    }
+
+    /**
+     * The direct reply bar's show or hide, when Redex purged its marker: the controller's own override
+     * of the Spotlight reply bar's [spotlight] method when it has one (456.1's armeabi-v7a build), or
+     * else the Spotlight's, which Redex merged with the direct one's into the class both extend.
+     */
+    private fun directReplyBarOverride(spotlight: List<Method>): List<Method> {
+        val controller = holding(DIRECT_REPLY_BAR_CREATED).definingClass
+        return spotlight.map { merged ->
+            context.classDefByOrNull(controller)?.methods?.firstOrNull {
+                it.name == merged.name && it.returnType == merged.returnType && it.implementation != null &&
+                    it.parameterTypes.map(Any::toString) == merged.parameterTypes.map(Any::toString)
+            } ?: merged
         }
     }
 

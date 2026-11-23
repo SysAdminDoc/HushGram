@@ -106,27 +106,48 @@ internal fun BytecodePatchContext.findFeedSubscribe(): FeedSubscribeSite? {
             refuse("unreadable feed header control flow: ${failure.message}")
         }
     }
-    // A register the header writes only zero constants to, and never as a parameter, holds null.
-    fun alwaysNull(register: Int): Boolean {
-        val implementation = header.implementation ?: return false
-        val parameters = header.parameterTypes.sumOf { if (it[0] == 'J' || it[0] == 'D') 2L else 1L }.toInt() +
-            if (AccessFlags.STATIC.isSet(header.accessFlags)) 0 else 1
-        if (register >= implementation.registerCount - parameters) return false
-        val writes = code.filter { step ->
-            val target = (step as? OneRegisterInstruction)?.registerA ?: return@filter false
-            step.opcode.setsRegister() && (target == register || (step.opcode.setsWideRegister() && target + 1 == register))
+    fun writes(step: Instruction, register: Int): Boolean {
+        val target = (step as? OneRegisterInstruction)?.registerA ?: return false
+        return step.opcode.setsRegister() && (target == register || (step.opcode.setsWideRegister() && target + 1 == register))
+    }
+    fun writesZero(step: Instruction) = step.opcode in ZERO_CONSTANTS && (step as NarrowLiteralInstruction).narrowLiteral == 0
+    val predecessors by lazy {
+        val into = Array(code.size) { mutableListOf<Int>() }
+        for (from in code.indices) for (to in flow.normal[from] + flow.exceptional[from]) into[to] += from
+        into
+    }
+    // A register holds null at [at] when every write reaching it back along the header's flow is a
+    // zero constant and no way back reaches the start without one, where it'd be a parameter. 456's
+    // armeabi-v7a build only ever wrote zero to it; 456.1's arm64 builds reuse it further down.
+    fun holdsNullAt(register: Int, at: Int): Boolean {
+        val seen = BooleanArray(code.size)
+        val pending = ArrayDeque(listOf(at))
+        seen[at] = true
+        while (pending.isNotEmpty()) {
+            val index = pending.removeFirst()
+            if (index == 0) return false
+            for (from in predecessors[index]) {
+                if (seen[from]) continue
+                seen[from] = true
+                if (writes(code[from], register)) {
+                    if (!writesZero(code[from])) return false
+                } else {
+                    pending += from
+                }
+            }
         }
-        return writes.isNotEmpty() && writes.all {
-            it.opcode in ZERO_CONSTANTS && (it as NarrowLiteralInstruction).narrowLiteral == 0
-        }
+        return true
     }
     // The branch skipping Subscribe leaves its button null: a zero constant, or on 456's armeabi-v7a
     // build (386214562's LX/01x5;->A0q) a copy of a register holding null.
-    fun leavesNull(step: Instruction, result: Int): Boolean = when (step.opcode) {
-        in ZERO_CONSTANTS -> (step as OneRegisterInstruction).registerA == result && (step as NarrowLiteralInstruction).narrowLiteral == 0
-        Opcode.MOVE_OBJECT, Opcode.MOVE_OBJECT_FROM16, Opcode.MOVE_OBJECT_16 ->
-            (step as TwoRegisterInstruction).registerA == result && alwaysNull(step.registerB)
-        else -> false
+    fun leavesNull(at: Int, result: Int): Boolean {
+        val step = code[at]
+        return when (step.opcode) {
+            in ZERO_CONSTANTS -> (step as OneRegisterInstruction).registerA == result && writesZero(step)
+            Opcode.MOVE_OBJECT, Opcode.MOVE_OBJECT_FROM16, Opcode.MOVE_OBJECT_16 ->
+                (step as TwoRegisterInstruction).registerA == result && holdsNullAt(step.registerB, at)
+            else -> false
+        }
     }
     // 453's 32-bit builds build the shared click twice, for Subscribe and another header button, so
     // each one is tried and only the one gated as Subscribe is gated counts.
@@ -155,7 +176,7 @@ internal fun BytecodePatchContext.findFeedSubscribe(): FeedSubscribeSite? {
             val stateClass = classDefByOrNull(field.definingClass) ?: return@filter false
             if (stateClass.fields.count { it.type == "Z" && !AccessFlags.STATIC.isSet(it.accessFlags) } != 2) return@filter false
             val skip = flow.normal[at + 1].singleOrNull { it != at + 2 } ?: return@filter false
-            leavesNull(code[skip], result) &&
+            leavesNull(skip, result) &&
                 code.getOrNull(skip + 1)?.opcode in setOf(Opcode.GOTO, Opcode.GOTO_16, Opcode.GOTO_32) &&
                 flow.normal[skip + 1].singleOrNull() == constructor + 1
         }

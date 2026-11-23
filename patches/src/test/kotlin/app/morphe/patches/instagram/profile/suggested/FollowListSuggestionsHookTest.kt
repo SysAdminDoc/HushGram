@@ -298,7 +298,11 @@ class FollowListSuggestionsHookTest {
     @Test
     fun eachDeclaredBuildHidesTheDiscoverButton() {
         for (bundle in declaredBundles()) {
-            val holders = (FixtureDex.classesLoading(bundle, FRIENDING_LOGGER) + FixtureDex.classesLoading(bundle, HAS_SIMILAR_ACCOUNTS)).distinctBy { it.type }
+            // 456.1 asks Redex's string pool for self_follow_lists, so the pool comes along.
+            val holders = FixtureDex.withStringPools(
+                bundle,
+                (FixtureDex.classesLoading(bundle, FRIENDING_LOGGER) + FixtureDex.classesLoading(bundle, HAS_SIMILAR_ACCOUNTS)).distinctBy { it.type },
+            )
             val context = PatchContexts.of(holders)
 
             val site = context.findFriendingButton()

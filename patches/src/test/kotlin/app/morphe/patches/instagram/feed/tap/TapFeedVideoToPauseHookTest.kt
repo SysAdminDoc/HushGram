@@ -139,9 +139,9 @@ class TapFeedVideoToPauseHookTest {
                     assertEquals(
                         "$what: the names",
                         listOf(
-                            "LX/01qY;", "A00", "A03",
+                            "LX/01qH;", "A00", "A03",
                             "A07", "A06", "A0A", "A0C", "A0F", "A00", "A0n", "A03", "A00", "A0B", "A04", "A0K", "A0x", "A3F",
-                            "A0R", "LX/06vI;", "A01",
+                            "A0R", "LX/06vG;", "A01",
                         ),
                         listOf(
                             found.launcher.definingClass, found.launcher.name, found.launcherSupplier.name,

@@ -118,6 +118,26 @@ class ChatReelsShutTest {
         }
     }
 
+    /**
+     * A first card picked through a helper answering Object and cast to the card before its link is
+     * read, as on 456.1's 64-bit builds, is still the reel test, and the link bridge casts it the same way.
+     */
+    @Test
+    fun aFirstCardPickedAsObjectIsCastInTheLinkBridge() {
+        val context = context(objectFirst = true)
+        val found = context.findChatReelOpener(context.findChatReels(), collector())
+        assertEquals("$cards->first(Ljava/util/List;)Ljava/lang/Object;", "${found.firstCard}")
+        assertEquals("$card->link:$string", "${found.link}")
+        context.keepChatReelsShut(found)
+
+        val link = context.mutableClassDefBy(CHAT_REELS).methods.single { it.name == "shareLink" }.visualCode()
+        assertEquals(listOf("${found.message}", "${found.cards}", "${found.firstCard}", card, "${found.link}"),
+            link.mapNotNull { it.text() }.drop(1))
+        val cast = link.indexOfFirst { it.opcode == Opcode.CHECK_CAST && it.text() == card }
+        assertEquals("the cast follows the null check", Opcode.IF_EQZ, link[cast - 1].opcode)
+        assertEquals("and comes before the link's read", Opcode.IGET_OBJECT, link[cast + 1].opcode)
+    }
+
     @Test
     fun aBuildItCantReadFailsBeforeAnythingChanges() {
         val none = "expected one chat opener that looks a message up and tests it for a reel, found 0"
@@ -130,6 +150,7 @@ class ChatReelsShutTest {
             context(entered = true) to "something in $opener->open jumps to just past its message lookup",
             context(publicLink = false) to "$card->link can't be read from the extension",
             context(publicFirst = false) to "$cards->first can't be read from the extension",
+            context(objectFirst = true, castFirst = false) to none,
         )
         for ((context, expected) in cases) {
             PatchContexts.use(context)
@@ -169,9 +190,15 @@ class ChatReelsShutTest {
         entered: Boolean = false,
         publicLink: Boolean = true,
         publicFirst: Boolean = true,
-    ) = PatchContexts.of(classes(lookup, product, link, reels, openers, entered, publicLink, publicFirst) +
+        objectFirst: Boolean = false,
+        castFirst: Boolean = true,
+    ) = PatchContexts.of(classes(lookup, product, link, reels, openers, entered, publicLink, publicFirst, objectFirst, castFirst) +
         ImmutableClassDef.of(ExtensionDex.classDef(CHAT_REELS)))
 
+    /**
+     * [objectFirst] makes the first card's pick answer Object, as 456.1's arm64-v8a and x86_64 builds'
+     * shared helper does, and [castFirst] casts its answer to the card before the link is read.
+     */
     private fun classes(
         lookup: Boolean,
         product: Boolean,
@@ -181,7 +208,10 @@ class ChatReelsShutTest {
         entered: Boolean,
         publicLink: Boolean,
         publicFirst: Boolean,
+        objectFirst: Boolean,
+        castFirst: Boolean,
     ): List<ClassDef> {
+        val picked = if (objectFirst) "Ljava/lang/Object;" else card
         val test = method(
             gates, "chain", listOf(session), "Z", 3, final,
             """
@@ -226,8 +256,9 @@ class ChatReelsShutTest {
             invoke-virtual {v1}, $message->cards()Lcom/google/common/collect/ImmutableList;
             move-result-object v2
             if-eqz v2, :out
-            invoke-static {v2}, $cards->first(Ljava/util/List;)$card
+            invoke-static {v2}, $cards->first(Ljava/util/List;)$picked
             move-result-object v2
+            ${if (objectFirst && castFirst) "check-cast v2, $card" else ""}
             if-eqz v2, :out
             iget-object v2, v2, $card->link:$string
             if-eqz v2, :out
@@ -254,7 +285,7 @@ class ChatReelsShutTest {
             classDef(wrapper, emptyList(), listOf(ImmutableField(wrapper, "message", message, final, null, null, null))),
             messageClass,
             classDef(MEDIA, listOf(method(MEDIA, "productName", emptyList(), string, 1, final, "const/4 v0, 0x0\nreturn-object v0"))),
-            classDef(cards, listOf(method(cards, "first", listOf("Ljava/util/List;"), card, 1, firstFlags, "const/4 v0, 0x0\nreturn-object v0"))),
+            classDef(cards, listOf(method(cards, "first", listOf("Ljava/util/List;"), picked, 1, firstFlags, "const/4 v0, 0x0\nreturn-object v0"))),
             classDef(card, emptyList(), listOf(ImmutableField(card, "link", string, linkFlags, null, null, null))),
         )
     }

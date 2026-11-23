@@ -25,7 +25,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * The code half on every build of Instagram 456.0.0.53.78. Each build names its own package by the same
+ * The code half on every build of Instagram 456.1.0.56.78. Each build names its own package by the same
  * uses, Redex's names aside, and every use that means the running app moves while the rest stay.
  */
 class CloneCodeTest {
@@ -34,13 +34,13 @@ class CloneCodeTest {
     /**
      * The const-string loads of an authority each build has, and the loads of Instagram's package that stay,
      * as each build's plan counts them. 455's builds had between 35 and 38 authority loads and kept 89 or 90
-     * package loads; 456's have 34, or 37 on the x86 build, and keep 93.
+     * package loads; 456.0's had 34, or 37 on the x86 build; 456.1's have 34, or 36 on armeabi-v7a, and all keep 93.
      */
     private val authorityLoads = mapOf(
-        "386214534" to 34, "386214562" to 34, "386214574" to 34, "386214575" to 37,
+        "386215069" to 34, "386215121" to 36, "386215122" to 34, "386215123" to 34, "386215124" to 34,
     )
     private val keptLoads = mapOf(
-        "386214534" to 93, "386214562" to 93, "386214574" to 93, "386214575" to 93,
+        "386215069" to 93, "386215121" to 93, "386215122" to 93, "386215123" to 93, "386215124" to 93,
     )
 
     /**
@@ -60,7 +60,7 @@ class CloneCodeTest {
      * more from a click.
      */
     private val usesBy = mapOf(
-        "386214562" to mapOf(SelfUse.OWN_INTENT to 12),
+        "386215121" to mapOf(SelfUse.OWN_INTENT to 12),
     )
 
     /**
@@ -69,16 +69,18 @@ class CloneCodeTest {
      * 386113969 have no counterpart).
      */
     private val googlePlayUses = mapOf(
-        "386214534" to 5, "386214562" to 5, "386214574" to 5, "386214575" to 5,
+        "386215069" to 5, "386215121" to 5, "386215122" to 5, "386215123" to 5, "386215124" to 5,
     )
 
     /**
-     * The share handler's caller check: in BaseShareHandlerActivity on the armeabi-v7a and x86 builds, and on
-     * 456's arm64 builds in its subclass ClipsMusicShareHandlerActivity instead.
+     * The share handler's caller check: in BaseShareHandlerActivity on the arm64 and x86_64 builds, and on
+     * 456.1's armeabi-v7a and x86 builds in its subclass ClipsMusicShareHandlerActivity instead (456.0 had it
+     * the other way round).
      */
     private val shareHandler = mapOf(
-        "386214534" to "ClipsMusicShareHandlerActivity", "386214562" to "BaseShareHandlerActivity",
-        "386214574" to "ClipsMusicShareHandlerActivity", "386214575" to "BaseShareHandlerActivity",
+        "386215069" to "BaseShareHandlerActivity", "386215121" to "ClipsMusicShareHandlerActivity",
+        "386215122" to "BaseShareHandlerActivity", "386215123" to "ClipsMusicShareHandlerActivity",
+        "386215124" to "BaseShareHandlerActivity",
     )
 
     /**
@@ -111,7 +113,7 @@ class CloneCodeTest {
         run {
             val authorities = readCloneManifest(CloneFixtures.manifest(file)).authorities
             val classes = CloneFixtures.classes(file, authorities)
-            if (build == "386214574") {
+            if (build == "386215122") {
                 val withoutAnswer = PatchContexts.of(classes).planClone(clone, authorities)
                 val refusal = assertThrows(PatchException::class.java) { withoutAnswer.requireComplete() }
                 assertTrue(refusal.message, refusal.message!!.contains("OwnPackage.name()"))

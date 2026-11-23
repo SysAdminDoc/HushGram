@@ -263,7 +263,7 @@ class HideRepostButtonHookTest {
         var checked = 0
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                hidesTheButtonIn(bundle, bundle.name, reads = 8, pinned = bundle.name.contains("-386214574."))
+                hidesTheButtonIn(bundle, bundle.name, reads = 8, pinned = bundle.name.contains("-386215122."))
                 checked++
             }
         }
@@ -539,7 +539,7 @@ class HideRepostButtonHookTest {
         const val LABEL = 0x7f137690
 
         /** 386214574's Feed component renderer, a renderer of its own, so its Repost part is the whole of it. */
-        const val RENDERER_574 = "LX/011T;->A0p"
+        const val RENDERER_574 = "LX/011W;->A0p"
         const val PART_574 = 0
 
         /** A renderer of its own: the icon, the label, the [role] it gives the button, then null. */

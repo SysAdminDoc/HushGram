@@ -964,8 +964,14 @@ shared-call Lapp/hushgram/extension/instagram/feed/PostTime;->time(Ljava/lang/Ob
 # its class's Function0 invoke (0JbV, 0D54, 0ApC), and its epoch-seconds helper a static case on the
 # arm builds (0JbV.A01, 0D54.A0U), inlined into that invoke on x86, where a StringBuilder joins the
 # label in place of the string helper. The helper is picked by the " · " it joins with.
-shared-call Lapp/hushgram/extension/instagram/feed/PostTime;->time(Landroid/content/res/Resources;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Integer;DI)Ljava/lang/String; in instance (Ljava/lang/Object;)Ljava/lang/Object; class-holding formattedTimeProvider(J)Ljava/lang/String; LX/*;->A0O:Lkotlin/jvm/functions/Function1; LX/*;->A01:Landroid/content/res/Resources;
-shared-call Lapp/hushgram/extension/instagram/feed/PostTime;->time(Landroid/content/res/Resources;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Integer;DI)Ljava/lang/String; in (*)Ljava/lang/Object; calling static LX/*;->*(Ljava/lang/Object;)J class-holding formattedTimeProvider(J)Ljava/lang/String; LX/*;->A03:Ljava/lang/Integer; LX/*;->A01:Landroid/content/res/Resources;
+# On 456.1 both writers are their class's merged Function1 invoke on every build, and neither A0O
+# nor A03 is read the same way on all of them: 0BR6 and 0LZL on 386215122 (0LZZ on x86_64's
+# 386215124), 0G89 and 0G9V on armeabi-v7a's 386215121, 0Z0e and 0LVL on x86's 386215123. 0BR6 and
+# 0Z0e ask a string pool for the signature string, the others load it. What tells the two apart on
+# all four is a static (int)Object call of Redex's: the bigger merged invoke makes one (0LZL, 0LZZ,
+# 0G9V, 0LVL) and the other never does, so that call is 456.1 data.
+shared-call Lapp/hushgram/extension/instagram/feed/PostTime;->time(Landroid/content/res/Resources;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Integer;DI)Ljava/lang/String; in instance (Ljava/lang/Object;)Ljava/lang/Object; calling static LX/*;->*(I)Ljava/lang/Object; pooled class-holding formattedTimeProvider(J)Ljava/lang/String; LX/*;->A01:Landroid/content/res/Resources;
+shared-call Lapp/hushgram/extension/instagram/feed/PostTime;->time(Landroid/content/res/Resources;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Integer;DI)Ljava/lang/String; in instance (Ljava/lang/Object;)Ljava/lang/Object; lacking static LX/*;->*(I)Ljava/lang/Object; pooled class-holding formattedTimeProvider(J)Ljava/lang/String; LX/*;->A01:Landroid/content/res/Resources;
 shared-call Lapp/hushgram/extension/instagram/feed/PostTime;->time(Ljava/lang/Object;Landroid/content/Context;D)Ljava/lang/String; in instance ()Ljava/lang/Object; lacking LX/*;->*(Ljava/lang/String;Ljava/lang/String;Ljava/lang/StringBuilder;)Ljava/lang/String; holding LX/*;->A09:Ljava/lang/Long; Ljava/lang/Number;->longValue()J LX/*;->A0B:Landroid/content/Context;
 shared-call Lapp/hushgram/extension/instagram/feed/PostTime;->time(Ljava/lang/Object;Landroid/content/Context;J)Ljava/lang/String; in (*)Ljava/lang/Object; holding \s·\s LX/*;->A09:Ljava/lang/Long; LX/*;->A0G:Z Ljava/lang/Number;->longValue()J LX/*;->A0B:Landroid/content/Context;
 # Show when someone was last active asks LastActive.exact() with the time a person was last on, in the one
@@ -2804,8 +2810,11 @@ once-call Lapp/hushgram/extension/instagram/profile/ProfileSuggestions;->exclude
 # answer goes to ProfileSuggestions.requestSuggestionsEmpty and back into its register. Left out, the
 # Suggested for you section shows whenever the reply carries it; twice or elsewhere, it isn't the hook
 # the patch wrote. RequestSectionHookTest checks on every build that this is the one method keying rows
-# by item_key_suggested_user_%s and where the hook lands.
-once-call Lapp/hushgram/extension/instagram/profile/ProfileSuggestions;->requestSuggestionsEmpty(I)Z in instance (Ljava/lang/Object;)Ljava/lang/Object; pooled holding item_key_suggested_user_%s item_key_follow_request_%s
+# by item_key_suggested_user_%s and where the hook lands. On 456.1's arm64 and x86_64 builds the
+# request rows' key moved into their row model's constructor (0Stt on 386215122), which the coroutine
+# (0BYS.invokeSuspend) only makes, so the rule picks it by the suggested key alone, still the one
+# method of the shape loading it on every build.
+once-call Lapp/hushgram/extension/instagram/profile/ProfileSuggestions;->requestSuggestionsEmpty(I)Z in instance (Ljava/lang/Object;)Ljava/lang/Object; pooled holding item_key_suggested_user_%s
 #
 # A follow request notification, and Notifications on some accounts, open the friending center's
 # Follow requests page instead, whose list is another coroutine (0I4I.invokeSuspend on 456, the one

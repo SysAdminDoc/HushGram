@@ -11,7 +11,6 @@ import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
-import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -22,8 +21,9 @@ import org.junit.Test
  * Which methods Download any reel takes for builders of the reel menu, on every build of the
  * declared version. The feed menu's builder also adds Download after the download check, and it's
  * Download any video's to change: a reel's hooks there would offer Instagram's own Download row on
- * every post of yours, photos included. On 456's x86 build Redex merged the feed menu's builder into
+ * every post of yours, photos included. On 456.0's x86 build Redex merged the feed menu's builder into
  * one method with a lambda of the reel menu, which touches the reel menu's helper in another arm.
+ * 456.1's builds keep the two apart, and the check still holds a merged builder out if one comes back.
  */
 class ReelMenuBuildersFixtureTest {
     private val session = "Lcom/instagram/common/session/UserSession;"
@@ -61,7 +61,6 @@ class ReelMenuBuildersFixtureTest {
             Fixtures.otherBuilds()
         assertTrue("three builds of the declared version", bundles.size >= 3)
         val kept = LinkedHashMap<String, Int>()
-        var merged = false
         for (bundle in bundles) {
             val name = if (bundle.extension == "apks") bundle.name else bundle.parentFile.name
             val helper = loader(bundle, EDITING_TOOLS_QUERY).definingClass
@@ -80,21 +79,12 @@ class ReelMenuBuildersFixtureTest {
             }
             val feed = loaders.filter { it.addsToTheFeedMenu() }
             assertEquals("$name: one builder of the feed menu adds Download after the download check", 1, feed.size)
-            val touchesHelper = feed.single().code().any { instruction ->
-                when (val reference = (instruction as? ReferenceInstruction)?.reference) {
-                    is FieldReference -> reference.definingClass == helper
-                    is MethodReference -> reference.definingClass == helper
-                    else -> false
-                }
-            }
-            merged = merged || touchesHelper
             val builders = loaders.filter { it.buildsReelMenu(helper, eligible) }
             val where = feed.single().let { "${it.definingClass}->${it.name}" }
             assertFalse("$name: $where, the feed menu's builder, taken for a reel menu's", feed.single() in builders)
             assertTrue("$name: no builder of the reel menu", builders.isNotEmpty())
             kept[name] = builders.size
         }
-        assertTrue("a build whose feed menu builder shares a method with the reel menu ($kept)", merged)
         assertEquals("the same reel menu builders on every build: $kept", 1, kept.values.toSet().size)
     }
 }

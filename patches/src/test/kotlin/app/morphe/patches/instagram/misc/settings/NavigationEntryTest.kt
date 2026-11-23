@@ -122,7 +122,7 @@ class NavigationEntryTest {
     }
 
     @Test fun declaredBuildProvesBothVariantsAndPreservesAllNativeFactoryCalls() {
-        val bundle = Fixtures.files { it.name == "instagram-456.0.0.53.78-386214574.apks" }.single()
+        val bundle = Fixtures.files { it.name == "instagram-456.1.0.56.78-386215122.apks" }.single()
         builds(bundle, bundle.name)
     }
 

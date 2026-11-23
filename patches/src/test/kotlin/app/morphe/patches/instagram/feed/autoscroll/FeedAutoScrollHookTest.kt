@@ -66,10 +66,10 @@ class FeedAutoScrollHookTest {
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
                 val sites = builds(classes(bundle), bundle.name)
-                if (bundle.name.contains("386214574")) {
+                if (bundle.name.contains("386215122")) {
                     assertEquals(
                         "${bundle.name}: the player and its callbacks for a video starting over and ending",
-                        listOf("LX/03hQ;", "G01", "FVn"),
+                        listOf("LX/03h1;", "Fzx", "FVl"),
                         listOf(sites.player, sites.looped, sites.ended),
                     )
                 }

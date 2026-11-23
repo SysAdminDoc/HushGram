@@ -60,12 +60,12 @@ class FeedSeekBarHookTest {
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
                 val sites = builds(bundle, bundle.name)
-                if (version == "456.0.0.53.78") {
+                if (version == "456.1.0.56.78") {
                     assertEquals(
                         "${bundle.name}: the player, its progress callback, the holder's view, the seek, the pause and the play",
                         listOf(
-                            "LX/03hQ;", "GGa", "LX/0Hcn;->CbB()Landroid/view/View;", "LX/03Hj;->A0U(IZ)V",
-                            "LX/03hQ;->A0K(Ljava/lang/String;)V", "LX/03hQ;->A04(LX/03hQ;Ljava/lang/String;ZZZ)V",
+                            "LX/03h1;", "GGW", "LX/0Gtn;->CbD()Landroid/view/View;", "LX/03Hd;->A0U(IZ)V",
+                            "LX/03h1;->A0K(Ljava/lang/String;)V", "LX/03h1;->A04(LX/03h1;Ljava/lang/String;ZZZ)V",
                         ),
                         listOf(
                             sites.player, sites.progress, sites.view.toString(), sites.seek.toString(),
@@ -159,7 +159,7 @@ class FeedSeekBarHookTest {
         for (key in listOf(SPRITE_URLS, "thumbnail_width", "thumbnail_height", "thumbnails_per_row", "max_thumbnails_per_sprite", "thumbnail_duration")) {
             assertTrue("$label: the map holds $key", context.loadsString(sheet.builder, key))
         }
-        if (label.contains("386214574")) {
+        if (label.contains("386215122")) {
             assertEquals(
                 "$label: the post, its strip and the strip's map",
                 listOf("LX/00i4;->A03:Ljava/lang/Object;", "A2a", "LX/07im;", "A02"),
@@ -203,8 +203,8 @@ class FeedSeekBarHookTest {
             scrubber.map { it.definingClass to it.returnType },
         )
         assertEquals("$label: the map is the same builder's", sheet.builder.name, scrubber.last().name)
-        if (label.contains("386214574")) {
-            assertEquals("$label: the reel strip's getters", listOf("A3J", "DZL", "EI1"), scrubber.dropLast(1).map { it.name })
+        if (label.contains("386215122")) {
+            assertEquals("$label: the reel strip's getters", listOf("A3J", "DZN", "EI3"), scrubber.dropLast(1).map { it.name })
         }
         return sites
     }

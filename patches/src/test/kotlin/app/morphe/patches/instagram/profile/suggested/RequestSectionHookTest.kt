@@ -65,6 +65,26 @@ class RequestSectionHookTest {
         assertHooked("stand-in", before, context.mutableClassDefBy(LIST).methods.single().code(), site)
     }
 
+    /**
+     * A list that makes each request's row model, whose constructor keys the request's row, as on 456.1's
+     * 64-bit builds, is still the follow requests' list. A list making a row model that keys nothing isn't.
+     */
+    @Test
+    fun aListMakingTheRequestsRowModelIsFoundToo() {
+        val context = PatchContexts.of(listOf(list(requestsInRow = true), rowModel(REQUEST_ROW, FOLLOW_REQUEST_ROW), rowModel()))
+        val before = list(requestsInRow = true).methods.single().code()
+
+        val site = context.findRequestSection()
+        assertEquals("the suggested people's move-result, past the row model's two", SUGGESTED_RESULT + 1, site.result)
+        assertEquals("its register", 1, site.register)
+        context.hideRequestSection(site)
+        assertHooked("row model", before, context.mutableClassDefBy(LIST).methods.single().code(), site)
+
+        val unkeyed = PatchContexts.of(listOf(list(requestsInRow = true), rowModel(REQUEST_ROW, "item_key_request_header")))
+        val failure = assertThrows(PatchException::class.java) { unkeyed.findRequestSection() }
+        assertTrue(failure.message!!, failure.message!!.contains("expected one list keying rows"))
+    }
+
     /** A build the patch can't read fails at patch time, saying what it found, before anything is written. */
     @Test
     fun aListThePatchCantReadFailsBeforeAnythingChanges() {
@@ -108,12 +128,17 @@ class RequestSectionHookTest {
 
     /** On a real build the list is the one that also keys the follow requests' own rows, and only it is hooked, once. */
     private fun builds(bundle: File, label: String) {
-        val holders = FixtureDex.classesLoading(bundle, SUGGESTED_USER_ROW)
+        // 456.1's 64-bit builds key a request's row in its row model's constructor, so those are read too.
+        val holders = (FixtureDex.classesLoading(bundle, SUGGESTED_USER_ROW) + FixtureDex.classesLoading(bundle, FOLLOW_REQUEST_ROW))
+            .distinctBy { it.type }
         val context = PatchContexts.of(FixtureDex.withStringPools(bundle, holders))
         val site = context.findRequestSection()
         val method = context.mutableClassDefBy(site.type).methods.single { it.name == site.name && it.parameterTypes.map(CharSequence::toString) == site.parameters }
         val before = method.code()
-        assertTrue("$label: ${site.type} isn't the follow requests' list", context.loadsString(method, FOLLOW_REQUEST_ROW))
+        val requestRows = holders.filter { row -> row.methods.any { it.name == "<init>" && context.loadsString(it, FOLLOW_REQUEST_ROW) } }.map { it.type }
+        val keysRequests = context.loadsString(method, FOLLOW_REQUEST_ROW) ||
+            before.any { it.opcode == Opcode.INVOKE_DIRECT && (it as? ReferenceInstruction)?.reference.let { made -> made is MethodReference && made.name == "<init>" && made.definingClass in requestRows } }
+        assertTrue("$label: ${site.type} isn't the follow requests' list", keysRequests)
 
         context.hideRequestSection(site)
 
@@ -148,6 +173,7 @@ class RequestSectionHookTest {
         withKey: Boolean = true,
         keyBeforeCheck: Boolean = false,
         jumpToCheck: Boolean = false,
+        requestsInRow: Boolean = false,
     ): ClassDef {
         val key = if (withKey) SUGGESTED_USER_ROW else "item_key_suggested_users_header"
         val body = listOfNotNull(
@@ -155,7 +181,9 @@ class RequestSectionHookTest {
             "invoke-interface { v0 }, Ljava/util/List;->isEmpty()Z",
             "move-result v1",
             if (jumpToCheck) "if-nez v1, :check" else "if-nez v1, :suggested",
-            "const-string v2, \"$FOLLOW_REQUEST_ROW\"",
+            // Like 456.1's 64-bit builds: the request's row model keys its row, and the list makes it.
+            if (requestsInRow) "new-instance v2, $REQUEST_ROW" else "const-string v2, \"$FOLLOW_REQUEST_ROW\"",
+            if (requestsInRow) "invoke-direct { v2 }, $REQUEST_ROW-><init>()V" else null,
             ":suggested",
             if (keyBeforeCheck) "const-string v2, \"$key\"" else "iget-object v0, p0, $type->suggested:Ljava/util/List;",
             "invoke-interface { v0 }, Ljava/util/List;->isEmpty()Z",
@@ -180,9 +208,8 @@ class RequestSectionHookTest {
         return ImmutableClassDef(type, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, "Ljava/lang/Object;", null, null, null, fields, listOf(ImmutableMethod.of(method)))
     }
 
-    /** A stand-in for a suggested person's row model, whose constructor keys its row like the list does. */
-    private fun rowModel(): ClassDef {
-        val type = "Lfixture/SuggestedRow;"
+    /** A stand-in for a suggested person's row model, or with [type] and [key] a request's, whose constructor keys its row like the list does. */
+    private fun rowModel(type: String = "Lfixture/SuggestedRow;", key: String = SUGGESTED_USER_ROW): ClassDef {
         val method = MutableMethod(
             ImmutableMethod(
                 type, "<init>", emptyList(), "V", AccessFlags.PUBLIC.value or AccessFlags.CONSTRUCTOR.value, null, null,
@@ -193,7 +220,7 @@ class RequestSectionHookTest {
             0,
             """
                 invoke-direct { p0 }, Ljava/lang/Object;-><init>()V
-                const-string v0, "$SUGGESTED_USER_ROW"
+                const-string v0, "$key"
                 return-void
             """.trimIndent(),
         )
@@ -212,6 +239,7 @@ class RequestSectionHookTest {
 
     private companion object {
         const val LIST = "Lfixture/FollowRequests;"
+        const val REQUEST_ROW = "Lfixture/RequestRow;"
 
         /** Where the stand-in's suggested people's isEmpty answer is: iget, invoke, move-result, if-nez, const-string, iget, invoke, then it. */
         const val SUGGESTED_RESULT = 7

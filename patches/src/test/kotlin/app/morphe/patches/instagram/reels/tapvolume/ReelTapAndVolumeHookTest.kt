@@ -19,6 +19,7 @@ import app.morphe.patches.instagram.media.taptoplay.CLIPS_PAUSE
 import app.morphe.patches.instagram.media.taptoplay.FRAGMENT_ACTIVITY
 import app.morphe.patches.instagram.media.taptoplay.REELS_PLAYER_PAUSE
 import app.morphe.patches.instagram.media.taptoplay.TOUCH as TAP_CLOCK
+import app.morphe.patches.instagram.misc.extension.stringLoadedAt
 import app.morphe.patches.instagram.reels.speed.RESUME_PLAYER_TRACE
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
@@ -180,7 +181,9 @@ class ReelTapAndVolumeHookTest {
                 val tap = asking.single()
                 val code = tap.code()
                 val ask = code.indexOfFirst { it.referenceText() == MUTE_INSTEAD_OF_PAUSE }
-                assertEquals("$what: right after the load of the pause string", CLIPS_PAUSE, ((code[ask - 1] as ReferenceInstruction).reference as StringReference).string)
+                // 456.1 asks Redex's string pool for it, so the pool call's move-result sits right before the hook.
+                val load = if (code[ask - 1].opcode == Opcode.MOVE_RESULT_OBJECT) ask - 2 else ask - 1
+                assertEquals("$what: right after the load of the pause string", CLIPS_PAUSE, context.stringLoadedAt(code, load))
                 // 453's toggle takes a boolean after the reason, true from every audio button, so the hook loads it too.
                 val withFlag = site.toggle.parameterTypes.size == 2
                 val mute = muteLength + if (withFlag) 1 else 0

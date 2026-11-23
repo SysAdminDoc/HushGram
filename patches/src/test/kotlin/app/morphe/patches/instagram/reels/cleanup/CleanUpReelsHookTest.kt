@@ -590,7 +590,16 @@ class CleanUpReelsHookTest {
         val replyHide = holders(DIRECT_REPLY_BAR_HIDE).ifEmpty { holders(SPOTLIGHT_REPLY_BAR_HIDE) }.single()
         assertHolder(DIRECT_REPLY_BAR_SHOW, replyShow)
         assertHolder(DIRECT_REPLY_BAR_CREATED, replyCreated)
-        if (holders(DIRECT_REPLY_BAR_SHOW).isEmpty()) assertHolder(SPOTLIGHT_REPLY_BAR_SHOW, replyShow)
+        // 456.1's armeabi-v7a purged those markers and overrides the Spotlight bar's show in the controller,
+        // so there the show is the controller's own method of the same name and parameters.
+        if (holders(DIRECT_REPLY_BAR_SHOW).isEmpty() && replyShow.definingClass == replyCreated.definingClass) {
+            holders(SPOTLIGHT_REPLY_BAR_SHOW).forEach {
+                assertEquals("$label: the controller's override of the Spotlight bar's show",
+                    signature(it).substringAfter("->"), signature(replyShow).substringAfter("->"))
+            }
+        } else if (holders(DIRECT_REPLY_BAR_SHOW).isEmpty()) {
+            assertHolder(SPOTLIGHT_REPLY_BAR_SHOW, replyShow)
+        }
         val controller = classes.single { it.type == replyCreated.definingClass }
         val replySource = controller.fields.single { it.type == CLIPS_VIEWER_SOURCE }
         val hidden = replyShow.instructions().filter { it.opcode == Opcode.IGET_BOOLEAN }

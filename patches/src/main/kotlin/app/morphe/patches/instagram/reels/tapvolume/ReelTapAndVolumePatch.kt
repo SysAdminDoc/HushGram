@@ -16,6 +16,7 @@ import app.morphe.patches.instagram.download.reel.rewriteStub
 import app.morphe.patches.instagram.media.taptoplay.CLIPS_PAUSE
 import app.morphe.patches.instagram.media.taptoplay.FRAGMENT_ACTIVITY
 import app.morphe.patches.instagram.media.taptoplay.FUNCTION0
+import app.morphe.patches.instagram.media.taptoplay.clipsPauseLoad
 import app.morphe.patches.instagram.media.taptoplay.reelsPlayerPause
 import app.morphe.patches.instagram.media.taptoplay.reelsTap
 import app.morphe.patches.instagram.media.taptoplay.TOUCH as TAP_CLOCK
@@ -46,7 +47,6 @@ import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
-import com.android.tools.smali.dexlib2.iface.reference.StringReference
 import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 
 private const val PATCH = "Control taps and volume on Reels"
@@ -246,11 +246,11 @@ internal fun BytecodePatchContext.findReelTapSite(): ReelTapSite {
     }
 
     val code = tap.code()
-    val pausePath = code.indices.filter { code[it].stringLoaded() == CLIPS_PAUSE }.singleOrNull()
-        ?: refuse("$where doesn't load \"$CLIPS_PAUSE\" once")
-    val branches = code.indices.filter { code[it].opcode == Opcode.IF_EQZ && code.target(it) == pausePath }
+    // 456.1 asks a string pool for it, so the load runs from the pool's number to the call's move-result.
+    val load = clipsPauseLoad(code) ?: refuse("$where doesn't load \"$CLIPS_PAUSE\" once")
+    val branches = code.indices.filter { code[it].opcode == Opcode.IF_EQZ && code.target(it) == load.first }
     if (branches.size != 1) refuse("expected one branch to the pause path of $where, found ${branches.size}")
-    val index = pausePath + 1
+    val index = load.last + 1
     if (index !in code.indices) refuse("$where ends on its load of \"$CLIPS_PAUSE\"")
     if (index in tap.jumpTargets()) refuse("something in $where jumps to the instruction after its load of \"$CLIPS_PAUSE\"")
 
@@ -791,10 +791,6 @@ private fun BytecodePatchContext.mutable(method: Method): MutableMethod =
     }
 
 private fun Method.code(): List<Instruction> = implementation?.instructions?.toList().orEmpty()
-
-private fun Instruction.stringLoaded(): String? =
-    if (opcode != Opcode.CONST_STRING && opcode != Opcode.CONST_STRING_JUMBO) null
-    else ((this as ReferenceInstruction).reference as StringReference).string
 
 private fun Instruction.methodReference(): MethodReference? = (this as? ReferenceInstruction)?.reference as? MethodReference
 

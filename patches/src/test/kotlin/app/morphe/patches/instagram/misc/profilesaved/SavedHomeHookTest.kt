@@ -21,6 +21,7 @@ import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 import org.junit.Assert.assertEquals
@@ -311,6 +312,12 @@ class SavedHomeHookTest {
             val screens = PatchContexts.of(kept.values.toList()).findSavedScreens()
             val more = setOf(screens.tabbed, screens.grid, SAVED_LINK_SCREEN, EXPLORE_ACTION_BAR)
             for (classDef in FixtureDex.classes(bundle, more).values) kept.putIfAbsent(classDef.type, classDef)
+            // 456.1's armeabi-v7a build counts the tabbed screen's fragment stack in a static (Fragment)I elsewhere.
+            val counters = kept.getValue(screens.tabbed).methods.flatMap { it.implementation?.instructions?.toList() ?: emptyList() }
+                .mapNotNull { (it as? ReferenceInstruction)?.reference as? MethodReference }
+                .filter { it.returnType == "I" && it.parameterTypes.map(CharSequence::toString) == listOf("Landroidx/fragment/app/Fragment;") }
+                .map { it.definingClass }.toSet()
+            for (classDef in FixtureDex.classes(bundle, counters).values) kept.putIfAbsent(classDef.type, classDef)
             kept.values.toList()
         }
 

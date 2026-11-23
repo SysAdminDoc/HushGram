@@ -198,9 +198,9 @@ class ProductTagIndicatorTest {
         val found = context.findProductTagIndicators()
         found.forEach { it.write(context) }
 
-        if (label == "instagram-456.0.0.53.78-386214574.apks") {
+        if (label == "instagram-456.1.0.56.78-386215122.apks") {
             // Read off the dex by hand: the post's picker and the newer feed model's, one class.
-            assertEquals(label, listOf("LX/00gI;->A09", "LX/00gI;->A0A"), found.map { "${it.type}->${it.name}" }.sorted())
+            assertEquals(label, listOf("LX/00g8;->A09", "LX/00g8;->A0A"), found.map { "${it.type}->${it.name}" }.sorted())
         }
         for (site in found) {
             assertEquals("$label: answers the indicator enum", enum.single().type, site.returnType)

@@ -15,6 +15,7 @@ import app.morphe.patches.instagram.misc.extension.stringLoadedAt
 import app.morphe.util.ControlFlow
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
@@ -182,6 +183,14 @@ private fun keyRegister(code: List<Instruction>, at: Int): Int? = when (code[at]
 
 private fun Instruction.methodReference(): MethodReference? = (this as? ReferenceInstruction)?.reference as? MethodReference
 
+/** Whether this method calls the constructor of one of [types]. */
+private fun Method.makesAnyOf(types: Set<String>): Boolean = types.isNotEmpty() &&
+    implementation?.instructions?.any { instruction ->
+        val made = instruction.methodReference()
+        (instruction.opcode == Opcode.INVOKE_DIRECT || instruction.opcode == Opcode.INVOKE_DIRECT_RANGE) &&
+            made?.name == "<init>" && made.definingClass in types
+    } == true
+
 /** The request builder's boolean parameter that becomes [EXCLUDE_SUGGESTED_USERS]: its method and the register holding the parameter. */
 internal class RequestSuggestionsSite(val type: String, val name: String, val parameters: List<String>, val register: Int)
 
@@ -259,14 +268,21 @@ internal fun BytecodePatchContext.hideRequestSuggestions(site: RequestSuggestion
 
 /**
  * Finds where the Follow requests screen's list asks whether it has no suggested people (#814): in the
- * one method keying rows by [SUGGESTED_USER_ROW] and [FOLLOW_REQUEST_ROW], the List.isEmpty answer an if-nez right after it
+ * one method keying rows by [SUGGESTED_USER_ROW] and [FOLLOW_REQUEST_ROW] (or making the request row model whose
+ * constructor keys the latter), the List.isEmpty answer an if-nez right after it
  * reads to jump past the code that makes those rows, the Suggested for you header and the See all
  * button. Its move-result is the site. Fails before anything changes when there isn't exactly one such
  * method or one such check, or something jumps onto the if-nez, where the hook goes.
  */
 internal fun BytecodePatchContext.findRequestSection(): FollowListSite {
+    // 456.1's arm64-v8a and x86_64 builds key a request's row in its row model's constructor, which the list makes.
+    val requestRows = classesLoadingString(FOLLOW_REQUEST_ROW).filter { classDef ->
+        classDef.methods.any { it.name == "<init>" && loadsString(it, FOLLOW_REQUEST_ROW) }
+    }.map { it.type }.toSet()
     val lists = classesLoadingString(SUGGESTED_USER_ROW).flatMap { classDef ->
-        classDef.methods.filter { loadsString(it, SUGGESTED_USER_ROW) && loadsString(it, FOLLOW_REQUEST_ROW) }
+        classDef.methods.filter {
+            loadsString(it, SUGGESTED_USER_ROW) && (loadsString(it, FOLLOW_REQUEST_ROW) || it.makesAnyOf(requestRows))
+        }
     }
     val method = lists.singleOrNull()
         ?: refuse("expected one list keying rows by \"$SUGGESTED_USER_ROW\" and \"$FOLLOW_REQUEST_ROW\", found ${lists.size}")

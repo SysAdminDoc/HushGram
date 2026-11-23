@@ -12,6 +12,7 @@ Every HushGram release, newest first.
 * If starting a call recording closes Instagram, `Record calls` turns itself off the next time Instagram opens and says so, so a call doesn't close it again. Reported in #831.
 * Going back to Home from Messages with the floating glass tab bar no longer flashes a black band under the pill for a frame. Reported in #835.
 * A reel's seek bar sits under the video again with the glass tab bar on. It was lifted onto the video's bottom edge, leaving a strip of the video showing under it. Reported in #827.
+* HushGram now patches Instagram 456.1.0.56.78 instead of 456.0.0.53.78. Get APKMirror's (arm64-v8a) (480-640dpi) (Android 9.0+) bundle, build 386215122. Its armeabi-v7a (386215121), x86 (386215123) and x86_64 (386215124) builds work too.
 
 ## 0.0.22 (2026-11-22)
 

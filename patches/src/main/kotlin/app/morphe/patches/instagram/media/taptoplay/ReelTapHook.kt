@@ -13,6 +13,7 @@ import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
 import app.morphe.patches.instagram.misc.extension.requireThisIntact
+import app.morphe.patches.instagram.misc.extension.stringLoadedAt
 import app.morphe.util.addInstructionsAtControlFlowLabel
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -73,6 +74,18 @@ internal fun BytecodePatchContext.reelsTap(pause: Method, refuse: (String) -> No
     }
     return taps.singleOrNull()
         ?: refuse("expected one method loading \"$CLIPS_PAUSE\" and pausing through ${pause.definingClass}->${pause.name}, found ${taps.size}")
+}
+
+/**
+ * Where [code] loads [CLIPS_PAUSE], when it loads it once: the first and the last index of the load.
+ * A const-string is both. 456.1's Redex asks a static string pool for it instead, so the load is the
+ * pool's number, the call and its move-result, and a branch to the pause path lands on the number.
+ */
+internal fun BytecodePatchContext.clipsPauseLoad(code: List<Instruction>): IntRange? {
+    val at = code.indices.filter { stringLoadedAt(code, it) == CLIPS_PAUSE }.singleOrNull() ?: return null
+    if (code[at].opcode == Opcode.CONST_STRING || code[at].opcode == Opcode.CONST_STRING_JUMBO) return at..at
+    if (code.getOrNull(at + 1)?.opcode != Opcode.MOVE_RESULT_OBJECT) return null
+    return (at - 1)..(at + 1)
 }
 
 /** The constant names of IgVideoPlayerImpl's state enum, which Instagram's build keeps. */
@@ -192,7 +205,7 @@ internal fun BytecodePatchContext.findReelTap(): ReelTap {
     }
 
     val code = tap.code()
-    val pausePath = code.indices.filter { code[it].stringLoaded() == CLIPS_PAUSE }.singleOrNull()
+    val pausePath = clipsPauseLoad(code)?.first
         ?: refuse("${tap.definingClass}->${tap.name} doesn't load \"$CLIPS_PAUSE\" once")
     val branches = code.indices.filter { code[it].opcode == Opcode.IF_EQZ && code.target(it) == pausePath }
     val branch = branches.singleOrNull() ?: refuse("expected one branch to the pause path, found ${branches.size}")

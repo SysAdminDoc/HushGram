@@ -83,6 +83,22 @@ class FriendshipStatusHookTest {
         assertThrows(PatchException::class.java) { context.findProfileName() }
     }
 
+    /**
+     * 456.1's armeabi-v7a and x86 builds land the pronouns check on a move of the visibility into a
+     * register, right before the hide, so the label goes after that hide. A move onto the slot's own
+     * register leaves no slot to hide, so that's refused.
+     */
+    @Test
+    fun aPronounsCheckLandingOnAMoveBeforeTheHideGetsTheLabelToo() {
+        val context = PatchContexts.of(standIns(named = true, landingMove = 3))
+
+        val found = context.findProfileName()
+        context.labelProfileName(found)
+
+        assertLabelled("named stand-in moving first", context.mutableClassDefBy(BINDER).methods.single { it.name == "bind" }, found.header, hides = 2)
+        assertThrows(PatchException::class.java) { PatchContexts.of(standIns(named = true, landingMove = 1)).findProfileName() }
+    }
+
     @Test
     fun theStubsReachTheUserAndTheSlot() {
         val context = PatchContexts.of(standIns())
@@ -325,6 +341,22 @@ class FriendshipStatusHookTest {
         assertTrue("no fixture of a declared build", checked > 0)
     }
 
+    /** Each other build of the declared version labels the name in both places too, the 32-bit ones included. */
+    @Test
+    fun eachOtherBuildLabelsTheName() {
+        for (apk in Fixtures.otherBuilds()) {
+            val context = PatchContexts.of((profileClasses(apk) + screenClasses(apk)).distinctBy { it.type })
+
+            val found = context.findProfileName()
+            context.labelProfileName(found)
+
+            val method = context.mutableClassDefBy(found.type).methods.single {
+                it.name == found.name && it.parameterTypes.map(CharSequence::toString) == found.parameters
+            }
+            assertLabelled("${apk.parentFile.name} ${found.type}->${found.name}", method, found.header, hides = 2)
+        }
+    }
+
     /**
      * In each declared build the label reads the profile screen's answer as the options sheet does
      * (#40): one place reads it, its client and fragment type are Instagram's, and the filled stub
@@ -476,11 +508,12 @@ class FriendshipStatusHookTest {
                     assertEquals("$what: the pronouns set before it's shown", "setText",
                         ((before as ReferenceInstruction).reference as MethodReference).name)
                 } else {
-                    // 450 copies the slot through up to two plain moves between its read and the hide.
+                    // 450 copies the slot through up to two plain moves between its read and the hide, and
+                    // 456.1's 32-bit builds land the pronouns check on a move of the visibility right before it.
                     val read = (at - 4 downTo maxOf(0, at - 6)).first { code[it].opcode !in PLAIN_MOVES }
                     assertTrue(
                         "$what: the hide at ${at - 3} neither follows a read of the slot nor is where a branch lands",
-                        code[read].opcode == Opcode.IGET_OBJECT || addresses[at - 3] in targets,
+                        code[read].opcode == Opcode.IGET_OBJECT || (read + 1..at - 3).any { addresses[it] in targets },
                     )
                 }
                 for ((index, instruction) in code.withIndex()) {
@@ -553,6 +586,7 @@ class FriendshipStatusHookTest {
             clientKnown: Boolean = true,
             named: Boolean = false,
             checkHides: Boolean = true,
+            landingMove: Int? = null,
         ): List<ClassDef> {
             val hide = if (hides) {
                 """
@@ -562,6 +596,15 @@ class FriendshipStatusHookTest {
                 """
             } else {
                 ""
+            }
+            // Where the pronouns check lands: the hide, or a move of the visibility into a register first (456.1's 32-bit builds).
+            val namedHide = when {
+                !checkHides -> "nop"
+                landingMove != null -> """
+                    move v$landingMove, v4
+                    invoke-interface { v1, v$landingMove }, $SLOT->setVisibility(I)V
+                """
+                else -> "invoke-interface { v1, v4 }, $SLOT->setVisibility(I)V"
             }
             val bindBody = if (named) {
                 """
@@ -579,7 +622,7 @@ class FriendshipStatusHookTest {
                     invoke-interface { v1, v3 }, $SLOT->setVisibility(I)V
                     goto :done
                     :no_pronouns
-                    ${if (checkHides) "invoke-interface { v1, v4 }, $SLOT->setVisibility(I)V" else "nop"}
+                    $namedHide
                     goto :done
                     :nameless
                     iget-object v1, p1, $HOLDER->pronouns:$SLOT

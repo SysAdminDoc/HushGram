@@ -203,7 +203,7 @@ class ChangeVersionCodeTest {
      * folders named by version code.
      */
     private fun hasPre28Fallback(label: String) =
-        label.substringAfterLast('-') in setOf("386214562", "386214575")
+        label.substringAfterLast('-') in setOf("386215121", "386215123")
 
     private fun builds(bundle: File, label: String) {
         val code = realVersionCode(label.removeSuffix(".apks").substringAfterLast('-'))

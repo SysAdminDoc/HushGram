@@ -158,7 +158,9 @@ private fun productRead(code: List<Instruction>, at: Int, message: FieldReferenc
 /**
  * When [at] parses a string as a [PARSED_URI] with "reel" and "reels" loaded just after: the
  * [message]'s list of share cards, the static pick of the first one and the card's string field the
- * parse was handed, read just before. Null for anything else.
+ * parse was handed, read just before. The pick answers the card, or, on 456.1's arm64-v8a and x86_64
+ * builds, a shared (List)Object helper whose answer is cast to the card before the read. Null for
+ * anything else.
  */
 private fun linkRead(code: List<Instruction>, at: Int, message: FieldReference): Triple<MethodReference, MethodReference, FieldReference>? {
     val call = code[at].calledMethod() ?: return null
@@ -170,9 +172,13 @@ private fun linkRead(code: List<Instruction>, at: Int, message: FieldReference):
     val (read, link) = before(at).firstNotNullOfOrNull { near ->
         code[near].readField()?.takeIf { code[near].opcode == Opcode.IGET_OBJECT && it.type == TEXT }?.let { near to it }
     } ?: return null
+    fun castToCard(from: Int) = (from + 1 until read).any { near ->
+        code[near].opcode == Opcode.CHECK_CAST && (code[near] as ReferenceInstruction).reference.toString() == link.definingClass
+    }
     val (picked, firstCard) = before(read).firstNotNullOfOrNull { near ->
         code[near].calledMethod()?.takeIf {
-            code[near].opcode == Opcode.INVOKE_STATIC && it.takesOnly(ANY_LIST) && it.returnType == link.definingClass
+            code[near].opcode == Opcode.INVOKE_STATIC && it.takesOnly(ANY_LIST) &&
+                (it.returnType == link.definingClass || it.returnType == "Ljava/lang/Object;" && castToCard(near))
         }?.let { near to it }
     } ?: return null
     val cards = before(picked).firstNotNullOfOrNull { near ->
@@ -224,6 +230,8 @@ internal fun BytecodePatchContext.keepChatReelsShut(found: ChatReelOpener) {
             AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags)
     } ?: refuseShut("the extension has no public static $name bridge")
     val message = found.message
+    // A pick answering Object (456.1's 64-bit builds) hands the card over uncast, so the bridge casts it as Instagram does.
+    val castCard = if (found.firstCard.returnType == found.link.definingClass) "" else "check-cast p0, ${found.link.definingClass}"
     bridge("sharedProduct").addInstructionsWithLabels(
         0,
         """
@@ -252,6 +260,7 @@ internal fun BytecodePatchContext.keepChatReelsShut(found: ChatReelOpener) {
             invoke-static { p0 }, ${found.firstCard}
             move-result-object p0
             if-eqz p0, :none
+            $castCard
             iget-object p0, p0, ${found.link}
             return-object p0
             :none

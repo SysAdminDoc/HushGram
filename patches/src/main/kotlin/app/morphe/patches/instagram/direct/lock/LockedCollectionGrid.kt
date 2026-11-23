@@ -449,7 +449,12 @@ internal fun BytecodePatchContext.findSavedGridRows(): List<SavedGridRows> {
     return sites
 }
 
-/** Where [method] gets a post and makes its row: the getter's index, or null when it doesn't look like that. */
+/**
+ * Where [method] gets a post and makes its row: the index of the read, or null when it doesn't look like
+ * that. The post comes from the item's getter and its move-result, or, where Redex inlined the getter
+ * (456.1's arm64-v8a and x86_64 builds), from the item's field and a null check of what it read. Either
+ * way the instruction after the read holds the post's register, and the row maker comes next.
+ */
 private fun Method.makesRows(): Int? {
     if (AccessFlags.STATIC.isSet(accessFlags) || returnType != "Ljava/util/List;" ||
         parameterTypes.map(Any::toString) != listOf("Ljava/util/List;")
@@ -458,12 +463,24 @@ private fun Method.makesRows(): Int? {
     }
     val code = implementation?.instructions?.toList() ?: return null
     val gets = code.indices.filter { at ->
-        val getter = (code[at] as? ReferenceInstruction)?.reference as? MethodReference
-        code[at].opcode == Opcode.INVOKE_VIRTUAL && getter != null && getter.returnType == SAVED_GRID_MEDIA &&
-            getter.parameterTypes.isEmpty() && code.getOrNull(at + 1)?.opcode == Opcode.MOVE_RESULT_OBJECT &&
-            code.getOrNull(at + 2)?.makesRowOf(definingClass, (code[at + 1] as OneRegisterInstruction).registerA) == true
+        val media = code[at].readsPost(code.getOrNull(at + 1)) ?: return@filter false
+        code.getOrNull(at + 2)?.makesRowOf(definingClass, media) == true
     }
     return gets.singleOrNull()
+}
+
+/** The register a post read at this instruction ends up in, when [next] completes it; null for anything else. */
+private fun Instruction.readsPost(next: Instruction?): Int? {
+    val reference = (this as? ReferenceInstruction)?.reference
+    return when {
+        opcode == Opcode.INVOKE_VIRTUAL && reference is MethodReference && reference.returnType == SAVED_GRID_MEDIA &&
+            reference.parameterTypes.isEmpty() && next?.opcode == Opcode.MOVE_RESULT_OBJECT ->
+            (next as OneRegisterInstruction).registerA
+        opcode == Opcode.IGET_OBJECT && reference is FieldReference && reference.type == SAVED_GRID_MEDIA &&
+            next?.opcode == Opcode.IF_EQZ && (next as OneRegisterInstruction).registerA == (this as TwoRegisterInstruction).registerA ->
+            (this as TwoRegisterInstruction).registerA
+        else -> null
+    }
 }
 
 private fun Instruction.makesRowOf(owner: String, media: Int): Boolean {
