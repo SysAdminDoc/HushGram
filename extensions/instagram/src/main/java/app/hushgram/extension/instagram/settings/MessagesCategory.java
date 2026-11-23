@@ -315,6 +315,10 @@ final class MessagesCategory {
                         L10n.t("Two quick taps on the Messages button, on the tab bar or at the top of Home, show "
                                 + "your hidden chats in your inbox after your screen lock or PIN. Two more taps hide them "
                                 + "again. Long press a chat to hide or unhide it. One tap opens Messages as usual.")));
+                messages.addPreference(toggle(context, Settings.CHAT_GROUPS, L10n.t("Chat groups"),
+                        L10n.t("Long press a chat and tap Move to group to put it in a group you name. It leaves "
+                                + "your main inbox. Long press the Messages button to show one group, or all chats. "
+                                + "Groups stay on this phone.")));
                 messages.addPreference(page.pinnedChatsRow(context));
             }
         }

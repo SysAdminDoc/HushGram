@@ -4,6 +4,8 @@
  */
 package app.hushgram.extension.instagram.direct;
 
+import android.app.Activity;
+
 import java.util.List;
 import java.util.function.BooleanSupplier;
 
@@ -23,6 +25,10 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * chat's row in the inbox. As the menu opens the patch hands over the chat's key and the name at the
  * top of the menu, then relabels the row and takes its tap. A chat the inbox shows by itself while
  * hidden chats are showing reads Unhide chat, any other Hide chat.
+ *
+ * <p>With Chat groups on ({@link ChatGroups}, discussion #838) the row reads Move to group, or Group
+ * or hide chat when the double tap is on too, and opens the chat's groups, with Hide chat or Unhide
+ * chat beside them then.
  */
 public final class HiddenChatsMenu {
     /** The menu row borrowed: Instagram builds it but nothing in the release app shows it. */
@@ -39,6 +45,13 @@ public final class HiddenChatsMenu {
     }
 
     static volatile Reader reader = HiddenChatsMenu::threadId;
+
+    /** Opens a chat's groups from its menu row, which tests swap for a stand-in. */
+    interface Grouper {
+        void open(String account, String id, String name, boolean hiding);
+    }
+
+    static volatile Grouper grouper = HiddenChatsMenu::openGroups;
 
     /** The chat whose menu is open, and its name as the menu shows it. */
     private static volatile String menuId;
@@ -100,8 +113,11 @@ public final class HiddenChatsMenu {
         try {
             if (rows == null || labels == null || !on.getAsBoolean()) return;
             int count = Math.min(rows.size(), labels.length);
+            String label = ChatGroups.switchedOn()
+                    ? L10n.t(doubleTapOn() ? "Group or hide chat" : "Move to group")
+                    : L10n.t(hidden(menuId) ? "Unhide chat" : "Hide chat");
             for (int at = 0; at < count; at++) {
-                if (isRow(rows.get(at))) labels[at] = L10n.t(hidden(menuId) ? "Unhide chat" : "Hide chat");
+                if (isRow(rows.get(at))) labels[at] = label;
             }
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.MESSAGES_LOCK, LABEL, t);
@@ -132,17 +148,33 @@ public final class HiddenChatsMenu {
             String account = ChatAccounts.active();
             String name = id.equals(menuId) && menuName != null && !menuName.trim().isEmpty()
                     ? menuName.trim() : ChatLocks.placeholder(id);
+            if (ChatGroups.switchedOn()) {
+                grouper.open(account, id, name, doubleTapOn());
+            } else {
+                toggleHidden(account, id, name);
+            }
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.MESSAGES_LOCK, TAP, t);
+            Utils.showToastShort(L10n.t("Couldn't save the chat."));
+        }
+        // Instagram's own Details row has nothing to open in a release build.
+        return true;
+    }
+
+    /** Hides the chat [id], named [name], on [account], or shows it again when it's hidden. */
+    static void toggleHidden(String account, String id, String name) {
+        try {
             if (hidden(id)) {
                 if (!HiddenChats.remove(account, id)) {
                     Utils.showToastShort(L10n.t("Couldn't save the chat."));
-                    return true;
+                    return;
                 }
                 Utils.showToastShort(L10n.f("%1$s is shown again", L10n.isolate(name)));
                 if (HiddenChats.saved(account).isEmpty()) HiddenChats.conceal();
             } else {
                 if (!HiddenChats.add(account, id, name)) {
                     Utils.showToastShort(L10n.t("Couldn't save the chat."));
-                    return true;
+                    return;
                 }
                 Utils.showToastShort(L10n.f("%1$s is hidden", L10n.isolate(name)));
             }
@@ -151,8 +183,18 @@ public final class HiddenChatsMenu {
             HookStatus.threw(FamilyNames.MESSAGES_LOCK, TAP, t);
             Utils.showToastShort(L10n.t("Couldn't save the chat."));
         }
-        // Instagram's own Details row has nothing to open in a release build.
-        return true;
+    }
+
+    /** The chat's groups over the screen in front, with Hide chat or Unhide chat beside them when [hiding]. */
+    private static void openGroups(String account, String id, String name, boolean hiding) {
+        Activity activity = Utils.getActivity();
+        if (activity == null || activity.isFinishing() || activity.isDestroyed()) {
+            Utils.showToastShort(L10n.t("Couldn't save the chat."));
+            return;
+        }
+        ChatGroups.pickFor(activity, account, id, name,
+                hiding ? () -> toggleHidden(account, id, name) : null,
+                hiding ? L10n.t(hidden(id) ? "Unhide chat" : "Hide chat") : null);
     }
 
     private static boolean hidden(String id) {
@@ -173,12 +215,18 @@ public final class HiddenChatsMenu {
         return row instanceof Enum && ROW.equals(((Enum<?>) row).name());
     }
 
+    /** The row is offered: the double tap for hidden chats or Chat groups is on. */
     private static boolean switchedOn() {
+        return doubleTapOn() || ChatGroups.switchedOn();
+    }
+
+    private static boolean doubleTapOn() {
         return Utils.settingsReady() && Settings.DOUBLE_TAP_HIDDEN_CHATS.get();
     }
 
     static void resetForTests() {
         reader = HiddenChatsMenu::threadId;
+        grouper = HiddenChatsMenu::openGroups;
         menuId = null;
         menuName = null;
     }

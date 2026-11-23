@@ -2753,6 +2753,20 @@ No app here can translate it	Không có ứng dụng dịch
 # context: Reels switch Hide reels you've seen and its summary (#830)
 Hide reels you've seen	Ẩn reel bạn đã xem
 Leaves reels you've already watched out of the Reels tab when Instagram shows them again. Reels you open from a profile or a chat still play. The last 3000 are kept on this phone.	Bỏ các reel bạn đã xem ra khỏi tab Reels khi Instagram hiển thị lại. Reel bạn mở từ trang cá nhân hoặc đoạn chat vẫn phát bình thường. 3000 reel gần nhất được lưu trên điện thoại này.
+# context: Messages switch Chat groups, its chat menu row, dialogs and toasts (discussion #838)
+Chat groups	Nhóm cuộc trò chuyện
+Long press a chat and tap Move to group to put it in a group you name. It leaves your main inbox. Long press the Messages button to show one group, or all chats. Groups stay on this phone.	Nhấn giữ một cuộc trò chuyện rồi chạm Chuyển vào nhóm để đưa nó vào nhóm do bạn đặt tên. Nó sẽ rời hộp thư chính. Nhấn giữ nút Tin nhắn để xem một nhóm hoặc tất cả cuộc trò chuyện. Nhóm được lưu trên điện thoại này.
+Move to group	Chuyển vào nhóm
+Group or hide chat	Xếp nhóm hoặc ẩn cuộc trò chuyện
+No group	Không có nhóm
+New group	Nhóm mới
+Group name	Tên nhóm
+All chats	Tất cả cuộc trò chuyện
+Showing all chats	Đang hiện tất cả cuộc trò chuyện
+Showing %1$s	Đang hiện %1$s
+%1$s is in %2$s	%1$s ở trong %2$s
+%1$s is back in your inbox	%1$s đã về hộp thư
+Long press a chat to group it	Nhấn giữ cuộc trò chuyện để xếp nhóm
 # context: Stories switch Story rings on saved posts and its summary, for posts on the Saved page (#790)
 Story rings on saved posts	Vòng tin trên bài viết đã lưu
 Posts you saved show the story ring around the author's picture, like Home does, and a tap on it opens their story. It only uses stories Instagram has already loaded.	Bài viết bạn đã lưu hiện vòng tin quanh ảnh của người đăng, giống trang chủ, và chạm vào đó sẽ mở tin của họ. Chỉ dùng các tin Instagram đã tải sẵn.

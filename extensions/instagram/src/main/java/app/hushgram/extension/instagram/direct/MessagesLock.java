@@ -705,6 +705,8 @@ public final class MessagesLock {
 
     /** Instagram left the screen: locked now, or once it's been away as long as Lock again says. */
     static void left() {
+        // A chat group shown by itself goes back to all chats (discussion #838).
+        ChatGroups.left();
         long delay = open ? lockDelay() : 0;
         if (delay > 0) {
             leftAt = SystemClock.elapsedRealtime();

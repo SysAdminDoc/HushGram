@@ -2378,6 +2378,20 @@ No app here can translate it	لا يوجد تطبيق للترجمة
 # context: Reels switch Hide reels you've seen and its summary (#830)
 Hide reels you've seen	إخفاء Reels التي شاهدتها
 Leaves reels you've already watched out of the Reels tab when Instagram shows them again. Reels you open from a profile or a chat still play. The last 3000 are kept on this phone.	يُبعد Reels التي شاهدتها من قبل عن تبويب Reels عندما يعرضها Instagram مرة أخرى. Reels التي تفتحها من ملف شخصي أو محادثة تعمل كالمعتاد. تُحفظ آخر 3000 على هذا الهاتف.
+# context: Messages switch Chat groups, its chat menu row, dialogs and toasts (discussion #838)
+Chat groups	مجموعات الدردشة
+Long press a chat and tap Move to group to put it in a group you name. It leaves your main inbox. Long press the Messages button to show one group, or all chats. Groups stay on this phone.	اضغط مطولًا على دردشة واختر نقل إلى مجموعة لتضعها في مجموعة تسمّيها بنفسك. تخرج من صندوق الوارد الرئيسي. اضغط مطولًا على زر الرسائل لإظهار مجموعة واحدة أو كل الدردشات. تبقى المجموعات على هذا الهاتف.
+Move to group	نقل إلى مجموعة
+Group or hide chat	تجميع الدردشة أو إخفاؤها
+No group	بلا مجموعة
+New group	مجموعة جديدة
+Group name	اسم المجموعة
+All chats	كل الدردشات
+Showing all chats	جارٍ إظهار كل الدردشات
+Showing %1$s	جارٍ إظهار %1$s
+%1$s is in %2$s	%1$s في %2$s
+%1$s is back in your inbox	عادت %1$s إلى صندوق الوارد
+Long press a chat to group it	اضغط مطولًا على دردشة لتجميعها
 # context: Stories switch Story rings on saved posts and its summary, for posts on the Saved page (#790)
 Story rings on saved posts	حلقات القصص في المنشورات المحفوظة
 Posts you saved show the story ring around the author's picture, like Home does, and a tap on it opens their story. It only uses stories Instagram has already loaded.	تُظهر المنشورات التي حفظتها حلقة القصة حول صورة صاحبها، كما في الرئيسية، والضغط عليها يفتح قصته. يستخدم فقط القصص التي حمّلها Instagram بالفعل.

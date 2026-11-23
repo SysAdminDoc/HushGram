@@ -1056,6 +1056,22 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_double_tap_hidden_chats", FALSE);
 
     /**
+     * Groups of chats you name yourself, kept on the phone
+     * ({@link app.hushgram.extension.instagram.direct.ChatGroups}, discussion #838): a chat's long
+     * press menu files it in one, a chat in a group leaves the main inbox, and a long press on
+     * Messages' button shows one group by itself. Off to start.
+     */
+    public static final BooleanSetting CHAT_GROUPS =
+            new BooleanSetting("hushgram_chat_groups", FALSE);
+
+    /**
+     * The chats in {@link #CHAT_GROUPS}' groups, one line each. It isn't kept while HushGram is
+     * paused, and a backup leaves it out like the hidden chats.
+     */
+    public static final StringSetting GROUPED_CHATS =
+            new StringSetting("hushgram_grouped_chats", "", false, false);
+
+    /**
      * What unlocks the messages: the phone's lock, a HushGram PIN
      * ({@link app.hushgram.extension.instagram.direct.PinLock}), or on Android 11 and up the
      * fingerprint or face alone. It isn't a switch, and a backup leaves it out, since a restored

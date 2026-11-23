@@ -4,6 +4,7 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
+* `Chat groups` is new under Messages. Long press a chat to file it in a group you name, off your main inbox. Long press the Messages button to show one group. Starts off. Asked for in discussion #838.
 * With `Swipe through a chat's reels` on, the reply bar and quick reactions keep working on reels you swipe to past the chat's loaded messages. They went dead there. Reported in #804.
 * `Story rings on saved posts` is new under Stories. Posts you saved show the story ring around the author's picture, and tapping it opens their story, like on Home. Starts off. Asked for in #790.
 * `Hide reels you've seen` is new under Reels. Reels you've already watched stay out of the Reels tab when Instagram serves them again, and the last 3000 are remembered on your phone. Starts off. Asked for in #830.

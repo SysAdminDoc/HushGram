@@ -2838,6 +2838,20 @@ No app here can translate it	Nessuna app per tradurlo
 # context: Reels switch Hide reels you've seen and its summary (#830)
 Hide reels you've seen	Nascondi i reel già visti
 Leaves reels you've already watched out of the Reels tab when Instagram shows them again. Reels you open from a profile or a chat still play. The last 3000 are kept on this phone.	Tiene fuori dalla scheda Reel i reel che hai già guardato quando Instagram li mostra di nuovo. I reel che apri da un profilo o da una chat si riproducono comunque. Gli ultimi 3000 vengono salvati su questo telefono.
+# context: Messages switch Chat groups, its chat menu row, dialogs and toasts (discussion #838)
+Chat groups	Gruppi di chat
+Long press a chat and tap Move to group to put it in a group you name. It leaves your main inbox. Long press the Messages button to show one group, or all chats. Groups stay on this phone.	Tieni premuta una chat e tocca Sposta in un gruppo per metterla in un gruppo a cui dai tu il nome. Esce dalla posta principale. Tieni premuto il pulsante Messaggi per mostrare un gruppo o tutte le chat. I gruppi restano su questo telefono.
+Move to group	Sposta in un gruppo
+Group or hide chat	Raggruppa o nascondi chat
+No group	Nessun gruppo
+New group	Nuovo gruppo
+Group name	Nome del gruppo
+All chats	Tutte le chat
+Showing all chats	Tutte le chat visibili
+Showing %1$s	Visibile: %1$s
+%1$s is in %2$s	%1$s è in %2$s
+%1$s is back in your inbox	%1$s è tornata nella posta
+Long press a chat to group it	Tieni premuta una chat per raggrupparla
 # context: Stories switch Story rings on saved posts and its summary, for posts on the Saved page (#790)
 Story rings on saved posts	Cerchi delle storie nei post salvati
 Posts you saved show the story ring around the author's picture, like Home does, and a tap on it opens their story. It only uses stories Instagram has already loaded.	I post che hai salvato mostrano il cerchio della storia attorno all'immagine dell'autore, come nella Home, e toccandolo si apre la sua storia. Usa solo le storie che Instagram ha già caricato.

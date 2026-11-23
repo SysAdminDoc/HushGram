@@ -48,6 +48,8 @@ public final class HiddenChatsTap {
 
     static volatile Buttons buttons = HiddenChatsTap::onMessagesButton;
     static volatile Consumer<Activity> opener = HiddenChatsTap::open;
+    /** Opens the chat groups list after a long press on Messages' button (discussion #838). */
+    static volatile Consumer<Activity> grouper = HiddenChatsTap::openGroups;
 
     private static WeakReference<Activity> tapActivity = new WeakReference<>(null);
     /** When the last tap on Messages' button came up, or {@link Long#MIN_VALUE} when there is none to pair. */
@@ -86,12 +88,13 @@ public final class HiddenChatsTap {
                 downTime = time;
                 downX = x;
                 downY = y;
-                if (!switchedOn()) {
+                boolean pairing = switchedOn();
+                if (!pairing && !ChatGroups.switchedOn()) {
                     forget();
                     return false;
                 }
                 HookStatus.bound(FamilyNames.MESSAGES_LOCK, "hidden chats tap");
-                if (pairsWithLastTap(activity, x, y, time)) {
+                if (pairing && pairsWithLastTap(activity, x, y, time)) {
                     forget();
                     swallowing = true;
                     return true;
@@ -115,7 +118,13 @@ public final class HiddenChatsTap {
                     }
                     return true;
                 }
-                if (onButton && !moved && time - downTime < ViewConfiguration.getLongPressTimeout()) {
+                boolean held = time - downTime >= ViewConfiguration.getLongPressTimeout();
+                if (onButton && !moved && held && ChatGroups.switchedOn()) {
+                    // A long press on Messages: the up still reaches Instagram, which opens Messages
+                    // under the list of groups.
+                    forget();
+                    grouper.accept(activity);
+                } else if (onButton && !moved && !held && switchedOn()) {
                     tapActivity = new WeakReference<>(activity);
                     tapUp = time;
                     tapX = x;
@@ -205,6 +214,18 @@ public final class HiddenChatsTap {
         });
     }
 
+    /** Once the touch is through, the chat groups list ({@link ChatGroups#pick}). */
+    private static void openGroups(Activity activity) {
+        activity.getWindow().getDecorView().post(() -> {
+            try {
+                if (activity.isFinishing() || activity.isDestroyed() || !ChatGroups.switchedOn()) return;
+                ChatGroups.pick(activity);
+            } catch (Throwable failure) {
+                HookStatus.threw(FamilyNames.MESSAGES_LOCK, ChatGroups.PICK, failure);
+            }
+        });
+    }
+
     /**
      * The hidden chats leave the inbox again when it shows them (#661). Otherwise, with none hidden
      * on the account in front, the list of hidden chats opens, which says how to hide one. With some,
@@ -232,5 +253,6 @@ public final class HiddenChatsTap {
         forget();
         buttons = HiddenChatsTap::onMessagesButton;
         opener = HiddenChatsTap::open;
+        grouper = HiddenChatsTap::openGroups;
     }
 }

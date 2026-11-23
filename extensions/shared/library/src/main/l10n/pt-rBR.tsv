@@ -2838,6 +2838,20 @@ No app here can translate it	Nenhum app pode traduzir
 # context: Reels switch Hide reels you've seen and its summary (#830)
 Hide reels you've seen	Ocultar reels que você já viu
 Leaves reels you've already watched out of the Reels tab when Instagram shows them again. Reels you open from a profile or a chat still play. The last 3000 are kept on this phone.	Tira da aba Reels os reels que você já assistiu quando o Instagram os mostra de novo. Reels que você abre de um perfil ou de uma conversa continuam tocando. Os últimos 3000 ficam salvos neste celular.
+# context: Messages switch Chat groups, its chat menu row, dialogs and toasts (discussion #838)
+Chat groups	Grupos de conversas
+Long press a chat and tap Move to group to put it in a group you name. It leaves your main inbox. Long press the Messages button to show one group, or all chats. Groups stay on this phone.	Toque e segure uma conversa e toque em Mover para um grupo para colocá-la num grupo com o nome que você quiser. Ela sai da sua caixa de entrada principal. Toque e segure o botão Mensagens para ver um grupo ou todas as conversas. Os grupos ficam neste celular.
+Move to group	Mover para um grupo
+Group or hide chat	Agrupar ou ocultar conversa
+No group	Sem grupo
+New group	Novo grupo
+Group name	Nome do grupo
+All chats	Todas as conversas
+Showing all chats	Mostrando todas as conversas
+Showing %1$s	Mostrando %1$s
+%1$s is in %2$s	%1$s está em %2$s
+%1$s is back in your inbox	%1$s voltou para a caixa de entrada
+Long press a chat to group it	Toque e segure uma conversa para agrupá-la
 # context: Stories switch Story rings on saved posts and its summary, for posts on the Saved page (#790)
 Story rings on saved posts	Anéis de stories em posts salvos
 Posts you saved show the story ring around the author's picture, like Home does, and a tap on it opens their story. It only uses stories Instagram has already loaded.	Os posts que você salvou mostram o anel do story em volta da foto do autor, como no Início, e um toque nele abre o story. Só usa stories que o Instagram já carregou.

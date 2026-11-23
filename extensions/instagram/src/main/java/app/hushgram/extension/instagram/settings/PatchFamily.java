@@ -108,7 +108,7 @@ public enum PatchFamily {
     LAST_ACTIVE(FamilyNames.LAST_ACTIVE, "lastActive", null, Settings.SHOW_LAST_ACTIVE),
     SHORT_ACTIVE_NOW(FamilyNames.SHORT_ACTIVE_NOW, "shortActiveNow", null, Settings.SHORT_ACTIVE_NOW),
     MESSAGES_LOCK(FamilyNames.MESSAGES_LOCK, "messagesLock", null, Settings.LOCK_MESSAGES, Settings.LOCK_APP,
-            Settings.LOCK_SAVED, Settings.LOCK_EACH_CHAT, Settings.DOUBLE_TAP_HIDDEN_CHATS),
+            Settings.LOCK_SAVED, Settings.LOCK_EACH_CHAT, Settings.DOUBLE_TAP_HIDDEN_CHATS, Settings.CHAT_GROUPS),
     SCREENSHOT_REPORTS(FamilyNames.SCREENSHOT_REPORTS, "screenshotReports", null, Settings.HIDE_SCREENSHOTS),
     BLEND_VISITS(FamilyNames.BLEND_VISITS, "blendVisits", null, Settings.HIDE_BLEND_VISITS),
     SCREENSHOT_BLOCK(FamilyNames.SCREENSHOT_BLOCK, "screenshotBlock", null, Settings.ALLOW_SCREENSHOTS),

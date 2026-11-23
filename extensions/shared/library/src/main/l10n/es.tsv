@@ -2838,6 +2838,20 @@ No app here can translate it	Ninguna app puede traducirlo
 # context: Reels switch Hide reels you've seen and its summary (#830)
 Hide reels you've seen	Ocultar reels que ya viste
 Leaves reels you've already watched out of the Reels tab when Instagram shows them again. Reels you open from a profile or a chat still play. The last 3000 are kept on this phone.	Deja fuera de la pestaña de Reels los reels que ya viste cuando Instagram vuelve a mostrarlos. Los reels que abres desde un perfil o un chat se siguen reproduciendo. Se guardan los últimos 3000 en este teléfono.
+# context: Messages switch Chat groups, its chat menu row, dialogs and toasts (discussion #838)
+Chat groups	Grupos de chats
+Long press a chat and tap Move to group to put it in a group you name. It leaves your main inbox. Long press the Messages button to show one group, or all chats. Groups stay on this phone.	Mantén pulsado un chat y toca Mover a un grupo para ponerlo en un grupo con el nombre que quieras. Sale de tu bandeja principal. Mantén pulsado el botón de Mensajes para ver un grupo o todos los chats. Los grupos se quedan en este teléfono.
+Move to group	Mover a un grupo
+Group or hide chat	Agrupar u ocultar chat
+No group	Sin grupo
+New group	Grupo nuevo
+Group name	Nombre del grupo
+All chats	Todos los chats
+Showing all chats	Mostrando todos los chats
+Showing %1$s	Mostrando %1$s
+%1$s is in %2$s	%1$s está en %2$s
+%1$s is back in your inbox	%1$s volvió a tu bandeja
+Long press a chat to group it	Mantén pulsado un chat para agruparlo
 # context: Stories switch Story rings on saved posts and its summary, for posts on the Saved page (#790)
 Story rings on saved posts	Aros de historias en publicaciones guardadas
 Posts you saved show the story ring around the author's picture, like Home does, and a tap on it opens their story. It only uses stories Instagram has already loaded.	Las publicaciones que guardaste muestran el aro de historia alrededor de la foto del autor, como en Inicio, y al tocarlo se abre su historia. Solo usa historias que Instagram ya cargó.

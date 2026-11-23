@@ -2841,6 +2841,20 @@ No app here can translate it	沒有可翻譯的應用程式
 # context: Reels switch Hide reels you've seen and its summary (#830)
 Hide reels you've seen	隱藏已看過的 Reels
 Leaves reels you've already watched out of the Reels tab when Instagram shows them again. Reels you open from a profile or a chat still play. The last 3000 are kept on this phone.	Instagram 再次顯示你看過的 Reels 時，不讓它們出現在 Reels 分頁。從個人檔案或聊天開啟的 Reels 仍會播放。最近 3000 則會保存在這支手機上.
+# context: Messages switch Chat groups, its chat menu row, dialogs and toasts (discussion #838)
+Chat groups	聊天群組
+Long press a chat and tap Move to group to put it in a group you name. It leaves your main inbox. Long press the Messages button to show one group, or all chats. Groups stay on this phone.	長按聊天並點「移到群組」，就能放進你自己命名的群組，它會離開主收件匣。長按訊息按鈕可顯示單一群組或所有聊天。群組只保存在這支手機上.
+Move to group	移到群組
+Group or hide chat	分組或隱藏聊天
+No group	不分組
+New group	新群組
+Group name	群組名稱
+All chats	所有聊天
+Showing all chats	正在顯示所有聊天
+Showing %1$s	正在顯示 %1$s
+%1$s is in %2$s	%1$s 已在 %2$s
+%1$s is back in your inbox	%1$s 已回到收件匣
+Long press a chat to group it	長按聊天即可分組
 # context: Stories switch Story rings on saved posts and its summary, for posts on the Saved page (#790)
 Story rings on saved posts	已儲存貼文的限時動態光圈
 Posts you saved show the story ring around the author's picture, like Home does, and a tap on it opens their story. It only uses stories Instagram has already loaded.	你儲存的貼文會像首頁一樣在作者大頭貼照周圍顯示限時動態光圈，點一下就能開啟限時動態。只會使用 Instagram 已載入的限時動態。

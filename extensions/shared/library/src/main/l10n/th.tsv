@@ -2835,6 +2835,20 @@ No app here can translate it	ไม่มีแอปที่แปลได้
 # context: Reels switch Hide reels you've seen and its summary (#830)
 Hide reels you've seen	ซ่อนรีลส์ที่ดูแล้ว
 Leaves reels you've already watched out of the Reels tab when Instagram shows them again. Reels you open from a profile or a chat still play. The last 3000 are kept on this phone.	เอารีลส์ที่คุณดูไปแล้วออกจากแท็บรีลส์เมื่อ Instagram แสดงซ้ำ รีลส์ที่เปิดจากโปรไฟล์หรือแชทยังเล่นได้ตามปกติ เก็บ 3000 รายการล่าสุดไว้ในโทรศัพท์เครื่องนี้.
+# context: Messages switch Chat groups, its chat menu row, dialogs and toasts (discussion #838)
+Chat groups	กลุ่มแชท
+Long press a chat and tap Move to group to put it in a group you name. It leaves your main inbox. Long press the Messages button to show one group, or all chats. Groups stay on this phone.	กดค้างที่แชทแล้วแตะ ย้ายไปกลุ่ม เพื่อใส่ไว้ในกลุ่มที่คุณตั้งชื่อเอง แชทนั้นจะออกจากกล่องข้อความหลัก กดปุ่มข้อความค้างไว้เพื่อแสดงกลุ่มเดียวหรือแชททั้งหมด กลุ่มจะเก็บไว้ในโทรศัพท์เครื่องนี้.
+Move to group	ย้ายไปกลุ่ม
+Group or hide chat	จัดกลุ่มหรือซ่อนแชท
+No group	ไม่มีกลุ่ม
+New group	กลุ่มใหม่
+Group name	ชื่อกลุ่ม
+All chats	แชททั้งหมด
+Showing all chats	กำลังแสดงแชททั้งหมด
+Showing %1$s	กำลังแสดง %1$s
+%1$s is in %2$s	%1$s อยู่ใน %2$s
+%1$s is back in your inbox	%1$s กลับมาในกล่องข้อความแล้ว
+Long press a chat to group it	กดค้างที่แชทเพื่อจัดกลุ่ม
 # context: Stories switch Story rings on saved posts and its summary, for posts on the Saved page (#790)
 Story rings on saved posts	วงแหวนสตอรี่ในโพสต์ที่บันทึกไว้
 Posts you saved show the story ring around the author's picture, like Home does, and a tap on it opens their story. It only uses stories Instagram has already loaded.	โพสต์ที่คุณบันทึกไว้จะแสดงวงแหวนสตอรี่รอบรูปของเจ้าของโพสต์ เหมือนในหน้าหลัก และแตะที่วงแหวนเพื่อเปิดสตอรี่ ใช้เฉพาะสตอรี่ที่ Instagram โหลดไว้แล้วเท่านั้น

@@ -111,6 +111,7 @@ public final class HiddenChats {
     /** The inbox shows the hidden chats by themselves, until {@link #conceal}. */
     static void reveal() {
         revealed = true;
+        ChatGroups.left();
         changedSoon();
     }
 
@@ -145,31 +146,87 @@ public final class HiddenChats {
     public static List<Object> inbox(Object holder, List<Object> summaries) {
         try {
             HookStatus.invoked(FamilyNames.MESSAGES_LOCK);
-            Set<String> hidden = ids();
-            List<String> pins = PinnedChats.ids();
-            boolean shown = revealed && !hidden.isEmpty();
-            remember(holder, summaries, hidden, pins, shown);
+            View view = view();
+            remember(holder, summaries, view);
             if (summaries == null || summaries.isEmpty()) return summaries;
-            return PinnedChats.first(shown ? only(summaries, hidden) : without(summaries, hidden, LEFT_OUT), pins);
+            return drawnRows(summaries, view, true);
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.MESSAGES_LOCK, FILTER, t);
             return summaries;
         }
     }
 
-    /** A new list of the summaries whose chats are [hidden], in their order. */
-    private static List<Object> only(List<Object> summaries, Set<String> hidden) {
-        ArrayList<Object> kept = new ArrayList<>();
-        for (Object summary : summaries) {
-            String id = idOf(summary);
-            if (id != null && hidden.contains(id)) kept.add(summary);
+    /**
+     * What the inbox shows of Instagram's list: the chats it leaves out, or the ones it shows by
+     * themselves, and the ones it puts first.
+     */
+    static final class View {
+        final Set<String> hidden;
+        final List<String> pins;
+        /** It shows the hidden chats by themselves. */
+        final boolean shown;
+        /** Chats in a chat group, left out while no group shows ({@link ChatGroups}). */
+        final Set<String> grouped;
+        /** The chats of the group it shows by itself, or null while it shows all chats. */
+        @Nullable final Set<String> group;
+
+        View(Set<String> hidden, List<String> pins, boolean shown, Set<String> grouped, @Nullable Set<String> group) {
+            this.hidden = hidden;
+            this.pins = pins;
+            this.shown = shown;
+            this.grouped = grouped;
+            this.group = group;
         }
-        return kept;
+
+        @Override public boolean equals(Object other) {
+            if (!(other instanceof View)) return false;
+            View that = (View) other;
+            return shown == that.shown && hidden.equals(that.hidden) && pins.equals(that.pins)
+                    && grouped.equals(that.grouped) && Objects.equals(group, that.group);
+        }
+
+        @Override public int hashCode() {
+            return Objects.hash(hidden, pins, shown, grouped, group);
+        }
     }
 
-    /** What an inbox draws from [summaries]: the hidden chats alone while [shown], else every other chat, pins first. */
-    private static List<Object> drawnRows(List<Object> summaries, Set<String> hidden, List<String> pins, boolean shown) {
-        return PinnedChats.first(shown ? only(summaries, hidden) : without(summaries, hidden, null), pins);
+    /** What the inbox shows now, for the account in front. */
+    private static View view() {
+        Set<String> hidden = ids();
+        boolean shown = revealed && !hidden.isEmpty();
+        String account = ChatAccounts.active();
+        String group = shown ? null : ChatGroups.showing(account);
+        return new View(hidden, PinnedChats.ids(), shown, ChatGroups.grouped(account),
+                group == null ? null : ChatGroups.in(account, group));
+    }
+
+    /** A new list of the summaries whose chats are [kept] and not [except], in their order. */
+    private static List<Object> only(List<Object> summaries, Set<String> kept, Set<String> except) {
+        ArrayList<Object> rows = new ArrayList<>();
+        for (Object summary : summaries) {
+            String id = idOf(summary);
+            if (id != null && kept.contains(id) && !except.contains(id)) rows.add(summary);
+        }
+        return rows;
+    }
+
+    /**
+     * What an inbox draws from [summaries]: the hidden chats alone while they're shown, a chat
+     * group's chats alone while it's shown, and else every chat neither hidden nor in a group, pins
+     * first. With [counted], what's left out is counted for the diagnostic report.
+     */
+    private static List<Object> drawnRows(List<Object> summaries, View view, boolean counted) {
+        List<Object> rows;
+        if (view.shown) {
+            rows = only(summaries, view.hidden, Collections.emptySet());
+        } else if (view.group != null) {
+            rows = only(summaries, view.group, view.hidden);
+            if (counted) HookStatus.counted(FamilyNames.MESSAGES_LOCK, ChatGroups.SHOWN);
+        } else {
+            rows = without(without(summaries, view.hidden, counted ? LEFT_OUT : null),
+                    view.grouped, counted ? ChatGroups.LEFT_OUT : null);
+        }
+        return PinnedChats.first(rows, view.pins);
     }
 
     /**
@@ -267,21 +324,16 @@ public final class HiddenChats {
     public static void redraw(Object holder, List<Object> summaries) {
     }
 
-    /** An inbox holder Instagram handed a list, that list, and the chats that were hidden from it. */
+    /** An inbox holder Instagram handed a list, that list, and what it drew of it. */
     private static final class Drawn {
         final WeakReference<Object> holder;
         final List<Object> summaries;
-        Set<String> hidden;
-        List<String> pins;
-        /** It drew the hidden chats by themselves. */
-        boolean shown;
+        View view;
 
-        Drawn(Object holder, List<Object> summaries, Set<String> hidden, List<String> pins, boolean shown) {
+        Drawn(Object holder, List<Object> summaries, View view) {
             this.holder = new WeakReference<>(holder);
             this.summaries = summaries;
-            this.hidden = hidden;
-            this.pins = pins;
-            this.shown = shown;
+            this.view = view;
         }
     }
 
@@ -289,18 +341,18 @@ public final class HiddenChats {
     private static final ArrayList<Drawn> drawn = new ArrayList<>();
 
     /**
-     * Keeps [holder] with Instagram's own list [summaries] and the chats [hidden] from it, in place of
-     * what it had. A null list forgets the holder. Nothing is kept while HushGram is paused or its
+     * Keeps [holder] with Instagram's own list [summaries] and what it draws of it, in place of what
+     * it had. A null list forgets the holder. Nothing is kept while HushGram is paused or its
      * settings aren't ready, so nothing is drawn again then either.
      */
-    private static void remember(Object holder, List<Object> summaries, Set<String> hidden, List<String> pins, boolean shown) {
+    private static void remember(Object holder, List<Object> summaries, View view) {
         if (holder == null || !Utils.settingsReady() || HushgramPause.isPaused()) return;
         synchronized (drawn) {
             for (Iterator<Drawn> it = drawn.iterator(); it.hasNext(); ) {
                 Object kept = it.next().holder.get();
                 if (kept == null || kept == holder) it.remove();
             }
-            if (summaries != null) drawn.add(new Drawn(holder, summaries, hidden, pins, shown));
+            if (summaries != null) drawn.add(new Drawn(holder, summaries, view));
         }
     }
 
@@ -319,9 +371,7 @@ public final class HiddenChats {
             List<List<Object>> lists = new ArrayList<>();
             synchronized (drawn) {
                 if (drawn.isEmpty()) return;
-                Set<String> now = ids();
-                List<String> nowPins = PinnedChats.ids();
-                boolean nowShown = revealed && !now.isEmpty();
+                View now = view();
                 for (Iterator<Drawn> it = drawn.iterator(); it.hasNext(); ) {
                     Drawn one = it.next();
                     Object holder = one.holder.get();
@@ -329,12 +379,10 @@ public final class HiddenChats {
                         it.remove();
                         continue;
                     }
-                    if (one.hidden.equals(now) && one.pins.equals(nowPins) && one.shown == nowShown) continue;
-                    List<Object> before = drawnRows(one.summaries, one.hidden, one.pins, one.shown);
-                    List<Object> after = drawnRows(one.summaries, now, nowPins, nowShown);
-                    one.hidden = now;
-                    one.pins = nowPins;
-                    one.shown = nowShown;
+                    if (one.view.equals(now)) continue;
+                    List<Object> before = drawnRows(one.summaries, one.view, false);
+                    List<Object> after = drawnRows(one.summaries, now, false);
+                    one.view = now;
                     if (sameRows(before, after)) continue;
                     holders.add(holder);
                     lists.add(after);
@@ -735,6 +783,7 @@ public final class HiddenChats {
         redrawer = HiddenChats::redraw;
         parsed = null;
         revealed = false;
+        ChatGroups.resetForTests();
         synchronized (drawn) {
             drawn.clear();
         }
