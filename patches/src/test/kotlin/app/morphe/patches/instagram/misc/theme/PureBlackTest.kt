@@ -134,10 +134,15 @@ class PureBlackTest {
                     <style name="StoryCommentColorsDark" parent="IgdsSemanticColorsDark">
                         <item name="igds_color_elevated_background">@color/bds_grey_9_95_transparent</item>
                     </style>
+                    <style name="IgdsSemanticColorsDark">
+                        <item name="igds_color_elevated_background">@color/bds_grey_9</item>
+                        <item name="igds_color_highlight_background">@color/bds_grey_9</item>
+                    </style>
                 </resources>
             """.trimIndent().byteInputStream(),
         )
 
+        // The base dark palette last: an install without Prism reads its #ff262626 (#835).
         assertEquals(DARK_SHEETS, blackenSheets(styles))
 
         val items = styles.getElementsByTagName("item").let { list ->
@@ -157,6 +162,8 @@ class PureBlackTest {
                 "igds_color_elevated_background_dark" to "@color/igds_prism_gray_1500",
                 "igds_color_elevated_background" to "@color/abc_decor_view_status_guard_light",
                 "igds_color_elevated_background" to "@color/bds_grey_9_95_transparent",
+                "igds_color_elevated_background" to PURE_BLACK_COLOR,
+                "igds_color_highlight_background" to "@color/bds_grey_9",
             ),
             items,
         )
@@ -164,8 +171,9 @@ class PureBlackTest {
     }
 
     /**
-     * The story viewer's gray goes pure black in both dark styles that set it (#279). The light
-     * theme's style, a story's other grays and the sheets, which blackenSheets owns, stay.
+     * The story viewer's gray goes pure black in each dark style that sets it (#279), the base dark
+     * palette an install without Prism reads included (#835). The light theme's style, a story's
+     * other grays and the sheets, which blackenSheets owns, stay.
      */
     @Test
     fun theDarkStoriesGetPureBlack() {
@@ -190,7 +198,11 @@ class PureBlackTest {
             """.trimIndent().byteInputStream(),
         )
 
-        assertEquals(listOf("IgdsPrismGrayOverridesDark", "IgdsPrismSemanticColorsExperimentDark"), blackenStories(styles))
+        // The base dark palette too: an install without Prism reads its gray (#835).
+        assertEquals(
+            listOf("IgdsPrismGrayOverridesDark", "IgdsPrismSemanticColorsExperimentDark", "IgdsSemanticColorsDark"),
+            blackenStories(styles),
+        )
 
         val items = styles.getElementsByTagName("item").let { list ->
             (0 until list.length).map { list.item(it) as Element }.map { it.getAttribute("name") to it.textContent }
@@ -202,7 +214,7 @@ class PureBlackTest {
                 "igds_color_creation_tools_grey_09" to "@color/igds_prism_gray_09",
                 "igds_color_stories_loading_background" to PURE_BLACK_COLOR,
                 "igds_color_stories_loading_background" to "@color/igds_prism_gray_09",
-                "igds_color_stories_loading_background" to "@color/bds_grey_9",
+                "igds_color_stories_loading_background" to PURE_BLACK_COLOR,
             ),
             items,
         )
@@ -507,11 +519,12 @@ class PureBlackTest {
     }
 
     /**
-     * On every build of Instagram 452, decoded as Manager decodes it: the three dark styles hold
-     * a sheet's gray (on the two overlays the #ff191c1f a reel's menu showed, #171) and lose it to
-     * pure black, and every other style that sets a sheet's color, the light theme's among them,
-     * keeps the one it had. The two dark styles that set the story viewer's #ff25292e (#279) lose
-     * it the same way, and the light theme's stories keep it.
+     * On every build of Instagram 452, decoded as Manager decodes it: the four dark styles hold
+     * a sheet's gray (on the two overlays the #ff191c1f a reel's menu showed, #171, and on the base
+     * palette an install without Prism reads, #ff262626, #835) and lose it to pure black, and every
+     * other style that sets a sheet's color, the light theme's among them, keeps the one it had. The
+     * three dark styles that set the story viewer's gray (#279) lose it the same way, and the light
+     * theme's stories keep it.
      */
     @Test
     fun eachBuildsDarkSheetsGoPureBlackAndEveryOtherSheetStays() {
@@ -546,7 +559,11 @@ class PureBlackTest {
                     val storiesBefore = attributeColors(res, STORY_BACKGROUND)
                     assertEquals(
                         "$code: the dark stories' gray",
-                        darkStories.associateWith { "@color/igds_prism_gray_09" },
+                        mapOf(
+                            "values/IgdsPrismSemanticColorsExperimentDark" to "@color/igds_prism_gray_09",
+                            "values/IgdsPrismGrayOverridesDark" to "@color/igds_prism_gray_09",
+                            "values/IgdsSemanticColorsDark" to "@color/bds_grey_9",
+                        ),
                         storiesBefore.filterKeys { it in darkStories },
                     )
                     assertEquals("$code: the light stories' gray", "@color/igds_prism_gray_09", storiesBefore[light])
@@ -582,8 +599,14 @@ class PureBlackTest {
                             "values/IgdsPrismSemanticColorsExperimentDark" to "@color/igds_prism_gray_10",
                             "values/IgdsPrismGrayOverridesDark" to "@color/igds_prism_gray_1500",
                             "values/IgdsElevatedBackgroundFixDark" to "@color/igds_prism_gray_1500",
+                            "values/IgdsSemanticColorsDark" to "@color/bds_grey_9",
                         ),
                         before.filterKeys { it in dark },
+                    )
+                    assertTrue(
+                        "$code: the base dark palette's sheet gray is #ff262626 (#835)",
+                        Regex("""<color name="bds_grey_9">#(ff)?262626</color>""", RegexOption.IGNORE_CASE)
+                            .containsMatchIn(File(res, "values/colors.xml").readText()),
                     )
                     assertTrue("$code: the light theme sets a sheet's color", light in before)
                     val darkLaunch = "values-night-v31/$INSTAGRAM_LAUNCH_THEME"

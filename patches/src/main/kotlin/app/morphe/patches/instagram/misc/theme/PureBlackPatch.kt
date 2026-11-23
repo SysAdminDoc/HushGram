@@ -75,12 +75,15 @@ internal val COMPOSE_PALETTES = listOf(
 internal const val SHEET_BACKGROUND = "igds_color_elevated_background"
 
 /**
- * The dark theme's styles that set [SHEET_BACKGROUND]: Prism's dark palette, and the two overlays
- * Instagram lays over it when its gray overrides are on, the last of which wins. The light theme's
- * sheets are white already and have no style here. The patch fails unless all three change.
+ * The dark theme's styles that set [SHEET_BACKGROUND]: Prism's dark palette, the two overlays
+ * Instagram lays over it when its gray overrides are on, the last of which wins, and the base dark
+ * palette Prism's inherits from. An install Instagram doesn't give Prism (a second copy from Install
+ * next to Instagram showed it) reads the base one, bds_grey_9, #ff262626 (#835). The light theme's
+ * sheets are white already and have no style here. The patch fails unless all four change.
  */
 internal val DARK_SHEETS = listOf(
     "IgdsPrismSemanticColorsExperimentDark", "IgdsPrismGrayOverridesDark", "IgdsElevatedBackgroundFixDark",
+    "IgdsSemanticColorsDark",
 )
 
 /**
@@ -91,12 +94,13 @@ internal val DARK_SHEETS = listOf(
 internal const val STORY_BACKGROUND = "igds_color_stories_loading_background"
 
 /**
- * The dark theme's styles that set [STORY_BACKGROUND]: Prism's dark palette and its gray
- * overrides. The light theme's style keeps its gray. On 453 a test account's viewer draws [PRISM_BLACK]
- * in those bands in both themes, without Pure black, and [PURE_BLACK] with it (#322). The patch fails
- * unless both change.
+ * The dark theme's styles that set [STORY_BACKGROUND]: Prism's dark palette, its gray overrides,
+ * and the base dark palette an install without Prism reads, bds_grey_9 there (#835). The light
+ * theme's style keeps its gray. On 453 a test account's viewer draws [PRISM_BLACK] in those bands
+ * in both themes, without Pure black, and [PURE_BLACK] with it (#322). The patch fails unless all
+ * three change.
  */
-internal val DARK_STORIES = listOf("IgdsPrismSemanticColorsExperimentDark", "IgdsPrismGrayOverridesDark")
+internal val DARK_STORIES = listOf("IgdsPrismSemanticColorsExperimentDark", "IgdsPrismGrayOverridesDark", "IgdsSemanticColorsDark")
 
 /**
  * The theme attribute the menu you get by holding a message or a chat in the inbox fills with
