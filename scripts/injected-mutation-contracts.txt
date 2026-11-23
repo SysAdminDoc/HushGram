@@ -4386,12 +4386,13 @@ once-call Lapp/hushgram/extension/instagram/feed/CaptionLength;->reelLines(I)I i
 # Their classes also ask CaptionLength.reelCaptionOpen right after every read of the caption-open
 # flag the render hands to String.valueOf before is_reels_caption_expanded, so the reel draws its
 # caption open in place rather than cut short with the "..." that opens the caption sheet (#821).
-# On 456.1 the TextUtils.concat render reads it seven times and its static date helper once (its
-# class alone holds caption_vertical_scroll); the ":" render six times, its text builder twice and
+# On 456.1 the TextUtils.concat render reads it seven times and its static date helper once (picked
+# by its read of the post's Media, since the ":" render's class loads caption_vertical_scroll and
+# calls concat too on 386215121 and 386215123); the ":" render six times, its text builder twice and
 # its static date helper once. Left out, a reel caption keeps Instagram's "..."; elsewhere, it
 # isn't the hook the patch wrote.
 once-call Lapp/hushgram/extension/instagram/feed/CaptionLength;->reelCaptionOpen(I)Z in instance (L*;)L*; sites 7 holding is_reels_caption_expanded Landroid/text/TextUtils;->concat([Ljava/lang/CharSequence;)Ljava/lang/CharSequence;
-once-call Lapp/hushgram/extension/instagram/feed/CaptionLength;->reelCaptionOpen(I)Z in static (L*;L*;)L*; class-holding is_reels_caption_expanded caption_vertical_scroll
+once-call Lapp/hushgram/extension/instagram/feed/CaptionLength;->reelCaptionOpen(I)Z in static (L*;L*;)L*; calling instance Lcom/instagram/feed/media/Media;->*()J class-holding is_reels_caption_expanded
 once-call Lapp/hushgram/extension/instagram/feed/CaptionLength;->reelCaptionOpen(I)Z in instance (L*;)L*; sites 6 holding is_reels_caption_expanded :
 once-call Lapp/hushgram/extension/instagram/feed/CaptionLength;->reelCaptionOpen(I)Z in instance (L*;Ljava/lang/CharSequence;Lkotlin/jvm/functions/Function1;)L*; sites 2 class-holding is_reels_caption_expanded :
 once-call Lapp/hushgram/extension/instagram/feed/CaptionLength;->reelCaptionOpen(I)Z in static (L*;L*;)L*; class-holding is_reels_caption_expanded :
