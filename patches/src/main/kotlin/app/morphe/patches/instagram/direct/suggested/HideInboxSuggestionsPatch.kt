@@ -18,11 +18,16 @@ import app.morphe.patches.instagram.misc.extension.patchLog
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
+import app.morphe.util.ControlFlow
+import app.morphe.util.addInstructionsAtControlFlowLabel
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 
 private const val PATCH = "Hide suggested accounts in DMs"
@@ -48,6 +53,19 @@ internal const val REMOVED_SUGGESTIONS = "more_suggestions_removed_users"
 /** The parameters of the method sorting More suggestions: the session and the accounts. */
 private val SUGGESTIONS_SORT = listOf("Lcom/instagram/common/session/UserSession;", "Ljava/util/List;")
 
+internal const val SEARCH_SECTIONS = "$EXTENSION_PACKAGE/direct/InboxSuggestions;->searchSections(Ljava/util/List;)V"
+
+/** More suggestions' name in the list of sections Messages search builds one after another. */
+internal const val SUGGESTED_SECTION = "SUGGESTED"
+
+/** Recent searches' name in the same list, which keeps another list naming [SUGGESTED_SECTION] from being taken for it. */
+internal const val RECENT_QUERIES = "RECENT_QUERIES"
+
+private const val STRING_EQUALS = "Ljava/lang/String;->equals(Ljava/lang/Object;)Z"
+
+/** The constants that set the walk's counters, between the last section going in and the walk's first size(). */
+private val COUNTER_SETS = setOf(Opcode.CONST_4, Opcode.CONST_16, Opcode.CONST, Opcode.CONST_HIGH16)
+
 /**
  * Leaves the section of accounts to follow out of the bottom of your messages. Included in the
  * default selection with its switch initially off, so hiding it remains the user's pick.
@@ -69,7 +87,10 @@ val hideInboxSuggestionsPatch = bytecodePatch(
     execute {
         requireStatusMethod("inboxSuggestions")
         hookInboxUnits(findInboxUnitsSet())
-        findSearchSuggestionsOrWarn()?.let { hookSearchSuggestions(it) }
+        findSearchSuggestionsOrWarn()?.let { sort ->
+            hookSearchSuggestions(sort)
+            findSearchSectionsOrWarn(sort)?.let { hookSearchSections(it) }
+        }
         enableStatus("inboxSuggestions")
     }
 }
@@ -200,6 +221,101 @@ internal fun BytecodePatchContext.hookSearchSuggestions(site: UnitsSite) {
             move-result-object v$accounts
         """,
     )
+}
+
+/** Where Messages search builds its sections: the method, the register holding its list of section names, and where the hook goes. */
+internal class SectionsSite(val type: String, val name: String, val parameters: List<String>, val returnType: String, val list: Int, val at: Int)
+
+/**
+ * Finds where Messages search builds the sections it opens on, so More suggestions goes whole,
+ * its header with its rows (#826): the one method loading [SUGGESTED_SECTION] and [RECENT_QUERIES]
+ * that calls the method at [sort]. It walks a list of section names, comparing each with equals,
+ * and the More suggestions branch calls [sort] right after the comparison picking it. The list is
+ * the one the compared name came from, a get(I) answering into the register equals was called
+ * on, and the hook goes at the start of the run of constants setting the walk's counters, right
+ * before the walk's first size() of the list, once every section is in. Fails unless that run is reached
+ * only from above, and the instructions after its start only from the one before or from the walk
+ * jumping back, so the hook runs once, ahead of the walk.
+ */
+internal fun BytecodePatchContext.findSearchSections(sort: UnitsSite): SectionsSite {
+    val sortCall = "${sort.type}->${sort.name}(${sort.parameters.joinToString("")})Ljava/util/List;"
+    val recent = classesLoadingString(RECENT_QUERIES).mapTo(HashSet()) { it.type }
+    val found = classesLoadingString(SUGGESTED_SECTION).filter { it.type in recent }.flatMap { classDef ->
+        classDef.methods.filter { method ->
+            method.implementation?.instructions?.any { it.methodReference()?.toString() == sortCall } == true &&
+                loadsString(method, SUGGESTED_SECTION) && loadsString(method, RECENT_QUERIES)
+        }.map { classDef.type to it }
+    }
+    val (type, method) = found.singleOrNull()
+        ?: refuse("expected one method naming the $SUGGESTED_SECTION and $RECENT_QUERIES sections that calls $sortCall, found ${found.size}")
+    val where = "$type->${method.name}"
+    val code = method.implementation!!.instructions.toList()
+    val calls = code.indices.filter { code[it].methodReference()?.toString() == sortCall }
+    val call = calls.singleOrNull() ?: refuse("expected $where to call $sortCall once, found ${calls.size}")
+    val equals = (call - 1 downTo 0).firstOrNull { code[it].methodReference()?.toString() == STRING_EQUALS }
+        ?: refuse("$where compares no section's name before calling $sortCall")
+    val name = code[equals].firstRegister() ?: refuse("$where calls equals on no register")
+    val gets = (0 until equals).filter { at ->
+        code[at].isListCall("get", "(I)Ljava/lang/Object;") &&
+            (code.getOrNull(at + 1) as? OneRegisterInstruction)?.let { it.opcode == Opcode.MOVE_RESULT_OBJECT && it.registerA == name } == true
+    }
+    val get = gets.singleOrNull() ?: refuse("expected $where to take the section's name v$name out of a list once, found ${gets.size}")
+    val list = code[get].firstRegister()!!
+    // The walk's first size(): the nearest one of the list before the get that follows its counters.
+    // The register may hold something else further up, the method's own size() of another list.
+    val size = (get - 1 downTo 1).firstOrNull {
+        code[it].isListCall("size", "()I") && code[it].firstRegister() == list && code[it - 1].opcode in COUNTER_SETS
+    } ?: refuse("$where sets no counter right before asking how many sections v$list holds")
+    var at = size
+    while (at > 0 && code[at - 1].opcode in COUNTER_SETS && (code[at - 1] as OneRegisterInstruction).registerA != list) at--
+    if (at == size) refuse("$where sets its counters in the sections' register v$list")
+    val flow = ControlFlow.of(method)
+    val into = Array(code.size) { mutableListOf<Int>() }
+    code.indices.forEach { from -> (flow.normal[from] + flow.exceptional[from]).forEach { into[it] += from } }
+    if (into[at].any { it >= at }) refuse("$where jumps back to instruction $at, where the hook would go")
+    for (next in at + 1..size) {
+        val stray = into[next].filter { it != next - 1 && it <= size }
+        if (stray.isNotEmpty()) refuse("$where jumps from $stray to instruction $next, past where the hook would go")
+    }
+    return SectionsSite(type, method.name, method.parameterTypes.map(CharSequence::toString), method.returnType, list, at)
+}
+
+/** Messages search's sections, or null with a warning, so More suggestions still comes up empty. */
+internal fun BytecodePatchContext.findSearchSectionsOrWarn(sort: UnitsSite): SectionsSite? = try {
+    findSearchSections(sort)
+} catch (refusal: PatchException) {
+    patchLog.warning("${refusal.message}. $PATCH empties More suggestions in Messages search but leaves its header.")
+    null
+}
+
+/**
+ * Hands the list of section names to [SEARCH_SECTIONS] where [site] says, keeping the label there
+ * on the hook, so whatever reached the walk's counters reaches the hook first.
+ */
+internal fun BytecodePatchContext.hookSearchSections(site: SectionsSite) {
+    val method = mutableClassDefBy(site.type).methods.single {
+        it.name == site.name && it.parameterTypes.map(CharSequence::toString) == site.parameters && it.returnType == site.returnType
+    }
+    method.addInstructionsAtControlFlowLabel(
+        site.at,
+        """
+            invoke-static/range { v${site.list} .. v${site.list} }, $SEARCH_SECTIONS
+        """,
+    )
+}
+
+/** A call on java.util's lists or collections, by name and descriptor. */
+private fun Instruction.isListCall(name: String, descriptor: String): Boolean {
+    val call = methodReference() ?: return false
+    return call.definingClass.startsWith("Ljava/util/") && call.name == name &&
+        "(${call.parameterTypes.joinToString("")})${call.returnType}" == descriptor
+}
+
+/** An invoke's first register, the receiver of an instance call. */
+private fun Instruction.firstRegister(): Int? = when (this) {
+    is FiveRegisterInstruction -> registerC.takeIf { registerCount > 0 }
+    is RegisterRangeInstruction -> startRegister.takeIf { registerCount > 0 }
+    else -> null
 }
 
 private fun Instruction.methodReference(): MethodReference? = (this as? ReferenceInstruction)?.reference as? MethodReference

@@ -126,6 +126,12 @@ once-call Lapp/hushgram/extension/instagram/direct/InboxSuggestions;->units(Ljav
 # SearchSuggestionsHookTest checks on each 456.1 fixture that it lands there.
 start-call Lapp/hushgram/extension/instagram/direct/InboxSuggestions;->searchSuggestions(Ljava/util/List;)Ljava/util/List; in static (Lcom/instagram/common/session/UserSession;Ljava/util/List;)Ljava/util/List; pooled holding more_suggestions_removed_users
 once-call Lapp/hushgram/extension/instagram/direct/InboxSuggestions;->searchSuggestions(Ljava/util/List;)Ljava/util/List; in static (Lcom/instagram/common/session/UserSession;Ljava/util/List;)Ljava/util/List; pooled holding more_suggestions_removed_users
+# The same patch takes More suggestions out of the search's list of section names (#826), so its
+# header goes with its rows: in the one method naming SUGGESTED, RECENT_QUERIES, UNIFIED_RECENTS
+# and FB_FRIENDS (0lm3.A05 on 386215122), once every section is in and before the walk building
+# them sets its counters. Left out, an empty More suggestions header stays with the switch on;
+# twice or elsewhere, it isn't the hook the patch wrote. SearchSuggestionsHookTest checks the spot.
+once-call Lapp/hushgram/extension/instagram/direct/InboxSuggestions;->searchSections(Ljava/util/List;)V in instance (*)V pooled holding SUGGESTED RECENT_QUERIES UNIFIED_RECENTS FB_FRIENDS
 # Hide Instants (#59) asks Instants.hide() first in Instagram's one Instants check (01vZ.A0T on 452),
 # the static (UserSession, boolean) method answering a boolean from two rollout flags. It holds no
 # string, so the rules pick it by the flag the patch looks for. Left out, Instants stay with the

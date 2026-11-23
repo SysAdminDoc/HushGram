@@ -27,7 +27,8 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * elsewhere. The patch hands the list to {@link #units} as the inbox starts building the section,
  * and while the switch is on a list led by Accounts to follow is answered with an empty one, so
  * the section isn't built. A list led by any other unit goes through, and follow requests stay.
- * The same switch empties More suggestions in Messages search through {@link #searchSuggestions}.
+ * The same switch empties More suggestions in Messages search through {@link #searchSuggestions},
+ * and {@link #searchSections} takes the section out of the search, its header too.
  *
  * <p>The hook fails open: with the switch off, HushGram paused, the settings not read yet or
  * anything thrown, Instagram gets its own list.
@@ -42,8 +43,12 @@ public final class InboxSuggestions {
     static final String SECTION = "accounts to follow";
     static final String SEARCH = "More suggestions in search";
 
+    /** The name Messages search gives More suggestions in its list of the sections it builds. */
+    static final String SUGGESTED = "SUGGESTED";
+
     private static volatile boolean logged;
     private static volatile boolean searchLogged;
+    private static volatile boolean sectionLogged;
 
     private InboxSuggestions() {
     }
@@ -101,6 +106,31 @@ public final class InboxSuggestions {
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.INBOX_SUGGESTIONS, SEARCH, failure);
             return people;
+        }
+    }
+
+    /**
+     * Injected where Messages search has its list of section names, every one in, just before it
+     * builds the sections one after another. Takes More suggestions ({@link #SUGGESTED}) out of the
+     * list while the switch is on, so neither its header nor its rows are built. The list stays as
+     * it is with the switch off, HushGram paused, or anything thrown. Never throws.
+     */
+    public static void searchSections(List<?> sections) {
+        searchSections(sections, InboxSuggestions::switchedOn);
+    }
+
+    static void searchSections(List<?> sections, BooleanSupplier on) {
+        if (sections == null || !sections.contains(SUGGESTED)) return;
+        try {
+            HookStatus.invoked(FamilyNames.INBOX_SUGGESTIONS);
+            if (!on.getAsBoolean()) return;
+            sections.removeAll(Collections.singleton(SUGGESTED));
+            if (!sectionLogged) {
+                sectionLogged = true;
+                Logger.printDebug(() -> "Inbox suggestions: left the More suggestions section out of Messages search");
+            }
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.INBOX_SUGGESTIONS, SEARCH, failure);
         }
     }
 
