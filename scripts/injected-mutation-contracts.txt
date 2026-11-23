@@ -554,9 +554,12 @@ once-call Lapp/hushgram/extension/instagram/direct/ViewOnceMark;->mark(Landroid/
 # once in the showReplyBar that turns the flag into visible or gone (merged into the controller's
 # superclass with the Spotlight reply bar's on 450, so the marker picks the method), and once in the
 # controller's onViewCreated, which calls Instagram's hide when the flag is set. Neither comes first
-# in its method, so both are shared-call, and no other method asks the hook (#177). On 456 the show
-# keeps only the Spotlight reply bar's marker, and the onViewCreated is the one naming its bar.
-shared-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideDirectReplyBar(Ljava/lang/Object;)Z in instance ()V holding android_purge_26_q3_ClipsViewerSpotlightReplyBarController_showReplyBar
+# in its method, so both are shared-call, and no other method asks the hook (#177). On 456 the
+# onViewCreated is the one naming its bar. The show is merged with the Spotlight bar's behind an
+# instance-of on 456.1's arm64 and x86 builds (0URS.A19 on 386215122), but 386215121 (armeabi-v7a)
+# keeps the controller's own override (0F8a.A1A) beside the Spotlight bar's, which holds the marker
+# alone, so the rule picks the show by the view id it hands the visibility setter, which only it loads.
+shared-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideDirectReplyBar(Ljava/lang/Object;)Z in instance ()V holding const:0x9fecd20e
 shared-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideDirectReplyBar(Ljava/lang/Object;)Z in instance (Landroid/view/View;Landroid/os/Bundle;)V pooled holding ReelsDirectReplyBar
 # Hide the Save button on reels asks hideSaveButton() first thing in the clips UFI method that builds
 # the reel Save button, and hideSaveCount() first thing in the one that builds the save count under
@@ -1135,8 +1138,11 @@ once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->replyInfo(Ljava/l
 # some builds and merges another viewer's bar into it on others, so the hint's names are left open. Left
 # out, the banner never shows; twice or elsewhere, it shows for some other reel. On 456 the select lives in
 # the superclass (0I4X.GAC on 386214574) behind an instance-of, merged with the Spotlight bar's, and
-# holds only that bar's markers.
-next-call Lapp/hushgram/extension/instagram/direct/ChatReelsNotice;->page(Ljava/lang/Object;I)V after LX/*;->*(I)V in instance (II)V holding android_purge_26_q3_ClipsViewerSpotlightReplyBarController_onPageSelected
+# holds only that bar's markers. 456.1's 386215121 (armeabi-v7a) keeps the controller's own select
+# (0F8a.GAN) beside the Spotlight bar's, which holds the markers alone, and its select holds no string.
+# On every 456.1 build the select is the one method of its shape that calls the controller's static
+# A0H right after the hint update, a name Redex keeps on all five, so that call picks it.
+next-call Lapp/hushgram/extension/instagram/direct/ChatReelsNotice;->page(Ljava/lang/Object;I)V after LX/*;->*(I)V in instance (II)V holding LX/*;->A0H(LX/*;)V LX/*;->*(I)V
 # Stop after the chat's reels answers every read of the viewer config's refresh permission (A3G on
 # 453's 385914557, #390) through ChatReels.refresh: twice in the Reels tab adapter's fragment for a
 # position (0Idq.A00), once in the pager setup holding its trace name (01WS.A0j), the refresh
@@ -1845,9 +1851,11 @@ shared-call Lapp/hushgram/extension/instagram/download/StoryDownload;->save(Ljav
 # Two older dialogs' click listeners look the tapped label up in the labels themselves, and ask
 # save() right after the lookup: the one for a suggested-users card, and a merged listener whose
 # story case sits beside the ones holding the other two strings (on 450 the second is the delete-all
-# confirmation's, since the first case's own string is pooled).
+# confirmation's, since the first case's own string is pooled). 456.1's 386215121 (armeabi-v7a)
+# merges the remove-story case into another listener (0hc8) than the story case's (0aCc), so the
+# merged one is picked by the message of its fallback case, which every 456.1 build keeps in it alone.
 shared-call Lapp/hushgram/extension/instagram/download/StoryDownload;->save(Ljava/lang/CharSequence;Ljava/lang/Object;)Z in instance (Landroid/content/DialogInterface;I)V holding recommended_user_see_fewer_suggestions_tapped
-shared-call Lapp/hushgram/extension/instagram/download/StoryDownload;->save(Ljava/lang/CharSequence;Ljava/lang/Object;)Z in instance (Landroid/content/DialogInterface;I)V holding ig_school_story_spp_remove_story_tapped
+shared-call Lapp/hushgram/extension/instagram/download/StoryDownload;->save(Ljava/lang/CharSequence;Ljava/lang/Object;)Z in instance (Landroid/content/DialogInterface;I)V holding NONE\sdialog\sdoes\snot\sexist\sand\sshould\snot\sbe\sclicked
 #
 # Download any video: the feed menu's builder, one case of a merged lambda holding the feed menu's
 # kept name, calls offer() once, where the rows for anyone else's post start. The feed menu's
@@ -3127,15 +3135,18 @@ once-call Lapp/hushgram/extension/instagram/reels/ReelPostTime;->noClick()Landro
 # On 456 the binder (0TJ0.invoke on 386214574) builds the tag through a static helper of its own
 # (0EIA.A01, the one method loading clips_scrubber_), so its rules name the two scrubber view tags
 # it still asks the string pool for, which no other lambda of its shape asks for.
+# 456.1's 386215123 (x86) merges the scrubber config's builder into a switch over its lambdas, a
+# static (LX/*;I)Object (0Jb8.A02), where one case reads every flag below and each hook follows its
+# read in that case, so the merged builder's rules leave the parameters after the first open.
 once-call Lapp/hushgram/extension/instagram/reels/ReelSeekBar;->minSeconds(J)J in static (Lcom/instagram/common/session/UserSession;JZZ)Z holding const:0x8208b900291365 const:0x8208b9000f1364
 once-call Lapp/hushgram/extension/instagram/reels/ReelSeekBar;->minSeconds(J)J in static (Lcom/instagram/common/session/UserSession;JZ)Z holding const:0x8208b900291365
-once-call Lapp/hushgram/extension/instagram/reels/ReelSeekBar;->minSeconds(J)J in static (LX/*;)Ljava/lang/Object; holding const:0x8208b900291365 const:0x8208b9000f1364
+once-call Lapp/hushgram/extension/instagram/reels/ReelSeekBar;->minSeconds(J)J in static (LX/*;*)Ljava/lang/Object; holding const:0x8208b900291365 const:0x8208b9000f1364
 once-call Lapp/hushgram/extension/instagram/reels/ReelSeekBar;->lazy(I)Z in static (Lcom/instagram/clips/intf/ClipsViewerConfig;L*;L*;Lcom/instagram/common/session/UserSession;Z)L*; holding const:0x8108b9001031f3
 # Hide the seek bar on reels (#680) needs the sideways drag that brings the hidden kind back, so the
 # scrubber config's builder (the merged 0JBj.A01 above) hands both of its reads of whether that drag is
 # on (the universal one and the attached one) to ReelSeekBar.passThrough, one call each, right after
 # the read. No other method of Instagram's loads either flag.
-once-call Lapp/hushgram/extension/instagram/reels/ReelSeekBar;->passThrough(I)Z in static (LX/*;)Ljava/lang/Object; sites 2 holding const:0x8108b9001431f6 const:0x8108b9001131f4
+once-call Lapp/hushgram/extension/instagram/reels/ReelSeekBar;->passThrough(I)Z in static (LX/*;*)Ljava/lang/Object; sites 2 holding const:0x8108b9001431f6 const:0x8108b9001131f4
 start-call Lapp/hushgram/extension/instagram/reels/ReelSeekBar;->progress(Landroid/widget/SeekBar;I)V in instance (Landroid/widget/SeekBar;IZ)V holding Lcom/instagram/ui/mediaactions/VideoScrubberSeekBar;->A01:Landroid/widget/SeekBar$OnSeekBarChangeListener;
 once-call Lapp/hushgram/extension/instagram/reels/ReelSeekBar;->progress(Landroid/widget/SeekBar;I)V in instance (Landroid/widget/SeekBar;IZ)V holding Lcom/instagram/ui/mediaactions/VideoScrubberSeekBar;->A01:Landroid/widget/SeekBar$OnSeekBarChangeListener;
 once-call Lapp/hushgram/extension/instagram/reels/ReelSeekBar;->bind(Ljava/lang/Object;I)V in instance (Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; pooled holding clips_attached_scrubber_keyframe_chapters_text_preview_view_tag clips_in_stream_ad_scrubber_thumbnail_view_tag
@@ -3328,11 +3339,13 @@ once-call Lapp/hushgram/extension/instagram/reels/ReelOrigin;->postsTileBound(Lj
 # which pushes the profile onto its tab, and the other feeds' (08NA.Fhr), which open it in an
 # activity; each is told by that call. The activity launch takes (Activity, Bundle, X, Class, String)
 # on 386214574 and 386214562 but only (Activity, Bundle, X) on 386214575 (023W.A0W, called from
-# 0HPI.Fi6), so its rule leaves the parameters after the third open. Left out, a feed reel is never
-# held; twice or elsewhere, it isn't the hook the patch wrote. FeedReelHeaderHookTest checks on every
-# 456 build where each lands.
+# 0HPI.Fi6), so its rule leaves the parameters after the third open. 456.1's 386215121 (armeabi-v7a)
+# and 386215123 (x86) build the launch in place, a new LX/*; and its constructor taking the same
+# (Activity, Bundle, X, Class, String) (016Q.<init> in 0G7Z.Fi3 on 386215121), so that rule takes any
+# call and any return. Left out, a feed reel is never held; twice or elsewhere, it isn't the hook the
+# patch wrote. FeedReelHeaderHookTest checks on every 456 build where each lands.
 once-call Lapp/hushgram/extension/instagram/reels/ReelOrigin;->openingFromFeed(Ljava/lang/Object;)V in instance (Ljava/lang/Object;)V calling static LX/*;->*(Landroidx/fragment/app/Fragment;Lcom/instagram/common/session/UserSession;LX/*;Ljava/lang/String;Ljava/lang/String;)V pooled holding media_username
-once-call Lapp/hushgram/extension/instagram/reels/ReelOrigin;->openingFromFeed(Ljava/lang/Object;)V in instance (Ljava/lang/Object;)V calling static LX/*;->*(Landroid/app/Activity;Landroid/os/Bundle;LX/*;*)LX/*; pooled holding media_username
+once-call Lapp/hushgram/extension/instagram/reels/ReelOrigin;->openingFromFeed(Ljava/lang/Object;)V in instance (Ljava/lang/Object;)V calling LX/*;->*(Landroid/app/Activity;Landroid/os/Bundle;LX/*;*)* pooled holding media_username
 # A tap on the post's name reaches neither: it goes through Instagram's labelled feed header profile
 # open (00QE.A06 on 386214574, and its static twin 00QE.A04), so each of the two hands its Media
 # parameter to openingFromFeed first. Left out, a name tap on a feed reel holds nothing.
