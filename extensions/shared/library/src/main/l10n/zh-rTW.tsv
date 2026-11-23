@@ -1438,6 +1438,7 @@ On a carousel, the download icon saves all of its pages at once instead of askin
 Hide reels by caption words	依說明文字隱藏 Reels
 Also on Home	同時套用至首頁
 Leaves out posts on Home whose caption holds a word or phrase from the list too. Pull down on Home to refresh after changing it.	也略過首頁中說明文字包含清單字詞或片語的貼文。變更後請下拉重新整理首頁。
+Leaves out posts on Home that use a hidden sound too. Pull down on Home to refresh after changing it.	也略過首頁中使用隱藏音訊的貼文。變更後請下拉重新整理首頁。
 Leaves out reels in the Reels tab whose caption holds a word or phrase from the list below. A reel you open yourself still plays.	略過 Reels 分頁中說明文字包含下方清單字詞或片語的 Reels。你自行開啟的 Reel 仍會播放。
 Blocked words	封鎖字詞
 Words or phrases, with a comma or a new line between them. Capital letters don't matter, a hashtag works too, and an @name hides that account's posts.	以逗號或換行分隔字詞或片語。不區分大小寫，也可使用主題標籤，輸入 @名稱 則會隱藏該帳號的貼文。

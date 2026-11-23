@@ -463,6 +463,11 @@ final class ReelsCategory {
                     L10n.t("Puts a music icon beside a reel. Tap it and the Reels tab skips other reels using that "
                             + "sound. Tap it again to bring them back.")));
             reels.add(page.hiddenSoundsRow(context));
+            if (PatchFamily.feedTypesInBuild()) {
+                reels.add(toggle(context, Settings.HIDE_SOUND_HOME, L10n.t("Also on Home"),
+                        L10n.t("Leaves out posts on Home that use a hidden sound too. "
+                                + "Pull down on Home to refresh after changing it.")));
+            }
             reels.add(toggle(context, Settings.TEXT_BUTTON_ON_REELS, L10n.t("Copy text button on reels"),
                     L10n.t("Puts a Lens icon beside a reel. Tap it and Google Lens opens on what's showing, so you "
                             + "can select and copy its text.")));

@@ -102,6 +102,7 @@ public class DownloadSettingsTest {
         Settings.REEL_NOT_INTERESTED_BUTTON.resetToDefault();
         Settings.REEL_BLOCK_BUTTON.resetToDefault();
         Settings.HIDE_SOUND_REELS.resetToDefault();
+        Settings.HIDE_SOUND_HOME.resetToDefault();
         Settings.TEXT_BUTTON_ON_REELS.resetToDefault();
         Settings.SPEED_BUTTON_ON_REELS.resetToDefault();
         Settings.FULL_SCREEN_BUTTON_ON_REELS.resetToDefault();
@@ -259,6 +260,37 @@ public class DownloadSettingsTest {
             assertEquals(-1, indexOfKey(rows, Settings.HIDE_SOUND_REELS.key));
             assertEquals(-1, indexOfKey(rows, HushgramPreferenceFragment.HIDDEN_SOUNDS_ROW));
             assertFalse(ConfigurationBackup.eligible().containsKey(Settings.HIDE_SOUND_REELS.key));
+        }
+    }
+
+    /**
+     * Also on Home (#822) sits right under the Hidden sounds row with Home's reads in the build, off
+     * to start and waiting for Hide reels by sound. It goes in a settings file, and a build without
+     * Home's reads has neither the row nor the key.
+     */
+    @Test
+    public void alsoOnHomeSitsUnderHiddenSoundsWithHomesReadsInTheBuild() {
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.REEL_DOWNLOAD, PatchFamily.FEED_SUGGESTIONS);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            HushgramPreferenceFragment page = pageIn(controller);
+            PreferenceGroup reels = section(page.getPreferenceScreen(), "Reels");
+            Preference row = reels.findPreference(Settings.HIDE_SOUND_HOME.key);
+            assertTrue("Also on Home isn't under Reels", row instanceof SwitchPreference);
+            assertEquals("Also on Home", String.valueOf(row.getTitle()));
+            assertTrue(String.valueOf(row.getSummary()).contains("hidden sound"));
+            assertFalse("it starts off", ((SwitchPreference) row).isChecked());
+            List<Preference> rows = rowsOf(page);
+            assertEquals(indexOfKey(rows, HushgramPreferenceFragment.HIDDEN_SOUNDS_ROW) + 1, indexOfKey(rows, Settings.HIDE_SOUND_HOME.key));
+            assertFalse("it waits for Hide reels by sound", row.isEnabled());
+            ((SwitchPreference) page.findPreference(Settings.HIDE_SOUND_REELS.key)).setChecked(true);
+            ShadowLooper.idleMainLooper();
+            assertTrue(row.isEnabled());
+            assertTrue(ConfigurationBackup.eligible().containsKey(Settings.HIDE_SOUND_HOME.key));
+        }
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.REEL_DOWNLOAD);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            assertEquals(-1, indexOfKey(rowsOf(pageIn(controller)), Settings.HIDE_SOUND_HOME.key));
+            assertFalse(ConfigurationBackup.eligible().containsKey(Settings.HIDE_SOUND_HOME.key));
         }
     }
 

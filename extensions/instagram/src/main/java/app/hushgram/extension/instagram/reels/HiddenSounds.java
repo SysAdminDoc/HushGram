@@ -205,6 +205,15 @@ public final class HiddenSounds {
         return ids;
     }
 
+    /**
+     * The hidden sounds' ids for Home's posts (#822): only while Also on Home is on as well, and
+     * none while paused, off or before the settings are read.
+     */
+    public static Set<String> homeWhenOn() {
+        if (!Utils.settingsReady() || !Settings.HIDE_SOUND_HOME.get()) return Collections.emptySet();
+        return hiddenWhenOn();
+    }
+
     /** The hidden sounds as you chose them, paused or not, in the order added. Never throws. */
     public static List<Sound> saved() {
         try {

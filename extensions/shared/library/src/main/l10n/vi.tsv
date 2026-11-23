@@ -1410,6 +1410,7 @@ On a carousel, the download icon saves all of its pages at once instead of askin
 Hide reels by caption words	Ẩn reel theo từ trong chú thích
 Also on Home	Cả trên trang chủ
 Leaves out posts on Home whose caption holds a word or phrase from the list too. Pull down on Home to refresh after changing it.	Cũng bỏ các bài viết trên trang chủ có chú thích chứa từ hoặc cụm từ trong danh sách. Hãy kéo xuống trên trang chủ để làm mới sau khi thay đổi.
+Leaves out posts on Home that use a hidden sound too. Pull down on Home to refresh after changing it.	Cũng bỏ các bài viết trên trang chủ dùng âm thanh bị ẩn. Hãy kéo xuống trên trang chủ để làm mới sau khi thay đổi.
 Leaves out reels in the Reels tab whose caption holds a word or phrase from the list below. A reel you open yourself still plays.	Bỏ các reel trong tab Reels có chú thích chứa từ hoặc cụm từ trong danh sách bên dưới. Reel bạn tự mở vẫn phát.
 Blocked words	Từ bị chặn
 Words or phrases, with a comma or a new line between them. Capital letters don't matter, a hashtag works too, and an @name hides that account's posts.	Các từ hoặc cụm từ, cách nhau bằng dấu phẩy hoặc dòng mới. Không phân biệt chữ hoa, hashtag cũng được, và @tên sẽ ẩn bài viết của tài khoản đó.

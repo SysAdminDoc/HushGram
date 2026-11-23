@@ -4650,6 +4650,13 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting HIDE_SOUND_REELS = new BooleanSetting("hushgram_hide_sound_reels", FALSE);
 
     /**
+     * Under {@link #HIDE_SOUND_REELS}: Home's posts using a hidden sound go too, through the same
+     * per-item filter as the post type switches (#822). Off to start.
+     */
+    public static final BooleanSetting HIDE_SOUND_HOME =
+            new BooleanSetting("hushgram_hide_sound_home", FALSE, parent(HIDE_SOUND_REELS));
+
+    /**
      * A Lens icon in the column beside a reel that sends what the reel shows to Google Lens, so its
      * text can be copied (#303). Starts off, so the column stays Instagram's own.
      */

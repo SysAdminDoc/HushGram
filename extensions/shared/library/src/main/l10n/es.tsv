@@ -1453,6 +1453,7 @@ On a carousel, the download icon saves all of its pages at once instead of askin
 Hide reels by caption words	Ocultar reels por palabras del texto
 Also on Home	También en Inicio
 Leaves out posts on Home whose caption holds a word or phrase from the list too. Pull down on Home to refresh after changing it.	Quita también de Inicio las publicaciones cuyo texto contiene una palabra o frase de la lista. Desliza Inicio hacia abajo para actualizar después de cambiarlo.
+Leaves out posts on Home that use a hidden sound too. Pull down on Home to refresh after changing it.	Quita también de Inicio las publicaciones que usan un sonido oculto. Desliza Inicio hacia abajo para actualizar después de cambiarlo.
 Leaves out reels in the Reels tab whose caption holds a word or phrase from the list below. A reel you open yourself still plays.	Quita de la pestaña Reels los reels cuyo texto contiene una palabra o frase de la lista de abajo. Un reel que abras tú sigue reproduciéndose.
 Blocked words	Palabras bloqueadas
 Words or phrases, with a comma or a new line between them. Capital letters don't matter, a hashtag works too, and an @name hides that account's posts.	Palabras o frases, separadas por una coma o un salto de línea. Las mayúsculas no importan, un hashtag también sirve, y un @nombre oculta las publicaciones de esa cuenta.
