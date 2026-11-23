@@ -47,6 +47,7 @@ public class FollowIconTest {
 
     private ActivityController<Activity> controller;
     private FrameLayout screen;
+    private LinearLayout barLayout;
     private LinearLayout buttons;
     private ImageView bell;
     private ImageView menu;
@@ -65,8 +66,12 @@ public class FollowIconTest {
         Activity activity = controller.get();
         screen = new FrameLayout(activity);
         FrameLayout bar = new FrameLayout(activity);
-        LinearLayout barLayout = new LinearLayout(activity);
-        barLayout.addView(new TextView(activity), new LinearLayout.LayoutParams(0, 120, 1f));
+        barLayout = new LinearLayout(activity);
+        TextView title = new TextView(activity);
+        title.setId(View.generateViewId());
+        title.setText("national_geographic_kids");
+        barLayout.addView(title, new LinearLayout.LayoutParams(0, 120, 1f));
+        FollowIcon.titleIdForTests = title.getId();
         buttons = new LinearLayout(activity);
         buttonsId = View.generateViewId();
         buttons.setId(buttonsId);
@@ -122,6 +127,7 @@ public class FollowIconTest {
         assertFalse(FollowIcon.anyShown());
         assertFalse(FriendshipChip.anyShown());
         FollowIcon.buttonsIdForTests = 0;
+        FollowIcon.titleIdForTests = 0;
         FriendshipChip.followersCountIdForTests = 0;
         HookStatus.clear();
         controller.close();
@@ -236,6 +242,43 @@ public class FollowIconTest {
         assertSame(added, buttons.getChildAt(3));
         assertSame(FollowIcon.iconIn(buttons), buttons.getChildAt(2));
         assertSame(menu, buttons.getChildAt(1));
+    }
+
+    /** Lays the whole top bar out across a 1080 pixel screen, the username taking what the buttons leave. */
+    private void layOutBar() {
+        for (int pass = 0; pass < 2; pass++) {
+            barLayout.measure(View.MeasureSpec.makeMeasureSpec(1080, View.MeasureSpec.EXACTLY),
+                    View.MeasureSpec.makeMeasureSpec(147, View.MeasureSpec.EXACTLY));
+            barLayout.layout(0, 0, 1080, 147);
+            ShadowLooper.idleMainLooper();
+        }
+    }
+
+    /**
+     * A business profile's bar holds more buttons before the menu (natgeo's on 456.1, where the icon left the
+     * username 4 pixels): once a layout leaves the username too little room, the icon keeps only a little side room.
+     * The window is a phone's 1080 pixels too, since the activity lays the bar out at its own width first.
+     */
+    @Test
+    @Config(qualifiers = "w1080dp-h1920dp")
+    public void aCrowdedBarGivesTheUsernameItsRoomBack() {
+        float density = controller.get().getResources().getDisplayMetrics().density;
+        FriendshipStatus.besidePronouns(pronouns, new Profile(false, null));
+        layOutBar();
+        assertIcon(false);
+        assertEquals("a roomy bar keeps the usual side room", Math.round(FollowIcon.SIDE_DP * density),
+                FollowIcon.iconIn(buttons).getPaddingLeft());
+        assertFalse(FollowIcon.squeezed(buttons));
+
+        for (int added = 0; added < 6; added++) buttons.addView(button(controller.get(), "Button " + added), 0);
+        layOutBar();
+        ImageView icon = FollowIcon.iconIn(buttons);
+        assertNotNull(icon);
+        assertEquals("a crowded bar gets the narrow icon", Math.round(FollowIcon.TIGHT_SIDE_DP * density), icon.getPaddingLeft());
+        assertEquals(icon.getPaddingLeft(), icon.getPaddingRight());
+        assertSame("still just before the menu", icon, buttons.getChildAt(buttons.getChildCount() - 2));
+        assertSame(menu, buttons.getChildAt(buttons.getChildCount() - 1));
+        assertFalse(((FollowBadge) icon.getDrawable()).followsYou);
     }
 
     @Test

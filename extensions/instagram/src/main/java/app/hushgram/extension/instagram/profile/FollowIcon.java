@@ -12,6 +12,7 @@ import android.view.ViewGroup;
 import android.view.ViewParent;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.TextView;
 
 import androidx.annotation.Nullable;
 
@@ -38,6 +39,11 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * <p>Instagram can fill the row again after the header is bound, as it sets the bar up, so the row's
  * layout listener puts the icon back, or back in its place, whenever it isn't there.
  *
+ * <p>The row takes its room from the username beside it. A business profile's bar can hold four
+ * buttons before the menu (natgeo's on 456.1), and with the icon at its usual width the username
+ * there was left 4 pixels wide. So when a layout leaves the username narrower than its text, or than
+ * {@link #TITLE_ROOM_DP} for a long one, the icon drops most of its side room for that bar.
+ *
  * <p>Runs on the main thread, where Instagram binds the header.
  */
 final class FollowIcon {
@@ -49,6 +55,12 @@ final class FollowIcon {
     static final float SIZE_DP = 22f;
     /** The room on each side of it, which keeps it as far from the menu as the bar's buttons are apart. */
     static final float SIDE_DP = 12f;
+    /** The room on each side of it in a bar that leaves the username too little. */
+    static final float TIGHT_SIDE_DP = 2f;
+    /** The top bar's username, by name. */
+    static final String TITLE = "action_bar_title";
+    /** How much of a long username the bar should keep before the icon gets narrower for it. */
+    static final float TITLE_ROOM_DP = 64f;
 
     /** How far up from the pronouns slot the top bar is looked for. */
     private static final int MAX_DEPTH = 14;
@@ -59,6 +71,10 @@ final class FollowIcon {
     static int buttonsIdForTests;
     /** The row's id in this app, or -1 before the first lookup. */
     private static volatile int buttonsId = -1;
+    /** Set by tests that have no Instagram resources: the username's id. */
+    static int titleIdForTests;
+    /** The username's id in this app, or -1 before the first lookup. */
+    private static volatile int titleId = -1;
 
     /**
      * The rows showing an icon. A row goes with its screen: its [Mark] holds it and the header only
@@ -139,6 +155,30 @@ final class FollowIcon {
         return buttonsId;
     }
 
+    private static int titleId(Context context) {
+        if (titleIdForTests != 0) return titleIdForTests;
+        if (titleId == -1) titleId = context.getResources().getIdentifier(TITLE, "id", Utils.resourcePackage(context));
+        return titleId;
+    }
+
+    /**
+     * Whether the bar [row] is in, laid out with the icon in it, leaves the username narrower than its text, or than
+     * {@link #TITLE_ROOM_DP} when its text is longer, squeezed to nothing included. False when there's no username to
+     * measure or it isn't laid out yet.
+     */
+    static boolean squeezed(ViewGroup row) {
+        if (iconIn(row) == null || !(row.getParent() instanceof View)) return false;
+        int id = titleId(row.getContext());
+        if (id == 0) return false;
+        View title = ((View) row.getParent()).findViewById(id);
+        if (!(title instanceof TextView) || !title.isLaidOut()) return false;
+        TextView name = (TextView) title;
+        float text = name.getPaint().measureText(String.valueOf(name.getText()))
+                + name.getTotalPaddingLeft() + name.getTotalPaddingRight();
+        float room = TITLE_ROOM_DP * row.getResources().getDisplayMetrics().density;
+        return name.getWidth() + 1 < Math.min(text, room);
+    }
+
     /** The icon in [row], or null. */
     @Nullable
     static ImageView iconIn(ViewGroup row) {
@@ -155,10 +195,15 @@ final class FollowIcon {
         return Math.max(0, buttons - 1);
     }
 
-    /** Whether [row] shows [mark]'s icon in its place, with the right badge. */
+    /** The room on each side of [mark]'s icon in [row]'s bar, in pixels. */
+    private static int side(ViewGroup row, Mark mark) {
+        return Math.round((mark.tight ? TIGHT_SIDE_DP : SIDE_DP) * row.getResources().getDisplayMetrics().density);
+    }
+
+    /** Whether [row] shows [mark]'s icon in its place, with the right badge and side room. */
     private static boolean placed(ViewGroup row, Mark mark) {
         ImageView icon = iconIn(row);
-        if (icon == null || row.indexOfChild(icon) != spot(row, icon)) return false;
+        if (icon == null || row.indexOfChild(icon) != spot(row, icon) || icon.getPaddingLeft() != side(row, mark)) return false;
         Drawable drawable = icon.getDrawable();
         return drawable instanceof FollowBadge && ((FollowBadge) drawable).followsYou == mark.followsYou;
     }
@@ -172,12 +217,12 @@ final class FollowIcon {
             icon = new ImageView(context);
             icon.setTag(TAG);
             icon.setScaleType(ImageView.ScaleType.CENTER);
-            int side = Math.round(SIDE_DP * context.getResources().getDisplayMetrics().density);
-            icon.setPadding(side, 0, side, 0);
             icon.setOnClickListener(mark);
         } else {
             row.removeView(icon);
         }
+        int side = side(row, mark);
+        icon.setPadding(side, 0, side, 0);
         icon.setImageDrawable(new FollowBadge(context, mark.followsYou, SIZE_DP));
         String label = FriendshipStatus.text(mark.followsYou);
         icon.setContentDescription(label);
@@ -192,6 +237,8 @@ final class FollowIcon {
     private static final class Mark implements View.OnLayoutChangeListener, View.OnClickListener {
         private final WeakReference<ViewGroup> row;
         boolean followsYou;
+        /** Set once a layout left the username too little room: the icon keeps {@link #TIGHT_SIDE_DP} on this bar. */
+        boolean tight;
         WeakReference<Object> header = new WeakReference<>(null);
 
         Mark(ViewGroup row) {
@@ -203,7 +250,9 @@ final class FollowIcon {
                                    int oldLeft, int oldTop, int oldRight, int oldBottom) {
             try {
                 ViewGroup at = row.get();
-                if (at == null || SHOWN.get(at) != this || placed(at, this)) return;
+                if (at == null || SHOWN.get(at) != this) return;
+                if (!tight && squeezed(at)) tight = true;
+                if (placed(at, this)) return;
                 // Not while the row is laid out: on the next pass, if it's still this row's icon.
                 at.post(() -> {
                     try {
