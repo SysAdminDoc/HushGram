@@ -31,7 +31,10 @@ import org.robolectric.annotation.Config;
 import org.robolectric.annotation.GraphicsMode;
 import org.robolectric.shadows.ShadowLooper;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import app.hushgram.extension.instagram.settings.Settings;
@@ -55,6 +58,9 @@ public class HeldMessageBlurTest {
     private static final int ACTIONS_ID = 0x7f000012;
     private static final int TAG_ID = 0x7f000013;
     private static final int LIST_ID = 0x7f000014;
+    private static final int REACTIONS_ID = 0x7f000015;
+    private static final int MENU_ITEM_ID = 0x7f000016;
+    private static final int COMPOSER_ID = 0x7f000017;
     private static final int MATCH = ViewGroup.LayoutParams.MATCH_PARENT;
 
     @Rule public final SettingsContextRule settings = new SettingsContextRule();
@@ -141,6 +147,7 @@ public class HeldMessageBlurTest {
     @After
     public void restore() {
         HeldMessageBlur.forget();
+        HeldMessageBlur.windowsForTests = null;
         GlassChat.idsForTests = null;
         resetAll();
     }
@@ -298,6 +305,113 @@ public class HeldMessageBlurTest {
         HeldMessageBlur.check(activity);
         assertFalse(blurred(rows[0]));
         assertFalse(blurred(background));
+    }
+
+    /** Nothing over the held message: it stays where it is. */
+    @Test
+    public void aMessageNothingCoversStaysPut() {
+        Rect bubble = new Rect(100, 200, 400, 300);
+        List<Rect> covers = Arrays.asList(new Rect(0, 320, 720, 420), new Rect(0, 450, 400, 900));
+        float[] move = HeldMessageBlur.place(bubble, 100, 1500, covers, 8);
+        assertEquals(0f, move[0], 0f);
+        assertEquals(1f, move[1], 0f);
+    }
+
+    /** The menu over the held message (#828): it goes to the nearest stretch of the chat with room, at full size. */
+    @Test
+    public void aCoveredMessageGoesToTheNearestStretchWithRoom() {
+        Rect bubble = new Rect(100, 1100, 400, 1210);
+        Rect reactions = new Rect(30, 300, 700, 500);
+        Rect menu = new Rect(100, 520, 560, 1380);
+        // Above the reactions: 108 to 292, below the menu: 1388 to 1592. Below is nearer.
+        float[] move = HeldMessageBlur.place(bubble, 100, 1600, Arrays.asList(reactions, menu), 8);
+        assertEquals(1388f - 1100f, move[0], 0f);
+        assertEquals(1f, move[1], 0f);
+
+        // A menu reaching nearly the bottom leaves only the stretch above the reactions tall enough.
+        Rect low = new Rect(100, 520, 560, 1500);
+        move = HeldMessageBlur.place(bubble, 100, 1600, Arrays.asList(reactions, low), 8);
+        assertEquals(292f - 110f - 1100f, move[0], 0f);
+        assertEquals(1f, move[1], 0f);
+    }
+
+    /** A cover beside the message, not over it, takes no room from it. */
+    @Test
+    public void aCoverBesideTheMessageLeavesItsRoom() {
+        Rect bubble = new Rect(600, 1000, 700, 1100);
+        Rect menu = new Rect(100, 520, 560, 1380);
+        Rect reactions = new Rect(30, 950, 700, 1050);
+        float[] move = HeldMessageBlur.place(bubble, 100, 1500, Arrays.asList(menu, reactions), 8);
+        // Only the reactions stand in its way: just below them is nearest.
+        assertEquals(1058f - 1000f, move[0], 0f);
+        assertEquals(1f, move[1], 0f);
+    }
+
+    /** No stretch tall enough: it shrinks into the middle of the tallest, never below the smallest scale. */
+    @Test
+    public void aTallMessageShrinksIntoTheTallestStretch() {
+        Rect bubble = new Rect(100, 600, 600, 1400);
+        Rect reactions = new Rect(30, 300, 700, 500);
+        Rect menu = new Rect(100, 520, 560, 1380);
+        float[] move = HeldMessageBlur.place(bubble, 100, 1500, Arrays.asList(reactions, menu), 8);
+        // The tallest stretch is above the reactions, 108 to 292: 184 of the message's 800, under the smallest scale.
+        assertEquals(HeldMessageBlur.SMALLEST, move[1], 0f);
+        assertEquals(200f - 1000f, move[0], 0f);
+
+        float[] none = HeldMessageBlur.place(bubble, 100, 1500,
+                Collections.singletonList(new Rect(0, 0, 720, 1600)), 8);
+        assertEquals("no room anywhere: it stays", 0f, none[0], 0f);
+        assertEquals(1f, none[1], 0f);
+    }
+
+    /** Held low in the chat, under the menu: it slides clear as the blur fades in, and back as it fades out. */
+    @Test
+    @Config(sdk = 37)
+    public void aMessageUnderTheMenuSlidesIntoViewAndBack() {
+        Settings.HELD_MESSAGE_BLUR.save(true);
+        Map<String, Integer> ids = new HashMap<>(GlassChat.idsForTests);
+        ids.put(HeldMessageBlur.REACTIONS, REACTIONS_ID);
+        ids.put(HeldMessageBlur.MENU_ITEM, MENU_ITEM_ID);
+        ids.put(HeldMessageBlur.COMPOSER, COMPOSER_ID);
+        GlassChat.idsForTests = ids;
+        composer.setId(COMPOSER_ID);
+        FrameLayout menu = new FrameLayout(activity);
+        View item = new View(activity);
+        item.setId(MENU_ITEM_ID);
+        menu.addView(item, new FrameLayout.LayoutParams(MATCH, 100));
+        FrameLayout.LayoutParams menuAt = new FrameLayout.LayoutParams(400, 600);
+        menuAt.topMargin = 640;
+        root.addView(menu, menuAt);
+        HeldMessageBlur.windowsForTests = Arrays.asList(activity.getWindow().getDecorView(), menu);
+        hold(rows[2]);
+        View reactions = new View(activity);
+        reactions.setId(REACTIONS_ID);
+        FrameLayout.LayoutParams reactionsAt = new FrameLayout.LayoutParams(MATCH, 100);
+        reactionsAt.topMargin = 520;
+        actions.addView(reactions, reactionsAt);
+        layout();
+        Rect before = HeldMessageBlur.shownRect(rows[2]);
+
+        HeldMessageBlur.step(activity, 1_000L);
+        HeldMessageBlur.step(activity, 1_000L + HeldMessageBlur.FADE_MS);
+        Rect after = HeldMessageBlur.shownRect(rows[2]);
+        assertEquals("the same size", before.height(), after.height());
+        assertTrue("moved: " + after, after.top != before.top);
+        for (View cover : new View[] {reactions, menu, composer}) {
+            assertFalse(cover + " no longer over it: " + after, Rect.intersects(after, HeldMessageBlur.shownRect(cover)));
+        }
+        assertEquals(1f, rows[2].getTranslationZ(), 0f);
+        assertEquals("the others stay", 0f, rows[1].getTranslationY(), 0f);
+
+        actions.setVisibility(View.GONE);
+        HeldMessageBlur.step(activity, 2_000L);
+        HeldMessageBlur.step(activity, 2_000L + HeldMessageBlur.FADE_MS / 2);
+        float half = rows[2].getTranslationY();
+        assertTrue("part way back: " + half, half != 0f && Math.abs(half) < Math.abs(after.top - before.top));
+        HeldMessageBlur.step(activity, 2_000L + HeldMessageBlur.FADE_MS);
+        assertEquals(0f, rows[2].getTranslationY(), 0f);
+        assertEquals(0f, rows[2].getTranslationZ(), 0f);
+        assertEquals(1f, rows[2].getScaleY(), 0f);
     }
 
     /** Before Android 12 there's no blur to give, so nothing is touched. */

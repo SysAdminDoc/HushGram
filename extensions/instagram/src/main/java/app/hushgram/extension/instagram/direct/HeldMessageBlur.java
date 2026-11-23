@@ -17,6 +17,7 @@ import android.os.SystemClock;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
+import android.view.inspector.WindowInspector;
 
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
@@ -49,6 +50,13 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * from the root down to the held row, and the other rows. The frame holding the reactions and actions is passed
  * over, so they stay sharp too. The blur fades in and out over {@link #FADE_MS}.
  *
+ * <p>Instagram doesn't move the held message. When it sits low in the chat, the menu of actions (a popup window of
+ * its own, found among the app's windows by its rows' id, {@link #MENU_ITEM}) and the reactions above it
+ * ({@link #REACTIONS}) cover it, so you can't see what you're reacting to (#828). While the blur shows, the held
+ * row slides to the nearest spot in the list where neither covers it, above the reactions or below the menu,
+ * and shrinks when no spot is tall enough ({@link #place}). It slides back with the fade, and its own
+ * translation and scale come back as they were.
+ *
  * <p>Off, Android before 12, no Rect or no row under it, paused or anything thrown: nothing blurs, and every
  * render effect written here is taken off again.
  */
@@ -63,6 +71,15 @@ public final class HeldMessageBlur {
     /** The tag AndroidX keeps a screen on its view by, and the argument holding the screen's view model. */
     static final String FRAGMENT_TAG = "fragment_container_view_tag";
     static final String VIEW_MODEL = "MESSAGE_ACTIONS_VIEW_MODEL_KEY";
+
+    /** The reactions over a held message, in the actions screen's view, and each row of the menu of actions. */
+    static final String REACTIONS = "reactions_container";
+    static final String MENU_ITEM = "context_menu_item";
+    /** The room kept, in dp, between a held message moved into view and what it was moved clear of. */
+    static final float ROOM_DP = 8f;
+    /** The smallest a held message shrinks to when no spot in the chat is tall enough for it. */
+    static final float SMALLEST = 0.3f;
+    static final String COUNT_MOVED = "held messages moved into view";
 
     /** How often the frame is looked for while none is known, so a feed isn't searched every frame. */
     static final long SEARCH_EVERY_MS = GlassChat.SEARCH_EVERY_MS;
@@ -86,6 +103,13 @@ public final class HeldMessageBlur {
     private static float fadeFrom;
     private static float fadeTo;
     private static long fadeStart;
+    /** Where the held message was on screen when it was held, before any move, or null. */
+    @Nullable private static Rect heldAt;
+    /** The row moved into view, and its own translation, scale, pivot and elevation from before the move. */
+    private static WeakReference<View> moved = new WeakReference<>(null);
+    private static final float[] movedFrom = new float[6];
+    /** The views of the app's windows, for tests, in place of the platform's list. */
+    @Nullable static volatile List<View> windowsForTests;
 
     private HeldMessageBlur() {
     }
@@ -141,6 +165,7 @@ public final class HeldMessageBlur {
         if (level != was) {
             for (View each : new ArrayList<>(blurred.keySet())) apply(each, level);
         }
+        if (row != null) keepInView(activity, actions, row, level);
         if (level == 0f && fadeTo == 0f) {
             clear();
             return;
@@ -191,6 +216,8 @@ public final class HeldMessageBlur {
         // Another message held while the last one's blur is on or fading: its row may be blurred, so start over
         // at the strength showing now.
         clearEffects();
+        forgetMove();
+        heldAt = heldRect(activity, actions);
         heldFor = new WeakReference<>(actions);
         held = new WeakReference<>(row);
         HookStatus.invoked(FamilyNames.GLASS_CHAT);
@@ -359,9 +386,168 @@ public final class HeldMessageBlur {
         return fadeFrom + (fadeTo - fadeFrom) * eased;
     }
 
+    /**
+     * Moves the held [row] clear of the reactions, the menu and the message bar while they cover where it was held,
+     * [level] of the way there as the blur fades. Read while [actions] shows, so a menu that opens a frame late
+     * still counts. While it's gone, the last move fades back out with the blur.
+     */
+    @RequiresApi(Build.VERSION_CODES.S)
+    static void keepInView(Activity activity, @Nullable View actions, View row, float level) {
+        Rect bubble = heldAt;
+        if (bubble == null) return;
+        if (actions != null && fadeTo > 0f) {
+            List<Rect> covers = new ArrayList<>();
+            Rect reactions = shownRect(actions.findViewById(GlassChat.id(activity, REACTIONS)));
+            if (reactions != null) covers.add(reactions);
+            Rect menu = menuRect(activity);
+            if (menu != null) covers.add(menu);
+            Rect composer = shownRect(activity.findViewById(GlassChat.id(activity, COMPOSER)));
+            if (composer != null) covers.add(composer);
+            ViewParent parent = row.getParent();
+            Rect area = parent instanceof View ? shownRect((View) parent) : null;
+            if (area == null) return;
+            int room = Math.round(ROOM_DP * row.getResources().getDisplayMetrics().density);
+            float[] to = place(bubble, area.top, area.bottom, covers, room);
+            if ((to[0] != 0f || to[1] != 1f) && (moveTo[0] == 0f && moveTo[1] == 1f)) {
+                HookStatus.counted(FamilyNames.GLASS_CHAT, COUNT_MOVED);
+            }
+            moveTo[0] = to[0];
+            moveTo[1] = to[1];
+        }
+        boolean still = moveTo[0] == 0f && moveTo[1] == 1f;
+        if (moved.get() != row) {
+            if (still) return;
+            putBack();
+            int[] at = new int[2];
+            row.getLocationOnScreen(at);
+            movedFrom[0] = row.getTranslationY();
+            movedFrom[1] = row.getScaleX();
+            movedFrom[2] = row.getScaleY();
+            movedFrom[3] = row.getPivotX();
+            movedFrom[4] = row.getPivotY();
+            movedFrom[5] = row.getTranslationZ();
+            moved = new WeakReference<>(row);
+            row.setPivotX(bubble.exactCenterX() - at[0]);
+            row.setPivotY(bubble.exactCenterY() - at[1]);
+        }
+        float scale = 1f + (moveTo[1] - 1f) * level;
+        row.setTranslationY(movedFrom[0] + moveTo[0] * level);
+        row.setScaleX(movedFrom[1] * scale);
+        row.setScaleY(movedFrom[2] * scale);
+        // Drawn over the rows after it in the list when it slides down onto them.
+        row.setTranslationZ(movedFrom[5] + (level > 0f ? 1f : 0f));
+    }
+
+    /** Where the move of the held message is going: how far down, in pixels, and its scale. */
+    private static final float[] moveTo = {0f, 1f};
+
+    /** The message bar under the chat, which a message moved down into view stays above. */
+    static final String COMPOSER = "message_composer_bar";
+
+    /**
+     * How far to move, and how much to shrink, the held message [bubble], in screen pixels, so none of [covers] sits
+     * over it, keeping inside [top] to [bottom], the chat's list on screen, and [room] clear of each: {0, 1} when
+     * nothing covers it. The nearest stretch tall enough wins. With none tall enough, it shrinks into the middle of
+     * the tallest, never under {@link #SMALLEST}.
+     */
+    static float[] place(Rect bubble, int top, int bottom, List<Rect> covers, int room) {
+        float[] stay = {0f, 1f};
+        if (bubble.isEmpty() || bottom <= top) return stay;
+        boolean covered = false;
+        for (Rect each : covers) {
+            if (Rect.intersects(each, bubble)) {
+                covered = true;
+                break;
+            }
+        }
+        if (!covered) return stay;
+        List<int[]> free = new ArrayList<>();
+        free.add(new int[] {top + room, bottom - room});
+        for (Rect each : covers) {
+            if (each.right <= bubble.left || each.left >= bubble.right) continue;
+            int from = each.top - room;
+            int to = each.bottom + room;
+            List<int[]> next = new ArrayList<>();
+            for (int[] span : free) {
+                if (to <= span[0] || from >= span[1]) {
+                    next.add(span);
+                    continue;
+                }
+                if (from > span[0]) next.add(new int[] {span[0], from});
+                if (to < span[1]) next.add(new int[] {to, span[1]});
+            }
+            free = next;
+        }
+        int height = bubble.height();
+        int nearest = Integer.MAX_VALUE;
+        int[] tallest = null;
+        for (int[] span : free) {
+            int length = span[1] - span[0];
+            if (tallest == null || length > tallest[1] - tallest[0]) tallest = span;
+            if (length < height) continue;
+            int move = Math.max(span[0], Math.min(bubble.top, span[1] - height)) - bubble.top;
+            if (Math.abs(move) < Math.abs(nearest)) nearest = move;
+        }
+        if (nearest != Integer.MAX_VALUE) return new float[] {nearest, 1f};
+        if (tallest == null || tallest[1] <= tallest[0]) return stay;
+        float scale = Math.max(SMALLEST, (tallest[1] - tallest[0]) / (float) height);
+        return new float[] {(tallest[0] + tallest[1]) / 2f - bubble.exactCenterY(), scale};
+    }
+
+    /** Where [view] is on screen while it shows and has a size, or null. */
+    @Nullable
+    static Rect shownRect(@Nullable View view) {
+        if (view == null || !view.isShown() || view.getWidth() <= 0 || view.getHeight() <= 0) return null;
+        int[] at = new int[2];
+        view.getLocationOnScreen(at);
+        return new Rect(at[0], at[1], at[0] + view.getWidth(), at[1] + view.getHeight());
+    }
+
+    /**
+     * Where the menu of a held message's actions is on screen, or null: the window of this app's, other than the
+     * activity's own, that holds a menu row and shows.
+     */
+    @Nullable
+    @RequiresApi(Build.VERSION_CODES.Q)
+    static Rect menuRect(Activity activity) {
+        int id = GlassChat.id(activity, MENU_ITEM);
+        if (id == 0) return null;
+        View decor = activity.getWindow().getDecorView();
+        List<View> windows = windowsForTests;
+        if (windows == null) windows = WindowInspector.getGlobalWindowViews();
+        for (View each : windows) {
+            if (each == null || each == decor || each.findViewById(id) == null) continue;
+            Rect found = shownRect(each);
+            if (found != null) return found;
+        }
+        return null;
+    }
+
+    /** Puts the moved row's own translation, scale, pivot and elevation back. */
+    static void putBack() {
+        View row = moved.get();
+        moved = new WeakReference<>(null);
+        if (row == null) return;
+        row.setTranslationY(movedFrom[0]);
+        row.setScaleX(movedFrom[1]);
+        row.setScaleY(movedFrom[2]);
+        row.setPivotX(movedFrom[3]);
+        row.setPivotY(movedFrom[4]);
+        row.setTranslationZ(movedFrom[5]);
+    }
+
+    /** Puts the moved row back and forgets where it was going. */
+    private static void forgetMove() {
+        putBack();
+        moveTo[0] = 0f;
+        moveTo[1] = 1f;
+    }
+
     /** Takes every render effect written here off at once, and forgets the held message. */
     static void clear() {
         clearEffects();
+        forgetMove();
+        heldAt = null;
         heldFor = new WeakReference<>(null);
         held = new WeakReference<>(null);
         level = 0f;
