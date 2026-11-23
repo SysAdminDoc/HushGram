@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 
 import app.hushgram.extension.instagram.download.InstagramMedia;
+import app.hushgram.extension.instagram.reels.ReelAutoScroll;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.instagram.settings.SettingsStatus;
@@ -244,6 +245,39 @@ public class StopLoopingTest {
         assertFalse(StopLooping.offersRow(false));
     }
 
+    /**
+     * Auto scroll left on once isn't auto scroll moving Reels on now (#829). With Keep Reels auto
+     * scroll on's switch off and Instagram's own check answering off, a reel in the Reels viewer stops
+     * at its end and its menu offers Loop this video, though the last choice remembered is on. Once
+     * the check answers on, the reel loops for the scroller and the row goes again.
+     */
+    @Test
+    @Config(shadows = Built.class)
+    public void aRememberedAutoScrollAloneDoesNotKeepReelsLooping() {
+        StopLooping.autoScrollsForTests = null;
+        StopLooping.reelsForTests = true;
+        Built.reelAutoScroll = true;
+        Settings.KEEP_REEL_AUTO_SCROLL.save(false);
+        Settings.REEL_AUTO_SCROLL_ON.save(true);
+        ReelAutoScroll.forgetForTests();
+        try {
+            assertFalse("Instagram's answer is off", ReelAutoScroll.answer(0));
+            assertFalse(StopLooping.autoScrolls());
+            assertFalse(StopLooping.loop(player, 1));
+            assertTrue(StopLooping.offersRow(true));
+
+            assertTrue("Instagram's answer is on", ReelAutoScroll.answer(1));
+            assertTrue(StopLooping.autoScrolls());
+            assertTrue(StopLooping.loop(player, 1));
+            assertFalse(StopLooping.offersRow(true));
+        } finally {
+            Built.reelAutoScroll = false;
+            ReelAutoScroll.forgetForTests();
+            Settings.KEEP_REEL_AUTO_SCROLL.resetToDefault();
+            Settings.REEL_AUTO_SCROLL_ON.resetToDefault();
+        }
+    }
+
     /** Unticking Loop this video in Three-dot menu items leaves the row off reels and feed videos (#707). */
     @Test
     @Config(shadows = Built.class)
@@ -317,10 +351,13 @@ public class StopLoopingTest {
     public static class Built {
         static boolean stopLooping = true;
         static boolean menuItems;
+        static boolean reelAutoScroll;
 
         @Implementation protected static boolean stopLooping() { return stopLooping; }
 
         @Implementation protected static boolean menuItems() { return menuItems; }
+
+        @Implementation protected static boolean reelAutoScroll() { return reelAutoScroll; }
     }
 
     /** A post here is its media ID, as a String. */

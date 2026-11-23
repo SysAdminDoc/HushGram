@@ -15,6 +15,7 @@ import java.util.WeakHashMap;
 
 import app.hushgram.extension.instagram.download.InstagramMedia;
 import app.hushgram.extension.instagram.feed.MenuItems;
+import app.hushgram.extension.instagram.reels.ReelAutoScroll;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.instagram.settings.SettingsStatus;
@@ -287,15 +288,17 @@ public final class StopLooping {
 
     /**
      * Whether Reels moves on by itself when a reel ends: Move on when a reel ends, or Instagram's own
-     * auto scroll as Keep Reels auto scroll on last saw it. Both need that patch in the build.
+     * auto scroll as it is now, the last answer Instagram got (#829). The choice Keep Reels auto
+     * scroll on remembers isn't enough: it stays on after auto scroll is turned off with the switch
+     * off, and then Loop this video was gone with nothing moving the reel on. Both need that patch in
+     * the build.
      */
     static boolean autoScrolls() {
         Boolean forced = autoScrollsForTests;
         if (forced != null) {
             return forced;
         }
-        return SettingsStatus.reelAutoScroll()
-                && (Settings.REEL_AUTO_ADVANCE.get() || Settings.REEL_AUTO_SCROLL_ON.savedValue());
+        return SettingsStatus.reelAutoScroll() && ReelAutoScroll.scrolling();
     }
 
     private static boolean inReels(Object player) {

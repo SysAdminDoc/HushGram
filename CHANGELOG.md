@@ -5,6 +5,7 @@ Every HushGram release, newest first.
 ## Unreleased
 
 * HushGram's settings are now in Arabic, thanks to hamedhani1998 in #817. It's a first draft, so if you read Arabic and a line sounds off, open an issue with the better wording.
+* `Loop this video` is back in the three-dot menu in the Reels tab, and reels stop at their end again once auto scroll is off. An auto scroll choice remembered from earlier kept both away. Reported in #829.
 
 ## 0.0.22 (2026-11-22)
 
