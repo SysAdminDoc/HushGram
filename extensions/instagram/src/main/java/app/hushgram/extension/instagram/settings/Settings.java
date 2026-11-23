@@ -620,6 +620,13 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_feed_seek_bar_time_left", FALSE, parent(FEED_SEEK_TIME));
 
     /**
+     * The time over the feed seek bar sits in the bottom start corner, under Instagram's tags button,
+     * instead of over the bar's middle (#711). Read as the bar updates. Off to start.
+     */
+    public static final BooleanSetting FEED_SEEK_TIME_UNDER_TAGS =
+            new BooleanSetting("hushgram_feed_seek_bar_time_under_tags", FALSE, parent(FEED_SEEK_TIME));
+
+    /**
      * A double tap on the left or right third of the video playing in a feed moves it back or ahead
      * {@link #FEED_DOUBLE_TAP_SKIP_SECONDS} instead of liking the post (#562,
      * {@link app.hushgram.extension.instagram.feed.FeedDoubleTapSkip}). Off to start.

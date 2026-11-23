@@ -309,6 +309,8 @@ final class FeedCategory {
             feed.addPreference(toggle(context, Settings.FEED_SEEK_TIME_LEFT, L10n.t("Show the time left"),
                     L10n.t("The time on the seek bar counts down what's left of the video, like -0:33 / 0:45. "
                             + "A tap on the time switches back.")));
+            feed.addPreference(toggle(context, Settings.FEED_SEEK_TIME_UNDER_TAGS, L10n.t("Time under the tags button"),
+                    L10n.t("Puts the time in the corner under the tags button instead of the middle of the bar.")));
             feed.addPreference(toggle(context, Settings.FEED_DOUBLE_TAP_SKIP, L10n.t("Double tap to skip on feed videos"),
                     L10n.t("Double tap the left side of the video playing in a feed to go back, or the right side to go "
                             + "ahead, as far as Skip length says. A double tap in the middle works as before.")));

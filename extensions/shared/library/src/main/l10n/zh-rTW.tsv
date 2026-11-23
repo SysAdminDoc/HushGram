@@ -2542,6 +2542,10 @@ Shows the time played and the video's length over the seek bar on feed videos, l
 Show the time left	顯示剩餘時間
 # context: Summary of Show the time left; -0:33 / 0:45 is an example time, keep the digits and the minus sign as they are (#711)
 The time on the seek bar counts down what's left of the video, like -0:33 / 0:45. A tap on the time switches back.	拖曳列上的時間改為倒數影片剩餘的時間，例如 -0:33 / 0:45。點一下時間即可切換回來.
+# context: Feed settings: a switch under Time on the seek bar that moves the time from the middle of the bar to the corner under Instagram's tags button (#711)
+Time under the tags button	時間顯示在標註按鈕下方
+# context: Summary of Time under the tags button (#711)
+Puts the time in the corner under the tags button instead of the middle of the bar.	把時間放在標註按鈕下方的角落，而不是拖曳列中間.
 # context: Feed settings: a switch under Tap a feed video to pause it that keeps any tap on a feed video from opening Reels (#706)
 Taps on feed videos stay in the feed	點擊動態影片時留在動態
 # context: Summary of Taps on feed videos stay in the feed; Tap a feed video to pause it is the switch above it, use its translation (#706)

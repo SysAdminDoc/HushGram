@@ -876,7 +876,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                             || Settings.SEEK_BAR_SHAPE.key.equals(key)
                             || Settings.FEED_SEEK_SHAPE.key.equals(key)
                             || Settings.FEED_DOUBLE_TAP_SKIP_SECONDS.key.equals(key)
-                            || Settings.FEED_SEEK_TIME.key.equals(key) || Settings.FEED_SEEK_TIME_LEFT.key.equals(key));
+                            || Settings.FEED_SEEK_TIME.key.equals(key) || Settings.FEED_SEEK_TIME_LEFT.key.equals(key)
+                            || Settings.FEED_SEEK_TIME_UNDER_TAGS.key.equals(key));
                     belongs |= family == PatchFamily.REEL_DOUBLE_TAP_SKIP
                             && Settings.DOUBLE_TAP_SKIP_REELS_SECONDS.key.equals(key);
                     belongs |= family == PatchFamily.FEED_AUTO_SCROLL && Settings.FEED_AUTO_SCROLL_SECONDS.key.equals(key);

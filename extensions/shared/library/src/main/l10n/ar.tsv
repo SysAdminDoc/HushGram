@@ -2084,6 +2084,10 @@ The sounds you hid with the music icon. Uncheck one to see its reels again.	ال
 The status bar only	شريط الحالة فقط
 The tab bar keeps Instagram's order.	يحافظ شريط التبويبات على ترتيب Instagram.
 The time on the seek bar counts down what's left of the video, like -0:33 / 0:45. A tap on the time switches back.	الوقت على شريط التقدّم يعدّ تنازليًا لما تبقّى من الفيديو، مثل -0:33 / 0:45. النقر على الوقت يعيد العرض.
+# context: Feed settings: a switch under Time on the seek bar that moves the time from the middle of the bar to the corner under Instagram's tags button (#711)
+Time under the tags button	الوقت تحت زر الإشارات
+# context: Summary of Time under the tags button (#711)
+Puts the time in the corner under the tags button instead of the middle of the bar.	يضع الوقت في الزاوية تحت زر الإشارات بدلًا من منتصف الشريط.
 The top of Home goes back to your header text, or to Instagram's logo.	أعلى الصفحة الرئيسية يعيد نص الترويسة الخاص بك، أو شعار Instagram.
 The top of Home says %1$s.	أعلى الصفحة الرئيسية يعرض %1$s.
 The top of Home shows %1$s. Tap to pick another.	أعلى الصفحة الرئيسية يعرض %1$s. انقر لاختيار غيره.

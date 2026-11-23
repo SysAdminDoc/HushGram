@@ -264,6 +264,7 @@ public final class ConfigurationBackup {
             settings.put(Settings.FEED_DOUBLE_TAP_SKIP_SECONDS.key, Settings.FEED_DOUBLE_TAP_SKIP_SECONDS);
             settings.put(Settings.FEED_SEEK_TIME.key, Settings.FEED_SEEK_TIME);
             settings.put(Settings.FEED_SEEK_TIME_LEFT.key, Settings.FEED_SEEK_TIME_LEFT);
+            settings.put(Settings.FEED_SEEK_TIME_UNDER_TAGS.key, Settings.FEED_SEEK_TIME_UNDER_TAGS);
         }
         if (PatchFamily.REEL_DOUBLE_TAP_SKIP.inBuild()) {
             settings.put(Settings.DOUBLE_TAP_SKIP_REELS_SECONDS.key, Settings.DOUBLE_TAP_SKIP_REELS_SECONDS);

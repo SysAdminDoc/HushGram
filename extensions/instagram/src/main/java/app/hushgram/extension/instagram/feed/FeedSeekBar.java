@@ -370,8 +370,8 @@ public final class FeedSeekBar {
             int barState = wanted() ? View.VISIBLE : View.GONE;
             if (seek.getVisibility() != barState) seek.setVisibility(barState);
             if (barState == View.GONE) dragging = false;
-            showTime(frame, view, seek);
             ViewGroup row = buttonRow(frame);
+            showTime(frame, view, seek, row);
             int lift = barState == View.VISIBLE && row != null ? barHeight(view, seek) + clearOfTime(row, view) : 0;
             lift(row, lift);
             showButton(frame, view, row, lift);
@@ -418,9 +418,11 @@ public final class FeedSeekBar {
         /**
          * Puts the time over the middle of the bar in [frame], or takes it away while its switch is off
          * or the bar is hidden (#711). It sits in the middle, under Instagram's tags and sound buttons,
-         * so a tags button that slides out wide over the middle still doesn't cover it.
+         * so a tags button that slides out wide over the middle still doesn't cover it. With Time under the
+         * tags button on, it sits in the bottom start corner instead, lined up with the first button of
+         * Instagram's [row] ({@link #cornerStart}).
          */
-        private void showTime(FrameLayout frame, View view, SeekBar seek) {
+        private void showTime(FrameLayout frame, View view, SeekBar seek, @Nullable ViewGroup row) {
             if (!timeWanted() || seek.getVisibility() != View.VISIBLE) {
                 removeTime();
                 return;
@@ -432,14 +434,35 @@ public final class FeedSeekBar {
                 time = shown;
             }
             int bottom = barHeight(view, seek) + dp(view, TIME_GAP_DP);
+            boolean corner = Settings.FEED_SEEK_TIME_UNDER_TAGS.get();
+            int gravity = Gravity.BOTTOM | (corner ? Gravity.START : Gravity.CENTER_HORIZONTAL);
             if (shown.getParent() != frame) {
                 if (shown.getParent() != null) ((ViewGroup) shown.getParent()).removeView(shown);
                 frame.addView(shown, frame.indexOfChild(seek) + 1, new FrameLayout.LayoutParams(
-                        ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT,
-                        Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL));
+                        ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, gravity));
             }
             fit(shown, ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, bottom);
+            int start = corner ? Math.max(0, cornerStart(frame, view, row) - shown.getPaddingStart()) : 0;
+            FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) shown.getLayoutParams();
+            if (params.gravity != gravity || params.getMarginStart() != start) {
+                params.gravity = gravity;
+                params.setMarginStart(start);
+                shown.setLayoutParams(params);
+            }
             showTimeAt(dragging ? seek.getProgress() : position);
+        }
+
+        /**
+         * How far into the video from its start edge the time's text starts in the corner (#711): where
+         * the first button on the start side of Instagram's [row] starts, which is the tags button, or
+         * with none there as far in as the last button on the end side sits from the end. Without a row,
+         * the toggle button has the corner over the bar, so the time starts a gap past it; else 8 dp in.
+         */
+        private int cornerStart(FrameLayout frame, View view, @Nullable ViewGroup row) {
+            int inset = row == null ? -1 : startInset(row, across(frame, row), frame.getWidth());
+            if (inset >= 0) return inset;
+            int start = dp(view, 8);
+            return row == null && buttonWanted() ? start + dp(view, BUTTON_DP) + dp(view, BUTTON_GAP_DP) : start;
         }
 
         /** Writes the time at [at] into the label, when there is one. */
@@ -898,6 +921,41 @@ public final class FeedSeekBar {
         if (middle < 0) return;
         place[0] = start;
         place[1] = Math.max(0, row.getHeight() - middle + lift - size / 2);
+    }
+
+    /**
+     * How far in from the video's start edge the first of [row]'s buttons on the start side starts, or
+     * with none there, how far in from the end edge the last on the end side ends; -1 when the row
+     * shows no button (#711). The row starts [offset] pixels into the video, which is [width] wide, and
+     * its buttons are read as {@link #inRow} reads them.
+     */
+    static int startInset(ViewGroup row, int offset, int width) {
+        boolean rtl = row.getLayoutDirection() == View.LAYOUT_DIRECTION_RTL;
+        int startSide = Integer.MAX_VALUE;
+        int endSide = Integer.MAX_VALUE;
+        for (int i = 0; i < row.getChildCount(); i++) {
+            View child = row.getChildAt(i);
+            if (child.getVisibility() != View.VISIBLE || child.getWidth() == 0) continue;
+            int left = offset + child.getLeft();
+            View button = child;
+            if (child instanceof ViewGroup) {
+                View only = onlyShown((ViewGroup) child);
+                if (only != null) {
+                    left += only.getLeft();
+                    button = only;
+                }
+            }
+            int right = left + button.getWidth();
+            int fromStart = rtl ? width - right : left;
+            int fromEnd = rtl ? left : width - right;
+            if (rtl ? left + right > width : left + right < width) {
+                startSide = Math.min(startSide, fromStart);
+            } else {
+                endSide = Math.min(endSide, fromEnd);
+            }
+        }
+        int inset = startSide != Integer.MAX_VALUE ? startSide : endSide;
+        return inset == Integer.MAX_VALUE ? -1 : Math.max(0, inset);
     }
 
     /**

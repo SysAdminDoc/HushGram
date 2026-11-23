@@ -172,6 +172,7 @@ public class FeedSeekBarTest {
         Settings.SEEK_PREVIEW.resetToDefault();
         Settings.FEED_SEEK_TIME.resetToDefault();
         Settings.FEED_SEEK_TIME_LEFT.resetToDefault();
+        Settings.FEED_SEEK_TIME_UNDER_TAGS.resetToDefault();
         HookStatus.clear();
     }
 
@@ -184,6 +185,7 @@ public class FeedSeekBarTest {
         Settings.SEEK_PREVIEW.resetToDefault();
         Settings.FEED_SEEK_TIME.resetToDefault();
         Settings.FEED_SEEK_TIME_LEFT.resetToDefault();
+        Settings.FEED_SEEK_TIME_UNDER_TAGS.resetToDefault();
         TabSwipe.forgetForTests();
         Settings.FEED_SEEK_BAR.resetToDefault();
         Settings.FEED_SEEK_BUTTON.resetToDefault();
@@ -478,6 +480,104 @@ public class FeedSeekBarTest {
         tick();
         assertNull(FeedSeekBar.timeForTests());
         assertEquals("with the time off the row only clears the bar", -barHeight, post.row.getTranslationY(), 0f);
+    }
+
+    /**
+     * #711: Time under the tags button moves the time from the bar's middle to the bottom start corner,
+     * its text lined up with the tags button, which goes up past it with the rest of the row. With no
+     * tags button it sits as far in as the sound button does from the other side, and with no row at
+     * all it keeps clear of the toggle that has the corner then.
+     */
+    @Test
+    public void theTimeCanSitUnderTheTagsButton() {
+        assertEquals(Boolean.FALSE, Settings.FEED_SEEK_TIME_UNDER_TAGS.defaultValue);
+        assertEquals(Settings.FEED_SEEK_TIME, Settings.FEED_SEEK_TIME_UNDER_TAGS.getParentSettings().get(0));
+        Post post = post();
+        Settings.FEED_SEEK_BAR.save(true);
+        Settings.FEED_SEEK_TIME.save(true);
+        FeedSeekBar.progress(player, 3000, 15000);
+        idle();
+        TextView time = FeedSeekBar.timeForTests();
+        assertNotNull(time);
+        FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) time.getLayoutParams();
+        assertEquals("the middle while it's off", Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL, params.gravity);
+        int bottom = params.bottomMargin;
+
+        Settings.FEED_SEEK_TIME_UNDER_TAGS.save(true);
+        FeedSeekBar.progress(player, 4000, 15000);
+        idle();
+        assertSame("the same label, moved", time, FeedSeekBar.timeForTests());
+        params = (FrameLayout.LayoutParams) time.getLayoutParams();
+        assertEquals(Gravity.BOTTOM | Gravity.START, params.gravity);
+        assertEquals("as high over the bar as before", bottom, params.bottomMargin);
+        int[] at = new int[2];
+        time.getLocationOnScreen(at);
+        int textStart = at[0] + time.getPaddingStart();
+        int timeTop = at[1];
+        post.tags.getLocationOnScreen(at);
+        assertEquals("the text starts where the tags button does", at[0], textStart);
+        float density = post.video.getResources().getDisplayMetrics().density;
+        int gap = Math.round(FeedSeekBar.TIME_GAP_DP * density);
+        assertTrue("and the tags button ends over it", at[1] + post.tags.getHeight() + gap <= timeTop);
+
+        post.tags.setVisibility(View.GONE);
+        idle();
+        FeedSeekBar.progress(player, 5000, 15000);
+        idle();
+        assertEquals("no tags button: as far in as the sound icon is from the end, (116 - 48) / 2",
+                34 - time.getPaddingStart(), ((FrameLayout.LayoutParams) time.getLayoutParams()).getMarginStart());
+
+        Settings.FEED_SEEK_TIME_UNDER_TAGS.save(false);
+        FeedSeekBar.progress(player, 6000, 15000);
+        params = (FrameLayout.LayoutParams) time.getLayoutParams();
+        assertEquals("off again, back to the middle", Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL, params.gravity);
+        assertEquals(0, params.getMarginStart());
+
+        // A video with no row of Instagram's buttons around it.
+        Settings.FEED_SEEK_TIME_UNDER_TAGS.save(true);
+        stand.plays(player, firstVideo);
+        FeedSeekBar.progress(player, 3000, 15000);
+        TextView plain = FeedSeekBar.timeForTests();
+        assertNotNull(plain);
+        assertEquals("8 dp in", Math.round(8 * density) - plain.getPaddingStart(),
+                ((FrameLayout.LayoutParams) plain.getLayoutParams()).getMarginStart());
+        Settings.FEED_SEEK_BUTTON.save(true);
+        FeedSeekBar.progress(player, 4000, 15000);
+        int pastToggle = Math.round(8 * density) + Math.round(FeedSeekBar.BUTTON_DP * density)
+                + Math.round(FeedSeekBar.BUTTON_GAP_DP * density);
+        assertEquals("past the toggle in the corner", pastToggle - plain.getPaddingStart(),
+                ((FrameLayout.LayoutParams) plain.getLayoutParams()).getMarginStart());
+    }
+
+    /** #711: a row's buttons give the corner its inset from either side, read as the toggle reads them, right to left too. */
+    @Test
+    public void theCornerLinesUpWithTheRowsButtons() {
+        Activity activity = controller.get();
+        FrameLayout row = new FrameLayout(activity);
+        View tags = new View(activity);
+        FrameLayout.LayoutParams tagsAt = new FrameLayout.LayoutParams(64, 64, Gravity.START | Gravity.BOTTOM);
+        tagsAt.setMarginStart(20);
+        row.addView(tags, tagsAt);
+        View sound = new View(activity);
+        FrameLayout.LayoutParams soundAt = new FrameLayout.LayoutParams(48, 48, Gravity.END | Gravity.BOTTOM);
+        soundAt.setMarginEnd(30);
+        row.addView(sound, soundAt);
+        FrameLayout holder = new FrameLayout(activity);
+        holder.addView(row, new FrameLayout.LayoutParams(720, 88));
+        feed.addView(holder, 0, new LinearLayout.LayoutParams(720, 88));
+        idle();
+        assertEquals("the tags button's start", 20, FeedSeekBar.startInset(row, 0, 720));
+        assertEquals("a row starting further in counts from the video", 30, FeedSeekBar.startInset(row, 10, 720));
+        tags.setVisibility(View.GONE);
+        assertEquals("no tags button: the sound button's distance from the end", 30, FeedSeekBar.startInset(row, 0, 720));
+        sound.setVisibility(View.GONE);
+        assertEquals("no buttons", -1, FeedSeekBar.startInset(row, 0, 720));
+
+        tags.setVisibility(View.VISIBLE);
+        sound.setVisibility(View.VISIBLE);
+        row.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        idle();
+        assertEquals("right to left, the tags button is on the right, 20 in", 20, FeedSeekBar.startInset(row, 0, 720));
     }
 
     /**
