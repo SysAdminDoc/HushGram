@@ -916,6 +916,10 @@ The chip sits under the posts, followers and following counts.	O chip fica abaix
 A smaller chip, centered under the profile picture. A profile with no room there gets the small chip under the counts.	Um chip menor, centralizado abaixo da foto do perfil. Um perfil sem espaço ali mostra o chip pequeno abaixo dos números.
 Turn on Show it as a chip to use this choice.	Ative Mostrar como chip para usar esta opção.
 Turn on Show if a profile follows you to use this choice.	Ative Mostrar se um perfil segue você para usar esta opção.
+# context: Profiles: switch under Show if a profile follows you. A green check or red cross by the menu in a profile's top bar (#842)
+Show it as an icon at the top	Mostrar como ícone no topo
+# context: Profiles: summary of Show it as an icon at the top. The chip is the Show it as a chip label
+Puts a green check by the menu at the top of the profile when they follow you and a red cross when they don't, instead of the words or the chip. Tap it to see the rest of what Instagram has said about you two.	Coloca um visto verde ao lado do menu no topo do perfil quando a conta segue você e um X vermelho quando não segue, no lugar do texto ou do chip. Toque nele para ver todo o resto que o Instagram disse sobre vocês dois.
 The Add comment bar under a reel you open from a profile's reposts. The comment button still opens the comments.	A barra Adicionar comentário abaixo de um reel que você abre a partir dos reposts de um perfil. O botão de comentários continua abrindo os comentários.
 Hide the comment bar on all reels	Ocultar a barra de comentários em todos os reels
 The Add a comment bar under every reel, including the ones in the Reels tab. The comment button still opens the comments.	A barra Adicionar um comentário abaixo de cada reel, inclusive os da aba Reels. O botão de comentários continua abrindo os comentários.

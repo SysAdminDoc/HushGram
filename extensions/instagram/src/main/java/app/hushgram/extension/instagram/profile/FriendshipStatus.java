@@ -39,6 +39,9 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * ({@link FriendshipChip}), which also says Following each other when you follow the account too.
  * Follow label can make it small and put it under the profile picture (#157). The pronouns slot is
  * then left as Instagram set it. A header whose counts can't be found keeps the text label.
+ *
+ * <p>With Show it as an icon at the top on, a green check or a red cross by the menu in the profile's
+ * top bar says it instead of the label or the chip ({@link FollowIcon}, #842).
  */
 public final class FriendshipStatus {
     static final String SEPARATOR = " · ";
@@ -73,11 +76,11 @@ public final class FriendshipStatus {
         try {
             HookStatus.invoked(FamilyNames.FRIENDSHIP_STATUS);
             Relation relation = relation(header);
-            if (relation == null && !FriendshipChip.anyShown()) return;
+            if (relation == null && !FriendshipChip.anyShown() && !FollowIcon.anyShown()) return;
             View view = slotView(slot);
             if (!(view instanceof TextView)) return;
             TextView text = (TextView) view;
-            if (chipped(text, relation, header)) return;
+            if (marked(text, relation, header)) return;
             String label = textFor(relation);
             if (label == null) return;
             text.setText(joined(text.getText(), label));
@@ -96,10 +99,10 @@ public final class FriendshipStatus {
         try {
             HookStatus.invoked(FamilyNames.FRIENDSHIP_STATUS);
             Relation relation = relation(header);
-            if (relation == null && !FriendshipChip.anyShown()) return;
+            if (relation == null && !FriendshipChip.anyShown() && !FollowIcon.anyShown()) return;
             View view = slotView(slot);
             if (!(view instanceof TextView)) return;
-            String label = chipped(view, relation, header) ? null : textFor(relation);
+            String label = marked(view, relation, header) ? null : textFor(relation);
             if (label == null) {
                 // Asking for the slot's view can put it in place, so it's hidden again as Instagram left it.
                 setSlotVisibility(slot, View.GONE);
@@ -259,6 +262,19 @@ public final class FriendshipStatus {
     static Relation relation(boolean followedBy, @Nullable Boolean following) {
         if (!followedBy) return Relation.DOESNT_FOLLOW_YOU;
         return Boolean.TRUE.equals(following) ? Relation.FOLLOWING_EACH_OTHER : Relation.FOLLOWS_YOU;
+    }
+
+    /**
+     * The icon in the top bar ({@link FollowIcon}, #842) or else the chip, for the header [inside] is
+     * in, with whichever isn't wanted taken away. True when either is showing, so the text label
+     * stays out.
+     */
+    private static boolean marked(View inside, @Nullable Relation relation, Object header) {
+        if (FollowIcon.show(inside, relation, header)) {
+            FriendshipChip.clear(inside);
+            return true;
+        }
+        return chipped(inside, relation, header);
     }
 
     /**

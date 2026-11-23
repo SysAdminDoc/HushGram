@@ -919,6 +919,10 @@ The chip sits under the posts, followers and following counts.	标签位于帖�
 A smaller chip, centered under the profile picture. A profile with no room there gets the small chip under the counts.	较小的标签，置中于头像下方。若该处没有空间，则改放在各项数量下方。
 Turn on Show it as a chip to use this choice.	请启用“以标签显示”以使用此选项。
 Turn on Show if a profile follows you to use this choice.	请启用“显示账户是否已关注你”以使用此选项。
+# context: Profiles: switch under Show if a profile follows you. A green check or red cross by the menu in a profile's top bar (#842)
+Show it as an icon at the top	以图标显示在顶部
+# context: Profiles: summary of Show it as an icon at the top. The chip is the Show it as a chip label
+Puts a green check by the menu at the top of the profile when they follow you and a red cross when they don't, instead of the words or the chip. Tap it to see the rest of what Instagram has said about you two.	对方关注你时，在主页顶部的菜单旁加绿色勾勾，没有时加红色叉叉，取代文字或标签。点一下可查看 Instagram 提供的你们之间的其他信息.
 The Add comment bar under a reel you open from a profile's reposts. The comment button still opens the comments.	隐藏从主页转发标签页打开的 Reel 下方的“添加评论”列。仍可通过评论按钮打开评论。
 Hide the comment bar on all reels	隐藏所有 Reels 的评论栏
 The Add a comment bar under every reel, including the ones in the Reels tab. The comment button still opens the comments.	隐藏每则 Reel 下方的“添加评论”列，包括 Reels 标签页中的视频。仍可通过评论按钮打开评论。

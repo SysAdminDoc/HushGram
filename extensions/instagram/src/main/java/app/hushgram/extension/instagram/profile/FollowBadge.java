@@ -42,9 +42,14 @@ final class FollowBadge extends Drawable {
     private final Path path = new Path();
 
     FollowBadge(Context context, boolean followsYou) {
+        this(context, followsYou, SIZE_DP);
+    }
+
+    /** A badge [sizeDp] wide, ring included, such as the bigger one in a profile's top bar (#842). */
+    FollowBadge(Context context, boolean followsYou, float sizeDp) {
         this.followsYou = followsYou;
         float density = context.getResources().getDisplayMetrics().density;
-        size = Math.round(SIZE_DP * density);
+        size = Math.round(sizeDp * density);
         ring = RING_DP * density;
         ringColor = night(context) ? Color.BLACK : Color.WHITE;
         edge.setColor(ringColor);

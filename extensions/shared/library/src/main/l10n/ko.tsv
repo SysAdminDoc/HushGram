@@ -915,6 +915,10 @@ The chip sits under the posts, followers and following counts.	칩이 게시물,
 A smaller chip, centered under the profile picture. A profile with no room there gets the small chip under the counts.	더 작은 칩을 프로필 사진 아래 가운데에 표시합니다. 그곳에 자리가 없는 프로필은 작은 칩을 숫자 아래에 표시합니다.
 Turn on Show it as a chip to use this choice.	이 옵션을 사용하려면 ‘칩으로 표시’를 켜세요
 Turn on Show if a profile follows you to use this choice.	이 옵션을 사용하려면 ‘프로필이 나를 팔로우하는지 표시’를 켜세요
+# context: Profiles: switch under Show if a profile follows you. A green check or red cross by the menu in a profile's top bar (#842)
+Show it as an icon at the top	상단에 아이콘으로 표시
+# context: Profiles: summary of Show it as an icon at the top. The chip is the Show it as a chip label
+Puts a green check by the menu at the top of the profile when they follow you and a red cross when they don't, instead of the words or the chip. Tap it to see the rest of what Instagram has said about you two.	상대가 나를 팔로우하면 프로필 상단 메뉴 옆에 초록색 체크를, 팔로우하지 않으면 빨간색 X를 문구나 칩 대신 표시합니다. 탭하면 Instagram이 두 사람에 대해 알려준 나머지 정보를 볼 수 있습니다.
 The Add comment bar under a reel you open from a profile's reposts. The comment button still opens the comments.	프로필의 다시 게시한 항목에서 연 릴스 아래의 댓글 달기 창입니다. 댓글 버튼은 계속 댓글을 엽니다.
 Hide the comment bar on all reels	모든 릴스의 댓글 창 숨기기
 The Add a comment bar under every reel, including the ones in the Reels tab. The comment button still opens the comments.	릴스 탭을 포함한 모든 릴스 아래의 댓글 달기 창입니다. 댓글 버튼은 계속 댓글을 엽니다.

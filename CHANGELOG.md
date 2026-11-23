@@ -18,6 +18,7 @@ Every HushGram release, newest first.
 * The time on a story's seek bar sits right over the bar whenever there's room for it, instead of up over the reply row. Reported in #784.
 * `Pinch for clear mode` works when you spread two fingers apart now, not only when you pinch them together. Fingers that started close together were taken as a scroll. Reported in #744.
 * `Time under the tags button` is new under `Time on the seek bar` in Feed. It moves the time from the middle of the bar to the corner under the tags button. Starts off. Asked for in #711.
+* `Show it as an icon at the top` is new under `Show if a profile follows you` in Profiles. A green check or red cross sits by a profile's menu at the top. Starts off. Asked for in #842.
 
 ## 0.0.22 (2026-11-22)
 

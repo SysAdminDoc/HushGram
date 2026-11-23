@@ -2159,6 +2159,10 @@ Turn on Seek bar on feed videos or its button to use this choice.	شغّل شر�
 Turn on Seek bar on stories to use this choice.	شغّل شريط التقدم على القصص لاستخدام هذا الخيار.
 Turn on Show a story's exact time to use this choice.	شغّل إظهار الوقت الدقيق للقصة لاستخدام هذا الخيار.
 Turn on Show if a profile follows you to use this choice.	شغّل إظهار ما إذا كان الملف الشخصي يتابعك لاستخدام هذا الخيار.
+# context: Profiles: switch under Show if a profile follows you. A green check or red cross by the menu in a profile's top bar (#842)
+Show it as an icon at the top	إظهاره كأيقونة في الأعلى
+# context: Profiles: summary of Show it as an icon at the top. The chip is the Show it as a chip label
+Puts a green check by the menu at the top of the profile when they follow you and a red cross when they don't, instead of the words or the chip. Tap it to see the rest of what Instagram has said about you two.	يضع علامة تحقق خضراء بجانب القائمة أعلى الملف الشخصي إذا كان الحساب يتابعك، وصليباً أحمر إذا لم يكن يتابعك، بدلاً من الكلمات أو الشريحة. اضغط عليها لترى بقية ما قاله Instagram عنكما.
 Turn on Show it as a chip to use this choice.	شغّل إظهاره كشارة لاستخدام هذا الخيار.
 Turn on Show the Messages tab and restart.	شغّل إظهار علامة تبويب الرسائل وأعد التشغيل.
 Turn on Start Home on Following to use this choice.	شغّل بدء الصفحة الرئيسية من تبويب المتابعة لاستخدام هذا الخيار.

@@ -916,6 +916,10 @@ The chip sits under the posts, followers and following counts.	Çip gönderi, ta
 A smaller chip, centered under the profile picture. A profile with no room there gets the small chip under the counts.	Profil fotoğrafının altında ortalanmış daha küçük bir çip. Orada yeri olmayan bir profilde küçük çip sayıların altına gelir.
 Turn on Show it as a chip to use this choice.	Bu seçimi kullanmak için Çip olarak göster seçeneğini açın.
 Turn on Show if a profile follows you to use this choice.	Bu seçimi kullanmak için Bir profilin seni takip edip etmediğini göster seçeneğini açın.
+# context: Profiles: switch under Show if a profile follows you. A green check or red cross by the menu in a profile's top bar (#842)
+Show it as an icon at the top	Üstte simge olarak göster
+# context: Profiles: summary of Show it as an icon at the top. The chip is the Show it as a chip label
+Puts a green check by the menu at the top of the profile when they follow you and a red cross when they don't, instead of the words or the chip. Tap it to see the rest of what Instagram has said about you two.	Hesap seni takip ediyorsa profilin üstündeki menünün yanına yeşil bir onay işareti, etmiyorsa kırmızı bir çarpı koyar, yazının ya da çipin yerine. Instagram'ın ikiniz hakkında söylediği diğer her şeyi görmek için ona dokun.
 The Add comment bar under a reel you open from a profile's reposts. The comment button still opens the comments.	Bir profilin yeniden paylaşımlarından açtığın reels'in altındaki Yorum ekle çubuğu. Yorum düğmesi yorumları açmaya devam eder.
 Hide the comment bar on all reels	Tüm reels'te yorum çubuğunu gizle
 The Add a comment bar under every reel, including the ones in the Reels tab. The comment button still opens the comments.	Reels sekmesindekiler dahil her reels'in altındaki Yorum ekle çubuğu. Yorum düğmesi yorumları açmaya devam eder.

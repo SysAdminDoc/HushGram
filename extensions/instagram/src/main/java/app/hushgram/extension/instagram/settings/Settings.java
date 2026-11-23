@@ -2663,6 +2663,15 @@ public class Settings extends BaseSettings {
                     app.hushgram.extension.instagram.profile.FollowLabelPlace.UNDER_COUNTS, parent(FRIENDSHIP_STATUS_CHIP));
 
     /**
+     * Show if a profile follows you as an icon in the profile's top bar, just before its menu (#842):
+     * a green check when the account follows you and a red cross when it doesn't, instead of the label
+     * by the name or the chip. Off to start, and greyed while {@link #SHOW_FRIENDSHIP_STATUS} is off.
+     * Read each time Instagram binds a profile's name.
+     */
+    public static final BooleanSetting FOLLOW_ICON_AT_TOP =
+            new BooleanSetting("hushgram_follow_icon_at_top", FALSE, parent(SHOW_FRIENDSHIP_STATUS));
+
+    /**
      * Doesn't follow you on the rows of your own Following list
      * ({@link app.hushgram.extension.instagram.profile.FollowingList}). Off to start. Read each time
      * Instagram binds a row of a follow list.

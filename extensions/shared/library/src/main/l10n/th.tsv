@@ -909,6 +909,10 @@ The chip sits under the posts, followers and following counts.	ชิปจะ�
 A smaller chip, centered under the profile picture. A profile with no room there gets the small chip under the counts.	ชิปขนาดเล็กลง จัดกึ่งกลางใต้รูปโปรไฟล์ หากโปรไฟล์ไม่มีที่ว่างตรงนั้น จะแสดงชิปขนาดเล็กใต้จำนวนตัวเลขแทน
 Turn on Show it as a chip to use this choice.	เปิด "แสดงเป็นชิป" เพื่อใช้ตัวเลือกนี้
 Turn on Show if a profile follows you to use this choice.	เปิด "แสดงว่าโปรไฟล์ติดตามคุณหรือไม่" เพื่อใช้ตัวเลือกนี้
+# context: Profiles: switch under Show if a profile follows you. A green check or red cross by the menu in a profile's top bar (#842)
+Show it as an icon at the top	แสดงเป็นไอคอนด้านบน
+# context: Profiles: summary of Show it as an icon at the top. The chip is the Show it as a chip label
+Puts a green check by the menu at the top of the profile when they follow you and a red cross when they don't, instead of the words or the chip. Tap it to see the rest of what Instagram has said about you two.	แสดงเครื่องหมายถูกสีเขียวข้างเมนูด้านบนของโปรไฟล์เมื่อบัญชีนั้นติดตามคุณ และเครื่องหมายกากบาทสีแดงเมื่อไม่ได้ติดตาม แทนข้อความหรือชิป แตะเพื่อดูข้อมูลอื่นที่ Instagram บอกเกี่ยวกับคุณทั้งสอง
 The Add comment bar under a reel you open from a profile's reposts. The comment button still opens the comments.	แถบ "เพิ่มความคิดเห็น" ใต้รีลส์ที่คุณเปิดจากการโพสต์ซ้ำของโปรไฟล์ ปุ่มความคิดเห็นจะยังคงเปิดความคิดเห็นได้ตามเดิม
 Hide the comment bar on all reels	ซ่อนแถบความคิดเห็นในรีลส์ทั้งหมด
 The Add a comment bar under every reel, including the ones in the Reels tab. The comment button still opens the comments.	แถบ "เพิ่มความคิดเห็น" ใต้ทุกรีลส์ รวมถึงรีลส์ในแท็บรีลส์ด้วย ปุ่มความคิดเห็นจะยังคงเปิดความคิดเห็นได้ตามเดิม
