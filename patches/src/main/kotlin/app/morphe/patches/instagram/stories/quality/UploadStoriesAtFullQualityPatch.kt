@@ -133,7 +133,7 @@ val uploadStoriesAtFullQualityPatch = bytecodePatch(
         "viewers see a small difference. Starts off. Turn it on in HushGram settings > Stories.",
     default = true,
 ) {
-    category("Stories")
+    category("Downloads")
     dependsOn(settingsPatch, instagramExtensionPatch)
     compatibleWith(*AppCompatibilities.instagram())
 

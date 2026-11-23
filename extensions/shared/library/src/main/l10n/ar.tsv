@@ -2378,3 +2378,6 @@ No app here can translate it	لا يوجد تطبيق للترجمة
 # context: Reels switch Hide reels you've seen and its summary (#830)
 Hide reels you've seen	إخفاء Reels التي شاهدتها
 Leaves reels you've already watched out of the Reels tab when Instagram shows them again. Reels you open from a profile or a chat still play. The last 3000 are kept on this phone.	يُبعد Reels التي شاهدتها من قبل عن تبويب Reels عندما يعرضها Instagram مرة أخرى. Reels التي تفتحها من ملف شخصي أو محادثة تعمل كالمعتاد. تُحفظ آخر 3000 على هذا الهاتف.
+# context: Stories switch Story rings on saved posts and its summary, for posts on the Saved page (#790)
+Story rings on saved posts	حلقات القصص في المنشورات المحفوظة
+Posts you saved show the story ring around the author's picture, like Home does, and a tap on it opens their story. It only uses stories Instagram has already loaded.	تُظهر المنشورات التي حفظتها حلقة القصة حول صورة صاحبها، كما في الرئيسية، والضغط عليها يفتح قصته. يستخدم فقط القصص التي حمّلها Instagram بالفعل.

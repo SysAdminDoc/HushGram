@@ -1054,6 +1054,14 @@ once-call Lapp/hushgram/extension/instagram/stories/SmoothStoryOpen;->damping(F)
 once-call Lapp/hushgram/extension/instagram/stories/StoryZoomPlay;->keepPlaying()Z in instance ()V holding paused_for_pinch_to_zoom
 once-call Lapp/hushgram/extension/instagram/stories/StoryZoomPlay;->pinchResumed()V in instance ()V holding paused_for_pinch_to_zoom
 once-call Lapp/hushgram/extension/instagram/stories/StoryZoomPlay;->dragging(I)I in instance (Ljava/lang/String;Z)V pooled holding resume_story_request_skipped
+#
+# Story rings on saved posts (#790) hands the post's surface to SavedStoryRings.shows right after the
+# lookup of a post author's story reads it, and jumps to the lookup on a yes. That lookup (00R3.A00
+# on 386215122) is the one (UserSession, props, user, Function0, boolean, boolean) method checking
+# the ring's server switch (36334706064652326). Left out, a saved post shows no ring; twice or
+# elsewhere, it isn't the lookup the patch means. SavedStoryRingsHookTest checks the jump on each
+# 456.1 fixture.
+once-call Lapp/hushgram/extension/instagram/stories/SavedStoryRings;->shows(Ljava/lang/Object;)Z in instance (Lcom/instagram/common/session/UserSession;LX/*;LX/*;Lkotlin/jvm/functions/Function0;ZZ)LX/*; holding const:0x81163900007826
 once-call Lapp/hushgram/extension/instagram/stories/StoryZoomPlay;->paused(Ljava/lang/String;)V in static (Linstagram/features/stories/fragment/ReelViewerFragment;Ljava/lang/String;)V pooled holding pause_story
 once-call Lapp/hushgram/extension/instagram/stories/StoryZoomPlay;->resumed()V in instance (Ljava/lang/String;Z)V pooled holding resume_story_request_skipped
 # Swipe through a chat's reels answers the read of Instagram's own chat reels flag through chain(),

@@ -2837,3 +2837,6 @@ No app here can translate it	번역할 수 있는 앱이 없습니다
 # context: Reels switch Hide reels you've seen and its summary (#830)
 Hide reels you've seen	이미 본 릴스 숨기기
 Leaves reels you've already watched out of the Reels tab when Instagram shows them again. Reels you open from a profile or a chat still play. The last 3000 are kept on this phone.	이미 본 릴스를 Instagram이 다시 보여 줄 때 릴스 탭에서 빼 줍니다. 프로필이나 채팅에서 여는 릴스는 그대로 재생됩니다. 최근 3000개가 이 휴대폰에 저장됩니다.
+# context: Stories switch Story rings on saved posts and its summary, for posts on the Saved page (#790)
+Story rings on saved posts	저장한 게시물의 스토리 링
+Posts you saved show the story ring around the author's picture, like Home does, and a tap on it opens their story. It only uses stories Instagram has already loaded.	저장한 게시물에서도 홈처럼 작성자 사진에 스토리 링이 보이고, 누르면 스토리가 열립니다. Instagram이 이미 불러온 스토리만 사용합니다.

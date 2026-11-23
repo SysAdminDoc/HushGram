@@ -306,6 +306,7 @@ public enum PatchFamily {
             Settings.HIDE_OTHER_LANGUAGE_REELS),
     LOW_VIEW_REELS(FamilyNames.LOW_VIEW_REELS, "lowViewReels", null, Settings.HIDE_LOW_VIEW_REELS),
     SEEN_REELS(FamilyNames.SEEN_REELS, "seenReels", null, Settings.HIDE_SEEN_REELS),
+    SAVED_STORY_RINGS(FamilyNames.SAVED_STORY_RINGS, "savedStoryRings", null, Settings.SAVED_STORY_RINGS),
     KEEP_REEL_SPEED(FamilyNames.KEEP_REEL_SPEED, "keepReelSpeed", null, Settings.KEEP_REEL_SPEED),
     REEL_ABOVE_COMMENTS(FamilyNames.REEL_ABOVE_COMMENTS, "reelAboveComments", null, Settings.REEL_ABOVE_COMMENTS),
     REEL_LINKS(FamilyNames.REEL_LINKS, "reelLinks", null, Settings.OPEN_REEL_LINKS_FIRST),

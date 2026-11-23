@@ -2753,3 +2753,6 @@ No app here can translate it	Không có ứng dụng dịch
 # context: Reels switch Hide reels you've seen and its summary (#830)
 Hide reels you've seen	Ẩn reel bạn đã xem
 Leaves reels you've already watched out of the Reels tab when Instagram shows them again. Reels you open from a profile or a chat still play. The last 3000 are kept on this phone.	Bỏ các reel bạn đã xem ra khỏi tab Reels khi Instagram hiển thị lại. Reel bạn mở từ trang cá nhân hoặc đoạn chat vẫn phát bình thường. 3000 reel gần nhất được lưu trên điện thoại này.
+# context: Stories switch Story rings on saved posts and its summary, for posts on the Saved page (#790)
+Story rings on saved posts	Vòng tin trên bài viết đã lưu
+Posts you saved show the story ring around the author's picture, like Home does, and a tap on it opens their story. It only uses stories Instagram has already loaded.	Bài viết bạn đã lưu hiện vòng tin quanh ảnh của người đăng, giống trang chủ, và chạm vào đó sẽ mở tin của họ. Chỉ dùng các tin Instagram đã tải sẵn.

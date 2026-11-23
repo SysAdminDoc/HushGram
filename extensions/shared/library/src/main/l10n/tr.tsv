@@ -2838,3 +2838,6 @@ No app here can translate it	Çevirecek uygulama yok
 # context: Reels switch Hide reels you've seen and its summary (#830)
 Hide reels you've seen	İzlediğin reelleri gizle
 Leaves reels you've already watched out of the Reels tab when Instagram shows them again. Reels you open from a profile or a chat still play. The last 3000 are kept on this phone.	Daha önce izlediğin reelleri Instagram tekrar gösterdiğinde Reels sekmesinin dışında tutar. Bir profilden veya sohbetten açtığın reeller yine oynar. Son 3000 tanesi bu telefonda saklanır.
+# context: Stories switch Story rings on saved posts and its summary, for posts on the Saved page (#790)
+Story rings on saved posts	Kayıtlı gönderilerde hikâye halkaları
+Posts you saved show the story ring around the author's picture, like Home does, and a tap on it opens their story. It only uses stories Instagram has already loaded.	Kaydettiğin gönderiler, Ana sayfadaki gibi paylaşanın fotoğrafının çevresinde hikâye halkasını gösterir ve ona dokunmak hikâyeyi açar. Yalnızca Instagram'ın zaten yüklediği hikâyeleri kullanır.

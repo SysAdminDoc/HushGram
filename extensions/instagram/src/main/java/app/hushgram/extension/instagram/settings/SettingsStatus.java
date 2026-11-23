@@ -463,6 +463,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean savedStoryRings() {
+        return false;
+    }
+
     public static boolean commentCopy() {
         return false;
     }

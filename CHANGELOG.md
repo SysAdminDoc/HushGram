@@ -4,6 +4,7 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
+* `Story rings on saved posts` is new under Stories. Posts you saved show the story ring around the author's picture, and tapping it opens their story, like on Home. Starts off. Asked for in #790.
 * `Hide reels you've seen` is new under Reels. Reels you've already watched stay out of the Reels tab when Instagram serves them again, and the last 3000 are remembered on your phone. Starts off. Asked for in #830.
 * `Hide suggested accounts in Messages` now also takes More suggestions out of search in your messages, its heading included. Asked for in #826.
 * `Details in a post's menu` now has `Copy hashtags`, which copies just the caption's tags, and `Translate caption`, which opens the caption in a translator app on your phone. Asked for in #839.

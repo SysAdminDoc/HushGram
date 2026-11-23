@@ -368,6 +368,16 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_keep_stories_playing_on_zoom", FALSE);
 
     /**
+     * A post you saved shows the ring around its author's picture while they have a story up, and a
+     * tap on it opens the story, the way Home does
+     * ({@link app.hushgram.extension.instagram.stories.SavedStoryRings}). It only uses the stories
+     * Instagram already holds. Read as each post's top row is drawn, so it needs no restart. Off to
+     * start (#790).
+     */
+    public static final BooleanSetting SAVED_STORY_RINGS =
+            new BooleanSetting("hushgram_saved_story_rings", FALSE);
+
+    /**
      * Accounts on {@link #STORY_PRIORITY_ACCOUNTS} that have a story not watched yet go first in the
      * stories row at the top of Home, in the list's order
      * ({@link app.hushgram.extension.instagram.stories.StoryPriority}). Off to start (#451).

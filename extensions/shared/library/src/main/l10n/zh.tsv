@@ -2841,3 +2841,6 @@ No app here can translate it	没有可翻译的应用
 # context: Reels switch Hide reels you've seen and its summary (#830)
 Hide reels you've seen	隐藏已看过的 Reels
 Leaves reels you've already watched out of the Reels tab when Instagram shows them again. Reels you open from a profile or a chat still play. The last 3000 are kept on this phone.	Instagram 再次显示你看过的 Reels 时，不让它们出现在 Reels 标签页。从主页或聊天打开的 Reels 仍会播放。最近 3000 条会保存在这部手机上.
+# context: Stories switch Story rings on saved posts and its summary, for posts on the Saved page (#790)
+Story rings on saved posts	已保存帖子的快拍光圈
+Posts you saved show the story ring around the author's picture, like Home does, and a tap on it opens their story. It only uses stories Instagram has already loaded.	你保存的帖子会像首页一样在作者头像周围显示快拍光圈，点一下即可打开快拍。只使用 Instagram 已加载的快拍。

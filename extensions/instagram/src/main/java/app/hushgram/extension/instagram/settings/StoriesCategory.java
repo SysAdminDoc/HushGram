@@ -101,6 +101,11 @@ final class StoriesCategory {
                     L10n.t("Takes the story and live rings off profile pictures on posts, comments, reels and "
                             + "profiles. The pictures stay, and so do the rings in the stories row.")));
         }
+        if (build.contains(PatchFamily.SAVED_STORY_RINGS)) {
+            stories.add(toggle(context, Settings.SAVED_STORY_RINGS, L10n.t("Story rings on saved posts"),
+                    L10n.t("Posts you saved show the story ring around the author's picture, like Home does, and a tap "
+                            + "on it opens their story. It only uses stories Instagram has already loaded.")));
+        }
         if (build.contains(PatchFamily.SMOOTH_STORY_OPEN)) {
             stories.add(toggle(context, Settings.SMOOTH_STORY_OPEN, L10n.t("Smooth story opening"),
                     L10n.t("A story you tap in the stories row opens with a slower zoom that doesn't bounce, "

@@ -2838,3 +2838,6 @@ No app here can translate it	Nenhum app pode traduzir
 # context: Reels switch Hide reels you've seen and its summary (#830)
 Hide reels you've seen	Ocultar reels que você já viu
 Leaves reels you've already watched out of the Reels tab when Instagram shows them again. Reels you open from a profile or a chat still play. The last 3000 are kept on this phone.	Tira da aba Reels os reels que você já assistiu quando o Instagram os mostra de novo. Reels que você abre de um perfil ou de uma conversa continuam tocando. Os últimos 3000 ficam salvos neste celular.
+# context: Stories switch Story rings on saved posts and its summary, for posts on the Saved page (#790)
+Story rings on saved posts	Anéis de stories em posts salvos
+Posts you saved show the story ring around the author's picture, like Home does, and a tap on it opens their story. It only uses stories Instagram has already loaded.	Os posts que você salvou mostram o anel do story em volta da foto do autor, como no Início, e um toque nele abre o story. Só usa stories que o Instagram já carregou.

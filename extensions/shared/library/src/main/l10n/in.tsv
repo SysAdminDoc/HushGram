@@ -2838,3 +2838,6 @@ No app here can translate it	Tak ada app penerjemah
 # context: Reels switch Hide reels you've seen and its summary (#830)
 Hide reels you've seen	Sembunyikan reel yang sudah ditonton
 Leaves reels you've already watched out of the Reels tab when Instagram shows them again. Reels you open from a profile or a chat still play. The last 3000 are kept on this phone.	Menyingkirkan reel yang sudah kamu tonton dari tab Reels saat Instagram menampilkannya lagi. Reel yang kamu buka dari profil atau chat tetap diputar. 3000 terakhir disimpan di ponsel ini.
+# context: Stories switch Story rings on saved posts and its summary, for posts on the Saved page (#790)
+Story rings on saved posts	Lingkaran cerita di postingan tersimpan
+Posts you saved show the story ring around the author's picture, like Home does, and a tap on it opens their story. It only uses stories Instagram has already loaded.	Postingan yang kamu simpan menampilkan lingkaran cerita di sekitar foto pembuatnya, seperti di Beranda, dan mengetuknya membuka ceritanya. Hanya memakai cerita yang sudah dimuat Instagram.
