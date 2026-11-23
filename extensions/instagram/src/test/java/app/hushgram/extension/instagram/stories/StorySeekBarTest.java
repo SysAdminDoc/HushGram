@@ -819,6 +819,29 @@ public class StorySeekBarTest {
         assertEquals("over the bar again", 191 + 32 + 2, params.bottomMargin);
     }
 
+    /**
+     * #784, again: with the bar placed under a row that leaves room between the two, the time sits right
+     * over the bar instead of up over the row, where it showed far from the bar it reads.
+     */
+    @Test
+    public void belowWithRoomTheTimeSitsRightOverTheBar() {
+        View footer = rowOver(200);
+        Settings.STORY_SEEK_BAR_POSITION.save(StorySeekBarPosition.BELOW);
+        Settings.STORY_SEEK_BAR.save(true);
+        Settings.STORY_SEEK_TIME.save(true);
+        StorySeekBar.resumed(viewer);
+        idle();
+        assertEquals("room enough, nothing lifted", 0f, footer.getTranslationY(), 0f);
+        SeekBar bar = bar();
+        assertEquals("the full 32 pixel bar", 32, height(bar));
+        assertTrue("the bar under the row", margin(bar) + 32 <= 200);
+        TextView time = time();
+        FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) time.getLayoutParams();
+        assertEquals("right over the bar's box", margin(bar) + 32 + 2, params.bottomMargin);
+        time.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
+        assertTrue("and under the row", params.bottomMargin + time.getMeasuredHeight() <= 200);
+    }
+
     /** #784: the time goes with its switch, hides with the bar on a photo, and leaves with the viewer. */
     @Test
     public void theTimeGoesWithItsSwitchAPhotoAndTheViewer() {

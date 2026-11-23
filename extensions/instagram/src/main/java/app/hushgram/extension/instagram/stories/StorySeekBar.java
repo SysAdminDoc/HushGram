@@ -268,9 +268,15 @@ public final class StorySeekBar {
          */
         final Map<View, Float> lifted = new WeakHashMap<>();
         int liftedBy;
-        /** The time at the start of the bar (#784), while its switch is on, and how far up it sits. */
+        /**
+         * The time at the start of the bar (#784), while its switch is on, and how far up it sits: right
+         * over the bar's box, or over the story's bottom row when the bar sits under it with less room
+         * than the time needs between the two ({@link #timeOverRows}, {@link #roomOverBar}).
+         */
         @Nullable TextView time;
         int timeBottom;
+        int timeOverRows = -1;
+        int roomOverBar = Integer.MAX_VALUE;
 
         Overlay(Object viewer) {
             this.viewer = new WeakReference<>(viewer);
@@ -435,12 +441,12 @@ public final class StorySeekBar {
             ArrayList<View> rows = new ArrayList<>();
             int lift = 0;
             int highest = 0;
+            int under = -1;
             boolean underRows = false;
             if (parent.getHeight() > 0) {
                 findAnchors(owner, parent);
                 int[] frame = new int[2];
                 parent.getLocationInWindow(frame);
-                int under = -1;
                 for (int i = 0; i < ANCHORS.length; i++) {
                     View box = anchors[i] == null ? null : anchors[i].get();
                     if (box == null) continue;
@@ -481,8 +487,12 @@ public final class StorySeekBar {
                 }
             }
             lift(outermost(rows), lift);
-            // Under the rows there's no room for the time, so it goes over them, where they'll be after the lift.
-            timeBottom = (underRows ? highest + lift : bottom + height) + dp(seek, TIME_GAP_DP);
+            // The time sits right over the bar. Under the rows it needs room between the bar and the rows'
+            // bottom, where they'll be after the lift; with too little it goes over the rows instead (#784).
+            int gap = dp(seek, TIME_GAP_DP);
+            timeBottom = bottom + height + gap;
+            timeOverRows = underRows ? highest + lift + gap : -1;
+            roomOverBar = underRows ? under + lift - (bottom + height) : Integer.MAX_VALUE;
             FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) seek.getLayoutParams();
             if (params.bottomMargin != bottom || params.height != height) {
                 params.bottomMargin = bottom;
@@ -601,14 +611,29 @@ public final class StorySeekBar {
                         Gravity.BOTTOM | Gravity.START));
             }
             int start = Math.max(dp(seek, TIME_START_DP), seek.getPaddingStart() - shown.getPaddingStart());
+            int over = timeBottomFor(shown);
             FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) shown.getLayoutParams();
-            if (params.bottomMargin != timeBottom || params.getMarginStart() != start) {
-                params.bottomMargin = timeBottom;
+            if (params.bottomMargin != over || params.getMarginStart() != start) {
+                params.bottomMargin = over;
                 params.setMarginStart(start);
                 shown.setLayoutParams(params);
             }
             if (shown.getVisibility() != View.VISIBLE) shown.setVisibility(View.VISIBLE);
             showTimeAt(seek.getProgress());
+        }
+
+        /**
+         * How far up the time [shown] sits: right over the bar while it fits under the rows, which a bar
+         * placed below them leaves it, else over the rows.
+         */
+        private int timeBottomFor(TextView shown) {
+            if (timeOverRows < 0) return timeBottom;
+            int tall = shown.getHeight();
+            if (tall <= 0) {
+                shown.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
+                tall = shown.getMeasuredHeight();
+            }
+            return roomOverBar >= tall + dp(shown, TIME_GAP_DP) ? timeBottom : timeOverRows;
         }
 
         /** Writes the time at [at] into the label, when there is one. */
