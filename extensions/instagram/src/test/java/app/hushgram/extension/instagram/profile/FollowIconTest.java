@@ -33,6 +33,7 @@ import org.robolectric.shadows.ShadowLooper;
 
 import java.util.HashMap;
 
+import app.hushgram.extension.instagram.download.ProfileExtrasTest;
 import app.hushgram.extension.instagram.profile.FriendshipChipTest.Profile;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.SettingsContextRule;
@@ -279,6 +280,68 @@ public class FollowIconTest {
         assertSame("still just before the menu", icon, buttons.getChildAt(buttons.getChildCount() - 2));
         assertSame(menu, buttons.getChildAt(buttons.getChildCount() - 1));
         assertFalse(((FollowBadge) icon.getDrawable()).followsYou);
+    }
+
+    /**
+     * natgeo's bar on 456.1 (#842): Jump to a date, HushGram's profile actions, About this account and the bell before
+     * the menu. With the icon in, even at its narrowest, the username kept about 60 of the 157 pixels it needs, so the
+     * mark moves onto the profile actions button as a small badge and the icon leaves the bar.
+     */
+    @Test
+    @Config(qualifiers = "w1080dp-h1920dp")
+    public void aCrowdedBarWithTheActionsButtonPutsTheMarkOnItAndGivesTheUsernameItsWholeRoom() {
+        ImageView actions = ProfileExtrasTest.actionsButton(controller.get());
+        actions.setLayoutParams(new LinearLayout.LayoutParams(127, 147));
+        buttons.addView(actions, 0);
+        for (int added = 0; added < 5; added++) buttons.addView(button(controller.get(), "Button " + added), 0);
+        TextView title = barLayout.findViewById(FollowIcon.titleIdForTests);
+        layOutBar();
+        int without = title.getWidth();
+        float density = controller.get().getResources().getDisplayMetrics().density;
+        assertTrue("the bar leaves the username its room without the icon", without >= FollowIcon.TITLE_ROOM_DP * density);
+
+        FriendshipStatus.besidePronouns(pronouns, new Profile(false, null));
+        layOutBar();
+
+        assertNull("the icon leaves a crowded bar", FollowIcon.iconIn(buttons));
+        assertEquals("only Instagram's buttons and the actions button are left", 8, buttons.getChildCount());
+        FollowIcon.Corner corner = FollowIcon.cornerOn(actions);
+        assertNotNull("the actions button carries the mark", corner);
+        assertFalse(corner.followsYou);
+        assertEquals("HushGram profile actions, Doesn't follow you", actions.getContentDescription().toString());
+        assertEquals("the username keeps all the room the buttons leave", without, title.getWidth());
+        assertTrue(FollowIcon.anyShown());
+        assertEquals("no words by the name", "", pronouns.getText().toString());
+
+        // A bind again with a profile that now follows you swaps the badge, and the button's own words stay first.
+        FriendshipStatus.besidePronouns(pronouns, new Profile(true, false));
+        layOutBar();
+        assertTrue(FollowIcon.cornerOn(actions).followsYou);
+        assertEquals("HushGram profile actions, Follows you", actions.getContentDescription().toString());
+        assertNull(FollowIcon.iconIn(buttons));
+
+        // Turned off, the badge comes off and the button gets its own description back.
+        Settings.FOLLOW_ICON_AT_TOP.save(false);
+        FriendshipStatus.besidePronouns(pronouns, new Profile(true, false));
+        assertNull(FollowIcon.cornerOn(actions));
+        assertEquals("HushGram profile actions", actions.getContentDescription().toString());
+        assertEquals("Follows you", pronouns.getText().toString());
+    }
+
+    /** A roomy bar keeps the separate icon even when it has the profile actions button. */
+    @Test
+    @Config(qualifiers = "w1080dp-h1920dp")
+    public void aRoomyBarWithTheActionsButtonKeepsTheSeparateIcon() {
+        ImageView actions = ProfileExtrasTest.actionsButton(controller.get());
+        actions.setLayoutParams(new LinearLayout.LayoutParams(127, 147));
+        buttons.addView(actions, 0);
+        FriendshipStatus.besidePronouns(pronouns, new Profile(true, false));
+        layOutBar();
+        assertNull("no badge on a roomy bar", FollowIcon.cornerOn(actions));
+        ImageView icon = FollowIcon.iconIn(buttons);
+        assertNotNull(icon);
+        assertSame("just before the menu", icon, buttons.getChildAt(buttons.getChildCount() - 2));
+        assertEquals("HushGram profile actions", actions.getContentDescription().toString());
     }
 
     @Test

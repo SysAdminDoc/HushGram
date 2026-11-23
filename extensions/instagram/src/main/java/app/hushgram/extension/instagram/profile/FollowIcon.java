@@ -5,6 +5,10 @@
 package app.hushgram.extension.instagram.profile;
 
 import android.content.Context;
+import android.graphics.Canvas;
+import android.graphics.ColorFilter;
+import android.graphics.PixelFormat;
+import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.view.View;
@@ -20,6 +24,7 @@ import java.lang.ref.WeakReference;
 import java.util.Map;
 import java.util.WeakHashMap;
 
+import app.hushgram.extension.instagram.download.ProfileExtras;
 import app.hushgram.extension.instagram.profile.FriendshipStatus.Relation;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
@@ -41,8 +46,11 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  *
  * <p>The row takes its room from the username beside it. A business profile's bar can hold four
  * buttons before the menu (natgeo's on 456.1), and with the icon at its usual width the username
- * there was left 4 pixels wide. So when a layout leaves the username narrower than its text, or than
- * {@link #TITLE_ROOM_DP} for a long one, the icon drops most of its side room for that bar.
+ * there was left 4 pixels wide, and still about 60 with the icon at its narrowest. So when a layout
+ * leaves the username narrower than its text, or than {@link #TITLE_ROOM_DP} for a long one, the
+ * icon leaves that bar and its mark goes on HushGram's own profile actions button instead, a small
+ * badge at the bottom end of the button's circle ({@link Corner}), and the username gets the room
+ * back. A bar without that button keeps the icon with most of its side room dropped.
  *
  * <p>Runs on the main thread, where Instagram binds the header.
  */
@@ -61,6 +69,10 @@ final class FollowIcon {
     static final String TITLE = "action_bar_title";
     /** How much of a long username the bar should keep before the icon gets narrower for it. */
     static final float TITLE_ROOM_DP = 64f;
+    /** How wide the badge on the profile actions button is, ring included, in a bar too crowded for the icon. */
+    static final float CORNER_DP = 12f;
+    /** How far from the actions button's middle the badge's middle sits, across and down: the edge of its 9 dp circle. */
+    static final float CORNER_REACH_DP = 7f;
 
     /** How far up from the pronouns slot the top bar is looked for. */
     private static final int MAX_DEPTH = 14;
@@ -125,6 +137,7 @@ final class FollowIcon {
         if (mark != null) row.removeOnLayoutChangeListener(mark);
         ImageView icon = iconIn(row);
         if (icon != null) row.removeView(icon);
+        unbadge(row);
     }
 
     /**
@@ -197,21 +210,63 @@ final class FollowIcon {
 
     /** The room on each side of [mark]'s icon in [row]'s bar, in pixels. */
     private static int side(ViewGroup row, Mark mark) {
-        return Math.round((mark.tight ? TIGHT_SIDE_DP : SIDE_DP) * row.getResources().getDisplayMetrics().density);
+        return Math.round((mark.tight || mark.crowded ? TIGHT_SIDE_DP : SIDE_DP) * row.getResources().getDisplayMetrics().density);
     }
 
-    /** Whether [row] shows [mark]'s icon in its place, with the right badge and side room. */
+    /** The profile actions button in [row] that carries [mark]'s badge in place of the icon, or null when the icon shows. */
+    @Nullable
+    private static ImageView badgeHolder(ViewGroup row, Mark mark) {
+        return mark.crowded ? ProfileExtras.actionsButton(row) : null;
+    }
+
+    /** The badge on [button], or null when it has none. */
+    @Nullable
+    static Corner cornerOn(View button) {
+        Drawable foreground = button.getForeground();
+        return foreground instanceof Corner ? (Corner) foreground : null;
+    }
+
+    /** Takes the badge off any button in [row] that has one, giving it back its own description. */
+    private static void unbadge(ViewGroup row) {
+        for (int index = 0; index < row.getChildCount(); index++) {
+            View child = row.getChildAt(index);
+            Corner corner = cornerOn(child);
+            if (corner == null) continue;
+            child.setForeground(null);
+            child.setContentDescription(corner.description);
+        }
+    }
+
+    /** Whether [row] shows [mark] in its place: its icon with the right badge and side room, or the badge on the actions button. */
     private static boolean placed(ViewGroup row, Mark mark) {
+        ImageView holder = badgeHolder(row, mark);
+        if (holder != null) {
+            Corner corner = cornerOn(holder);
+            return iconIn(row) == null && corner != null && corner.followsYou == mark.followsYou;
+        }
         ImageView icon = iconIn(row);
         if (icon == null || row.indexOfChild(icon) != spot(row, icon) || icon.getPaddingLeft() != side(row, mark)) return false;
         Drawable drawable = icon.getDrawable();
         return drawable instanceof FollowBadge && ((FollowBadge) drawable).followsYou == mark.followsYou;
     }
 
-    /** Puts [mark]'s icon in its place in [row], made or moved as needed. */
+    /** Puts [mark] in its place in [row]: the badge on the actions button in a crowded bar, the icon, made or moved as needed, otherwise. */
     private static void place(ViewGroup row, Mark mark) {
         if (placed(row, mark)) return;
         Context context = row.getContext();
+        ImageView holder = badgeHolder(row, mark);
+        if (holder != null) {
+            ImageView icon = iconIn(row);
+            if (icon != null) row.removeView(icon);
+            Corner old = cornerOn(holder);
+            CharSequence description = old != null ? old.description : holder.getContentDescription();
+            Corner corner = new Corner(context, mark.followsYou, description);
+            holder.setForeground(corner);
+            String label = FriendshipStatus.text(mark.followsYou);
+            holder.setContentDescription(description == null ? label : description + ", " + label);
+            return;
+        }
+        unbadge(row);
         ImageView icon = iconIn(row);
         if (icon == null) {
             icon = new ImageView(context);
@@ -237,8 +292,16 @@ final class FollowIcon {
     private static final class Mark implements View.OnLayoutChangeListener, View.OnClickListener {
         private final WeakReference<ViewGroup> row;
         boolean followsYou;
-        /** Set once a layout left the username too little room: the icon keeps {@link #TIGHT_SIDE_DP} on this bar. */
+        /**
+         * Set once a layout left the username too little room in a bar with no profile actions button: the icon keeps
+         * {@link #TIGHT_SIDE_DP} on this bar.
+         */
         boolean tight;
+        /**
+         * Set once a layout left the username too little room in a bar with the profile actions button: the mark goes
+         * on that button and the icon leaves this bar, or keeps {@link #TIGHT_SIDE_DP} should the button go.
+         */
+        boolean crowded;
         WeakReference<Object> header = new WeakReference<>(null);
 
         Mark(ViewGroup row) {
@@ -251,7 +314,10 @@ final class FollowIcon {
             try {
                 ViewGroup at = row.get();
                 if (at == null || SHOWN.get(at) != this) return;
-                if (!tight && squeezed(at)) tight = true;
+                if (!tight && !crowded && squeezed(at)) {
+                    if (ProfileExtras.actionsButton(at) != null) crowded = true;
+                    else tight = true;
+                }
                 if (placed(at, this)) return;
                 // Not while the row is laid out: on the next pass, if it's still this row's icon.
                 at.post(() -> {
@@ -273,6 +339,54 @@ final class FollowIcon {
             } catch (Throwable failure) {
                 HookStatus.threw(FamilyNames.FRIENDSHIP_STATUS, "profile top bar", failure);
             }
+        }
+    }
+
+    /**
+     * The follow mark on the profile actions button in a crowded bar: a {@link FollowBadge} {@link #CORNER_DP} wide,
+     * drawn as the button's foreground at the bottom end of its circle, so it moves with the button. It keeps the
+     * description the button had before, to give back when it comes off.
+     */
+    static final class Corner extends Drawable {
+        final boolean followsYou;
+        @Nullable final CharSequence description;
+        private final FollowBadge badge;
+        private final float reach;
+
+        Corner(Context context, boolean followsYou, @Nullable CharSequence description) {
+            this.followsYou = followsYou;
+            this.description = description;
+            badge = new FollowBadge(context, followsYou, CORNER_DP);
+            reach = CORNER_REACH_DP * context.getResources().getDisplayMetrics().density;
+        }
+
+        @Override
+        public void draw(Canvas canvas) {
+            Rect bounds = getBounds();
+            if (bounds.isEmpty()) return;
+            boolean rtl = getLayoutDirection() == View.LAYOUT_DIRECTION_RTL;
+            int x = Math.round(bounds.exactCenterX() + (rtl ? -reach : reach));
+            int y = Math.round(bounds.exactCenterY() + reach);
+            int half = badge.getIntrinsicWidth() / 2;
+            badge.setBounds(x - half, y - half, x - half + badge.getIntrinsicWidth(), y - half + badge.getIntrinsicHeight());
+            badge.draw(canvas);
+        }
+
+        @Override
+        public void setAlpha(int alpha) {
+            badge.setAlpha(alpha);
+            invalidateSelf();
+        }
+
+        @Override
+        public void setColorFilter(@Nullable ColorFilter filter) {
+            badge.setColorFilter(filter);
+            invalidateSelf();
+        }
+
+        @Override
+        public int getOpacity() {
+            return PixelFormat.TRANSLUCENT;
         }
     }
 }

@@ -361,6 +361,15 @@ public final class ProfileExtras {
         HookStatus.counted(ROUTE, ABOUT_PLACED);
     }
 
+    /**
+     * HushGram's profile actions button in a profile's top bar [row], or null when it isn't there. Show it as an
+     * icon at the top puts its follow mark on it when the bar is too crowded for an icon of its own (#842).
+     */
+    @Nullable
+    public static ImageView actionsButton(ViewGroup row) {
+        return find(row);
+    }
+
     @Nullable
     static ImageView find(ViewGroup row) {
         for (int i = 0; i < row.getChildCount(); i++) {

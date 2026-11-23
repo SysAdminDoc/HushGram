@@ -122,6 +122,14 @@ public class ProfileExtrasTest {
         return ProfileExtras.find(right);
     }
 
+    /** A profile actions button as the extension makes it, for other tests' top bars (#842). */
+    public static ImageView actionsButton(android.content.Context context) {
+        ImageView button = new ImageView(context);
+        button.setImageDrawable(new ProfileExtras.Actions(context.getResources().getDisplayMetrics().density, 0xFF000000));
+        button.setContentDescription("HushGram profile actions");
+        return button;
+    }
+
     @Test public void aScreenWithNoAccountReadsAsNone() {
         ProfileExtras.account = ProfileExtras::accountOf;
         assertNull(ProfileExtras.accountOf(new Object()));
