@@ -871,7 +871,14 @@ public class SettingsVisualCaptureTest {
         assertActionBounds(root, footer);
         List<View> copies = new ArrayList<>();
         collectButtons(rows, copies);
-        assertEquals("Known username and caption retain their copy actions", 2, copies.size());
+        // A known username and a caption with no hashtags, Select text off: Copy username, Copy
+        // caption and Translate caption, in the post's language (PostInfo.copies).
+        Context language = details.getContext();
+        List<String> wanted = java.util.Arrays.asList(L10n.t(language, "Copy username"),
+                L10n.t(language, "Copy caption"), L10n.t(language, "Translate caption"));
+        List<String> shown = new ArrayList<>();
+        for (View action : copies) shown.add(String.valueOf(((TextView) action).getText()));
+        assertEquals("Known username and caption keep their copy and translate rows", wanted, shown);
         for (View action : copies) {
             assertSame("Copy rows share the facts' native scroll", scroll, parentScroll(action));
             assertContentInset(root, action);
