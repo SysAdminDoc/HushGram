@@ -61,6 +61,9 @@ public final class Ads {
     /** The report's count of comments sheets built with their ad turned off. */
     static final String COMMENT_ADS_OFF = "comment ads turned off";
 
+    /** The report's count of cards taken off the top of a comments sheet. */
+    static final String COMMENT_CARDS_OFF = "comment cards taken out";
+
     private Ads() {}
 
     /**
@@ -135,6 +138,27 @@ public final class Ads {
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.HIDE_ADS, "comment ads", failure);
             return wanted;
+        }
+    }
+
+    /**
+     * Handed each card type the comments sheet's settings keep as they're built (#857): the in-app
+     * browser card Instagram shows above the comments, an ad's page ("iab_card") or the shop page a
+     * post links to ("product_iab_card"). Answers null, the type of a sheet with no card, while Hide
+     * ads is on, so the comments open on their own, and [card] otherwise: with the switch off,
+     * HushGram paused, the settings not ready or anything thrown. Never throws.
+     */
+    public static String commentCard(String card) {
+        if (card == null) return null;
+        HookStatus.invoked(FamilyNames.HIDE_ADS);
+        try {
+            if (!Utils.settingsReady() || !Settings.HIDE_ADS.get()) return card;
+            HookStatus.counted(FamilyNames.HIDE_ADS, COMMENT_CARDS_OFF);
+            Logger.printDebug(() -> "Hide ads: took the " + card + " off the top of the comments");
+            return null;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.HIDE_ADS, "comment card", failure);
+            return card;
         }
     }
 

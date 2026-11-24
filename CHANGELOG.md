@@ -50,6 +50,7 @@ Every HushGram release, newest first.
 * `Show it as an icon at the top`, new under `Show if a profile follows you`, puts a green check or red cross by the menu, or on HushGram's button when the bar's full. Starts off. Asked for in #842.
 * `Hold the middle to pause it`, new under `Hold for 2x on feed videos`, pauses a feed video while you hold its middle and plays it as you let go. Either side plays 2x. Starts off. Asked for in #639.
 * `Only the middle pauses it` is new under `Tap a feed video to pause it` in Feed. A tap off the video's middle opens Reels instead of pausing. Starts off. Asked for in #706.
+* `Hide ads` now also takes the shop or ad card off the top of a reel's comments. Reported in #857.
 
 ## 0.0.22 (2026-11-22)
 

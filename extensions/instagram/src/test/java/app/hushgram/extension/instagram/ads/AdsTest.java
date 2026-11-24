@@ -239,6 +239,31 @@ public class AdsTest {
         assertFalse(String.join("\n", HookStatus.report()).contains(Ads.COMMENT_ADS_OFF));
     }
 
+    /**
+     * #857: with the switch on the comments sheet is built with no card above the comments, an
+     * ad's or a shopping page's, and Diagnostics counts each one taken out.
+     */
+    @Test
+    public void anOnSwitchTakesTheCardAboveTheCommentsOut() {
+        assertNull(Ads.commentCard("product_iab_card"));
+        assertNull(Ads.commentCard("iab_card"));
+        String family = String.join("\n", HookStatus.report());
+        assertTrue(family, family.contains(Ads.COMMENT_CARDS_OFF + " 2"));
+    }
+
+    /** Off, paused or unready, the sheet keeps its card, and a sheet without one stays without one. */
+    @Test
+    public void otherwiseTheCommentsSheetKeepsItsCard() {
+        assertNull("no card", Ads.commentCard(null));
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertEquals("paused", "product_iab_card", Ads.commentCard("product_iab_card"));
+        PauseForTests.resume();
+        SettingsContextRule.withoutContext(() -> assertEquals("no context", "iab_card", Ads.commentCard("iab_card")));
+        Settings.HIDE_ADS.save(false);
+        assertEquals("off", "product_iab_card", Ads.commentCard("product_iab_card"));
+        assertFalse(String.join("\n", HookStatus.report()).contains(Ads.COMMENT_CARDS_OFF));
+    }
+
     /** As built, before the patch writes the stub, nothing is sponsored and every item stays. */
     @Test
     public void theUnwrittenStubKeepsEveryItem() {

@@ -430,6 +430,11 @@ once-call Lapp/hushgram/extension/instagram/ads/Ads;->hide()Z in static (*)Z poo
 # since five other constructors write fields of those names. Left out, the comments sheet fetches
 # its ad again; twice or elsewhere, it isn't the flag Hide ads turned off.
 once-call Lapp/hushgram/extension/instagram/ads/Ads;->commentAds(I)I in instance (L*;L*;L*;L*;Lcom/instagram/search/common/analytics/SearchContext;Lcom/instagram/search/common/analytics/SearchContext;*)V holding LX/*;->A1G:Z LX/*;->A1g:Z
+# Hide ads (#857) answers the same constructor's writes of the two card types the bundle writer
+# puts under "ad_card_type" and "organic_card_type" (A0O and A0h on 457), so the shop or ad card
+# above the comments never opens. Left out, the card sits above the comments again; once, one of
+# the two still shows.
+once-call Lapp/hushgram/extension/instagram/ads/Ads;->commentCard(Ljava/lang/String;)Ljava/lang/String; in instance (L*;L*;L*;L*;Lcom/instagram/search/common/analytics/SearchContext;Lcom/instagram/search/common/analytics/SearchContext;*)V sites 2 holding LX/*;->A1G:Z LX/*;->A1g:Z
 # Remove build expired popup asks the extension first thing in the method that shows the "this
 # version has expired" lockout over the main activity. Two methods of its class hold
 # "lockout_active"; the lockout is the one taking the activity first.
