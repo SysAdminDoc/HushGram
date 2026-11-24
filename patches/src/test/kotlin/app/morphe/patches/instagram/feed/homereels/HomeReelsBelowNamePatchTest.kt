@@ -50,52 +50,104 @@ class HomeReelsBelowNamePatchTest {
     }
 
     /**
-     * The feed's shape clamp (#788) on every build: the float method loading 4:5 and 1.91:1 that divides
-     * its first float parameter by its second and holds the answer to 4:5. Each of its answers then goes
-     * through the extension with those two floats, and the rest of the method is Instagram's.
+     * Home's media state builder (#788) on every build: the one method taking the Media first that loads
+     * 4:5 and calls its class's private (float, float, int, boolean) clamp. The shape it shows, read out
+     * of the holder the clamp's answer goes into, passes through the extension with the media's own shape
+     * and the feed's module name before it moves on to the state's constructor, and the rest is Instagram's.
      */
     @Test
-    fun eachBuildHandsTheShapeClampsAnswerToTheExtension() {
+    fun eachBuildHandsTheShapeShownToTheExtension() {
+        val moves = setOf(Opcode.MOVE, Opcode.MOVE_FROM16, Opcode.MOVE_16)
         var checked = 0
         for (bundle in bundles()) {
             val name = bundle.name
-            val owners = FixtureDex.methodsWhere(bundle, { true }) { method ->
-                method.returnType == "F" && method.loadsLiteral(WIDEST_POST) && method.loadsLiteral(NARROWEST_POST)
-            }.map { it.definingClass }.toSet()
+            val builders = FixtureDex.methodsWhere(bundle, { true }) { method ->
+                method.parameterTypes.firstOrNull()?.toString() == MEDIA && method.returnType.startsWith("L") &&
+                    method.loadsLiteral(NARROWEST_POST)
+            }
+            val owners = builders.flatMap { listOf(it.definingClass) + it.parameterTypes.map { type -> type.toString() } }.toSet()
             val context = PatchContexts.of(FixtureDex.classes(bundle, owners).values)
             val site = context.findPostShape()
-            val stock = context.method(site.owner, site.method).code()
+            val builder = context.method(site.owner, site.method)
+            val stock = builder.code()
 
-            // From the stock code: the media's width and height are the method's two float parameters
-            // (after this, the object and the session), handed in that order to the call that divides them.
-            val registers = context.method(site.owner, site.method).implementation!!.registerCount
-            assertEquals("$name: the width is the first float", registers - 3, site.width)
-            assertEquals("$name: the height the second", registers - 2, site.height)
-            val divides = stock.filter { call ->
-                val called = call.reference() as? MethodReference
-                called != null && called.returnType == "Ljava/lang/Float;" &&
-                    called.parameterTypes.map { it.toString() } == listOf("F", "F") &&
-                    arguments(call) == listOf(site.width, site.height)
+            // From the stock code: the clamp's answer goes into a (boolean, float) holder, whose float the
+            // builder reads into the register the site names, right before the site.
+            val read = stock[site.at - 1]
+            val field = read.reference() as FieldReference
+            assertEquals("$name: the shape shown is read", Opcode.IGET, read.opcode)
+            assertEquals("$name: a float", "F", field.type)
+            assertEquals("$name: into the register the hook takes", site.shown, (read as TwoRegisterInstruction).registerA)
+            val clamps = stock.indices.filter { at ->
+                val called = stock[at].reference() as? MethodReference
+                called != null && called.definingClass == site.owner && called.returnType == "F" &&
+                    called.parameterTypes.map { it.toString() } == listOf("F", "F", "I", "Z")
             }
-            assertEquals("$name: one call makes the shape from width and height", 1, divides.size)
-            val stockReturns = stock.indices.filter { stock[it].opcode == Opcode.RETURN }
-            assertTrue("$name: the clamp answers", stockReturns.isNotEmpty())
+            assertTrue("$name: the builder calls its clamp", clamps.isNotEmpty())
+            val answers = clamps.map { (stock[it + 1] as OneRegisterInstruction).registerA }.toSet()
+            val holds = stock.filter { call ->
+                val called = call.reference() as? MethodReference
+                called?.definingClass == field.definingClass && called.name == "<init>" &&
+                    called.parameterTypes.map { it.toString() } == listOf("Z", "F") && arguments(call).last() in answers
+            }
+            assertTrue("$name: the clamp's answer goes into the holder read", holds.isNotEmpty())
+
+            // The state's constructor takes the media's own shape, then the shape shown, which the stock
+            // move at the site hands on to it.
+            val make = stock.single { call ->
+                val called = call.reference() as? MethodReference
+                called?.definingClass == builder.returnType && called.name == "<init>"
+            }
+            val types = (make.reference() as MethodReference).parameterTypes.map { it.toString() }
+            val registers = arguments(make).drop(1)
+            var next = 0
+            val floats = types.mapNotNull { type ->
+                val register = registers[next]
+                next += if (type == "J" || type == "D") 2 else 1
+                register.takeIf { type == "F" }
+            }
+            assertEquals("$name: the constructor takes two floats", 2, floats.size)
+            assertEquals("$name: the media's own shape first", floats[0], site.own)
+            val moved = stock[site.at] as TwoRegisterInstruction
+            assertTrue("$name: the site is a move", moved.opcode in moves)
+            assertEquals("$name: of the shape shown", site.shown, moved.registerB)
+            assertTrue("$name: on to the constructor's shape shown",
+                stock.any { it.opcode in moves && (it as TwoRegisterInstruction).registerA == floats[1] && it.registerB == moved.registerA })
+            val ownSet = stock.indices.single { writes(stock[it], site.own) }
+            assertEquals("$name: the media's own shape is a call's answer", Opcode.MOVE_RESULT, stock[ownSet].opcode)
+            assertEquals("$name: a float", "F", (stock[ownSet - 1].reference() as MethodReference).returnType)
+
+            // The module name: the builder's own ask of its analytics host, a parameter copied in.
+            val ask = stock.indexOfFirst { (it.reference() as? MethodReference)?.name == "getModuleName" }
+            assertEquals("$name: the hook asks the builder's own module name", stock[ask].reference().toString(), site.moduleName)
+            val asked = arguments(stock[ask]).single()
+            val copied = (ask - 1 downTo 0).first { writes(stock[it], asked) }
+            assertEquals("$name: of the host parameter", site.host, (stock[copied] as TwoRegisterInstruction).registerB)
+            val parameterWords = 1 + builder.parameterTypes.sumOf { if (it.toString() == "J" || it.toString() == "D") 2 else 1 }
+            assertTrue("$name: a parameter", site.host >= builder.implementation!!.registerCount - parameterWords)
 
             context.keepHomeReelsWhole(site)
 
             val code = context.method(site.owner, site.method).code()
-            val returns = code.indices.filter { code[it].opcode == Opcode.RETURN }
-            assertEquals("$name: as many answers as before", stockReturns.size, returns.size)
-            for (at in returns) {
-                val answer = (code[at] as OneRegisterInstruction).registerA
-                assertEquals("$name: the answer at $at reaches the extension", WHOLE_REEL, code[at - 2].reference().toString())
-                assertEquals("$name: with the answer, the width and the height", listOf(answer, site.width, site.height), arguments(code[at - 2]))
-                assertEquals("$name: and takes its answer back", Opcode.MOVE_RESULT, code[at - 1].opcode)
-                assertEquals("$name: into the register it returns", answer, (code[at - 1] as OneRegisterInstruction).registerA)
-            }
-            assertEquals("$name: once per answer", returns.size, code.count { it.reference()?.toString() == WHOLE_REEL })
-            val hooked = returns.flatMap { listOf(it - 2, it - 1) }.toSet()
-            assertStockKept("$name shape clamp", stock, code.filterIndexed { at, _ -> at !in hooked })
+            val at = site.at
+            val (module, own) = site.scratch
+            assertEquals("$name: the host", Opcode.MOVE_OBJECT_FROM16, code[at].opcode)
+            assertEquals("$name: copied low", listOf(module, site.host), (code[at] as TwoRegisterInstruction).let { listOf(it.registerA, it.registerB) })
+            assertEquals("$name: asked its module name", site.moduleName, code[at + 1].reference().toString())
+            assertEquals("$name: of the host", listOf(module), arguments(code[at + 1]))
+            assertEquals("$name: which comes back", Opcode.MOVE_RESULT_OBJECT, code[at + 2].opcode)
+            assertEquals("$name: into the same register", module, (code[at + 2] as OneRegisterInstruction).registerA)
+            assertEquals("$name: the media's own shape", Opcode.MOVE_FROM16, code[at + 3].opcode)
+            assertEquals("$name: copied low", listOf(own, site.own), (code[at + 3] as TwoRegisterInstruction).let { listOf(it.registerA, it.registerB) })
+            assertEquals("$name: the shape shown reaches the extension", WHOLE_REEL, code[at + 4].reference().toString())
+            assertEquals("$name: with the media's own shape and the module name", listOf(site.shown, own, module), arguments(code[at + 4]))
+            assertEquals("$name: and takes its answer back", Opcode.MOVE_RESULT, code[at + 5].opcode)
+            assertEquals("$name: in place of the shape shown", site.shown, (code[at + 5] as OneRegisterInstruction).registerA)
+            assertEquals("$name: before Instagram moves it on", moved.registerA, (code[at + 6] as TwoRegisterInstruction).registerA)
+            assertTrue("$name: the borrowed registers are low locals", site.scratch.all { it <= 15 } && site.scratch.distinct().size == 2)
+            assertTrue("$name: and neither is the shape shown", site.shown !in site.scratch)
+            assertEquals("$name: once", 1, code.count { it.reference()?.toString() == WHOLE_REEL })
+            assertStockKept("$name media state builder", stock, code.subList(0, at) + code.subList(at + 6, code.size))
             checked++
         }
         assertEquals("every build of ${Fixtures.VERSION} is read", Fixtures.BUILDS, checked)

@@ -64,11 +64,15 @@ public class HomeReelHeaderTest {
                 HookStatus.missing(FamilyNames.HOME_REELS_BELOW_NAME).isEmpty());
     }
 
-    /** A reel below the name keeps its own shape (#788): 9:16 instead of Instagram's 4:5, a 7:10 video its 7:10. */
+    /**
+     * A reel below the name on Home keeps its own shape (#788): 9:16 instead of Instagram's 4:5, a 7:10
+     * video its 7:10, on the first page and the older posts after it.
+     */
     @Test
     public void aTallReelKeepsItsOwnShape() {
-        assertEquals(9f / 16f, HomeReelHeader.wholeReel(0.8f, 1080f, 1920f), 0.0001f);
-        assertEquals(0.7f, HomeReelHeader.wholeReel(0.8f, 700f, 1000f), 0.0001f);
+        assertEquals(9f / 16f, HomeReelHeader.wholeReel(0.8f, 1080f / 1920f, HomeReelHeader.HOME_MODULE), 0.0001f);
+        assertEquals(0.7f, HomeReelHeader.wholeReel(0.8f, 0.7f, HomeReelHeader.OLDER_MODULE), 0.0001f);
+        assertEquals(9f / 16f, HomeReelHeader.wholeReel(0.78f, 1080f / 1920f, HomeReelHeader.HOME_MODULE), 0.0001f);
 
         String report = String.join("\n", HookStatus.report());
         assertTrue(report, report.contains(HomeReelHeader.COUNT_WHOLE));
@@ -77,35 +81,43 @@ public class HomeReelHeaderTest {
     /** Media narrower than a reel stops at 9:16, so nothing runs taller than a reel would. */
     @Test
     public void nothingGoesNarrowerThanAReel() {
-        assertEquals(9f / 16f, HomeReelHeader.wholeReel(0.8f, 500f, 2000f), 0.0001f);
+        assertEquals(9f / 16f, HomeReelHeader.wholeReel(0.8f, 0.25f, HomeReelHeader.HOME_MODULE), 0.0001f);
     }
 
-    /** Off, paused, already as wide as Instagram's answer, or with no size, Instagram's shape stays. */
+    /**
+     * Off, paused, in any feed but Home's, already as wide as Instagram's shape, or with no shape of its
+     * own, Instagram's shape stays.
+     */
     @Test
     public void everyOtherAnswerStays() {
-        assertEquals(1f, HomeReelHeader.wholeReel(1f, 1080f, 1080f), 0f);
-        assertEquals(1.91f, HomeReelHeader.wholeReel(1.91f, 2400f, 1000f), 0f);
-        assertEquals(16f / 9f, HomeReelHeader.wholeReel(16f / 9f, 1920f, 1080f), 0f);
-        assertEquals(0.8f, HomeReelHeader.wholeReel(0.8f, 1080f, 1350f), 0f);
-        assertEquals(0.8f, HomeReelHeader.wholeReel(0.8f, 0f, 1920f), 0f);
-        assertEquals(0.8f, HomeReelHeader.wholeReel(0.8f, 1080f, 0f), 0f);
-        assertEquals(0.8f, HomeReelHeader.wholeReel(0.8f, Float.NaN, 1920f), 0f);
+        String home = HomeReelHeader.HOME_MODULE;
+        assertEquals(1f, HomeReelHeader.wholeReel(1f, 1f, home), 0f);
+        assertEquals(1.91f, HomeReelHeader.wholeReel(1.91f, 2.4f, home), 0f);
+        assertEquals(16f / 9f, HomeReelHeader.wholeReel(16f / 9f, 16f / 9f, home), 0f);
+        assertEquals(0.8f, HomeReelHeader.wholeReel(0.8f, 0.8f, home), 0f);
+        assertEquals(0.8f, HomeReelHeader.wholeReel(0.8f, 0f, home), 0f);
+        assertEquals(0.8f, HomeReelHeader.wholeReel(0.8f, -0.5f, home), 0f);
+        assertEquals(0.8f, HomeReelHeader.wholeReel(0.8f, Float.NaN, home), 0f);
+        assertTrue(Float.isNaN(HomeReelHeader.wholeReel(Float.NaN, 0.5625f, home)));
+        for (String elsewhere : new String[] {"explore_popular_major_unit", "clips_viewer_clips_tab", "profile", "feed_contextual_profile", "", null}) {
+            assertEquals(elsewhere, 0.8f, HomeReelHeader.wholeReel(0.8f, 0.5625f, elsewhere), 0f);
+        }
 
         Settings.HOME_REELS_BELOW_NAME.save(false);
-        assertEquals(0.8f, HomeReelHeader.wholeReel(0.8f, 1080f, 1920f), 0f);
+        assertEquals(0.8f, HomeReelHeader.wholeReel(0.8f, 0.5625f, home), 0f);
         Settings.HOME_REELS_BELOW_NAME.save(true);
         BaseSettings.PAUSED.save(true);
         PauseForTests.pause(HushgramPause.Reason.SWITCH);
-        assertEquals(0.8f, HomeReelHeader.wholeReel(0.8f, 1080f, 1920f), 0f);
+        assertEquals(0.8f, HomeReelHeader.wholeReel(0.8f, 0.5625f, home), 0f);
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
-        SettingsContextRule.withoutContext(() -> assertEquals(0.8f, HomeReelHeader.wholeReel(0.8f, 1080f, 1920f), 0f));
+        SettingsContextRule.withoutContext(() -> assertEquals(0.8f, HomeReelHeader.wholeReel(0.8f, 0.5625f, home), 0f));
     }
 
     /** A switch that throws keeps Instagram's shape and says which hook threw. */
     @Test
     public void aThrowingSwitchKeepsInstagramsShape() {
-        assertEquals(0.8f, HomeReelHeader.wholeReel(0.8f, 1080f, 1920f, () -> {
+        assertEquals(0.8f, HomeReelHeader.wholeReel(0.8f, 0.5625f, HomeReelHeader.HOME_MODULE, () -> {
             throw new IllegalStateException("broken switch");
         }), 0f);
         String missing = HookStatus.missing(FamilyNames.HOME_REELS_BELOW_NAME).toString();
