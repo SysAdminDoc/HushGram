@@ -14,6 +14,7 @@ import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.builder.BuilderOffsetInstruction
+import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
@@ -132,9 +133,19 @@ class SettingsRowTest {
 
         context.addSettingsRow()
 
-        val screen = classes.filter { it.type in made }.single { classDef -> classDef.methods.any { it.name == "onCreateView" } }
-        val originalName = screen.staticFields.single { it.name == "__redex_internal_original_name" }.initialValue
-        assertEquals("$label: the screen found", "SettingsScreenFragment", (originalName as StringEncodedValue).value)
+        // 457's armeabi-v7a 386314340 has a factory caller making a second screen with an onCreateView, so
+        // the settings screen is told apart by the name Redex keeps, and the other one stays as it was.
+        val screens = classes.filter { it.type in made }.filter { classDef -> classDef.methods.any { it.name == "onCreateView" } }
+        fun originalName(classDef: ClassDef) =
+            (classDef.staticFields.singleOrNull { it.name == "__redex_internal_original_name" }?.initialValue as? StringEncodedValue)?.value
+        val screen = screens.single { originalName(it) == "SettingsScreenFragment" }
+        for (other in screens - screen) {
+            assertEquals(
+                "$label: ${other.type}'s onCreateView",
+                other.methods.single { it.name == "onCreateView" }.instructions().size,
+                context.mutableClassDefBy(other.type).methods.single { it.name == "onCreateView" }.instructions().size,
+            )
+        }
 
         val before = screen.methods.single { it.name == "onCreateView" }.instructions()
         val returns = before.withIndex().filter { it.value.opcode == Opcode.RETURN_OBJECT }

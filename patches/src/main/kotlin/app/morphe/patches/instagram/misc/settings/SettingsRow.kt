@@ -13,6 +13,7 @@ import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.freeLocalsAt
 import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.requireThisIntact
+import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
@@ -38,6 +39,10 @@ private fun Method.isCreateView() = name == "onCreateView" && returnType == "Lan
  * tables hold both keys too, but make nothing. Redex asks a pool of shared strings for the keys in
  * some of these methods and not others, differently from build to build: 450's 385611400 loads
  * neither key itself in any of them (#77), so the keys are read through the pools as well.
+ *
+ * A caller that inlines the factory can make other fragments too: 457's armeabi-v7a 386314340 has
+ * one making a second screen with an onCreateView (0SjC beside the settings screen 0QGT). There the
+ * screen is the one whose own class holds a factory, a static making and returning it.
  */
 internal fun BytecodePatchContext.settingsScreenType(): String {
     val makers = classesLoadingString(NEW_SETTINGS_SESSION).flatMap { it.methods }.filter { method ->
@@ -50,7 +55,10 @@ internal fun BytecodePatchContext.settingsScreenType(): String {
             .filter { it.opcode == Opcode.NEW_INSTANCE }
             .mapNotNull { ((it as? ReferenceInstruction)?.reference as? TypeReference)?.type }
     }.distinct().filter { type -> classDefByOrNull(type)?.methods?.any { it.isCreateView() } == true }
-    return screens.singleOrNull() ?: throw PatchException(
+    val ownFactory = screens.filter { type ->
+        makers.any { it.definingClass == type && it.returnType == type && AccessFlags.STATIC.isSet(it.accessFlags) }
+    }
+    return screens.singleOrNull() ?: ownFactory.singleOrNull() ?: throw PatchException(
         "$WHAT: expected the settings screen factory to make exactly one screen with an onCreateView, found " +
             if (screens.isEmpty()) "none" else screens.joinToString(),
     )
