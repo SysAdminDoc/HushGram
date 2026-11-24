@@ -210,6 +210,9 @@ final class ReelsCategory {
             reels.add(toggle(context, Settings.HIDE_REEL_SAVE_BUTTON, L10n.t("Hide the Save button on reels"),
                     L10n.t("Takes the Save button out of the column of buttons beside a reel, and the count under it. "
                             + "Posts in your feed keep theirs.")));
+            reels.add(toggle(context, Settings.HIDE_REEL_MORE_BUTTON, L10n.t("Hide the More button on reels"),
+                    L10n.t("Takes the three dots, and the menu they open, off the bottom of the column of buttons "
+                            + "beside a reel. Repost and Share have their own switches under Sharing.")));
             reels.add(toggle(context, Settings.HIDE_REEL_LIKE_COUNT, L10n.t("Hide like counts on reels"),
                     L10n.t("Takes away the number under the heart beside a reel. The heart stays.")));
             reels.add(toggle(context, Settings.HIDE_REEL_COMMENT_COUNT, L10n.t("Hide comment counts on reels"),

@@ -16,6 +16,7 @@ import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.freeLocalsAt
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.jumpTargets
+import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
 import app.morphe.patches.instagram.misc.extension.markers
 import app.morphe.patches.instagram.misc.extension.requireLocals
@@ -46,12 +47,12 @@ import com.android.tools.smali.dexlib2.iface.reference.StringReference
 private const val PATCH = "Clean up Reels"
 
 /**
- * Takes fourteen things off the Reels viewer, each behind its own switch: the Follow button beside a
+ * Takes fifteen things off the Reels viewer, each behind its own switch: the Follow button beside a
  * reel's author, the pills that prompt you to make something or promote something, and friends'
  * activity with the comment preview, and the Add comment bar under a reel opened from a profile's
  * reposts, and the same bar under every reel, the Reels tab's included, the reply bar under a reel
  * opened from a chat, the Like, Comment and Save buttons in a reel's button column (each with its
- * count, #668), the big pause icon and sound button of a paused reel (#686), the Reels tab's top bar, the
+ * count, #668), the More button at the bottom of that column (#647), the big pause icon and sound button of a paused reel (#686), the Reels tab's top bar, the
  * Create (+) and Your algorithm buttons in the top bar of reels, and the Friends tab beside Reels.
  * Each number in the button column also has a switch of its own that leaves the button, the repost
  * and share counts included (#719).
@@ -95,7 +96,7 @@ private const val PATCH = "Clean up Reels"
 val cleanUpReelsPatch = bytecodePatch(
     name = "Clean up Reels",
     description = "Hides extra buttons and prompts on reels, such as Follow, Edits, templates, Meta AI, Ray-Ban " +
-        "Meta glasses, friends' activity, the Add a comment bar, the reply bar on reels from chats, the Like, Comment and Save buttons, the " +
+        "Meta glasses, friends' activity, the Add a comment bar, the reply bar on reels from chats, the Like, Comment, Save and More buttons, the " +
         "count under any of the buttons beside a reel, the pause icon on a paused reel, the Create and Your algorithm buttons, the Friends tab and the Reels tab's top bar. Each one has its own switch, and Burn-in guard can dim a reel's buttons, and a story's, while you aren't " +
         "touching the screen. Keep clear mode on carries Instagram's clear mode to the next reels, and can start every reel in it. " +
         "Pinch for clear mode turns clear mode on and off with two fingers, and can hide the button that leaves it. " +
@@ -181,7 +182,12 @@ internal fun BytecodePatchContext.findReelParts(): ReelPartSites {
     // The repost count and the share count, which have a switch of their own and no button's (#719).
     val repostCount = repostCountBuilder(classDefBy(ufi), saves.values)
     val shareCount = shareCountAdd(holding(SHARE_COUNT_MARKER), ufi, commentCount.returnType)
-    val ufiParts = likes + mapOf(COMMENT_BUTTON to commentButton, COMMENT_COUNT to commentCount, REPOST_COUNT to repostCount)
+    // The More button, built by the column and by a paged card's More builder alike (#647).
+    val (more, pagedMore) = moreBuilders(classDefBy(ufi))
+    val ufiParts = likes + mapOf(
+        COMMENT_BUTTON to commentButton, COMMENT_COUNT to commentCount, REPOST_COUNT to repostCount,
+        MORE_PARTS[0] to more, MORE_PARTS[1] to pagedMore,
+    )
     // The big pause icon and the sound button of a paused reel (#686).
     val pauses = PAUSE_PARTS.associateWith { holding(it.marker) }
     requirePauseBuilders(pauses)
@@ -800,6 +806,35 @@ private fun repostCountBuilder(ufi: ClassDef, saves: Collection<Method>): Method
     )
     requireUfiBuilder("repost count", count, ufi.type)
     return count
+}
+
+/**
+ * The More button's builders in the clips UFI [ufi] (#647): the one method of the UFI loading
+ * [MORE_BUTTON_NAME], a static builder answering the button, and the one loading [PAGED_MORE], a
+ * paged card's, an instance builder calling it and answering the same.
+ */
+private fun BytecodePatchContext.moreBuilders(ufi: ClassDef): Pair<Method, Method> {
+    fun one(name: String): Method {
+        val found = ufi.methods.filter { it.implementation != null && loadsString(it, name) }
+        return found.singleOrNull() ?: throw PatchException(
+            "$PATCH: expected one method of ${ufi.type} loading \"$name\", found ${found.map { it.name }}",
+        )
+    }
+    val more = one(MORE_BUTTON_NAME)
+    if (!AccessFlags.STATIC.isSet(more.accessFlags) || !more.returnType.startsWith("L")) {
+        throw PatchException("$PATCH: ${ufi.type}->${more.name}, building the More button, is not a static builder answering a component")
+    }
+    val paged = one(PAGED_MORE)
+    requireUfiBuilder("paged card's More button", paged, ufi.type)
+    val callsMore = paged.implementation!!.instructions.any { instruction ->
+        val called = (instruction as? ReferenceInstruction)?.reference as? MethodReference
+        called != null && called.definingClass == ufi.type && called.name == more.name &&
+            called.parameterTypes.map { it.toString() } == more.parameterTypes.map { it.toString() }
+    }
+    if (paged.returnType != more.returnType || !callsMore) {
+        throw PatchException("$PATCH: ${ufi.type}->${paged.name}, a paged card's More builder, doesn't call ${more.name} and answer what it does")
+    }
+    return more to paged
 }
 
 /**

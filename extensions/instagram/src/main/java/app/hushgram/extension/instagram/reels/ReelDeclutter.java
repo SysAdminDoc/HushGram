@@ -66,6 +66,8 @@ import app.hushgram.extension.shared.settings.BooleanSetting;
  *       {@link #hideCommentCount} the same way, first thing in the column's builders of the Like
  *       button, the like count, the Comment button and the comment count (#668). The column adds
  *       only what each hands it, so an empty answer leaves no gap.
+ *   <li>{@link #hideMoreButton} the same way, first thing in the column's two builders of the More
+ *       (three dots) button, the reel's own and a paged card's (#647).
  *   <li>{@link #hidePauseIcon} and {@link #hidePauseSoundButton} first thing in the pause-and-mute
  *       component's builders of the big pause icon and the sound button a paused reel shows (#686).
  *       Its render adds only what each hands it, so the paused reel shows just its frame, and a tap
@@ -123,6 +125,7 @@ public final class ReelDeclutter {
     static final String COUNT_COMMENT_COUNT_HIDDEN = "reel comment counts hidden";
     static final String COUNT_REPOST_COUNT_HIDDEN = "reel repost counts hidden";
     static final String COUNT_SHARE_COUNT_HIDDEN = "reel share counts hidden";
+    static final String COUNT_MORE_HIDDEN = "reel More buttons hidden";
     static final String COUNT_PAUSE_ICON_HIDDEN = "paused reel icons hidden";
     static final String COUNT_PAUSE_SOUND_HIDDEN = "paused reel sound buttons hidden";
     static final String COUNT_REPLY_BAR_HIDDEN = "chat reel reply bars kept hidden";
@@ -168,6 +171,13 @@ public final class ReelDeclutter {
     public static boolean hideSaveButton() {
         boolean hide = hide(Settings.HIDE_REEL_SAVE_BUTTON, "Save button");
         if (hide) HookStatus.counted(FamilyNames.REEL_DECLUTTER, COUNT_SAVE_HIDDEN);
+        return hide;
+    }
+
+    /** True leaves the More (three dots) button out of a reel's button column (#647). Never throws. */
+    public static boolean hideMoreButton() {
+        boolean hide = hide(Settings.HIDE_REEL_MORE_BUTTON, "More button");
+        if (hide) HookStatus.counted(FamilyNames.REEL_DECLUTTER, COUNT_MORE_HIDDEN);
         return hide;
     }
 

@@ -623,6 +623,14 @@ once-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideCommentCou
 # share count it builds inline after its marker.
 start-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideRepostCount()Z in instance (L*;JJ)L*; holding ufi_count
 once-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideRepostCount()Z in instance (L*;JJ)L*; holding ufi_count
+# Hide the More button on reels (#647) asks hideMoreButton() first thing in the clips UFI's two builders
+# of the More (three dots) button at the bottom of the column: the static one loading the button's view
+# name, which the column's render calls, and a paged card's, the instance one loading its component's
+# name, which calls the first and which the render calls too. Same shapes on all five 456.1 builds.
+start-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideMoreButton()Z in static (L*;L*;Ljava/lang/Integer;Ljava/lang/String;Lkotlin/jvm/functions/Function1;JJZZ)L*; pooled holding more_button
+once-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideMoreButton()Z in static (L*;L*;Ljava/lang/Integer;Ljava/lang/String;Lkotlin/jvm/functions/Function1;JJZZ)L*; pooled holding more_button
+start-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideMoreButton()Z in instance (L*;Ljava/lang/Integer;JJ)L*; pooled holding clips_paged_card_ufi_more_button_component
+once-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideMoreButton()Z in instance (L*;Ljava/lang/Integer;JJ)L*; pooled holding clips_paged_card_ufi_more_button_component
 # 456 holds the column's render by the UFI's id it loads right before the share count.
 once-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->shareCount(Ljava/lang/Object;)Ljava/lang/Object; in instance (LX/*;)LX/*; holding const:0x7f0b3b7a
 # Hide the pause icon on reels asks first thing in the pause-and-mute component's builders of a paused

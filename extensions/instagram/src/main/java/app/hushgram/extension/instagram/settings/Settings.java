@@ -3863,6 +3863,13 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_reel_comment_button", FALSE);
 
     /**
+     * The More (three dots) button at the bottom of the right-hand column of a reel, a paged card's
+     * one included. Its menu goes with it. Off to start (#647).
+     */
+    public static final BooleanSetting HIDE_REEL_MORE_BUTTON =
+            new BooleanSetting("hushgram_hide_reel_more_button", FALSE);
+
+    /**
      * The number under each button in the right-hand column of a reel, one switch per button, with
      * the button itself kept. The Like, Comment and Save button switches take their count too. Off to
      * start (#719).

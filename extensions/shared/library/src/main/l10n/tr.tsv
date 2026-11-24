@@ -1315,6 +1315,8 @@ Takes the heart out of the column of buttons beside a reel, and the like count u
 Hide the Comment button on reels	Reels'te Yorum düğmesini gizle
 Takes the Comment button out of the column of buttons beside a reel, and the count under it. The comment bar under a reel has its own switch.	Yorum düğmesini reel'in yanındaki düğme sütunundan ve altındaki sayıyı kaldırır. Reel'in altındaki yorum çubuğunun kendi anahtarı var.
 Hide the Save button on reels	Reels'te Kaydet düğmesini gizle
+Hide the More button on reels	Reels'te Daha fazla düğmesini gizle
+Takes the three dots, and the menu they open, off the bottom of the column of buttons beside a reel. Repost and Share have their own switches under Sharing.	Üç noktayı ve açtığı menüyü reel'in yanındaki düğme sütununun altından kaldırır. Yeniden paylaş ve Paylaş düğmelerinin Paylaşım altında kendi anahtarları var.
 Burn-in guard	Ekran yanığı koruması
 Dim when idle	Boştayken karart
 Dim when idle and shift	Boştayken karart ve kaydır

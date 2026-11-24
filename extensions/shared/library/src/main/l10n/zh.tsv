@@ -1298,6 +1298,8 @@ Takes the heart out of the column of buttons beside a reel, and the like count u
 Hide the Comment button on reels	隐藏 Reels 上的评论按钮
 Takes the Comment button out of the column of buttons beside a reel, and the count under it. The comment bar under a reel has its own switch.	移除 Reel 旁按钮栏中的评论按钮与下方数量。Reel 下方的评论栏有自己的开关。
 Hide the Save button on reels	隐藏 Reels 上的保存按钮
+Hide the More button on reels	隐藏 Reels 上的更多按钮
+Takes the three dots, and the menu they open, off the bottom of the column of buttons beside a reel. Repost and Share have their own switches under Sharing.	移除 Reel 旁按钮栏底部的三个点，以及它打开的菜单。转发与分享在“分享”中有各自的开关。
 Burn-in guard	防烙印保护
 Dim when idle	闲置时淡化
 Dim when idle and shift	闲置时淡化并位移

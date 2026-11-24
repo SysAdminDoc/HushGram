@@ -1315,6 +1315,8 @@ Takes the heart out of the column of buttons beside a reel, and the like count u
 Hide the Comment button on reels	Ocultar o botão Comentar nos reels
 Takes the Comment button out of the column of buttons beside a reel, and the count under it. The comment bar under a reel has its own switch.	Tira o botão Comentar da coluna de botões ao lado de um reel, junto com o número embaixo dele. A barra de comentários embaixo de um reel tem uma chave própria.
 Hide the Save button on reels	Ocultar o botão Salvar nos reels
+Hide the More button on reels	Ocultar o botão Mais nos reels
+Takes the three dots, and the menu they open, off the bottom of the column of buttons beside a reel. Repost and Share have their own switches under Sharing.	Tira os três pontinhos, e o menu que eles abrem, da parte de baixo da coluna de botões ao lado de um reel. Repostar e Compartilhar têm chaves próprias em Compartilhamento.
 Burn-in guard	Proteção contra burn-in
 Dim when idle	Escurecer quando parado
 Dim when idle and shift	Escurecer quando parado e mover

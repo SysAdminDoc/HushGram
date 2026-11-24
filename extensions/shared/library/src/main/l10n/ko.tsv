@@ -1314,6 +1314,8 @@ Takes the heart out of the column of buttons beside a reel, and the like count u
 Hide the Comment button on reels	릴스의 댓글 버튼 숨기기
 Takes the Comment button out of the column of buttons beside a reel, and the count under it. The comment bar under a reel has its own switch.	릴스 옆 버튼 열에서 댓글 버튼과 그 아래 숫자를 없앱니다. 릴스 아래 댓글창은 별도의 스위치가 있습니다.
 Hide the Save button on reels	릴스의 저장 버튼 숨기기
+Hide the More button on reels	릴스의 더 보기 버튼 숨기기
+Takes the three dots, and the menu they open, off the bottom of the column of buttons beside a reel. Repost and Share have their own switches under Sharing.	릴스 옆 버튼 열 맨 아래에서 점 세 개와 그 메뉴를 없앱니다. 리포스트와 공유는 공유 아래에 별도의 스위치가 있습니다.
 Burn-in guard	번인 방지
 Dim when idle	사용하지 않을 때 어둡게
 Dim when idle and shift	사용하지 않을 때 어둡게 하고 이동

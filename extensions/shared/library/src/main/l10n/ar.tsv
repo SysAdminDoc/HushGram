@@ -878,6 +878,8 @@ Hide the Reels tab	إخفاء تبويب Reels
 Hide the Repost button	إخفاء زر إعادة النشر
 Hide the Save button	إخفاء زر الحفظ
 Hide the Save button on reels	إخفاء زر الحفظ في Reels
+Hide the More button on reels	إخفاء زر المزيد في Reels
+Takes the three dots, and the menu they open, off the bottom of the column of buttons beside a reel. Repost and Share have their own switches under Sharing.	يزيل النقاط الثلاث، والقائمة التي تفتحها، من أسفل عمود الأزرار بجانب المقطع. لزر إعادة النشر وزر المشاركة مفتاحان خاصان بهما ضمن المشاركة.
 Hide the Search tab	إخفاء تبويب البحث
 Hide the Share button	إخفاء زر المشاركة
 Hide the Share button on stories	إخفاء زر المشاركة في القصص

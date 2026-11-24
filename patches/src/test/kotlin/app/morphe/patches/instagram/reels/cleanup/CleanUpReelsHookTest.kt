@@ -60,7 +60,7 @@ class CleanUpReelsHookTest {
             HIDE_FOLLOW_BUTTON, HIDE_CHIPS, HIDE_SOCIAL_FOOTER, HIDE_SOCIAL_CONTEXT, HIDE_COMMENT_BAR, HIDE_EVERY_COMMENT_BAR,
             HIDE_SAVE_BUTTON, HIDE_SAVE_COUNT, HIDE_DIRECT_REPLY_BAR, KEEP_COMMENT_BAR_SPACE,
             HIDE_LIKE_BUTTON, HIDE_LIKE_COUNT, HIDE_COMMENT_BUTTON, HIDE_COMMENT_COUNT, HIDE_PAUSE_ICON, HIDE_PAUSE_SOUND_BUTTON,
-            HIDE_REPOST_COUNT, SHARE_COUNT,
+            HIDE_REPOST_COUNT, SHARE_COUNT, HIDE_MORE_BUTTON,
         )) {
             val declared = ExtensionDex.classDef(hook.substringBefore("->")).methods
                 .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
@@ -81,11 +81,12 @@ class CleanUpReelsHookTest {
             assertGuardFirst(part.marker, part, method)
         }
         val ufi = context.mutableClassDefBy(UFI).methods
-        assertEquals(setOf("A0D", "A06", "A0J", "A02", "A0I", "A0E", "A0C", "A0q"), ufi.map { it.name }.toSet())
+        assertEquals(setOf("A0D", "A06", "A0J", "A02", "A0I", "A0E", "A0C", "A0q", "A0H", "A0M"), ufi.map { it.name }.toSet())
         SAVE_PARTS.zip(listOf("A0D", "A06")).forEach { (part, name) -> assertGuardFirst(part.marker, part, ufi.single { it.name == name }) }
-        // The Like and Comment buttons and their counts (#668) and the repost count (#719); the
-        // Comment button's render stays as it was.
-        (LIKE_PARTS + COMMENT_BUTTON + COMMENT_COUNT + REPOST_COUNT).zip(listOf("A0J", "A02", "A0I", "A0E", "A0C")).forEach { (part, name) ->
+        // The Like and Comment buttons and their counts (#668), the repost count (#719) and the More
+        // button's two builders (#647); the Comment button's render stays as it was.
+        (LIKE_PARTS + COMMENT_BUTTON + COMMENT_COUNT + REPOST_COUNT + MORE_PARTS)
+            .zip(listOf("A0J", "A02", "A0I", "A0E", "A0C", "A0H", "A0M")).forEach { (part, name) ->
             assertGuardFirst(part.hook, part, ufi.single { it.name == name })
         }
         // The share count (#719): handed to the hook right before its add, which the branch with no
@@ -278,6 +279,11 @@ class CleanUpReelsHookTest {
             Triple("two repost counts", classes(ufiShape = "two repost counts"), "for the repost count"),
             Triple("no share count", classes(leaveOut = SHARE_COUNT_MARKER), SHARE_COUNT_MARKER),
             Triple("share count read later", classes(ufiShape = "share count read later"), "read again after the add"),
+            // The More button's builders (#647).
+            Triple("no More button", classes(leaveOut = MORE_BUTTON_NAME), "loading \"$MORE_BUTTON_NAME\""),
+            Triple("no paged More button", classes(leaveOut = PAGED_MORE), "loading \"$PAGED_MORE\""),
+            Triple("instance More button", classes(ufiShape = "instance more"), "is not a static builder"),
+            Triple("paged More on its own", classes(ufiShape = "paged more alone"), "doesn't call A0H"),
         )) {
             val failure = assertThrows(case, PatchException::class.java) { PatchContexts.of(classes).hideReelParts() }
             assertTrue("$case: ${failure.message}", failure.message!!.contains(expected))
@@ -484,6 +490,33 @@ class CleanUpReelsHookTest {
         assertTrue("$label: the repost count loads $UFI_COUNT", repostCount.instructions().any {
             ((it as? ReferenceInstruction)?.reference as? StringReference)?.string == UFI_COUNT
         })
+        // The More button (#647): its static builder in the UFI, loading more_button, and a paged card's
+        // instance builder calling it, both guarded first, growing by the guard alone, and the only two
+        // methods asking the hook. The column's render calls both.
+        val moreBuilders = MORE_PARTS.map { part -> sites.ufiParts.getValue(part) }
+        val (moreButton, pagedMoreButton) = moreBuilders
+        assertEquals("$label: the More builders' class", listOf(ufiType, ufiType), moreBuilders.map { it.definingClass })
+        assertTrue("$label: the More button's builder is static", AccessFlags.STATIC.isSet(moreButton.accessFlags))
+        assertFalse("$label: the paged card's More builder is static", AccessFlags.STATIC.isSet(pagedMoreButton.accessFlags))
+        assertTrue("$label: the More button's builder loads $MORE_BUTTON_NAME", FixtureDex.loads(moreButton, MORE_BUTTON_NAME, byType))
+        assertTrue("$label: the paged card's More builder loads $PAGED_MORE", FixtureDex.loads(pagedMoreButton, PAGED_MORE, byType))
+        assertEquals("$label: the More builders answer one thing", moreButton.returnType, pagedMoreButton.returnType)
+        fun calls(caller: Method, callee: Method) = caller.instructions().any { instruction ->
+            ((instruction as? ReferenceInstruction)?.reference as? MethodReference)?.let {
+                signature(callee) == "${it.definingClass}->${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}"
+            } == true
+        }
+        assertTrue("$label: the paged card's More builder calls the More button's", calls(pagedMoreButton, moreButton))
+        val column = classes.single { it.type == ufiType }.methods.filter { calls(it, moreButton) && calls(it, pagedMoreButton) }
+        assertEquals("$label: the renders calling both More builders", 1, column.size)
+        MORE_PARTS.zip(moreBuilders).forEach { (part, before) ->
+            val moreAfter = after(before)
+            assertEquals("$label: ${part.marker} size", before.instructions().size + 5, moreAfter.instructions().size)
+            assertGuardFirst("$label: ${part.marker}", part, moreAfter)
+        }
+        val moreAskers = classes.flatMap { context.mutableClassDefBy(it.type).methods.toList() }
+            .filter { method -> method.instructions().any { (it as? ReferenceInstruction)?.reference?.toString() == HIDE_MORE_BUTTON } }
+        assertEquals("$label: who asks $HIDE_MORE_BUTTON", moreBuilders.map { signature(it) }.toSet(), moreAskers.map { signature(it) }.toSet())
         // The share count (#719): the UFI's render builds it with the UFI's text builder and hands it to
         // the hook right before the add, where the branches that went to the add now land.
         val shareBefore = sites.shareCount.render
@@ -1282,7 +1315,20 @@ class CleanUpReelsHookTest {
                 static = false,
             ),
         )
-        return likes + button + counts + reposts + share
+        // The More button (#647): a static builder loading its view name and a paged card's instance
+        // builder calling it with the scope, the card's index, the name it loads and two colors.
+        val moreParameters = listOf(scope, UFI, "Ljava/lang/Integer;", "Ljava/lang/String;", "Lkotlin/jvm/functions/Function1;", "J", "J", "Z", "Z")
+        val moreCall = "$UFI->A0H(${moreParameters.joinToString("")})$component"
+        val more = if (leaveOut == MORE_BUTTON_NAME) emptyList() else listOf(
+            method(UFI, "A0H", moreParameters, component, 13, "const-string v0, \"$MORE_BUTTON_NAME\"\n$nothing",
+                static = shape != "instance more"),
+        )
+        val pagedCall = if (shape == "paged more alone") nothing else "invoke-static/range { v0 .. v10 }, $moreCall\nmove-result-object v0\nreturn-object v0"
+        val paged = if (leaveOut == PAGED_MORE) emptyList() else listOf(
+            method(UFI, "A0M", listOf(scope, "Ljava/lang/Integer;", "J", "J"), component, 20,
+                "const-string v3, \"$PAGED_MORE\"\n$pagedCall", static = false),
+        )
+        return likes + button + counts + reposts + share + more + paged
     }
 
     private fun check(type: String, marker: String, returns: String): ClassDef = ImmutableClassDef(

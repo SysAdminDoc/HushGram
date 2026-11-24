@@ -1306,6 +1306,8 @@ Takes the heart out of the column of buttons beside a reel, and the like count u
 Hide the Comment button on reels	ซ่อนปุ่มความคิดเห็นในรีลส์
 Takes the Comment button out of the column of buttons beside a reel, and the count under it. The comment bar under a reel has its own switch.	นำปุ่มความคิดเห็นและจำนวนใต้ปุ่มออกจากคอลัมน์ปุ่มข้างรีลส์ แถบความคิดเห็นใต้รีลส์มีสวิตช์แยกของตัวเองอยู่
 Hide the Save button on reels	ซ่อนปุ่มบันทึกในรีลส์
+Hide the More button on reels	ซ่อนปุ่มเพิ่มเติมในรีลส์
+Takes the three dots, and the menu they open, off the bottom of the column of buttons beside a reel. Repost and Share have their own switches under Sharing.	นำจุดสามจุดและเมนูที่เปิดจากจุดนั้นออกจากด้านล่างของคอลัมน์ปุ่มข้างรีลส์ ปุ่มรีโพสต์และปุ่มแชร์มีสวิตช์แยกของตัวเองอยู่ในการแชร์
 Burn-in guard	ระบบป้องกันจอเบิร์น
 Dim when idle	หรี่แสงเมื่อไม่ได้ใช้งาน
 Dim when idle and shift	หรี่แสงเมื่อไม่ได้ใช้งานและเลื่อนตำแหน่ง

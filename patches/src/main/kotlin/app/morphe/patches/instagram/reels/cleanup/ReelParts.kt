@@ -21,6 +21,7 @@ internal const val HIDE_LIKE_COUNT = "$DECLUTTER->hideLikeCount()Z"
 internal const val HIDE_COMMENT_BUTTON = "$DECLUTTER->hideCommentButton()Z"
 internal const val HIDE_COMMENT_COUNT = "$DECLUTTER->hideCommentCount()Z"
 internal const val HIDE_REPOST_COUNT = "$DECLUTTER->hideRepostCount()Z"
+internal const val HIDE_MORE_BUTTON = "$DECLUTTER->hideMoreButton()Z"
 internal const val SHARE_COUNT = "$DECLUTTER->shareCount(Ljava/lang/Object;)Ljava/lang/Object;"
 internal const val HIDE_COMMENT_BAR = "$DECLUTTER->hideCommentBar(Ljava/lang/Object;)Z"
 internal const val KEEP_COMMENT_BAR_SPACE = "$DECLUTTER->keepCommentBarSpace(Landroid/view/View;Ljava/lang/Object;)V"
@@ -138,6 +139,16 @@ internal val COMMENT_COUNT = ReelPart(UFI_COUNT, HIDE_COMMENT_COUNT)
  * scope and two colors) and loading [UFI_COUNT]. The save count's loads its own text name.
  */
 internal val REPOST_COUNT = ReelPart(UFI_COUNT, HIDE_REPOST_COUNT)
+
+/**
+ * The More (three dots) button at the bottom of the same column (#647). The clips UFI builds it in a
+ * static method of its own, the one of the UFI loading [MORE_BUTTON_NAME], the button's view name, which
+ * the column's render and a paged card's More builder (the one instance method loading [PAGED_MORE])
+ * both call and add the way the other builders' answers are added. Both answer nothing when hidden.
+ */
+internal const val MORE_BUTTON_NAME = "more_button"
+internal const val PAGED_MORE = "clips_paged_card_ufi_more_button_component"
+internal val MORE_PARTS = listOf(ReelPart(MORE_BUTTON_NAME, HIDE_MORE_BUTTON), ReelPart(PAGED_MORE, HIDE_MORE_BUTTON))
 
 /**
  * The share count under the Share button (#719) has no builder of its own on 454: the clips UFI's

@@ -1315,6 +1315,8 @@ Takes the heart out of the column of buttons beside a reel, and the like count u
 Hide the Comment button on reels	Sembunyikan tombol Komentar di reel
 Takes the Comment button out of the column of buttons beside a reel, and the count under it. The comment bar under a reel has its own switch.	Menghapus tombol Komentar dari deretan tombol di samping reel, beserta angka di bawahnya. Kolom komentar di bawah reel punya sakelarnya sendiri.
 Hide the Save button on reels	Sembunyikan tombol Simpan di reel
+Hide the More button on reels	Sembunyikan tombol Lainnya di reel
+Takes the three dots, and the menu they open, off the bottom of the column of buttons beside a reel. Repost and Share have their own switches under Sharing.	Menghapus tiga titik, beserta menu yang dibukanya, dari bagian bawah deretan tombol di samping reel. Posting ulang dan Bagikan punya sakelarnya sendiri di Berbagi.
 Burn-in guard	Pelindung burn-in
 Dim when idle	Redupkan saat diam
 Dim when idle and shift	Redupkan saat diam dan geser
