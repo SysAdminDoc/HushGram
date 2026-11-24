@@ -248,6 +248,39 @@ public class ReelNotInterestedButtonTest {
         assertEquals(Math.round(26 * density), ((ReelNotInterestedButton.Centered) bridge.drawable).side);
     }
 
+    /**
+     * #187: with Reel buttons in the accent color on, the buttons HushGram adds beside a reel took
+     * the column's white over the video while Instagram's own took the picked color. Without a filter
+     * of Instagram's they now take the same shade, and Instagram's filter is still kept as it is.
+     */
+    @Test
+    public void reelButtonsInTheAccentColorTintTheAddedIconsToo() {
+        try {
+            Settings.ACCENT_COLOR.save(true);
+            Settings.ACCENT_HUE.save(app.hushgram.extension.instagram.misc.AccentHue.TEAL);
+            Settings.ACCENT_REELS.save(true);
+            int shade = app.hushgram.extension.instagram.misc.AccentTheme.reelButtons(0xFFFFFFFF);
+            assertFalse("the picked color isn't white", shade == 0xFFFFFFFF);
+            // A bitmap glyph, as the column's are: a ColorDrawable reports no filter on API 28.
+            Drawable glyph = app.hushgram.extension.shared.Utils.getContext()
+                    .getDrawable(android.R.drawable.ic_menu_close_clear_cancel).mutate();
+            ReelNotInterestedButton.tint(glyph, null);
+            assertEquals(new PorterDuffColorFilter(shade, PorterDuff.Mode.SRC_IN), glyph.getColorFilter());
+
+            ColorFilter instagrams = new PorterDuffColorFilter(0xFF262626, PorterDuff.Mode.SRC_IN);
+            ReelNotInterestedButton.tint(glyph, instagrams);
+            assertSame("Instagram's own tint where it has one", instagrams, glyph.getColorFilter());
+
+            Settings.ACCENT_REELS.save(false);
+            ReelNotInterestedButton.tint(glyph, null);
+            assertEquals("white with the switch off", new PorterDuffColorFilter(0xFFFFFFFF, PorterDuff.Mode.SRC_IN), glyph.getColorFilter());
+        } finally {
+            Settings.ACCENT_REELS.resetToDefault();
+            Settings.ACCENT_HUE.resetToDefault();
+            Settings.ACCENT_COLOR.resetToDefault();
+        }
+    }
+
     @Test
     public void theGlyphTakesTheMiddleOfTheColumnsBoxAtItsOwnSize() {
         Recording glyph = new Recording();

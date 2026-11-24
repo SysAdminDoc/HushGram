@@ -24,6 +24,7 @@ import java.util.List;
 
 import kotlin.jvm.functions.Function1;
 
+import app.hushgram.extension.instagram.misc.AccentTheme;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.L10n;
@@ -267,9 +268,14 @@ public final class ReelNotInterestedButton {
         return centered(resources, drawable);
     }
 
-    /** Tints a column glyph with Instagram's filter for the column, or the column's white without one. */
+    /**
+     * Tints a column glyph with Instagram's filter for the column, or without one the column's white,
+     * which Reel buttons in the accent color turns into the picked shade as it does Instagram's own
+     * buttons there (#187). Every button HushGram adds to the column tints through here.
+     */
     static void tint(Drawable glyph, @Nullable ColorFilter filter) {
-        glyph.setColorFilter(filter != null ? filter : new PorterDuffColorFilter(ON_MEDIA, PorterDuff.Mode.SRC_IN));
+        glyph.setColorFilter(filter != null ? filter
+                : new PorterDuffColorFilter(AccentTheme.reelButtons(ON_MEDIA), PorterDuff.Mode.SRC_IN));
     }
 
     /** [glyph] drawn {@link #GLYPH_DP} square in the middle of the box the column gives it. */
