@@ -933,7 +933,8 @@ internal class OwnPost(val result: Int, val answer: Int, val gate: Int, val flag
  * Finds [OwnPost] in [this], the feed menu's builder. Only your own posts reach the check (see
  * [othersRow]). A no jumps away at once. On a yes, the first branch is on a boolean of the
  * builder's state read without a branch in between, and it jumps ahead to the Download row on a 0
- * (from 456 that boolean goes through a check first, see [rowPastTheSheetCheck]). The hooks there
+ * (from 456 that boolean goes through a check first, see [rowPastTheSheetCheck], which 457's x86_64
+ * inlines, see [rowPastAClearedSkip]). The hooks there
  * are handed the menu's helper, which answers the post: from 455 the check is handed a wrapper the
  * builder makes for it, and the builder's state holds no post.
  */
@@ -956,7 +957,7 @@ internal fun Method.ownPost(eligible: Method, found: OthersRow, outlined: (Metho
     val row = when {
         branch == null -> -1
         code[branch].opcode == Opcode.IF_EQZ && (code[branch] as OneRegisterInstruction).registerA == flag ->
-            code.target(branch).takeIf { it > branch } ?: -1
+            code.target(branch).takeIf { it > branch }?.let { rowPastAClearedSkip(code, gate, branch, it) } ?: -1
         else -> rowPastTheSheetCheck(code, gate, flag, outlined)
     }
     if (row < 0 || row >= found.at || code[row].opcode != Opcode.SGET_OBJECT || code[row].referenceText() != DOWNLOAD) {
@@ -964,6 +965,20 @@ internal fun Method.ownPost(eligible: Method, found: OthersRow, outlined: (Metho
     }
     if (answer > 15 || flag > 15) throw PatchException("$PATCH: in $where v$answer and v$flag are out of an invoke's reach")
     return OwnPost(result, answer, gate, flag)
+}
+
+/**
+ * Where a 0 flag jumps, [landed], is the row itself, or on 457's x86_64 386314286, which inlines the
+ * share sheet's check, a skip past the row on a register set to 0 between [gate] and the [branch]
+ * there. On that jump the skip runs on into the row, which starts right after it.
+ */
+private fun rowPastAClearedSkip(code: List<Instruction>, gate: Int, branch: Int, landed: Int): Int {
+    val skip = code[landed]
+    if (skip.opcode != Opcode.IF_NEZ) return landed
+    val cleared = (skip as OneRegisterInstruction).registerA
+    val set = (branch - 1 downTo gate + 1).firstOrNull { code[it].writes(cleared) } ?: return landed
+    val zero = code[set].opcode in ZERO_LOADS && (code[set] as NarrowLiteralInstruction).narrowLiteral == 0
+    return if (zero && code.target(landed) > landed + 1) landed + 1 else landed
 }
 
 /**

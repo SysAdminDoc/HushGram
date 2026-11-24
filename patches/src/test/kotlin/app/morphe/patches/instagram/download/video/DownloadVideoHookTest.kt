@@ -362,6 +362,42 @@ class DownloadVideoHookTest {
         assertEquals("nine separate actions in the builder", 9, code.count { it.referenceText()?.startsWith("Lapp/hushgram/") == true })
     }
 
+    /**
+     * 457's x86_64 386314286 inlines the share sheet's check: a 0 flag jumps to a skip past the row on
+     * a register set to 0 right before, which runs on into the row. ownPostRow() still answers in the
+     * flag's register right after it's read (#57).
+     */
+    @Test
+    fun anInlinedShareSheetCheckStillLeadsToTheRow() {
+        val context = PatchContexts.of(classes(inlinedSheet = true))
+
+        context.offerDownloadOnEveryVideo()
+
+        val code = context.method(lambda, "invoke").code()
+        val flagged = code.indexOfFirst { it.referenceText() == "$state->flagged:Z" }
+        val row = code[flagged + 3] as Instruction35c
+        assertEquals(OWN_POST_ROW, row.referenceText())
+        assertEquals("ownPostRow()'s flag", 1, row.registerC)
+        assertHelperRead(code, flagged + 3, row.registerD)
+        assertEquals("the answer goes back where the branch reads it", 1, (code[flagged + 4] as OneRegisterInstruction).registerA)
+        val branch = (flagged + 5 until code.size).first { code[it].opcode == Opcode.IF_EQZ }
+        assertEquals("the branch reads the answer", 1, (code[branch] as OneRegisterInstruction).registerA)
+        val skip = code.target(branch)
+        assertEquals("a 0 lands on the skip", Opcode.IF_NEZ, code[skip].opcode)
+        assertEquals("which runs on into the row", DOWNLOAD, code[skip + 1].referenceText())
+        assertEquals("one ownPost() call", 1, code.count { it.referenceText() == OWN_POST })
+        assertEquals("one ownPostRow() call", 1, code.count { it.referenceText() == OWN_POST_ROW })
+    }
+
+    /** An inlined check whose skip is set before the branch skips the row on a 0 too, and nothing changes. */
+    @Test
+    fun anInlinedShareSheetCheckThatSkipsTheRowFailsBeforeAnythingChanges() {
+        val context = PatchContexts.of(classes(inlinedSheet = true, flagSkipsRow = true))
+        val failure = assertThrows(PatchException::class.java) { context.offerDownloadOnEveryVideo() }
+        assertTrue(failure.message!!, failure.message!!.contains("doesn't lead to the Download row"))
+        assertUntouched(context)
+    }
+
     /** A share sheet check that doesn't answer no on a 0 flag would hide the row the hook keeps, and nothing changes. */
     @Test
     fun aShareSheetCheckThatAsksFirstFailsBeforeAnythingChanges() {
@@ -1325,6 +1361,7 @@ class DownloadVideoHookTest {
         branchBeforeSplit: Boolean = false,
         flagSkipsRow: Boolean = false,
         inlineRow: Boolean = false,
+        inlinedSheet: Boolean = false,
         sheetNoOnANo: Boolean = true,
         earlyExit: Boolean = false,
         optionEnum: Boolean = true,
@@ -1374,8 +1411,26 @@ class DownloadVideoHookTest {
         // line; anyone else's jumps past it. Some builds make the list and read the label through
         // methods R8 outlined, and some call nothing of the menu's past reading it. From 456 the row
         // is in line ([inlineRow]): the flag goes to the share sheet's check, whose yes skips the row.
+        // 457's x86_64 inlines that check ([inlinedSheet]): a 0 flag jumps to a skip past the row on a
+        // register set to 0 just before, so it runs on into the row.
         val finalField = AccessFlags.PUBLIC.value or AccessFlags.FINAL.value
-        val ownRows = if (inlineRow) """
+        val ownRows = if (inlinedSheet) """
+            const/4 v5, 0x0
+            iget-boolean v1, v0, $state->flagged:Z
+            const/4 v9, ${if (flagSkipsRow) "0x1" else "0x0"}
+            if-eqz v1, :skip
+            const-wide v6, 0x81030600060b90L
+            invoke-static { v2, v6, v7 }, $flag
+            move-result v1
+            if-eqz v1, :skip
+            const/4 v9, 0x1
+            :skip
+            if-nez v9, :mine
+            ${rowSmali(outlinedLabel)}
+            :mine
+            ${if (builderUsesMenu) "invoke-static { v13 }, $helper->A00($helper)$MEDIA" else "nop"}
+            return-object v3
+        """ else if (inlineRow) """
             const/4 v5, 0x0
             iget-boolean v1, v0, $state->flagged:Z
             invoke-static { v2, v1 }, $sheet
