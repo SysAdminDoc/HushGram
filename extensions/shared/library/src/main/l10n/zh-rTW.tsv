@@ -1942,6 +1942,30 @@ Minimum views	最低觀看次數
 Reels with fewer views than this are left out. Type a whole number, or 0 to not look at views.	觀看次數低於此數字的 Reels 會被略過。請輸入整數，或輸入 0 不看觀看次數。
 Fewer than %1$s views	觀看次數低於 %1$s
 Minimum likes	最低按讚數
+Maximum likes	最高按讚數
+Minimum comments	最低留言數
+Maximum comments	最高留言數
+Minimum shares	最低分享次數
+Maximum shares	最高分享次數
+Minimum saves	最低儲存次數
+Maximum saves	最高儲存次數
+Reels with more likes than this are left out. Type a whole number, or 0 for no maximum.	按讚數高於此數字的 Reels 會被略過。請輸入整數，或輸入 0 不設上限。
+Reels with fewer comments than this are left out. Type a whole number, or 0 to not look at comments.	留言數低於此數字的 Reels 會被略過。請輸入整數，或輸入 0 不看留言數。
+Reels with more comments than this are left out. Type a whole number, or 0 for no maximum.	留言數高於此數字的 Reels 會被略過。請輸入整數，或輸入 0 不設上限。
+Reels with fewer shares than this are left out. Type a whole number, or 0 to not look at shares.	分享次數低於此數字的 Reels 會被略過。請輸入整數，或輸入 0 不看分享次數。
+Reels with more shares than this are left out. Type a whole number, or 0 for no maximum.	分享次數高於此數字的 Reels 會被略過。請輸入整數，或輸入 0 不設上限。
+Reels with fewer saves than this are left out. Type a whole number, or 0 to not look at saves.	儲存次數低於此數字的 Reels 會被略過。請輸入整數，或輸入 0 不看儲存次數。
+Reels with more saves than this are left out. Type a whole number, or 0 for no maximum.	儲存次數高於此數字的 Reels 會被略過。請輸入整數，或輸入 0 不設上限。
+More than %1$s likes	按讚數高於 %1$s
+Comments aren't looked at	不看留言數
+Fewer than %1$s comments	留言數低於 %1$s
+More than %1$s comments	留言數高於 %1$s
+Shares aren't looked at	不看分享次數
+Fewer than %1$s shares	分享次數低於 %1$s
+More than %1$s shares	分享次數高於 %1$s
+Saves aren't looked at	不看儲存次數
+Fewer than %1$s saves	儲存次數低於 %1$s
+More than %1$s saves	儲存次數高於 %1$s
 Reels with fewer likes than this are left out. Type a whole number, or 0 to not look at likes.	按讚數低於此數字的 Reels 會被略過。請輸入整數，或輸入 0 不看按讚數。
 Fewer than %1$s likes	按讚數低於 %1$s
 Likes aren't looked at	不看按讚數

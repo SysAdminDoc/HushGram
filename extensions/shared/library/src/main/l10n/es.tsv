@@ -1939,6 +1939,30 @@ Minimum views	Mínimo de reproducciones
 Reels with fewer views than this are left out. Type a whole number, or 0 to not look at views.	Se omiten los reels con menos reproducciones que esto. Escribe un número entero, o 0 para no tener en cuenta las reproducciones.
 Fewer than %1$s views	Menos de %1$s reproducciones
 Minimum likes	Mínimo de Me gusta
+Maximum likes	Máximo de Me gusta
+Minimum comments	Mínimo de comentarios
+Maximum comments	Máximo de comentarios
+Minimum shares	Mínimo de veces compartido
+Maximum shares	Máximo de veces compartido
+Minimum saves	Mínimo de guardados
+Maximum saves	Máximo de guardados
+Reels with more likes than this are left out. Type a whole number, or 0 for no maximum.	Se omiten los reels con más Me gusta que esto. Escribe un número entero, o 0 para no poner máximo.
+Reels with fewer comments than this are left out. Type a whole number, or 0 to not look at comments.	Se omiten los reels con menos comentarios que esto. Escribe un número entero, o 0 para no tener en cuenta los comentarios.
+Reels with more comments than this are left out. Type a whole number, or 0 for no maximum.	Se omiten los reels con más comentarios que esto. Escribe un número entero, o 0 para no poner máximo.
+Reels with fewer shares than this are left out. Type a whole number, or 0 to not look at shares.	Se omiten los reels compartidos menos veces que esto. Escribe un número entero, o 0 para no tener en cuenta las veces compartido.
+Reels with more shares than this are left out. Type a whole number, or 0 for no maximum.	Se omiten los reels compartidos más veces que esto. Escribe un número entero, o 0 para no poner máximo.
+Reels with fewer saves than this are left out. Type a whole number, or 0 to not look at saves.	Se omiten los reels guardados menos veces que esto. Escribe un número entero, o 0 para no tener en cuenta los guardados.
+Reels with more saves than this are left out. Type a whole number, or 0 for no maximum.	Se omiten los reels guardados más veces que esto. Escribe un número entero, o 0 para no poner máximo.
+More than %1$s likes	Más de %1$s Me gusta
+Comments aren't looked at	No se tienen en cuenta los comentarios
+Fewer than %1$s comments	Menos de %1$s comentarios
+More than %1$s comments	Más de %1$s comentarios
+Shares aren't looked at	No se tienen en cuenta las veces compartido
+Fewer than %1$s shares	Compartido menos de %1$s veces
+More than %1$s shares	Compartido más de %1$s veces
+Saves aren't looked at	No se tienen en cuenta los guardados
+Fewer than %1$s saves	Menos de %1$s guardados
+More than %1$s saves	Más de %1$s guardados
 Reels with fewer likes than this are left out. Type a whole number, or 0 to not look at likes.	Se omiten los reels con menos Me gusta que esto. Escribe un número entero, o 0 para no tener en cuenta los Me gusta.
 Fewer than %1$s likes	Menos de %1$s Me gusta
 Likes aren't looked at	No se tienen en cuenta los Me gusta

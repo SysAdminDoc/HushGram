@@ -52,6 +52,10 @@ internal const val FOLLOWING_FIELD = "following"
 internal const val COMMENT_COUNT_FIELD = "comment_count"
 internal const val VIDEO_DURATION_FIELD = "video_duration"
 
+/** The Media fields holding how many times a post was shared and saved (#780). */
+internal const val RESHARE_COUNT_FIELD = "reshare_count"
+internal const val SAVE_COUNT_FIELD = "save_count"
+
 private const val OBJECT = "Ljava/lang/Object;"
 private const val INTEGER = "Ljava/lang/Integer;"
 private const val BOOLEAN = "Ljava/lang/Boolean;"
@@ -59,9 +63,9 @@ private const val DOUBLE = "Ljava/lang/Double;"
 private const val LONG = "Ljava/lang/Long;"
 
 /**
- * Leaves reels outside numbers the user typed out of the Reels tab: fewer views than a minimum or
- * more than a maximum, fewer likes, fewer likes or comments for each 1,000 views, a video shorter or
- * longer than asked, or a post older than a number of days. Instagram 453 sends most Reels tab posts
+ * Leaves reels outside numbers the user typed out of the Reels tab: fewer views, likes, comments,
+ * shares or saves than a minimum or more than a maximum, fewer likes or comments for each 1,000
+ * views, a video shorter or longer than asked, or a post older than a number of days. Instagram 453 sends most Reels tab posts
  * without a view count, so likes judge most of them. Can also put each page's reels newest first, and
  * judge Home's posts by the same numbers. Reels from accounts the user follows, and reels the user went
  * to see, stay. In the default selection with its switch off, so nothing changes until the user picks a
@@ -70,8 +74,8 @@ private const val LONG = "Ljava/lang/Long;"
 @Suppress("unused")
 val hideLowViewReelsPatch = bytecodePatch(
     name = "Hide reels with few views",
-    description = "Leaves out reels in the Reels tab outside numbers you pick: views, likes, likes and comments " +
-        "per 1,000 views, video length and age. Can put reels newest first. Accounts you follow stay. " +
+    description = "Leaves out reels in the Reels tab outside numbers you pick: views, likes, comments, shares, " +
+        "saves, likes and comments per 1,000 views, video length and age. Can put reels newest first. Accounts you follow stay. " +
         "Starts off. Turn it on in HushGram settings > Reels.",
 ) {
     category("Reels")
@@ -90,7 +94,7 @@ val hideLowViewReelsPatch = bytecodePatch(
 
 private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $detail")
 
-/** The bodies of the extension's eight post stubs, written once everything they call is found. */
+/** The bodies of the extension's ten post stubs, written once everything they call is found. */
 internal class LowViewReads(
     val playCount: String,
     val igPlayCount: String,
@@ -100,11 +104,13 @@ internal class LowViewReads(
     val commentCount: String,
     val videoLength: String,
     val postedAt: String,
+    val shareCount: String,
+    val saveCount: String,
 )
 
 /**
- * Checks the extension has the page filter and the nine stubs, then finds how a post's numbers and
- * author are read: Media's play, view, like and comment counts, its video length and post time, its
+ * Checks the extension has the page filter and the eleven stubs, then finds how a post's numbers and
+ * author are read: Media's play, view, like, comment, share and save counts, its video length and post time, its
  * author, the author's friendship status and the status's following answer, by the name the
  * tree-backed status gives the interface method. Fails before anything changes when any of it can't
  * be told, since without a count there's nothing to compare.
@@ -117,7 +123,7 @@ internal fun BytecodePatchContext.findLowViewReels(): LowViewReads {
     listOf(
         "media" to OBJECT, "playCount" to INTEGER, "igPlayCount" to INTEGER, "viewCount" to INTEGER,
         "likeCount" to INTEGER, "followed" to BOOLEAN, "commentCount" to INTEGER, "videoLength" to DOUBLE,
-        "postedAt" to LONG,
+        "postedAt" to LONG, "shareCount" to INTEGER, "saveCount" to INTEGER,
     )
         .filter { (stub, returns) -> extension.methods.none { it.isStaticStub(stub, listOf(OBJECT), returns) } }
         .forEach { (stub, returns) -> refuse("the extension has no static $stub(Object)$returns to fill") }
@@ -129,6 +135,8 @@ internal fun BytecodePatchContext.findLowViewReels(): LowViewReads {
     val comments = pandoGetter(PATCH, MEDIA, COMMENT_COUNT_FIELD, INTEGER)
     val length = pandoGetter(PATCH, MEDIA, VIDEO_DURATION_FIELD, DOUBLE)
     val posted = pandoGetter(PATCH, MEDIA, TAKEN_AT_FIELD, LONG)
+    val shares = pandoGetter(PATCH, MEDIA, RESHARE_COUNT_FIELD, INTEGER)
+    val saves = pandoGetter(PATCH, MEDIA, SAVE_COUNT_FIELD, INTEGER)
     val owner = pandoGetter(PATCH, MEDIA, OWNER_FIELD, USER)
     val userClass = classDefByOrNull(USER) ?: refuse("$USER isn't in this build")
     val friendships = userClass.methods.filter {
@@ -145,7 +153,7 @@ internal fun BytecodePatchContext.findLowViewReels(): LowViewReads {
             refuse("$type isn't public, so the extension can't reach it")
         }
     }
-    listOf(plays, igPlays, views, likes, comments, length, posted, owner).forEach { getter ->
+    listOf(plays, igPlays, views, likes, comments, length, posted, shares, saves, owner).forEach { getter ->
         if (!AccessFlags.PUBLIC.isSet(getter.accessFlags)) refuse("$MEDIA->${getter.name} isn't public")
     }
     if (!AccessFlags.PUBLIC.isSet(friendship.accessFlags)) refuse("$USER->${friendship.name} isn't public")
@@ -173,6 +181,8 @@ internal fun BytecodePatchContext.findLowViewReels(): LowViewReads {
         commentCount = getterBody(comments.name),
         videoLength = getterBody(length.name, DOUBLE),
         postedAt = getterBody(posted.name, LONG),
+        shareCount = getterBody(shares.name),
+        saveCount = getterBody(saves.name),
     )
 }
 
@@ -185,7 +195,7 @@ private fun getterBody(name: String, returns: String = INTEGER) = """
 """
 
 /**
- * Fills the extension's item stub and the eight post stubs, then hands each Reels page to
+ * Fills the extension's item stub and the ten post stubs, then hands each Reels page to
  * [LOW_VIEW_PAGE_FILTER] where the page and its fallback meet, and each list the viewer's data source
  * takes in to [LOW_VIEW_ADDED_FILTER] first thing. The page filter keeps a page whole when every reel
  * on it would go, and the data source's filter takes those out once the viewer holds reels (#780).
@@ -200,6 +210,8 @@ internal fun BytecodePatchContext.hideLowViewReels(page: ReelsPageSites, reads: 
     fillStub(LOW_VIEW_REELS, "commentCount", INTEGER, 1, reads.commentCount)
     fillStub(LOW_VIEW_REELS, "videoLength", DOUBLE, 1, reads.videoLength)
     fillStub(LOW_VIEW_REELS, "postedAt", LONG, 1, reads.postedAt)
+    fillStub(LOW_VIEW_REELS, "shareCount", INTEGER, 1, reads.shareCount)
+    fillStub(LOW_VIEW_REELS, "saveCount", INTEGER, 1, reads.saveCount)
     filterReelsPage(page, LOW_VIEW_PAGE_FILTER)
     filterReelsItemInserts(inserts, LOW_VIEW_ADDED_FILTER)
 }

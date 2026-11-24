@@ -1229,6 +1229,30 @@ Messages button on Home's header	زر الرسائل في رأس الصفحة ا
 Messenger	Messenger
 Meta AI	Meta AI
 Minimum likes	أدنى عدد إعجابات
+Maximum likes	أقصى عدد إعجابات
+Minimum comments	أدنى عدد تعليقات
+Maximum comments	أقصى عدد تعليقات
+Minimum shares	أدنى عدد مشاركات
+Maximum shares	أقصى عدد مشاركات
+Minimum saves	أدنى عدد مرات الحفظ
+Maximum saves	أقصى عدد مرات الحفظ
+Reels with more likes than this are left out. Type a whole number, or 0 for no maximum.	تُستبعد Reels التي تتجاوز إعجاباتها هذا الرقم. اكتب عددًا صحيحًا، أو 0 بلا حد أقصى.
+Reels with fewer comments than this are left out. Type a whole number, or 0 to not look at comments.	تُستبعد Reels التي لديها تعليقات أقل من هذا العدد. اكتب رقماً صحيحاً، أو 0 لعدم النظر إلى التعليقات.
+Reels with more comments than this are left out. Type a whole number, or 0 for no maximum.	تُستبعد Reels التي تتجاوز تعليقاتها هذا الرقم. اكتب عددًا صحيحًا، أو 0 بلا حد أقصى.
+Reels with fewer shares than this are left out. Type a whole number, or 0 to not look at shares.	تُستبعد Reels التي لديها مشاركات أقل من هذا العدد. اكتب رقماً صحيحاً، أو 0 لعدم النظر إلى المشاركات.
+Reels with more shares than this are left out. Type a whole number, or 0 for no maximum.	تُستبعد Reels التي تتجاوز مشاركاتها هذا الرقم. اكتب عددًا صحيحًا، أو 0 بلا حد أقصى.
+Reels with fewer saves than this are left out. Type a whole number, or 0 to not look at saves.	تُستبعد Reels التي حُفظت مرات أقل من هذا العدد. اكتب رقماً صحيحاً، أو 0 لعدم النظر إلى مرات الحفظ.
+Reels with more saves than this are left out. Type a whole number, or 0 for no maximum.	تُستبعد Reels التي حُفظت مرات أكثر من هذا الرقم. اكتب عددًا صحيحًا، أو 0 بلا حد أقصى.
+More than %1$s likes	أكثر من %1$s إعجاب
+Comments aren't looked at	لا يُنظر إلى التعليقات
+Fewer than %1$s comments	أقل من %1$s تعليق
+More than %1$s comments	أكثر من %1$s تعليق
+Shares aren't looked at	لا يُنظر إلى المشاركات
+Fewer than %1$s shares	أقل من %1$s مشاركة
+More than %1$s shares	أكثر من %1$s مشاركة
+Saves aren't looked at	لا يُنظر إلى مرات الحفظ
+Fewer than %1$s saves	حُفظ أقل من %1$s مرة
+More than %1$s saves	حُفظ أكثر من %1$s مرة
 Minimum views	أدنى عدد مشاهدات
 Mix in Following	دمج في Following
 Monospace	أحادي المسافة

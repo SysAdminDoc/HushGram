@@ -25,10 +25,10 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * callback takes, already turned into clips items, with the viewer's module name. Only the Reels
  * tab's pages are filtered, so a reel opened from search, a profile, Saved or a message still plays.
  *
- * <p>A reel goes when its post is outside a number the user typed: fewer views than the minimum or
- * more than the maximum, fewer likes than the minimum, fewer likes or comments for each 1,000 views
- * than asked, a video shorter than the shortest or longer than the longest, or posted longer ago than
- * the maximum age. A number of 0 leaves that one alone, and a post that doesn't carry what a number
+ * <p>A reel goes when its post is outside a number the user typed: fewer views, likes, comments,
+ * shares or saves than the minimum or more than the maximum, fewer likes or comments for each 1,000
+ * views than asked, a video shorter than the shortest or longer than the longest, or posted longer ago
+ * than the maximum age. A number of 0 leaves that one alone, and a post that doesn't carry what a number
  * looks at stays for that number. Instagram 453 sends most Reels tab posts with no view count at all
  * but with their likes, so likes are what judges most reels there. Every reel from an account the
  * user follows stays. A page where every reel would go keeps every item, since Instagram keeps an
@@ -60,6 +60,21 @@ public final class LowViewReels {
     /** The reason, and kind, of an item whose like count is under the minimum likes. */
     static final String FEW_LIKES = "below the minimum likes";
 
+    /** The reason, and kind, of an item whose like count is over the maximum likes. */
+    static final String MANY_LIKES = "above the maximum likes";
+
+    /** The reasons, and kinds, of an item with fewer or more comments than asked. */
+    static final String FEW_COMMENTS = "below the minimum comments";
+    static final String MANY_COMMENTS = "above the maximum comments";
+
+    /** The reasons, and kinds, of an item shared fewer or more times than asked. */
+    static final String FEW_SHARES = "below the minimum shares";
+    static final String MANY_SHARES = "above the maximum shares";
+
+    /** The reasons, and kinds, of an item saved fewer or more times than asked. */
+    static final String FEW_SAVES = "below the minimum saves";
+    static final String MANY_SAVES = "above the maximum saves";
+
     /** The reason, and kind, of an item with fewer likes for each 1,000 views than asked. */
     static final String FEW_LIKES_FOR_VIEWS = "few likes for its views";
 
@@ -81,6 +96,8 @@ public final class LowViewReels {
     static final String NO_VIEWS = "no view count";
     static final String NO_LIKES = "no like count";
     static final String NO_COMMENTS = "no comment count";
+    static final String NO_SHARES = "no share count";
+    static final String NO_SAVES = "no save count";
     static final String NO_LENGTH = "no length";
     static final String NO_TIME = "no post time";
     static final String FOLLOWED = "followed author kept";
@@ -121,6 +138,16 @@ public final class LowViewReels {
             return NO_COUNT;
         }
 
+        /** How many times the post was shared, or {@link #NO_COUNT} when it doesn't say. */
+        default long shares(Object media) {
+            return NO_COUNT;
+        }
+
+        /** How many times the post was saved, or {@link #NO_COUNT} when it doesn't say. */
+        default long saves(Object media) {
+            return NO_COUNT;
+        }
+
         /** The post's video length in seconds, or {@link #NO_SECONDS} when it has none. */
         default double seconds(Object media) {
             return NO_SECONDS;
@@ -140,6 +167,13 @@ public final class LowViewReels {
         int minViews;
         int maxViews;
         int minLikes;
+        int maxLikes;
+        int minComments;
+        int maxComments;
+        int minShares;
+        int maxShares;
+        int minSaves;
+        int maxSaves;
         int likesPerThousand;
         int commentsPerThousand;
         int shortest;
@@ -159,6 +193,29 @@ public final class LowViewReels {
 
         Rules minLikes(int value) {
             minLikes = value;
+            return this;
+        }
+
+        Rules maxLikes(int value) {
+            maxLikes = value;
+            return this;
+        }
+
+        Rules comments(int min, int max) {
+            minComments = min;
+            maxComments = max;
+            return this;
+        }
+
+        Rules shares(int min, int max) {
+            minShares = min;
+            maxShares = max;
+            return this;
+        }
+
+        Rules saves(int min, int max) {
+            minSaves = min;
+            maxSaves = max;
             return this;
         }
 
@@ -194,8 +251,9 @@ public final class LowViewReels {
 
         /** Whether any number takes posts out. */
         boolean judges() {
-            return minViews > 0 || maxViews > 0 || minLikes > 0 || likesPerThousand > 0 || commentsPerThousand > 0
-                    || shortest > 0 || longest > 0 || maxAgeDays > 0;
+            return minViews > 0 || maxViews > 0 || minLikes > 0 || maxLikes > 0 || likesPerThousand > 0
+                    || minComments > 0 || maxComments > 0 || commentsPerThousand > 0 || minShares > 0 || maxShares > 0
+                    || minSaves > 0 || maxSaves > 0 || shortest > 0 || longest > 0 || maxAgeDays > 0;
         }
 
         /** Whether a page has anything done to it: a number, or Newest first. */
@@ -216,21 +274,36 @@ public final class LowViewReels {
                 if (minViews > 0 && views < minViews) return BELOW;
                 if (maxViews > 0 && views > maxViews) return ABOVE;
             }
-            if (minLikes > 0 || likesPerThousand > 0) {
+            if (minLikes > 0 || maxLikes > 0 || likesPerThousand > 0) {
                 long likes = reader.likes(media);
                 if (likes == NO_COUNT) {
                     FeedFilterCounters.sawKind(route, NO_LIKES);
                 } else {
                     if (minLikes > 0 && likes < minLikes) return FEW_LIKES;
+                    if (maxLikes > 0 && likes > maxLikes) return MANY_LIKES;
                     if (likesPerThousand > 0 && views > 0 && likes * 1000 < (long) likesPerThousand * views) {
                         return FEW_LIKES_FOR_VIEWS;
                     }
                 }
             }
-            if (commentsPerThousand > 0 && views > 0) {
+            boolean perThousand = commentsPerThousand > 0 && views > 0;
+            if (minComments > 0 || maxComments > 0 || perThousand) {
                 long comments = reader.comments(media);
-                if (comments == NO_COUNT) FeedFilterCounters.sawKind(route, NO_COMMENTS);
-                else if (comments * 1000 < (long) commentsPerThousand * views) return FEW_COMMENTS_FOR_VIEWS;
+                if (comments == NO_COUNT) {
+                    FeedFilterCounters.sawKind(route, NO_COMMENTS);
+                } else {
+                    if (minComments > 0 && comments < minComments) return FEW_COMMENTS;
+                    if (maxComments > 0 && comments > maxComments) return MANY_COMMENTS;
+                    if (perThousand && comments * 1000 < (long) commentsPerThousand * views) return FEW_COMMENTS_FOR_VIEWS;
+                }
+            }
+            if (minShares > 0 || maxShares > 0) {
+                String why = outside(reader.shares(media), minShares, maxShares, FEW_SHARES, MANY_SHARES, NO_SHARES, route);
+                if (why != null) return why;
+            }
+            if (minSaves > 0 || maxSaves > 0) {
+                String why = outside(reader.saves(media), minSaves, maxSaves, FEW_SAVES, MANY_SAVES, NO_SAVES, route);
+                if (why != null) return why;
             }
             if (shortest > 0 || longest > 0) {
                 double seconds = reader.seconds(media);
@@ -243,6 +316,20 @@ public final class LowViewReels {
                 if (posted <= 0) FeedFilterCounters.sawKind(route, NO_TIME);
                 else if (nowSeconds - posted > maxAgeDays * DAY_SECONDS) return TOO_OLD;
             }
+            return null;
+        }
+
+        /**
+         * [below] when [count] is under [min], [above] when it's over [max], each only when set, and
+         * null otherwise. A post that doesn't say is counted under [none] and stays.
+         */
+        private static String outside(long count, int min, int max, String below, String above, String none, String route) {
+            if (count == NO_COUNT) {
+                FeedFilterCounters.sawKind(route, none);
+                return null;
+            }
+            if (min > 0 && count < min) return below;
+            if (max > 0 && count > max) return above;
             return null;
         }
     }
@@ -276,6 +363,18 @@ public final class LowViewReels {
         public long comments(Object media) {
             Integer comments = commentCount(media);
             return comments == null ? NO_COUNT : comments.longValue();
+        }
+
+        @Override
+        public long shares(Object media) {
+            Integer shares = shareCount(media);
+            return shares == null ? NO_COUNT : shares.longValue();
+        }
+
+        @Override
+        public long saves(Object media) {
+            Integer saves = saveCount(media);
+            return saves == null ? NO_COUNT : saves.longValue();
         }
 
         @Override
@@ -498,6 +597,10 @@ public final class LowViewReels {
                 .minViews(Settings.MIN_REEL_VIEWS.get())
                 .maxViews(Settings.MAX_REEL_VIEWS.get())
                 .minLikes(Settings.MIN_REEL_LIKES.get())
+                .maxLikes(Settings.MAX_REEL_LIKES.get())
+                .comments(Settings.MIN_REEL_COMMENTS.get(), Settings.MAX_REEL_COMMENTS.get())
+                .shares(Settings.MIN_REEL_SHARES.get(), Settings.MAX_REEL_SHARES.get())
+                .saves(Settings.MIN_REEL_SAVES.get(), Settings.MAX_REEL_SAVES.get())
                 .likesPerThousand(Settings.MIN_REEL_LIKES_PER_1000.get())
                 .commentsPerThousand(Settings.MIN_REEL_COMMENTS_PER_1000.get())
                 .shortest(Settings.MIN_REEL_SECONDS.get())
@@ -576,6 +679,16 @@ public final class LowViewReels {
 
     /** A post's comment count, which the patch fills in. Null as built, and for a post with none. */
     public static Integer commentCount(Object media) {
+        return null;
+    }
+
+    /** How many times a post was shared, which the patch fills in. Null as built, and for a post that doesn't say. */
+    public static Integer shareCount(Object media) {
+        return null;
+    }
+
+    /** How many times a post was saved, which the patch fills in. Null as built, and for a post that doesn't say. */
+    public static Integer saveCount(Object media) {
         return null;
     }
 

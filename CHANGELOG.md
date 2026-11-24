@@ -14,6 +14,7 @@ Every HushGram release, newest first.
 * `Buttons on the share sheet` can leave off Meta AI now, along with the other round buttons under the people. Asked for in #846.
 * Tapping a tab while a reel plays opens that tab instead of pausing or playing the reel. Where the seek bar runs over the tab bar, a drag still seeks. Reported in #855.
 * With `Hide the tab bar as you scroll` on, a reel keeps playing after you close its comments or description. The tab bar moved while the sheet was up, and the reel froze on one frame. Reported in #854.
+* `Hide reels with few views` now has `Maximum likes`, and a minimum and maximum for comments, shares and saves. Each starts at 0, which leaves that count alone. Asked for in #780.
 * With `Watch again in the feed` on, Watch again replays a reel right there in Saved and other lists of posts too. It opened the reel in another viewer there. Reported in #568.
 * `Hide the More button on reels` is new under Reels. It takes the three dots off the bottom of the buttons beside a reel. Starts off. Asked for in #647.
 * `Reel buttons in the accent color` is new under `Accent color` in Layout. The like, comment, share and other buttons beside a reel, and their counts, take your accent color instead of white. Starts off. Asked for in #187.

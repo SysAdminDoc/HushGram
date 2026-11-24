@@ -1939,6 +1939,30 @@ Minimum views	Tayangan minimum
 Reels with fewer views than this are left out. Type a whole number, or 0 to not look at views.	Reel dengan tayangan lebih sedikit dari ini disembunyikan. Ketik bilangan bulat, atau 0 agar tayangan tidak dihitung.
 Fewer than %1$s views	Kurang dari %1$s tayangan
 Minimum likes	Suka minimum
+Maximum likes	Suka maksimum
+Minimum comments	Komentar minimum
+Maximum comments	Komentar maksimum
+Minimum shares	Bagikan minimum
+Maximum shares	Bagikan maksimum
+Minimum saves	Simpan minimum
+Maximum saves	Simpan maksimum
+Reels with more likes than this are left out. Type a whole number, or 0 for no maximum.	Reel dengan suka lebih banyak dari ini disembunyikan. Ketik bilangan bulat, atau 0 untuk tanpa batas atas.
+Reels with fewer comments than this are left out. Type a whole number, or 0 to not look at comments.	Reel dengan komentar lebih sedikit dari ini disembunyikan. Ketik bilangan bulat, atau 0 agar komentar tidak dihitung.
+Reels with more comments than this are left out. Type a whole number, or 0 for no maximum.	Reel dengan komentar lebih banyak dari ini disembunyikan. Ketik bilangan bulat, atau 0 untuk tanpa batas atas.
+Reels with fewer shares than this are left out. Type a whole number, or 0 to not look at shares.	Reel yang dibagikan lebih sedikit dari ini disembunyikan. Ketik bilangan bulat, atau 0 agar jumlah bagikan tidak dihitung.
+Reels with more shares than this are left out. Type a whole number, or 0 for no maximum.	Reel yang dibagikan lebih banyak dari ini disembunyikan. Ketik bilangan bulat, atau 0 untuk tanpa batas atas.
+Reels with fewer saves than this are left out. Type a whole number, or 0 to not look at saves.	Reel yang disimpan lebih sedikit dari ini disembunyikan. Ketik bilangan bulat, atau 0 agar jumlah simpan tidak dihitung.
+Reels with more saves than this are left out. Type a whole number, or 0 for no maximum.	Reel yang disimpan lebih banyak dari ini disembunyikan. Ketik bilangan bulat, atau 0 untuk tanpa batas atas.
+More than %1$s likes	Lebih dari %1$s suka
+Comments aren't looked at	Komentar tidak dihitung
+Fewer than %1$s comments	Kurang dari %1$s komentar
+More than %1$s comments	Lebih dari %1$s komentar
+Shares aren't looked at	Jumlah bagikan tidak dihitung
+Fewer than %1$s shares	Dibagikan kurang dari %1$s kali
+More than %1$s shares	Dibagikan lebih dari %1$s kali
+Saves aren't looked at	Jumlah simpan tidak dihitung
+Fewer than %1$s saves	Disimpan kurang dari %1$s kali
+More than %1$s saves	Disimpan lebih dari %1$s kali
 Reels with fewer likes than this are left out. Type a whole number, or 0 to not look at likes.	Reel dengan suka lebih sedikit dari ini disembunyikan. Ketik bilangan bulat, atau 0 agar suka tidak dihitung.
 Fewer than %1$s likes	Kurang dari %1$s suka
 Likes aren't looked at	Suka tidak dihitung

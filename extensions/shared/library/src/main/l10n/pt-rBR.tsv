@@ -1939,6 +1939,30 @@ Minimum views	Mínimo de visualizações
 Reels with fewer views than this are left out. Type a whole number, or 0 to not look at views.	Reels com menos visualizações que isso ficam de fora. Digite um número inteiro, ou 0 para não considerar visualizações.
 Fewer than %1$s views	Menos de %1$s visualizações
 Minimum likes	Mínimo de curtidas
+Maximum likes	Máximo de curtidas
+Minimum comments	Mínimo de comentários
+Maximum comments	Máximo de comentários
+Minimum shares	Mínimo de compartilhamentos
+Maximum shares	Máximo de compartilhamentos
+Minimum saves	Mínimo de salvamentos
+Maximum saves	Máximo de salvamentos
+Reels with more likes than this are left out. Type a whole number, or 0 for no maximum.	Reels com mais curtidas que isso ficam de fora. Digite um número inteiro, ou 0 para não ter máximo.
+Reels with fewer comments than this are left out. Type a whole number, or 0 to not look at comments.	Reels com menos comentários que isso ficam de fora. Digite um número inteiro, ou 0 para não considerar comentários.
+Reels with more comments than this are left out. Type a whole number, or 0 for no maximum.	Reels com mais comentários que isso ficam de fora. Digite um número inteiro, ou 0 para não ter máximo.
+Reels with fewer shares than this are left out. Type a whole number, or 0 to not look at shares.	Reels com menos compartilhamentos que isso ficam de fora. Digite um número inteiro, ou 0 para não considerar compartilhamentos.
+Reels with more shares than this are left out. Type a whole number, or 0 for no maximum.	Reels com mais compartilhamentos que isso ficam de fora. Digite um número inteiro, ou 0 para não ter máximo.
+Reels with fewer saves than this are left out. Type a whole number, or 0 to not look at saves.	Reels com menos salvamentos que isso ficam de fora. Digite um número inteiro, ou 0 para não considerar salvamentos.
+Reels with more saves than this are left out. Type a whole number, or 0 for no maximum.	Reels com mais salvamentos que isso ficam de fora. Digite um número inteiro, ou 0 para não ter máximo.
+More than %1$s likes	Mais de %1$s curtidas
+Comments aren't looked at	Comentários não são considerados
+Fewer than %1$s comments	Menos de %1$s comentários
+More than %1$s comments	Mais de %1$s comentários
+Shares aren't looked at	Compartilhamentos não são considerados
+Fewer than %1$s shares	Menos de %1$s compartilhamentos
+More than %1$s shares	Mais de %1$s compartilhamentos
+Saves aren't looked at	Salvamentos não são considerados
+Fewer than %1$s saves	Menos de %1$s salvamentos
+More than %1$s saves	Mais de %1$s salvamentos
 Reels with fewer likes than this are left out. Type a whole number, or 0 to not look at likes.	Reels com menos curtidas que isso ficam de fora. Digite um número inteiro, ou 0 para não considerar curtidas.
 Fewer than %1$s likes	Menos de %1$s curtidas
 Likes aren't looked at	Curtidas não são consideradas

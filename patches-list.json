@@ -2811,7 +2811,7 @@
     },
     {
       "name": "Hide reels with few views",
-      "description": "Leaves out reels in the Reels tab outside numbers you pick: views, likes, likes and comments per 1,000 views, video length and age. Can put reels newest first. Accounts you follow stay. Starts off. Turn it on in HushGram settings > Reels.",
+      "description": "Leaves out reels in the Reels tab outside numbers you pick: views, likes, comments, shares, saves, likes and comments per 1,000 views, video length and age. Can put reels newest first. Accounts you follow stay. Starts off. Turn it on in HushGram settings > Reels.",
       "category": "Reels",
       "use": true,
       "dependencies": [

@@ -29,6 +29,7 @@ import org.robolectric.shadows.ShadowLooper;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.settings.BaseSettings;
+import app.hushgram.extension.shared.settings.IntegerSetting;
 import app.hushgram.extension.shared.settings.PauseForTests;
 import app.hushgram.extension.shared.settings.Setting;
 
@@ -48,7 +49,9 @@ public class LowViewReelsSettingsTest {
     /** Every setting under the switch, in the order its rows show. */
     private static List<Setting<?>> rows() {
         return Arrays.asList(Settings.MIN_REEL_VIEWS, Settings.MAX_REEL_VIEWS, Settings.MIN_REEL_LIKES,
-                Settings.MIN_REEL_LIKES_PER_1000, Settings.MIN_REEL_COMMENTS_PER_1000, Settings.MIN_REEL_SECONDS,
+                Settings.MAX_REEL_LIKES, Settings.MIN_REEL_LIKES_PER_1000, Settings.MIN_REEL_COMMENTS,
+                Settings.MAX_REEL_COMMENTS, Settings.MIN_REEL_COMMENTS_PER_1000, Settings.MIN_REEL_SHARES,
+                Settings.MAX_REEL_SHARES, Settings.MIN_REEL_SAVES, Settings.MAX_REEL_SAVES, Settings.MIN_REEL_SECONDS,
                 Settings.MAX_REEL_SECONDS, Settings.MAX_REEL_AGE_DAYS, Settings.REELS_NEWEST_FIRST, Settings.HIDE_LOW_VIEW_HOME);
     }
 
@@ -114,9 +117,10 @@ public class LowViewReelsSettingsTest {
             assertFalse(setting.key + " waits for the switch", row.isEnabled());
             titles.add(row.getTitle().toString());
         }
-        assertEquals(Arrays.asList("Minimum views", "Maximum views", "Minimum likes", "Likes per 1,000 views",
-                "Comments per 1,000 views", "Shortest video", "Longest video", "Oldest post", "Newest first",
-                "Also on Home"), titles);
+        assertEquals(Arrays.asList("Minimum views", "Maximum views", "Minimum likes", "Maximum likes",
+                "Likes per 1,000 views", "Minimum comments", "Maximum comments", "Comments per 1,000 views",
+                "Minimum shares", "Maximum shares", "Minimum saves", "Maximum saves", "Shortest video",
+                "Longest video", "Oldest post", "Newest first", "Also on Home"), titles);
         assertFalse("Newest first starts off", ((SwitchPreference) row(Settings.REELS_NEWEST_FIRST)).isChecked());
         assertFalse("Also on Home starts off", ((SwitchPreference) row(Settings.HIDE_LOW_VIEW_HOME)).isChecked());
 
@@ -200,6 +204,31 @@ public class LowViewReelsSettingsTest {
         oldest.setText("30");
         assertEquals("Posted more than 30 days ago", oldest.getSummary().toString());
         assertEquals(3650, HushgramPreferenceFragment.MinCountRow.valueOf(Settings.MAX_REEL_AGE_DAYS, "100000"));
+    }
+    /** The ranges for likes, comments, shares and saves (#780): 0 to start, what 0 means, and the number. */
+    @Test public void theRangeRowsSayWhatZeroMeansAndTheirNumber() throws Exception {
+        open(PatchFamily.LOW_VIEW_REELS);
+        String thousands = java.text.NumberFormat.getIntegerInstance().format(25_000);
+        Object[][] rows = {
+                {Settings.MAX_REEL_LIKES, "No maximum", "More than " + thousands + " likes"},
+                {Settings.MIN_REEL_COMMENTS, "Comments aren't looked at", "Fewer than " + thousands + " comments"},
+                {Settings.MAX_REEL_COMMENTS, "No maximum", "More than " + thousands + " comments"},
+                {Settings.MIN_REEL_SHARES, "Shares aren't looked at", "Fewer than " + thousands + " shares"},
+                {Settings.MAX_REEL_SHARES, "No maximum", "More than " + thousands + " shares"},
+                {Settings.MIN_REEL_SAVES, "Saves aren't looked at", "Fewer than " + thousands + " saves"},
+                {Settings.MAX_REEL_SAVES, "No maximum", "More than " + thousands + " saves"},
+        };
+        for (Object[] expected : rows) {
+            IntegerSetting setting = (IntegerSetting) expected[0];
+            assertEquals(setting.key + " starts at 0", 0, (int) setting.get());
+            HushgramPreferenceFragment.MinCountRow row = count(setting);
+            assertEquals(setting.key, expected[1], row.getSummary().toString());
+            row.setText("25000");
+            assertEquals(setting.key, expected[2], row.getSummary().toString());
+            assertEquals(setting.key, 0, HushgramPreferenceFragment.MinCountRow.valueOf(setting, "-1"));
+        }
+        assertEquals(999_999_999, HushgramPreferenceFragment.MinCountRow.valueOf(Settings.MAX_REEL_SAVES, "999999999"));
+        assertEquals(100_000_000, HushgramPreferenceFragment.MinCountRow.valueOf(Settings.MIN_REEL_SHARES, "999999999"));
     }
     @Test public void theEditDialogResizesAboveTheKeyboard() throws Exception {
         open(PatchFamily.LOW_VIEW_REELS);

@@ -1939,6 +1939,30 @@ Minimum views	Visualizzazioni minime
 Reels with fewer views than this are left out. Type a whole number, or 0 to not look at views.	I reel con meno visualizzazioni di questo valore vengono esclusi. Scrivi un numero intero, o 0 per non contare le visualizzazioni.
 Fewer than %1$s views	Meno di %1$s visualizzazioni
 Minimum likes	Mi piace minimi
+Maximum likes	Mi piace massimi
+Minimum comments	Commenti minimi
+Maximum comments	Commenti massimi
+Minimum shares	Condivisioni minime
+Maximum shares	Condivisioni massime
+Minimum saves	Salvataggi minimi
+Maximum saves	Salvataggi massimi
+Reels with more likes than this are left out. Type a whole number, or 0 for no maximum.	I reel con più Mi piace di questo valore vengono esclusi. Scrivi un numero intero, o 0 per nessun massimo.
+Reels with fewer comments than this are left out. Type a whole number, or 0 to not look at comments.	I reel con meno commenti di questo valore vengono esclusi. Scrivi un numero intero, o 0 per non contare i commenti.
+Reels with more comments than this are left out. Type a whole number, or 0 for no maximum.	I reel con più commenti di questo valore vengono esclusi. Scrivi un numero intero, o 0 per nessun massimo.
+Reels with fewer shares than this are left out. Type a whole number, or 0 to not look at shares.	I reel con meno condivisioni di questo valore vengono esclusi. Scrivi un numero intero, o 0 per non contare le condivisioni.
+Reels with more shares than this are left out. Type a whole number, or 0 for no maximum.	I reel con più condivisioni di questo valore vengono esclusi. Scrivi un numero intero, o 0 per nessun massimo.
+Reels with fewer saves than this are left out. Type a whole number, or 0 to not look at saves.	I reel con meno salvataggi di questo valore vengono esclusi. Scrivi un numero intero, o 0 per non contare i salvataggi.
+Reels with more saves than this are left out. Type a whole number, or 0 for no maximum.	I reel con più salvataggi di questo valore vengono esclusi. Scrivi un numero intero, o 0 per nessun massimo.
+More than %1$s likes	Più di %1$s Mi piace
+Comments aren't looked at	I commenti non contano
+Fewer than %1$s comments	Meno di %1$s commenti
+More than %1$s comments	Più di %1$s commenti
+Shares aren't looked at	Le condivisioni non contano
+Fewer than %1$s shares	Meno di %1$s condivisioni
+More than %1$s shares	Più di %1$s condivisioni
+Saves aren't looked at	I salvataggi non contano
+Fewer than %1$s saves	Meno di %1$s salvataggi
+More than %1$s saves	Più di %1$s salvataggi
 Reels with fewer likes than this are left out. Type a whole number, or 0 to not look at likes.	I reel con meno Mi piace di questo valore vengono esclusi. Scrivi un numero intero, o 0 per non contare i Mi piace.
 Fewer than %1$s likes	Meno di %1$s Mi piace
 Likes aren't looked at	I Mi piace non contano

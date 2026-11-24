@@ -50,6 +50,8 @@ public class LowViewReelsTest {
         final long likes;
         final boolean followed;
         long comments = LowViewReels.NO_COUNT;
+        long shares = LowViewReels.NO_COUNT;
+        long saves = LowViewReels.NO_COUNT;
         double seconds = LowViewReels.NO_SECONDS;
         long postedAt = LowViewReels.NO_COUNT;
 
@@ -70,6 +72,16 @@ public class LowViewReelsTest {
 
         Clip comments(long count) {
             post.comments = count;
+            return this;
+        }
+
+        Clip shares(long count) {
+            post.shares = count;
+            return this;
+        }
+
+        Clip saves(long count) {
+            post.saves = count;
             return this;
         }
 
@@ -119,6 +131,16 @@ public class LowViewReelsTest {
         }
 
         @Override
+        public long shares(Object media) {
+            return ((Post) media).shares;
+        }
+
+        @Override
+        public long saves(Object media) {
+            return ((Post) media).saves;
+        }
+
+        @Override
         public double seconds(Object media) {
             return ((Post) media).seconds;
         }
@@ -151,6 +173,13 @@ public class LowViewReelsTest {
         Settings.MIN_REEL_VIEWS.resetToDefault();
         Settings.MIN_REEL_LIKES.resetToDefault();
         Settings.MAX_REEL_VIEWS.resetToDefault();
+        Settings.MAX_REEL_LIKES.resetToDefault();
+        Settings.MIN_REEL_COMMENTS.resetToDefault();
+        Settings.MAX_REEL_COMMENTS.resetToDefault();
+        Settings.MIN_REEL_SHARES.resetToDefault();
+        Settings.MAX_REEL_SHARES.resetToDefault();
+        Settings.MIN_REEL_SAVES.resetToDefault();
+        Settings.MAX_REEL_SAVES.resetToDefault();
         Settings.MIN_REEL_LIKES_PER_1000.resetToDefault();
         Settings.MIN_REEL_COMMENTS_PER_1000.resetToDefault();
         Settings.MIN_REEL_SECONDS.resetToDefault();
@@ -350,11 +379,25 @@ public class LowViewReelsTest {
         Settings.MAX_REEL_SECONDS.save(6);
         Settings.MAX_REEL_AGE_DAYS.save(7);
         Settings.REELS_NEWEST_FIRST.save(true);
+        Settings.MAX_REEL_LIKES.save(11);
+        Settings.MIN_REEL_COMMENTS.save(12);
+        Settings.MAX_REEL_COMMENTS.save(13);
+        Settings.MIN_REEL_SHARES.save(14);
+        Settings.MAX_REEL_SHARES.save(15);
+        Settings.MIN_REEL_SAVES.save(16);
+        Settings.MAX_REEL_SAVES.save(17);
         LowViewReels.Rules rules = LowViewReels.rulesWhenOn();
         assertNotNull(rules);
         assertEquals(1000, rules.minViews);
         assertEquals(2, rules.maxViews);
         assertEquals(10, rules.minLikes);
+        assertEquals(11, rules.maxLikes);
+        assertEquals(12, rules.minComments);
+        assertEquals(13, rules.maxComments);
+        assertEquals(14, rules.minShares);
+        assertEquals(15, rules.maxShares);
+        assertEquals(16, rules.minSaves);
+        assertEquals(17, rules.maxSaves);
         assertEquals(3, rules.likesPerThousand);
         assertEquals(4, rules.commentsPerThousand);
         assertEquals(5, rules.shortest);
@@ -423,6 +466,97 @@ public class LowViewReelsTest {
         String report = report();
         assertTrue(report, report.contains(LowViewReels.FEW_COMMENTS_FOR_VIEWS));
         assertTrue(report, report.contains(LowViewReels.NO_COMMENTS));
+    }
+
+    /** Maximum likes (#780): a reel over it goes, one at it stays, and 0 means no maximum. */
+    @Test
+    public void overTheMaximumLikesGoes() {
+        Settings.MAX_REEL_LIKES.save(500);
+        Clip over = clip(50_000, 501, false);
+        Clip line = clip(50_000, 500, false);
+        Clip noLikes = clip(50_000, LowViewReels.NO_COUNT, false);
+        Settings.MIN_REEL_LIKES.save(0);
+        assertEquals(Arrays.asList(line, noLikes), page(Arrays.asList(over, line, noLikes), REELS_TAB));
+        String report = report();
+        assertTrue(report, report.contains(LowViewReels.MANY_LIKES));
+        assertTrue(report, report.contains(LowViewReels.NO_LIKES));
+
+        Settings.MAX_REEL_LIKES.save(0);
+        List<?> items = Arrays.asList(over, line);
+        assertSame(items, page(items, REELS_TAB));
+    }
+
+    /** Minimum and maximum comments (#780): outside either goes, the lines stay, and a post that doesn't say stays. */
+    @Test
+    public void commentsOutsideTheirRangeGo() {
+        Settings.MIN_REEL_COMMENTS.save(10);
+        Settings.MAX_REEL_COMMENTS.save(1000);
+        Clip few = fine().comments(9);
+        Clip low = fine().comments(10);
+        Clip high = fine().comments(1000);
+        Clip many = fine().comments(1001);
+        Clip none = fine();
+        assertEquals(Arrays.asList(low, high, none), page(Arrays.asList(few, low, high, many, none), REELS_TAB));
+        String report = report();
+        assertTrue(report, report.contains(LowViewReels.FEW_COMMENTS));
+        assertTrue(report, report.contains(LowViewReels.MANY_COMMENTS));
+        assertTrue(report, report.contains(LowViewReels.NO_COMMENTS));
+    }
+
+    /** Minimum and maximum shares (#780). */
+    @Test
+    public void sharesOutsideTheirRangeGo() {
+        Settings.MIN_REEL_SHARES.save(5);
+        Settings.MAX_REEL_SHARES.save(50);
+        Clip few = fine().shares(4);
+        Clip low = fine().shares(5);
+        Clip high = fine().shares(50);
+        Clip many = fine().shares(51);
+        Clip none = fine();
+        assertEquals(Arrays.asList(low, high, none), page(Arrays.asList(few, low, high, many, none), REELS_TAB));
+        String report = report();
+        assertTrue(report, report.contains(LowViewReels.FEW_SHARES));
+        assertTrue(report, report.contains(LowViewReels.MANY_SHARES));
+        assertTrue(report, report.contains(LowViewReels.NO_SHARES));
+    }
+
+    /** Minimum and maximum saves (#780), each judging alone. */
+    @Test
+    public void savesOutsideTheirRangeGo() {
+        Settings.MIN_REEL_SAVES.save(3);
+        Clip few = fine().saves(2);
+        Clip line = fine().saves(3);
+        Clip none = fine();
+        assertEquals(Arrays.asList(line, none), page(Arrays.asList(few, line, none), REELS_TAB));
+        assertTrue(report(), report().contains(LowViewReels.FEW_SAVES));
+        assertTrue(report(), report().contains(LowViewReels.NO_SAVES));
+
+        Settings.MIN_REEL_SAVES.save(0);
+        Settings.MAX_REEL_SAVES.save(30);
+        Clip many = fine().saves(31);
+        Clip top = fine().saves(30);
+        assertEquals(Arrays.asList(top, few), page(Arrays.asList(many, top, few), REELS_TAB));
+        assertTrue(report(), report().contains(LowViewReels.MANY_SAVES));
+    }
+
+    /** With only a new range set, the others aren't read, and at 0 nothing is. */
+    @Test
+    public void theRangesOnlyReadWhatTheyNeed() {
+        Settings.MIN_REEL_VIEWS.save(0);
+        Settings.MIN_REEL_LIKES.save(0);
+        Settings.MAX_REEL_SHARES.save(10);
+        Clip over = clip(LowViewReels.NO_COUNT, LowViewReels.NO_COUNT, false).shares(11);
+        Clip under = clip(LowViewReels.NO_COUNT, LowViewReels.NO_COUNT, false).shares(1);
+        assertEquals(Arrays.asList(under), page(Arrays.asList(over, under), REELS_TAB));
+        String report = report();
+        assertFalse(report, report.contains(LowViewReels.NO_VIEWS));
+        assertFalse(report, report.contains(LowViewReels.NO_LIKES));
+        assertFalse(report, report.contains(LowViewReels.NO_COMMENTS));
+        assertFalse(report, report.contains(LowViewReels.NO_SAVES));
+
+        Settings.MAX_REEL_SHARES.save(0);
+        List<?> items = Arrays.asList(over, under);
+        assertSame(items, page(items, REELS_TAB));
     }
 
     @Test

@@ -3254,6 +3254,62 @@ public class Settings extends BaseSettings {
                     .withRange(0, 100_000_000);
 
     /**
+     * Under {@link #HIDE_LOW_VIEW_REELS}: the most likes a reel can have and stay, and 0 for no
+     * maximum, the start (#780). A value control, not a switch.
+     */
+    public static final IntegerSetting MAX_REEL_LIKES =
+            new IntegerSetting("hushgram_max_reel_likes", 0, false, parent(HIDE_LOW_VIEW_REELS))
+                    .withRange(0, 999_999_999);
+
+    /**
+     * Under {@link #HIDE_LOW_VIEW_REELS}: the comments a reel needs to stay, and 0 to leave
+     * comments alone, the start (#780). A value control, not a switch.
+     */
+    public static final IntegerSetting MIN_REEL_COMMENTS =
+            new IntegerSetting("hushgram_min_reel_comments", 0, false, parent(HIDE_LOW_VIEW_REELS))
+                    .withRange(0, 100_000_000);
+
+    /**
+     * Under {@link #HIDE_LOW_VIEW_REELS}: the most comments a reel can have and stay, and 0 for no
+     * maximum, the start (#780). A value control, not a switch.
+     */
+    public static final IntegerSetting MAX_REEL_COMMENTS =
+            new IntegerSetting("hushgram_max_reel_comments", 0, false, parent(HIDE_LOW_VIEW_REELS))
+                    .withRange(0, 999_999_999);
+
+    /**
+     * Under {@link #HIDE_LOW_VIEW_REELS}: how many times a reel needs to have been shared to stay,
+     * and 0 to leave shares alone, the start (#780). A value control, not a switch.
+     */
+    public static final IntegerSetting MIN_REEL_SHARES =
+            new IntegerSetting("hushgram_min_reel_shares", 0, false, parent(HIDE_LOW_VIEW_REELS))
+                    .withRange(0, 100_000_000);
+
+    /**
+     * Under {@link #HIDE_LOW_VIEW_REELS}: the most times a reel can have been shared and stay, and 0
+     * for no maximum, the start (#780). A value control, not a switch.
+     */
+    public static final IntegerSetting MAX_REEL_SHARES =
+            new IntegerSetting("hushgram_max_reel_shares", 0, false, parent(HIDE_LOW_VIEW_REELS))
+                    .withRange(0, 999_999_999);
+
+    /**
+     * Under {@link #HIDE_LOW_VIEW_REELS}: how many times a reel needs to have been saved to stay,
+     * and 0 to leave saves alone, the start (#780). A value control, not a switch.
+     */
+    public static final IntegerSetting MIN_REEL_SAVES =
+            new IntegerSetting("hushgram_min_reel_saves", 0, false, parent(HIDE_LOW_VIEW_REELS))
+                    .withRange(0, 100_000_000);
+
+    /**
+     * Under {@link #HIDE_LOW_VIEW_REELS}: the most times a reel can have been saved and stay, and 0
+     * for no maximum, the start (#780). A value control, not a switch.
+     */
+    public static final IntegerSetting MAX_REEL_SAVES =
+            new IntegerSetting("hushgram_max_reel_saves", 0, false, parent(HIDE_LOW_VIEW_REELS))
+                    .withRange(0, 999_999_999);
+
+    /**
      * Under {@link #HIDE_LOW_VIEW_REELS}: the likes a reel needs for each 1,000 of its views, and 0
      * to leave this alone, the start. Only reels that carry a view count are judged by it (#780).
      */

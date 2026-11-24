@@ -1939,6 +1939,30 @@ Minimum views	En az izlenme
 Reels with fewer views than this are left out. Type a whole number, or 0 to not look at views.	Bundan az izlenen reeller çıkarılır. Tam sayı yaz ya da izlenmelere bakılmasın diye 0 yaz.
 Fewer than %1$s views	%1$s izlenmeden az
 Minimum likes	En az beğeni
+Maximum likes	En çok beğeni
+Minimum comments	En az yorum
+Maximum comments	En çok yorum
+Minimum shares	En az paylaşım
+Maximum shares	En çok paylaşım
+Minimum saves	En az kaydetme
+Maximum saves	En çok kaydetme
+Reels with more likes than this are left out. Type a whole number, or 0 for no maximum.	Bundan çok beğenisi olan reeller çıkarılır. Tam sayı yaz ya da üst sınır olmasın diye 0 yaz.
+Reels with fewer comments than this are left out. Type a whole number, or 0 to not look at comments.	Bundan az yorumu olan reeller çıkarılır. Tam sayı yaz ya da yorumlara bakılmasın diye 0 yaz.
+Reels with more comments than this are left out. Type a whole number, or 0 for no maximum.	Bundan çok yorumu olan reeller çıkarılır. Tam sayı yaz ya da üst sınır olmasın diye 0 yaz.
+Reels with fewer shares than this are left out. Type a whole number, or 0 to not look at shares.	Bundan az paylaşılan reeller çıkarılır. Tam sayı yaz ya da paylaşımlara bakılmasın diye 0 yaz.
+Reels with more shares than this are left out. Type a whole number, or 0 for no maximum.	Bundan çok paylaşılan reeller çıkarılır. Tam sayı yaz ya da üst sınır olmasın diye 0 yaz.
+Reels with fewer saves than this are left out. Type a whole number, or 0 to not look at saves.	Bundan az kaydedilen reeller çıkarılır. Tam sayı yaz ya da kaydetmelere bakılmasın diye 0 yaz.
+Reels with more saves than this are left out. Type a whole number, or 0 for no maximum.	Bundan çok kaydedilen reeller çıkarılır. Tam sayı yaz ya da üst sınır olmasın diye 0 yaz.
+More than %1$s likes	%1$s beğeniden fazla
+Comments aren't looked at	Yorumlara bakılmıyor
+Fewer than %1$s comments	%1$s yorumdan az
+More than %1$s comments	%1$s yorumdan fazla
+Shares aren't looked at	Paylaşımlara bakılmıyor
+Fewer than %1$s shares	%1$s paylaşımdan az
+More than %1$s shares	%1$s paylaşımdan fazla
+Saves aren't looked at	Kaydetmelere bakılmıyor
+Fewer than %1$s saves	%1$s kaydetmeden az
+More than %1$s saves	%1$s kaydetmeden fazla
 Reels with fewer likes than this are left out. Type a whole number, or 0 to not look at likes.	Bundan az beğenisi olan reeller çıkarılır. Tam sayı yaz ya da beğenilere bakılmasın diye 0 yaz.
 Fewer than %1$s likes	%1$s beğeniden az
 Likes aren't looked at	Beğenilere bakılmıyor

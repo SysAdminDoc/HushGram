@@ -48,6 +48,7 @@ class HideLowViewReelsHookTest {
             "viewCount(Ljava/lang/Object;)Ljava/lang/Integer;", "likeCount(Ljava/lang/Object;)Ljava/lang/Integer;",
             "followed(Ljava/lang/Object;)Ljava/lang/Boolean;", "commentCount(Ljava/lang/Object;)Ljava/lang/Integer;",
             "videoLength(Ljava/lang/Object;)Ljava/lang/Double;", "postedAt(Ljava/lang/Object;)Ljava/lang/Long;",
+            "shareCount(Ljava/lang/Object;)Ljava/lang/Integer;", "saveCount(Ljava/lang/Object;)Ljava/lang/Integer;",
         )) {
             assertTrue("$wanted is not in the extension: $declared", wanted in declared)
         }
@@ -83,6 +84,14 @@ class HideLowViewReelsHookTest {
             val posted = context.stub("postedAt")
             assertTrue("${bundle.name}: taken_at", posted.getterLoading(context, MEDIA, TAKEN_AT_FIELD.hashCode()))
             assertTrue("${bundle.name}: the time is a Long", posted.any { it.text()?.endsWith(")Ljava/lang/Long;") == true })
+            // Shares and saves (#780): the counts under the Share and Save buttons, by their own fields.
+            val shares = context.stub("shareCount")
+            assertTrue("${bundle.name}: reshare_count", shares.getterLoading(context, MEDIA, "reshare_count".hashCode()))
+            val saves = context.stub("saveCount")
+            assertTrue("${bundle.name}: save_count", saves.getterLoading(context, MEDIA, "save_count".hashCode()))
+            for (count in listOf(shares, saves)) {
+                assertTrue("${bundle.name}: the count is an Integer", count.any { it.text()?.endsWith(")Ljava/lang/Integer;") == true })
+            }
             val followed = context.stub("followed").mapNotNull { it.text() }
             assertTrue("${bundle.name}: the author is read: $followed", followed.any { it.startsWith("$MEDIA->") && it.endsWith(")$USER") })
             assertTrue("${bundle.name}: the status is read: $followed", followed.any { it.startsWith("$USER->") && it.endsWith(")$RELATIONSHIP") })
@@ -121,6 +130,8 @@ class HideLowViewReelsHookTest {
         fillStub(LOW_VIEW_REELS, "commentCount", "Ljava/lang/Integer;", 1, reads.commentCount)
         fillStub(LOW_VIEW_REELS, "videoLength", "Ljava/lang/Double;", 1, reads.videoLength)
         fillStub(LOW_VIEW_REELS, "postedAt", "Ljava/lang/Long;", 1, reads.postedAt)
+        fillStub(LOW_VIEW_REELS, "shareCount", "Ljava/lang/Integer;", 1, reads.shareCount)
+        fillStub(LOW_VIEW_REELS, "saveCount", "Ljava/lang/Integer;", 1, reads.saveCount)
     }
 
     private fun BytecodePatchContext.stub(name: String): List<Instruction> =

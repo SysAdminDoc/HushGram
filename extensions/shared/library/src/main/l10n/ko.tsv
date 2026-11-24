@@ -1938,6 +1938,30 @@ Minimum views	최소 조회수
 Reels with fewer views than this are left out. Type a whole number, or 0 to not look at views.	이보다 조회수가 적은 릴스는 숨겨집니다. 정수를 입력하거나, 조회수를 보지 않으려면 0을 입력하세요.
 Fewer than %1$s views	조회수 %1$s회 미만
 Minimum likes	최소 좋아요 수
+Maximum likes	최대 좋아요 수
+Minimum comments	최소 댓글 수
+Maximum comments	최대 댓글 수
+Minimum shares	최소 공유 수
+Maximum shares	최대 공유 수
+Minimum saves	최소 저장 수
+Maximum saves	최대 저장 수
+Reels with more likes than this are left out. Type a whole number, or 0 for no maximum.	이보다 좋아요가 많은 릴스는 숨겨집니다. 정수를 입력하거나, 최대값을 두지 않으려면 0을 입력하세요.
+Reels with fewer comments than this are left out. Type a whole number, or 0 to not look at comments.	이보다 댓글이 적은 릴스는 숨겨집니다. 정수를 입력하거나, 댓글을 보지 않으려면 0을 입력하세요.
+Reels with more comments than this are left out. Type a whole number, or 0 for no maximum.	이보다 댓글이 많은 릴스는 숨겨집니다. 정수를 입력하거나, 최대값을 두지 않으려면 0을 입력하세요.
+Reels with fewer shares than this are left out. Type a whole number, or 0 to not look at shares.	이보다 공유가 적은 릴스는 숨겨집니다. 정수를 입력하거나, 공유 수를 보지 않으려면 0을 입력하세요.
+Reels with more shares than this are left out. Type a whole number, or 0 for no maximum.	이보다 공유가 많은 릴스는 숨겨집니다. 정수를 입력하거나, 최대값을 두지 않으려면 0을 입력하세요.
+Reels with fewer saves than this are left out. Type a whole number, or 0 to not look at saves.	이보다 저장이 적은 릴스는 숨겨집니다. 정수를 입력하거나, 저장 수를 보지 않으려면 0을 입력하세요.
+Reels with more saves than this are left out. Type a whole number, or 0 for no maximum.	이보다 저장이 많은 릴스는 숨겨집니다. 정수를 입력하거나, 최대값을 두지 않으려면 0을 입력하세요.
+More than %1$s likes	좋아요 %1$s개 초과
+Comments aren't looked at	댓글 수를 보지 않음
+Fewer than %1$s comments	댓글 %1$s개 미만
+More than %1$s comments	댓글 %1$s개 초과
+Shares aren't looked at	공유 수를 보지 않음
+Fewer than %1$s shares	공유 %1$s회 미만
+More than %1$s shares	공유 %1$s회 초과
+Saves aren't looked at	저장 수를 보지 않음
+Fewer than %1$s saves	저장 %1$s회 미만
+More than %1$s saves	저장 %1$s회 초과
 Reels with fewer likes than this are left out. Type a whole number, or 0 to not look at likes.	이보다 좋아요가 적은 릴스는 숨겨집니다. 정수를 입력하거나, 좋아요를 보지 않으려면 0을 입력하세요.
 Fewer than %1$s likes	좋아요 %1$s개 미만
 Likes aren't looked at	좋아요 수를 보지 않음

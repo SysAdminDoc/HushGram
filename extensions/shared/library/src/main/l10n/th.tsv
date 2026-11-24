@@ -1926,6 +1926,30 @@ Minimum views	ยอดดูขั้นต่ำ
 Reels with fewer views than this are left out. Type a whole number, or 0 to not look at views.	รีลส์ที่มียอดดูน้อยกว่านี้จะถูกละเว้น พิมพ์จำนวนเต็ม หรือพิมพ์ 0 หากไม่ต้องการพิจารณายอดดู
 Fewer than %1$s views	ยอดดูน้อยกว่า %1$s ครั้ง
 Minimum likes	ยอดถูกใจขั้นต่ำ
+Maximum likes	ยอดถูกใจสูงสุด
+Minimum comments	ความคิดเห็นขั้นต่ำ
+Maximum comments	ความคิดเห็นสูงสุด
+Minimum shares	ยอดแชร์ขั้นต่ำ
+Maximum shares	ยอดแชร์สูงสุด
+Minimum saves	ยอดบันทึกขั้นต่ำ
+Maximum saves	ยอดบันทึกสูงสุด
+Reels with more likes than this are left out. Type a whole number, or 0 for no maximum.	รีลส์ที่มียอดถูกใจมากกว่านี้จะถูกละเว้น พิมพ์จำนวนเต็ม หรือพิมพ์ 0 หากไม่ต้องการกำหนดค่าสูงสุด
+Reels with fewer comments than this are left out. Type a whole number, or 0 to not look at comments.	รีลส์ที่มีความคิดเห็นน้อยกว่านี้จะถูกละเว้น พิมพ์จำนวนเต็ม หรือพิมพ์ 0 หากไม่ต้องการพิจารณาความคิดเห็น
+Reels with more comments than this are left out. Type a whole number, or 0 for no maximum.	รีลส์ที่มีความคิดเห็นมากกว่านี้จะถูกละเว้น พิมพ์จำนวนเต็ม หรือพิมพ์ 0 หากไม่ต้องการกำหนดค่าสูงสุด
+Reels with fewer shares than this are left out. Type a whole number, or 0 to not look at shares.	รีลส์ที่มียอดแชร์น้อยกว่านี้จะถูกละเว้น พิมพ์จำนวนเต็ม หรือพิมพ์ 0 หากไม่ต้องการพิจารณายอดแชร์
+Reels with more shares than this are left out. Type a whole number, or 0 for no maximum.	รีลส์ที่มียอดแชร์มากกว่านี้จะถูกละเว้น พิมพ์จำนวนเต็ม หรือพิมพ์ 0 หากไม่ต้องการกำหนดค่าสูงสุด
+Reels with fewer saves than this are left out. Type a whole number, or 0 to not look at saves.	รีลส์ที่มียอดบันทึกน้อยกว่านี้จะถูกละเว้น พิมพ์จำนวนเต็ม หรือพิมพ์ 0 หากไม่ต้องการพิจารณายอดบันทึก
+Reels with more saves than this are left out. Type a whole number, or 0 for no maximum.	รีลส์ที่มียอดบันทึกมากกว่านี้จะถูกละเว้น พิมพ์จำนวนเต็ม หรือพิมพ์ 0 หากไม่ต้องการกำหนดค่าสูงสุด
+More than %1$s likes	ยอดถูกใจมากกว่า %1$s ครั้ง
+Comments aren't looked at	ไม่พิจารณาความคิดเห็น
+Fewer than %1$s comments	ความคิดเห็นน้อยกว่า %1$s รายการ
+More than %1$s comments	ความคิดเห็นมากกว่า %1$s รายการ
+Shares aren't looked at	ไม่พิจารณายอดแชร์
+Fewer than %1$s shares	ยอดแชร์น้อยกว่า %1$s ครั้ง
+More than %1$s shares	ยอดแชร์มากกว่า %1$s ครั้ง
+Saves aren't looked at	ไม่พิจารณายอดบันทึก
+Fewer than %1$s saves	ยอดบันทึกน้อยกว่า %1$s ครั้ง
+More than %1$s saves	ยอดบันทึกมากกว่า %1$s ครั้ง
 Reels with fewer likes than this are left out. Type a whole number, or 0 to not look at likes.	รีลส์ที่มียอดถูกใจน้อยกว่านี้จะถูกละเว้น พิมพ์จำนวนเต็ม หรือพิมพ์ 0 หากไม่ต้องการพิจารณายอดถูกใจ
 Fewer than %1$s likes	ยอดถูกใจน้อยกว่า %1$s ครั้ง
 Likes aren't looked at	ไม่พิจารณายอดถูกใจ

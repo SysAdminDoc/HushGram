@@ -182,6 +182,13 @@ public final class ConfigurationBackup {
         if (PatchFamily.LOW_VIEW_REELS.inBuild()) {
             settings.put(Settings.MIN_REEL_VIEWS.key, Settings.MIN_REEL_VIEWS);
             settings.put(Settings.MIN_REEL_LIKES.key, Settings.MIN_REEL_LIKES);
+            settings.put(Settings.MAX_REEL_LIKES.key, Settings.MAX_REEL_LIKES);
+            settings.put(Settings.MIN_REEL_COMMENTS.key, Settings.MIN_REEL_COMMENTS);
+            settings.put(Settings.MAX_REEL_COMMENTS.key, Settings.MAX_REEL_COMMENTS);
+            settings.put(Settings.MIN_REEL_SHARES.key, Settings.MIN_REEL_SHARES);
+            settings.put(Settings.MAX_REEL_SHARES.key, Settings.MAX_REEL_SHARES);
+            settings.put(Settings.MIN_REEL_SAVES.key, Settings.MIN_REEL_SAVES);
+            settings.put(Settings.MAX_REEL_SAVES.key, Settings.MAX_REEL_SAVES);
             settings.put(Settings.MAX_REEL_VIEWS.key, Settings.MAX_REEL_VIEWS);
             settings.put(Settings.MIN_REEL_LIKES_PER_1000.key, Settings.MIN_REEL_LIKES_PER_1000);
             settings.put(Settings.MIN_REEL_COMMENTS_PER_1000.key, Settings.MIN_REEL_COMMENTS_PER_1000);

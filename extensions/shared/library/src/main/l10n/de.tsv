@@ -1939,6 +1939,30 @@ Minimum views	Mindestaufrufe
 Reels with fewer views than this are left out. Type a whole number, or 0 to not look at views.	Reels mit weniger Aufrufen werden weggelassen. Gib eine ganze Zahl ein, oder 0, damit Aufrufe nicht zählen.
 Fewer than %1$s views	Weniger als %1$s Aufrufe
 Minimum likes	Mindest-Likes
+Maximum likes	Höchst-Likes
+Minimum comments	Mindest-Kommentare
+Maximum comments	Höchst-Kommentare
+Minimum shares	Mindest-Teilungen
+Maximum shares	Höchst-Teilungen
+Minimum saves	Mindest-Speicherungen
+Maximum saves	Höchst-Speicherungen
+Reels with more likes than this are left out. Type a whole number, or 0 for no maximum.	Reels mit mehr Likes werden weggelassen. Gib eine ganze Zahl ein, oder 0 für kein Maximum.
+Reels with fewer comments than this are left out. Type a whole number, or 0 to not look at comments.	Reels mit weniger Kommentaren werden weggelassen. Gib eine ganze Zahl ein, oder 0, damit Kommentare nicht zählen.
+Reels with more comments than this are left out. Type a whole number, or 0 for no maximum.	Reels mit mehr Kommentaren werden weggelassen. Gib eine ganze Zahl ein, oder 0 für kein Maximum.
+Reels with fewer shares than this are left out. Type a whole number, or 0 to not look at shares.	Reels, die seltener geteilt wurden, werden weggelassen. Gib eine ganze Zahl ein, oder 0, damit Teilungen nicht zählen.
+Reels with more shares than this are left out. Type a whole number, or 0 for no maximum.	Reels, die öfter geteilt wurden, werden weggelassen. Gib eine ganze Zahl ein, oder 0 für kein Maximum.
+Reels with fewer saves than this are left out. Type a whole number, or 0 to not look at saves.	Reels, die seltener gespeichert wurden, werden weggelassen. Gib eine ganze Zahl ein, oder 0, damit Speicherungen nicht zählen.
+Reels with more saves than this are left out. Type a whole number, or 0 for no maximum.	Reels, die öfter gespeichert wurden, werden weggelassen. Gib eine ganze Zahl ein, oder 0 für kein Maximum.
+More than %1$s likes	Mehr als %1$s Likes
+Comments aren't looked at	Kommentare zählen nicht
+Fewer than %1$s comments	Weniger als %1$s Kommentare
+More than %1$s comments	Mehr als %1$s Kommentare
+Shares aren't looked at	Teilungen zählen nicht
+Fewer than %1$s shares	Weniger als %1$s Teilungen
+More than %1$s shares	Mehr als %1$s Teilungen
+Saves aren't looked at	Speicherungen zählen nicht
+Fewer than %1$s saves	Weniger als %1$s Speicherungen
+More than %1$s saves	Mehr als %1$s Speicherungen
 Reels with fewer likes than this are left out. Type a whole number, or 0 to not look at likes.	Reels mit weniger Likes werden weggelassen. Gib eine ganze Zahl ein, oder 0, damit Likes nicht zählen.
 Fewer than %1$s likes	Weniger als %1$s Likes
 Likes aren't looked at	Likes zählen nicht

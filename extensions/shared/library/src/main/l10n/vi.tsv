@@ -1854,6 +1854,30 @@ Minimum views	Số lượt xem tối thiểu
 Reels with fewer views than this are left out. Type a whole number, or 0 to not look at views.	Reel có ít lượt xem hơn số này sẽ bị bỏ qua. Nhập một số nguyên, hoặc 0 để không xét lượt xem.
 Fewer than %1$s views	Dưới %1$s lượt xem
 Minimum likes	Số lượt thích tối thiểu
+Maximum likes	Số lượt thích tối đa
+Minimum comments	Số bình luận tối thiểu
+Maximum comments	Số bình luận tối đa
+Minimum shares	Số lượt chia sẻ tối thiểu
+Maximum shares	Số lượt chia sẻ tối đa
+Minimum saves	Số lượt lưu tối thiểu
+Maximum saves	Số lượt lưu tối đa
+Reels with more likes than this are left out. Type a whole number, or 0 for no maximum.	Reel có nhiều lượt thích hơn số này sẽ bị bỏ qua. Nhập một số nguyên, hoặc 0 để không đặt mức tối đa.
+Reels with fewer comments than this are left out. Type a whole number, or 0 to not look at comments.	Reel có ít bình luận hơn số này sẽ bị bỏ qua. Nhập một số nguyên, hoặc 0 để không xét bình luận.
+Reels with more comments than this are left out. Type a whole number, or 0 for no maximum.	Reel có nhiều bình luận hơn số này sẽ bị bỏ qua. Nhập một số nguyên, hoặc 0 để không đặt mức tối đa.
+Reels with fewer shares than this are left out. Type a whole number, or 0 to not look at shares.	Reel có ít lượt chia sẻ hơn số này sẽ bị bỏ qua. Nhập một số nguyên, hoặc 0 để không xét lượt chia sẻ.
+Reels with more shares than this are left out. Type a whole number, or 0 for no maximum.	Reel có nhiều lượt chia sẻ hơn số này sẽ bị bỏ qua. Nhập một số nguyên, hoặc 0 để không đặt mức tối đa.
+Reels with fewer saves than this are left out. Type a whole number, or 0 to not look at saves.	Reel có ít lượt lưu hơn số này sẽ bị bỏ qua. Nhập một số nguyên, hoặc 0 để không xét lượt lưu.
+Reels with more saves than this are left out. Type a whole number, or 0 for no maximum.	Reel có nhiều lượt lưu hơn số này sẽ bị bỏ qua. Nhập một số nguyên, hoặc 0 để không đặt mức tối đa.
+More than %1$s likes	Trên %1$s lượt thích
+Comments aren't looked at	Không xét bình luận
+Fewer than %1$s comments	Dưới %1$s bình luận
+More than %1$s comments	Trên %1$s bình luận
+Shares aren't looked at	Không xét lượt chia sẻ
+Fewer than %1$s shares	Dưới %1$s lượt chia sẻ
+More than %1$s shares	Trên %1$s lượt chia sẻ
+Saves aren't looked at	Không xét lượt lưu
+Fewer than %1$s saves	Dưới %1$s lượt lưu
+More than %1$s saves	Trên %1$s lượt lưu
 Reels with fewer likes than this are left out. Type a whole number, or 0 to not look at likes.	Reel có ít lượt thích hơn số này sẽ bị bỏ qua. Nhập một số nguyên, hoặc 0 để không xét lượt thích.
 Fewer than %1$s likes	Dưới %1$s lượt thích
 Likes aren't looked at	Không xét lượt thích

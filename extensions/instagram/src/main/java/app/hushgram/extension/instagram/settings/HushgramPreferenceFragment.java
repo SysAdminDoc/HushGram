@@ -951,6 +951,10 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     belongs |= family == PatchFamily.LOW_VIEW_REELS
                             && (Settings.MIN_REEL_VIEWS.key.equals(key) || Settings.MIN_REEL_LIKES.key.equals(key)
                             || Settings.MAX_REEL_VIEWS.key.equals(key) || Settings.MIN_REEL_LIKES_PER_1000.key.equals(key)
+                            || Settings.MAX_REEL_LIKES.key.equals(key) || Settings.MIN_REEL_COMMENTS.key.equals(key)
+                            || Settings.MAX_REEL_COMMENTS.key.equals(key) || Settings.MIN_REEL_SHARES.key.equals(key)
+                            || Settings.MAX_REEL_SHARES.key.equals(key) || Settings.MIN_REEL_SAVES.key.equals(key)
+                            || Settings.MAX_REEL_SAVES.key.equals(key)
                             || Settings.MIN_REEL_COMMENTS_PER_1000.key.equals(key) || Settings.MIN_REEL_SECONDS.key.equals(key)
                             || Settings.MAX_REEL_SECONDS.key.equals(key) || Settings.MAX_REEL_AGE_DAYS.key.equals(key)
                             || Settings.REELS_NEWEST_FIRST.key.equals(key) || Settings.HIDE_LOW_VIEW_HOME.key.equals(key));
@@ -8650,6 +8654,48 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 L10n.t("Reels with fewer likes than this are left out. Type a whole number, or 0 to not look at likes."));
     }
 
+    /** The most likes a reel can have and stay, 0 for no maximum (#780). */
+    static MinCountRow maxLikesRow(Context context) {
+        return minCountRow(context, Settings.MAX_REEL_LIKES, L10n.t("Maximum likes"),
+                L10n.t("Reels with more likes than this are left out. Type a whole number, or 0 for no maximum."));
+    }
+
+    /** The comments a reel needs to stay, 0 leaving comments alone (#780). */
+    static MinCountRow minCommentsRow(Context context) {
+        return minCountRow(context, Settings.MIN_REEL_COMMENTS, L10n.t("Minimum comments"),
+                L10n.t("Reels with fewer comments than this are left out. Type a whole number, or 0 to not look at comments."));
+    }
+
+    /** The most comments a reel can have and stay, 0 for no maximum (#780). */
+    static MinCountRow maxCommentsRow(Context context) {
+        return minCountRow(context, Settings.MAX_REEL_COMMENTS, L10n.t("Maximum comments"),
+                L10n.t("Reels with more comments than this are left out. Type a whole number, or 0 for no maximum."));
+    }
+
+    /** The shares a reel needs to stay, 0 leaving shares alone (#780). */
+    static MinCountRow minSharesRow(Context context) {
+        return minCountRow(context, Settings.MIN_REEL_SHARES, L10n.t("Minimum shares"),
+                L10n.t("Reels with fewer shares than this are left out. Type a whole number, or 0 to not look at shares."));
+    }
+
+    /** The most shares a reel can have and stay, 0 for no maximum (#780). */
+    static MinCountRow maxSharesRow(Context context) {
+        return minCountRow(context, Settings.MAX_REEL_SHARES, L10n.t("Maximum shares"),
+                L10n.t("Reels with more shares than this are left out. Type a whole number, or 0 for no maximum."));
+    }
+
+    /** The saves a reel needs to stay, 0 leaving saves alone (#780). */
+    static MinCountRow minSavesRow(Context context) {
+        return minCountRow(context, Settings.MIN_REEL_SAVES, L10n.t("Minimum saves"),
+                L10n.t("Reels with fewer saves than this are left out. Type a whole number, or 0 to not look at saves."));
+    }
+
+    /** The most saves a reel can have and stay, 0 for no maximum (#780). */
+    static MinCountRow maxSavesRow(Context context) {
+        return minCountRow(context, Settings.MAX_REEL_SAVES, L10n.t("Maximum saves"),
+                L10n.t("Reels with more saves than this are left out. Type a whole number, or 0 for no maximum."));
+    }
+
     /** The most views a reel can have and stay, 0 for no maximum (#780). */
     static MinCountRow maxViewsRow(Context context) {
         return minCountRow(context, Settings.MAX_REEL_VIEWS, L10n.t("Maximum views"),
@@ -8713,6 +8759,27 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         }
         if (setting == Settings.MAX_REEL_VIEWS) {
             return count == 0 ? L10n.t("No maximum") : L10n.f("More than %1$s views", number);
+        }
+        if (setting == Settings.MAX_REEL_LIKES) {
+            return count == 0 ? L10n.t("No maximum") : L10n.f("More than %1$s likes", number);
+        }
+        if (setting == Settings.MIN_REEL_COMMENTS) {
+            return count == 0 ? L10n.t("Comments aren't looked at") : L10n.f("Fewer than %1$s comments", number);
+        }
+        if (setting == Settings.MAX_REEL_COMMENTS) {
+            return count == 0 ? L10n.t("No maximum") : L10n.f("More than %1$s comments", number);
+        }
+        if (setting == Settings.MIN_REEL_SHARES) {
+            return count == 0 ? L10n.t("Shares aren't looked at") : L10n.f("Fewer than %1$s shares", number);
+        }
+        if (setting == Settings.MAX_REEL_SHARES) {
+            return count == 0 ? L10n.t("No maximum") : L10n.f("More than %1$s shares", number);
+        }
+        if (setting == Settings.MIN_REEL_SAVES) {
+            return count == 0 ? L10n.t("Saves aren't looked at") : L10n.f("Fewer than %1$s saves", number);
+        }
+        if (setting == Settings.MAX_REEL_SAVES) {
+            return count == 0 ? L10n.t("No maximum") : L10n.f("More than %1$s saves", number);
         }
         if (setting == Settings.MIN_REEL_LIKES_PER_1000) {
             return count == 0 ? L10n.t("Not looked at") : L10n.f("Fewer than %1$s likes per 1,000 views", number);
