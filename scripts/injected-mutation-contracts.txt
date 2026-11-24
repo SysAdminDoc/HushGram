@@ -667,7 +667,15 @@ once-call Lapp/hushgram/extension/instagram/reels/ReelsTopBar;->friendsTabAnyway
 # The handler's turn-off, its one instance (reel, reason) method, hands left() the handler, the reel and
 # the reason once, after the action it runs. It's the one such method calling a two-argument invoke on
 # one of Instagram's classes, in the class holding these four ints (0CLm.A01 on 386214574).
-once-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->left(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V in instance (LX/*;LX/*;)V calling instance LX/*;->invoke(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; class-holding const:0x10e895f0 const:0x4b6e619a const:0x4f8387b8 const:0x14e06b
+except 386314340 once-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->left(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V in instance (LX/*;LX/*;)V calling instance LX/*;->invoke(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; class-holding const:0x10e895f0 const:0x4b6e619a const:0x4f8387b8 const:0x14e06b
+# 457's armeabi-v7a (386314340) has no turn-off method: its handler (0GFo) keeps the action in A04, and
+# the four places turning clear mode off read it and run it themselves. Each hands left() the handler,
+# the reel and the reason once, right after its run. These four rules are that build's alone, so they
+# name its classes: the one method of each shape reading the handler's action.
+on 386314340 once-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->left(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V in instance (LX/*;LX/*;)V holding LX/0GFo;->A04:LX/0OHm;
+on 386314340 once-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->left(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V in instance ()Ljava/lang/Object; holding LX/0GFo;->A04:LX/0OHm;
+on 386314340 once-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->left(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V in instance (Ljava/lang/Object;)Ljava/lang/Object; holding LX/0GFo;->A04:LX/0OHm;
+on 386314340 once-call Lapp/hushgram/extension/instagram/reels/ReelClearMode;->left(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V in static (LX/*;LX/*;Ljava/util/List;I)V holding LX/0GFo;->A04:LX/0OHm;
 # The viewer's turn-on passes the reel it read off the pager through current() once, before testing
 # it: the one static method holding the 0x2000 window flag that reads the window and a view's tag
 # (08PD.A03 on 386214574). Block screenshots rewrites its setFlags call, so the rule can't name that.

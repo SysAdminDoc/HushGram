@@ -669,16 +669,40 @@ class ClearModeHookTest {
                     method.code().any { (it as? ReferenceInstruction)?.reference.let { ref -> ref is FieldReference && ref.definingClass == reasonType } }
             }
         }
-        // Each class with an action and a turn-off taking the reason may be the handler.
-        val handlers = near.filter { holder ->
-            holder.instanceFields.any { it.type == function1 } && holder.methods.any { method ->
-                method.returnType == "V" && method.parameterTypes.size == 2 && method.parameterTypes[1].toString() == reasonType
+        // Each class with an action and a turn-off taking the reason may be the handler. 457's armeabi-v7a
+        // (386314340) inlines the turn-off into its callers, so there it's the class with an action whose
+        // other action, the turn-off's, a method touching the reason reads off it and runs with two objects.
+        val turnOffActions = near.flatMap { it.methods }.flatMap { method ->
+            val code = method.code()
+            code.indices.mapNotNull { at ->
+                val call = code[at].methodRef()
+                val read = code.getOrNull(at - 2)
+                if (code[at].opcode != Opcode.INVOKE_INTERFACE || call?.name != "invoke" || call.parameterTypes.size != 2 ||
+                    read?.opcode != Opcode.IGET_OBJECT
+                ) {
+                    return@mapNotNull null
+                }
+                ((read as ReferenceInstruction).reference as FieldReference).takeIf { it.type == call.definingClass }
             }
+        }
+        // That handler takes no reason and reads none of its constants, so it isn't near them.
+        val nearTypes = near.mapTo(HashSet()) { it.type }
+        val inlinedHandlers = FixtureDex.classes(bundle, turnOffActions.map { it.definingClass }.filterTo(HashSet()) { it !in nearTypes }).values
+        val handlers = (near + inlinedHandlers).filter { holder ->
+            holder.instanceFields.any { it.type == function1 } && (
+                holder.methods.any { method ->
+                    method.returnType == "V" && method.parameterTypes.size == 2 && method.parameterTypes[1].toString() == reasonType
+                } || turnOffActions.any { it.definingClass == holder.type }
+            )
         }
         val handlerTypes = handlers.map { it.type }.toSet()
         assertTrue("$name: no class may be the handler", handlerTypes.isNotEmpty())
         val items = handlers.flatMap { it.methods }.filter { it.parameterTypes.size == 2 && it.parameterTypes[1].toString() == reasonType }
             .map { it.parameterTypes[0].toString() }
+        // Where the turn-off is inlined, its action's type and every type the exit button holds, the reel among them.
+        val inlinedTypes = handlers.flatMap { it.instanceFields }.map { it.type }.filter { it != function1 } +
+            near.filter { holder -> holder.instanceFields.any { it.type == stateType } && holder.instanceFields.any { it.type in handlerTypes } }
+                .flatMap { it.instanceFields }.map { it.type }
         val takingReason = near.flatMap { it.methods }.filter { method -> method.parameterTypes.any { it.toString() == reasonType } }
         val tagged = takingReason.flatMap { it.code() }.filter { it.opcode == Opcode.INSTANCE_OF }.mapNotNull { it.type() }
         val scrollStates = loading.flatMap { it.methods }.filter { FixtureDex.loads(it, REEL_SCROLL_STATE_TRACE, byType) }
@@ -691,7 +715,7 @@ class ClearModeHookTest {
             }
         }
         val known = (loading + near + touching).mapTo(HashSet()) { it.type }
-        val types = (items + tagged + scrollStates + called).filter { it.startsWith("L") && it !in known }.toSet()
+        val types = (items + inlinedTypes + handlerTypes + tagged + scrollStates + called).filter { it.startsWith("L") && it !in known }.toSet()
         // Pinch for clear mode's read of its flag sits in the action the pinch listener runs, which reads the reel state too.
         val pinchReaders = FixtureDex.methodsWhere(bundle, { dex -> dex.typeSection.any { it == stateType } }) { method ->
             method.code().any { it.opcode == Opcode.CONST_WIDE && (it as WideLiteralInstruction).wideLiteral == PINCH_CLEAR_MODE_FLAG }
@@ -740,7 +764,7 @@ class ClearModeHookTest {
 
         sharedHooks(
             context, name, declared,
-            Sites(found.dismiss, found.enabled, found.paged, found.button, found.chrome, found.scrolled, found.setup),
+            Sites(found.dismiss, found.enabled, found.paged, found.button, found.chrome, found.scrolled, found.setup, found.inlined),
             handlerType, itemType, actionName,
         )
 
@@ -969,15 +993,16 @@ class ClearModeHookTest {
         }
     }
 
-    /** The methods both ways of finding clear mode hook the same way. */
+    /** The methods both ways of finding clear mode hook the same way, and the turn-off's runs where it's inlined. */
     private class Sites(
-        val dismiss: Method,
+        val dismiss: Method?,
         val enabled: Method,
         val paged: Method,
         val render: Method,
         val chrome: Method,
         val scrolled: Method,
         val setup: Method,
+        val inlined: InlinedTurnOff? = null,
     )
 
     /**
@@ -1007,28 +1032,32 @@ class ClearModeHookTest {
 
         // The turn-off: this, the reel and the reason, right after the action's call, and the branch
         // around a missing action lands past the hook.
-        val newDismiss = after(dismiss)
-        assertEquals("$name: the turn-off grew", dismiss.code().size + 1, newDismiss.size)
-        val left = newDismiss.indexOfFirst { it.referenceText() == CLEAR_MODE_LEFT }
-        val dismissThis = dismiss.implementation!!.registerCount - 3
-        assertEquals(
-            "$name: the turn-off hands over this, the reel and the reason",
-            listOf(dismissThis, dismissThis + 1, dismissThis + 2),
-            newDismiss[left].registers(),
-        )
-        assertEquals("$name: the turn-off's action comes just before", "invoke", newDismiss[left - 1].methodRef()?.name)
-        assertEquals("$name: a missing action skips the turn-off's hook", left + 1, newDismiss.target(newDismiss.indexOfFirst { it.opcode == Opcode.IF_EQZ }))
-        // The extension takes a reel out of clear mode for a pinch through that same turn-off (#744).
-        val reasonType = dismiss.parameterTypes[1].toString()
-        val leave = context.method(CLEAR_MODE, CLEAR_MODE_LEAVE_STUB)
-        assertEquals(
-            "$name: the leave stub",
-            listOf(Opcode.CHECK_CAST, Opcode.CHECK_CAST, Opcode.CHECK_CAST, Opcode.INVOKE_VIRTUAL, Opcode.RETURN_VOID),
-            leave.take(5).map { it.opcode },
-        )
-        assertEquals("$name: the leave stub casts", listOf(handlerType, itemType, reasonType), leave.take(3).map { it.type() })
-        assertEquals("$name: the leave stub runs the turn-off", "$handlerType->${dismiss.name}($itemType$reasonType)V", leave[3].referenceText())
-        assertEquals("$name: with the handler, the reel and the reason", listOf(0, 1, 2), leave[3].registers())
+        if (dismiss == null) {
+            inlinedTurnOff(context, name, sites.inlined, handlerType)
+        } else {
+            val newDismiss = after(dismiss)
+            assertEquals("$name: the turn-off grew", dismiss.code().size + 1, newDismiss.size)
+            val left = newDismiss.indexOfFirst { it.referenceText() == CLEAR_MODE_LEFT }
+            val dismissThis = dismiss.implementation!!.registerCount - 3
+            assertEquals(
+                "$name: the turn-off hands over this, the reel and the reason",
+                listOf(dismissThis, dismissThis + 1, dismissThis + 2),
+                newDismiss[left].registers(),
+            )
+            assertEquals("$name: the turn-off's action comes just before", "invoke", newDismiss[left - 1].methodRef()?.name)
+            assertEquals("$name: a missing action skips the turn-off's hook", left + 1, newDismiss.target(newDismiss.indexOfFirst { it.opcode == Opcode.IF_EQZ }))
+            // The extension takes a reel out of clear mode for a pinch through that same turn-off (#744).
+            val reasonType = dismiss.parameterTypes[1].toString()
+            val leave = context.method(CLEAR_MODE, CLEAR_MODE_LEAVE_STUB)
+            assertEquals(
+                "$name: the leave stub",
+                listOf(Opcode.CHECK_CAST, Opcode.CHECK_CAST, Opcode.CHECK_CAST, Opcode.INVOKE_VIRTUAL, Opcode.RETURN_VOID),
+                leave.take(5).map { it.opcode },
+            )
+            assertEquals("$name: the leave stub casts", listOf(handlerType, itemType, reasonType), leave.take(3).map { it.type() })
+            assertEquals("$name: the leave stub runs the turn-off", "$handlerType->${dismiss.name}($itemType$reasonType)V", leave[3].referenceText())
+            assertEquals("$name: with the handler, the reel and the reason", listOf(0, 1, 2), leave[3].registers())
+        }
 
         // The viewer's turn-on: the reel read off the pager goes through the extension and comes back
         // in the same register, cast to the reel, in front of Instagram's own test, and no reel only returns.
@@ -1151,6 +1180,59 @@ class ClearModeHookTest {
             listOf((newSetup[ready - 1] as TwoRegisterInstruction).registerB),
             newSetup[ready].registers(),
         )
+    }
+
+    /**
+     * 457's armeabi-v7a (386314340), which inlines the handler's turn-off into its callers: right after
+     * each caller's run of the turn-off action, the hook with the handler the action was read off, the
+     * reel and the reason the action got, a missing action's branch landing elsewhere. Where the
+     * action's read writes over the handler, the handler is copied into another local right before
+     * it. The leave stub runs the action the same way, then tells the extension, for a pinch (#744).
+     */
+    private fun inlinedTurnOff(context: BytecodePatchContext, name: String, inlined: InlinedTurnOff?, handlerType: String) {
+        assertTrue("$name: no turn-off and no runs of its action", inlined != null && inlined.runs.isNotEmpty())
+        for (run in inlined!!.runs) {
+            val where = "$name: ${run.method.definingClass}->${run.method.name}"
+            val now = context.now(run.method)
+            assertEquals(
+                "$where: grew",
+                run.method.code().count { it.opcode != Opcode.NOP } + if (run.copy == null) 1 else 2,
+                now.count { it.opcode != Opcode.NOP },
+            )
+            assertEquals("$where: hooked once", 1, now.count { it.referenceText() == CLEAR_MODE_LEFT })
+            val left = now.indexOfFirst { it.referenceText() == CLEAR_MODE_LEFT }
+            assertEquals("$where: the action's call comes just before", inlined.call, now[left - 1].referenceText())
+            val handed = now[left - 1].registers()
+            assertEquals("$where: a missing action is tested", Opcode.IF_EQZ, now[left - 2].opcode)
+            assertTrue("$where: a missing action skips the hook", now.target(left - 2) != left)
+            val read = now[left - 3] as TwoRegisterInstruction
+            assertEquals("$where: the action is read off the handler", inlined.action, now[left - 3].referenceText())
+            assertEquals("$where: the action read is the one run", handed[0], read.registerA)
+            val (reason, reel) = if (inlined.reasonFirst) handed[1] to handed[2] else handed[2] to handed[1]
+            val handler = if (run.copy == null) {
+                read.registerB
+            } else {
+                val copy = now[left - 4] as TwoRegisterInstruction
+                assertTrue("$where: the handler is copied", now[left - 4].opcode in setOf(Opcode.MOVE_OBJECT, Opcode.MOVE_OBJECT_FROM16))
+                assertEquals("$where: from the register the action is read off", read.registerB, copy.registerB)
+                assertTrue("$where: into a register nothing here uses", copy.registerA != read.registerB && copy.registerA !in handed)
+                copy.registerA
+            }
+            assertEquals("$where: the hook hands over the handler, the reel and the reason", listOf(handler, reel, reason), now[left].registers())
+        }
+        val leave = context.method(CLEAR_MODE, CLEAR_MODE_LEAVE_STUB)
+        assertEquals(
+            "$name: the leave stub",
+            listOf(Opcode.CHECK_CAST, Opcode.IGET_OBJECT, Opcode.IF_EQZ, Opcode.INVOKE_INTERFACE, Opcode.INVOKE_STATIC, Opcode.RETURN_VOID),
+            leave.take(6).map { it.opcode },
+        )
+        assertEquals("$name: the leave stub casts to the handler", handlerType, leave[0].type())
+        assertEquals("$name: the leave stub reads the turn-off action", inlined.action, leave[1].referenceText())
+        assertEquals("$name: and runs it", inlined.call, leave[3].referenceText())
+        assertEquals("$name: with the reason and the reel", if (inlined.reasonFirst) listOf(0, 3, 2) else listOf(0, 2, 3), leave[3].registers())
+        assertEquals("$name: then tells the extension", CLEAR_MODE_LEFT, leave[4].referenceText())
+        assertEquals("$name: with the handler, the reel and the reason", listOf(1, 2, 3), leave[4].registers())
+        assertEquals("$name: no action skips both", 5, leave.target(2))
     }
 
     /** [method]'s code as the context has it now. */

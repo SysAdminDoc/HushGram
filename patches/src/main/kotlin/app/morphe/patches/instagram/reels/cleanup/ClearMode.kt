@@ -9,7 +9,9 @@ import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLa
 import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
+import app.morphe.patcher.util.proxy.mutableTypes.MutableClass
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
+import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod.Companion.toMutable
 import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesAccessing
@@ -43,6 +45,8 @@ import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
 import com.android.tools.smali.dexlib2.iface.reference.TypeReference
+import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
+import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
 import java.util.BitSet
 
 /** What every failure to place Keep clear mode on starts with, before ": " and the detail. */
@@ -180,8 +184,11 @@ internal class ClearModeHooks(
     val entered: Int,
     /** The handler's field holding its turn-on action, which the setup writes. */
     val action: String,
-    /** The handler's turn-off, and the index after its action's call. */
-    val dismiss: Method,
+    /**
+     * The handler's turn-off, and the index after its action's call, or null and -1 on a build whose
+     * callers run the turn-off action themselves (457's armeabi-v7a), where [inlined] has those runs.
+     */
+    val dismiss: Method?,
     val left: Int,
     /** The viewer's turn-on, the index of its test of the pager's reel, and the register the reel is in. */
     val enabled: Method,
@@ -223,9 +230,36 @@ internal class ClearModeHooks(
     /**
      * How many instructions the turn-on, the turn-off, the viewer's turn-on, the row, the chrome
      * setter, the scroll state change, the viewer's setup and the exit button's render had when
-     * their places were found, leaving out the turn-on and the row where there are none.
+     * their places were found, leaving out the turn-on, the turn-off and the row where there are
+     * none, then each method of [inlined]'s runs.
      */
     val lengths: List<Int>,
+    /** The handler's turn-off where its callers run its action themselves, or null where it has its own. */
+    val inlined: InlinedTurnOff? = null,
+)
+
+/**
+ * The handler's turn-off on a build that inlines it into its callers (457's armeabi-v7a 386314340):
+ * the handler's field holding the turn-off action, the action's call, whether that call takes the
+ * reason ahead of the reel, and each caller's run of the action, where the turn-off's hook goes.
+ */
+internal class InlinedTurnOff(val action: String, val call: String, val reasonFirst: Boolean, val runs: List<TurnOffRun>)
+
+/**
+ * One caller's run of the turn-off action: [method], the index right after the action's call where
+ * the hook goes, and the registers it hands over there, the handler's, the reel's and the reason's.
+ * Where the action's read ([read]) writes over the handler, it's kept in the local [copy] from right
+ * before that read, out of [source].
+ */
+internal class TurnOffRun(
+    val method: Method,
+    val after: Int,
+    val handler: Int,
+    val reel: Int,
+    val reason: Int,
+    val read: Int,
+    val source: Int,
+    val copy: Int?,
 )
 
 /**
@@ -389,7 +423,9 @@ private fun BytecodePatchContext.findClearModeByMarkers(holders: Set<String>): C
  * pager once. The reel holder is the class the viewer's turn-on tells the page's tag by, the pager
  * listener's two methods load their own traces, and the exit button is the class holding the reel,
  * its state and the handler whose render reads the state's clear mode flag. The seek bar row has no
- * method of its own here, so the scrubber stays out of it.
+ * method of its own here, so the scrubber stays out of it. 457's armeabi-v7a also inlines the
+ * turn-off into its callers, which read the turn-off action off the handler and run it with one of
+ * the reason's constants and the reel, so each of those runs gets the turn-off's hook.
  */
 private fun BytecodePatchContext.findClearModeByAnchors(): ClearModeHooks {
     val anchors = clearModeAnchors()
@@ -398,7 +434,8 @@ private fun BytecodePatchContext.findClearModeByAnchors(): ClearModeHooks {
     val handler = action.definingClass
     val item = anchors.item
     val dismiss = anchors.dismiss
-    val left = dismiss.afterAction(listOf(0, 1))
+    val left = dismiss?.afterAction(listOf(0, 1)) ?: -1
+    val inlined = if (dismiss == null) inlinedTurnOff(handler, anchors.runs) else null
 
     // The viewer's setup: the one method writing the action.
     val setups = classesAccessing(handler, action.name, Opcode.IPUT_OBJECT).flatMap { it.methods }.filter { method ->
@@ -436,7 +473,8 @@ private fun BytecodePatchContext.findClearModeByAnchors(): ClearModeHooks {
 
     patchLog.warning("$KEEP: this build draws the seek bar row inside the reel's render, so the scrubber shows in clear mode on long reels")
 
-    val every = listOf(dismiss, enabled, paged, button, chrome, scrolled, setup).map { it.describe() }
+    val runs = inlined?.runs.orEmpty().map { it.method }
+    val every = (listOfNotNull(dismiss, enabled, paged, button, chrome, scrolled, setup) + runs).map { it.describe() }
     if (every.toSet().size != every.size) stop("two hooks would go in one method: $every")
 
     return ClearModeHooks(
@@ -446,12 +484,40 @@ private fun BytecodePatchContext.findClearModeByAnchors(): ClearModeHooks {
         chrome, hold, alpha,
         scrolled, settle, pager, scrollState,
         setup, ready, readyHandler,
-        listOf(dismiss, enabled, chrome, scrolled, setup, button).map { it.body().size },
+        (listOfNotNull(dismiss, enabled, chrome, scrolled, setup, button) + runs).map { it.body().size },
+        inlined,
     )
 }
 
-/** What the anchor path reads first: the reason, the handler's turn-on action, its turn-off and the reel that takes. */
-private class ClearModeAnchors(val reason: ClassDef, val action: FieldReference, val dismiss: Method, val item: String)
+/**
+ * What the anchor path reads first: the reason, the handler's turn-on action, its turn-off and the
+ * reel that takes, or where the turn-off is inlined, no turn-off and the callers' [runs] of its action.
+ */
+private class ClearModeAnchors(
+    val reason: ClassDef,
+    val action: FieldReference,
+    val dismiss: Method?,
+    val item: String,
+    val runs: List<TurnOffSite> = emptyList(),
+)
+
+/**
+ * A caller's run of the handler's turn-off action, found by what it reads and hands over: [method],
+ * the index of the action's [call], the handler's field holding the action ([action]), the registers
+ * of the handler it's read off, the reel and the reason, whether the call takes the reason first, and
+ * the reel's type where the register's last write before the call tells it.
+ */
+private class TurnOffSite(
+    val method: Method,
+    val call: Int,
+    val action: FieldReference,
+    val invoked: MethodReference,
+    val handler: Int,
+    val reel: Int,
+    val reason: Int,
+    val reasonFirst: Boolean,
+    val reelType: String?,
+)
 
 private fun BytecodePatchContext.clearModeAnchors(): ClearModeAnchors {
     val reasons = classesLoadingString(CLEAR_MODE_SWIPED_AWAY).filter {
@@ -464,9 +530,13 @@ private fun BytecodePatchContext.clearModeAnchors(): ClearModeAnchors {
             method.parameterTypes[1].toString() == reason.type
     } ?: emptyList()
 
-    // Every Function1 read off a class with a turn-off and run with one of the reason's constants.
+    // Every Function1 read off a class with a turn-off and run with one of the reason's constants. A
+    // class whose turn-off its callers inline (457's armeabi-v7a) has a field they run with a constant
+    // of the reason and the reel instead.
     val constants = reason.fields.filter { AccessFlags.STATIC.isSet(it.accessFlags) && it.type == reason.type }
     val callers = constants.flatMap { classesTouching(reason.type, it.name) }.distinctBy { it.type }
+    val inlined = callers.flatMap { it.methods }.flatMap { it.turnOffRuns(reason.type) }
+    fun turnsOff(holder: String) = turnOff(holder).isNotEmpty() || inlined.any { it.action.definingClass == holder }
     val actions = callers.flatMap { it.methods }.flatMap { method ->
         val code = method.body()
         code.indices.mapNotNull { at ->
@@ -479,7 +549,7 @@ private fun BytecodePatchContext.clearModeAnchors(): ClearModeAnchors {
             }
             val constant = code.lastWrite(registers[1], at)?.takeIf { it.opcode == Opcode.SGET_OBJECT }?.fieldReference()
             val read = code.lastWrite(registers[0], at)?.takeIf { it.opcode == Opcode.IGET_OBJECT }?.fieldReference()
-            read?.takeIf { constant?.definingClass == reason.type && it.type == FUNCTION1 && turnOff(it.definingClass).isNotEmpty() }
+            read?.takeIf { constant?.definingClass == reason.type && it.type == FUNCTION1 && turnsOff(it.definingClass) }
         }
     }.distinctBy { it.describe() }
     val action = actions.singleOrNull()
@@ -494,11 +564,128 @@ private fun BytecodePatchContext.clearModeAnchors(): ClearModeAnchors {
         stop("${action.describe()} isn't a public field of a public class the extension can set")
     }
 
-    val dismiss = turnOff(handler).singleOrNull()
-        ?: stop("$handler has ${turnOff(handler).size} instance (reel, reason) methods, expected one")
+    val turnOffs = turnOff(handler)
+    if (turnOffs.isEmpty()) {
+        val runs = inlined.filter { it.action.definingClass == handler }
+        val items = runs.mapNotNull { it.reelType }.distinct()
+        val item = items.singleOrNull()
+            ?: stop("$handler's turn-off action is run with reels of ${items.size} types, expected one: $items")
+        requireReel(item)
+        return ClearModeAnchors(reason, action, null, item, runs)
+    }
+    val dismiss = turnOffs.singleOrNull() ?: stop("$handler has ${turnOffs.size} instance (reel, reason) methods, expected one")
     val item = dismiss.parameterTypes[0].toString()
     requireReel(item)
     return ClearModeAnchors(reason, action, dismiss, item)
+}
+
+/**
+ * Where [this] method runs a turn-off action itself: an interface call of an action taking two
+ * objects and answering one, read off a field of the handler right before and tested for null, handed
+ * a constant of the [reason] and the reel. 457's armeabi-v7a's callers of the inlined turn-off do just
+ * that (0BfQ.A03, 0Hiu.invoke, 0HhP.invoke and 0BgQ.A0A on 386314340).
+ */
+private fun Method.turnOffRuns(reason: String): List<TurnOffSite> {
+    val code = body()
+    return code.indices.mapNotNull { at ->
+        val call = code[at].methodReference() ?: return@mapNotNull null
+        val registers = code[at].registers()
+        if (code[at].opcode != Opcode.INVOKE_INTERFACE || call.name != "invoke" || call.returnType != OBJECT ||
+            call.parameterTypes.map(Any::toString) != listOf(OBJECT, OBJECT) || registers.size != 3
+        ) {
+            return@mapNotNull null
+        }
+        val test = code.getOrNull(at - 1) ?: return@mapNotNull null
+        val read = code.getOrNull(at - 2) ?: return@mapNotNull null
+        val action = read.fieldReference() ?: return@mapNotNull null
+        if (test.opcode != Opcode.IF_EQZ || (test as OneRegisterInstruction).registerA != registers[0] ||
+            read.opcode != Opcode.IGET_OBJECT || (read as TwoRegisterInstruction).registerA != registers[0] || action.type != call.definingClass
+        ) {
+            return@mapNotNull null
+        }
+        val constants = registers.drop(1).map { register ->
+            code.lastWrite(register, at)?.takeIf { it.opcode == Opcode.SGET_OBJECT }?.fieldReference()?.definingClass == reason
+        }
+        if (constants.count { it } != 1) return@mapNotNull null
+        val reasonFirst = constants[0]
+        val reel = if (reasonFirst) registers[2] else registers[1]
+        TurnOffSite(
+            this, at, action, call, read.registerB, reel, if (reasonFirst) registers[1] else registers[2], reasonFirst,
+            typeHeld(code, reel, at),
+        )
+    }
+}
+
+/**
+ * The type [register] holds at instruction [at], by its last write before it, read in order: the
+ * field it was read from, the type it was cast to, the answer of the call right before, or its
+ * parameter's type when nothing wrote it. Null when the write tells nothing.
+ */
+private fun Method.typeHeld(code: List<Instruction>, register: Int, at: Int): String? {
+    val write = (at - 1 downTo 0).firstOrNull { code[it].writes(register) } ?: return parameterTypeIn(register)
+    val written = code[write]
+    return when (written.opcode) {
+        Opcode.IGET_OBJECT, Opcode.SGET_OBJECT -> written.fieldReference()?.type
+        Opcode.CHECK_CAST -> ((written as ReferenceInstruction).reference as? TypeReference)?.type
+        Opcode.MOVE_RESULT_OBJECT -> code.getOrNull(write - 1)?.methodReference()?.returnType
+        else -> null
+    }
+}
+
+/** The declared type of the parameter (or `this`) [register] holds on entry, or null for a local. */
+private fun Method.parameterTypeIn(register: Int): String? {
+    var next = localRegisterCount()
+    if (!isStatic()) {
+        if (register == next) return definingClass
+        next++
+    }
+    for (type in parameterTypes.map(Any::toString)) {
+        if (register == next) return type
+        next += if (type == "J" || type == "D") 2 else 1
+    }
+    return null
+}
+
+/**
+ * The turn-off's [runs] on a build that inlines it, checked before anything changes: they read one
+ * public field of the [handler] and make one call, the extension can reach both, and the hook can go
+ * right after each call with the handler, the reel and the reason in hand. Where the action's read
+ * writes over the handler, a free local keeps it from right before that read.
+ */
+private fun BytecodePatchContext.inlinedTurnOff(handler: String, runs: List<TurnOffSite>): InlinedTurnOff {
+    if (runs.isEmpty()) stop("$handler has no turn-off, and nothing runs a turn-off action read off it")
+    val fields = runs.map { it.action.describe() }.distinct()
+    val action = runs.first().action.takeIf { fields.size == 1 } ?: stop("the turn-off's runs read ${fields.size} fields of $handler: $fields")
+    val calls = runs.map { it.invoked.toString() }.distinct()
+    val call = calls.singleOrNull() ?: stop("the turn-off's runs make ${calls.size} calls: $calls")
+    val orders = runs.map { it.reasonFirst }.distinct()
+    val reasonFirst = orders.singleOrNull() ?: stop("the turn-off's runs hand the reason and the reel over in both orders")
+    val field = classDefBy(handler).instanceFields.singleOrNull { it.name == action.name && it.type == action.type }
+        ?: stop("$handler has no instance field ${action.name}")
+    val actionClass = classDefByOrNull(action.type)
+    if (!AccessFlags.PUBLIC.isSet(field.accessFlags) || actionClass == null || !AccessFlags.PUBLIC.isSet(actionClass.accessFlags)) {
+        stop("${action.describe()} isn't a public field of a public type the extension can run")
+    }
+    return InlinedTurnOff(action.describe(), call, reasonFirst, runs.map { it.hooked() })
+}
+
+/** Where [this] run's hook goes, after checking it fits there. */
+private fun TurnOffSite.hooked(): TurnOffRun {
+    val code = method.body()
+    val after = call + 1
+    if (after >= code.size) stop("${method.describe()} ends at its turn-off action's call")
+    // A hook between a call and the move that keeps its result leaves a class that won't verify.
+    if (code[after].opcode == Opcode.MOVE_RESULT_OBJECT) {
+        stop("${method.describe()} keeps what the turn-off action answers, so no hook can go right after the call")
+    }
+    if (reel > 15 || reason > 15) stop("${method.describe()} runs the turn-off action with v$reel and v$reason, which the hook's call can't name")
+    val read = call - 2
+    val runner = code[call].registers()[0]
+    if (handler != runner && handler <= 15) return TurnOffRun(method, after, handler, reel, reason, read, handler, null)
+    // The action's read writes over the handler (0Hiu.invoke's iget-object v0, v0), so it's kept from right before.
+    if (read in method.jumpTargets()) stop("${method.describe()} jumps to its read of the turn-off action, so the handler can't be kept for the hook")
+    val copy = method.freeLocalsAt(KEEP, read, 1, except = listOf(runner, reel, reason)).single()
+    return TurnOffRun(method, after, copy, reel, reason, read, handler, copy)
 }
 
 /** The one method loading [trace] (one of the pager listener's), however the build keeps the string. */
@@ -890,11 +1077,14 @@ private val THROWS = setOf(Opcode.THROW)
  * scroll state change's, the setup's and the buzz check go in by the index the find phase read,
  * which holds only while each method is as long as it was, so one that changed in between stops
  * the patch before any hook is in. A build without the handler's turn-on or the row's own render
- * (456) gets neither of those hooks.
+ * (456) gets neither of those hooks. A build whose callers run the turn-off action themselves (457's
+ * armeabi-v7a) gets the turn-off's hook right after each run, with a plain insert as well, so a
+ * missing action's branch lands past it, and a copy of the handler right before the action's read
+ * where that read writes over it.
  */
 internal fun BytecodePatchContext.applyClearMode(found: ClearModeHooks) {
     val enable = found.enable?.let { changing(it) }
-    val dismiss = changing(found.dismiss)
+    val dismiss = found.dismiss?.let { changing(it) }
     val enabled = changing(found.enabled)
     val rowSite = found.row
     val row = rowSite?.let { changing(it.method) }
@@ -902,13 +1092,21 @@ internal fun BytecodePatchContext.applyClearMode(found: ClearModeHooks) {
     val scrolled = changing(found.scrolled)
     val setup = changing(found.setup)
     val button = changing(found.button)
-    val changed = listOfNotNull(enable, dismiss, enabled, row, chrome, scrolled, setup, button)
+    val runs = found.inlined?.runs.orEmpty().map { it to changing(it.method) }
+    val changed = listOfNotNull(enable, dismiss, enabled, row, chrome, scrolled, setup, button) + runs.map { it.second }
     if (changed.size != found.lengths.size) stop("found ${found.lengths.size} methods to change but has ${changed.size}")
     changed.forEachIndexed { at, method ->
         if (method.body().size != found.lengths[at]) stop("${method.describe()} changed after its hook's place was found")
     }
     enable?.addInstructions(found.entered, "invoke-static/range { p0 .. p1 }, $CLEAR_MODE_ENTERED")
-    dismiss.addInstructions(found.left, "invoke-static/range { p0 .. p2 }, $CLEAR_MODE_LEFT")
+    dismiss?.addInstructions(found.left, "invoke-static/range { p0 .. p2 }, $CLEAR_MODE_LEFT")
+    // The hook goes in after the call before the copy goes in front of the read, which comes first.
+    runs.forEach { (run, method) ->
+        method.addInstructions(run.after, "invoke-static { v${run.handler}, v${run.reel}, v${run.reason} }, $CLEAR_MODE_LEFT")
+        run.copy?.let { copy ->
+            method.addInstructions(run.read, "${if (run.source > 15) "move-object/from16" else "move-object"} v$copy, v${run.source}")
+        }
+    }
     val reel = found.reel
     enabled.addInstructions(
         found.current,
@@ -994,13 +1192,16 @@ internal class ClearModeStubs(
     val setAction: MutableMethod,
     val chrome: MutableMethod,
     val leave: MutableMethod,
+    /** The extension's class, where the leave stub is swapped for one with a local of its own on a build that inlines the turn-off. */
+    val extension: MutableClass,
 ) {
     fun fill(found: ClearModeHooks) {
         // The handler's own turn-off, which Pinch for clear mode takes a reel out of clear mode
         // through (#744). The handler is public wherever it's found. A turn-off the extension can't
         // reach leaves the stub empty, which turns nothing off.
         val dismiss = found.dismiss
-        if (dismiss.isPublic()) {
+        val inlined = found.inlined
+        if (dismiss != null && dismiss.isPublic()) {
             leave.addInstructions(
                 0,
                 """
@@ -1011,6 +1212,31 @@ internal class ClearModeStubs(
                     return-void
                 """,
             )
+        } else if (dismiss == null && inlined != null) {
+            // 457's armeabi-v7a has no turn-off to call, so the stub does what its callers do: runs the
+            // action the handler holds, when it holds one, and then tells the extension the way the
+            // turn-off's hook would have. The stub needs a local for the action, so it's swapped for one with it.
+            val handed = if (inlined.reasonFirst) "p2, p1" else "p1, p2"
+            val replacement = ImmutableMethod(
+                leave.definingClass, leave.name, leave.parameters, leave.returnType, leave.accessFlags,
+                leave.annotations, leave.hiddenApiRestrictions,
+                ImmutableMethodImplementation(1 + leave.parameterTypes.size, emptyList(), null, null),
+            ).toMutable().apply {
+                addInstructionsWithLabels(
+                    0,
+                    """
+                        check-cast p0, ${found.handler}
+                        iget-object v0, p0, ${inlined.action}
+                        if-eqz v0, :none
+                        invoke-interface { v0, $handed }, ${inlined.call}
+                        invoke-static { p0, p1, p2 }, $CLEAR_MODE_LEFT
+                        :none
+                        return-void
+                    """,
+                )
+            }
+            extension.methods.remove(leave)
+            extension.methods.add(replacement)
         }
         // The reel holder's own alpha setter, which the hook in it hears, so a holder hidden for clear
         // mode gets its buttons back the way Instagram would show them (#740).
@@ -1090,6 +1316,7 @@ internal fun BytecodePatchContext.clearModeStubs(): ClearModeStubs {
         setAction = stub(CLEAR_MODE_SET_ACTION_STUB, listOf(OBJECT, OBJECT), "V"),
         chrome = stub(CLEAR_MODE_CHROME_STUB, listOf(OBJECT, "F"), "V"),
         leave = stub(CLEAR_MODE_LEAVE_STUB, listOf(OBJECT, OBJECT, OBJECT), "V"),
+        extension = extension,
     )
 }
 
