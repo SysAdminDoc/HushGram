@@ -1564,6 +1564,97 @@ public class GlassTabBarTest {
     }
 
     /**
+     * #843: Instagram's floating tab bar pads itself 20 dp each side (16 dp plus 4), so with the liquid look
+     * Search's circle at the pill's end sits in that padding. Its whole icon still shows there, where a bar
+     * clipping its tabs to its padding cut off everything past the padding's edge, and the other tabs spread
+     * over the pill beside it, as far in from its one end as from the other. Right to left too.
+     */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    @Config(sdk = 29, qualifiers = "en-rUS-w411dp-h891dp-xhdpi")
+    public void searchsCircleShowsItsWholeIconOnInstagramsPaddedBar() throws Exception {
+        GlassTabBar.animationsOnForTests = false;
+        for (boolean rtl : new boolean[]{false, true}) {
+            try (GlassHost host = new GlassHost(Color.BLACK, true, GlassHeight.STANDARD, rtl, false)) {
+                host.nameSearch(1);
+                int instagrams = host.dp(20);
+                host.bar.setPadding(instagrams, 0, instagrams, 0);
+                Settings.GLASS_TAB_BAR_LIQUID.save(true);
+                assertTrue(host.bar.getChildAt(0).performClick());
+                GlassTabBar.apply(host.activity);
+                host.frame();
+                host.frame();
+                String where = rtl ? "rtl" : "ltr";
+                Object glass = host.glass();
+                RectF holder = new RectF(ReflectionHelpers.<RectF>getField(glass, "holder"));
+                RectF circle = new RectF(ReflectionHelpers.<RectF>getField(glass, "circle"));
+                assertFalse(where, circle.isEmpty());
+                View search = host.bar.getChildAt(1);
+                assertEquals(where + ": Search sits in its circle", circle.centerX(), shownMiddle(search), 1f);
+
+                // Every pixel of Search's icon, the tab drawn on its own with the icon and without it, that falls
+                // inside its circle has to change on the whole screen too when the icon goes.
+                ImageView icon = (ImageView) search;
+                RectF inside = new RectF(circle);
+                inside.inset(host.dp(3), host.dp(3));
+                int expected = 0;
+                int shown = 0;
+                try (Pixels alone = new Pixels(search.getWidth(), search.getHeight());
+                     Pixels aloneBare = new Pixels(search.getWidth(), search.getHeight());
+                     Pixels screen = new Pixels(host.root.getWidth(), host.root.getHeight());
+                     Pixels screenBare = new Pixels(host.root.getWidth(), host.root.getHeight())) {
+                    drawOn(search, alone);
+                    drawOn(host.root, screen);
+                    icon.setImageAlpha(0);
+                    drawOn(search, aloneBare);
+                    drawOn(host.root, screenBare);
+                    icon.setImageAlpha(255);
+                    float dx = host.bar.getLeft() + search.getLeft() + search.getTranslationX();
+                    float dy = host.bar.getTop() + search.getTop() + search.getTranslationY();
+                    for (int y = 0; y < alone.bitmap.getHeight(); y++) {
+                        for (int x = 0; x < alone.bitmap.getWidth(); x++) {
+                            if (apart(alone.bitmap.getPixel(x, y), aloneBare.bitmap.getPixel(x, y)) < 120) continue;
+                            float barX = search.getLeft() + search.getTranslationX() + x;
+                            float barY = search.getTop() + search.getTranslationY() + y;
+                            if (!inside.contains(barX, barY)) continue;
+                            expected++;
+                            int screenX = Math.round(dx + x);
+                            int screenY = Math.round(dy + y);
+                            if (apart(screen.bitmap.getPixel(screenX, screenY), screenBare.bitmap.getPixel(screenX, screenY)) >= 30) shown++;
+                        }
+                    }
+                }
+                assertTrue(where + ": the icon is there to check, " + expected + " px in " + inside + " from a tab at "
+                        + (search.getLeft() + search.getTranslationX()) + "," + search.getTop() + " " + search.getWidth()
+                        + "x" + search.getHeight(), expected > 100);
+                assertTrue(where + ": Search's whole icon shows in its circle, " + shown + " of " + expected + " px",
+                        shown >= expected * 0.97f);
+
+                java.util.List<View> others = new java.util.ArrayList<>();
+                for (int i : new int[]{0, 2, 3, 4}) others.add(host.bar.getChildAt(i));
+                others.sort((one, other) -> Integer.compare(one.getLeft(), other.getLeft()));
+                float first = shownMiddle(others.get(0)) - holder.left;
+                float last = holder.right - shownMiddle(others.get(others.size() - 1));
+                assertEquals(where + ": the tabs sit in the pill's middle, " + first + " in from one end and "
+                        + last + " from the other", first, last, 2f);
+                host.capture("liquid-padded-" + where);
+            }
+        }
+    }
+
+    /** Draws [view] on its own onto [pixels], over black. */
+    private static void drawOn(View view, Pixels pixels) {
+        pixels.bitmap.eraseColor(Color.BLACK);
+        view.draw(new Canvas(pixels.bitmap));
+    }
+
+    /** How far apart two colors are: the sum of their channels' differences. */
+    private static int apart(int one, int other) {
+        return Math.abs(Color.red(one) - Color.red(other)) + Math.abs(Color.green(one) - Color.green(other))
+                + Math.abs(Color.blue(one) - Color.blue(other));
+    }
+
+    /**
      * #65: the compact row keeps the tab you're on, in a circle at the pill's start, and Search in its circle. The
      * other tabs fade and take no touches, the middle shows what's behind, and a slide can't start there. Grown
      * back, every tab is where it was. With Search open there's nothing to shrink to.

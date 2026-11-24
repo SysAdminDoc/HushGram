@@ -2090,6 +2090,9 @@ public final class GlassTabBar {
                     + " density=" + density + " sdk=" + Build.VERSION.SDK_INT, null);
             if (bar instanceof LinearLayout) ((LinearLayout) bar).setGravity(Gravity.CENTER_VERTICAL);
             bar.setClipChildren(false);
+            // Instagram's floating tab bar pads itself 20 dp each side, and the pill's ends sit in that
+            // padding: a bar clipping to it cut off Search's icon in its circle (#843).
+            bar.setClipToPadding(false);
             keep();
             bar.setBackground(pill);
             bar.addOnAttachStateChangeListener(this);
@@ -2299,9 +2302,11 @@ public final class GlassTabBar {
                 if (tab.getVisibility() == View.VISIBLE || tucked.containsKey(tab)) order.add(tab);
             }
             java.util.Collections.sort(order, (one, other) -> Integer.compare(one.getLeft(), other.getLeft()));
+            // Spread over the pill holding them, not the bar's padding: Instagram's own padding on its
+            // floating bar would push them off the pill's middle (#843).
             float inner = dp(INNER_DP);
-            float from = apart && rtl ? holder.left + inner : bar.getPaddingLeft();
-            float to = apart && !rtl ? holder.right - inner : bar.getWidth() - bar.getPaddingRight();
+            float from = holder.left + inner;
+            float to = holder.right - inner;
             float size = Math.min(holder.height(), holder.width());
             float start = rtl ? holder.right - size / 2f : holder.left + size / 2f;
             for (int k = 0; k < order.size(); k++) {
