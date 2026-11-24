@@ -1971,6 +1971,9 @@ Takes the big prompt for your first post off your own profile while it has no po
 Takes the caption off posts in your feed and off reels. The post stays, and the comments sheet still shows it.	يزيل التعليق من المنشورات في خلاصتك ومن المقاطع. ويبقى المنشور، ولا تزال ورقة التعليقات تعرضه.
 Takes the comment box, with your picture and Post, off the bottom of a post's or reel's comments. Turn it off when you want to comment.	يزيل مربع التعليق، بصورتك وزر Post، من أسفل تعليقات منشور أو Reel. أوقفه عندما تريد التعليق.
 Takes the heart and the like count off each comment in a post's or reel's comments.	يزيل القلب وعدد الإعجابات من كل تعليق في تعليقات منشور أو Reel.
+# context: Comments: a Hide comments switch that takes AI labels like AI-generated profile off the line with a commenter's name and time in a comment sheet (#787). AI-generated profile is a label Instagram shows there, use this language's Instagram words for it if you know them.
+Hide AI labels on comments	إخفاء تصنيفات الذكاء الاصطناعي في التعليقات
+Takes AI-generated profile and similar AI labels off the line with a commenter's name. The name and the time stay.	يزيل تصنيف «ملف شخصي منشأ بالذكاء الاصطناعي» وما يشبهه من السطر الذي فيه اسم صاحب التعليق. يبقى الاسم والوقت.
 Takes the heart and the like count off the bottom of posts in your feed. Double tap still likes a post.	يزيل القلب وعدد الإعجابات من أسفل المنشورات في خلاصتك. النقر المزدوج يظل يمنح الإعجاب.
 Takes the heart off the bottom of other people's stories, so nothing gets liked by mistake. No empty space is left behind.	يزيل القلب من أسفل قصص الآخرين، فلا يُعجب شيء بالخطأ. ولا تُترك مساحة فارغة.
 Takes the heart off the top of Home and closes up the gap. Alerts still arrive. Restart Instagram to see the change.	يزيل القلب من أعلى Home ويغلق الفراغ. تظل التنبيهات تصل. أعد تشغيل Instagram لرؤية التغيير.

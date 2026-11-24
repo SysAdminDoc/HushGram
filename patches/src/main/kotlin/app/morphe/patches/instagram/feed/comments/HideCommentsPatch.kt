@@ -35,18 +35,20 @@ internal const val COMMENT_COUNT_LABEL = ", shouldShowCommentCountInUfi="
 /**
  * Takes the Comment button and the comment count off the action row of posts in Feed and, with
  * switches of their own, Reply (#619) and the heart with its like count (#762) off each comment in
- * a comment sheet, and the comment box off the bottom of it (#762). In simple mode with every
- * switch off, so nothing changes until one is turned on. Reply comes off both comment lines the
- * app has, the composable one and the component row a post's comments sheet draws on 454. When
- * neither matches, the patch goes in without the Reply part and settings leave its switch out, and
- * the same goes for the heart when the row's like column doesn't match. The comment box changes no
- * code: the extension sets its row gone while a screen shows it.
+ * a comment sheet, AI labels like "AI-generated profile" off each comment's name line (#787), and
+ * the comment box off the bottom of it (#762). In simple mode with every switch off, so nothing
+ * changes until one is turned on. Reply comes off both comment lines the app has, the composable
+ * one and the component row a post's comments sheet draws on 454. When neither matches, the patch
+ * goes in without the Reply part and settings leave its switch out, and the same goes for the
+ * heart when the row's like column doesn't match, and for the AI label when the name line's read
+ * of it doesn't. The comment box changes no code: the extension sets its row gone while a screen
+ * shows it.
  */
 @Suppress("unused")
 val hideCommentsPatch = bytecodePatch(
     name = "Hide comments",
     description = "Takes the Comment button and the comment count off posts in your feed. Other switches take " +
-        "Reply or the heart and like count off each comment, and the comment box off the comments. " +
+        "Reply, the heart and like count, or AI labels off each comment, and the comment box off the comments. " +
         "All start off. Turn them on in HushGram settings > Comments.",
     default = true,
 ) {
@@ -58,16 +60,20 @@ val hideCommentsPatch = bytecodePatch(
         requireStatusMethod("hideComments")
         requireStatusMethod(COMMENT_REPLY_STATUS)
         requireStatusMethod(COMMENT_LIKES_STATUS)
+        requireStatusMethod(COMMENT_AI_LABEL_STATUS)
         val state = findFeedCommentState()
         val reply = findCommentReplyOrWarn()
         val rowReply = findCommentRowReplyOrWarn()
         val rowLikes = findCommentRowLikesOrWarn()
+        val aiLabel = findCommentAiLabelOrWarn()
         prepareFeedComments(state)()
         reply?.let { hideCommentReply(it) }
         rowReply?.let { hideCommentRowReply(it) }
         rowLikes?.let { hideCommentRowLikes(it) }
+        aiLabel?.let { hideCommentAiLabel(it) }
         if (reply != null || rowReply != null) enableStatus(COMMENT_REPLY_STATUS)
         if (rowLikes != null) enableStatus(COMMENT_LIKES_STATUS)
+        if (aiLabel != null) enableStatus(COMMENT_AI_LABEL_STATUS)
         enableStatus("hideComments")
     }
 }

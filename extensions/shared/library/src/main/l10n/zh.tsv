@@ -795,6 +795,9 @@ Takes Reply off each comment in a post's or reel's comments. View more replies s
 # context: Comments: a Hide comments switch that takes the heart (the like button) and the like count under it off each comment in a comment sheet (#762).
 Hide likes on comments	隐藏评论的赞
 Takes the heart and the like count off each comment in a post's or reel's comments.	移除帖子或 Reels 评论中每则评论的爱心和点赞数。
+# context: Comments: a Hide comments switch that takes AI labels like AI-generated profile off the line with a commenter's name and time in a comment sheet (#787). AI-generated profile is a label Instagram shows there, use this language's Instagram words for it if you know them.
+Hide AI labels on comments	隐藏评论中的 AI 标签
+Takes AI-generated profile and similar AI labels off the line with a commenter's name. The name and the time stay.	从评论者名字那一行去掉“AI 生成的主页”等 AI 标签。名字和时间会保留。
 # context: Comments: a Hide comments switch that takes the comment box off the bottom of a comment sheet (#762). Comment box is the field where you type a comment; Post is Instagram's own label on its send button, use this language's Instagram word for it.
 Hide the comment box	隐藏评论输入框
 Takes the comment box, with your picture and Post, off the bottom of a post's or reel's comments. Turn it off when you want to comment.	移除帖子或 Reels 评论底部的评论输入框，连同你的头像和“发布”。想评论时再关闭。

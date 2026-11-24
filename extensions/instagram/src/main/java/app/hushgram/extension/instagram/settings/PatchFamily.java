@@ -243,7 +243,7 @@ public enum PatchFamily {
             Settings.SAVED_PROFILES, Settings.PROFILE_PICTURE_LONG_PRESS),
     VOICE_MESSAGE(FamilyNames.VOICE_MESSAGE, "voiceMessage", null, Settings.DOWNLOAD_VOICE_MESSAGES),
     HIDE_COMMENTS(FamilyNames.HIDE_COMMENTS, "hideComments", null, Settings.HIDE_COMMENTS, Settings.HIDE_COMMENT_REPLY,
-            Settings.HIDE_COMMENT_LIKES, Settings.HIDE_COMMENT_BOX),
+            Settings.HIDE_COMMENT_LIKES, Settings.HIDE_COMMENT_AI_LABELS, Settings.HIDE_COMMENT_BOX),
     COMMENT_EMOJI_ROW(FamilyNames.COMMENT_EMOJI_ROW, "commentEmojiRow", null, Settings.HIDE_COMMENT_EMOJI_ROW),
     COMMENT_KEYBOARD(FamilyNames.COMMENT_KEYBOARD, "commentKeyboard", null, Settings.COMMENT_KEYBOARD_DOWN),
     COMMENT_GIFS(FamilyNames.COMMENT_GIFS, "commentGifs", null, Settings.HIDE_COMMENT_GIFS),
@@ -548,6 +548,22 @@ public enum PatchFamily {
         return HIDE_COMMENTS.inBuild() && SettingsStatus.commentLikes();
     }
 
+    /** Whether a test says this build takes the AI label off comments, instead of asking {@link SettingsStatus}. */
+    @Nullable
+    static volatile Boolean commentAiLabelForTests;
+
+    /**
+     * Whether this build takes the AI label off the line with a comment's name. Hide comments goes in
+     * without it when that line's label has moved, so that switch isn't offered then.
+     */
+    public static boolean commentAiLabelInBuild() {
+        Boolean forced = commentAiLabelForTests;
+        if (forced != null) return forced;
+        Set<PatchFamily> families = inBuildForTests;
+        if (families != null) return families.contains(HIDE_COMMENTS);
+        return HIDE_COMMENTS.inBuild() && SettingsStatus.commentAiLabel();
+    }
+
     /** Whether a test says this build filters Home by a post's type, instead of asking {@link SettingsStatus}. */
     @Nullable
     static volatile Boolean feedTypesForTests;
@@ -750,6 +766,9 @@ public enum PatchFamily {
                 }
                 if (family == HIDE_COMMENTS && !commentLikesInBuild()) {
                     lines.add("  Hide likes on comments: not in this build (the comment row's heart didn't match)");
+                }
+                if (family == HIDE_COMMENTS && !commentAiLabelInBuild()) {
+                    lines.add("  Hide AI labels on comments: not in this build (the AI label on a comment's name line didn't match)");
                 }
                 if (family == FOLLOWING_FEED && !followingMixInBuild()) {
                     lines.add("  Mix in Following: not in this build (Home's paging didn't match)");

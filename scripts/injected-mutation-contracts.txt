@@ -2558,6 +2558,12 @@ once-call Lapp/hushgram/extension/instagram/feed/CommentReply;->hidden()Z in (LX
 once-call Lapp/hushgram/extension/instagram/feed/CommentLikes;->hidden()Z in (Ljava/lang/Integer;)LX/*; pooled class-holding row_comment_textview_reply_button
 once-call Lapp/hushgram/extension/instagram/feed/CommentLikes;->hidden()Z in (LX/*;)LX/*; pooled holding row_comment_container
 once-call Lapp/hushgram/extension/instagram/feed/CommentLikes;->hidden()Z in (LX/*;)LX/*; holding itas-android const:0xd312d3b0
+# Hide AI labels on comments (#787), under Hide comments: the component building a comment's name
+# line (04G4.A0p on 456, the one method holding both the name's and the time's test tags) hands its
+# AI label flag to CommentAiLabel.shown right after reading it, and its own test of the flag skips
+# the dot and "AI-generated profile" on a no. Left out, the label stays; more often or elsewhere,
+# it isn't the check the patch wrote.
+once-call Lapp/hushgram/extension/instagram/feed/CommentAiLabel;->shown(I)Z in instance (LX/*;)LX/*; pooled holding row_comment_textview_username row_comment_textview_time_ago
 # The download button on feed posts (#97) calls FeedDownloadButton.bind first thing in the Feed
 # view binder Hide the Repost button's view hide is in (0Bfq.A07 on 450's 385611438). No rule, for
 # the reason above: the binder is picked by resource IDs. DownloadVideoHookTest checks on every

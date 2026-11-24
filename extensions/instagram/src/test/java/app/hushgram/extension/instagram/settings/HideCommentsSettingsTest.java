@@ -42,6 +42,7 @@ public class HideCommentsSettingsTest {
         Settings.HIDE_COMMENTS.resetToDefault();
         Settings.HIDE_COMMENT_REPLY.resetToDefault();
         Settings.HIDE_COMMENT_LIKES.resetToDefault();
+        Settings.HIDE_COMMENT_AI_LABELS.resetToDefault();
         Settings.HIDE_COMMENT_BOX.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
@@ -54,9 +55,11 @@ public class HideCommentsSettingsTest {
         PatchFamily.inBuildForTests = null;
         PatchFamily.commentReplyForTests = null;
         PatchFamily.commentLikesForTests = null;
+        PatchFamily.commentAiLabelForTests = null;
         Settings.HIDE_COMMENTS.resetToDefault();
         Settings.HIDE_COMMENT_REPLY.resetToDefault();
         Settings.HIDE_COMMENT_LIKES.resetToDefault();
+        Settings.HIDE_COMMENT_AI_LABELS.resetToDefault();
         Settings.HIDE_COMMENT_BOX.resetToDefault();
         Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
     }
@@ -72,6 +75,7 @@ public class HideCommentsSettingsTest {
         assertNull(page.getPreferenceScreen().findPreference(Settings.HIDE_COMMENTS.key));
         assertNull(page.getPreferenceScreen().findPreference(Settings.HIDE_COMMENT_REPLY.key));
         assertNull(page.getPreferenceScreen().findPreference(Settings.HIDE_COMMENT_LIKES.key));
+        assertNull(page.getPreferenceScreen().findPreference(Settings.HIDE_COMMENT_AI_LABELS.key));
         assertNull(page.getPreferenceScreen().findPreference(Settings.HIDE_COMMENT_BOX.key));
     }
     @Test public void theSwitchSitsUnderCommentsAndStartsOff() throws Exception {
@@ -85,7 +89,7 @@ public class HideCommentsSettingsTest {
         assertFalse(row.isChecked());
         assertFalse(Settings.HIDE_COMMENTS.get());
         assertEquals(Arrays.asList(Settings.HIDE_COMMENTS, Settings.HIDE_COMMENT_REPLY, Settings.HIDE_COMMENT_LIKES,
-                Settings.HIDE_COMMENT_BOX), PatchFamily.HIDE_COMMENTS.switches);
+                Settings.HIDE_COMMENT_AI_LABELS, Settings.HIDE_COMMENT_BOX), PatchFamily.HIDE_COMMENTS.switches);
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.HIDE_COMMENTS.key));
         row.setChecked(true);
         assertTrue(Settings.HIDE_COMMENTS.get());
@@ -159,6 +163,41 @@ public class HideCommentsSettingsTest {
         assertTrue(report.toString(), report.contains(
                 "  Hide likes on comments: not in this build (the comment row's heart didn't match)"));
     }
+    /** #787: the AI label on a comment's name line gets its own switch, right after the likes one, starting off. */
+    @Test public void theAiLabelSwitchFollowsLikesAndStartsOff() throws Exception {
+        open(true);
+        SwitchPreference row = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.HIDE_COMMENT_AI_LABELS.key);
+        assertNotNull(row);
+        assertEquals("Hide AI labels on comments", row.getTitle().toString());
+        assertEquals("Takes AI-generated profile and similar AI labels off the line with a commenter's name. The name and "
+                + "the time stay.", row.getSummary().toString());
+        PreferenceCategory section = categoryHolding(page.getPreferenceScreen(), row);
+        assertNotNull(section);
+        assertEquals("Comments", section.getTitle().toString());
+        assertEquals("right after Hide likes on comments", Settings.HIDE_COMMENT_LIKES.key,
+                section.getPreference(indexOf(section, row) - 1).getKey());
+        assertFalse(row.isChecked());
+        assertFalse(Settings.HIDE_COMMENT_AI_LABELS.get());
+        assertFalse("each comment reads the switch as it's built, so no restart prompt", Settings.HIDE_COMMENT_AI_LABELS.rebootApp);
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.HIDE_COMMENT_AI_LABELS.key));
+        row.setChecked(true);
+        assertTrue(Settings.HIDE_COMMENT_AI_LABELS.get());
+        assertFalse("the heart keeps its own value", Settings.HIDE_COMMENT_LIKES.get());
+        List<String> report = PatchFamily.reportLines(EnumSet.of(PatchFamily.HIDE_COMMENTS), false);
+        for (String line : report) assertFalse(report.toString(), line.contains("Hide AI labels on comments: not in this build"));
+    }
+    /** A build whose comment name line moved keeps the other switches, leaves out the AI label row and says so. */
+    @Test public void aBuildWithoutTheAiLabelKeepsTheRest() throws Exception {
+        PatchFamily.commentAiLabelForTests = false;
+        open(true);
+        assertNotNull(page.getPreferenceScreen().findPreference(Settings.HIDE_COMMENTS.key));
+        assertNotNull(page.getPreferenceScreen().findPreference(Settings.HIDE_COMMENT_LIKES.key));
+        assertNull(page.getPreferenceScreen().findPreference(Settings.HIDE_COMMENT_AI_LABELS.key));
+        assertNotNull(page.getPreferenceScreen().findPreference(Settings.HIDE_COMMENT_BOX.key));
+        List<String> report = PatchFamily.reportLines(EnumSet.of(PatchFamily.HIDE_COMMENTS), false);
+        assertTrue(report.toString(), report.contains(
+                "  Hide AI labels on comments: not in this build (the AI label on a comment's name line didn't match)"));
+    }
     /** #762: the comment box switch comes last in the group, starts off and needs no restart. */
     @Test public void theCommentBoxSwitchFollowsLikesAndStartsOff() throws Exception {
         open(true);
@@ -170,7 +209,7 @@ public class HideCommentsSettingsTest {
         PreferenceCategory section = categoryHolding(page.getPreferenceScreen(), row);
         assertNotNull(section);
         assertEquals("Comments", section.getTitle().toString());
-        assertEquals("right after Hide likes on comments", Settings.HIDE_COMMENT_LIKES.key,
+        assertEquals("right after Hide AI labels on comments", Settings.HIDE_COMMENT_AI_LABELS.key,
                 section.getPreference(indexOf(section, row) - 1).getKey());
         assertFalse(row.isChecked());
         assertFalse(Settings.HIDE_COMMENT_BOX.get());

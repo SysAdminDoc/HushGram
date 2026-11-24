@@ -519,6 +519,11 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Rewritten by Hide comments when the AI label on a comment's name line was found too. */
+    public static boolean commentAiLabel() {
+        return false;
+    }
+
     public static boolean commentEmojiRow() {
         return false;
     }

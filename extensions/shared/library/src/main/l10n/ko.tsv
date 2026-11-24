@@ -791,6 +791,9 @@ Takes Reply off each comment in a post's or reel's comments. View more replies s
 # context: Comments: a Hide comments switch that takes the heart (the like button) and the like count under it off each comment in a comment sheet (#762).
 Hide likes on comments	댓글의 좋아요 숨기기
 Takes the heart and the like count off each comment in a post's or reel's comments.	게시물이나 릴스의 댓글마다 하트와 좋아요 수를 없앱니다.
+# context: Comments: a Hide comments switch that takes AI labels like AI-generated profile off the line with a commenter's name and time in a comment sheet (#787). AI-generated profile is a label Instagram shows there, use this language's Instagram words for it if you know them.
+Hide AI labels on comments	댓글의 AI 라벨 숨기기
+Takes AI-generated profile and similar AI labels off the line with a commenter's name. The name and the time stay.	댓글 작성자 이름 줄에서 'AI 생성 프로필' 같은 AI 라벨을 없앱니다. 이름과 시간은 그대로 둡니다.
 # context: Comments: a Hide comments switch that takes the comment box off the bottom of a comment sheet (#762). Comment box is the field where you type a comment; Post is Instagram's own label on its send button, use this language's Instagram word for it.
 Hide the comment box	댓글 입력창 숨기기
 Takes the comment box, with your picture and Post, off the bottom of a post's or reel's comments. Turn it off when you want to comment.	게시물이나 릴스 댓글 아래쪽에서 내 사진과 게시 버튼이 있는 댓글 입력창을 없앱니다. 댓글을 달고 싶을 때는 꺼 주세요.

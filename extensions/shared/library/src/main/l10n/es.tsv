@@ -792,6 +792,9 @@ Takes Reply off each comment in a post's or reel's comments. View more replies s
 # context: Comments: a Hide comments switch that takes the heart (the like button) and the like count under it off each comment in a comment sheet (#762).
 Hide likes on comments	Ocultar los Me gusta de los comentarios
 Takes the heart and the like count off each comment in a post's or reel's comments.	Quita el corazón y el número de Me gusta de cada comentario de una publicación o un reel.
+# context: Comments: a Hide comments switch that takes AI labels like AI-generated profile off the line with a commenter's name and time in a comment sheet (#787). AI-generated profile is a label Instagram shows there, use this language's Instagram words for it if you know them.
+Hide AI labels on comments	Ocultar etiquetas de IA en comentarios
+Takes AI-generated profile and similar AI labels off the line with a commenter's name. The name and the time stay.	Quita «Perfil generado por IA» y etiquetas de IA parecidas de la línea con el nombre de quien comenta. El nombre y la hora se quedan.
 # context: Comments: a Hide comments switch that takes the comment box off the bottom of a comment sheet (#762). Comment box is the field where you type a comment; Post is Instagram's own label on its send button, use this language's Instagram word for it.
 Hide the comment box	Ocultar el cuadro de comentarios
 Takes the comment box, with your picture and Post, off the bottom of a post's or reel's comments. Turn it off when you want to comment.	Quita el cuadro de comentarios, con tu foto y Publicar, de la parte de abajo de los comentarios de una publicación o un reel. Desactívalo cuando quieras comentar.

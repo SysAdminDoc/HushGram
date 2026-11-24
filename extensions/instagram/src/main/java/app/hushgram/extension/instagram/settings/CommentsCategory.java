@@ -71,6 +71,10 @@ final class CommentsCategory {
                     comments.addPreference(toggle(context, Settings.HIDE_COMMENT_LIKES, L10n.t("Hide likes on comments"),
                             L10n.t("Takes the heart and the like count off each comment in a post's or reel's comments.")));
                 }
+                if (PatchFamily.commentAiLabelInBuild()) {
+                    comments.addPreference(toggle(context, Settings.HIDE_COMMENT_AI_LABELS, L10n.t("Hide AI labels on comments"),
+                            L10n.t("Takes AI-generated profile and similar AI labels off the line with a commenter's name. The name and the time stay.")));
+                }
                 comments.addPreference(onFlip(toggle(context, Settings.HIDE_COMMENT_BOX, L10n.t("Hide the comment box"),
                         L10n.t("Takes the comment box, with your picture and Post, off the bottom of a post's or reel's comments. Turn it off when you want to comment.")),
                         CommentBox::switchChanged));

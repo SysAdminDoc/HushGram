@@ -3423,6 +3423,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_comment_likes", FALSE);
 
     /**
+     * A comment in a post's or reel's comments leaves the AI label, "AI-generated profile" or "AI
+     * creator", out of the line with its name, and the dot before it (#787,
+     * {@link app.hushgram.extension.instagram.feed.CommentAiLabel}). Read as each comment row is
+     * built, so comments already on screen change the next time they're built. Off to start.
+     */
+    public static final BooleanSetting HIDE_COMMENT_AI_LABELS =
+            new BooleanSetting("hushgram_hide_comment_ai_labels", FALSE);
+
+    /**
      * A post's or reel's comments leave out the comment box at the bottom (#762,
      * {@link app.hushgram.extension.instagram.feed.CommentBox}). Read before each frame of a resumed
      * screen, so it needs no restart. Off to start.
