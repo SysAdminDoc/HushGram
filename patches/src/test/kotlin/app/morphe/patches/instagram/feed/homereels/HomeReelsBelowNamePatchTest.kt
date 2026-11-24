@@ -12,6 +12,7 @@ import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.stringLoadedAt
+import app.morphe.patches.instagram.reels.cleanup.loadsLiteral
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -45,6 +46,59 @@ class HomeReelsBelowNamePatchTest {
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
         assertTrue("$BELOW_NAME is not in the extension: $declared", BELOW_NAME.substringAfter("->") in declared)
+        assertTrue("$WHOLE_REEL is not in the extension: $declared", WHOLE_REEL.substringAfter("->") in declared)
+    }
+
+    /**
+     * The feed's shape clamp (#788) on every build: the float method loading 4:5 and 1.91:1 that divides
+     * its first float parameter by its second and holds the answer to 4:5. Each of its answers then goes
+     * through the extension with those two floats, and the rest of the method is Instagram's.
+     */
+    @Test
+    fun eachBuildHandsTheShapeClampsAnswerToTheExtension() {
+        var checked = 0
+        for (bundle in bundles()) {
+            val name = bundle.name
+            val owners = FixtureDex.methodsWhere(bundle, { true }) { method ->
+                method.returnType == "F" && method.loadsLiteral(WIDEST_POST) && method.loadsLiteral(NARROWEST_POST)
+            }.map { it.definingClass }.toSet()
+            val context = PatchContexts.of(FixtureDex.classes(bundle, owners).values)
+            val site = context.findPostShape()
+            val stock = context.method(site.owner, site.method).code()
+
+            // From the stock code: the media's width and height are the method's two float parameters
+            // (after this, the object and the session), handed in that order to the call that divides them.
+            val registers = context.method(site.owner, site.method).implementation!!.registerCount
+            assertEquals("$name: the width is the first float", registers - 3, site.width)
+            assertEquals("$name: the height the second", registers - 2, site.height)
+            val divides = stock.filter { call ->
+                val called = call.reference() as? MethodReference
+                called != null && called.returnType == "Ljava/lang/Float;" &&
+                    called.parameterTypes.map { it.toString() } == listOf("F", "F") &&
+                    arguments(call) == listOf(site.width, site.height)
+            }
+            assertEquals("$name: one call makes the shape from width and height", 1, divides.size)
+            val stockReturns = stock.indices.filter { stock[it].opcode == Opcode.RETURN }
+            assertTrue("$name: the clamp answers", stockReturns.isNotEmpty())
+
+            context.keepHomeReelsWhole(site)
+
+            val code = context.method(site.owner, site.method).code()
+            val returns = code.indices.filter { code[it].opcode == Opcode.RETURN }
+            assertEquals("$name: as many answers as before", stockReturns.size, returns.size)
+            for (at in returns) {
+                val answer = (code[at] as OneRegisterInstruction).registerA
+                assertEquals("$name: the answer at $at reaches the extension", WHOLE_REEL, code[at - 2].reference().toString())
+                assertEquals("$name: with the answer, the width and the height", listOf(answer, site.width, site.height), arguments(code[at - 2]))
+                assertEquals("$name: and takes its answer back", Opcode.MOVE_RESULT, code[at - 1].opcode)
+                assertEquals("$name: into the register it returns", answer, (code[at - 1] as OneRegisterInstruction).registerA)
+            }
+            assertEquals("$name: once per answer", returns.size, code.count { it.reference()?.toString() == WHOLE_REEL })
+            val hooked = returns.flatMap { listOf(it - 2, it - 1) }.toSet()
+            assertStockKept("$name shape clamp", stock, code.filterIndexed { at, _ -> at !in hooked })
+            checked++
+        }
+        assertEquals("every build of ${Fixtures.VERSION} is read", Fixtures.BUILDS, checked)
     }
 
     @Test

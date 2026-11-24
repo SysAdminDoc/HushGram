@@ -793,6 +793,10 @@ once-call Lapp/hushgram/extension/instagram/feed/HomeTopBar;->slideBy(Ljava/util
 # out, a reel on Home keeps its name and menu on top of the video with the switch on.
 once-call Lapp/hushgram/extension/instagram/feed/HomeReelHeader;->belowName(Ljava/lang/String;)Z in instance (LX/*;Ljava/lang/String;)Z pooled holding recommended_live_in_feed itas-android
 once-call Lapp/hushgram/extension/instagram/feed/HomeReelHeader;->belowName(Ljava/lang/String;)Z in instance (LX/*;)Z holding const:0x712d1c64 Landroid/content/res/Resources;->getDimensionPixelSize(I)I
+# The same patch hands the feed's shape clamp's answer to HomeReelHeader.wholeReel with the media's width
+# and height (0sxo.A00 on 456, the instance (object, UserSession, float, float, boolean) float loading
+# 4:5 and 1.91:1), so a reel below the name keeps its 9:16 shape (#788). Left out, it's cut to 4:5.
+once-call Lapp/hushgram/extension/instagram/feed/HomeReelHeader;->wholeReel(FFF)F in instance (LX/*;Lcom/instagram/common/session/UserSession;FFZ)F holding const:0x3f4ccccd const:0x3ff47ae1
 # Spoof location sends every read of a Location's latitude, longitude and distance to SpoofLocation,
 # which answers the set place for a fix from the phone while the switch is on. One left in
 # Instagram's code is a read that tells Instagram where the phone really is.

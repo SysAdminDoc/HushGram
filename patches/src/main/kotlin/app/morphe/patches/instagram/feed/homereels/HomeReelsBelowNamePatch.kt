@@ -8,6 +8,7 @@ import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.instagram.misc.extension.classesLoading
 import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.freeLocalsAt
@@ -18,6 +19,7 @@ import app.morphe.patches.instagram.misc.extension.methodsCalling
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.extension.stringLoadedAt
 import app.morphe.patches.instagram.misc.settings.settingsPatch
+import app.morphe.patches.instagram.reels.cleanup.loadsLiteral
 import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.util.addInstructionsAtControlFlowLabel
 import com.android.tools.smali.dexlib2.AccessFlags
@@ -35,6 +37,15 @@ import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 
 internal const val HOME_REELS_STATUS = "homeReelsBelowName"
 internal const val BELOW_NAME = "$EXTENSION_PACKAGE/feed/HomeReelHeader;->belowName(Ljava/lang/String;)Z"
+internal const val WHOLE_REEL = "$EXTENSION_PACKAGE/feed/HomeReelHeader;->wholeReel(FFF)F"
+
+/** The narrowest shape the feed gives a post's media, 4:5, as its shape clamp loads it. */
+internal const val NARROWEST_POST = 0x3f4ccccdL
+
+/** The widest, 1.91:1. */
+internal const val WIDEST_POST = 0x3ff47ae1L
+
+private const val SESSION = "Lcom/instagram/common/session/UserSession;"
 
 /** What the feed's full-height test compares a post's kind with before anything else: a live video Instagram recommends. */
 internal const val LIVE_IN_FEED = "recommended_live_in_feed"
@@ -225,6 +236,62 @@ internal fun BytecodePatchContext.keepHomeReelsBelowName(sites: HomeReelSites) {
     )
 }
 
+/**
+ * The feed's shape clamp (#788): [method] on [owner] answers the width over height a post's media is
+ * laid out at, from the media's width in v[width] and height in v[height], held to 4:5 at the narrowest.
+ */
+internal class PostShapeSite(val owner: String, val method: String, val width: Int, val height: Int)
+
+/**
+ * The one instance method answering a float from (object, UserSession, width, height, boolean) that loads
+ * both [NARROWEST_POST] and [WIDEST_POST]. Its two floats are the media's width and height, read and
+ * never written, in registers v0 to v15 so the hook's call can name them.
+ */
+internal fun BytecodePatchContext.findPostShape(): PostShapeSite {
+    val found = classesLoading(WIDEST_POST).flatMap { it.methods }.filter { method ->
+        val types = method.parameterTypes.map { it.toString() }
+        !method.isStatic() && method.returnType == "F" && types.size == 5 && types[0].startsWith("L") &&
+            types[1] == SESSION && types[2] == "F" && types[3] == "F" && types[4] == "Z" &&
+            method.loadsLiteral(NARROWEST_POST) && method.loadsLiteral(WIDEST_POST)
+    }
+    val shape = found.singleOrNull()
+        ?: refuse("expected one feed shape clamp loading 4:5 and 1.91:1, found ${found.map { it.text() }}")
+    val code = shape.code()
+    val first = (shape.implementation?.registerCount ?: 0) - 6
+    val width = first + 3
+    val height = first + 4
+    if (first < 0 || height > 15) refuse("${shape.text()}'s width and height aren't in v0 to v15")
+    if (code.any { it.writesRegister(width) || it.writesRegister(height) }) refuse("${shape.text()} writes its width or height")
+    if (code.none { it.opcode == Opcode.RETURN }) refuse("${shape.text()} answers nothing")
+    return PostShapeSite(shape.definingClass, shape.signature(), width, height)
+}
+
+/** Whether [this] instruction puts a value in v[register]. */
+private fun Instruction.writesRegister(register: Int): Boolean =
+    opcode.setsRegister() && (this as? OneRegisterInstruction)?.registerA == register ||
+        opcode.setsWideRegister() && (this as? OneRegisterInstruction)?.registerA == register - 1
+
+/**
+ * Each of the clamp's answers goes through the extension with the media's width and height first, on the
+ * label Instagram's own jumps land on, so a reel laid out below the name keeps its own shape.
+ */
+internal fun BytecodePatchContext.keepHomeReelsWhole(site: PostShapeSite) {
+    val shape = mutableClassDefBy(site.owner).methods.singleOrNull { it.signature() == site.method }
+        ?: refuse("${site.owner}->${site.method} is gone")
+    val returns = shape.code().indices.filter { shape.code()[it].opcode == Opcode.RETURN }
+    for (at in returns.reversed()) {
+        val answer = (shape.code()[at] as OneRegisterInstruction).registerA
+        if (answer > 15) refuse("${site.owner}->${site.method} answers from v$answer, past v15")
+        shape.addInstructionsAtControlFlowLabel(
+            at,
+            """
+                invoke-static { v$answer, v${site.width}, v${site.height} }, $WHOLE_REEL
+                move-result v$answer
+            """,
+        )
+    }
+}
+
 private fun Method.code(): List<Instruction> = implementation?.instructions?.toList().orEmpty()
 private fun Method.isStatic() = AccessFlags.STATIC.isSet(accessFlags)
 private fun Method.signature() = "$name(${parameterTypes.joinToString("")})$returnType"
@@ -235,13 +302,14 @@ private fun CharSequence.width() = if (toString() == "J" || toString() == "D") 2
 
 /**
  * Lays reels on Home out like every other post, the name and the three-dot menu above the video
- * instead of on top of it (#788). See HomeReelHeader in the extension. Off to start.
+ * instead of on top of it, and the whole video, not cut to 4:5 (#788). See HomeReelHeader in the
+ * extension. Off to start.
  */
 @Suppress("unused")
 val homeReelsBelowNamePatch = bytecodePatch(
     name = "Reels on Home below the name",
     description = "Shows reels on Home like other posts, with the name and the three-dot menu above the " +
-        "video instead of on top of it. Starts off. Turn it on in HushGram settings > Feed and Reels.",
+        "whole video instead of on top of it. Starts off. Turn it on in HushGram settings > Feed and Reels.",
 ) {
     category("Interaction")
     dependsOn(settingsPatch, instagramExtensionPatch)
@@ -251,6 +319,7 @@ val homeReelsBelowNamePatch = bytecodePatch(
         requireStatusMethod(HOME_REELS_STATUS)
         val sites = findHomeReels()
         keepHomeReelsBelowName(sites)
+        keepHomeReelsWhole(findPostShape())
         enableStatus(HOME_REELS_STATUS)
     }
 }

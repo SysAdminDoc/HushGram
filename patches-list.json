@@ -5362,7 +5362,7 @@
     },
     {
       "name": "Reels on Home below the name",
-      "description": "Shows reels on Home like other posts, with the name and the three-dot menu above the video instead of on top of it. Starts off. Turn it on in HushGram settings > Feed and Reels.",
+      "description": "Shows reels on Home like other posts, with the name and the three-dot menu above the whole video instead of on top of it. Starts off. Turn it on in HushGram settings > Feed and Reels.",
       "category": "Interaction",
       "use": true,
       "dependencies": [
