@@ -2428,6 +2428,8 @@ Removed the folder %s	已移除文件夹 %s
 Renamed the folder to %s	已将文件夹重命名为 %s
 # context: row in the long press menu on an account on the Saved profiles page, and title of the folder checklist it opens; an account can be in several folders (#687)
 Choose folders	选择文件夹
+# context: a row in the menu on a saved account's profile (#629) naming the Saved profiles folders it's in, comma separated; tapping it opens the folder picker.
+Folders: %s	文件夹：%s
 # context: toast after Choose folders with every folder unticked; %s is the account's username, which stays saved (#687)
 @%s is in no folder now	@%s 现在不在任何文件夹中
 # context: toast after Choose folders leaves the account in one folder; %1$s is its username, %2$s the folder's name (#687)

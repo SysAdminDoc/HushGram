@@ -327,6 +327,11 @@ public final class SavedProfilesPage {
         if (at >= 0) changed.set(at, moved);
         all = changed;
         show();
+        sayWhere(moved);
+    }
+
+    /** Says in a toast which folders [moved] is in now, after they were chosen. */
+    public static void sayWhere(SavedProfiles.Profile moved) {
         if (moved.folders.isEmpty()) {
             Utils.showToastShort(L10n.f("@%s is in no folder now", moved.username));
         } else if (moved.folders.size() == 1) {
@@ -334,6 +339,13 @@ public final class SavedProfilesPage {
         } else {
             Utils.showToastShort(L10n.f("@%1$s is in %2$d folders now", moved.username, moved.folders.size()));
         }
+    }
+
+    /** What a row shows under the username: the account's name and the folders it's in, either one alone, or empty. */
+    static String details(SavedProfiles.Profile profile) {
+        String folders = String.join(", ", profile.folders);
+        if (profile.name.isEmpty()) return folders;
+        return folders.isEmpty() ? profile.name : profile.name + " · " + folders;
     }
 
     static final int RENAME_FOLDER = 1;
@@ -600,8 +612,9 @@ public final class SavedProfilesPage {
             LinearLayout words = (LinearLayout) row.getChildAt(1);
             ((TextView) words.getChildAt(0)).setText("@" + profile.username);
             TextView name = (TextView) words.getChildAt(1);
-            name.setText(profile.name);
-            name.setVisibility(profile.name.isEmpty() ? View.GONE : View.VISIBLE);
+            String details = details(profile);
+            name.setText(details);
+            name.setVisibility(details.isEmpty() ? View.GONE : View.VISIBLE);
             ImageButton cross = (ImageButton) row.getChildAt(2);
             cross.setContentDescription(L10n.f(context, "Remove @%s from saved", profile.username));
             cross.setOnClickListener(v -> remover.remove(profile));

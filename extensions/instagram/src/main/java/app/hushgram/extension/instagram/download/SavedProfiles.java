@@ -174,6 +174,7 @@ public final class SavedProfiles {
     static final String NOT_REFRESHED = "saved profile not refreshed, no worker free";
     static final String NOT_ADDED = "save profile row not added";
     static final String OPEN_NOT_ADDED = "saved profiles row not added";
+    static final String FOLDERS_NOT_ADDED = "saved profile folders row not added";
     static final String NO_SCREEN = "saved profiles not opened, no screen";
 
     private static final Object LOCK = new Object();
@@ -316,6 +317,63 @@ public final class SavedProfiles {
                 SavedProfilesPage.openOver(activity);
             } catch (Throwable failure) {
                 HookStatus.threw(FAMILY, "open saved profiles", failure);
+            }
+        }
+    }
+
+    /**
+     * The row under Your saved profiles on a saved account's profile (#629): it names the folders the
+     * account is in, or offers to choose some when it's in none, and opens the folder picker with
+     * those ticked. Null for an account that isn't saved, or while the switch is off. Never throws.
+     */
+    @Nullable
+    static FoldersRow foldersRow(Context context, @Nullable Row keep) {
+        try {
+            if (context == null || keep == null || !keep.saved || !on()) return null;
+            Profile saved = find(context, keep.profile.id, keep.profile.username);
+            return saved == null ? null : new FoldersRow(context, saved);
+        } catch (Throwable failure) {
+            HookStatus.threw(FAMILY, "saved profile folders row", failure);
+            return null;
+        }
+    }
+
+    /** The menu row that shows a saved account's folders and changes them. */
+    static final class FoldersRow implements View.OnClickListener {
+        final Context context;
+        /** The account as it was saved when the menu opened. */
+        final Profile profile;
+
+        FoldersRow(Context context, Profile profile) {
+            this.context = context;
+            this.profile = profile;
+        }
+
+        String label() {
+            if (profile.folders.isEmpty()) return L10n.t(context, "Choose folders");
+            String names = String.join(", ", profile.folders);
+            return L10n.f(context, "Folders: %s", names);
+        }
+
+        /** Instagram may tap it with no view, from a sheet drawn without one. */
+        @Override public void onClick(View view) {
+            try {
+                if (!on()) return;
+                Profile now = find(context, profile.id, profile.username);
+                if (now == null) return;
+                Activity activity = ProfilePictureViewer.activityOf(context);
+                if (activity == null) activity = Utils.getActivity();
+                if (activity == null || activity.isFinishing()) {
+                    HookStatus.counted(FAMILY, NO_SCREEN);
+                    return;
+                }
+                SavedProfilesPage.chooseFolders(activity, L10n.t(context, "Choose folders"), folders(all(context)),
+                        now.folders, L10n.t(context, "Save"), chosen -> {
+                            Profile moved = putIn(context, now.id, now.username, chosen);
+                            if (moved != null) SavedProfilesPage.sayWhere(moved);
+                        });
+            } catch (Throwable failure) {
+                HookStatus.threw(FAMILY, "saved profile folders", failure);
             }
         }
     }

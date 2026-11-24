@@ -594,6 +594,50 @@ public class SavedProfilesTest {
         assertTrue(SavedProfiles.find(context, "5", "eve").folders.isEmpty());
     }
 
+    /**
+     * #629: a saved account's profile menu names the folders it's in, under Your saved profiles, and
+     * the row opens the folder picker with those ticked, so one can be added or taken off there.
+     */
+    @Test public void aSavedProfilesMenuNamesItsFoldersAndChangesThem() throws Exception {
+        Settings.SAVED_PROFILES.save(true);
+        SavedProfiles.save(context, new SavedProfiles.Profile("1", "ann", "", "", Arrays.asList("Friends", "Work"), 0), 1_000L);
+        SavedProfiles.save(context, new SavedProfiles.Profile("2", "bo", "", "", 0), 2_000L);
+        show("1", "ann", "", "");
+        List<String> labels = new ArrayList<>(menu("ann").keySet());
+        String folders = labels.get(labels.indexOf("Your saved profiles") + 1);
+        assertTrue(labels.toString(), folders.startsWith("Folders: ") && folders.contains("Friends, Work"));
+        show("2", "bo", "", "");
+        labels = new ArrayList<>(menu("bo").keySet());
+        assertEquals("in no folder, it offers to choose", labels.indexOf("Your saved profiles") + 1, labels.indexOf("Choose folders"));
+        show("3", "cy", "", "");
+        for (String label : menu("cy").keySet()) {
+            assertFalse("not saved, no folders row: " + label, label.startsWith("Folders") || label.equals("Choose folders"));
+        }
+
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            show("1", "ann", "", "");
+            menu(controller.get(), "ann").get(folders).onClick(null);
+            ShadowLooper.idleMainLooper();
+            AlertDialog choose = (AlertDialog) ShadowDialog.getLatestDialog();
+            ListView list = choose.getListView();
+            assertEquals(2, list.getAdapter().getCount());
+            // The dialog ticks an item as it draws it.
+            for (int at = 0; at < 2; at++) list.getAdapter().getView(at, null, list);
+            assertTrue("Friends is ticked", list.isItemChecked(0));
+            assertTrue("Work is ticked", list.isItemChecked(1));
+            assertEquals("Save", String.valueOf(choose.getButton(DialogInterface.BUTTON_POSITIVE).getText()));
+            list.performItemClick(null, 1, 1);
+            choose.getButton(DialogInterface.BUTTON_POSITIVE).performClick();
+            String said = toast();
+            assertTrue(said, said.startsWith("@") && said.contains("ann") && said.contains("Friends") && said.endsWith(" now"));
+            assertEquals(Arrays.asList("Friends"), SavedProfiles.find(context, "1", "ann").folders);
+        }
+
+        Settings.SAVED_PROFILES.save(false);
+        assertNull(SavedProfiles.foldersRow(context, null));
+        assertTrue(menu("ann").isEmpty());
+    }
+
     /** An account with a username and nothing else, as the menu reads it. */
     private static final class Account implements ProfilePicture.Native {
         private final String username;

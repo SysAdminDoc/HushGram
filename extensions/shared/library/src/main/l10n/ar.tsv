@@ -357,6 +357,8 @@ Choose a settings file. All valid choices apply together, and ones this version 
 Choose a tab	اختر تبويبًا
 Choose carousel pages	اختر صفحات المجموعة
 Choose folders	اختر المجلدات
+# context: a row in the menu on a saved account's profile (#629) naming the Saved profiles folders it's in, comma separated; tapping it opens the folder picker.
+Folders: %s	المجلدات: %s
 Choose pages	اختر الصفحات
 Choose what Home shows and how it behaves.	اختر ما تعرضه الرئيسية وكيف تتصرف.
 Chosen when you patched, so Pause leaves them on. Patch again to change them.	تُختار عند عمل الباتش، لذلك يبقيها Pause مفعّلة. أعد عمل الباتش لتغييرها.

@@ -2425,6 +2425,8 @@ Removed the folder %s	%s klasörü kaldırıldı
 Renamed the folder to %s	Klasörün adı %s olarak değiştirildi
 # context: row in the long press menu on an account on the Saved profiles page, and title of the folder checklist it opens; an account can be in several folders (#687)
 Choose folders	Klasörleri seç
+# context: a row in the menu on a saved account's profile (#629) naming the Saved profiles folders it's in, comma separated; tapping it opens the folder picker.
+Folders: %s	Klasörler: %s
 # context: toast after Choose folders with every folder unticked; %s is the account's username, which stays saved (#687)
 @%s is in no folder now	@%s artık hiçbir klasörde değil
 # context: toast after Choose folders leaves the account in one folder; %1$s is its username, %2$s the folder's name (#687)

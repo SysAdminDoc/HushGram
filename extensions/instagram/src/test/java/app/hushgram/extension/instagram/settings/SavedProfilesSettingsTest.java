@@ -134,6 +134,32 @@ public class SavedProfilesSettingsTest {
     }
 
     /** The page: a search box over every saved account, and a tap opens that profile. */
+    /** #629: a row names the folders its account is in, after its name, so the list shows where each one went. */
+    @Test public void aRowNamesTheFoldersItsAccountIsIn() throws Exception {
+        Context context = RuntimeEnvironment.getApplication();
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.PROFILE_PICTURE);
+        SavedProfilesRows.save(context, "1", "amy", "Amy Pond", "", 1_000L);
+        SavedProfilesRows.save(context, "2", "zed", "", "", 2_000L);
+        SavedProfilesRows.save(context, "3", "bo", "", "", 3_000L);
+        SavedProfiles.putIn(context, "1", "amy", Arrays.asList("Work", "Friends"));
+        SavedProfiles.putIn(context, "2", "zed", Collections.singletonList("Gym"));
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            HushgramPreferenceFragment settings = DownloadSettingsTest.pageIn(controller);
+            Preference row = settings.findPreference(HushgramPreferenceFragment.SAVED_PROFILES_ROW);
+            SavedProfilesPage page = SavedProfilesPage.open(controller.get(), row);
+            idle();
+            assertEquals(3, page.list.getAdapter().getCount());
+            TextView bo = (TextView) ((LinearLayout) ((LinearLayout) page.list.getAdapter().getView(0, null, page.list)).getChildAt(1)).getChildAt(1);
+            TextView zed = (TextView) ((LinearLayout) ((LinearLayout) page.list.getAdapter().getView(1, null, page.list)).getChildAt(1)).getChildAt(1);
+            TextView amy = (TextView) ((LinearLayout) ((LinearLayout) page.list.getAdapter().getView(2, null, page.list)).getChildAt(1)).getChildAt(1);
+            assertEquals("its name, then its folders in order", "Amy Pond · Friends, Work", String.valueOf(amy.getText()));
+            assertEquals(View.VISIBLE, amy.getVisibility());
+            assertEquals("no name, only its folder", "Gym", String.valueOf(zed.getText()));
+            assertEquals(View.VISIBLE, zed.getVisibility());
+            assertEquals("neither, no second line", View.GONE, bo.getVisibility());
+        }
+    }
+
     @Test public void thePageSearchesAndOpensTheProfileTapped() throws Exception {
         Context context = RuntimeEnvironment.getApplication();
         PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.PROFILE_PICTURE);
