@@ -3614,7 +3614,11 @@ once-call Lapp/hushgram/extension/instagram/feed/HiddenLikeCounts;->rowRead(Ljav
 # grid's binder (0B2y.A05), and the use case's UI state (01Uh.A02) takes a fifth object.
 once-call Lapp/hushgram/extension/instagram/feed/HiddenLikeCounts;->rowRead(Ljava/lang/Object;Ljava/lang/Object;)V in instance (LX/*;LX/*;LX/*;LX/*;LX/*;)LX/*; holding MediaUfiUseCase#getUiState
 once-call Lapp/hushgram/extension/instagram/feed/HiddenLikeCounts;->rowRead(Ljava/lang/Object;Ljava/lang/Object;)V in instance (Lcom/instagram/common/session/UserSession;LX/*;LX/*;LX/*;)V sites 2 holding const:0xb26a368d
-once-call Lapp/hushgram/extension/instagram/feed/HiddenLikeCounts;->rowRead(Ljava/lang/Object;Ljava/lang/Object;)V holding bannerview replyapprovalsproducerlabel const:0xb26a368d
+# The reply approvals banner's row (0AOa.A02 on 386314341) is the one method loading the flag's key and
+# 0xc103b64e on every 457 build. 457's armeabi-v7a splits it: the strings stay in 0niy.A00, and 0tix.A01 reads the
+# flag through 0124.A0m, a static helper comparing it with Boolean.TRUE, so the patch boxes that boolean
+# for rowRead.
+once-call Lapp/hushgram/extension/instagram/feed/HiddenLikeCounts;->rowRead(Ljava/lang/Object;Ljava/lang/Object;)V holding const:0xb26a368d const:0xc103b64e
 once-call Lapp/hushgram/extension/instagram/feed/HiddenLikeCounts;->rowRead(Ljava/lang/Object;Ljava/lang/Object;)V in static (LX/*;Lcom/instagram/common/session/UserSession;)LX/*; holding const:0xb26a368d const:0xb8922139 const:0x9568e10e
 once-call Lapp/hushgram/extension/instagram/feed/HiddenLikeCounts;->rowRead(Ljava/lang/Object;Ljava/lang/Object;)V in static (LX/*;Lcom/instagram/common/session/UserSession;)LX/*; holding const:0xb26a368d const:0xa48b9ef5 const:0x5f1aa46f
 once-call Lapp/hushgram/extension/instagram/feed/HiddenLikeCounts;->rowRead(Ljava/lang/Object;Ljava/lang/Object;)V in instance (Landroid/view/View$OnClickListener;Landroid/view/View$OnTouchListener;Landroid/view/View;*)V holding MediaGridItemViewBinder.bindMediaView const:0xb26a368d

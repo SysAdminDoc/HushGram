@@ -9,6 +9,7 @@ import app.morphe.patcher.patch.PatchException
 import app.morphe.patches.instagram.download.pandoGetter
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesLoading
+import app.morphe.patches.instagram.misc.extension.freeLocalsAt
 import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
 import com.android.tools.smali.dexlib2.AccessFlags
@@ -20,6 +21,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstructio
 import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 
@@ -99,15 +101,21 @@ internal class HiddenLikeCountAnchors(
 
 /**
  * A like row's read of a post's flag: [method] reads it by an interface call on the data tree in
- * register [tree], and keeps the answer, a Boolean, in register [flag] at instruction [at].
+ * register [tree], and keeps the answer, a Boolean, in register [flag] at instruction [at]. Where
+ * Redex moved the read into a static helper comparing it with Boolean.TRUE (457's armeabi-v7a), the
+ * answer is a boolean, and the hook boxes it into [box], a local nothing reads afterwards, first.
  */
-internal class RowRead(val method: Method, val at: Int, val tree: Int, val flag: Int)
+internal class RowRead(val method: Method, val at: Int, val tree: Int, val flag: Int, val box: Int? = null)
+
+/** Boxes an outlined row's boolean for [ROW_READ]. */
+internal const val BOX_BOOLEAN = "Ljava/lang/Boolean;->valueOf(Z)Ljava/lang/Boolean;"
 
 /**
  * Finds both anchors and proves what the hooks rely on, before any change.
  *
  * The decider: the like rows read the flag off a post's data tree by its key, an interface call
- * answering a Boolean, and within a few instructions hand it to an instance or static method taking
+ * answering a Boolean (or, on 457's armeabi-v7a banner row, a static helper doing only that read and
+ * comparing it with Boolean.TRUE), and within a few instructions hand it to an instance or static method taking
  * the session, the poster's id and the flag and answering whether to hide the count. On 450 it
  * answers hidden at once when the flag is set, and otherwise asks whether the post is yours and
  * whether you hid like counts on everything. Fails when fewer than [FEWEST_READERS] rows ask one, when
@@ -179,13 +187,18 @@ internal fun BytecodePatchContext.findHiddenLikeCounts(): HiddenLikeCountAnchors
         val call = rowCode[readAt] as FiveRegisterInstruction
         val rowTree = call.registerC
         val rowFlag = (rowCode[readAt + 1] as OneRegisterInstruction).registerA
-        if ((call as ReferenceInstruction).reference.toString() != treeFlagRead.toString()) {
+        val called = (call as ReferenceInstruction).reference as MethodReference
+        val outlined = call.opcode == Opcode.INVOKE_STATIC
+        val read = if (outlined) outlinedFlagRead(called) else called
+        if (read?.toString() != treeFlagRead.toString()) {
             refuse("$reader reads the flag with a different call than $where does")
         }
         if (rowTree == rowFlag) refuse("$reader reads the flag over its own data tree")
-        if (rowTree > 15 || rowFlag > 15) refuse("$reader keeps the data tree or the flag in a register the hook can't name")
+        // An outlined row's boolean is boxed with a range call, which names any register.
+        if (rowTree > 15 || (!outlined && rowFlag > 15)) refuse("$reader keeps the data tree or the flag in a register the hook can't name")
         if (readAt + 2 >= rowCode.size || readAt + 2 in method.jumpTargets()) refuse("a branch in $reader lands right after its flag read")
-        RowRead(method, readAt + 1, rowTree, rowFlag)
+        val box = if (outlined) method.freeLocalsAt(HIDDEN_LIKE_COUNTS_PATCH, readAt + 2, 1, except = listOf(rowTree, rowFlag)).single() else null
+        RowRead(method, readAt + 1, rowTree, rowFlag, box)
     }
 
     return HiddenLikeCountAnchors(decider, poster, flag, counter, read + 1, tree, count, treeFlagRead, countRead, childRead, textRead, rows)
@@ -215,8 +228,9 @@ private fun BytecodePatchContext.findPosterReads(tree: String): Pair<MethodRefer
 
 /** The decider and the register its flag parameter is in. */
 private fun BytecodePatchContext.findDecider(): Triple<Method, Int, List<Pair<Method, Int>>> {
+    val outlined = { helper: MethodReference -> outlinedFlagRead(helper) != null }
     val asked = classesLoading(LIKES_HIDDEN_KEY.toLong()).filter { it.type != POST_MODEL }.flatMap { classDef ->
-        classDef.methods.flatMap { method -> method.deciderAsked().map { (read, decider) -> Triple(method, read, decider) } }
+        classDef.methods.flatMap { method -> method.deciderAsked(outlined).map { (read, decider) -> Triple(method, read, decider) } }
     }
     val deciders = asked.map { it.third }.distinct()
     val reference = deciders.singleOrNull()
@@ -250,12 +264,13 @@ private fun BytecodePatchContext.findDecider(): Triple<Method, Int, List<Pair<Me
 /**
  * Each read of the flag in this method, with the decider asked after it: the first call taking the
  * session, an id and a boolean and answering a boolean within [READER_REACH] instructions of the
- * read. Empty when it makes no such read, or asks nothing after one.
+ * read. Empty when it makes no such read, or asks nothing after one. A read through a static helper
+ * counts when [outlined] says the helper is one ([outlinedFlagRead]).
  */
-private fun Method.deciderAsked(): List<Pair<Int, String>> {
+private fun Method.deciderAsked(outlined: (MethodReference) -> Boolean): List<Pair<Int, String>> {
     val code = code()
     return code.indices.mapNotNull { read ->
-        if (!code.readsFlag(read)) return@mapNotNull null
+        if (!code.readsFlag(read) && code.outlinedFlagCall(read)?.let(outlined) != true) return@mapNotNull null
         (read + 2 until minOf(code.size, read + READER_REACH)).firstNotNullOfOrNull { at ->
             val called = (code[at] as? ReferenceInstruction)?.reference as? MethodReference
             called?.takeIf { it.returnType == "Z" && it.isDeciderShaped() }
@@ -317,6 +332,75 @@ private fun List<Instruction>.readsFlag(at: Int): Boolean {
     val called = (this[at] as? ReferenceInstruction)?.reference as? MethodReference ?: return false
     return keyedRead(at)?.let { (key, _) -> key == LIKES_HIDDEN_KEY && called.returnType == BOOLEAN } == true &&
         getOrNull(at + 1)?.opcode == Opcode.MOVE_RESULT_OBJECT
+}
+
+/**
+ * The helper when instruction [at] hands a post's data, Boolean.TRUE and the flag's key to a static
+ * `(tree, Object, int)Z` call whose answer the instruction after it keeps, the way 457's armeabi-v7a
+ * reads the banner row's flag through 0124.A0m. Whether the helper really reads the flag is
+ * [outlinedFlagRead]'s to say.
+ */
+private fun List<Instruction>.outlinedFlagCall(at: Int): MethodReference? {
+    val call = this[at]
+    if (call.opcode != Opcode.INVOKE_STATIC) return null
+    val called = (call as ReferenceInstruction).reference as? MethodReference ?: return null
+    if (!called.isOutlinedFlagShaped()) return null
+    val arguments = call as FiveRegisterInstruction
+    if (arguments.registerCount != 3 || constantIn(arguments.registerE, at, 3) != LIKES_HIDDEN_KEY) return null
+    if (!holdsTrue(arguments.registerD, at) || getOrNull(at + 1)?.opcode != Opcode.MOVE_RESULT) return null
+    return called
+}
+
+private fun MethodReference.isOutlinedFlagShaped(): Boolean {
+    val types = parameterTypes.map(CharSequence::toString)
+    return returnType == "Z" && types.size == 3 && types[0].startsWith("L") && types[1] == OBJECT && types[2] == "I"
+}
+
+/**
+ * The interface read [helper] makes when it does nothing but read its int's key off its first
+ * parameter with an interface call answering a Boolean and answer whether its second parameter
+ * equals that, or null when it is anything else.
+ */
+private fun BytecodePatchContext.outlinedFlagRead(helper: MethodReference): MethodReference? {
+    if (!helper.isOutlinedFlagShaped()) return null
+    val method = classDefByOrNull(helper.definingClass)?.methods?.singleOrNull { it.key() == helper.key() } ?: return null
+    val registers = method.implementation?.registerCount ?: return null
+    if (!AccessFlags.STATIC.isSet(method.accessFlags)) return null
+    val tree = registers - 3
+    val code = method.code().filter { it.opcode != Opcode.NOP }
+    if (code.map { it.opcode } != listOf(Opcode.INVOKE_INTERFACE, Opcode.MOVE_RESULT_OBJECT, Opcode.INVOKE_VIRTUAL, Opcode.MOVE_RESULT, Opcode.RETURN)) {
+        return null
+    }
+    val read = code[0] as FiveRegisterInstruction
+    val called = (read as ReferenceInstruction).reference as MethodReference
+    if (read.registerCount != 2 || read.registerC != tree || read.registerD != tree + 2 || called.returnType != BOOLEAN) return null
+    val answer = (code[1] as OneRegisterInstruction).registerA
+    val equals = code[2] as FiveRegisterInstruction
+    val compared = (equals as ReferenceInstruction).reference as MethodReference
+    if (compared.name != "equals" || compared.parameterTypes.map(CharSequence::toString) != listOf(OBJECT) || compared.returnType != "Z") return null
+    if (equals.registerCount != 2 || equals.registerC != tree + 1 || equals.registerD != answer) return null
+    val result = (code[3] as OneRegisterInstruction).registerA
+    return called.takeIf { (code[4] as OneRegisterInstruction).registerA == result }
+}
+
+/**
+ * Whether [register] holds Boolean.TRUE at instruction [before]: the one instruction writing it
+ * reads Boolean.TRUE, or keeps what `Boolean.valueOf` made of a 1.
+ */
+private fun List<Instruction>.holdsTrue(register: Int, before: Int): Boolean {
+    val written = indices.filter { writes(it, register) }.singleOrNull()?.takeIf { it < before } ?: return false
+    val instruction = this[written]
+    val reference = (instruction as? ReferenceInstruction)?.reference?.toString()
+    if (instruction.opcode == Opcode.SGET_OBJECT) return reference == "Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;"
+    if (instruction.opcode != Opcode.MOVE_RESULT_OBJECT || written == 0) return false
+    val boxed = this[written - 1]
+    if ((boxed as? ReferenceInstruction)?.reference?.toString() != BOX_BOOLEAN) return false
+    val argument = when (boxed) {
+        is FiveRegisterInstruction -> boxed.registerC
+        is RegisterRangeInstruction -> boxed.startRegister
+        else -> return false
+    }
+    return constantIn(argument, written - 1, 3) == 1
 }
 
 /**

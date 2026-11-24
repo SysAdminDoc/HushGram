@@ -93,6 +93,35 @@ class ShowHiddenLikeCountsHookTest {
         assertRowHook(context.mutableClassDefBy(LikeFixture.FACEPILE).methods.single(), original, row.at, row.tree, row.flag)
     }
 
+    /**
+     * 457's armeabi-v7a banner row: the read moved into a static helper comparing it with Boolean.TRUE,
+     * the answer a boolean, which the hook boxes into a free local for the extension.
+     */
+    @Test fun aFlagReadOutlinedIntoAHelperIsBoxedForTheExtension() {
+        val input = LikeFixture.classes() + LikeFixture.banner() + LikeFixture.helpers()
+        val context = PatchContexts.of(input)
+        val anchors = context.findHiddenLikeCounts()
+        assertEquals(4, anchors.rows.size)
+        val row = anchors.rows.single { it.method.definingClass == LikeFixture.BANNER }
+        assertEquals("the kept answer, the tree, the boolean and the free local", listOf(5, 4, 3, 0), listOf(row.at, row.tree, row.flag, row.box))
+        assertEquals("the other rows keep a Boolean", listOf(null), anchors.rows.filter { it !== row }.map { it.box }.distinct())
+        val original = LikeFixture.banner().methods.single().code()
+        context.applyHiddenLikeCounts(anchors)
+        assertBoxedRowHook(context.mutableClassDefBy(LikeFixture.BANNER).methods.single(), original, row.at, row.tree, row.flag, row.box!!)
+        assertEquals("the helper is Instagram's to keep", snapshot(LikeFixture.helpers().methods),
+            snapshot(context.mutableClassDefBy(LikeFixture.HELPERS).methods))
+    }
+
+    /** A helper compared with anything but Boolean.TRUE, or doing more than the read, doesn't answer the flag. */
+    @Test fun anOutlinedReadComparedWithFalseOrAHelperDoingMoreIsNoRow() {
+        for (input in listOf(
+            LikeFixture.classes() + LikeFixture.banner(comparand = 0) + LikeFixture.helpers(),
+            LikeFixture.classes() + LikeFixture.banner() + LikeFixture.helpers(more = true),
+        )) {
+            assertEquals(3, PatchContexts.of(input).findHiddenLikeCounts().rows.size)
+        }
+    }
+
     /** A key register written twice is no proof of which key the read uses, so the read is not a row. */
     @Test fun aKeyRegisterWrittenAgainIsNotAFlagRead() {
         val anchors = PatchContexts.of(LikeFixture.classes() + LikeFixture.facepile(rewritten = true)).findHiddenLikeCounts()
@@ -196,6 +225,26 @@ class ShowHiddenLikeCountsHookTest {
             assertEquals(original.withoutNops().map { it.shape() }, (code.take(flagAt + 1) + code.drop(flagAt + 2)).withoutNops().map { it.shape() })
         }
 
+        /**
+         * The outlined row boxes the boolean it kept at [flagAt] into [box], then hands its tree and
+         * that to the extension, and nothing else changes.
+         */
+        internal fun assertBoxedRowHook(method: Method, original: List<Instruction>, flagAt: Int, tree: Int, flag: Int, box: Int) {
+            val code = method.code()
+            assertEquals(1, code.count { it.reference() == ROW_READ })
+            assertEquals(Opcode.MOVE_RESULT, code[flagAt].opcode)
+            assertEquals(listOf(flag), code[flagAt].namedRegisters())
+            assertEquals(listOf(Opcode.INVOKE_STATIC_RANGE, Opcode.MOVE_RESULT_OBJECT, Opcode.INVOKE_STATIC),
+                code.subList(flagAt + 1, flagAt + 4).map { it.opcode })
+            assertEquals(BOX_BOOLEAN, code[flagAt + 1].reference())
+            assertEquals("the boolean is boxed", listOf(flag), code[flagAt + 1].namedRegisters())
+            assertEquals("into the free local", listOf(box), code[flagAt + 2].namedRegisters())
+            assertEquals(ROW_READ, code[flagAt + 3].reference())
+            assertEquals("the tree and the boxed flag", listOf(tree, box), code[flagAt + 3].namedRegisters())
+            assertEquals(original.withoutNops().size + 3, code.withoutNops().size)
+            assertEquals(original.withoutNops().map { it.shape() }, (code.take(flagAt + 1) + code.drop(flagAt + 4)).withoutNops().map { it.shape() })
+        }
+
         /** The stub reads the flag off the tree it's given, by the key it's given, with [read]. */
         internal fun assertStub(method: Method, read: String) {
             val code = method.code()
@@ -229,6 +278,8 @@ internal object LikeFixture {
     const val COUNTER = "Lfixture/LikeCounter;"
     const val POSTERS = "Lfixture/LikePosters;"
     const val FACEPILE = "Lfixture/LikeFacepile;"
+    const val BANNER = "Lfixture/LikeBanner;"
+    const val HELPERS = "Lfixture/LikeHelpers;"
     private const val HOLDER = "Lfixture/Holder;"
     private const val SELF = "Lfixture/Self;"
     private const val OBJECT = "Ljava/lang/Object;"
@@ -334,6 +385,40 @@ internal object LikeFixture {
         )
         return clazz(FACEPILE, listOf(method(FACEPILE, "facepile", listOf(TREE, SESSION, STRING), "Z", 6, code,
             AccessFlags.PUBLIC.value or AccessFlags.STATIC.value)))
+    }
+
+    /**
+     * 457's armeabi-v7a banner row: Boolean.valueOf([comparand]) into v2, the key into v0, the tree
+     * (p0, v4) handed to [HELPERS]' A0m, its boolean kept in v3 at instruction 5, then the decider.
+     */
+    fun banner(comparand: Int = 1): ClassDef = clazz(BANNER, listOf(method(BANNER, "banner", listOf(TREE, SESSION, STRING), "Z", 7, listOf(
+        ImmutableInstruction11n(Opcode.CONST_4, 1, comparand),
+        ImmutableInstruction35c(Opcode.INVOKE_STATIC, 1, 1, 0, 0, 0, 0, ImmutableMethodReference(BOOLEAN, "valueOf", listOf("Z"), BOOLEAN)),
+        ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 2),
+        ImmutableInstruction31i(Opcode.CONST, 0, LIKES_HIDDEN_KEY),
+        ImmutableInstruction35c(Opcode.INVOKE_STATIC, 3, 4, 2, 0, 0, 0, ImmutableMethodReference(HELPERS, "A0m", listOf(TREE, OBJECT, "I"), "Z")),
+        ImmutableInstruction11x(Opcode.MOVE_RESULT, 3),
+        ImmutableInstruction35c(Opcode.INVOKE_VIRTUAL, 4, 4, 5, 6, 3, 0, ImmutableMethodReference(DECIDER, "A06", DECIDE, "Z")),
+        ImmutableInstruction11x(Opcode.MOVE_RESULT, 0),
+        ImmutableInstruction11x(Opcode.RETURN, 0),
+    ), AccessFlags.PUBLIC.value or AccessFlags.STATIC.value)))
+
+    /**
+     * 457's armeabi-v7a 0124.A0m: reads its int's key off the tree and answers whether its object
+     * equals that. [more] makes it read the key twice.
+     */
+    fun helpers(more: Boolean = false): ClassDef {
+        val read = listOf(
+            ImmutableInstruction35c(Opcode.INVOKE_INTERFACE, 2, 0, 2, 0, 0, 0, flagRead),
+            ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 0),
+        )
+        return clazz(HELPERS, listOf(method(HELPERS, "A0m", listOf(TREE, OBJECT, "I"), "Z", 3, (if (more) read else emptyList()) + listOf(
+            ImmutableInstruction35c(Opcode.INVOKE_INTERFACE, 2, 0, 2, 0, 0, 0, flagRead),
+            ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 0),
+            ImmutableInstruction35c(Opcode.INVOKE_VIRTUAL, 2, 1, 0, 0, 0, 0, ImmutableMethodReference(OBJECT, "equals", listOf(OBJECT), "Z")),
+            ImmutableInstruction11x(Opcode.MOVE_RESULT, 0),
+            ImmutableInstruction11x(Opcode.RETURN, 0),
+        ), AccessFlags.PUBLIC.value or AccessFlags.STATIC.value)))
     }
 
     /**

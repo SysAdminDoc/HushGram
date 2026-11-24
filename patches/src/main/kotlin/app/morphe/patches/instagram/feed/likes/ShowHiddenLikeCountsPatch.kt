@@ -43,7 +43,7 @@ val showHiddenLikeCountsPatch = bytecodePatch(
  * an int, and what it answers is what the decider tests, so every caller of the decider gets the
  * answer for its own poster; the like count reader hands its tree and what it read to
  * [SAW_LIKE_COUNT] right after the read, before its own null test; each like row hands its tree and
- * the flag it just read to [ROW_READ], and both note under the post's poster whether that post's
+ * the flag it just read to [ROW_READ] (boxed first where an outlined helper answered a boolean), and both note under the post's poster whether that post's
  * count came; and the four stubs are filled with Instagram's own reads on the tree, so the
  * extension reads the flag, the count, the poster and the poster's id the way Instagram reads its
  * own fields.
@@ -66,7 +66,15 @@ internal fun BytecodePatchContext.applyHiddenLikeCounts(anchors: HiddenLikeCount
     for ((method, reads) in anchors.rows.groupBy { it.method.toString() }.values.map { it.first().method to it }) {
         val target = mutable(method)
         for (row in reads.sortedByDescending { it.at }) {
-            target.addInstructions(row.at + 1, "invoke-static { v${row.tree}, v${row.flag} }, $ROW_READ")
+            // A row reading through an outlined helper kept a boolean, boxed for the hook in a free local.
+            val hook = row.box?.let { box ->
+                """
+                    invoke-static/range { v${row.flag} .. v${row.flag} }, $BOX_BOOLEAN
+                    move-result-object v$box
+                    invoke-static { v${row.tree}, v$box }, $ROW_READ
+                """
+            } ?: "invoke-static { v${row.tree}, v${row.flag} }, $ROW_READ"
+            target.addInstructions(row.at + 1, hook)
         }
     }
 

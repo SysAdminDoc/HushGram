@@ -9,6 +9,7 @@ import app.morphe.Fixtures
 import app.morphe.PatchContexts
 import app.morphe.patches.instagram.FixtureCache
 import app.morphe.patches.instagram.FixtureDex
+import app.morphe.patches.instagram.feed.likes.ShowHiddenLikeCountsHookTest.Companion.assertBoxedRowHook
 import app.morphe.patches.instagram.feed.likes.ShowHiddenLikeCountsHookTest.Companion.assertCountHook
 import app.morphe.patches.instagram.feed.likes.ShowHiddenLikeCountsHookTest.Companion.assertDecisionHook
 import app.morphe.patches.instagram.feed.likes.ShowHiddenLikeCountsHookTest.Companion.assertRowHook
@@ -69,6 +70,16 @@ class NativeHiddenLikeCountsTest {
                 anchors.countRead.definingClass)
             for (row in anchors.rows) {
                 val rowCode = row.method.code()
+                if (row.box != null) {
+                    // 457's armeabi-v7a banner row reads through a static helper answering a boolean.
+                    assertEquals("$name: ${row.method} keeps the boolean", Opcode.MOVE_RESULT, rowCode[row.at].opcode)
+                    val helper = rowCode[row.at - 1].methodReference()
+                    assertEquals("$name: ${row.method} asks a static helper", Opcode.INVOKE_STATIC, rowCode[row.at - 1].opcode)
+                    assertEquals("$name: $helper takes the tree, an object and the key", listOf("Ljava/lang/Object;", "I"),
+                        helper.parameterTypes.drop(1).map(Any::toString))
+                    assertTrue("$name: ${row.method}'s box is a local", row.box!! < row.method.implementation!!.registerCount - row.method.parameterTypes.size)
+                    continue
+                }
                 assertEquals("$name: ${row.method} keeps the flag", Opcode.MOVE_RESULT_OBJECT, rowCode[row.at].opcode)
                 assertEquals("$name: ${row.method} reads the flag the way the reader does", anchors.treeFlagRead.toString(),
                     rowCode[row.at - 1].methodReference().toString())
@@ -98,7 +109,13 @@ class NativeHiddenLikeCountsTest {
                     val here = rows.filter { it.method.toString() == method.toString() }.sortedBy { it.at }
                     val hookCode = method.code()
                     assertEquals("$name: $method hooked once per read", here.size, hookCode.count { it.reference() == ROW_READ })
-                    if (here.size == 1) assertRowHook(method, originalRows.getValue(method.toString()), here[0].at, here[0].tree, here[0].flag)
+                    val row = here.singleOrNull() ?: continue
+                    val box = row.box
+                    if (box == null) {
+                        assertRowHook(method, originalRows.getValue(method.toString()), row.at, row.tree, row.flag)
+                    } else {
+                        assertBoxedRowHook(method, originalRows.getValue(method.toString()), row.at, row.tree, row.flag, box)
+                    }
                 }
             }
             for (type in classes.keys) {
@@ -165,6 +182,12 @@ class NativeHiddenLikeCountsTest {
                         for (instruction in method.code()) {
                             val called = (instruction as? ReferenceInstruction)?.reference as? MethodReference ?: continue
                             if (called.returnType == "Z" && isDecide(called.parameterTypes.map(Any::toString))) asked += called.definingClass
+                            // 457's armeabi-v7a reads the banner row's flag through a static (tree, Object, int)Z helper.
+                            if (instruction.opcode == Opcode.INVOKE_STATIC && called.returnType == "Z" &&
+                                called.parameterTypes.drop(1).map(Any::toString) == listOf("Ljava/lang/Object;", "I")
+                            ) {
+                                asked += called.definingClass
+                            }
                         }
                     }
                 }
