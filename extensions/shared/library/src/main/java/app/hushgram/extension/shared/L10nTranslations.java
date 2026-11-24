@@ -313,8 +313,8 @@ public final class L10nTranslations {
                 "\u0627\u0644\u0646\u0642\u0631 \u0627\u0644\u0645\u0632\u062f\u0648\u062c \u0639\u0644\u0649 \u064a\u0633\u0627\u0631 reel \u064a\u0631\u062c\u0639\u060c \u0648\u0639\u0644\u0649 \u064a\u0645\u064a\u0646\u0647 \u064a\u062a\u0642\u062f\u0645\u060c \u0628\u0642\u062f\u0631 \u0645\u0627 \u064a\u062d\u062f\u062f\u0647 \u0637\u0648\u0644 \u0627\u0644\u062a\u062e\u0637\u064a. \u0648\u0627\u0644\u0646\u0642\u0631 \u0627\u0644\u0645\u0632\u062f\u0648\u062c \u0641\u064a \u0627\u0644\u0648\u0633\u0637 \u0644\u0627 \u064a\u0632\u0627\u0644 \u064a\u064f\u0639\u062c\u0628\u0647. \u0644\u0627 \u064a\u062a\u0645 \u062a\u062e\u0637\u064a Reels \u0627\u0644\u062a\u064a \u0644\u0627 \u062a\u0632\u064a\u062f \u0645\u062f\u062a\u0647\u0627 \u0639\u0644\u0649 \u0630\u0644\u0643.");
         table.put("A fainter bar and handle, so more of the video shows through.",
                 "\u0634\u0631\u064a\u0637 \u0648\u0645\u0642\u0628\u0636 \u0623\u062e\u0641\u0651\u060c \u0644\u064a\u0638\u0647\u0631 \u0627\u0644\u0645\u0632\u064a\u062f \u0645\u0646 \u0627\u0644\u0641\u064a\u062f\u064a\u0648.");
-        table.put("A feed video that keeps playing at 2x shows Instagram's 2x and time labels in place of the name until it goes back to normal speed.",
-                "\u064a\u0639\u0631\u0636 \u0641\u064a\u062f\u064a\u0648 \u0627\u0644\u0645\u062a\u0627\u0628\u064e\u0639\u0627\u062a \u0627\u0644\u0630\u064a \u064a\u0633\u062a\u0645\u0631 \u0628\u0633\u0631\u0639\u0629 2x \u0639\u0644\u0627\u0645\u062a\u064a 2x \u0648\u0627\u0644\u0648\u0642\u062a \u0645\u0646 Instagram \u0628\u062f\u0644\u0627\u064b \u0645\u0646 \u0627\u0644\u0627\u0633\u0645 \u062d\u062a\u0649 \u064a\u0639\u0648\u062f \u0625\u0644\u0649 \u0627\u0644\u0633\u0631\u0639\u0629 \u0627\u0644\u0639\u0627\u062f\u064a\u0629.");
+        table.put("A feed video that keeps playing at 2x shows a 2x label at the top until it goes back to normal speed.",
+                "\u064a\u0639\u0631\u0636 \u0641\u064a\u062f\u064a\u0648 \u0627\u0644\u0645\u062a\u0627\u0628\u064e\u0639\u0627\u062a \u0627\u0644\u0630\u064a \u064a\u0633\u062a\u0645\u0631 \u0628\u0633\u0631\u0639\u0629 2x \u0639\u0644\u0627\u0645\u0629 2x \u0641\u064a \u0627\u0644\u0623\u0639\u0644\u0649 \u062d\u062a\u0649 \u064a\u0639\u0648\u062f \u0625\u0644\u0649 \u0627\u0644\u0633\u0631\u0639\u0629 \u0627\u0644\u0639\u0627\u062f\u064a\u0629.");
         table.put("A feed video you hold for 2x keeps playing at 2x after you let go. Hold it again to go back to normal speed.",
                 "\u0641\u064a\u062f\u064a\u0648 \u0641\u064a \u0622\u062e\u0631 \u0627\u0644\u0623\u062e\u0628\u0627\u0631 \u062a\u0636\u063a\u0637 \u0639\u0644\u064a\u0647 \u0645\u0637\u0648\u0651\u0644\u064b\u0627 \u0644\u0644\u0633\u0631\u0639\u0629 2x \u064a\u0648\u0627\u0635\u0644 \u0627\u0644\u062a\u0634\u063a\u064a\u0644 \u0628\u0633\u0631\u0639\u0629 2x \u0628\u0639\u062f \u0623\u0646 \u062a\u0631\u0641\u0639 \u0625\u0635\u0628\u0639\u0643. \u0627\u0636\u063a\u0637 \u0645\u0637\u0648\u0651\u0644\u064b\u0627 \u0645\u0631\u0629 \u0623\u062e\u0631\u0649 \u0644\u0644\u0639\u0648\u062f\u0629 \u0625\u0644\u0649 \u0627\u0644\u0633\u0631\u0639\u0629 \u0627\u0644\u0639\u0627\u062f\u064a\u0629.");
         table.put("A file named %1$s in %2$s paused HushGram.",
@@ -5388,8 +5388,8 @@ public final class L10nTranslations {
                 "Doppeltippen auf die linke Seite eines Reels springt zur\u00fcck, auf die rechte Seite vor, so weit wie Sprungweite sagt. Doppeltippen in der Mitte gibt weiterhin ein Like. Reels, die nicht l\u00e4nger als die Sprungweite sind, springen nicht.");
         table.put("A fainter bar and handle, so more of the video shows through.",
                 "Eine blassere Leiste mit blasserem Regler, damit mehr vom Video durchscheint.");
-        table.put("A feed video that keeps playing at 2x shows Instagram's 2x and time labels in place of the name until it goes back to normal speed.",
-                "Ein Feed-Video, das mit 2x weiterl\u00e4uft, zeigt statt des Namens die 2x- und Zeitanzeige von Instagram, bis es wieder normal schnell l\u00e4uft.");
+        table.put("A feed video that keeps playing at 2x shows a 2x label at the top until it goes back to normal speed.",
+                "Ein Feed-Video, das mit 2x weiterl\u00e4uft, zeigt oben eine 2x-Anzeige, bis es wieder normal schnell l\u00e4uft.");
         table.put("A feed video you hold for 2x keeps playing at 2x after you let go. Hold it again to go back to normal speed.",
                 "Ein Feed-Video, das du f\u00fcr 2x gedr\u00fcckt h\u00e4ltst, l\u00e4uft nach dem Loslassen mit 2x weiter. Halte es erneut gedr\u00fcckt, um zur normalen Geschwindigkeit zur\u00fcckzukehren.");
         table.put("A file named %1$s in %2$s paused HushGram.",
@@ -10463,8 +10463,8 @@ public final class L10nTranslations {
                 "Un doble toque en el lado izquierdo de un reel retrocede, y en el lado derecho avanza, tanto como indique Duraci\u00f3n del salto. Un doble toque en el centro sigue dando me gusta. Los reels que no duran m\u00e1s que eso no saltan.");
         table.put("A fainter bar and handle, so more of the video shows through.",
                 "Una barra y un control m\u00e1s tenues, para que se vea m\u00e1s del video.");
-        table.put("A feed video that keeps playing at 2x shows Instagram's 2x and time labels in place of the name until it goes back to normal speed.",
-                "Un video del feed que sigue a 2x muestra las etiquetas de 2x y de tiempo de Instagram en lugar del nombre hasta que vuelve a la velocidad normal.");
+        table.put("A feed video that keeps playing at 2x shows a 2x label at the top until it goes back to normal speed.",
+                "Un video del feed que sigue a 2x muestra una etiqueta de 2x arriba hasta que vuelve a la velocidad normal.");
         table.put("A feed video you hold for 2x keeps playing at 2x after you let go. Hold it again to go back to normal speed.",
                 "Un video del feed que mantienes presionado para 2x sigue a 2x cuando lo sueltas. Mantenlo presionado otra vez para volver a la velocidad normal.");
         table.put("A file named %1$s in %2$s paused HushGram.",
@@ -15538,8 +15538,8 @@ public final class L10nTranslations {
                 "Ketuk dua kali di sisi kiri reel untuk mundur, dan di sisi kanan untuk maju, sejauh Panjang lompatan. Ketuk dua kali di tengah tetap menyukainya. Reel yang tidak lebih panjang dari itu tidak dilompati.");
         table.put("A fainter bar and handle, so more of the video shows through.",
                 "Bilah dan pegangan yang lebih samar, agar video lebih terlihat.");
-        table.put("A feed video that keeps playing at 2x shows Instagram's 2x and time labels in place of the name until it goes back to normal speed.",
-                "Video feed yang tetap diputar 2x menampilkan label 2x dan waktu dari Instagram sebagai ganti nama sampai kecepatannya kembali normal.");
+        table.put("A feed video that keeps playing at 2x shows a 2x label at the top until it goes back to normal speed.",
+                "Video feed yang tetap diputar 2x menampilkan label 2x di bagian atas sampai kecepatannya kembali normal.");
         table.put("A feed video you hold for 2x keeps playing at 2x after you let go. Hold it again to go back to normal speed.",
                 "Video feed yang kamu tahan untuk 2x tetap diputar dengan 2x setelah kamu lepaskan. Tahan lagi untuk kembali ke kecepatan normal.");
         table.put("A file named %1$s in %2$s paused HushGram.",
@@ -20613,8 +20613,8 @@ public final class L10nTranslations {
                 "Un doppio tocco sul lato sinistro di un reel torna indietro, e sul lato destro va avanti, quanto indicato in Durata del salto. Un doppio tocco al centro mette ancora mi piace. I reel che non durano pi\u00f9 di cos\u00ec non saltano.");
         table.put("A fainter bar and handle, so more of the video shows through.",
                 "Barra e cursore pi\u00f9 tenui, cos\u00ec si vede pi\u00f9 video.");
-        table.put("A feed video that keeps playing at 2x shows Instagram's 2x and time labels in place of the name until it goes back to normal speed.",
-                "Un video del feed che continua a 2x mostra le etichette 2x e del tempo di Instagram al posto del nome finch\u00e9 non torna alla velocit\u00e0 normale.");
+        table.put("A feed video that keeps playing at 2x shows a 2x label at the top until it goes back to normal speed.",
+                "Un video del feed che continua a 2x mostra un'etichetta 2x in alto finch\u00e9 non torna alla velocit\u00e0 normale.");
         table.put("A feed video you hold for 2x keeps playing at 2x after you let go. Hold it again to go back to normal speed.",
                 "Un video del feed che tieni premuto per il 2x continua a 2x quando rilasci. Tienilo premuto di nuovo per tornare alla velocit\u00e0 normale.");
         table.put("A file named %1$s in %2$s paused HushGram.",
@@ -25688,8 +25688,8 @@ public final class L10nTranslations {
                 "\ub9b4\uc2a4 \uc67c\ucabd\uc744 \ub450 \ubc88 \ud0ed\ud558\uba74 \ub4a4\ub85c, \uc624\ub978\ucabd\uc744 \ub450 \ubc88 \ud0ed\ud558\uba74 \uc55e\uc73c\ub85c \uac74\ub108\ub6f0\uae30 \uae38\uc774\ub9cc\ud07c \uc774\ub3d9\ud569\ub2c8\ub2e4. \uac00\uc6b4\ub370\ub97c \ub450 \ubc88 \ud0ed\ud558\uba74 \uadf8\ub300\ub85c \uc88b\uc544\uc694\uac00 \ub20c\ub9bd\ub2c8\ub2e4. \uadf8\ubcf4\ub2e4 \uae38\uc9c0 \uc54a\uc740 \ub9b4\uc2a4\ub294 \uac74\ub108\ub6f0\uc9c0 \uc54a\uc2b5\ub2c8\ub2e4.");
         table.put("A fainter bar and handle, so more of the video shows through.",
                 "\ub3d9\uc601\uc0c1\uc774 \ub354 \uc798 \ubcf4\uc774\ub3c4\ub85d \ub9c9\ub300\uc640 \uc190\uc7a1\uc774\ub97c \ub354 \ud750\ub9ac\uac8c \ud45c\uc2dc\ud569\ub2c8\ub2e4.");
-        table.put("A feed video that keeps playing at 2x shows Instagram's 2x and time labels in place of the name until it goes back to normal speed.",
-                "2\ubc30\uc18d\uc73c\ub85c \uacc4\uc18d \uc7ac\uc0dd\ub418\ub294 \ud53c\ub4dc \ub3d9\uc601\uc0c1\uc5d0\ub294 \ubcf4\ud1b5 \uc18d\ub3c4\ub85c \ub3cc\uc544\uac08 \ub54c\uae4c\uc9c0 \uc774\ub984 \ub300\uc2e0 Instagram\uc758 2\ubc30\uc18d \ubc0f \uc2dc\uac04 \ud45c\uc2dc\uac00 \ub098\ud0c0\ub0a9\ub2c8\ub2e4.");
+        table.put("A feed video that keeps playing at 2x shows a 2x label at the top until it goes back to normal speed.",
+                "2\ubc30\uc18d\uc73c\ub85c \uacc4\uc18d \uc7ac\uc0dd\ub418\ub294 \ud53c\ub4dc \ub3d9\uc601\uc0c1\uc5d0\ub294 \ubcf4\ud1b5 \uc18d\ub3c4\ub85c \ub3cc\uc544\uac08 \ub54c\uae4c\uc9c0 \uc704\ucabd\uc5d0 2x \ud45c\uc2dc\uac00 \ub098\ud0c0\ub0a9\ub2c8\ub2e4.");
         table.put("A feed video you hold for 2x keeps playing at 2x after you let go. Hold it again to go back to normal speed.",
                 "\uae38\uac8c \ub20c\ub7ec 2\ubc30\uc18d\uc73c\ub85c \uc7ac\uc0dd\ud55c \ud53c\ub4dc \ub3d9\uc601\uc0c1\uc740 \uc190\uc744 \ub5bc\ub3c4 2\ubc30\uc18d\uc73c\ub85c \uacc4\uc18d \uc7ac\uc0dd\ub429\ub2c8\ub2e4. \ub2e4\uc2dc \uae38\uac8c \ub204\ub974\uba74 \ubcf4\ud1b5 \uc18d\ub3c4\ub85c \ub3cc\uc544\uac11\ub2c8\ub2e4.");
         table.put("A file named %1$s in %2$s paused HushGram.",
@@ -30763,8 +30763,8 @@ public final class L10nTranslations {
                 "Um toque duplo no lado esquerdo de um reel volta, e no lado direito avan\u00e7a, o quanto Tamanho do salto disser. Um toque duplo no meio ainda curte. Reels que n\u00e3o s\u00e3o mais longos que isso n\u00e3o pulam.");
         table.put("A fainter bar and handle, so more of the video shows through.",
                 "Barra e marcador mais suaves, para mostrar mais do v\u00eddeo.");
-        table.put("A feed video that keeps playing at 2x shows Instagram's 2x and time labels in place of the name until it goes back to normal speed.",
-                "Um v\u00eddeo do feed que continua em 2x mostra os r\u00f3tulos de 2x e de tempo do Instagram no lugar do nome at\u00e9 voltar \u00e0 velocidade normal.");
+        table.put("A feed video that keeps playing at 2x shows a 2x label at the top until it goes back to normal speed.",
+                "Um v\u00eddeo do feed que continua em 2x mostra um r\u00f3tulo de 2x no topo at\u00e9 voltar \u00e0 velocidade normal.");
         table.put("A feed video you hold for 2x keeps playing at 2x after you let go. Hold it again to go back to normal speed.",
                 "Um v\u00eddeo do feed que voc\u00ea segura para 2x continua em 2x quando voc\u00ea solta. Segure de novo para voltar \u00e0 velocidade normal.");
         table.put("A file named %1$s in %2$s paused HushGram.",
@@ -35838,8 +35838,8 @@ public final class L10nTranslations {
                 "\u0e01\u0e32\u0e23\u0e41\u0e15\u0e30\u0e2a\u0e2d\u0e07\u0e04\u0e23\u0e31\u0e49\u0e07\u0e17\u0e35\u0e48\u0e14\u0e49\u0e32\u0e19\u0e0b\u0e49\u0e32\u0e22\u0e02\u0e2d\u0e07\u0e23\u0e35\u0e25\u0e2a\u0e4c\u0e08\u0e30\u0e22\u0e49\u0e2d\u0e19\u0e01\u0e25\u0e31\u0e1a \u0e41\u0e25\u0e30\u0e41\u0e15\u0e30\u0e2a\u0e2d\u0e07\u0e04\u0e23\u0e31\u0e49\u0e07\u0e17\u0e35\u0e48\u0e14\u0e49\u0e32\u0e19\u0e02\u0e27\u0e32\u0e08\u0e30\u0e40\u0e14\u0e34\u0e19\u0e2b\u0e19\u0e49\u0e32 \u0e15\u0e32\u0e21\u0e23\u0e30\u0e22\u0e30\u0e01\u0e32\u0e23\u0e02\u0e49\u0e32\u0e21 \u0e01\u0e32\u0e23\u0e41\u0e15\u0e30\u0e2a\u0e2d\u0e07\u0e04\u0e23\u0e31\u0e49\u0e07\u0e15\u0e23\u0e07\u0e01\u0e25\u0e32\u0e07\u0e08\u0e30\u0e22\u0e31\u0e07\u0e04\u0e07\u0e40\u0e1b\u0e47\u0e19\u0e01\u0e32\u0e23\u0e01\u0e14\u0e16\u0e39\u0e01\u0e43\u0e08 \u0e23\u0e35\u0e25\u0e2a\u0e4c\u0e17\u0e35\u0e48\u0e44\u0e21\u0e48\u0e22\u0e32\u0e27\u0e01\u0e27\u0e48\u0e32\u0e19\u0e31\u0e49\u0e19\u0e08\u0e30\u0e44\u0e21\u0e48\u0e02\u0e49\u0e32\u0e21");
         table.put("A fainter bar and handle, so more of the video shows through.",
                 "\u0e41\u0e16\u0e1a\u0e41\u0e25\u0e30\u0e1b\u0e38\u0e48\u0e21\u0e40\u0e25\u0e37\u0e48\u0e2d\u0e19\u0e2a\u0e35\u0e08\u0e32\u0e07\u0e25\u0e07 \u0e40\u0e1e\u0e37\u0e48\u0e2d\u0e43\u0e2b\u0e49\u0e40\u0e2b\u0e47\u0e19\u0e27\u0e34\u0e14\u0e35\u0e42\u0e2d\u0e14\u0e49\u0e32\u0e19\u0e2b\u0e25\u0e31\u0e07\u0e44\u0e14\u0e49\u0e21\u0e32\u0e01\u0e02\u0e36\u0e49\u0e19");
-        table.put("A feed video that keeps playing at 2x shows Instagram's 2x and time labels in place of the name until it goes back to normal speed.",
-                "\u0e27\u0e34\u0e14\u0e35\u0e42\u0e2d\u0e43\u0e19\u0e1f\u0e35\u0e14\u0e17\u0e35\u0e48\u0e22\u0e31\u0e07\u0e40\u0e25\u0e48\u0e19\u0e17\u0e35\u0e48 2 \u0e40\u0e17\u0e48\u0e32\u0e08\u0e30\u0e41\u0e2a\u0e14\u0e07\u0e1b\u0e49\u0e32\u0e22 2 \u0e40\u0e17\u0e48\u0e32\u0e41\u0e25\u0e30\u0e40\u0e27\u0e25\u0e32\u0e02\u0e2d\u0e07 Instagram \u0e41\u0e17\u0e19\u0e0a\u0e37\u0e48\u0e2d \u0e08\u0e19\u0e01\u0e27\u0e48\u0e32\u0e08\u0e30\u0e01\u0e25\u0e31\u0e1a\u0e2a\u0e39\u0e48\u0e04\u0e27\u0e32\u0e21\u0e40\u0e23\u0e47\u0e27\u0e1b\u0e01\u0e15\u0e34");
+        table.put("A feed video that keeps playing at 2x shows a 2x label at the top until it goes back to normal speed.",
+                "\u0e27\u0e34\u0e14\u0e35\u0e42\u0e2d\u0e43\u0e19\u0e1f\u0e35\u0e14\u0e17\u0e35\u0e48\u0e22\u0e31\u0e07\u0e40\u0e25\u0e48\u0e19\u0e17\u0e35\u0e48 2 \u0e40\u0e17\u0e48\u0e32\u0e08\u0e30\u0e41\u0e2a\u0e14\u0e07\u0e1b\u0e49\u0e32\u0e22 2x \u0e17\u0e35\u0e48\u0e14\u0e49\u0e32\u0e19\u0e1a\u0e19 \u0e08\u0e19\u0e01\u0e27\u0e48\u0e32\u0e08\u0e30\u0e01\u0e25\u0e31\u0e1a\u0e2a\u0e39\u0e48\u0e04\u0e27\u0e32\u0e21\u0e40\u0e23\u0e47\u0e27\u0e1b\u0e01\u0e15\u0e34");
         table.put("A feed video you hold for 2x keeps playing at 2x after you let go. Hold it again to go back to normal speed.",
                 "\u0e27\u0e34\u0e14\u0e35\u0e42\u0e2d\u0e43\u0e19\u0e1f\u0e35\u0e14\u0e17\u0e35\u0e48\u0e04\u0e38\u0e13\u0e01\u0e14\u0e04\u0e49\u0e32\u0e07\u0e40\u0e1e\u0e37\u0e48\u0e2d\u0e40\u0e25\u0e48\u0e19 2 \u0e40\u0e17\u0e48\u0e32\u0e08\u0e30\u0e40\u0e25\u0e48\u0e19\u0e14\u0e49\u0e27\u0e22\u0e04\u0e27\u0e32\u0e21\u0e40\u0e23\u0e47\u0e27 2 \u0e40\u0e17\u0e48\u0e32\u0e15\u0e48\u0e2d\u0e44\u0e1b\u0e2b\u0e25\u0e31\u0e07\u0e1b\u0e25\u0e48\u0e2d\u0e22\u0e19\u0e34\u0e49\u0e27 \u0e01\u0e14\u0e04\u0e49\u0e32\u0e07\u0e2d\u0e35\u0e01\u0e04\u0e23\u0e31\u0e49\u0e07\u0e40\u0e1e\u0e37\u0e48\u0e2d\u0e01\u0e25\u0e31\u0e1a\u0e2a\u0e39\u0e48\u0e04\u0e27\u0e32\u0e21\u0e40\u0e23\u0e47\u0e27\u0e1b\u0e01\u0e15\u0e34");
         table.put("A file named %1$s in %2$s paused HushGram.",
@@ -40913,8 +40913,8 @@ public final class L10nTranslations {
                 "Bir reel'in sol taraf\u0131na \u00e7ift dokunmak Atlama s\u00fcresi kadar geri, sa\u011f taraf\u0131na \u00e7ift dokunmak o kadar ileri gider. Ortaya \u00e7ift dokunmak yine be\u011fenir. Bundan uzun olmayan reel'ler atlamaz.");
         table.put("A fainter bar and handle, so more of the video shows through.",
                 "Videonun daha fazlas\u0131 g\u00f6r\u00fcns\u00fcn diye daha soluk bir \u00e7ubuk ve tutama\u00e7.");
-        table.put("A feed video that keeps playing at 2x shows Instagram's 2x and time labels in place of the name until it goes back to normal speed.",
-                "2x h\u0131zda oynamaya devam eden bir ak\u0131\u015f videosu, normal h\u0131za d\u00f6nene kadar ad\u0131n yerine Instagram'\u0131n 2x ve s\u00fcre etiketlerini g\u00f6sterir.");
+        table.put("A feed video that keeps playing at 2x shows a 2x label at the top until it goes back to normal speed.",
+                "2x h\u0131zda oynamaya devam eden bir ak\u0131\u015f videosu, normal h\u0131za d\u00f6nene kadar \u00fcstte bir 2x etiketi g\u00f6sterir.");
         table.put("A feed video you hold for 2x keeps playing at 2x after you let go. Hold it again to go back to normal speed.",
                 "2x i\u00e7in bas\u0131l\u0131 tuttu\u011fun bir ak\u0131\u015f videosu, b\u0131rakt\u0131\u011f\u0131nda 2x oynamaya devam eder. Normal h\u0131za d\u00f6nmek i\u00e7in yeniden bas\u0131l\u0131 tut.");
         table.put("A file named %1$s in %2$s paused HushGram.",
@@ -45988,8 +45988,8 @@ public final class L10nTranslations {
                 "Nh\u1ea5n \u0111\u00fap v\u00e0o b\u00ean tr\u00e1i reel \u0111\u1ec3 l\u00f9i, v\u00e0 b\u00ean ph\u1ea3i \u0111\u1ec3 t\u1edbi, theo \u0110\u1ed9 d\u00e0i tua. Nh\u1ea5n \u0111\u00fap \u1edf gi\u1eefa v\u1eabn th\u00edch reel. Reel kh\u00f4ng d\u00e0i h\u01a1n m\u1ee9c \u0111\u00f3 th\u00ec kh\u00f4ng tua.");
         table.put("A fainter bar and handle, so more of the video shows through.",
                 "Thanh v\u00e0 n\u00fat k\u00e9o nh\u1ea1t h\u01a1n, \u0111\u1ec3 th\u1ea5y r\u00f5 video h\u01a1n.");
-        table.put("A feed video that keeps playing at 2x shows Instagram's 2x and time labels in place of the name until it goes back to normal speed.",
-                "Video \u1edf b\u1ea3ng feed v\u1eabn ph\u00e1t \u1edf 2x s\u1ebd hi\u1ec7n nh\u00e3n 2x v\u00e0 th\u1eddi gian c\u1ee7a Instagram thay cho t\u00ean cho \u0111\u1ebfn khi tr\u1edf v\u1ec1 t\u1ed1c \u0111\u1ed9 b\u00ecnh th\u01b0\u1eddng.");
+        table.put("A feed video that keeps playing at 2x shows a 2x label at the top until it goes back to normal speed.",
+                "Video \u1edf b\u1ea3ng feed v\u1eabn ph\u00e1t \u1edf 2x s\u1ebd hi\u1ec7n nh\u00e3n 2x \u1edf ph\u00eda tr\u00ean cho \u0111\u1ebfn khi tr\u1edf v\u1ec1 t\u1ed1c \u0111\u1ed9 b\u00ecnh th\u01b0\u1eddng.");
         table.put("A feed video you hold for 2x keeps playing at 2x after you let go. Hold it again to go back to normal speed.",
                 "Video tr\u00ean b\u1ea3ng feed b\u1ea1n nh\u1ea5n gi\u1eef \u0111\u1ec3 ph\u00e1t 2x s\u1ebd ti\u1ebfp t\u1ee5c ph\u00e1t 2x sau khi b\u1ea1n th\u1ea3 tay. Nh\u1ea5n gi\u1eef l\u1ea7n n\u1eefa \u0111\u1ec3 tr\u1edf v\u1ec1 t\u1ed1c \u0111\u1ed9 b\u00ecnh th\u01b0\u1eddng.");
         table.put("A file named %1$s in %2$s paused HushGram.",
@@ -51063,8 +51063,8 @@ public final class L10nTranslations {
                 "\u5728 Reel \u5de6\u4fa7\u70b9\u4e24\u4e0b\u4f1a\u5012\u9000\uff0c\u5728\u53f3\u4fa7\u70b9\u4e24\u4e0b\u4f1a\u5feb\u8f6c\uff0c\u5e45\u5ea6\u4f9d\u8df3\u8f6c\u957f\u5ea6\u800c\u5b9a\u3002\u5728\u4e2d\u95f4\u70b9\u4e24\u4e0b\u4ecd\u4f1a\u70b9\u8d5e\u3002\u4e0d\u6bd4\u8fd9\u66f4\u957f\u7684 Reel \u4e0d\u4f1a\u8df3\u8f6c\u3002");
         table.put("A fainter bar and handle, so more of the video shows through.",
                 "\u8f83\u6de1\u7684\u62d6\u52a8\u6761\u4e0e\u63a7\u70b9\uff0c\u80fd\u770b\u5230\u66f4\u591a\u89c6\u9891\u3002");
-        table.put("A feed video that keeps playing at 2x shows Instagram's 2x and time labels in place of the name until it goes back to normal speed.",
-                "\u6301\u7eed\u4ee5 2 \u500d\u901f\u64ad\u653e\u7684\u52a8\u6001\u89c6\u9891\u4f1a\u4ee5 Instagram \u7684 2 \u500d\u901f\u548c\u65f6\u95f4\u6807\u7b7e\u53d6\u4ee3\u540d\u79f0\uff0c\u76f4\u5230\u6062\u590d\u6b63\u5e38\u901f\u5ea6.");
+        table.put("A feed video that keeps playing at 2x shows a 2x label at the top until it goes back to normal speed.",
+                "\u6301\u7eed\u4ee5 2 \u500d\u901f\u64ad\u653e\u7684\u52a8\u6001\u89c6\u9891\u4f1a\u5728\u9876\u90e8\u663e\u793a 2x \u6807\u7b7e\uff0c\u76f4\u5230\u6062\u590d\u6b63\u5e38\u901f\u5ea6\u3002");
         table.put("A feed video you hold for 2x keeps playing at 2x after you let go. Hold it again to go back to normal speed.",
                 "\u957f\u6309\u4ee5 2 \u500d\u901f\u64ad\u653e\u7684\u52a8\u6001\u89c6\u9891\uff0c\u653e\u5f00\u540e\u4ecd\u4ee5 2 \u500d\u901f\u64ad\u653e\u3002\u518d\u6b21\u957f\u6309\u5373\u53ef\u6062\u590d\u6b63\u5e38\u901f\u5ea6.");
         table.put("A file named %1$s in %2$s paused HushGram.",
@@ -56138,8 +56138,8 @@ public final class L10nTranslations {
                 "\u5728 Reel \u5de6\u5074\u9ede\u5169\u4e0b\u6703\u5012\u9000\uff0c\u5728\u53f3\u5074\u9ede\u5169\u4e0b\u6703\u5feb\u8f49\uff0c\u5e45\u5ea6\u4f9d\u8df3\u8f49\u9577\u5ea6\u800c\u5b9a\u3002\u5728\u4e2d\u9593\u9ede\u5169\u4e0b\u4ecd\u6703\u6309\u8b9a\u3002\u4e0d\u6bd4\u9019\u66f4\u9577\u7684 Reel \u4e0d\u6703\u8df3\u8f49\u3002");
         table.put("A fainter bar and handle, so more of the video shows through.",
                 "\u8f03\u6de1\u7684\u62d6\u66f3\u5217\u8207\u63a7\u9ede\uff0c\u80fd\u770b\u5230\u66f4\u591a\u5f71\u7247\u3002");
-        table.put("A feed video that keeps playing at 2x shows Instagram's 2x and time labels in place of the name until it goes back to normal speed.",
-                "\u6301\u7e8c\u4ee5 2 \u500d\u901f\u64ad\u653e\u7684\u52d5\u614b\u5f71\u7247\u6703\u4ee5 Instagram \u7684 2 \u500d\u901f\u548c\u6642\u9593\u6a19\u7c64\u53d6\u4ee3\u540d\u7a31\uff0c\u76f4\u5230\u6062\u5fa9\u6b63\u5e38\u901f\u5ea6.");
+        table.put("A feed video that keeps playing at 2x shows a 2x label at the top until it goes back to normal speed.",
+                "\u6301\u7e8c\u4ee5 2 \u500d\u901f\u64ad\u653e\u7684\u52d5\u614b\u5f71\u7247\u6703\u5728\u4e0a\u65b9\u986f\u793a 2x \u6a19\u7c64\uff0c\u76f4\u5230\u6062\u5fa9\u6b63\u5e38\u901f\u5ea6\u3002");
         table.put("A feed video you hold for 2x keeps playing at 2x after you let go. Hold it again to go back to normal speed.",
                 "\u9577\u6309\u4ee5 2 \u500d\u901f\u64ad\u653e\u7684\u52d5\u614b\u5f71\u7247\uff0c\u653e\u958b\u5f8c\u4ecd\u4ee5 2 \u500d\u901f\u64ad\u653e\u3002\u518d\u6b21\u9577\u6309\u5373\u53ef\u6062\u5fa9\u6b63\u5e38\u901f\u5ea6.");
         table.put("A file named %1$s in %2$s paused HushGram.",

@@ -2674,7 +2674,7 @@ Keeps 2x only when you hold the video for about 3 seconds. Let go sooner and it 
 # context: Feed settings: a switch under Keep 2x after you let go that leaves Instagram's 2x label on a feed video kept at 2x (#860)
 Show 2x after you let go	2x nach dem Loslassen zeigen
 # context: Summary of Show 2x after you let go, a switch under Keep 2x after you let go (#860)
-A feed video that keeps playing at 2x shows Instagram's 2x and time labels in place of the name until it goes back to normal speed.	Ein Feed-Video, das mit 2x weiterläuft, zeigt statt des Namens die 2x- und Zeitanzeige von Instagram, bis es wieder normal schnell läuft.
+A feed video that keeps playing at 2x shows a 2x label at the top until it goes back to normal speed.	Ein Feed-Video, das mit 2x weiterläuft, zeigt oben eine 2x-Anzeige, bis es wieder normal schnell läuft.
 # context: Feed settings: a switch under Hold for 2x on feed videos that keeps the poster's name over the video while it's held at 2x (#552)
 Keep the name while you hold	Namen beim Halten zeigen
 # context: Summary of Keep the name while you hold, a switch under Hold for 2x on feed videos (#552)

@@ -4,10 +4,24 @@
  */
 package app.hushgram.extension.instagram.feed;
 
+import android.content.res.Resources;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.ColorFilter;
+import android.graphics.Paint;
+import android.graphics.PixelFormat;
+import android.graphics.Rect;
+import android.graphics.RectF;
+import android.graphics.Typeface;
+import android.graphics.drawable.Drawable;
+import android.os.Looper;
 import android.os.SystemClock;
+import android.view.View;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import java.lang.ref.WeakReference;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
@@ -18,7 +32,9 @@ import java.util.function.LongSupplier;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.instagram.settings.SettingsStatus;
+import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.Utils;
+import app.hushgram.extension.shared.diagnostics.DiagnosticCategory;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 
 /**
@@ -42,9 +58,12 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * lets the speed go back. The press entry tells {@link #pressed} before its reset, so a kept flag
  * Instagram has cleared since, because the video went off the screen, isn't taken for a kept one.
  *
- * <p>Show 2x after you let go (#860) asks {@link #showsKept} on a lift that keeps the speed, and a yes hands
- * the post the hold state the press entry hands it, in place of the resting one, so Instagram's 2x and time
- * labels stay on the video while it plays fast. The next held press resets the speed and the look with it.
+ * <p>Show 2x after you let go (#860) puts HushGram's own 2x label across the top of a video a lift keeps at 2x,
+ * through {@link #keptLabel}, since Instagram's hold look on 457 hides the name over the video and shows the seek
+ * bar but no 2x label anywhere. The lift also asks {@link #showsKept}, and a yes hands the post the hold state the
+ * press entry hands it, in place of the resting one, so the video looks the way it did while held. Instagram's
+ * speed reset tells {@link #speedReset} first thing, which takes the label off whatever put the speed back: the
+ * next held press, the video leaving the screen or the feed going away.
  *
  * <p>Only after a long hold (#552) keeps the speed only past a hold that played at 2x for
  * {@link #LONG_HOLD_MS}, timed from that press entry, so a quick hold to peek at 2x goes back to
@@ -86,8 +105,23 @@ public final class FeedHoldSpeed {
     /** Holds that kept the post's look, the name over the video included, for Keep the name while you hold. */
     static final String LOOK_KEPT = "feed holds that kept the name";
 
-    /** Lifts that kept a feed video at 2x and left Instagram's 2x and time labels on it, for Show 2x after you let go. */
+    /** Lifts that kept a feed video at 2x and put HushGram's 2x label on it, for Show 2x after you let go. */
     static final String BADGE_SHOWN = "feed videos showing 2x after the lift";
+
+    /** Lifts that kept a feed video at 2x and left it in Instagram's hold look, for Show 2x after you let go. */
+    static final String LOOK_HELD = "kept feed videos left in the hold look";
+
+    /** 2x labels a speed reset took off a feed video. */
+    static final String LABEL_OFF = "2x labels taken off feed videos";
+
+    /** Where this class's diagnostic lines come from, as the log tag shows it. */
+    private static final String SOURCE = "FeedHoldSpeed";
+
+    /** The 2x labels up, by the flag of the feed whose video wears one, guarded by {@link #KEPT_FLAGS}. */
+    private static final Map<AtomicBoolean, Label> LABELS = new WeakHashMap<>();
+
+    /** Whether a label may be up, so a reset with none to take off returns at once. */
+    private static volatile boolean labelsUp;
 
     /**
      * How long a hold plays at 2x before Only after a long hold keeps it (#552). The press entry comes
@@ -189,20 +223,24 @@ public final class FeedHoldSpeed {
                 Long pressedAt = PRESSED_AT.remove(fast);
                 if (!fast.get()) {
                     KEPT_FLAGS.remove(fast);
+                    log("a lift left the speed to Instagram: the video wasn't playing at 2x");
                     return false;
                 }
                 if (KEPT_FLAGS.remove(fast)) {
                     HookStatus.counted(FamilyNames.FEED_HOLD_FAST, LET_GO);
+                    log("a lift let a feed video kept at 2x go back to normal speed");
                     return false;
                 }
                 if (!keeps()) return false;
                 if (longOnly() && (pressedAt == null || clock.getAsLong() - pressedAt < LONG_HOLD_MS)) {
                     HookStatus.counted(FamilyNames.FEED_HOLD_FAST, SHORT);
+                    log("a lift let a feed video go back to normal speed: Only after a long hold wants a longer hold");
                     return false;
                 }
                 KEPT_FLAGS.add(fast);
             }
             HookStatus.counted(FamilyNames.FEED_HOLD_FAST, KEPT);
+            log("a lift kept a feed video at 2x");
             return true;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.FEED_HOLD_FAST, LOCK_HOOK, failure);
@@ -228,19 +266,198 @@ public final class FeedHoldSpeed {
     }
 
     /**
-     * Whether a lift that keeps a feed video at 2x hands the post its hold look, Instagram's 2x and time labels,
-     * instead of putting it to rest: yes with Hold for 2x on feed videos, Keep 2x after you let go and Show 2x after
-     * you let go on. Never throws.
+     * Whether a lift that keeps a feed video at 2x hands the post its hold look instead of putting it to rest, so it
+     * looks the way it did while held: yes with Hold for 2x on feed videos, Keep 2x after you let go and Show 2x
+     * after you let go on, unless Keep the name while you hold kept the resting look through the hold. Never throws.
      */
     public static boolean showsKept() {
         try {
             HookStatus.invoked(FamilyNames.FEED_HOLD_FAST);
-            if (!keeps() || !Settings.HOLD_FEED_VIDEO_KEEP_BADGE.get()) return false;
-            HookStatus.counted(FamilyNames.FEED_HOLD_FAST, BADGE_SHOWN);
+            if (!keeps() || !Settings.HOLD_FEED_VIDEO_KEEP_BADGE.get() || Settings.HOLD_FEED_VIDEO_KEEP_NAME.get()) {
+                return false;
+            }
+            HookStatus.counted(FamilyNames.FEED_HOLD_FAST, LOOK_HELD);
             return true;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.FEED_HOLD_FAST, LOCK_HOOK, failure);
             return false;
+        }
+    }
+
+    /**
+     * Told the pressed video view and the feed's fast flag on a lift that keeps the video at 2x (#860): puts HushGram's
+     * 2x label across the top of the video when {@link #labelDeclined} finds nothing missing, in place of one the
+     * feed's flag already has. Logs one line saying it did, over which view, or why it didn't. Never throws.
+     */
+    public static void keptLabel(@Nullable View video, @Nullable AtomicBoolean fast) {
+        try {
+            HookStatus.invoked(FamilyNames.FEED_HOLD_FAST);
+            String declined = labelDeclined(video, fast);
+            if (declined != null) {
+                log("no 2x label on a feed video kept at 2x: " + declined);
+                return;
+            }
+            Label label = new Label(video, fast);
+            Label before;
+            synchronized (KEPT_FLAGS) {
+                before = LABELS.put(fast, label);
+                labelsUp = true;
+            }
+            if (before != null) before.takeOff();
+            label.putUp();
+            HookStatus.counted(FamilyNames.FEED_HOLD_FAST, BADGE_SHOWN);
+            String over = video.getClass().getName() + " " + video.getWidth() + "x" + video.getHeight();
+            log("2x label shown on a feed video kept at 2x, over " + over);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.FEED_HOLD_FAST, LOCK_HOOK, failure);
+        }
+    }
+
+    /**
+     * Told the feed's fast flag first thing in Instagram's speed reset, whatever called it: takes off the 2x label the
+     * flag's video wears, if any, and logs that it did. Returns at once when no label is up. Never throws.
+     */
+    public static void speedReset(@Nullable AtomicBoolean fast) {
+        if (!labelsUp || fast == null) return;
+        try {
+            Label label;
+            synchronized (KEPT_FLAGS) {
+                label = LABELS.remove(fast);
+                if (LABELS.isEmpty()) labelsUp = false;
+            }
+            if (label == null) return;
+            label.takeOff();
+            HookStatus.counted(FamilyNames.FEED_HOLD_FAST, LABEL_OFF);
+            log("2x label taken off a feed video: its speed went back to normal");
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.FEED_HOLD_FAST, LOCK_HOOK, failure);
+        }
+    }
+
+    /** The 2x label the flag's video wears, if one is up. */
+    @Nullable
+    static Drawable labelFor(AtomicBoolean fast) {
+        synchronized (KEPT_FLAGS) {
+            return LABELS.get(fast);
+        }
+    }
+
+    /**
+     * Why a lift that kept a feed video at 2x puts no label on it, as the log line says it: a switch off, HushGram
+     * paused, no flag, a video that isn't at 2x, no video view or one that isn't on the screen. Null when nothing is
+     * missing.
+     */
+    @Nullable
+    static String labelDeclined(@Nullable View video, @Nullable AtomicBoolean fast) {
+        if (!on()) return "Hold for 2x on feed videos is off or HushGram is paused";
+        if (!Settings.HOLD_FEED_VIDEO_KEEP.get()) return "Keep 2x after you let go is off";
+        if (!Settings.HOLD_FEED_VIDEO_KEEP_BADGE.get()) return "Show 2x after you let go is off";
+        if (fast == null) return "the feed handed no 2x flag";
+        if (!fast.get()) return "the video isn't playing at 2x";
+        if (video == null) return "this Instagram build keeps no video view on its 2x controller";
+        if (!video.isAttachedToWindow() || video.getWidth() <= 0 || video.getHeight() <= 0) {
+            return "the video isn't on the screen";
+        }
+        return null;
+    }
+
+    private static void log(String line) {
+        Logger.diagnosticInfo(DiagnosticCategory.FEED_AND_NAVIGATION, SOURCE, () -> line);
+    }
+
+    /**
+     * HushGram's 2x label (#860): "2x" in white on a dark rounded tag, centered across the video it's on, under the
+     * row the name sits in, in that view's overlay. It draws nothing once the feed's flag says the video is back at
+     * normal speed, so a label a reset never reached can't show a wrong speed.
+     */
+    static final class Label extends Drawable implements View.OnLayoutChangeListener {
+        static final String TEXT = "2x";
+
+        private final WeakReference<View> host;
+        private final WeakReference<AtomicBoolean> flag;
+        private final Paint tag = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Paint text = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final RectF box = new RectF();
+        private final float density;
+
+        Label(View host, AtomicBoolean flag) {
+            this.host = new WeakReference<>(host);
+            this.flag = new WeakReference<>(flag);
+            density = Resources.getSystem().getDisplayMetrics().density;
+            tag.setColor(0x99000000);
+            text.setColor(Color.WHITE);
+            text.setTextSize(14f * density);
+            text.setTypeface(Typeface.DEFAULT_BOLD);
+            text.setTextAlign(Paint.Align.CENTER);
+        }
+
+        /** Puts it in its video's overlay, the size of the video, on the main thread. */
+        void putUp() {
+            View view = host.get();
+            if (view == null) return;
+            onMain(view, () -> {
+                setBounds(0, 0, view.getWidth(), view.getHeight());
+                view.getOverlay().add(this);
+                view.addOnLayoutChangeListener(this);
+            });
+        }
+
+        /** Takes it out of its video's overlay, on the main thread. */
+        void takeOff() {
+            View view = host.get();
+            if (view == null) return;
+            onMain(view, () -> {
+                view.removeOnLayoutChangeListener(this);
+                view.getOverlay().remove(this);
+            });
+        }
+
+        @Override
+        public void onLayoutChange(View view, int left, int top, int right, int bottom,
+                                   int oldLeft, int oldTop, int oldRight, int oldBottom) {
+            setBounds(0, 0, right - left, bottom - top);
+        }
+
+        @Override
+        public void draw(@NonNull Canvas canvas) {
+            AtomicBoolean fast = flag.get();
+            if (fast == null || !fast.get()) return;
+            Rect bounds = getBounds();
+            Paint.FontMetrics metrics = text.getFontMetrics();
+            float sides = 10f * density;
+            float ends = 4f * density;
+            float width = text.measureText(TEXT) + 2f * sides;
+            float height = (metrics.descent - metrics.ascent) + 2f * ends;
+            float middle = bounds.exactCenterX();
+            float top = bounds.top + 64f * density;
+            box.set(middle - width / 2f, top, middle + width / 2f, top + height);
+            canvas.drawRoundRect(box, height / 2f, height / 2f, tag);
+            canvas.drawText(TEXT, middle, top + ends - metrics.ascent, text);
+        }
+
+        @Override
+        public void setAlpha(int alpha) {
+            tag.setAlpha(alpha * 0x99 / 0xFF);
+            text.setAlpha(alpha);
+        }
+
+        @Override
+        public void setColorFilter(@Nullable ColorFilter filter) {
+            tag.setColorFilter(filter);
+            text.setColorFilter(filter);
+        }
+
+        @Override
+        public int getOpacity() {
+            return PixelFormat.TRANSLUCENT;
+        }
+
+        private static void onMain(View view, Runnable action) {
+            if (Looper.myLooper() == Looper.getMainLooper()) {
+                action.run();
+            } else {
+                view.post(action);
+            }
         }
     }
 

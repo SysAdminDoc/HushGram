@@ -6,9 +6,24 @@ package app.hushgram.extension.instagram.feed;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.robolectric.Shadows.shadowOf;
 
+import android.app.Activity;
+import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.graphics.RectF;
+import android.graphics.drawable.Drawable;
+import android.os.Looper;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.FrameLayout;
+
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.junit.After;
@@ -16,6 +31,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
@@ -245,7 +261,8 @@ public class FeedHoldSpeedTest {
 
     /**
      * #860: Show 2x after you let go hands a kept lift Instagram's hold look only while it, Keep 2x after you let go
-     * and Hold for 2x on feed videos are on, counting each, and puts the look to rest otherwise.
+     * and Hold for 2x on feed videos are on and Keep the name while you hold is off, counting each, and puts the look
+     * to rest otherwise.
      */
     @Test
     public void showTwoTimesAfterTheLiftOnlyWhileOn() {
@@ -270,11 +287,134 @@ public class FeedHoldSpeedTest {
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         SettingsContextRule.withoutContext(() -> assertFalse("no context", FeedHoldSpeed.showsKept()));
+        Settings.HOLD_FEED_VIDEO_KEEP_NAME.save(true);
+        assertFalse("Keep the name while you hold kept the name through the hold, so the lift keeps it too", FeedHoldSpeed.showsKept());
+        Settings.HOLD_FEED_VIDEO_KEEP_NAME.save(false);
 
         assertEquals(Collections.singletonList(Settings.HOLD_FEED_VIDEO_KEEP), Settings.HOLD_FEED_VIDEO_KEEP_BADGE.getParentSettings());
         assertFalse(Settings.HOLD_FEED_VIDEO_KEEP_BADGE.rebootApp);
         String report = report();
-        assertTrue(report, report.contains(FeedHoldSpeed.BADGE_SHOWN + " 2"));
+        assertTrue(report, report.contains(FeedHoldSpeed.LOOK_HELD + " 2"));
+    }
+
+    /**
+     * #860: Instagram's own hold look shows no 2x label on 457 (an S22 hold took the name off the video and put
+     * nothing up), so a lift that keeps a feed video at 2x puts HushGram's 2x label across the top of the video
+     * with Show 2x after you let go on, and Instagram's speed reset takes it off again, whatever asked for it.
+     */
+    @Test
+    public void aKeptVideoWearsATwoTimesLabelUntilTheSpeedGoesBack() {
+        Settings.HOLD_FEED_VIDEO_KEEP.save(true);
+        Settings.HOLD_FEED_VIDEO_KEEP_BADGE.save(true);
+        View video = onScreen();
+        AtomicBoolean fast = new AtomicBoolean(false);
+        hold(fast);
+        assertTrue(FeedHoldSpeed.lifted(fast));
+        FeedHoldSpeed.keptLabel(video, fast);
+
+        Drawable label = FeedHoldSpeed.labelFor(fast);
+        assertNotNull("a label went on", label);
+        assertNotNull("it's in the video's overlay", label.getCallback());
+        Recording drawn = new Recording();
+        label.draw(drawn);
+        assertEquals(Collections.singletonList("2x"), drawn.texts);
+        assertEquals(1, drawn.tags.size());
+        RectF tag = drawn.tags.get(0);
+        assertTrue("across the middle of the top, where the hold look leaves room: " + tag,
+                Math.abs(tag.centerX() - video.getWidth() / 2f) < 1f && tag.width() > 0 && tag.width() < video.getWidth() / 4f
+                        && tag.top > 0 && tag.bottom < video.getHeight() / 8f);
+        assertTrue("the label's bounds cover the tag: " + label.getBounds(), label.getBounds().contains(
+                (int) tag.left, (int) tag.top, (int) Math.ceil(tag.right), (int) Math.ceil(tag.bottom)));
+
+        FeedHoldSpeed.speedReset(new AtomicBoolean(true));
+        assertNotNull("another feed's reset leaves it", label.getCallback());
+        FeedHoldSpeed.speedReset(fast);
+        fast.set(false);
+        assertNull("the reset takes it off the video", label.getCallback());
+        assertNull(FeedHoldSpeed.labelFor(fast));
+        FeedHoldSpeed.speedReset(fast);
+
+        String report = report();
+        assertTrue(report, report.contains(FeedHoldSpeed.BADGE_SHOWN + " 1"));
+        assertTrue(report, report.contains(FeedHoldSpeed.LABEL_OFF + " 1"));
+    }
+
+    /** A label on a video that's back at normal speed draws nothing, so one a reset never reached can't show a wrong speed. */
+    @Test
+    public void aLabelOnAVideoBackAtNormalSpeedDrawsNothing() {
+        Settings.HOLD_FEED_VIDEO_KEEP.save(true);
+        Settings.HOLD_FEED_VIDEO_KEEP_BADGE.save(true);
+        View video = onScreen();
+        AtomicBoolean fast = new AtomicBoolean(true);
+        FeedHoldSpeed.keptLabel(video, fast);
+        Drawable label = FeedHoldSpeed.labelFor(fast);
+        assertNotNull(label);
+        fast.set(false);
+        Recording drawn = new Recording();
+        label.draw(drawn);
+        assertTrue("nothing drawn: " + drawn.texts, drawn.texts.isEmpty() && drawn.tags.isEmpty());
+        FeedHoldSpeed.speedReset(fast);
+    }
+
+    /**
+     * #860: with a switch off, HushGram paused, no flag, a video that isn't at 2x, no video view or one off the screen, no
+     * label goes on, and the reason is the one the log line gives.
+     */
+    @Test
+    public void noLabelWithoutEverythingItNeeds() {
+        Settings.HOLD_FEED_VIDEO_KEEP.save(true);
+        View video = onScreen();
+        AtomicBoolean fast = new AtomicBoolean(true);
+        assertEquals("Show 2x after you let go is off", FeedHoldSpeed.labelDeclined(video, fast));
+        FeedHoldSpeed.keptLabel(video, fast);
+        assertNull("switch off", FeedHoldSpeed.labelFor(fast));
+
+        Settings.HOLD_FEED_VIDEO_KEEP_BADGE.save(true);
+        assertNull("everything there", FeedHoldSpeed.labelDeclined(video, fast));
+        assertEquals("the feed handed no 2x flag", FeedHoldSpeed.labelDeclined(video, null));
+        assertEquals("the video isn't playing at 2x", FeedHoldSpeed.labelDeclined(video, new AtomicBoolean(false)));
+        assertEquals("this Instagram build keeps no video view on its 2x controller", FeedHoldSpeed.labelDeclined(null, fast));
+        assertEquals("the video isn't on the screen", FeedHoldSpeed.labelDeclined(new View(video.getContext()), fast));
+        FeedHoldSpeed.keptLabel(null, fast);
+        assertNull("no view", FeedHoldSpeed.labelFor(fast));
+
+        Settings.HOLD_FEED_VIDEO_KEEP.save(false);
+        assertEquals("Keep 2x after you let go is off", FeedHoldSpeed.labelDeclined(video, fast));
+        Settings.HOLD_FEED_VIDEO_KEEP.save(true);
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertEquals("Hold for 2x on feed videos is off or HushGram is paused", FeedHoldSpeed.labelDeclined(video, fast));
+        FeedHoldSpeed.keptLabel(video, fast);
+        assertNull("paused", FeedHoldSpeed.labelFor(fast));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+    }
+
+    /** A view the size of a feed video, in an activity's window, so it's on the screen. */
+    private static View onScreen() {
+        Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
+        FrameLayout video = new FrameLayout(activity);
+        activity.setContentView(video, new ViewGroup.LayoutParams(1080, 1350));
+        shadowOf(Looper.getMainLooper()).idle();
+        video.layout(0, 0, 1080, 1350);
+        assertTrue("attached", video.isAttachedToWindow());
+        return video;
+    }
+
+    /** What a label draws: each rounded tag and each text. */
+    private static final class Recording extends Canvas {
+        final List<RectF> tags = new ArrayList<>();
+        final List<String> texts = new ArrayList<>();
+
+        @Override
+        public void drawRoundRect(RectF rect, float rx, float ry, Paint paint) {
+            tags.add(new RectF(rect));
+        }
+
+        @Override
+        public void drawText(String text, float x, float y, Paint paint) {
+            texts.add(text);
+        }
     }
 
     /**

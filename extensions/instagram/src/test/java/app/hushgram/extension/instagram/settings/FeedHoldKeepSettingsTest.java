@@ -117,8 +117,8 @@ public class FeedHoldKeepSettingsTest {
         Preference row = page.getPreferenceScreen().findPreference(Settings.HOLD_FEED_VIDEO_KEEP_BADGE.key);
         assertNotNull(row);
         assertEquals("Show 2x after you let go", row.getTitle().toString());
-        assertEquals("A feed video that keeps playing at 2x shows Instagram's 2x and time labels in place of the name until it "
-                + "goes back to normal speed.", row.getSummary().toString());
+        assertEquals("A feed video that keeps playing at 2x shows a 2x label at the top until it goes back to normal speed.",
+                row.getSummary().toString());
         assertFalse(((SwitchPreference) row).isChecked());
         assertFalse("greyed out with Keep 2x after you let go off", row.isEnabled());
         PreferenceGroup feed = row.getParent();

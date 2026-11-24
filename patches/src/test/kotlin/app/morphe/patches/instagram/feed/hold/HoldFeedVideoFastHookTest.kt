@@ -154,6 +154,11 @@ class HoldFeedVideoFastHookTest {
         val held = lock.held
         assertTrue("$label: the press hands the post its hold state once", held != null)
         assertEquals("$label: the hold state is the resting state's kind", look.rest.substringAfterLast(':'), held!!.substringAfterLast(':'))
+        // #860: the press stores the pressed video view on the controller, which a kept lift hands its 2x label.
+        assertTrue("$label: the controller keeps the pressed video view", lock.view?.endsWith(":Landroid/view/View;") == true)
+        assertTrue("$label: the press stores that view", found.press.code().any {
+            it.opcode == Opcode.IPUT_OBJECT && it.referenceText() == lock.view
+        })
         val stock = found.press.code()
         val stockRelease = lock.release.code()
         context.holdFast(found)

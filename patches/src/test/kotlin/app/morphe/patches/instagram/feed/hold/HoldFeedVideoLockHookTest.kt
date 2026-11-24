@@ -50,6 +50,7 @@ class HoldFeedVideoLockHookTest {
     private val look = FeedLook("$controller->item:$item", "$mode->REST:$mode", "$item->show($mode)V")
     private val inlinedLook = FeedLook("$controller->item:$item", "$mode->REST:$mode", "$setter->set($item" + "Ljava/lang/Object;)V", "$item->setter:$setter")
     private val held = "$mode->ACTIVE:$mode"
+    private val videoView = "$controller->video:$view"
 
     /** The lock hooks are in the FeedHoldSpeed the bundle ships, public and static. */
     @Test
@@ -57,7 +58,7 @@ class HoldFeedVideoLockHookTest {
         val declared = ExtensionDex.classDef(FEED_HOLD).methods
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
-        listOf(LOCK_PRESSED, LOCK_LIFTED, LOOK_KEPT, KEPT_SHOWN).forEach {
+        listOf(LOCK_PRESSED, LOCK_LIFTED, LOOK_KEPT, KEPT_SHOWN, KEPT_LABEL, SPEED_RESET).forEach {
             assertTrue("$it is not in the extension: $declared", it.substringAfter("->") in declared)
         }
     }
@@ -80,8 +81,10 @@ class HoldFeedVideoLockHookTest {
             assertEquals("$what: the fast flag", fast, found.fast)
             assertEquals("$what: how the reset puts the look to rest", if (inlined) inlinedLook else look, found.look)
             assertEquals("$what: the hold state the press hands the post", held, found.held)
+            assertEquals("$what: the pressed video view the reset reads", videoView, found.view)
             val stockPress = FeedLockWrites.code(context, found.press)
             val stockRelease = FeedLockWrites.code(context, found.release)
+            val stockReset = FeedLockWrites.resetCode(context, found)
 
             context.lockFast(found)
 
@@ -92,10 +95,25 @@ class HoldFeedVideoLockHookTest {
             assertEquals("$what: the answer's register", if (high) 18 else 0, (yes as OneRegisterInstruction).registerA)
             assertTrue("$what: the press's stock kept in order", isKept(stockPress, FeedLockWrites.code(context, found.press)))
             assertTrue("$what: the release's stock kept in order", isKept(stockRelease, release))
-            assertTrue("$what: the tap and the reset stay as they were", listOf("tap", "reset").all { name ->
-                (context.mutableClassDefBy(handler).methods + context.mutableClassDefBy(controller).methods)
-                    .single { it.name == name }.implementation!!.instructions.none { it.text()?.startsWith(FEED_HOLD) == true }
-            })
+            assertTrue("$what: the reset's stock kept in order", isKept(stockReset, FeedLockWrites.resetCode(context, found)))
+            assertTrue("$what: the tap stays as it was", context.mutableClassDefBy(handler).methods.single { it.name == "tap" }
+                .implementation!!.instructions.none { it.text()?.startsWith(FEED_HOLD) == true })
+        }
+    }
+
+    /**
+     * #860: a controller with no view field the reset reads, or two, hands a kept lift's 2x label no view, so the
+     * extension says why it put none up, while the rest of the lock goes in.
+     */
+    @Test
+    fun aControllerWithNoOneVideoViewHandsTheLabelNone() {
+        for (views in listOf(0, 2)) {
+            val what = "$views video views"
+            val context = PatchContexts.of(classes(views = views))
+            val found = context.findFeedLock(context.feedPressEntry())
+            assertEquals(what, null, found.view)
+            context.lockFast(found)
+            FeedLockWrites.assertWritten(what, context, found)
         }
     }
 
@@ -186,7 +204,9 @@ class HoldFeedVideoLockHookTest {
      * feed item it holds and static reset. [high] puts the reset's registers above v15, the way a long method has
      * them. The reset puts the item's look to rest [looks] times, the way 456's does once, and the press hands the
      * item a hold state [holds] times after its 2x, the way 456's does once ([jumpsOntoHold] branching onto that call).
-     * [inlinedSetter] calls the setter the way 457's x86_64 does, through an object the item holds.
+     * [inlinedSetter] calls the setter the way 457's x86_64 does, through an object the item holds. The controller has
+     * [views] view fields, which the reset reads the way 457's 06nF.A01 reads the pressed video view; with [high] the
+     * reset's parameters sit above v15 as well.
      */
     private fun classes(
         high: Boolean = false,
@@ -201,6 +221,7 @@ class HoldFeedVideoLockHookTest {
         holds: Int = 1,
         jumpsOntoHold: Boolean = false,
         inlinedSetter: Boolean = false,
+        views: Int = 1,
     ): List<ClassDef> {
         val instance = AccessFlags.PUBLIC.value
         val static = AccessFlags.PUBLIC.value or AccessFlags.STATIC.value
@@ -267,21 +288,26 @@ class HoldFeedVideoLockHookTest {
             :fast
             return-void
         """
+        // With its parameters above v15, the reset reads the controller through v15.
+        val self = if (high) "v15" else "p0"
         val rest = (1..looks).joinToString("\n") { n ->
             """
-            iget-object v1, p0, $controller->item:$item
+            iget-object v1, $self, $controller->item:$item
             if-eqz v1, :rested$n
             sget-object v2, $mode->${if (n == 1) "REST" else "ACTIVE"}:$mode
             ${show(1, 2, 3)}
             :rested$n
             """
         }
+        val viewNames = listOf("video", "frame").take(views)
         val resetBody = """
-            iget-object v0, p0, $fast
+            ${if (high) "move-object/from16 v15, p0" else ""}
+            iget-object v0, $self, $fast
             const/4 v1, 0x0
             invoke-virtual {v0, v1}, $atomic->getAndSet(Z)Z
             move-result v0
             $rest
+            ${viewNames.joinToString("\n") { "iget-object v1, $self, $controller->$it:$view" }}
             const-string v1, "${if (tagged) SPEED_RESET_TAG else "FeedVideoSpeed"}"
             return v0
         """
@@ -297,13 +323,14 @@ class HoldFeedVideoLockHookTest {
         )
         val flags = listOfNotNull("fast", if (twoFlags) "slow" else null)
             .map { ImmutableField(controller, it, atomic, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, null, null, null) } +
-            ImmutableField(controller, "item", item, AccessFlags.PUBLIC.value, null, null, null)
+            ImmutableField(controller, "item", item, AccessFlags.PUBLIC.value, null, null, null) +
+            viewNames.map { ImmutableField(controller, it, view, AccessFlags.PUBLIC.value, null, null, null) }
         return listOf(
             ImmutableClassDef(handler, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, "Ljava/lang/Object;", emptyList(), null, null,
                 listOf(ImmutableField(handler, "speed", controller, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, null, null, null)),
                 handlerMethods),
             ImmutableClassDef(controller, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, "Ljava/lang/Object;", emptyList(), null, null,
-                flags, listOf(method(controller, "reset", listOf(controller, "Z"), "Z", if (inlinedSetter) 4 else 3, static, resetBody))),
+                flags, listOf(method(controller, "reset", listOf(controller, "Z"), "Z", if (high) 17 else if (inlinedSetter) 4 else 3, static, resetBody))),
         )
     }
 
@@ -332,13 +359,24 @@ internal object FeedLockWrites {
                 it.parameterTypes.map(Any::toString) == method.parameterTypes.map(Any::toString)
         }.implementation!!.instructions.toList()
 
+    /** The controller's speed reset, read back from a patched context. */
+    fun resetCode(context: BytecodePatchContext, lock: FeedLock): List<Instruction> =
+        resetMethod(context, lock).implementation!!.instructions.toList()
+
+    private fun resetMethod(context: BytecodePatchContext, lock: FeedLock): Method =
+        context.mutableClassDefBy(lock.reset.substringBefore("->")).methods.single {
+            "${it.definingClass}->${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" == lock.reset
+        }
+
     /**
      * The press entry reads the fast flag into a register right before its reset and hands it to [LOCK_PRESSED]. The
      * release reads it the same way for [LOCK_LIFTED], whose no goes on to the reset and whose yes puts the post's
-     * look to rest the way the reset does ([FeedLock.look]), sets the reset's answer register to 1 and jumps past the
-     * reset's move-result.
+     * look to rest the way the reset does ([FeedLock.look]), hands the pressed video view and the flag to
+     * [KEPT_LABEL] (#860), sets the reset's answer register to 1 and jumps past the reset's move-result. The reset
+     * hands the flag to [SPEED_RESET] first thing.
      */
     fun assertWritten(what: String, context: BytecodePatchContext, lock: FeedLock) {
+        assertResetTells(what, context, lock)
         val press = code(context, lock.press)
         val pressed = press.indices.filter { press[it].text() == LOCK_PRESSED }
         assertEquals("$what: calls telling the press", 1, pressed.size)
@@ -374,13 +412,82 @@ internal object FeedLockWrites {
         assertTrue("$what: a yes jumps, not ${release[reset - 1].opcode}", release[reset - 1].opcode in gotos)
         assertEquals("$what: a yes jumps past the reset's answer", reset + 2,
             (release[reset - 1] as BuilderOffsetInstruction).target.location.index)
-        val rests = release.subList(asked + 3, yesAt)
+        assertEquals("$what: calls putting up the 2x label", 1, release.count { it.text() == KEPT_LABEL })
+        val labelled = assertLabelHanded(what, release, yesAt - 1, lock)
+        val rests = release.subList(asked + 3, labelled)
         val look = lock.look
         if (look == null) {
-            assertTrue("$what: a yes with no look to rest goes straight to its answer: ${rests.map { it.opcode }}", rests.isEmpty())
+            assertTrue("$what: a yes with no look to rest goes straight to the label: ${rests.map { it.opcode }}", rests.isEmpty())
             return
         }
-        assertRested(what, rests, asked + 3, yesAt, look, lock.held)
+        assertRested(what, rests, asked + 3, labelled, look, lock.held)
+    }
+
+    /**
+     * Show 2x after you let go (#860): right before a kept lift's answer, [KEPT_LABEL] is handed the pressed video view
+     * read off the controller (null when it keeps none, [FeedLock.view]) and the fast flag, in two locals up to v15.
+     * Answers where those steps start.
+     */
+    private fun assertLabelHanded(what: String, code: List<Instruction>, at: Int, lock: FeedLock): Int {
+        val call = code[at]
+        assertEquals("$what: the label's call", KEPT_LABEL, call.text())
+        assertEquals("$what: the label's call", Opcode.INVOKE_STATIC, call.opcode)
+        val registers = call as FiveRegisterInstruction
+        assertEquals("$what: registers handed to the label", 2, registers.registerCount)
+        val video = registers.registerC
+        val flag = registers.registerD
+        assertTrue("$what: two locals up to v15: v$video, v$flag", video != flag && video <= 15 && flag <= 15)
+        val flagFrom = assertControllerRead("$what: the label's flag", code, at - 1, lock.fast, flag)
+        val view = lock.view
+        if (view != null) return assertControllerRead("$what: the label's video view", code, flagFrom - 1, view, video)
+        val none = code[flagFrom - 1]
+        assertEquals("$what: no video view, so the label is handed none", Opcode.CONST_4, none.opcode)
+        assertEquals("$what: no video view, into the view's register", video, (none as OneRegisterInstruction).registerA)
+        assertEquals("$what: no video view is a null", 0, (none as NarrowLiteralInstruction).narrowLiteral)
+        return flagFrom - 1
+    }
+
+    /**
+     * A read of the controller's [field] into [into] at [at], through [into] itself after the controller is moved
+     * down into it when it sits above v15. Answers where the read starts.
+     */
+    private fun assertControllerRead(what: String, code: List<Instruction>, at: Int, field: String, into: Int): Int {
+        val read = code[at]
+        assertEquals(what, Opcode.IGET_OBJECT, read.opcode)
+        assertEquals(what, field, read.text())
+        assertEquals("$what: into its register", into, (read as TwoRegisterInstruction).registerA)
+        val moved = code[at - 1]
+        if (moved.opcode == Opcode.MOVE_OBJECT_FROM16 && (moved as TwoRegisterInstruction).registerA == into) {
+            assertEquals("$what: read through the controller moved down", into, read.registerB)
+            return at - 1
+        }
+        assertTrue("$what: read off the controller in v${read.registerB}", read.registerB <= 15 && read.registerB != into)
+        return at
+    }
+
+    /**
+     * #860: the reset reads the fast flag off its controller parameter into a local first thing, through that local
+     * when the parameter sits above v15, and hands it to [SPEED_RESET], once.
+     */
+    private fun assertResetTells(what: String, context: BytecodePatchContext, lock: FeedLock) {
+        val method = resetMethod(context, lock)
+        val code = method.implementation!!.instructions.toList()
+        val hooks = code.filter { it.text()?.startsWith(FEED_HOLD) == true }.map { it.text() }
+        assertEquals("$what: the reset tells the extension once", listOf(SPEED_RESET), hooks)
+        val self = method.implementation!!.registerCount - 2
+        val at = code.indexOfFirst { it.text() == SPEED_RESET }
+        val flag = assertFlagHanded("$what: the reset", code, at, lock)
+        assertTrue("$what: the flag goes in a local, v$flag", flag < self && flag <= 15)
+        if (self <= 15) {
+            assertEquals("$what: the reset tells first thing", 1, at)
+            assertEquals("$what: the flag read off the controller", self, (code[0] as TwoRegisterInstruction).registerB)
+        } else {
+            assertEquals("$what: the reset tells first thing", 2, at)
+            assertEquals("$what: the controller moved down", Opcode.MOVE_OBJECT_FROM16, code[0].opcode)
+            assertEquals("$what: the controller moved into the flag's local", flag, (code[0] as TwoRegisterInstruction).registerA)
+            assertEquals("$what: the controller moved down", self, (code[0] as TwoRegisterInstruction).registerB)
+            assertEquals("$what: the flag read through it", flag, (code[1] as TwoRegisterInstruction).registerB)
+        }
     }
 
     /**
@@ -390,7 +497,7 @@ internal object FeedLockWrites {
      * state register first: a yes loads the hold state and jumps over the resting one, a no loads the resting one, and
      * both land on the setter.
      */
-    private fun assertRested(what: String, rests: List<Instruction>, from: Int, yesAt: Int, look: FeedLook, held: String?) {
+    private fun assertRested(what: String, rests: List<Instruction>, from: Int, after: Int, look: FeedLook, held: String?) {
         // Where the item's setter is inlined (457's x86_64), the call goes to the object the item holds, read off it first.
         val extra = if (look.holder == null) 0 else 1
         val asks = if (held == null) 0 else 5
@@ -442,7 +549,7 @@ internal object FeedLockWrites {
         val none = rests[lookAt - 2 - asks]
         assertEquals("$what: no item skips", Opcode.IF_EQZ, none.opcode)
         assertEquals("$what: no item's register", item, (none as OneRegisterInstruction).registerA)
-        assertEquals("$what: no item goes to the yes", yesAt, (none as BuilderOffsetInstruction).target.location.index)
+        assertEquals("$what: no item goes on to the 2x label", after, (none as BuilderOffsetInstruction).target.location.index)
         val read = rests[lookAt - 3 - asks]
         assertEquals("$what: the item's read", Opcode.IGET_OBJECT, read.opcode)
         assertEquals("$what: the item's read", look.item, read.text())

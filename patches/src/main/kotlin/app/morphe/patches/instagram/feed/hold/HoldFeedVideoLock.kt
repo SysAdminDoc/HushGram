@@ -15,6 +15,7 @@ import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.freeLocalsAt
 import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.loadsString
+import app.morphe.patches.instagram.misc.extension.localRegisterCount
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
@@ -46,12 +47,21 @@ import com.android.tools.smali.dexlib2.iface.reference.MethodReference
  * Keep the name while you hold (#552): once the press entry has the video at 2x, it hands the same
  * setter the hold state (003K.A03 ACTIVE). The patch asks the extension right before that call, and
  * a yes hands it the resting state instead, so the post keeps its look while the video plays fast.
+ *
+ * Show 2x after you let go (#860): Instagram's hold look on 457 hides the name over the video and
+ * shows the seek bar, with no 2x label anywhere (an S22 hold showed none), so handing a kept lift that
+ * look shows nothing about the speed. The press entry stores the pressed video view on the controller
+ * next to the feed item (457's 06nF.A00), and the reset reads it. A kept lift hands that view and the
+ * fast flag to the extension, which puts its own 2x label over the video, and the reset tells the
+ * extension the flag first thing, so whatever puts the speed back takes the label off with it.
  */
 
 internal const val LOCK_PRESSED = "$FEED_HOLD->pressed(Ljava/util/concurrent/atomic/AtomicBoolean;)V"
 internal const val LOCK_LIFTED = "$FEED_HOLD->lifted(Ljava/util/concurrent/atomic/AtomicBoolean;)Z"
 internal const val LOOK_KEPT = "$FEED_HOLD->keepsLook()Z"
 internal const val KEPT_SHOWN = "$FEED_HOLD->showsKept()Z"
+internal const val KEPT_LABEL = "$FEED_HOLD->keptLabel(Landroid/view/View;Ljava/util/concurrent/atomic/AtomicBoolean;)V"
+internal const val SPEED_RESET = "$FEED_HOLD->speedReset(Ljava/util/concurrent/atomic/AtomicBoolean;)V"
 
 /** What the feed's 2x controller logs when putting the speed back fails, loaded in its reset. */
 internal const val SPEED_RESET_TAG = "FeedVideo2xSpeed"
@@ -62,13 +72,15 @@ private const val GET_AND_SET = "$ATOMIC_BOOLEAN->getAndSet(Z)Z"
 private const val COMPARE_AND_SET = "$ATOMIC_BOOLEAN->compareAndSet(ZZ)Z"
 private const val FEED_MEDIA = "Lcom/instagram/feed/media/Media;"
 private const val LOOK_STATE_ANY = "Ljava/lang/Object;"
+private const val VIDEO_VIEW = "Landroid/view/View;"
 
 /**
  * The press entry and the release of the feed's hold, the controller's speed reset both call
  * ([reset], as "type->name(params)return"), the controller's fast flag ([fast], as
- * "type->name:type"), how the reset puts the post's 2x look to rest ([look]), when it does, and the
+ * "type->name:type"), how the reset puts the post's 2x look to rest ([look]), when it does, the
  * hold state the press entry hands the post through the same setter ([held], a static field), when
- * it does that once.
+ * it does that once, and the controller's field holding the pressed video view ([view]), when it
+ * has one the reset reads.
  */
 internal class FeedLock(
     val press: Method,
@@ -77,6 +89,7 @@ internal class FeedLock(
     val fast: String,
     val look: FeedLook?,
     val held: String? = null,
+    val view: String? = null,
 )
 
 /**
@@ -145,6 +158,10 @@ internal fun BytecodePatchContext.findFeedLock(press: Method): FeedLock {
     if (!press.reads(fast) || !press.callsVirtual(COMPARE_AND_SET)) {
         refuseLock("$where doesn't set $fast with compareAndSet")
     }
+    if (reset.localRegisterCount() < 1) refuseLock("${reset.signature()} has no local register to hand $fast in")
+    // Show 2x after you let go (#860): the controller's one view field, which the press fills and the reset reads.
+    val view = controller.fields.filter { !AccessFlags.STATIC.isSet(it.accessFlags) && it.type == VIDEO_VIEW }
+        .singleOrNull()?.let { "${it.definingClass}->${it.name}:${it.type}" }?.takeIf { reset.reads(it) }
 
     val p = press.parameterTypes.map(Any::toString)
     val shape = listOf(FEED_MEDIA, p[2], p.last(), "Z")
@@ -155,21 +172,18 @@ internal fun BytecodePatchContext.findFeedLock(press: Method): FeedLock {
     val release = releases.singleOrNull()
         ?: refuseLock("expected one press release (${shape.joinToString(", ")}) in ${press.definingClass}, found ${releases.size}")
     val look = reset.findLook(controller.type)
-    val found = FeedLock(press, release, reset.signature(), fast, look, look?.let { press.findHeld(it) })
+    val found = FeedLock(press, release, reset.signature(), fast, look, look?.let { press.findHeld(it) }, view)
     press.planReset(found.reset, keepsAnswer = false)
     release.planReset(found.reset, keepsAnswer = true, borrow = found.borrows())
     return found
 }
 
 /**
- * The locals a kept lift borrows: the flag's, the resting state's when it puts the look back, and
- * the setter's object's where the item's setter is inlined.
+ * The locals a kept lift borrows: the flag's, which then holds the feed item and the video view, the
+ * resting state's, which then holds the flag handed to the 2x label, and the setter's object's where
+ * the item's setter is inlined.
  */
-private fun FeedLock.borrows() = when {
-    look == null -> 1
-    look.holder == null -> 2
-    else -> 3
-}
+private fun FeedLock.borrows() = if (look?.holder == null) 2 else 3
 
 /**
  * The reset's one call putting the post's 2x look to rest: a two-register call to a one-argument
@@ -355,8 +369,10 @@ private fun MutableMethod.keepLook(look: FeedLook, held: String) {
  * skips the rest of the reset, its answer set to yes the way a fast lift's is. When the press hands
  * the post its hold state ([FeedLock.held]), [LOOK_KEPT] may swap it for the resting one, and a kept
  * lift asks [KEPT_SHOWN] first, whose yes hands the post that hold state in place of the resting one
- * (#860). Each call is found again by its reference, so other patches' code in either method doesn't
- * matter.
+ * (#860). A kept lift then hands [KEPT_LABEL] the pressed video view ([FeedLock.view]) and the flag,
+ * and the reset hands [SPEED_RESET] the flag first thing, from its first local, which nothing holds
+ * yet there. Each call is found again by its reference, so other patches' code in these methods
+ * doesn't matter.
  */
 internal fun BytecodePatchContext.lockFast(found: FeedLock) {
     val press = editable(found.press)
@@ -402,6 +418,13 @@ internal fun BytecodePatchContext.lockFast(found: FeedLock) {
             :rested
         """
     }.orEmpty()
+    // Show 2x after you let go (#860): the pressed video view, or none where the controller keeps none, and the flag.
+    val flag = lift.free[1]
+    val label = """
+        ${found.view?.let { lift.fieldInto(it, asked) } ?: "const/4 v$asked, 0x0"}
+        ${lift.fieldInto(found.fast, flag)}
+        invoke-static { v$asked, v$flag }, $KEPT_LABEL
+    """
     release.addInstructionsWithLabels(
         lift.at,
         """
@@ -410,10 +433,22 @@ internal fun BytecodePatchContext.lockFast(found: FeedLock) {
             move-result v$asked
             if-eqz v$asked, :reset
             $rests
+            $label
             ${if (result <= 15) "const/4" else "const/16"} v$result, 0x1
             goto :kept
         """,
         ExternalLabel("reset", release.getInstruction(lift.at)),
         ExternalLabel("kept", release.getInstruction(lift.at + 2)),
+    )
+
+    // The reset tells [SPEED_RESET] the flag before it clears it, so whatever puts the speed back takes the label off.
+    val speed = mutableClassDefBy(found.reset.substringBefore("->")).methods.single { it.signature() == found.reset }
+    val self = speed.localRegisterCount()
+    speed.addInstructions(
+        0,
+        """
+            ${if (self <= 15) "iget-object v0, v$self, ${found.fast}" else "move-object/from16 v0, v$self\niget-object v0, v0, ${found.fast}"}
+            invoke-static { v0 }, $SPEED_RESET
+        """,
     )
 }

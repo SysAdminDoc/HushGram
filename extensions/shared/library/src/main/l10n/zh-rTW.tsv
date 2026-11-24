@@ -2677,7 +2677,7 @@ Keeps 2x only when you hold the video for about 3 seconds. Let go sooner and it 
 # context: Feed settings: a switch under Keep 2x after you let go that leaves Instagram's 2x label on a feed video kept at 2x (#860)
 Show 2x after you let go	放開後顯示 2 倍速
 # context: Summary of Show 2x after you let go, a switch under Keep 2x after you let go (#860)
-A feed video that keeps playing at 2x shows Instagram's 2x and time labels in place of the name until it goes back to normal speed.	持續以 2 倍速播放的動態影片會以 Instagram 的 2 倍速和時間標籤取代名稱，直到恢復正常速度.
+A feed video that keeps playing at 2x shows a 2x label at the top until it goes back to normal speed.	持續以 2 倍速播放的動態影片會在上方顯示 2x 標籤，直到恢復正常速度。
 # context: Feed settings: a switch under Hold for 2x on feed videos that keeps the poster's name over the video while it's held at 2x (#552)
 Keep the name while you hold	按住時保留名稱
 # context: Summary of Keep the name while you hold, a switch under Hold for 2x on feed videos (#552)
