@@ -63,7 +63,9 @@ public class AccentThemeTest {
         Settings.ACCENT_HUE.resetToDefault();
         Settings.ACCENT_BADGES.resetToDefault();
         Settings.ACCENT_ICONS.resetToDefault();
+        Settings.ACCENT_TEXT.resetToDefault();
         Settings.ACCENT_REELS.resetToDefault();
+        Settings.ACCENT_PILLS.resetToDefault();
         Settings.ACCENT_RINGS.resetToDefault();
         Settings.ACCENT_RINGS_SOLID.resetToDefault();
         Settings.ACCENT_BACKGROUNDS.resetToDefault();
@@ -252,6 +254,61 @@ public class AccentThemeTest {
         AccentTheme.apply(bare, "igds_color_link");
         assertEquals(List.of(FamilyNames.ACCENT_COLOR + ": invoked 1, 0 found, 0 missing. Counted: " + AccentTheme.NO_BLUE + " 1, "
                 + AccentTheme.ICONS_MISSING + " 1"), HookStatus.report());
+    }
+
+    /**
+     * Text in the accent color sits under Icons in the accent color (#187): its style goes on right after
+     * the icon style, in the same shade for the theme, and only with both switches on. A build with icon
+     * styles but no text styles says so.
+     */
+    @Test
+    public void theTextStyleGoesOnAfterTheIconStyleInTheSameShade() {
+        Settings.ACCENT_COLOR.save(true);
+        Settings.ACCENT_HUE.save(AccentHue.TEAL);
+        assertEquals("HushGramAccentText_TEAL_light", AccentTheme.textStyle(AccentHue.TEAL, false));
+        assertEquals("HushGramAccentText_TEAL_dark", AccentTheme.textStyle(AccentHue.TEAL, true));
+        List<String> asked = new ArrayList<>();
+        Ids ids = (name, type) -> {
+            if (type.equals("style") && name.equals(AccentTheme.paletteStyle(AccentHue.TEAL))) return android.R.style.TextAppearance;
+            if (type.equals("style") && (name.startsWith("HushGramAccentIcons_") || name.startsWith("HushGramAccentText_"))) {
+                asked.add(name);
+                return android.R.style.TextAppearance_Small;
+            }
+            if (type.equals("attr") && name.equals(AccentTheme.ICON_ATTRIBUTE)) return android.R.attr.colorForeground;
+            return type.equals("attr") ? 0x7f990005 : 0;
+        };
+        Context light = new ContextThemeWrapper(themed(THEMED + ".text.light", ids), android.R.style.Theme_Material_Light);
+        Settings.ACCENT_TEXT.save(true);
+        AccentTheme.apply(light, "igds_color_link");
+        assertEquals("icons off, so no text either", List.of(), asked);
+
+        Settings.ACCENT_ICONS.save(true);
+        Settings.ACCENT_TEXT.save(false);
+        AccentTheme.apply(light, "igds_color_link");
+        assertEquals("text off", List.of(AccentTheme.iconStyle(AccentHue.TEAL, false)), asked);
+
+        Settings.ACCENT_TEXT.save(true);
+        HookStatus.clear();
+        AccentTheme.apply(light, "igds_color_link");
+        // Each style's number is looked up once, so the icon style isn't asked for again.
+        assertEquals(List.of(AccentTheme.iconStyle(AccentHue.TEAL, false), AccentTheme.textStyle(AccentHue.TEAL, false)), asked);
+        assertEquals(List.of(FamilyNames.ACCENT_COLOR + ": invoked 1, 0 found, 0 missing. Counted: " + AccentTheme.NO_BLUE + " 1, "
+                + AccentTheme.ICONS + " 1, " + AccentTheme.TEXT + " 1"), HookStatus.report());
+
+        Context dark = new ContextThemeWrapper(themed(THEMED + ".text.dark", ids), android.R.style.Theme_Material);
+        AccentTheme.apply(dark, "igds_color_link");
+        assertEquals(List.of(AccentTheme.iconStyle(AccentHue.TEAL, false), AccentTheme.textStyle(AccentHue.TEAL, false),
+                AccentTheme.iconStyle(AccentHue.TEAL, true), AccentTheme.textStyle(AccentHue.TEAL, true)), asked);
+
+        HookStatus.clear();
+        Context older = new ContextThemeWrapper(themed(THEMED + ".text.older", (name, type) -> {
+            if (type.equals("style") && name.equals(AccentTheme.paletteStyle(AccentHue.TEAL))) return android.R.style.TextAppearance;
+            if (type.equals("style") && name.startsWith("HushGramAccentIcons_")) return android.R.style.TextAppearance_Small;
+            return type.equals("attr") && name.equals(AccentTheme.ICON_ATTRIBUTE) ? android.R.attr.colorForeground : 0;
+        }), android.R.style.Theme_Material_Light);
+        AccentTheme.apply(older, "igds_color_link");
+        assertEquals(List.of(FamilyNames.ACCENT_COLOR + ": invoked 1, 0 found, 0 missing. Counted: " + AccentTheme.NO_BLUE + " 1, "
+                + AccentTheme.ICONS + " 1, " + AccentTheme.TEXT_MISSING + " 1"), HookStatus.report());
     }
 
     /** The ring style goes on with its switch, and a build without one says so (#187). */
@@ -824,6 +881,34 @@ public class AccentThemeTest {
         assertTrue(report, report.contains(AccentTheme.ICONS_MISSING + " 1"));
     }
 
+    /** A Litho theme that takes the icon style takes the text style in the same shade with Text in the accent color on (#187). */
+    @Test
+    public void lithosThemeTakesTheTextStyleWithTheIconStyle() {
+        Settings.ACCENT_COLOR.save(true);
+        Settings.ACCENT_HUE.save(AccentHue.TEAL);
+        Settings.ACCENT_ICONS.save(true);
+        List<String> asked = new ArrayList<>();
+        Ids ids = (name, type) -> {
+            if (type.equals("style") && name.startsWith("HushGramAccentIcons_TEAL_")) return android.R.style.Theme_Material;
+            if (type.equals("style") && name.startsWith("HushGramAccentText_TEAL_")) {
+                asked.add(name);
+                return android.R.style.TextAppearance_Small;
+            }
+            if (type.equals("attr") && (name.equals(AccentTheme.ICON_ATTRIBUTE) || name.equals(AccentTheme.GLYPH_ATTRIBUTE))) {
+                return android.R.attr.colorForeground;
+            }
+            return type.equals("attr") && name.equals(AccentTheme.BACKGROUND_ATTRIBUTE) ? android.R.attr.colorBackground : 0;
+        };
+        AccentTheme.lithoIcons(new ContextThemeWrapper(themed(THEMED + ".litho.text", ids), android.R.style.Theme_Material_Light));
+        assertEquals("text off", List.of(), asked);
+        Settings.ACCENT_TEXT.save(true);
+        AccentTheme.lithoIcons(new ContextThemeWrapper(themed(THEMED + ".litho.text", ids), android.R.style.Theme_Material_Light));
+        assertEquals(List.of(AccentTheme.textStyle(AccentHue.TEAL, false)), asked);
+        String report = HookStatus.report().toString();
+        assertTrue(report, report.contains(AccentTheme.LITHO_ICONS + " 2"));
+        assertTrue(report, report.contains(AccentTheme.TEXT + " 1"));
+    }
+
     /**
      * The repost button's animation, black or white in its file, takes the icon color through an
      * SRC_IN layer once the Litho theme it loads on carries the icon style (#724), and the layer is
@@ -1159,6 +1244,86 @@ public class AccentThemeTest {
         AccentTheme.searchSaved(null);
         String report = HookStatus.report().toString();
         assertTrue(report, report.contains(AccentTheme.BAR_ICONS + " 1"));
+    }
+
+    /**
+     * Saved's filters (#187): with Filters in the accent color on, an outlined pill takes a border and
+     * title in the picked link shade for the screen, and the selected one the picked fill under a title
+     * that reads on it. Another background, one that isn't a shape, the switch off or paused leaves the
+     * pill as it is.
+     */
+    @Test
+    public void savedsFiltersTakeThePickedColorWithTheirSwitch() {
+        int outlined = 0x7f0816b2;
+        int selected = 0x7f0816b3;
+        Ids ids = (name, type) -> {
+            if (type.equals("drawable") && name.equals(AccentTheme.PILL_OUTLINED)) return outlined;
+            if (type.equals("drawable") && name.equals(AccentTheme.PILL_SELECTED)) return selected;
+            return type.equals("attr") && name.equals(AccentTheme.ICON_ATTRIBUTE) ? android.R.attr.colorForeground : 0;
+        };
+        Context light = new ContextThemeWrapper(themed(THEMED + ".pills", ids), android.R.style.Theme_Material_Light);
+        int gray = 0xff737373;
+        android.widget.TextView pill = pill(light, gray);
+        AccentTheme.pills(pill, outlined);
+        assertEquals("off", gray, pill.getCurrentTextColor());
+        Settings.ACCENT_COLOR.save(true);
+        Settings.ACCENT_HUE.save(AccentHue.TEAL);
+        AccentTheme.pills(pill, outlined);
+        assertEquals("the filters' switch off", gray, pill.getCurrentTextColor());
+        Settings.ACCENT_PILLS.save(true);
+
+        int onLight = 0xff000000 | AccentColor.swap(0xff3143e3, AccentHue.TEAL);
+        int width = Math.max(1, Math.round(AccentTheme.PILL_STROKE_DP * light.getResources().getDisplayMetrics().density));
+        AccentTheme.pills(pill, outlined);
+        assertEquals("the outlined title", onLight, pill.getCurrentTextColor());
+        assertEquals("the outlined border", onLight, stroke(pill).getStrokeColor());
+        assertEquals("Instagram's border width", width, stroke(pill).getStrokeWidth());
+
+        int fill = 0xff000000 | AccentColor.swap(0xff4a5df9, AccentHue.TEAL);
+        android.widget.TextView picked = pill(light, gray);
+        AccentTheme.pills(picked, selected);
+        assertEquals("the selected fill", fill, stroke(picked).getLastSetColor());
+        assertEquals("a title that reads on it", AccentTheme.readsLight(fill) ? 0xff000000 : 0xffffffff, picked.getCurrentTextColor());
+
+        Context dark = new ContextThemeWrapper(themed(THEMED + ".pills", ids), android.R.style.Theme_Material);
+        android.widget.TextView night = pill(dark, gray);
+        AccentTheme.pills(night, outlined);
+        assertEquals("the dark screen's shade", 0xff000000 | AccentColor.swap(0xff85a1ff, AccentHue.TEAL), night.getCurrentTextColor());
+
+        android.widget.TextView other = pill(light, gray);
+        AccentTheme.pills(other, 0x7f080001);
+        assertEquals("another background", gray, other.getCurrentTextColor());
+        android.widget.TextView flat = new android.widget.TextView(light);
+        flat.setTextColor(gray);
+        flat.setBackground(new ColorDrawable(0xff222222));
+        AccentTheme.pills(flat, outlined);
+        assertEquals("not a shape", gray, flat.getCurrentTextColor());
+        AccentTheme.pills(null, outlined);
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        android.widget.TextView paused = pill(light, gray);
+        AccentTheme.pills(paused, outlined);
+        assertEquals("paused", gray, paused.getCurrentTextColor());
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        String report = HookStatus.report().toString();
+        assertTrue(report, report.contains(AccentTheme.PILLS + " 3"));
+    }
+
+    /** A filter as Instagram builds one: a title on a pill shape, its text [color]. */
+    private static android.widget.TextView pill(Context context, int color) {
+        android.widget.TextView pill = new android.widget.TextView(context);
+        pill.setTextColor(color);
+        GradientDrawable shape = new GradientDrawable();
+        shape.setCornerRadius(100);
+        pill.setBackground(shape);
+        return pill;
+    }
+
+    /** What [pill]'s shape was last given, read through Robolectric's record of it. */
+    private static org.robolectric.shadows.ShadowGradientDrawable stroke(android.widget.TextView pill) {
+        return (org.robolectric.shadows.ShadowGradientDrawable) org.robolectric.shadow.api.Shadow.extract(pill.getBackground());
     }
 
     /**

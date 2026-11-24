@@ -2546,12 +2546,28 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_accent_icons", FALSE, true, parent(ACCENT_COLOR));
 
     /**
+     * Under {@link #ACCENT_ICONS}: Instagram's primary text, names, captions and titles, takes the
+     * icons' shade of the picked color too (#187, {@link app.hushgram.extension.instagram.misc.AccentTheme}).
+     * Secondary text stays gray. A change shows after a restart. Off to start.
+     */
+    public static final BooleanSetting ACCENT_TEXT =
+            new BooleanSetting("hushgram_accent_text", FALSE, true, parent(ACCENT_ICONS));
+
+    /**
      * Under {@link #ACCENT_COLOR}: the buttons beside a reel and their counts, white over the video,
      * take the picked color too (#187, {@link app.hushgram.extension.instagram.misc.AccentTheme#reelButtons(int)}).
      * A change shows after a restart. Off to start.
      */
     public static final BooleanSetting ACCENT_REELS =
             new BooleanSetting("hushgram_accent_reels", FALSE, true, parent(ACCENT_COLOR));
+
+    /**
+     * Under {@link #ACCENT_COLOR}: Saved's filters take the picked color, a border and title on the
+     * others and a fill on the one you're on (#187,
+     * {@link app.hushgram.extension.instagram.misc.AccentTheme#pills(android.view.View, int)}). Off to start.
+     */
+    public static final BooleanSetting ACCENT_PILLS =
+            new BooleanSetting("hushgram_accent_pills", FALSE, true, parent(ACCENT_COLOR));
 
     /**
      * Under {@link #ACCENT_COLOR}: the gradient on story rings runs through the picked color instead

@@ -17,11 +17,14 @@ import android.graphics.PorterDuffColorFilter;
 import android.graphics.Rect;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
+import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.LayerDrawable;
 import android.graphics.drawable.ShapeDrawable;
 import android.util.TypedValue;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.TextView;
 
 import androidx.annotation.Nullable;
 
@@ -79,6 +82,15 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * too. Litho trees, the feed's post buttons among them, read their icon colors from the theme of the
  * context they're built on, which isn't always one the overrides or the theme util reached, so the
  * icon style also goes onto each such theme as Litho takes it up ({@link #lithoIcons}, #724).
+ *
+ * <p>With {@link Settings#ACCENT_TEXT} on under it, the picked color's text style goes on after the
+ * icon style, wherever that does (#187). It points {@code igds_color_primary_text} and
+ * {@code igds_color_text_and_icon_primary} at the same link shade, so names, captions and titles take
+ * it. Secondary text stays gray.
+ *
+ * <p>With {@link Settings#ACCENT_PILLS} on, Saved's filters take the picked color through
+ * {@link #pills} as each gets its background (#187): the outlined ones a border and title in the link
+ * shade, the selected one the picked fill.
  *
  * <p>With {@link Settings#ACCENT_REELS} on, the buttons beside a reel and their counts take the picked
  * color (#187). The column reads one color for its counts, white over the video, and builds its buttons
@@ -153,6 +165,24 @@ public final class AccentTheme {
 
     /** What's counted each time a top bar's icon, a profile tab or the Search tab's Saved bookmark takes the picked color (#187). */
     static final String BAR_ICONS = "Top bar and profile tab icons given the accent color";
+
+    /** Counted each time the text style goes onto a theme. */
+    static final String TEXT = "themes given accent text";
+
+    /** Counted when Text in the accent color is on but the build has no text styles. */
+    static final String TEXT_MISSING = "themes left with Instagram's text color, the text styles are missing";
+
+    /** Counted each time one of Saved's filters takes the accent. */
+    static final String PILLS = "Saved filters given the accent color";
+
+    /** The outlined pill Saved's filters are drawn with, a 1.25dp border in Instagram's border color. */
+    static final String PILL_OUTLINED = "mini_pdp_pill_bg_large_outlined";
+
+    /** The selected one, filled with Instagram's strong secondary background. */
+    static final String PILL_SELECTED = "mini_pdp_pill_bg_large_selected";
+
+    /** The outlined pill's border width, as Instagram draws it. */
+    static final float PILL_STROKE_DP = 1.25f;
 
     /** How far apart a color's channels can be for {@link #barIcons(int)} to take it for a gray. */
     static final int NEUTRAL_SPREAD = 0x18;
@@ -417,12 +447,14 @@ public final class AccentTheme {
         }
         if (Settings.ACCENT_ICONS.get()) {
             int attr = id(resources, ICON_ATTRIBUTE, "attr", app);
-            int icons = attr == 0 ? 0 : id(resources, iconStyle(hue, dark(context, theme, attr)), "style", app);
+            boolean dark = attr != 0 && dark(context, theme, attr);
+            int icons = attr == 0 ? 0 : id(resources, iconStyle(hue, dark), "style", app);
             if (icons == 0) {
                 HookStatus.counted(FamilyNames.ACCENT_COLOR, ICONS_MISSING);
             } else {
                 theme.applyStyle(icons, true);
                 HookStatus.counted(FamilyNames.ACCENT_COLOR, ICONS);
+                applyText(resources, theme, app, hue, dark);
             }
         }
         if (Settings.ACCENT_RINGS.get()) {
@@ -939,7 +971,8 @@ public final class AccentTheme {
             String app = Utils.resourcePackage(context);
             int icon = id(resources, ICON_ATTRIBUTE, "attr", app);
             int glyph = id(resources, GLYPH_ATTRIBUTE, "attr", app);
-            int style = icon == 0 || glyph == 0 ? 0 : id(resources, iconStyle(hue, dark(context, theme, icon)), "style", app);
+            boolean dark = icon != 0 && glyph != 0 && dark(context, theme, icon);
+            int style = icon == 0 || glyph == 0 ? 0 : id(resources, iconStyle(hue, dark), "style", app);
             if (style == 0) {
                 HookStatus.counted(FamilyNames.ACCENT_COLOR, ICONS_MISSING);
                 return;
@@ -949,6 +982,7 @@ public final class AccentTheme {
             if (themeColor(theme, glyph) == styleColor(theme, style, glyph)) return;
             theme.applyStyle(style, true);
             HookStatus.counted(FamilyNames.ACCENT_COLOR, LITHO_ICONS);
+            applyText(resources, theme, app, hue, dark);
             Logger.printDebug(() -> "Accent color: icons on the Litho theme of " + context.getClass().getName());
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.ACCENT_COLOR, "Litho icons", failure);
@@ -1251,6 +1285,60 @@ public final class AccentTheme {
         }
     }
 
+    /**
+     * Injected right after a pill, [view], is given the drawable [background] (#187). Saved's filters
+     * along the top (All, Collections, Reels and the rest) get Instagram's outlined pill, and the one
+     * you're on its selected pill. Those read Instagram's border and strong secondary background
+     * colors, which other borders and panels share, so no style can reach them alone. With Filters in
+     * the accent color on, an outlined pill's border and title take the picked color's link shade for
+     * the screen, and the selected one fills with the picked color's fill under a white title, or a
+     * black one on a light fill. Any other background, the switch off, HushGram paused or anything
+     * thrown leaves the pill as it is.
+     */
+    public static void pills(View view, int background) {
+        try {
+            HookStatus.invoked(FamilyNames.ACCENT_COLOR);
+            AccentHue hue = AccentColor.picked();
+            if (view == null || hue == null || !Settings.ACCENT_PILLS.get()) return;
+            Context context = view.getContext();
+            Resources resources = context.getResources();
+            String app = Utils.resourcePackage(context);
+            boolean selected = background != 0 && background == id(resources, PILL_SELECTED, "drawable", app);
+            if (!selected && (background == 0 || background != id(resources, PILL_OUTLINED, "drawable", app))) return;
+            Drawable drawn = view.getBackground();
+            if (!(drawn instanceof GradientDrawable)) return;
+            GradientDrawable pill = (GradientDrawable) drawn.mutate();
+            int title;
+            if (selected) {
+                int fill = 0xff000000 | AccentColor.swap(FILL, hue);
+                pill.setColor(fill);
+                title = readsLight(fill) ? 0xff000000 : 0xffffffff;
+            } else {
+                // Without the icon attribute, the screen's night mode decides.
+                boolean dark = dark(context, context.getTheme(), id(resources, ICON_ATTRIBUTE, "attr", app));
+                int link = 0xff000000 | AccentColor.swap(dark ? LINK_ON_DARK : LINK_ON_LIGHT, hue);
+                pill.setStroke(Math.max(1, Math.round(PILL_STROKE_DP * resources.getDisplayMetrics().density)), link);
+                title = link;
+            }
+            titles(view, title);
+            HookStatus.counted(FamilyNames.ACCENT_COLOR, PILLS);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.ACCENT_COLOR, "pills", failure);
+        }
+    }
+
+    /** Gives [view], when it's a title, or the titles right inside it, the color [color]. */
+    private static void titles(View view, int color) {
+        if (view instanceof TextView) {
+            ((TextView) view).setTextColor(color);
+        } else if (view instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup) view;
+            for (int i = 0; i < group.getChildCount(); i++) {
+                if (group.getChildAt(i) instanceof TextView) ((TextView) group.getChildAt(i)).setTextColor(color);
+            }
+        }
+    }
+
     /** Whether [rgb] is a gray, its channels no more than {@link #NEUTRAL_SPREAD} apart. */
     static boolean neutral(int rgb) {
         int red = (rgb >> 16) & 0xff;
@@ -1322,6 +1410,27 @@ public final class AccentTheme {
     /** The style pointing Instagram's icon attribute at [hue]'s link shade for a dark theme or a light one (#8). */
     static String iconStyle(AccentHue hue, boolean dark) {
         return "HushGramAccentIcons_" + hue.name() + (dark ? "_dark" : "_light");
+    }
+
+    /** The style pointing Instagram's primary text attributes at [hue]'s link shade for a dark theme or a light one (#187). */
+    static String textStyle(AccentHue hue, boolean dark) {
+        return "HushGramAccentText_" + hue.name() + (dark ? "_dark" : "_light");
+    }
+
+    /**
+     * Lays [hue]'s text style for a [dark] theme or a light one onto [theme] right after its icon style
+     * with Text in the accent color on (#187), counting it, or counting it missing on a build without
+     * the text styles.
+     */
+    private static void applyText(Resources resources, Resources.Theme theme, String app, AccentHue hue, boolean dark) {
+        if (!Settings.ACCENT_TEXT.get()) return;
+        int text = id(resources, textStyle(hue, dark), "style", app);
+        if (text == 0) {
+            HookStatus.counted(FamilyNames.ACCENT_COLOR, TEXT_MISSING);
+            return;
+        }
+        theme.applyStyle(text, true);
+        HookStatus.counted(FamilyNames.ACCENT_COLOR, TEXT);
     }
 
     /** The style pointing the gradient Instagram's story rings read at [hue]'s shades (#187). */

@@ -271,6 +271,25 @@ internal fun iconStyle(palette: String, theme: IconTheme): String =
     "HushGramAccentIcons_${palette}_${theme.name.lowercase(Locale.ROOT)}"
 
 /**
+ * The text color attributes the text styles set, for Text in the accent color (#187): Instagram's
+ * primary text color, which its semantic colors point the icon colors at too, and the text and icon
+ * color that newer screens read. Secondary text keeps its gray.
+ */
+internal val TEXT_ATTRIBUTES = listOf("igds_color_primary_text", "igds_color_text_and_icon_primary")
+
+/**
+ * Each of [TEXT_ATTRIBUTES] that [attrs] declares, or none without [ICON_ATTRIBUTE], since the text
+ * styles take the icon colors and go on after the icon style.
+ */
+private fun textAttributes(attrs: Document): List<String> {
+    val declared = attrs.children("attr").mapTo(HashSet()) { it.getAttribute("name") }
+    return if (ICON_ATTRIBUTE in declared) TEXT_ATTRIBUTES.filter { it in declared } else emptyList()
+}
+
+internal fun textStyle(palette: String, theme: IconTheme): String =
+    "HushGramAccentText_${palette}_${theme.name.lowercase(Locale.ROOT)}"
+
+/**
  * The gradient attributes Instagram's story rings read through `GradientPatternStyle`, with the shade
  * each takes (#187). Light to deep, as the gradient runs. On 454 a story's default ring runs yellow,
  * orange, pink and then lavender, so lavender takes the deep end with purple; without it the ring
@@ -528,7 +547,9 @@ internal fun accentUses(styles: List<Document>, colors: Map<String, Set<Int>>): 
  *   the attribute to it, `HushGramAccentBadge_PURPLE`, for Badges in the accent color (#315);
  * - when attrs.xml declares [ICON_ATTRIBUTE], each color's light and dark link shades as icon colors
  *   and a style setting the attribute, and each of [GLYPH_ATTRIBUTES] declared, to each,
- *   `HushGramAccentIcons_PURPLE_dark`, for Icons in the accent color (#8);
+ *   `HushGramAccentIcons_PURPLE_dark`, for Icons in the accent color (#8), and a style setting each
+ *   declared one of [TEXT_ATTRIBUTES] to each, `HushGramAccentText_PURPLE_dark`, for Text in the
+ *   accent color (#187);
  * - when attrs.xml declares any of [RING_ATTRIBUTES], each color's ring shades and a style setting
  *   those attributes to them, `HushGramAccentRings_PURPLE`, for Story rings in the accent color (#187),
  *   and a style setting all of them to [SOLID_RING_ROLE]'s, `HushGramAccentRingsSolid_PURPLE`, for
@@ -552,6 +573,7 @@ internal fun addAccentResources(uses: Set<AccentUse>, attrs: Document, colors: D
     val badges = attrs.children("attr").any { it.getAttribute("name") == BADGE_ATTRIBUTE }
     val iconAttributes = iconAttributes(attrs)
     val icons = iconAttributes.isNotEmpty()
+    val textAttributes = textAttributes(attrs)
     val rings = ringAttributes(attrs)
     val ringRoles = ringRoles(rings)
     val backgrounds = backgroundAttributes(attrs)
@@ -562,6 +584,9 @@ internal fun addAccentResources(uses: Set<AccentUse>, attrs: Document, colors: D
         (if (badges) ACCENT_PALETTES.flatMap { listOf(badgeColor(it), badgeStyle(it)) } else emptyList()) +
         (if (icons) ACCENT_PALETTES.flatMap { palette ->
             IconTheme.entries.flatMap { listOf(iconColor(palette.name, it), iconStyle(palette.name, it)) }
+        } else emptyList()) +
+        (if (textAttributes.isNotEmpty()) ACCENT_PALETTES.flatMap { palette ->
+            IconTheme.entries.map { textStyle(palette.name, it) }
         } else emptyList()) +
         (if (rings.isNotEmpty()) ACCENT_PALETTES.flatMap { palette ->
             ringRoles.map { ringColor(palette.name, it) } + ringStyle(palette.name) + solidRingStyle(palette.name) +
@@ -632,6 +657,9 @@ internal fun addAccentResources(uses: Set<AccentUse>, attrs: Document, colors: D
                     textContent = "#ff%06x".format(palette.shades.getValue(theme.role))
                 })
                 styles.documentElement.appendChild(styles.colorStyle(iconStyle(palette.name, theme), iconAttributes, iconColor(palette.name, theme)))
+                if (textAttributes.isNotEmpty()) {
+                    styles.documentElement.appendChild(styles.colorStyle(textStyle(palette.name, theme), textAttributes, iconColor(palette.name, theme)))
+                }
             }
         }
     }
@@ -685,7 +713,8 @@ internal fun addAccentResources(uses: Set<AccentUse>, attrs: Document, colors: D
  *   attribute at it, for Badges in the accent color (#315);
  * - when attrs.xml declares [ICON_ATTRIBUTE], a light and a dark icon color at the link shades and a
  *   style pointing the attribute, and each of [GLYPH_ATTRIBUTES] declared, at each, for Icons in the
- *   accent color (#8);
+ *   accent color (#8), and one pointing each declared one of [TEXT_ATTRIBUTES] at each, for Text in
+ *   the accent color (#187);
  * - when attrs.xml declares any of [RING_ATTRIBUTES], ring colors at the matching accent steps and a
  *   style pointing those attributes at them, for Story rings in the accent color (#187), and one
  *   pointing all of them at [SOLID_RING_ROLE]'s, for Solid story rings (#519);
@@ -704,6 +733,7 @@ internal fun addWallpaperResources(uses: Set<AccentUse>, attrs: Document, colors
     val badges = attrs.children("attr").any { it.getAttribute("name") == BADGE_ATTRIBUTE }
     val iconAttributes = iconAttributes(attrs)
     val icons = iconAttributes.isNotEmpty()
+    val textAttributes = textAttributes(attrs)
     val rings = ringAttributes(attrs)
     val ringRoles = ringRoles(rings)
     val backgrounds = backgroundAttributes(attrs)
@@ -711,6 +741,7 @@ internal fun addWallpaperResources(uses: Set<AccentUse>, attrs: Document, colors
     val adding = opaque.map { wallpaperColor(it.shade) } + WALLPAPER_PALETTE_STYLE +
         (if (badges) listOf(WALLPAPER_BADGE_COLOR, WALLPAPER_BADGE_STYLE) else emptyList()) +
         (if (icons) IconTheme.entries.flatMap { listOf(iconColor(WALLPAPER, it), iconStyle(WALLPAPER, it)) } else emptyList()) +
+        (if (textAttributes.isNotEmpty()) IconTheme.entries.map { textStyle(WALLPAPER, it) } else emptyList()) +
         (if (rings.isNotEmpty()) ringRoles.map { ringColor(WALLPAPER, it) } + ringStyle(WALLPAPER) + solidRingStyle(WALLPAPER) else emptyList()) +
         (if (backgrounds.isNotEmpty()) IconTheme.entries.flatMap { theme ->
             backgroundSteps.map { backgroundColor(WALLPAPER, theme, it) } + backgroundStyle(WALLPAPER, theme)
@@ -754,6 +785,9 @@ internal fun addWallpaperResources(uses: Set<AccentUse>, attrs: Document, colors
         for (theme in IconTheme.entries) {
             color(iconColor(WALLPAPER, theme), theme.role)
             styles.documentElement.appendChild(styles.colorStyle(iconStyle(WALLPAPER, theme), iconAttributes, iconColor(WALLPAPER, theme)))
+            if (textAttributes.isNotEmpty()) {
+                styles.documentElement.appendChild(styles.colorStyle(textStyle(WALLPAPER, theme), textAttributes, iconColor(WALLPAPER, theme)))
+            }
         }
     }
     if (rings.isNotEmpty()) {

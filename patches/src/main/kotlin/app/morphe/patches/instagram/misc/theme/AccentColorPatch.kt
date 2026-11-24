@@ -109,6 +109,10 @@ private val GET_COLOR = listOf(listOf("I"), listOf("I", THEME))
  * through the extension as the bar makes its filters and as a tab is told its colors, and the Search
  * tab's Saved bookmark as its bar keeps it ([tintBarIcons]), which answers the picked color with Icons
  * in the accent color on (#187).
+ *
+ * Saved's filters are pills whose border and fill read Instagram's border and secondary background
+ * colors, which other borders and panels share. Each pill goes through the extension right after it
+ * gets its background ([tintPills]), which colors that pill with Filters in the accent color on (#187).
  */
 @Suppress("unused")
 val accentColorPatch = bytecodePatch(
@@ -146,6 +150,7 @@ val accentColorPatch = bytecodePatch(
         tintTabIcons()
         tintReelButtons()
         tintBarIcons()
+        tintPills()
         tintLithoIcons()
         tintRepostAnimation()
         tintChipDot()

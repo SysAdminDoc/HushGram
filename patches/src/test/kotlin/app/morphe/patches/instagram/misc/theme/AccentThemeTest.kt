@@ -703,6 +703,60 @@ class AccentThemeTest {
         assertTrue(bare.elements("style").none { it.getAttribute("name").startsWith("HushGramAccentIcons_") })
     }
 
+    /**
+     * With the icon attribute declared, each color gets a light and a dark text style pointing each
+     * declared text attribute at the same link shade its icon style uses, for Text in the accent color
+     * (#187). Secondary text isn't in it. Without the icon attribute there are no text styles, and a
+     * name already there is refused.
+     */
+    @Test
+    fun theTextStylesPointTheTextAttributesAtEachIconColor() {
+        val uses = setOf(AccentUse("igds_color_link", AccentRole.LINK_ON_DARK, 0xff))
+        val declared = (listOf(ICON_ATTRIBUTE, "igds_color_secondary_text") + TEXT_ATTRIBUTES)
+            .joinToString("") { "<attr name=\"$it\" format=\"reference|color\" />" }
+        val attrs = parse("<resources>$declared</resources>")
+        val colors = parse("<resources />")
+        val styles = parse("<resources />")
+
+        addAccentResources(uses, attrs, colors, styles)
+        addWallpaperResources(uses, attrs, colors, parse("<resources />"), styles)
+
+        val text = styles.elements("style").filter { it.getAttribute("name").startsWith("HushGramAccentText_") }
+            .associate { style -> style.getAttribute("name") to style.elements("item").map { it.getAttribute("name") to it.textContent } }
+        assertEquals(
+            (ACCENT_PALETTES.map { it.name } + WALLPAPER).flatMap { palette -> IconTheme.entries.map { textStyle(palette, it) } },
+            text.keys.toList(),
+        )
+        assertEquals("HushGramAccentText_TEAL_dark", textStyle("TEAL", IconTheme.DARK))
+        assertEquals(
+            listOf("igds_color_primary_text", "igds_color_text_and_icon_primary").map { it to "@color/${iconColor("TEAL", IconTheme.LIGHT)}" },
+            text[textStyle("TEAL", IconTheme.LIGHT)],
+        )
+        assertEquals(
+            TEXT_ATTRIBUTES.map { it to "@color/${iconColor(WALLPAPER, IconTheme.DARK)}" },
+            text[textStyle(WALLPAPER, IconTheme.DARK)],
+        )
+        assertTrue("secondary text stays gray", text.values.flatten().none { it.first == "igds_color_secondary_text" })
+
+        val onlyOne = parse("<resources><attr name=\"$ICON_ATTRIBUTE\" /><attr name=\"igds_color_primary_text\" /></resources>")
+        val some = parse("<resources />")
+        addAccentResources(uses, onlyOne, parse("<resources />"), some)
+        assertEquals(
+            listOf("igds_color_primary_text" to "@color/${iconColor("PURPLE", IconTheme.DARK)}"),
+            some.elements("style").single { it.getAttribute("name") == textStyle("PURPLE", IconTheme.DARK) }
+                .elements("item").map { it.getAttribute("name") to it.textContent },
+        )
+
+        val textOnly = parse("<resources>${TEXT_ATTRIBUTES.joinToString("") { "<attr name=\"$it\" />" }}</resources>")
+        val bare = parse("<resources />")
+        addAccentResources(uses, textOnly, parse("<resources />"), bare)
+        assertTrue(bare.elements("style").none { it.getAttribute("name").startsWith("HushGramAccentText_") })
+
+        val taken = parse("<resources><style name=\"${textStyle("RED", IconTheme.LIGHT)}\" /></resources>")
+        val again = assertThrows(PatchException::class.java) { addAccentResources(uses, parse("<resources>$declared</resources>"), parse("<resources />"), taken) }
+        assertTrue(again.message, again.message!!.contains("already have a ${textStyle("RED", IconTheme.LIGHT)}"))
+    }
+
     @Test
     fun theHookAndTheStubAreInTheExtension() {
         val declared = app.morphe.ExtensionDex.classDef(ACCENT_THEME).methods
@@ -1358,6 +1412,16 @@ class AccentThemeTest {
                 assertTrue("$code: the dark icons", "style/${iconStyle("PURPLE", IconTheme.DARK)}" in added)
                 assertTrue("$code: the light icons", "style/${iconStyle("PURPLE", IconTheme.LIGHT)}" in added)
                 assertTrue("$code: the wallpaper icons", "style/${iconStyle(WALLPAPER, IconTheme.DARK)}" in added)
+                // And its primary text attributes, so every color gets its text styles too (#187).
+                assertTrue("$code: the dark text", "style/${textStyle("PURPLE", IconTheme.DARK)}" in added)
+                assertTrue("$code: the wallpaper text", "style/${textStyle(WALLPAPER, IconTheme.LIGHT)}" in added)
+                val text = parse(File(res, "values/styles.xml").readText()).elements("style")
+                    .single { it.getAttribute("name") == textStyle("PURPLE", IconTheme.DARK) }
+                assertEquals(
+                    "$code: the dark text's attributes",
+                    TEXT_ATTRIBUTES.map { it to "@color/hushgram_accent_purple_icon_dark" }.toSet(),
+                    text.elements("item").map { it.getAttribute("name") to it.textContent.trim() }.toSet(),
+                )
                 // It declares the glyph attributes too, so the icon styles reach the heart, the action bars and the post buttons.
                 // The encode puts a style's items in attribute number order.
                 val icons = parse(File(res, "values/styles.xml").readText()).elements("style")
