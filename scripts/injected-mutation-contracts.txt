@@ -2393,10 +2393,12 @@ shared-call Lapp/hushgram/extension/instagram/reels/ReelsTab;->root(Ljava/lang/O
 # method (07Ft.A1k), the lock-up's begin and end the lambda loading the label count key (0JfM.invoke),
 # the reset the static loading the four end reasons (09CU.A02) and the resume the method writing its
 # zero-mode log (07Ft.A0L). 457 made the resume static, the reel still first (0ASt.A0J), and reuses the reel's register before the play.
+# 457's x86_64 386314286 moves the lambda's cases into statics, the lock and the hold's end into one
+# beside the label count key's (0JhO.A00), so those two rules go by the strings that case logs.
 start-call Lapp/hushgram/extension/instagram/reels/ReelSpeed;->speedSet(F)V in instance (Lkotlin/jvm/functions/Function1;F)V class-holding ClipsVideoPlayerController.maybeResumePlayer\splayVideoInZeroMode:\s
 once-call Lapp/hushgram/extension/instagram/reels/ReelSpeed;->speedSet(F)V in instance (Lkotlin/jvm/functions/Function1;F)V class-holding ClipsVideoPlayerController.maybeResumePlayer\splayVideoInZeroMode:\s
-once-call Lapp/hushgram/extension/instagram/reels/ReelSpeed;->lockedUp()V in (*)Ljava/lang/Object; holding key_lock_up_suggestion_label_impression_count locked
-once-call Lapp/hushgram/extension/instagram/reels/ReelSpeed;->holdEnded()V in (*)Ljava/lang/Object; holding key_lock_up_suggestion_label_impression_count ended
+once-call Lapp/hushgram/extension/instagram/reels/ReelSpeed;->lockedUp()V in (*)Ljava/lang/Object; holding long_press locked ended
+once-call Lapp/hushgram/extension/instagram/reels/ReelSpeed;->holdEnded()V in (*)Ljava/lang/Object; holding long_press locked ended
 once-call Lapp/hushgram/extension/instagram/reels/ReelSpeed;->lockUpEnded(Ljava/lang/String;)V in static (*)V pooled holding cancel_lock_up swipe_down switch_tab scroll_away
 once-call Lapp/hushgram/extension/instagram/reels/ReelSpeed;->resetSpeed(F)F in static (*)V pooled holding cancel_lock_up swipe_down switch_tab scroll_away
 once-call Lapp/hushgram/extension/instagram/reels/ReelSpeed;->item(Ljava/lang/Object;)V in static (*)V holding ClipsVideoPlayerController.maybeResumePlayer\splayVideoInZeroMode:\s

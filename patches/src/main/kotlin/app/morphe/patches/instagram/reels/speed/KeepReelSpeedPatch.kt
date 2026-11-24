@@ -212,7 +212,12 @@ internal fun BytecodePatchContext.findReelSpeedHooks(): ReelSpeedHooks {
     val playerRegister = resumeCode[play].registers().first()
 
     // The hold handler logs a lock beginning as "locked", and a hold let go of without one as "ended".
-    val hold = single(LONG_PRESS_EDGE)
+    // It's the lambda loading the long-press edge, or where Redex moved that lambda's cases into
+    // statics of their own (457's x86_64 386314286), the one in its class logging a lock.
+    val edge = single(LONG_PRESS_EDGE)
+    val holds = classDefBy(edge.definingClass).methods.filter { method -> method.code().any { it.stringLoaded() == LOCKED_EVENT } }
+    val hold = holds.singleOrNull()
+        ?: refuse("expected one method in ${edge.definingClass} logging \"$LOCKED_EVENT\", found ${holds.size}")
     val lockBegun = hold.singleString(LOCKED_EVENT) + 1
     hold.requireOnlyFrom("the \"$LOCKED_EVENT\" event", lockBegun)
     val holdEnded = hold.singleString(HOLD_ENDED_EVENT) + 1

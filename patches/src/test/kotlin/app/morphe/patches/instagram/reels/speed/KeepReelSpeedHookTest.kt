@@ -188,6 +188,24 @@ class KeepReelSpeedHookTest {
         assertTrue("the play call doesn't follow", resume[playerHook + 1].referenceText()!!.startsWith("$player->play("))
     }
 
+    /**
+     * 457's x86_64 386314286 moves the hold handler's cases into statics of their own: the edge in
+     * one, the lock and the hold's end in another beside it. The hooks go in the one logging the lock.
+     */
+    @Test
+    fun aHoldHandlerSplitIntoStaticsGetsItsHooksWhereTheLockIsLogged() {
+        val context = PatchContexts.of(classes(Shape(splitHold = true)))
+
+        context.keepReelSpeed()
+
+        val holdCode = context.method(hold, "end")
+        val begun = holdCode.indexOfFirst { it.string() == LOCKED_EVENT }
+        assertEquals("the lock hook isn't right after the event", LOCKED_UP, holdCode[begun + 1].referenceText())
+        val ended = holdCode.indexOfFirst { it.string() == HOLD_ENDED_EVENT }
+        assertEquals("the hold-end hook isn't right after the event", HOLD_ENDED, holdCode[ended + 1].referenceText())
+        assertTrue("the edge got a hook", context.method(hold, "began").none { it.referenceText() in hooks })
+    }
+
     /** A build the patch can't read fails at patch time, saying what it found, before anything is written. */
     @Test
     fun aBuildThePatchCantReadFailsBeforeAnythingChanges() {
@@ -203,6 +221,7 @@ class KeepReelSpeedHookTest {
             Shape(plays = 0) to "makes 0 (String, boolean) calls on the player",
             Shape(plays = 2) to "makes 2 (String, boolean) calls on the player",
             Shape(holdAtEdge = false) to "expected one method loading \"$LONG_PRESS_EDGE\", found 0",
+            Shape(splitHold = true, lockLoggers = 2) to "logging \"$LOCKED_EVENT\", found 2",
             Shape(endedEvents = 2) to "loads \"$HOLD_ENDED_EVENT\" 2 times",
             Shape(branchAfterBegin = true) to "reaches the instruction after the \"$LOCKED_EVENT\" event",
             Shape(lockEndLogged = false) to "loads \"$HOLD_ENDED_EVENT\" 0 times, expected once",
@@ -313,7 +332,9 @@ class KeepReelSpeedHookTest {
             playCall.methodRef()?.returnType == "Z")
         assertEquals("$name: the player handed over is the one played", playCall.registers().first(), newResume[playerHook].registers().single())
 
-        val holdBefore = loading(LONG_PRESS_EDGE)
+        // 457's x86_64 386314286 logs the lock and the hold's end in a static beside the edge's.
+        val edge = loading(LONG_PRESS_EDGE)
+        val holdBefore = byType.getValue(edge.definingClass).methods.single { method -> method.code().any { it.string() == LOCKED_EVENT } }
         val newHold = after(holdBefore)
         assertEquals("$name: the hold handler grew", holdBefore.code().size + 2, newHold.size)
         val begun = newHold.indexOfFirst { it.string() == LOCKED_EVENT }
@@ -360,6 +381,9 @@ class KeepReelSpeedHookTest {
         val plays: Int = 1,
         val itemOverwritten: Boolean = false,
         val holdAtEdge: Boolean = true,
+        /** 457's x86_64: the edge in a static of its own, the lock and the hold's end in another beside it. */
+        val splitHold: Boolean = false,
+        val lockLoggers: Int = 1,
         val endedEvents: Int = 1,
         val branchAfterBegin: Boolean = false,
         val lockEndLogged: Boolean = true,
@@ -439,8 +463,9 @@ class KeepReelSpeedHookTest {
         )
 
         val endedEvents = "const-string v1, \"$HOLD_ENDED_EVENT\"\ninvoke-static { v1 }, $log\n".repeat(shape.endedEvents)
-        val holdMethod = method(hold, "end", listOf("Ljava/lang/Object;", "Z"), "Ljava/lang/Object;", 4, """
-            const-string v0, "${if (shape.holdAtEdge) LONG_PRESS_EDGE else "long_press_start"}"
+        val holdMethods = (0 until shape.lockLoggers).map { copy ->
+            method(hold, if (copy == 0) "end" else "end$copy", listOf("Ljava/lang/Object;", "Z"), "Ljava/lang/Object;", 4, """
+            const-string v0, "${if (shape.splitHold) "long_press" else if (shape.holdAtEdge) LONG_PRESS_EDGE else "long_press_start"}"
             if-eqz p1, :ended
             if-nez p1, :up
             const-string v0, "down"
@@ -456,6 +481,13 @@ class KeepReelSpeedHookTest {
             :ended
             $endedEvents
             return-object v1
+        """, AccessFlags.PUBLIC.value or AccessFlags.STATIC.value)
+        }
+        val edgeMethod = if (!shape.splitHold) null else method(hold, "began", listOf("Ljava/lang/Object;"), "Ljava/lang/Object;", 2, """
+            const-string v0, "$LONG_PRESS_EDGE"
+            invoke-static { v0 }, $log
+            const-string v0, "began"
+            return-object v0
         """, AccessFlags.PUBLIC.value or AccessFlags.STATIC.value)
 
         val reasonInto = { reason: String -> if (shape.reasonsInTwoRegisters && reason == "switch_tab") 1 else 2 }
@@ -520,7 +552,7 @@ class KeepReelSpeedHookTest {
             if (shape.viaHolder) holderClass else null,
             if (shape.viaHolder) engineClass else null,
             itemClass,
-            classDef(hold, listOf(holdMethod)),
+            classDef(hold, holdMethods + listOfNotNull(edgeMethod)),
             classDef(feature, listOf(resetMethod)),
             classDef(nux, listOf(nuxMethod)),
             ExtensionDex.classDef(REEL_SPEED),
