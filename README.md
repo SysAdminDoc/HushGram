@@ -34,7 +34,7 @@ This project has no connection to Meta or to the Morphe project. Neither endorse
 
 1. Install [Morphe Manager](https://github.com/MorpheApp/morphe-manager) 2.7.0 or newer.
 2. Add HushGram as a patch source by opening [this link](https://morphe.software/add-source?github=SysAdminDoc%2FHushGram) on your phone. Or in Manager open **Sources**, tap **+**, choose **Remote** and enter `github.com/SysAdminDoc/HushGram`. Use HushGram as your only Instagram source, since mixing in another one can stop patching.
-3. Get Instagram 457.0.0.55.73 from APKMirror. Take [the bundle labelled (arm64-v8a) (480dpi) (Android 9.0+), build 386314341](https://www.apkmirror.com/apk/instagram/instagram-instagram/instagram-457-0-0-55-73-release/). APKMirror lists two arm64 bundles for this version under the same label, so check the build number. The other one, 386314297, works too (see [Supported Instagram builds](#supported-instagram-builds)).
+3. Get Instagram 457.0.0.55.73 from APKMirror. Take [the bundle labelled (arm64-v8a) (480-640dpi) (Android 9.0+), build 386314341](https://www.apkmirror.com/apk/instagram/instagram-instagram/instagram-457-0-0-55-73-release/). The (480dpi) one, build 386314297, works too (see [Supported Instagram builds](#supported-instagram-builds)).
 4. Uninstall the Instagram you got from the Play Store. The patched app is signed with your own key, so Android won't install it over Meta's. Uninstalling signs you out, so have your password and two-factor codes ready. On a rooted phone, Manager's Root Mount can lay HushGram over the Play Store app instead, and you stay signed in.
 5. In Morphe Manager, pick the Instagram file, keep the default patch selection or change it, and patch.
 6. Open HushGram settings and turn on what you want. It's at the top of Instagram's Settings and activity. A long press on the Instagram logo at the top of your feed opens it too.
@@ -354,8 +354,8 @@ For something that's broken, use the [bug form](https://github.com/SysAdminDoc/H
 | --- | --- |
 | Package | `com.instagram.android` |
 | Version | `457.0.0.55.73` |
-| arm64-v8a builds | `386314341`, for most phones. `386314297` is another build of the same release |
-| Other ABIs | Meta hasn't published an armeabi-v7a, x86 or x86_64 build of this version yet, so 32-bit phones have nothing to patch until it does |
+| arm64-v8a builds | `386314341` (480-640dpi), for most phones. `386314297` (480dpi) is another build of the same release |
+| Other ABIs | Meta's armeabi-v7a (`386314340`) and x86_64 (`386314286`) builds of this version came out after HushGram moved to it and aren't supported yet. There's no x86 build so far |
 | Minimum Android version | Android 9 (API 28) |
 | Where to get it | [APKMirror](https://www.apkmirror.com/apk/instagram/instagram-instagram/) |
 

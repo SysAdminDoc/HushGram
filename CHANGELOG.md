@@ -4,7 +4,7 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
-* HushGram now patches Instagram 457.0.0.55.73 instead of 456.1.0.56.78. Get APKMirror's (arm64-v8a) (480dpi) (Android 9.0+) bundle, build 386314341. Build 386314297 works too. Meta hasn't put out 457 builds for armeabi-v7a, x86 or x86_64 yet.
+* HushGram now patches Instagram 457.0.0.55.73 instead of 456.1.0.56.78. Get APKMirror's (arm64-v8a) (480-640dpi) (Android 9.0+) bundle, build 386314341. Its 480dpi build, 386314297, works too. Only arm64-v8a is supported for now.
 * `Log out in Home's menu` is new under Tab bar. It puts Log out after HushGram settings in the list `Menu button on Home's header` opens, and starts Instagram's own Log out. Starts off. Asked for in #850.
 * `A story ring opens the story` is new under Profiles. Tapping a ringed profile picture opens the story whenever Instagram has it, where it sometimes opened the picture. Starts off. Asked for in #823.
 * `Whole story in the story menu` under Stories adds Show the whole story to a story's menu while `Stories fill the screen` is on. It fits just that story inside the screen. Starts off. Asked for in #845.

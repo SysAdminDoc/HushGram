@@ -26,7 +26,7 @@ body:
     attributes:
       label: Which Instagram file did you patch?
       description: The APKMirror variant and build number, if you know them. Most bugs on a build that should work come from a different variant.
-      placeholder: arm64-v8a, 480dpi, Android 9.0+, build 386314341
+      placeholder: arm64-v8a, 480-640dpi, Android 9.0+, build 386314341
   - type: dropdown
     id: manager
     attributes:

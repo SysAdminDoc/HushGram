@@ -40,8 +40,8 @@ internal object AppCompatibilities {
 
     /**
      * The version code of the arm64-v8a build of [INSTAGRAM_TARGET_VERSION]: APKMirror's
-     * (arm64-v8a) (480dpi) (Android 9.0+) bundle of that release, the highest arm64 code and the
-     * one the fixtures hold.
+     * (arm64-v8a) (480-640dpi) (Android 9.0+) bundle of that release, the highest arm64 code and
+     * the one the fixtures hold.
      */
     const val INSTAGRAM_TARGET_VERSION_CODE = 386314341
 
@@ -50,10 +50,10 @@ internal object AppCompatibilities {
      * is told about every one, so a 32-bit phone is pointed at the armeabi-v7a build rather than
      * the arm64 one, which it can't install (#346).
      *
-     * APKMirror has only two builds of 457.0.0.55.73 so far, both arm64-v8a: 386314297 and
-     * 386314341. The fixture tests read both. Meta published no armeabi-v7a, x86 or x86_64 build of
-     * this version yet, so only arm64 is declared; an ABI's build joins this map, with its highest
-     * code, once Meta publishes it.
+     * The fixture tests read two arm64-v8a builds of 457.0.0.55.73: 386314341 and 386314297
+     * (480dpi). APKMirror listed armeabi-v7a (386314340), x86_64 (386314286) and 320dpi arm64
+     * (386314326) builds only after the retarget, and no x86 one yet, so only arm64 is declared; an
+     * ABI's build joins this map, with its highest code, once its fixtures and verify-all pass.
      */
     val INSTAGRAM_TARGET_VERSION_CODES = mapOf(
         SupportedAbi.ARM64_V8A to INSTAGRAM_TARGET_VERSION_CODE,
