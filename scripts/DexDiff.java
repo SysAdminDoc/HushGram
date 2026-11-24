@@ -284,6 +284,12 @@ public class DexDiff {
      *       its one method of the rule's shape, isn't one of them. Two rules told apart only by
      *       their calling clause, as the two touch methods of the list ViewPager2 makes are, each
      *       hold their own method to the hook and leave the other's alone.
+     *   <li>Any rule with "on &lt;versionCode&gt;[,&lt;versionCode&gt; ...]" in front of its kind holds only
+     *       when the clean APK's manifest declares one of those version codes, and with "except" in
+     *       its place only when it declares none of them. For a hook one build of a version puts in
+     *       other places than the rest do, as 457's armeabi-v7a (386314340) inlines the clear mode
+     *       handler's turn-off into its four callers, which take the hook in its place. A scoped line
+     *       on an APK whose version code can't be read fails the run.
      * </ul>
      */
     /** A string as a rule line writes it: a backslash as two, then a space as \s. */
@@ -630,16 +636,104 @@ public class DexDiff {
                 call, callStatic, lack, lackStatic, sites, pooled);
     }
 
-    private static List<Contract> readContracts(File file) throws Exception {
+    /**
+     * The rules in [file] that hold for [clean]: every line, but a line scoped with "on" or "except"
+     * only when [clean]'s version code is, or isn't, among the ones it names. Every line is read
+     * either way, so a malformed scoped line fails on every build.
+     */
+    private static List<Contract> readContracts(File file, File clean) throws Exception {
         List<Contract> contracts = new ArrayList<>();
         if (file == null) return contracts;
         if (!file.isFile()) throw new IllegalArgumentException("Contract file not found: " + file);
         int lineNumber = 0;
+        Integer build = null;
+        boolean buildRead = false;
         for (String raw : Files.readAllLines(file.toPath(), StandardCharsets.UTF_8)) {
             lineNumber++;
             String line = raw.trim();
             if (line.isEmpty() || line.startsWith("#")) continue;
             String[] parts = line.split("\\s+");
+            Boolean applies = null;
+            if (parts[0].equals("on") || parts[0].equals("except")) {
+                Set<Integer> codes = new TreeSet<>();
+                if (parts.length < 3) throw new IllegalArgumentException("Invalid contract line " + lineNumber + ": expected a rule after " + parts[0]);
+                for (String code : parts[1].split(",")) {
+                    if (!code.matches("[1-9][0-9]*")) {
+                        throw new IllegalArgumentException("Invalid contract line " + lineNumber + ": " + parts[0]
+                                + " takes version codes joined by commas, not " + parts[1]);
+                    }
+                    codes.add(Integer.parseInt(code));
+                }
+                if (!buildRead) {
+                    build = versionCode(clean);
+                    buildRead = true;
+                }
+                if (build == null) {
+                    throw new IllegalArgumentException("Contract line " + lineNumber + " is scoped to version codes, and "
+                            + clean + " has no version code to read");
+                }
+                applies = codes.contains(build) == parts[0].equals("on");
+                parts = Arrays.copyOfRange(parts, 2, parts.length);
+            }
+            int before = contracts.size();
+            readContract(parts, lineNumber, contracts);
+            if (Boolean.FALSE.equals(applies)) contracts.subList(before, contracts.size()).clear();
+        }
+        return contracts;
+    }
+
+    /**
+     * The version code [apk]'s binary AndroidManifest.xml declares: the attribute of its first
+     * element, the manifest, whose resource id is android:versionCode's, read as an int. Null when
+     * [apk] isn't a zip, has no manifest, or the manifest has no such attribute.
+     */
+    static Integer versionCode(File apk) {
+        byte[] xml;
+        try (java.util.zip.ZipFile zip = new java.util.zip.ZipFile(apk)) {
+            java.util.zip.ZipEntry entry = zip.getEntry("AndroidManifest.xml");
+            if (entry == null) return null;
+            try (java.io.InputStream in = zip.getInputStream(entry)) {
+                xml = in.readAllBytes();
+            }
+        } catch (java.io.IOException notAZip) {
+            return null;
+        }
+        java.nio.ByteBuffer b = java.nio.ByteBuffer.wrap(xml).order(java.nio.ByteOrder.LITTLE_ENDIAN);
+        if (xml.length < 8 || b.getShort(0) != 0x0003) return null;
+        int[] ids = new int[0];
+        int at = b.getShort(2) & 0xffff;
+        while (at + 8 <= xml.length) {
+            int type = b.getShort(at) & 0xffff;
+            int header = b.getShort(at + 2) & 0xffff;
+            int size = b.getInt(at + 4);
+            if (size < 8 || at + size > xml.length) return null;
+            if (type == 0x0180) {
+                ids = new int[(size - header) / 4];
+                for (int i = 0; i < ids.length; i++) ids[i] = b.getInt(at + header + 4 * i);
+            } else if (type == 0x0102) {
+                int ext = at + header;
+                int start = b.getShort(ext + 8) & 0xffff;
+                int attributeSize = b.getShort(ext + 10) & 0xffff;
+                int count = b.getShort(ext + 12) & 0xffff;
+                for (int i = 0; i < count; i++) {
+                    int attribute = ext + start + i * attributeSize;
+                    if (attribute + 20 > at + size) return null;
+                    int name = b.getInt(attribute + 4);
+                    if (name >= 0 && name < ids.length && ids[name] == 0x0101021b) {
+                        int dataType = b.get(attribute + 15) & 0xff;
+                        return dataType == 0x10 || dataType == 0x11 ? b.getInt(attribute + 16) : null;
+                    }
+                }
+                return null;
+            }
+            at += size;
+        }
+        return null;
+    }
+
+    /** Reads one rule line, split on spaces, into [contracts], or throws naming [lineNumber]. */
+    private static void readContract(String[] parts, int lineNumber, List<Contract> contracts) {
+        {
             String form = PICKED_FORMS.get(parts[0]);
             if (form != null) {
                 Contract picked = readPicked(parts);
@@ -651,7 +745,7 @@ public class DexDiff {
                             + " [pooled] holding or class-holding <string> [<string> ...]");
                 }
                 contracts.add(picked);
-                continue;
+                return;
             }
             boolean singleCall = parts.length == 4 && parts[0].equals("single-call") && parts[2].equals("in");
             boolean firstCall = parts.length == 4 && parts[0].equals("first-call") && parts[2].equals("on")
@@ -680,7 +774,6 @@ public class DexDiff {
             String kind = firstCallTyped ? TYPED_FIRST_CALL : firstCallOutside ? OUTSIDE_FIRST_CALL : parts[0];
             contracts.add(new Contract(kind, parts[1], parts[3]));
         }
-        return contracts;
     }
 
     /** Every instruction of a body with its code-unit address, and where the body ends. */
@@ -2824,7 +2917,7 @@ public class DexDiff {
         File allowlistFile = new File(args[3]);
         RemovalAllowlist allowlist = readRemovalAllowlist(allowlistFile);
         File contractFile = args.length > 4 ? new File(args[4]) : null;
-        List<Contract> contracts = readContracts(contractFile);
+        List<Contract> contracts = readContracts(contractFile, clean);
         // The base.apk whose signer was checked, when the clean side is the bundle's merge.
         File signedBase = args.length > 5 ? new File(args[5]) : null;
         List<String> baseMismatch = signedBase == null ? List.of() : rootDexMismatch(signedBase, clean);

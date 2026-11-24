@@ -10,6 +10,9 @@
 #   once-call <method reference> [in [static|instance] <shape>] [calling [static|instance] <method reference>] [sites <n>] holding <string> [<string> ...]
 #   shared-call <method reference> [in [static|instance] <shape>] [calling [static|instance] <method reference>] [sites <n>] holding <string> [<string> ...]
 #   story-loop-call <native method reference, its name may be *> [in [static|instance] <shape>] [calling [static|instance] <method reference>] holding <string> [<string> ...]
+#   on <versionCode>[,<versionCode> ...] <any rule above>, or except in place of on
+# A rule written after on holds only on the builds whose manifest declares one of those version codes,
+# and after except only on the others, for a hook one build puts in other places than the rest do.
 # A start-call, next-call, sole-call, once-call or shared-call rule picks its method by every string
 # it names and its shape, and exactly one of Instagram's methods may answer that; name as much as the
 # patch's own fingerprint finds the method by. A string with a space in it is written with \s for
