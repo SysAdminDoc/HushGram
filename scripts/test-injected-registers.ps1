@@ -1048,6 +1048,13 @@ try {
     # one the fixture's rules exercise, and its no-call rules are the fixture's. Each has its own
     # bad build below. The rules themselves are held to Instagram by
     # verify-injected-registers.ps1, which verify-all-patches.ps1 runs.
+    # A rule scoped to some builds (on or except and their version codes) is still a rule of its
+    # kind. The fixture's clean build declares no version code for DexDiff to hold a scope to, so
+    # the checks below read a copy of the file with each scope taken off.
+    $scopedContracts = $realContracts
+    $realContracts = Join-Path $caseRoot 'real-contracts.txt'
+    $unscopedLines = @(Get-Content -LiteralPath $scopedContracts | ForEach-Object { $_ -replace '^(\s*)(on|except)\s+[0-9,]+\s+', '$1' })
+    [System.IO.File]::WriteAllText($realContracts, (($unscopedLines -join "`n") + "`n"))
     $ruleKind = { param($Path) @(Get-Content -LiteralPath $Path | Where-Object { $_ -match '^\s*[a-z-]+-call\s' } |
         ForEach-Object { ($_.Trim() -split '\s+')[0] } | Sort-Object -Unique) }
     $realKinds = & $ruleKind $realContracts
