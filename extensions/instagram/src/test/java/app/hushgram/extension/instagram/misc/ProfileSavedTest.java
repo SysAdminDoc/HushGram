@@ -33,6 +33,7 @@ import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
 import org.robolectric.android.controller.ActivityController;
 
+import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 
@@ -45,6 +46,26 @@ public class ProfileSavedTest {
     public void aRowLabelledSavedIsTheSavedRowInAnyCase() {
         assertTrue(ProfileSaved.isSavedLabel("Saved"));
         assertTrue(ProfileSaved.isSavedLabel("  saved "));
+    }
+
+    /**
+     * The bookmark is drawn in the idle tabs' gray, and with Icons in the accent color on in the picked
+     * color's shade at that gray's alpha, like Instagram's own tabs beside it (#187).
+     */
+    @Test
+    public void theBookmarkTakesThePickedShadeWithIconsInTheAccentColor() {
+        try {
+            assertEquals("gray", 0x99000000, new ProfileSaved.Icon(RuntimeEnvironment.getApplication()).color());
+            Settings.ACCENT_COLOR.save(true);
+            Settings.ACCENT_HUE.save(AccentHue.TEAL);
+            Settings.ACCENT_ICONS.save(true);
+            int shade = AccentColor.swap(0xff3143e3, AccentHue.TEAL);
+            assertEquals("the picked shade", 0x99000000 | (shade & 0xffffff), new ProfileSaved.Icon(RuntimeEnvironment.getApplication()).color());
+        } finally {
+            Settings.ACCENT_COLOR.resetToDefault();
+            Settings.ACCENT_HUE.resetToDefault();
+            Settings.ACCENT_ICONS.resetToDefault();
+        }
     }
 
     /** The menu's rows are found through this lookup, so a refusal shows the menu at once. */

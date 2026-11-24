@@ -536,8 +536,11 @@ public final class ProfileSaved {
         return trimmed.equalsIgnoreCase("Saved") || trimmed.equalsIgnoreCase(L10n.t("Saved"));
     }
 
-    /** The bookmark: an outline drawn here, so the app gets no resource, grey like Instagram's idle tabs. */
-    private static final class Icon extends Drawable {
+    /**
+     * The bookmark: an outline drawn here, so the app gets no resource, grey like Instagram's idle tabs, or
+     * the accent color with Icons in the accent color on.
+     */
+    static final class Icon extends Drawable {
         private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Path path = new Path();
         private final float density;
@@ -548,7 +551,13 @@ public final class ProfileSaved {
             paint.setStrokeJoin(Paint.Join.ROUND);
             paint.setStrokeCap(Paint.Cap.ROUND);
             int night = context.getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK;
-            paint.setColor(night == Configuration.UI_MODE_NIGHT_YES ? 0xb3ffffff : 0x99000000);
+            // With Icons in the accent color on, the picked color at the same alpha, like the other tabs (#187).
+            paint.setColor(AccentTheme.barIcons(night == Configuration.UI_MODE_NIGHT_YES ? 0xb3ffffff : 0x99000000));
+        }
+
+        /** The color the outline is drawn in. */
+        int color() {
+            return paint.getColor();
         }
 
         @Override public void draw(@NonNull Canvas canvas) {

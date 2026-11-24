@@ -21,6 +21,7 @@ import android.graphics.drawable.LayerDrawable;
 import android.graphics.drawable.ShapeDrawable;
 import android.util.TypedValue;
 import android.view.View;
+import android.widget.ImageView;
 
 import androidx.annotation.Nullable;
 
@@ -149,6 +150,22 @@ public final class AccentTheme {
 
     /** What's counted each time a reel's button column takes the picked color for its counts or icons (#187). */
     static final String REEL_BUTTONS = "Reel buttons given the accent color";
+
+    /** What's counted each time a top bar's icon, a profile tab or the Search tab's Saved bookmark takes the picked color (#187). */
+    static final String BAR_ICONS = "Top bar and profile tab icons given the accent color";
+
+    /** How far apart a color's channels can be for {@link #barIcons(int)} to take it for a gray. */
+    static final int NEUTRAL_SPREAD = 0x18;
+
+    /**
+     * The brightness range {@link #barIcons(int)} reads as a tab you aren't on: Instagram's secondary
+     * icon gray, #737373 on a light screen and #a8a8a8 on a dark one, and not its near black or white.
+     */
+    static final int SECONDARY_LOW = 0x50;
+    static final int SECONDARY_HIGH = 0xd0;
+
+    /** The filters {@link #barIconFilter(int)} made, one per color, as the top bar's own maker keeps them. */
+    private static final Map<Integer, ColorFilter> BAR_FILTERS = new HashMap<>();
 
     /** What's counted each time a theme a Litho tree reads its colors from takes the icon style (#724). */
     static final String LITHO_ICONS = "Litho themes given accent icons";
@@ -1160,6 +1177,91 @@ public final class AccentTheme {
         if (color == null) return null;
         int icons = tabIcons(color.intValue());
         return icons == color ? color : Integer.valueOf(icons);
+    }
+
+    /**
+     * Injected where a screen's top bar colors its back arrow and buttons, and where a profile's
+     * Posts, Reels, Reposts and Tagged tabs are told their colors, for that color, [color] (#187). Both
+     * read Instagram's text and icon color, or a gray for a tab you aren't on, rather than the icon
+     * color the theme holds, so with Icons in the accent color on they stayed white or black. Answers
+     * the picked color's link shade for a dark screen when [color] reads light and its shade for a light
+     * screen when it reads dark, as {@link #tabIcons(int)} does. A gray in between keeps 60% of its
+     * alpha, so the tabs you aren't on stay dimmer than the one you are. A color of its own, like a red
+     * or Instagram's blue, and a see-through one are left as they are. Answers [color] with the switch
+     * off, HushGram paused or anything thrown.
+     */
+    public static int barIcons(int color) {
+        try {
+            HookStatus.invoked(FamilyNames.ACCENT_COLOR);
+            AccentHue hue = AccentColor.picked();
+            int alpha = color >>> 24;
+            if (hue == null || alpha == 0 || !neutral(color) || !Settings.ACCENT_ICONS.get()) return color;
+            int shade = AccentColor.swap(readsLight(color) ? LINK_ON_DARK : LINK_ON_LIGHT, hue);
+            int brightness = brightness(color);
+            if (brightness >= SECONDARY_LOW && brightness <= SECONDARY_HIGH) alpha = alpha * 3 / 5;
+            int icons = (alpha << 24) | (shade & 0xffffff);
+            if (icons != color) HookStatus.counted(FamilyNames.ACCENT_COLOR, BAR_ICONS);
+            return icons;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.ACCENT_COLOR, "bar icons", failure);
+            return color;
+        }
+    }
+
+    /**
+     * Injected in place of the top bar's own maker of the color filter it lays on its buttons, which
+     * keeps one SRC_ATOP filter per color (#187). Answers the same kind of filter for
+     * {@link #barIcons(int)}'s answer to [color], kept the same way, so with the switch off the bar gets
+     * the filter it always did.
+     */
+    public static ColorFilter barIconFilter(int color) {
+        int icons = barIcons(color);
+        synchronized (BAR_FILTERS) {
+            ColorFilter filter = BAR_FILTERS.get(icons);
+            if (filter == null) {
+                filter = new PorterDuffColorFilter(icons, PorterDuff.Mode.SRC_ATOP);
+                BAR_FILTERS.put(icons, filter);
+            }
+            return filter;
+        }
+    }
+
+    /**
+     * Injected in place of the top bar's ImageView.setColorFilter(int) on its back arrow (#187): lays
+     * {@link #barIcons(int)}'s answer to [color] on [view] the way that call does.
+     */
+    public static void setBarIconColor(ImageView view, int color) {
+        view.setColorFilter(barIcons(color));
+    }
+
+    /**
+     * Injected right after the Search tab's top bar makes its Saved bookmark, [view] (#187). The
+     * bookmark's drawable carries Instagram's text and icon color, so with Icons in the accent color on
+     * this lays the color [view]'s theme holds for {@link #ICON_ATTRIBUTE} over it. Leaves it alone with
+     * the switch off, HushGram paused, no plain color there or anything thrown.
+     */
+    public static void searchSaved(ImageView view) {
+        try {
+            Integer color = view == null ? null : iconColor(view.getContext());
+            if (color == null) return;
+            view.setColorFilter(new PorterDuffColorFilter(color, PorterDuff.Mode.SRC_IN));
+            HookStatus.counted(FamilyNames.ACCENT_COLOR, BAR_ICONS);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.ACCENT_COLOR, "search saved", failure);
+        }
+    }
+
+    /** Whether [rgb] is a gray, its channels no more than {@link #NEUTRAL_SPREAD} apart. */
+    static boolean neutral(int rgb) {
+        int red = (rgb >> 16) & 0xff;
+        int green = (rgb >> 8) & 0xff;
+        int blue = rgb & 0xff;
+        return Math.max(red, Math.max(green, blue)) - Math.min(red, Math.min(green, blue)) <= NEUTRAL_SPREAD;
+    }
+
+    /** [rgb]'s weighted brightness, 0 to 255, the one {@link #readsLight} reads. */
+    private static int brightness(int rgb) {
+        return (299 * ((rgb >> 16) & 0xff) + 587 * ((rgb >> 8) & 0xff) + 114 * (rgb & 0xff)) / 1000;
     }
 
     /**

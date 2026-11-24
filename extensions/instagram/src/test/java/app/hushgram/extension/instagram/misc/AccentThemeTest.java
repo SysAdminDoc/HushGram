@@ -1051,6 +1051,117 @@ public class AccentThemeTest {
     }
 
     /**
+     * A screen's top bar and a profile's tabs are told Instagram's text and icon color, or a gray for a
+     * tab you aren't on, and with Icons in the accent color on that becomes the picked color's shade for
+     * a dark screen when it reads light and for a light one when it reads dark (#187). The gray keeps
+     * 60% of its alpha, so the tab you're on stands out. A color of its own and a see-through one stay,
+     * and the switch off, Accent color off or paused leaves every color as told.
+     */
+    @Test
+    public void topBarIconsAndProfileTabsTakeThePickedShade() {
+        int white = 0xfff5f5f5;
+        int dark = 0xff0c1014;
+        int grayOnDark = 0xffa8a8a8;
+        int grayOnLight = 0xff737373;
+        int red = 0xffff3040;
+        assertEquals("off", white, AccentTheme.barIcons(white));
+        Settings.ACCENT_COLOR.save(true);
+        Settings.ACCENT_HUE.save(AccentHue.TEAL);
+        assertEquals("icons off", white, AccentTheme.barIcons(white));
+        Settings.ACCENT_ICONS.save(true);
+
+        int onDark = 0xff000000 | AccentColor.swap(0xff85a1ff, AccentHue.TEAL);
+        int onLight = 0xff000000 | AccentColor.swap(0xff3143e3, AccentHue.TEAL);
+        assertEquals("white on a dark screen", onDark, AccentTheme.barIcons(white));
+        assertEquals("near black on a light screen", onLight, AccentTheme.barIcons(dark));
+        assertEquals("a tab you aren't on, dark", 0x99000000 | (onDark & 0xffffff), AccentTheme.barIcons(grayOnDark));
+        assertEquals("a tab you aren't on, light", 0x99000000 | (onLight & 0xffffff), AccentTheme.barIcons(grayOnLight));
+        assertEquals("the bookmark's own alpha kept", 0xb3000000 | (onDark & 0xffffff), AccentTheme.barIcons(0xb3ffffff));
+        assertEquals("a red of its own stays", red, AccentTheme.barIcons(red));
+        assertEquals("see-through stays", 0, AccentTheme.barIcons(0));
+        assertEquals("already the shade, not counted", onDark, AccentTheme.barIcons(onDark));
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertEquals("paused", white, AccentTheme.barIcons(white));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        String report = HookStatus.report().toString();
+        assertTrue(report, report.contains(AccentTheme.BAR_ICONS + " 5"));
+    }
+
+    /**
+     * The top bar's filter maker and its back arrow's setColorFilter(int) go through the extension,
+     * which gives them Instagram's own SRC_ATOP filter of the color with Icons in the accent color off,
+     * and of the picked shade with it on, one filter kept per color (#187).
+     */
+    @Test
+    public void theTopBarsFiltersAndBackArrowTakeThePickedShade() {
+        int white = 0xfff5f5f5;
+        ColorFilter own = AccentTheme.barIconFilter(white);
+        assertTrue("Instagram's filter with the switch off", atop(white, own));
+        assertTrue("kept per color", own == AccentTheme.barIconFilter(white));
+        android.widget.ImageView back = new android.widget.ImageView(RuntimeEnvironment.getApplication());
+        AccentTheme.setBarIconColor(back, white);
+        assertTrue("the back arrow as Instagram tints it", atop(white, back.getColorFilter()));
+
+        Settings.ACCENT_COLOR.save(true);
+        Settings.ACCENT_HUE.save(AccentHue.TEAL);
+        Settings.ACCENT_ICONS.save(true);
+        int onDark = 0xff000000 | AccentColor.swap(0xff85a1ff, AccentHue.TEAL);
+        ColorFilter teal = AccentTheme.barIconFilter(white);
+        assertTrue("the picked shade's filter", atop(onDark, teal));
+        assertTrue("shared", teal == AccentTheme.barIconFilter(white));
+        AccentTheme.setBarIconColor(back, white);
+        assertTrue("the back arrow in the picked shade", atop(onDark, back.getColorFilter()));
+    }
+
+    /** Whether [filter] is a SRC_ATOP PorterDuffColorFilter of [color], as the top bar's maker makes. */
+    private static boolean atop(int color, ColorFilter filter) {
+        return filters(color, PorterDuff.Mode.SRC_ATOP, filter);
+    }
+
+    /** Whether [filter] is a PorterDuffColorFilter of [color] in [mode], read through its hidden getters. */
+    private static boolean filters(int color, PorterDuff.Mode mode, ColorFilter filter) {
+        if (!(filter instanceof PorterDuffColorFilter)) return false;
+        try {
+            Object held = PorterDuffColorFilter.class.getMethod("getColor").invoke(filter);
+            Object kind = PorterDuffColorFilter.class.getMethod("getMode").invoke(filter);
+            return Integer.valueOf(color).equals(held) && mode == kind;
+        } catch (ReflectiveOperationException failure) {
+            throw new AssertionError(failure);
+        }
+    }
+
+    /**
+     * The Search tab's Saved bookmark takes the icon color its theme holds with Icons in the accent color
+     * on, laid over the color its drawable carries (#187). Off, or a theme with no icon color, leaves it.
+     */
+    @Test
+    public void theSearchTabsSavedBookmarkTakesTheThemesIconColor() {
+        Context light = new ContextThemeWrapper(themed(THEMED + ".search", (name, type) ->
+                type.equals("attr") && name.equals(AccentTheme.ICON_ATTRIBUTE) ? android.R.attr.colorForeground : 0),
+                android.R.style.Theme_Material_Light);
+        TypedValue held = new TypedValue();
+        assertTrue(light.getTheme().resolveAttribute(android.R.attr.colorForeground, held, true));
+        android.widget.ImageView bookmark = new android.widget.ImageView(light);
+        AccentTheme.searchSaved(bookmark);
+        assertNull("off", bookmark.getColorFilter());
+        Settings.ACCENT_COLOR.save(true);
+        Settings.ACCENT_HUE.save(AccentHue.TEAL);
+        Settings.ACCENT_ICONS.save(true);
+        AccentTheme.searchSaved(bookmark);
+        assertTrue("the theme's icon color", filters(held.data, PorterDuff.Mode.SRC_IN, bookmark.getColorFilter()));
+        android.widget.ImageView bare = new android.widget.ImageView(
+                new ContextThemeWrapper(themed(THEMED + ".search.bare", (name, type) -> 0), android.R.style.Theme_Material_Light));
+        AccentTheme.searchSaved(bare);
+        assertNull("no icon attribute", bare.getColorFilter());
+        AccentTheme.searchSaved(null);
+        String report = HookStatus.report().toString();
+        assertTrue(report, report.contains(AccentTheme.BAR_ICONS + " 1"));
+    }
+
+    /**
      * The Messages folder chip's unread dot, which Compose paints red from a palette in the code, takes
      * the picked color's fill with both switches on, alpha kept (#671). Either switch off or paused
      * leaves it red, and a color outside sRGB comes back opaque in the fill.

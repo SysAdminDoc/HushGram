@@ -1,0 +1,382 @@
+/*
+ * Copyright 2026 HushGram contributors
+ * https://github.com/SysAdminDoc/HushGram
+ */
+package app.morphe.patches.instagram.misc.theme
+
+import app.morphe.Fixtures
+import app.morphe.PatchContexts
+import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
+import app.morphe.patcher.patch.PatchException
+import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
+import app.morphe.patches.instagram.FixtureDex
+import app.morphe.patches.instagram.misc.profilesaved.EXPLORE_ACTION_BAR
+import app.morphe.patches.instagram.misc.profilesaved.EXPLORE_SAVED_STUB
+import app.morphe.patches.instagram.misc.profilesaved.findExploreSaved
+import app.morphe.patches.shared.compat.AppCompatibilities
+import com.android.tools.smali.dexlib2.AccessFlags
+import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.iface.ClassDef
+import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.reference.FieldReference
+import com.android.tools.smali.dexlib2.iface.reference.MethodReference
+import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
+import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
+import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
+import com.android.tools.smali.dexlib2.immutable.ImmutableMethodParameter
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertThrows
+import org.junit.Assert.assertTrue
+import org.junit.Test
+import java.io.File
+
+/**
+ * A screen's top bar, a profile's tabs and the Search tab's Saved bookmark hand the colors their icons
+ * are given to the extension, which answers the picked color with Icons in the accent color on (#187).
+ */
+class BarIconsTest {
+    /**
+     * Each call of the top bar's SRC_ATOP filter maker becomes a call of the extension's with the same
+     * register, the range form kept, and each ImageView.setColorFilter(int) a call of the extension's
+     * with the view and the color. Another maker, a text color and the filter laid on a view keep
+     * Instagram's code. No bar, or a bar making no icon's color, is left as it is, and an extension
+     * without the hooks refuses.
+     */
+    @Test
+    fun theTopBarsIconColorsGoThroughTheExtension() {
+        val context = PatchContexts.of(listOf(actionBar(), filterMaker(), otherMaker(), extension()))
+        context.tintActionBarIcons()
+        val methods = context.mutableClassDefBy(ACTION_BAR).methods.associateBy { it.name }
+
+        val setter = methods.getValue("A1P").code()
+        val made = setter.single { it.calls(BAR_ICON_FILTER) }
+        assertEquals("the plain form", Opcode.INVOKE_STATIC, made.opcode)
+        assertEquals("the color's register", 4, (made as FiveRegisterInstruction).registerC)
+        assertEquals("its filter taken as before", Opcode.MOVE_RESULT_OBJECT, setter[setter.indexOf(made) + 1].opcode)
+        assertTrue("the filter laid on as before", setter.any { it.callsMethod(IMAGE, "setColorFilter", FILTER) })
+
+        val button = methods.getValue("A04").code()
+        val ranged = button.single { it.calls(BAR_ICON_FILTER) }
+        assertEquals("the range form", Opcode.INVOKE_STATIC_RANGE, ranged.opcode)
+        assertEquals("the range's register", 17, (ranged as RegisterRangeInstruction).startRegister)
+
+        val back = methods.getValue("A1d").code()
+        val tint = back.single { it.calls(SET_BAR_ICON_COLOR) } as FiveRegisterInstruction
+        assertEquals(Opcode.INVOKE_STATIC, tint.opcode)
+        assertEquals("the view", 1, tint.registerC)
+        assertEquals("the color", 0, tint.registerD)
+        assertTrue("no setColorFilter(int) left", back.none { it.callsMethod(IMAGE, "setColorFilter", "I") })
+
+        assertTrue("another maker kept", methods.getValue("A1h").code().any { it.callsMethod(OTHER_MAKER, "A00", "I") })
+        assertTrue("the text color kept", methods.getValue("A0m").code().any { it.callsMethod("Landroid/widget/TextView;", "setTextColor", "I") })
+        assertTrue("no call to the bar's own maker left", methods.values.none { method -> method.code().any { it.callsMethod(FILTER_MAKER, "A00", "I") } })
+        for ((name, stock) in actionBar().methods.associate { it.name to it.code() }) {
+            assertEquals("$name: as many instructions", stock.size, methods.getValue(name).code().size)
+        }
+
+        for ((case, classes) in listOf(
+            "no bar" to listOf(actionBar(message = false), filterMaker(), extension()),
+            "a maker of another mode" to listOf(actionBar(tints = false), otherMaker(type = FILTER_MAKER), otherMaker(), extension()),
+        )) {
+            val untouched = PatchContexts.of(classes)
+            untouched.tintActionBarIcons()
+            val hooked = untouched.mutableClassDefBy(ACTION_BAR).methods.filter { method -> method.code().any { it.calls(BAR_ICON_FILTER) || it.calls(SET_BAR_ICON_COLOR) } }
+            assertTrue("$case: no hook", hooked.isEmpty())
+        }
+        val failure = assertThrows(PatchException::class.java) {
+            PatchContexts.of(listOf(actionBar(), filterMaker(), extension(bar = false))).tintActionBarIcons()
+        }
+        assertTrue("no hook in the extension: ${failure.message}", failure.message!!.startsWith("Accent color"))
+    }
+
+    /**
+     * A profile tab hands the color it's told to the extension as setActiveColor(int) starts, in that
+     * parameter's register, and the gray it reads for while it isn't selected right after reading it.
+     */
+    @Test
+    fun aProfileTabsColorsGoThroughTheExtension() {
+        val context = PatchContexts.of(listOf(profileTab(), extension()))
+        context.tintProfileTabs()
+        val code = context.mutableClassDefBy(PROFILE_TAB).methods.single { it.name == "setActiveColor" }.code()
+        val hooks = code.indices.filter { code[it].calls(BAR_ICONS) }
+        assertEquals("two hooks", 2, hooks.size)
+        assertEquals("the told color first", 0, hooks[0])
+        assertEquals("in its parameter's register", 6, (code[0] as RegisterRangeInstruction).startRegister)
+        assertEquals("written back", 6, (code[1] as OneRegisterInstruction).registerA)
+        val read = code.indexOfFirst { it.callsMethod(CONTEXT, "getColor", "I") }
+        assertEquals("the gray right after it's taken", read + 2, hooks[1])
+        assertEquals("the gray's register", 3, (code[hooks[1]] as RegisterRangeInstruction).startRegister)
+        assertEquals("written back", 3, (code[hooks[1] + 1] as OneRegisterInstruction).registerA)
+        assertEquals("Instagram's code kept", profileTab().methods.single().code().map { it.opcode },
+            code.filterIndexed { at, _ -> at !in hooks && at - 1 !in hooks }.map { it.opcode })
+
+        PatchContexts.of(listOf(extension())).tintProfileTabs()
+        val failure = assertThrows(PatchException::class.java) { PatchContexts.of(listOf(profileTab(), extension(bar = false))).tintProfileTabs() }
+        assertTrue(failure.message!!.startsWith("Accent color"))
+    }
+
+    /**
+     * The Search tab's top bar hands its Saved bookmark to the extension right after keeping it in its
+     * field, and the hook hiding that bookmark still finds its check afterwards.
+     */
+    @Test
+    fun theSearchTabsSavedBookmarkGoesThroughTheExtension() {
+        val context = PatchContexts.of(listOf(exploreBar(), igImageView(), extension()))
+        context.tintSearchSaved()
+        val code = context.mutableClassDefBy(EXPLORE_ACTION_BAR).methods.single { it.name == "A0B" }.code()
+        val store = code.indexOfFirst { it.opcode == Opcode.IPUT_OBJECT }
+        assertTrue("right after the store", code[store + 1].calls(SEARCH_SAVED))
+        assertEquals("the bookmark's register", 1, (code[store + 1] as RegisterRangeInstruction).startRegister)
+        context.findExploreSaved()
+
+        val untouched = PatchContexts.of(listOf(exploreBar(stub = false), igImageView(), extension()))
+        untouched.tintSearchSaved()
+        assertTrue("no stub, no hook", untouched.mutableClassDefBy(EXPLORE_ACTION_BAR).methods.none { method -> method.code().any { it.calls(SEARCH_SAVED) } })
+    }
+
+    /**
+     * Every build: one class loads the top bar's message, and every call it makes to its SRC_ATOP filter
+     * maker (at least the back arrow's, the buttons' and the color setter's) and every
+     * ImageView.setColorFilter(int) goes to the extension with the same registers. A profile tab hooks
+     * its told color and its gray, and the Search tab's bookmark is handed over right after its store,
+     * with the hook hiding it still able to read its check either way round.
+     */
+    @Test
+    fun everyBuildHandsItsBarIconsToTheExtension() {
+        for ((code, bundle) in builds()) {
+            val bars = FixtureDex.classesLoading(bundle, ACTION_BAR_MESSAGE).distinctBy { it.type }
+            assertEquals("$code: one top bar, ${bars.map { it.type }}", 1, bars.size)
+            val bar = ImmutableClassDef.of(bars.single())
+            val makers = bar.methods.flatMap { method ->
+                method.code().mapNotNull { (it as? ReferenceInstruction)?.reference as? MethodReference }
+                    .filter { it.returnType == FILTER && it.parameterTypes.map(Any::toString) == listOf("I") }
+            }.map { it.definingClass }.toSet()
+            var next: Set<String> = setOf(PROFILE_TAB, EXPLORE_ACTION_BAR, "Lcom/instagram/common/ui/widget/imageview/IgImageView;")
+            val held = mutableMapOf<String, ClassDef>()
+            repeat(6) {
+                val found = FixtureDex.classes(bundle, next - held.keys)
+                held += found
+                next = found.values.mapNotNull { it.superclass }.toSet()
+            }
+            held += FixtureDex.classes(bundle, makers)
+            val context = PatchContexts.of(listOf(bar, extension()) + held.values.filter { it.type != bar.type }.map { ImmutableClassDef.of(it) })
+
+            val stockCalls = bar.methods.sumOf { method -> method.code().count { it.callsStatic(FILTER, listOf("I")) && makesAtop(held[(it.called())!!.definingClass]) } }
+            val stockTints = bar.methods.sumOf { method -> method.code().count { it.callsMethod(IMAGE, "setColorFilter", "I") } }
+            assertTrue("$code: the bar makes its back arrow's, buttons' and setter's filters, $stockCalls", stockCalls >= 3)
+            assertTrue("$code: the bar tints its back arrow, $stockTints", stockTints >= 1)
+            context.tintBarIcons()
+
+            val patched = context.mutableClassDefBy(bar.type).methods
+            assertEquals("$code: every filter made through the extension", stockCalls, patched.sumOf { method -> method.code().count { it.calls(BAR_ICON_FILTER) } })
+            assertEquals("$code: every back arrow tinted through it", stockTints, patched.sumOf { method -> method.code().count { it.calls(SET_BAR_ICON_COLOR) } })
+            for (stock in bar.methods) {
+                val after = patched.single { it.name == stock.name && it.parameterTypes.map(Any::toString) == stock.parameterTypes.map(Any::toString) }.code()
+                val before = stock.code()
+                assertEquals("$code: ${stock.name} as many instructions", before.size, after.size)
+                for (at in before.indices) {
+                    if (after[at].calls(BAR_ICON_FILTER)) {
+                        assertEquals("$code: ${stock.name}@$at the color's register", before[at].firstRegister(), after[at].firstRegister())
+                    } else if (after[at].calls(SET_BAR_ICON_COLOR)) {
+                        assertTrue("$code: ${stock.name}@$at was the back arrow's tint", before[at].callsMethod(IMAGE, "setColorFilter", "I"))
+                        assertEquals("$code: ${stock.name}@$at the view's register", before[at].firstRegister(), after[at].firstRegister())
+                    } else {
+                        assertEquals("$code: ${stock.name}@$at kept", before[at].opcode, after[at].opcode)
+                    }
+                }
+            }
+
+            val tab = context.mutableClassDefBy(PROFILE_TAB).methods.single { it.name == "setActiveColor" }.code()
+            val tabHooks = tab.indices.filter { tab[it].calls(BAR_ICONS) }
+            assertEquals("$code: the told color and the gray", 2, tabHooks.size)
+            assertEquals("$code: the told color as it starts", 0, tabHooks[0])
+            assertEquals("$code: the gray right after its read", Opcode.MOVE_RESULT, tab[tabHooks[1] - 1].opcode)
+            assertEquals("$code: the gray's register", (tab[tabHooks[1] - 1] as OneRegisterInstruction).registerA,
+                (tab[tabHooks[1]] as RegisterRangeInstruction).startRegister)
+
+            val explore = context.mutableClassDefBy(EXPLORE_ACTION_BAR).methods.single { method -> method.code().any { it.loads(EXPLORE_SAVED_STUB) } }.code()
+            val saved = explore.indices.single { explore[it].calls(SEARCH_SAVED) }
+            val store = explore[saved - 1]
+            assertEquals("$code: right after a store", Opcode.IPUT_OBJECT, store.opcode)
+            assertEquals("$code: of the Search tab's bar", EXPLORE_ACTION_BAR, ((store as ReferenceInstruction).reference as FieldReference).definingClass)
+            assertEquals("$code: the bookmark handed over", (store as TwoRegisterInstruction).registerA, (explore[saved] as RegisterRangeInstruction).startRegister)
+            context.findExploreSaved()
+        }
+    }
+
+    private fun builds(): Map<String, File> {
+        val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
+        val declared = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } }
+        return (declared + Fixtures.otherBuilds()).associateBy { file ->
+            (if (file.extension == "apks") file.nameWithoutExtension else file.parentFile.name).substringAfterLast('-')
+        }.toSortedMap()
+    }
+
+    private fun makesAtop(maker: ClassDef?): Boolean = maker?.methods?.any { method ->
+        AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == FILTER && method.code().any {
+            ((it as? ReferenceInstruction)?.reference as? FieldReference)?.name == "SRC_ATOP"
+        }
+    } == true
+
+    private companion object {
+        const val CONTEXT = "Landroid/content/Context;"
+        const val FILTER = "Landroid/graphics/ColorFilter;"
+        const val IMAGE = "Landroid/widget/ImageView;"
+        const val ACTION_BAR = "Lfixture/ActionBar;"
+        const val FILTER_MAKER = "Lfixture/BarFilters;"
+        const val OTHER_MAKER = "Lfixture/OtherFilters;"
+        const val IG_IMAGE = "Lfixture/IgImageView;"
+
+        /**
+         * The top bar as 457's `LX/01pF` has it: the message only it throws, A1P making a filter of the
+         * color it's given and laying it on its back arrow, A04 making one for a button with the range
+         * form, A1d tinting its back arrow with its color, A1h making one with another maker and A0m
+         * coloring its title. Without [message], no message; without [tints], no A1d.
+         */
+        fun actionBar(message: Boolean = true, tints: Boolean = true): ClassDef {
+            val methods = listOfNotNull(
+                if (message) method(ACTION_BAR, "A00", emptyList(), 1, "const-string v0, \"$ACTION_BAR_MESSAGE\"\nreturn-void", static = false) else null,
+                method(ACTION_BAR, "A1P", listOf("I"), 3, """
+                    invoke-static { p1 }, $FILTER_MAKER->A00(I)$FILTER
+                    move-result-object v1
+                    iget-object v0, p0, $ACTION_BAR->A0A:$IMAGE
+                    invoke-virtual { v0, v1 }, $IMAGE->setColorFilter($FILTER)V
+                    return-void
+                """, static = false),
+                method(ACTION_BAR, "A04", emptyList(), 18, """
+                    move-object/from16 v1, p0
+                    iget v0, v1, $ACTION_BAR->A01:I
+                    move/from16 v17, v0
+                    invoke-static/range { v17 .. v17 }, $FILTER_MAKER->A00(I)$FILTER
+                    move-result-object v0
+                    return-void
+                """, static = false),
+                if (tints) method(ACTION_BAR, "A1d", emptyList(), 2, """
+                    iget-object v1, p0, $ACTION_BAR->A0A:$IMAGE
+                    iget v0, p0, $ACTION_BAR->A01:I
+                    invoke-virtual { v1, v0 }, $IMAGE->setColorFilter(I)V
+                    return-void
+                """, static = false) else null,
+                method(ACTION_BAR, "A1h", listOf("I"), 1, """
+                    invoke-static { p1 }, $OTHER_MAKER->A00(I)$FILTER
+                    move-result-object v0
+                    return-void
+                """, static = false),
+                method(ACTION_BAR, "A0m", listOf("Landroid/widget/TextView;", "I"), 0, """
+                    invoke-virtual { p1, p2 }, Landroid/widget/TextView;->setTextColor(I)V
+                    return-void
+                """, static = false),
+            )
+            return classOf(ACTION_BAR, *methods.toTypedArray())
+        }
+
+        /** The top bar's filter maker as `LX/03fF;->A00` has it, one PorterDuffColorFilter in SRC_ATOP mode per color. */
+        fun filterMaker(): ClassDef = classOf(FILTER_MAKER, method(FILTER_MAKER, "A00", listOf("I"), 2, """
+            sget-object v1, Landroid/graphics/PorterDuff${'$'}Mode;->SRC_ATOP:Landroid/graphics/PorterDuff${'$'}Mode;
+            new-instance v0, Landroid/graphics/PorterDuffColorFilter;
+            invoke-direct { v0, p0, v1 }, Landroid/graphics/PorterDuffColorFilter;-><init>(ILandroid/graphics/PorterDuff${'$'}Mode;)V
+            return-object v0
+        """, static = true, returns = FILTER))
+
+        /** A `(int)ColorFilter` maker of another kind, a LightingColorFilter. */
+        fun otherMaker(type: String = OTHER_MAKER): ClassDef = classOf(type, method(type, "A00", listOf("I"), 2, """
+            const/4 v1, 0x0
+            new-instance v0, Landroid/graphics/LightingColorFilter;
+            invoke-direct { v0, p0, v1 }, Landroid/graphics/LightingColorFilter;-><init>(II)V
+            return-object v0
+        """, static = true, returns = FILTER))
+
+        /** A profile tab's setActiveColor(int) as 457 has it: the told color kept and the secondary icon gray read for the idle state. */
+        fun profileTab(): ClassDef = classOf(PROFILE_TAB, method(PROFILE_TAB, "setActiveColor", listOf("I"), 5, """
+            iput p1, p0, $PROFILE_TAB->A00:I
+            invoke-virtual { p0 }, Landroid/view/View;->getContext()$CONTEXT
+            move-result-object v3
+            const v0, 0x7f040897
+            invoke-virtual { v3, v0 }, $CONTEXT->getColor(I)I
+            move-result v3
+            filled-new-array { p1, v3 }, [I
+            move-result-object v0
+            return-void
+        """, static = false))
+
+        /**
+         * The Search tab's top bar as 457 has it: it reads its bookmark's field, and when that's null finds
+         * the stub, inflates it and keeps it. Without [stub], it loads another id.
+         */
+        fun exploreBar(stub: Boolean = true): ClassDef = classOf(EXPLORE_ACTION_BAR, method(EXPLORE_ACTION_BAR, "A0B", emptyList(), 3, """
+            iget-object v2, p0, $EXPLORE_ACTION_BAR->A06:$IG_IMAGE
+            if-nez v2, :done
+            const v2, ${if (stub) EXPLORE_SAVED_STUB else 0x7f0b0001}
+            invoke-virtual { p0, v2 }, Landroid/view/View;->findViewById(I)Landroid/view/View;
+            move-result-object v1
+            check-cast v1, $IG_IMAGE
+            iput-object v1, p0, $EXPLORE_ACTION_BAR->A06:$IG_IMAGE
+            const v0, 0x7f0812d7
+            :done
+            return-void
+        """, static = false), superclass = "Landroid/widget/FrameLayout;")
+
+        fun igImageView(): ClassDef = classOf(IG_IMAGE, superclass = IMAGE)
+
+        /** AccentTheme's bar hooks, without them when [bar] is false. */
+        fun extension(bar: Boolean = true): ClassDef = classOf(
+            ACCENT_THEME,
+            *listOfNotNull(
+                method(ACCENT_THEME, "apply", listOf(CONTEXT), 0, "return-void", static = true),
+                if (bar) method(ACCENT_THEME, "barIcons", listOf("I"), 0, "return p0", static = true, returns = "I") else null,
+                if (bar) method(ACCENT_THEME, "barIconFilter", listOf("I"), 1, "const/4 v0, 0x0\nreturn-object v0", static = true, returns = FILTER) else null,
+                if (bar) method(ACCENT_THEME, "setBarIconColor", listOf(IMAGE, "I"), 0, "return-void", static = true) else null,
+                if (bar) method(ACCENT_THEME, "searchSaved", listOf(IMAGE), 0, "return-void", static = true) else null,
+            ).toTypedArray(),
+        )
+
+        fun method(type: String, name: String, parameters: List<String>, locals: Int, body: String, static: Boolean, returns: String = "V"): Method {
+            val registers = locals + parameters.size + if (static) 0 else 1
+            return ImmutableMethod.of(
+                MutableMethod(
+                    ImmutableMethod(
+                        type, name, parameters.map { ImmutableMethodParameter(it, null, null) }, returns,
+                        AccessFlags.PUBLIC.value or (if (static) AccessFlags.STATIC.value else 0), null, null,
+                        ImmutableMethodImplementation(registers, emptyList(), null, null),
+                    ),
+                ).apply { addInstructionsWithLabels(0, body.trimIndent().trim()) },
+            )
+        }
+
+        fun classOf(type: String, vararg methods: Method, superclass: String = "Ljava/lang/Object;"): ClassDef = ImmutableClassDef(
+            type, AccessFlags.PUBLIC.value, superclass, null, null, null, null, methods.toList(),
+        )
+    }
+}
+
+private fun Method.code(): List<Instruction> = implementation?.instructions?.toList().orEmpty()
+
+private fun Instruction.called(): MethodReference? = (this as? ReferenceInstruction)?.reference as? MethodReference
+
+private fun Instruction.calls(hook: String): Boolean = called()?.let {
+    "${it.definingClass}->${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" == hook
+} == true
+
+private fun Instruction.callsMethod(owner: String, name: String, vararg parameters: String): Boolean = called()?.let {
+    it.definingClass == owner && it.name == name && it.parameterTypes.map(Any::toString) == parameters.toList()
+} == true
+
+private fun Instruction.callsStatic(returns: String, parameters: List<String>): Boolean =
+    (opcode == Opcode.INVOKE_STATIC || opcode == Opcode.INVOKE_STATIC_RANGE) && called()?.let {
+        it.returnType == returns && it.parameterTypes.map(Any::toString) == parameters
+    } == true
+
+private fun Instruction.firstRegister(): Int = when (this) {
+    is RegisterRangeInstruction -> startRegister
+    is FiveRegisterInstruction -> registerC
+    else -> -1
+}
+
+private fun Instruction.loads(literal: Int) = (this as? NarrowLiteralInstruction)?.narrowLiteral == literal
