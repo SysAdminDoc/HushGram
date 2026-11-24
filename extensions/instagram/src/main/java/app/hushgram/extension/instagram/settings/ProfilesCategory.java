@@ -62,6 +62,10 @@ final class ProfilesCategory {
                         L10n.t("Long press a profile picture to view it"),
                         L10n.t("Long press the picture at the top of a profile to open the whole square picture at full "
                                 + "size, with Save under it, instead of Instagram's own preview. A tap works as before.")));
+                profiles.addPreference(toggle(context, Settings.RING_TAP_OPENS_STORY,
+                        L10n.t("A story ring opens the story"),
+                        L10n.t("Tapping the picture at the top of a profile with a story ring opens the story whenever "
+                                + "Instagram has it, where Instagram sometimes opens the picture instead.")));
                 profiles.addPreference(toggle(context, Settings.PROFILE_HISTORY, L10n.t("Keep profile history"),
                         L10n.t("Remembers the username, bio and profile picture of each profile you open, on this phone "
                                 + "only, and tells you when one changed since your last visit. Pictures are copied from "

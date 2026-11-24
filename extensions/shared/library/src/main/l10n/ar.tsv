@@ -1180,6 +1180,10 @@ Long press a photo to zoom	اضغط مطولًا على صورة للتكبير
 Long press a post for full screen	اضغط مطولًا على منشور لملء الشاشة
 Long press a profile picture to view it	اضغط مطولًا على صورة الملف الشخصي لعرضها
 Long press the picture at the top of a profile to open the whole square picture at full size, with Save under it, instead of Instagram's own preview. A tap works as before.	اضغط مطولًا على الصورة أعلى الملف الشخصي لفتح الصورة المربعة كاملة بالحجم الكامل مع خيار حفظ أسفلها، بدلًا من المعاينة الخاصة بـ Instagram. وتعمل النقرة كما كانت.
+# context: Profiles settings: switch that makes a tap on a profile's picture open the account's story when the picture has a story ring, where Instagram sometimes opened the picture (#823)
+A story ring opens the story	حلقة القصة تفتح القصة
+# context: that switch summary (#823)
+Tapping the picture at the top of a profile with a story ring opens the story whenever Instagram has it, where Instagram sometimes opens the picture instead.	النقر على الصورة أعلى ملف شخصي حولها حلقة قصة يفتح القصة متى كانت لدى Instagram، بينما يفتح Instagram الصورة أحيانًا بدلًا منها.
 Longer than %1$s second	أطول من %1$s ثانية
 Longer than %1$s seconds	أطول من %1$s ثانية
 Longest video	أطول فيديو

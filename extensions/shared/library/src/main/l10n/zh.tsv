@@ -2776,6 +2776,10 @@ Matches: %1$d of %2$d blocked accounts	匹配 %1$d 个，共 %2$d 个已屏蔽�
 Long press a profile picture to view it	长按头像即可查看
 # context: that switch summary (#737)
 Long press the picture at the top of a profile to open the whole square picture at full size, with Save under it, instead of Instagram's own preview. A tap works as before.	长按主页顶部的头像，即可打开完整的正方形原尺寸图片，下方附有“保存”，取代 Instagram 自带的预览。轻点的操作不变.
+# context: Profiles settings: switch that makes a tap on a profile's picture open the account's story when the picture has a story ring, where Instagram sometimes opened the picture (#823)
+A story ring opens the story	点快拍圆环打开快拍
+# context: that switch summary (#823)
+Tapping the picture at the top of a profile with a story ring opens the story whenever Instagram has it, where Instagram sometimes opens the picture instead.	点按主页顶部带快拍圆环的头像时，只要 Instagram 已有该快拍就会打开它，而 Instagram 有时会改为打开头像。
 # context: Notifications settings: row that opens a list of the kinds of notification rows this phone has seen, to tick the ones to hide (#756)
 Hide notifications by type	按类型隐藏通知
 # context: that row's summary while nothing is ticked (#756)

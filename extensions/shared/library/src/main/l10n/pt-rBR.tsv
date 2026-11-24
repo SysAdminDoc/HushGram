@@ -2773,6 +2773,10 @@ Matches: %1$d of %2$d blocked accounts	Resultados: %1$d de %2$d contas bloqueada
 Long press a profile picture to view it	Mantenha uma foto do perfil pressionada para vê-la
 # context: that switch summary (#737)
 Long press the picture at the top of a profile to open the whole square picture at full size, with Save under it, instead of Instagram's own preview. A tap works as before.	Mantenha pressionada a foto no topo de um perfil para abrir a foto quadrada inteira em tamanho real, com Salvar embaixo, no lugar da prévia do próprio Instagram. Um toque funciona como antes.
+# context: Profiles settings: switch that makes a tap on a profile's picture open the account's story when the picture has a story ring, where Instagram sometimes opened the picture (#823)
+A story ring opens the story	O anel de stories abre o story
+# context: that switch summary (#823)
+Tapping the picture at the top of a profile with a story ring opens the story whenever Instagram has it, where Instagram sometimes opens the picture instead.	Tocar na foto no topo de um perfil com anel de stories abre o story sempre que o Instagram o tiver, onde às vezes o Instagram abre a foto.
 # context: Notifications settings: row that opens a list of the kinds of notification rows this phone has seen, to tick the ones to hide (#756)
 Hide notifications by type	Ocultar notificações por tipo
 # context: that row's summary while nothing is ticked (#756)

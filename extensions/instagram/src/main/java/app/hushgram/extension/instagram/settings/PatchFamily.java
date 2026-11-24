@@ -241,7 +241,7 @@ public enum PatchFamily {
     PROFILE_PICTURE(FamilyNames.PROFILE_PICTURE, "profilePicture", null, Settings.SAVE_PROFILE_PICTURES,
             Settings.VIEW_PROFILE_PICTURES, Settings.COPY_PROFILE_TEXT, Settings.PROFILE_EXTRAS_BUTTON,
             Settings.ABOUT_ACCOUNT_BUTTON, Settings.PROFILE_HISTORY, Settings.PROFILE_HISTORY_SAVE_PICTURES,
-            Settings.SAVED_PROFILES, Settings.PROFILE_PICTURE_LONG_PRESS),
+            Settings.SAVED_PROFILES, Settings.PROFILE_PICTURE_LONG_PRESS, Settings.RING_TAP_OPENS_STORY),
     VOICE_MESSAGE(FamilyNames.VOICE_MESSAGE, "voiceMessage", null, Settings.DOWNLOAD_VOICE_MESSAGES),
     HIDE_COMMENTS(FamilyNames.HIDE_COMMENTS, "hideComments", null, Settings.HIDE_COMMENTS, Settings.HIDE_COMMENT_REPLY,
             Settings.HIDE_COMMENT_LIKES, Settings.HIDE_COMMENT_AI_LABELS, Settings.HIDE_COMMENT_BOX),

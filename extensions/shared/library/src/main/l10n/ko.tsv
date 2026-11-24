@@ -2772,6 +2772,10 @@ Matches: %1$d of %2$d blocked accounts	일치: 차단된 계정 %2$d개 중 %1$d
 Long press a profile picture to view it	프로필 사진을 길게 눌러 보기
 # context: that switch summary (#737)
 Long press the picture at the top of a profile to open the whole square picture at full size, with Save under it, instead of Instagram's own preview. A tap works as before.	프로필 상단의 사진을 길게 누르면 Instagram 자체 미리보기 대신 정사각형 사진 전체가 원본 크기로 열리고 아래에 저장 버튼이 표시됩니다. 탭은 이전과 같이 작동합니다.
+# context: Profiles settings: switch that makes a tap on a profile's picture open the account's story when the picture has a story ring, where Instagram sometimes opened the picture (#823)
+A story ring opens the story	스토리 링을 탭하면 스토리 열기
+# context: that switch summary (#823)
+Tapping the picture at the top of a profile with a story ring opens the story whenever Instagram has it, where Instagram sometimes opens the picture instead.	스토리 링이 있는 프로필 상단의 사진을 탭하면 Instagram에 스토리가 있을 때마다 스토리가 열립니다. Instagram은 가끔 사진을 대신 엽니다.
 # context: Notifications settings: row that opens a list of the kinds of notification rows this phone has seen, to tick the ones to hide (#756)
 Hide notifications by type	유형별로 알림 숨기기
 # context: that row's summary while nothing is ticked (#756)

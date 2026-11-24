@@ -104,11 +104,13 @@ val saveProfilePicturePatch = bytecodePatch(
         val extras = findProfileExtras()
         val hold = findProfilePictureHold()
         val flip = findCoinFlipHold()
+        val ring = findRingTap()
         val bridges = profilePictureBridges(PROFILE_PICTURE_PATCH)
         applyProfileMenus(menus)
         applyProfileExtras(extras)
         hold?.let { applyProfilePictureHold(it) }
         flip?.let { applyCoinFlipHold(it) }
+        ring?.let { applyRingTap(it) }
         bridges()
         enableStatus("profilePicture")
     }

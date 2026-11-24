@@ -105,4 +105,28 @@ public class ProfileExtrasSettingsTest {
         open(false);
         assertNull(page.getPreferenceScreen().findPreference(Settings.PROFILE_PICTURE_LONG_PRESS.key));
     }
+
+    /** #823: A story ring opens the story sits under Profiles right after the long press, off to start. */
+    @Test public void theRingTapSwitchSitsUnderProfilesAndStartsOff() throws Exception {
+        open(true);
+        SwitchPreference ring = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.RING_TAP_OPENS_STORY.key);
+        SwitchPreference hold = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.PROFILE_PICTURE_LONG_PRESS.key);
+        assertNotNull(ring);
+        assertEquals("A story ring opens the story", ring.getTitle().toString());
+        assertEquals("Tapping the picture at the top of a profile with a story ring opens the story whenever "
+                        + "Instagram has it, where Instagram sometimes opens the picture instead.",
+                ring.getSummary().toString());
+        assertSame(hold.getParent(), ring.getParent());
+        assertEquals("Profiles", ring.getParent().getTitle().toString());
+        assertEquals(hold.getOrder() + 1, ring.getOrder());
+        assertFalse(ring.isChecked());
+        assertFalse(Settings.RING_TAP_OPENS_STORY.get());
+        assertTrue(PatchFamily.PROFILE_PICTURE.switches.contains(Settings.RING_TAP_OPENS_STORY));
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.RING_TAP_OPENS_STORY.key));
+    }
+
+    @Test public void missingPatchHasNoRingTapSwitch() throws Exception {
+        open(false);
+        assertNull(page.getPreferenceScreen().findPreference(Settings.RING_TAP_OPENS_STORY.key));
+    }
 }

@@ -3472,6 +3472,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_profile_picture_long_press", FALSE);
 
     /**
+     * A tap on the picture at the top of a profile with a story ring opens the story whenever
+     * Instagram has it, where Instagram sometimes opens the picture instead (#823,
+     * {@link app.hushgram.extension.instagram.download.ProfileRingTap}). Off until enabled.
+     */
+    public static final BooleanSetting RING_TAP_OPENS_STORY =
+            new BooleanSetting("hushgram_ring_tap_opens_story", FALSE);
+
+    /**
      * A voice message's menu in a chat gets Save
      * ({@link app.hushgram.extension.instagram.download.VoiceMessage}). Off until enabled.
      */

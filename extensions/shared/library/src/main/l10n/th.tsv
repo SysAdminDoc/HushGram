@@ -2770,6 +2770,10 @@ Matches: %1$d of %2$d blocked accounts	ตรงกัน %1$d จาก %2$d �
 Long press a profile picture to view it	กดค้างที่รูปโปรไฟล์เพื่อดู
 # context: that switch summary (#737)
 Long press the picture at the top of a profile to open the whole square picture at full size, with Save under it, instead of Instagram's own preview. A tap works as before.	กดค้างที่รูปด้านบนของโปรไฟล์เพื่อเปิดรูปสี่เหลี่ยมจัตุรัสทั้งรูปในขนาดเต็ม พร้อมปุ่มบันทึกด้านล่าง แทนตัวอย่างของ Instagram เอง การแตะยังทำงานเหมือนเดิม
+# context: Profiles settings: switch that makes a tap on a profile's picture open the account's story when the picture has a story ring, where Instagram sometimes opened the picture (#823)
+A story ring opens the story	วงแหวนสตอรี่เปิดสตอรี่
+# context: that switch summary (#823)
+Tapping the picture at the top of a profile with a story ring opens the story whenever Instagram has it, where Instagram sometimes opens the picture instead.	แตะรูปด้านบนของโปรไฟล์ที่มีวงแหวนสตอรี่เพื่อเปิดสตอรี่ทุกครั้งที่ Instagram มีสตอรี่นั้นแล้ว ซึ่งบางครั้ง Instagram จะเปิดรูปแทน
 # context: Notifications settings: row that opens a list of the kinds of notification rows this phone has seen, to tick the ones to hide (#756)
 Hide notifications by type	ซ่อนการแจ้งเตือนตามประเภท
 # context: that row's summary while nothing is ticked (#756)
