@@ -1695,6 +1695,11 @@ Find a post, reel, story or profile you saw before.	Tìm lại bài viết, reel
 Recently seen	Đã xem gần đây
 Open profile	Mở trang cá nhân
 Remove from history	Xóa khỏi lịch sử
+# context: the long press menu on a row of the viewing history page (#228). Open opens the post, reel, story's person or profile in Instagram. The account is whoever posted the row, or the profile itself. Removed %d from history is a short toast with how many rows went.
+Show all from this account	Hiện tất cả từ tài khoản này
+Open	Mở
+Remove all from this account	Xóa tất cả từ tài khoản này
+Removed %d from history	Đã xóa %d mục khỏi lịch sử
 # context: the viewing history page's button that switches its rows to a grid of big pictures, then back
 Show as grid	Hiển thị dạng lưới
 Show as list	Hiển thị dạng danh sách

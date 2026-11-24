@@ -353,6 +353,41 @@ public final class ViewingHistory {
         return true;
     }
 
+    /** The account [row] is of: a profile's own name, else who posted it. Empty when unknown. */
+    public static String account(Row row) {
+        return row.kind == Kind.PROFILE ? row.id : row.owner;
+    }
+
+    /** Whether [row] is [name]'s, in any case: something they posted, or their profile. */
+    public static boolean of(Row row, @Nullable String name) {
+        return name != null && !name.isEmpty() && account(row).equalsIgnoreCase(name);
+    }
+
+    /**
+     * Takes every row of [name]'s off the list (#228), writes the file and deletes their pictures
+     * off the calling thread. Answers how many went.
+     */
+    public static int removeAll(@Nullable Context context, @Nullable String name) {
+        if (context == null || name == null || name.isEmpty()) return 0;
+        Context application = context.getApplicationContext() != null ? context.getApplicationContext() : context;
+        List<Row> gone = new ArrayList<>();
+        synchronized (LOCK) {
+            load(application);
+            for (java.util.Iterator<Row> rows = ROWS.iterator(); rows.hasNext(); ) {
+                Row row = rows.next();
+                if (!of(row, name)) continue;
+                gone.add(row);
+                rows.remove();
+            }
+        }
+        if (gone.isEmpty()) return 0;
+        Utils.runOnBackgroundThread(() -> {
+            save(application);
+            for (Row row : gone) forgetPicture(application, row);
+        });
+        return gone.size();
+    }
+
     private static File file(Context application) {
         return new File(new File(application.getFilesDir(), DIRECTORY), FILE);
     }

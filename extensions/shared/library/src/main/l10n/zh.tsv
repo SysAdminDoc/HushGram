@@ -1757,6 +1757,11 @@ Find a post, reel, story or profile you saw before.	找回你看过的帖子、R
 Recently seen	最近看过
 Open profile	打开主页
 Remove from history	从纪录中移除
+# context: the long press menu on a row of the viewing history page (#228). Open opens the post, reel, story's person or profile in Instagram. The account is whoever posted the row, or the profile itself. Removed %d from history is a short toast with how many rows went.
+Show all from this account	显示这个账号的全部
+Open	打开
+Remove all from this account	移除这个账号的全部
+Removed %d from history	已从纪录中移除 %d 项
 # context: the viewing history page's button that switches its rows to a grid of big pictures, then back
 Show as grid	以网格显示
 Show as list	以列表显示

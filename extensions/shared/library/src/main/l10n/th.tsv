@@ -1744,6 +1744,11 @@ Find a post, reel, story or profile you saw before.	ค้นหาโพสต�
 Recently seen	ดูล่าสุด
 Open profile	เปิดโปรไฟล์
 Remove from history	ลบออกจากประวัติ
+# context: the long press menu on a row of the viewing history page (#228). Open opens the post, reel, story's person or profile in Instagram. The account is whoever posted the row, or the profile itself. Removed %d from history is a short toast with how many rows went.
+Show all from this account	แสดงทั้งหมดจากบัญชีนี้
+Open	เปิด
+Remove all from this account	ลบทั้งหมดจากบัญชีนี้
+Removed %d from history	ลบ %d รายการออกจากประวัติแล้ว
 # context: the viewing history page's button that switches its rows to a grid of big pictures, then back
 Show as grid	แสดงแบบตาราง
 Show as list	แสดงแบบรายการ

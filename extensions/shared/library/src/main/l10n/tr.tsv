@@ -1754,6 +1754,11 @@ Find a post, reel, story or profile you saw before.	Daha önce gördüğün bir 
 Recently seen	Son görülenler
 Open profile	Profili aç
 Remove from history	Geçmişten kaldır
+# context: the long press menu on a row of the viewing history page (#228). Open opens the post, reel, story's person or profile in Instagram. The account is whoever posted the row, or the profile itself. Removed %d from history is a short toast with how many rows went.
+Show all from this account	Bu hesaptan her şeyi göster
+Open	Aç
+Remove all from this account	Bu hesaptan her şeyi kaldır
+Removed %d from history	Geçmişten %d öğe kaldırıldı
 # context: the viewing history page's button that switches its rows to a grid of big pictures, then back
 Show as grid	Izgara olarak göster
 Show as list	Liste olarak göster

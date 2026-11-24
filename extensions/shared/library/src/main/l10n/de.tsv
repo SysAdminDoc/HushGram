@@ -1754,6 +1754,11 @@ Find a post, reel, story or profile you saw before.	Finde einen Beitrag, ein Ree
 Recently seen	Zuletzt gesehen
 Open profile	Profil öffnen
 Remove from history	Aus dem Verlauf entfernen
+# context: the long press menu on a row of the viewing history page (#228). Open opens the post, reel, story's person or profile in Instagram. The account is whoever posted the row, or the profile itself. Removed %d from history is a short toast with how many rows went.
+Show all from this account	Alles von diesem Konto zeigen
+Open	Öffnen
+Remove all from this account	Alles von diesem Konto entfernen
+Removed %d from history	%d aus dem Verlauf entfernt
 # context: the viewing history page's button that switches its rows to a grid of big pictures, then back
 Show as grid	Als Raster anzeigen
 Show as list	Als Liste anzeigen

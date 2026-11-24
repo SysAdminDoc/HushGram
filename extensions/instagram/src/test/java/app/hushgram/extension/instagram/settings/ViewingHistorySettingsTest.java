@@ -374,7 +374,8 @@ public class ViewingHistorySettingsTest {
             assertTrue(page.grid.getOnItemLongClickListener().onItemLongClick(page.grid, reel, 1, 1));
             android.widget.PopupMenu popup = org.robolectric.shadows.ShadowPopupMenu.getLatestPopupMenu();
             assertNotNull("a long press opens the list's menu", popup);
-            assertEquals(Arrays.asList("Copy link", "Open profile", "Remove from history"), titles(popup.getMenu()));
+            assertEquals(Arrays.asList("Show all from this account", "Open", "Copy link", "Open profile", "Copy username",
+                    "Remove from history", "Remove all from this account"), titles(popup.getMenu()));
             popup.dismiss();
             page.dialog.dismiss();
 
@@ -434,12 +435,14 @@ public class ViewingHistorySettingsTest {
             android.widget.PopupMenu popup = org.robolectric.shadows.ShadowPopupMenu.getLatestPopupMenu();
             assertNotNull("a long press opens the menu", popup);
             android.view.Menu menu = popup.getMenu();
-            assertEquals(Arrays.asList("Copy link", "Open profile", "Remove from history"), titles(menu));
+            assertEquals(Arrays.asList("Show all from this account", "Open", "Copy link", "Open profile", "Copy username",
+                    "Remove from history", "Remove all from this account"), titles(menu));
             popup.dismiss();
 
             android.view.Menu story = new android.widget.PopupMenu(context, page.list).getMenu();
             ViewingHistoryPage.fill(story, ViewingHistoryRows.row(Kind.STORY, "3_3", "bob"));
-            assertEquals("a story's tap already goes to its person", Arrays.asList("Copy link", "Remove from history"), titles(story));
+            assertEquals("a story's tap already goes to its person", Arrays.asList("Show all from this account", "Open",
+                    "Copy link", "Copy username", "Remove from history", "Remove all from this account"), titles(story));
             android.view.Menu nameless = new android.widget.PopupMenu(context, page.list).getMenu();
             ViewingHistoryPage.fill(nameless, ViewingHistoryRows.row(Kind.STORY, "4_4", ""));
             assertEquals("nothing to link to, so only the removal", Collections.singletonList("Remove from history"), titles(nameless));
@@ -461,6 +464,65 @@ public class ViewingHistorySettingsTest {
             assertTrue(page.pick(ViewingHistoryPage.OPEN_PROFILE, post));
             android.content.Intent opened = org.robolectric.Shadows.shadowOf(RuntimeEnvironment.getApplication()).getNextStartedActivity();
             assertEquals("https://www.instagram.com/amy/", String.valueOf(opened.getData()));
+            assertEquals(context.getPackageName(), opened.getPackage());
+        }
+    }
+
+    /**
+     * #228's longer menu: everything kept from a row's account, opening it, copying the account's
+     * username, and taking everything from that account off the list, its profile included, while
+     * an account whose name only starts the same stays.
+     */
+    @Test public void aLongPressShowsCopiesOpensAndRemovesEverythingFromAnAccount() throws Exception {
+        long now = System.currentTimeMillis();
+        Context context = RuntimeEnvironment.getApplication();
+        ViewingHistory.clear(context);
+        ViewingHistoryRows.add(context, Kind.PROFILE, "amy", "amy", now - 5_000L);
+        ViewingHistoryRows.add(context, Kind.POST, "5_5", "amyx", now - 4_000L);
+        ViewingHistoryRows.add(context, Kind.STORY, "3_3", "bob", now - 3_000L);
+        ViewingHistoryRows.add(context, Kind.REEL, "2_2", "amy", now - 2_000L);
+        ViewingHistoryRows.add(context, Kind.POST, "1949525278281554174_2", "amy", now - 1_000L);
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.VIDEO_DOWNLOAD);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            HushgramPreferenceFragment settings = DownloadSettingsTest.pageIn(controller);
+            Preference row = settings.findPreference(HushgramPreferenceFragment.VIEWING_HISTORY_ROW);
+            ViewingHistoryPage page = ViewingHistoryPage.open(controller.get(), row);
+            Utils.awaitBackgroundTasksForTests();
+            ShadowLooper.idleMainLooper();
+            assertEquals(5, page.list.getAdapter().getCount());
+            ViewingHistory.Row post = (ViewingHistory.Row) page.list.getAdapter().getItem(0);
+            ViewingHistory.Row story = (ViewingHistory.Row) page.list.getAdapter().getItem(2);
+            assertEquals("bob", story.owner);
+
+            page.tabs[1].performClick();
+            assertTrue(page.pick(ViewingHistoryPage.SHOW_ACCOUNT, story));
+            assertTrue("every kind again", page.tabs[0].isSelected());
+            assertEquals("@bob", String.valueOf(page.search.getText()));
+            assertEquals(1, page.list.getAdapter().getCount());
+            page.search.setText("");
+
+            assertTrue(page.pick(ViewingHistoryPage.COPY_USERNAME, post));
+            android.content.ClipboardManager clipboard =
+                    (android.content.ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
+            assertEquals("amy", String.valueOf(clipboard.getPrimaryClip().getItemAt(0).getText()));
+            assertEquals("Copied", ShadowToast.getTextOfLatestToast());
+
+            assertTrue(page.pick(ViewingHistoryPage.REMOVE_ACCOUNT, post));
+            assertEquals("amy's post, reel and profile off the page at once", 2, page.list.getAdapter().getCount());
+            String said = ShadowToast.getTextOfLatestToast();
+            assertTrue(said, said.startsWith("Removed ") && said.contains("3") && said.endsWith(" from history"));
+            Utils.awaitBackgroundTasksForTests();
+            ViewingHistory.forgetForTests();
+            assertEquals("and off the list kept on the phone", 2, ViewingHistory.count(context));
+            for (ViewingHistory.Row left : ViewingHistory.entries(context)) {
+                assertFalse(left.id, ViewingHistory.of(left, "AMY"));
+            }
+            assertEquals("nothing of theirs is left", 0, ViewingHistory.removeAll(context, "amy"));
+            assertEquals("no name, nothing goes", 0, ViewingHistory.removeAll(context, ""));
+
+            assertTrue(page.pick(ViewingHistoryPage.OPEN, story));
+            android.content.Intent opened = org.robolectric.Shadows.shadowOf(RuntimeEnvironment.getApplication()).getNextStartedActivity();
+            assertEquals("a story opens its person, as a tap does", "https://www.instagram.com/bob/", String.valueOf(opened.getData()));
             assertEquals(context.getPackageName(), opened.getPackage());
         }
     }

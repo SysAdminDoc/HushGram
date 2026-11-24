@@ -1545,6 +1545,11 @@ Remove build expired popup	إزالة نافذة انتهاء صلاحية ال�
 Remove folder	إزالة المجلد
 Remove from Stories priority	إزالة من أولوية القصص
 Remove from history	إزالة من السجل
+# context: the long press menu on a row of the viewing history page (#228). Open opens the post, reel, story's person or profile in Instagram. The account is whoever posted the row, or the profile itself. Removed %d from history is a short toast with how many rows went.
+Show all from this account	عرض كل ما من هذا الحساب
+Open	فتح
+Remove all from this account	إزالة كل ما من هذا الحساب
+Removed %d from history	أُزيل %d من السجل
 Remove from saved	إزالة من المحفوظات
 Remove from the list	إزالة من القائمة
 Remove hidden data from saved photos	إزالة البيانات المخفية من الصور المحفوظة

@@ -4,6 +4,7 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
+* Holding a row in the viewing history now also offers `Open`, `Copy username`, `Show all from this account` and `Remove all from this account`. Asked for in #228.
 * `Hide AI labels on comments` is new under `Hide comments` in Comments. It takes AI-generated profile and similar AI labels off the line with a commenter's name. Starts off. Asked for in #787.
 * `Double-tap Messages for hidden chats` now shows every hidden chat after Instagram restarts, not only the ones on your inbox's first page. It loads more of the inbox until they're all there. Reported in #661.
 * `Buttons on the share sheet` can leave off Meta AI now, along with the other round buttons under the people. Asked for in #846.

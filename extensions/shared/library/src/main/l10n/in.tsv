@@ -1754,6 +1754,11 @@ Find a post, reel, story or profile you saw before.	Temukan lagi kiriman, reel, 
 Recently seen	Baru dilihat
 Open profile	Buka profil
 Remove from history	Hapus dari riwayat
+# context: the long press menu on a row of the viewing history page (#228). Open opens the post, reel, story's person or profile in Instagram. The account is whoever posted the row, or the profile itself. Removed %d from history is a short toast with how many rows went.
+Show all from this account	Tampilkan semua dari akun ini
+Open	Buka
+Remove all from this account	Hapus semua dari akun ini
+Removed %d from history	%d dihapus dari riwayat
 # context: the viewing history page's button that switches its rows to a grid of big pictures, then back
 Show as grid	Tampilkan sebagai kisi
 Show as list	Tampilkan sebagai daftar

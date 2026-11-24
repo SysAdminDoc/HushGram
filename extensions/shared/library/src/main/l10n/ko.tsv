@@ -1753,6 +1753,11 @@ Find a post, reel, story or profile you saw before.	전에 본 게시물, 릴스
 Recently seen	최근에 본 항목
 Open profile	프로필 열기
 Remove from history	기록에서 삭제
+# context: the long press menu on a row of the viewing history page (#228). Open opens the post, reel, story's person or profile in Instagram. The account is whoever posted the row, or the profile itself. Removed %d from history is a short toast with how many rows went.
+Show all from this account	이 계정의 항목 모두 보기
+Open	열기
+Remove all from this account	이 계정의 항목 모두 삭제
+Removed %d from history	기록에서 %d개 삭제됨
 # context: the viewing history page's button that switches its rows to a grid of big pictures, then back
 Show as grid	격자로 보기
 Show as list	목록으로 보기

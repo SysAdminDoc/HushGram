@@ -344,12 +344,26 @@ final class ViewingHistoryPage {
     static final int COPY_LINK = 1;
     static final int OPEN_PROFILE = 2;
     static final int REMOVE = 3;
+    static final int SHOW_ACCOUNT = 4;
+    static final int OPEN = 5;
+    static final int COPY_USERNAME = 6;
+    static final int REMOVE_ACCOUNT = 7;
 
-    /** What a long press on [row] offers: copying its link, its poster's profile, and taking it off the list. */
+    /**
+     * What a long press on [row] offers: everything kept from its account, opening it, copying its
+     * link, its poster's profile, copying the account's username, and taking it or everything from
+     * its account off the list (#228). The account's rows come only with an account to go by.
+     */
     static void fill(Menu menu, ViewingHistory.Row row) {
-        if (link(row) != null) menu.add(Menu.NONE, COPY_LINK, Menu.NONE, L10n.t("Copy link"));
+        boolean account = !ViewingHistory.account(row).isEmpty();
+        boolean linked = link(row) != null;
+        if (account) menu.add(Menu.NONE, SHOW_ACCOUNT, Menu.NONE, L10n.t("Show all from this account"));
+        if (linked) menu.add(Menu.NONE, OPEN, Menu.NONE, L10n.t("Open"));
+        if (linked) menu.add(Menu.NONE, COPY_LINK, Menu.NONE, L10n.t("Copy link"));
         if (profileLink(row) != null) menu.add(Menu.NONE, OPEN_PROFILE, Menu.NONE, L10n.t("Open profile"));
+        if (account) menu.add(Menu.NONE, COPY_USERNAME, Menu.NONE, L10n.t("Copy username"));
         menu.add(Menu.NONE, REMOVE, Menu.NONE, L10n.t("Remove from history"));
+        if (account) menu.add(Menu.NONE, REMOVE_ACCOUNT, Menu.NONE, L10n.t("Remove all from this account"));
     }
 
     private void options(View anchor, ViewingHistory.Row row) {
@@ -371,6 +385,38 @@ final class ViewingHistoryPage {
                 return true;
             case OPEN_PROFILE:
                 go(context, profileLink(row));
+                return true;
+            case OPEN:
+                open(context, row);
+                return true;
+            case COPY_USERNAME:
+                String name = ViewingHistory.account(row);
+                if (name.isEmpty()) return true;
+                Utils.setClipboard(context, "Instagram", name);
+                Utils.showToastShort(L10n.t("Copied"));
+                return true;
+            case SHOW_ACCOUNT:
+                String shown = ViewingHistory.account(row);
+                if (shown.isEmpty()) return true;
+                // Every kind, found the way a typed search finds them.
+                pick(null);
+                search.setText("@" + shown);
+                search.setSelection(search.length());
+                return true;
+            case REMOVE_ACCOUNT:
+                String owner = ViewingHistory.account(row);
+                if (owner.isEmpty() || !HushgramPreferenceFragment.viewingHistoryChangeAllowed(origin)) return true;
+                int gone = ViewingHistory.removeAll(context, owner);
+                // Off the page at once, the row pressed included even when the file had lost it.
+                List<ViewingHistory.Row> kept = new ArrayList<>(all.size());
+                for (ViewingHistory.Row each : all) {
+                    if (ViewingHistory.of(each, owner)) forgetPicture(each);
+                    else kept.add(each);
+                }
+                int offThePage = all.size() - kept.size();
+                all = kept;
+                show();
+                Utils.showToastShort(L10n.f("Removed %d from history", Math.max(gone, offThePage)));
                 return true;
             case REMOVE:
                 if (!HushgramPreferenceFragment.viewingHistoryChangeAllowed(origin)) return true;
