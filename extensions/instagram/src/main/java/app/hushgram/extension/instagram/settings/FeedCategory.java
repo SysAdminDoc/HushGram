@@ -77,6 +77,7 @@ final class FeedCategory {
         boolean expandCaptions = build.contains(PatchFamily.EXPAND_CAPTIONS);
         boolean feedAudioIcon = build.contains(PatchFamily.FEED_AUDIO_ICON);
         boolean feedAutoScroll = build.contains(PatchFamily.FEED_AUTO_SCROLL);
+        boolean blockedPosts = build.contains(PatchFamily.BLOCKED_POSTS);
         boolean homeTopBar = build.contains(PatchFamily.HOME_TOP_BAR);
         boolean activityBubbles = build.contains(PatchFamily.ACTIVITY_BUBBLES);
         boolean feedViewHistory = build.contains(PatchFamily.FEED_VIEW_HISTORY);
@@ -84,7 +85,7 @@ final class FeedCategory {
                 || askLike || askRefresh || saveTray || postTime || hiddenLikes || backHome || homePlace || feedSound || feedTapPause || feedHoldFast || feedSeekBar || longPressZoom
                 || roundedCorners || carouselArrows || ambientLight
                 || fullScreen || feedFollow || editsLabel || headerLine || homeReels || feedSave || watchAgain || hideCaptions || expandCaptions || feedAudioIcon || feedAutoScroll || homeTopBar
-                || activityBubbles || menuItems
+                || activityBubbles || menuItems || blockedPosts
                 ? category(screen, L10n.t("Feed"), SettingsIcons.FEED,
                         L10n.t("Choose what Home shows and how it behaves.")) : null;
         if (following) {
@@ -467,6 +468,11 @@ final class FeedCategory {
                     L10n.t("Moves Home on to the next post by itself. A video moves on when it ends, a photo or "
                             + "carousel after Time on each post. Touch the screen to hold it.")));
             feed.addPreference(feedAutoScrollTimeRow(context));
+        }
+        if (blockedPosts) {
+            feed.addPreference(toggle(context, Settings.HIDE_BLOCKED_POSTS, L10n.t("Hide posts when you block someone"),
+                    L10n.t("When you block someone, their posts in Home go away right away instead of after you "
+                            + "refresh it.")));
         }
     }
 }

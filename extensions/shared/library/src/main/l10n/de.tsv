@@ -2581,6 +2581,10 @@ Tap sound volume	Lautstärke des Tipptons
 Auto scroll in Home	Automatisches Scrollen auf der Startseite
 Moves Home on to the next post by itself. A video moves on when it ends, a photo or carousel after Time on each post. Touch the screen to hold it.	Die Startseite geht von selbst zum nächsten Beitrag weiter. Ein Video, wenn es endet, ein Foto oder Karussell nach „Zeit pro Beitrag“. Berühre den Bildschirm, um es anzuhalten.
 Time on each post	Zeit pro Beitrag
+# context: Feed settings: switch that takes a blocked account's posts out of Home as soon as the block goes through (#861)
+Hide posts when you block someone	Beiträge beim Blockieren ausblenden
+# context: Summary of Hide posts when you block someone, a Feed switch (#861)
+When you block someone, their posts in Home go away right away instead of after you refresh it.	Wenn du jemanden blockierst, verschwinden seine Beiträge auf der Startseite sofort statt erst nach dem Aktualisieren.
 # context: Reels settings: switch that lets a tap on the reel shown above an open comments sheet pause or play it, and a hold play it at 2x, without closing the comments (#665)
 Control the reel above comments	Reel über den Kommentaren steuern
 # context: Summary of Control the reel above comments (#665)

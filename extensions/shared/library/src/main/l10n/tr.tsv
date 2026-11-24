@@ -2581,6 +2581,10 @@ Tap sound volume	Dokunma sesi seviyesi
 Auto scroll in Home	Ana Sayfa'da otomatik kaydırma
 Moves Home on to the next post by itself. A video moves on when it ends, a photo or carousel after Time on each post. Touch the screen to hold it.	Ana Sayfa kendiliğinden sonraki gönderiye geçer. Video bitince, fotoğraf veya çoklu gönderi Gönderi başına süre dolunca geçer. Durdurmak için ekrana dokun.
 Time on each post	Gönderi başına süre
+# context: Feed settings: switch that takes a blocked account's posts out of Home as soon as the block goes through (#861)
+Hide posts when you block someone	Birini engelleyince gönderilerini gizle
+# context: Summary of Hide posts when you block someone, a Feed switch (#861)
+When you block someone, their posts in Home go away right away instead of after you refresh it.	Birini engellediğinde Ana Sayfa'daki gönderileri yenilemeyi beklemeden hemen kaybolur.
 # context: Reels settings: switch that lets a tap on the reel shown above an open comments sheet pause or play it, and a hold play it at 2x, without closing the comments (#665)
 Control the reel above comments	Yorumların üstündeki reel'i kontrol et
 # context: Summary of Control the reel above comments (#665)

@@ -2584,6 +2584,10 @@ Tap sound volume	触摸音效音量
 Auto scroll in Home	首页自动卷动
 Moves Home on to the next post by itself. A video moves on when it ends, a photo or carousel after Time on each post. Touch the screen to hold it.	首页会自动移到下一条帖子。视频播完就移动，照片或轮播帖子则在“每条帖子的时间”后移动。触摸屏幕即可暂停。
 Time on each post	每条帖子的时间
+# context: Feed settings: switch that takes a blocked account's posts out of Home as soon as the block goes through (#861)
+Hide posts when you block someone	屏蔽某人时隐藏其帖子
+# context: Summary of Hide posts when you block someone, a Feed switch (#861)
+When you block someone, their posts in Home go away right away instead of after you refresh it.	屏蔽某人后，首页里此人的帖子会立即消失，不必先刷新.
 # context: Reels settings: switch that lets a tap on the reel shown above an open comments sheet pause or play it, and a hold play it at 2x, without closing the comments (#665)
 Control the reel above comments	控制评论上方的 Reel
 # context: Summary of Control the reel above comments (#665)

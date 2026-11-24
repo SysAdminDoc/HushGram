@@ -265,6 +265,7 @@ public enum PatchFamily {
     FEED_AUDIO_ICON(FamilyNames.FEED_AUDIO_ICON, "feedAudioIcon", null, Settings.HIDE_FEED_AUDIO_ICON,
             Settings.HIDE_FEED_TAG_ICON),
     FEED_AUTO_SCROLL(FamilyNames.FEED_AUTO_SCROLL, "feedAutoScroll", null, Settings.FEED_AUTO_SCROLL),
+    BLOCKED_POSTS(FamilyNames.BLOCKED_POSTS, "blockedPosts", null, Settings.HIDE_BLOCKED_POSTS),
     HOME_TOP_BAR(FamilyNames.HOME_TOP_BAR, "homeTopBar", null, Settings.KEEP_HOME_TOP_BAR,
             Settings.SEE_THROUGH_HOME_TOP_BAR),
     REEL_DECLUTTER(FamilyNames.REEL_DECLUTTER, "reelDeclutter", null, Settings.HIDE_REEL_FOLLOW_BUTTON,

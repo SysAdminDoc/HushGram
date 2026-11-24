@@ -74,7 +74,7 @@ val fullResolutionPhotosPatch = bytecodePatch(
         "grid pictures at full size. Uses more data. Starts off. Turn it on in HushGram settings > Feed.",
     default = true,
 ) {
-    category("Feed")
+    category("Downloads")
     dependsOn(settingsPatch, instagramExtensionPatch)
     compatibleWith(*AppCompatibilities.instagram())
 

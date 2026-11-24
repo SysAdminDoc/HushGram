@@ -53,6 +53,8 @@ Every HushGram release, newest first.
 * `Hide ads` now also takes the shop or ad card off the top of a reel's comments. Reported in #857.
 * `Show 2x after you let go` is new under `Keep 2x after you let go` in Feed. A feed video kept at 2x keeps Instagram's 2x and time labels on until it's back to normal speed. Starts off. Asked for in #860.
 * Download on a photo post with a song in Home now asks `Download as video` or `Download as photo`, as reels do. That goes for the post's menu, a hold and `Download button on feed posts`. Asked for in #71.
+* `Hide posts when you block someone` is new at the end of Feed. Block someone and their posts leave Home right away, without a refresh. Starts off. Asked for in #861.
+* In Morphe Manager, `Full resolution photos` now sits under Downloads, so the Feed group stays short. Its switches are still on the Feed settings page.
 
 ## 0.0.22 (2026-11-22)
 

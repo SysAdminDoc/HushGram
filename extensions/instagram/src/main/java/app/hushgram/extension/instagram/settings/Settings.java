@@ -703,6 +703,13 @@ public class Settings extends BaseSettings {
                     .withRange(3, 30);
 
     /**
+     * Blocking someone takes their posts out of Home as soon as the block goes through, instead of
+     * after Home is refreshed (#861, {@link app.hushgram.extension.instagram.feed.BlockedPosts}). Off to start.
+     */
+    public static final BooleanSetting HIDE_BLOCKED_POSTS =
+            new BooleanSetting("hushgram_hide_blocked_posts", FALSE);
+
+    /**
      * A long press on a feed photo shows it zoomed in around the finger until the finger lifts, in
      * place of Instagram's own long press there ({@link app.hushgram.extension.instagram.feed.LongPressZoom}).
      * Off to start.

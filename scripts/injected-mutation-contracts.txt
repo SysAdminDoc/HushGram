@@ -4356,6 +4356,15 @@ once-call Lapp/hushgram/extension/instagram/feed/FeedHoldSpeed;->keepsLook()Z in
 # instead (#860). Left out, a kept video never shows Instagram's 2x label; twice or elsewhere, it isn't
 # the hook the patch wrote.
 once-call Lapp/hushgram/extension/instagram/feed/FeedHoldSpeed;->showsKept()Z in instance (Lcom/instagram/feed/media/Media;L*;L*;Z)V class-holding FeedMediaTapHandlerV2-softError
+# Hide posts when you block someone (#861): Home's list tells BlockedPosts.feed about itself in its
+# constructor, the one method tracing MainFeedAdapter:init, right after its superclass's constructor.
+# The block request's callback tells BlockedPosts.blocked the account first thing in the method taking
+# the server's answer, the one (Object)V method that stores the account's new friendship and updates
+# the user cache. Left out, a block leaves the account's posts in Home; twice or elsewhere, it isn't
+# the hook the patch wrote.
+once-call Lapp/hushgram/extension/instagram/feed/BlockedPosts;->feed(Ljava/lang/Object;)V in instance (*)V pooled holding MainFeedAdapter:init
+start-call Lapp/hushgram/extension/instagram/feed/BlockedPosts;->blocked(Ljava/lang/Object;)V in instance (Ljava/lang/Object;)V holding LX/*;->*(LX/*;Lcom/instagram/user/model/User;Ljava/lang/String;)V LX/*;->*(Lcom/instagram/common/session/UserSession;Lcom/instagram/user/model/User;)V
+once-call Lapp/hushgram/extension/instagram/feed/BlockedPosts;->blocked(Ljava/lang/Object;)V in instance (Ljava/lang/Object;)V holding LX/*;->*(LX/*;Lcom/instagram/user/model/User;Ljava/lang/String;)V LX/*;->*(Lcom/instagram/common/session/UserSession;Lcom/instagram/user/model/User;)V
 # On 451 a tap can reach Reels without the handler (the video's overlays, a server-sent tap), and
 # every way in ends in the feed's one Reels launcher, the instance (View, entry point, two objects,
 # Media, state, List, boolean, boolean) void method holding the contextual feed's profile argument
