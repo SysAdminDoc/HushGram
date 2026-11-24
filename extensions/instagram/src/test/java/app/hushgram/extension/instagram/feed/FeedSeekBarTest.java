@@ -578,7 +578,17 @@ public class FeedSeekBarTest {
         View menu = new View(activity);
         menu.setId(View.generateViewId());
         FeedSeekBar.idForTests(activity, FeedSeekBar.MENU_BUTTON, menu.getId());
+        menu.setPadding(20, 24, 22, 24);
         names.addView(menu, new FrameLayout.LayoutParams(88, 96, Gravity.END));
+        // A suggested post's Follow button left of the menu, a TextView over the video in its media.
+        TextView follow = new TextView(activity);
+        follow.setText("Follow");
+        follow.setPadding(24, 12, 24, 12);
+        FrameLayout.LayoutParams followAt = new FrameLayout.LayoutParams(180, 64, Gravity.TOP | Gravity.END);
+        followAt.topMargin = 16;
+        followAt.setMarginEnd(100);
+        follow.setVisibility(View.GONE);
+        post.root.addView(follow, followAt);
         names.setVisibility(View.GONE);
         item.addView(names, new FrameLayout.LayoutParams(720, 96, Gravity.TOP));
         feed.addView(item, 0, new LinearLayout.LayoutParams(720, 600));
@@ -617,6 +627,7 @@ public class FeedSeekBarTest {
 
         // The name row over the top of the video, as Home lays out a reel: under its menu button too.
         names.setVisibility(View.VISIBLE);
+        follow.setVisibility(View.VISIBLE);
         idle();
         FeedSeekBar.progress(player, 5000, 15000);
         idle();
@@ -624,8 +635,20 @@ public class FeedSeekBarTest {
         menu.getLocationOnScreen(dots);
         time.getLocationOnScreen(clock);
         assertEquals("under the menu button", dots[1] + 96 + gap, clock[1]);
-        assertEquals("still lined up with the countdown", chip[0] + 94 - 12,
+        assertEquals("still lined up with the countdown, the furthest out", chip[0] + 94 - 12,
                 clock[0] + time.getWidth() - time.getPaddingRight());
+        // No countdown showing: the text ends where the menu's icon does, not under the Follow button.
+        countdown.setVisibility(View.GONE);
+        idle();
+        FeedSeekBar.progress(player, 5500, 15000);
+        idle();
+        time.getLocationOnScreen(clock);
+        assertEquals("lined up with the menu's icon", dots[0] + 88 - 22,
+                clock[0] + time.getWidth() - time.getPaddingRight());
+        assertEquals("still under the menu button", dots[1] + 96 + gap, clock[1]);
+        countdown.setVisibility(View.VISIBLE);
+        follow.setVisibility(View.GONE);
+        idle();
         // The name row above the video instead: only the countdown counts again.
         media.topMargin = 96;
         post.root.setLayoutParams(media);

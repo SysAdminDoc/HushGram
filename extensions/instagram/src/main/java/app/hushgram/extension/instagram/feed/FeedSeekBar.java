@@ -508,8 +508,8 @@ public final class FeedSeekBar {
          * Where the time goes in the video's top end corner with Time in the top corner on (#788),
          * written into [place] as its top margin and how far in from the end its text ends: a gap under
          * the lowest of Instagram's small views shown in that corner, like the countdown or a carousel's
-         * count, with its text's end lined up with theirs ({@link #cornerViews}). With none there, 8 dp
-         * down and in.
+         * count, with its text ending where the content of the one furthest toward the end does
+         * ({@link #cornerViews}). With none there, 8 dp down and in.
          */
         private void topCorner(FrameLayout frame, View view, TextView shown, int[] place) {
             List<View> found = cornerViews(frame, shown, bar, button);
@@ -519,8 +519,6 @@ public final class FeedSeekBar {
                 return;
             }
             boolean rtl = frame.getLayoutDirection() == View.LAYOUT_DIRECTION_RTL;
-            boolean texts = false;
-            for (View corner : found) texts |= corner instanceof TextView;
             int[] at = new int[2];
             frame.getLocationInWindow(at);
             int frameLeft = at[0];
@@ -530,8 +528,8 @@ public final class FeedSeekBar {
             for (View corner : found) {
                 corner.getLocationInWindow(at);
                 lowest = Math.max(lowest, at[1] - frameTop + corner.getHeight());
-                if (texts && !(corner instanceof TextView)) continue;
-                // How far in from the video's end the view's content ends, inside its padding.
+                // How far in from the video's end the view's content ends, inside its padding. The
+                // one furthest out sets the line, so a Follow button left of the menu doesn't (#788).
                 int end = rtl ? at[0] - frameLeft + corner.getPaddingLeft()
                         : frame.getWidth() - (at[0] - frameLeft + corner.getWidth() - corner.getPaddingRight());
                 inset = Math.min(inset, Math.max(0, end));
