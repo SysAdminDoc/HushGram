@@ -55,13 +55,13 @@ public class QuickSendTest {
     @Test
     public void aPopupWithoutRoomKeepsTheRowAtFour() {
         Settings.MORE_QUICK_SEND_PEOPLE.save(true);
-        assertEquals(6, QuickSend.people(4));
+        assertEquals(5, QuickSend.people(4));
         Activity activity = Utils.getActivity();
         PopupWindow popup = new PopupWindow(activity);
         FrameLayout content = new FrameLayout(activity);
         content.addView(new View(activity));
         popup.setContentView(content);
-        assertEquals(4, QuickSend.addSlots(popup, 6));
+        assertEquals(4, QuickSend.addSlots(popup, 5));
         assertEquals(1, content.getChildCount());
         assertEquals(4, QuickSend.people(4));
         for (int rank = 5; rank <= QuickSend.MOST; rank++) {
@@ -123,36 +123,55 @@ public class QuickSendTest {
         assertEquals(4, QuickSend.people(4));
     }
 
-    /** A 411 dp window, the S22's, takes six faces of 44 dp with their gaps and padding inside the popup's box. */
+    /**
+     * A 411 dp window, the S22's, takes five faces, not six: the popup's box is 345 dp wide whatever
+     * the window, and six faces with their gaps and padding need 368, which squashed the row.
+     */
     @Test
-    public void withTheSwitchOnTheRowFillsTheWindow() {
+    public void withTheSwitchOnTheRowFillsThePopup() {
         Settings.MORE_QUICK_SEND_PEOPLE.save(true);
-        assertEquals(6, QuickSend.people(4));
+        assertEquals(5, QuickSend.people(4));
         Settings.MORE_QUICK_SEND_PEOPLE.save(false);
         assertEquals(4, QuickSend.people(4));
     }
 
-    /** However narrow the window, the row never shows fewer than Instagram does, and however wide, no more than ten. */
+    /** An app without Instagram's dimen, or no window yet, reads the box as 456.1's 345 dp. */
     @Test
-    public void theRowStaysBetweenInstagramsFourAndTen() {
-        assertEquals(4, QuickSend.fit(4, 0));
-        assertEquals(4, QuickSend.fit(4, -20));
-        assertEquals(4, QuickSend.fit(4, 280));
-        assertEquals(5, QuickSend.fit(4, 360));
-        // The S25's 384 dp: six would be 368 dp wide, more than its 344 dp box.
-        assertEquals(5, QuickSend.fit(4, 384));
-        assertEquals(6, QuickSend.fit(4, 411));
-        assertEquals(QuickSend.MOST, QuickSend.fit(4, 1280));
+    public void theBoxIsInstagramsWidthWhenItsDimenIsMissing() {
+        assertEquals(QuickSend.BOX_DP, QuickSend.boxWidthDp(Utils.getActivity()), 0f);
+        assertEquals(QuickSend.BOX_DP, QuickSend.boxWidthDp(null), 0f);
     }
 
-    /** Every count past four leaves the row narrower than the window less its edges, and one more face wouldn't fit. */
+    /** However narrow the window, the row never shows fewer than Instagram does, and however wide its box, no more than ten. */
     @Test
-    public void whatTheRowTakesFitsAcrossTheWindow() {
-        for (int width = 200; width <= 800; width++) {
-            int people = QuickSend.fit(4, width);
-            if (people == 4 || people == QuickSend.MOST) continue;
-            assertTrue(width + " dp: " + people, rowWidth(people) <= width - 2 * QuickSend.EDGE_DP);
-            assertTrue(width + " dp: " + (people + 1), rowWidth(people + 1) > width - 2 * QuickSend.EDGE_DP);
+    public void theRowStaysBetweenInstagramsFourAndTen() {
+        float box = QuickSend.BOX_DP;
+        assertEquals(4, QuickSend.fit(4, 0, box));
+        assertEquals(4, QuickSend.fit(4, -20, box));
+        assertEquals(4, QuickSend.fit(4, 280, box));
+        assertEquals(4, QuickSend.fit(4, 360, 0));
+        assertEquals(5, QuickSend.fit(4, 360, box));
+        // The S25's 384 dp and the S22's 411 dp: six would be 368 dp wide, more than the 345 dp box.
+        assertEquals(5, QuickSend.fit(4, 384, box));
+        assertEquals(5, QuickSend.fit(4, 411, box));
+        assertEquals(5, QuickSend.fit(4, 1280, box));
+        // A box Instagram makes wider takes more, up to what the window leaves it.
+        assertEquals(6, QuickSend.fit(4, 411, 400));
+        assertEquals(QuickSend.MOST, QuickSend.fit(4, 1280, 1280));
+    }
+
+    /** Every count past four fits in the box and the window less its edges, and one more face wouldn't. */
+    @Test
+    public void whatTheRowTakesFitsInTheBox() {
+        for (int box = 200; box <= 800; box += 7) {
+            for (int width = 200; width <= 800; width++) {
+                int people = QuickSend.fit(4, width, box);
+                if (people == 4 || people == QuickSend.MOST) continue;
+                float room = Math.min(box, width - 2 * QuickSend.EDGE_DP);
+                String at = width + " dp in a " + box + " dp box: ";
+                assertTrue(at + people, rowWidth(people) <= room);
+                assertTrue(at + (people + 1), rowWidth(people + 1) > room);
+            }
         }
     }
 

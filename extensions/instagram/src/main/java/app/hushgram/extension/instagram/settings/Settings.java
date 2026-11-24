@@ -2019,7 +2019,7 @@ public class Settings extends BaseSettings {
             new StringSetting("hushgram_hidden_share_sheet_buttons", "");
 
     /**
-     * As many people as fit across the window in the row a long press on Share opens, where
+     * As many people as fit in the popup's box in the row a long press on Share opens, where
      * Instagram shows four (discussion #811, {@link app.hushgram.extension.instagram.share.QuickSend}).
      * Off to start.
      */

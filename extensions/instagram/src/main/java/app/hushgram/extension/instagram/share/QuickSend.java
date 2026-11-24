@@ -26,7 +26,8 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * puts four faces there: it takes four people off the top of the share sheet's list, draws no more
  * than four faces from whichever list it has, and makes the popup four faces wide. The patch asks
  * {@link #people(int)} for each of those fours instead, and with the switch on the answer is as many
- * faces as fit across the window, so the row fills it.
+ * faces as fit in the popup's box. Instagram's layout makes that box 345 dp wide on any screen, so
+ * the bar can't grow past it: five faces on a phone, where six would need 368 dp.
  *
  * <p>The popup's layout only holds four slots, an avatar and its name each, laid over the bar by the
  * layout's constraints, and the face for each rank finds its slot by id. So {@link #addSlots} gives
@@ -40,11 +41,12 @@ public final class QuickSend {
     static final float FACE_DP = 44f;
     static final float GAP_DP = 16f;
     static final float PADDING_DP = 12f;
-    /**
-     * Room left clear at each side of the window, so the row never runs off it: the popup's own box
-     * sits about 20 dp in from each side (55 px on the S25), and the bar can't be wider than the box.
-     */
+    /** Room left clear at each side of a window narrower than the popup's box, so the row never runs off it. */
     static final float EDGE_DP = 20f;
+    /** The dimen Instagram's layout gives the popup's box, which holds the bar. */
+    static final String BOX = "quick_send_popup_window_container_width";
+    /** That box's width on 456.1, for when the dimen can't be read. */
+    static final float BOX_DP = 345f;
     /** The most faces the row takes, however wide the window. */
     static final int MOST = 10;
     /** The faces Instagram's layout has slots for. */
@@ -68,14 +70,15 @@ public final class QuickSend {
 
     /**
      * How many people the row shows where Instagram shows [stock]: [stock] while the switch is off,
-     * before the settings are ready or when anything goes wrong, and otherwise as many as fit across
-     * the window, never fewer than [stock]. Never throws, and never waits for the settings.
+     * before the settings are ready or when anything goes wrong, and otherwise as many as fit in the
+     * popup's box, never fewer than [stock]. Never throws, and never waits for the settings.
      */
     public static int people(int stock) {
         try {
             HookStatus.invoked(FamilyNames.SHARE_SHEET);
             if (!Utils.settingsReady() || !Settings.MORE_QUICK_SEND_PEOPLE.get()) return stock;
-            int answer = Math.min(fit(stock, windowWidthDp()), Math.max(stock, room));
+            Activity activity = Utils.getActivity();
+            int answer = Math.min(fit(stock, windowWidthDp(activity), boxWidthDp(activity)), Math.max(stock, room));
             if (!logged && answer != stock) {
                 logged = true;
                 Logger.printDebug(() -> "Quick send: room for " + answer + " people");
@@ -226,16 +229,28 @@ public final class QuickSend {
         return view != null && view.getParent() instanceof ViewGroup ? (ViewGroup) view.getParent() : null;
     }
 
-    /** How many faces fit across [widthDp], between [stock] and {@link #MOST}. */
-    static int fit(int stock, float widthDp) {
-        float room = widthDp - 2 * PADDING_DP - 2 * EDGE_DP + GAP_DP;
+    /**
+     * How many faces fit in a popup box [boxDp] wide inside a window [windowDp] wide, the box kept
+     * clear of the window's edges, between [stock] and {@link #MOST}.
+     */
+    static int fit(int stock, float windowDp, float boxDp) {
+        float room = Math.min(boxDp, windowDp - 2 * EDGE_DP) - 2 * PADDING_DP + GAP_DP;
         int fits = room <= 0 ? 0 : (int) (room / (FACE_DP + GAP_DP));
         return Math.max(stock, Math.min(MOST, fits));
     }
 
+    /** The width Instagram's layout gives the popup's box, or {@link #BOX_DP} when it can't be read. */
+    static float boxWidthDp(Activity activity) {
+        if (activity == null) return BOX_DP;
+        Resources res = activity.getResources();
+        int id = res.getIdentifier(BOX, "dimen", activity.getPackageName());
+        if (id == 0) return BOX_DP;
+        float width = res.getDimension(id) / res.getDisplayMetrics().density;
+        return width > 0 ? width : BOX_DP;
+    }
+
     /** The width of Instagram's window, which split screen narrows, or the screen's when there's no window yet. */
-    private static float windowWidthDp() {
-        Activity activity = Utils.getActivity();
+    private static float windowWidthDp(Activity activity) {
         if (activity != null) {
             int width = activity.getResources().getConfiguration().screenWidthDp;
             if (width > 0) return width;
