@@ -38,8 +38,9 @@ import app.hushgram.extension.shared.settings.HushgramPause;
 
 /**
  * A menu button at the end of Home's header (#437) that opens a short list: the viewing history,
- * Ghost mode (a check that shows and flips it) and HushGram settings. Each entry does what its own
- * place in HushGram does, so nothing here keeps a state of its own.
+ * Ghost mode (a check that shows and flips it) and HushGram settings, and Log out when its switch is
+ * on (#850). Each entry does what its own place in HushGram or Instagram does, so nothing here keeps a
+ * state of its own.
  *
  * <p>{@link GhostHeaderButton#drew} posts {@link #place} behind each header draw, like the buttons
  * beside it. The icon is three lines drawn in code in Instagram's icon color for the theme. With the
@@ -60,6 +61,26 @@ public final class HomeMenuButton {
     static final int HISTORY = 1;
     static final int GHOST = 2;
     static final int SETTINGS = 3;
+    static final int LOGOUT = 4;
+
+    /** Instagram's own Log out, as {@link HomeLogout} reaches it. Tests swap in a stand-in. */
+    interface Logout {
+        boolean wired();
+
+        boolean start(Object activity);
+    }
+
+    static volatile Logout logout = new Logout() {
+        @Override
+        public boolean wired() {
+            return HomeLogout.wired();
+        }
+
+        @Override
+        public boolean start(Object activity) {
+            return HomeLogout.start(activity);
+        }
+    };
 
     /** The button, its own type so the next draw finds it in the row. */
     static final class Dots extends ImageView {
@@ -123,7 +144,10 @@ public final class HomeMenuButton {
         }
     }
 
-    /** The entries: the history, Ghost mode with its check when this build has it, and settings. */
+    /**
+     * The entries: the history, Ghost mode with its check when this build has it, settings, and Log
+     * out last while its switch is on and this build reaches Instagram's own Log out (#850).
+     */
     static void fill(Menu menu) {
         menu.add(Menu.NONE, HISTORY, Menu.NONE, L10n.t("Viewing history"));
         List<BooleanSetting> switches = GhostMode.picked(GhostMode.switches(PatchFamily.inThisBuild()));
@@ -133,6 +157,9 @@ public final class HomeMenuButton {
             ghost.setChecked(GhostMode.on(switches));
         }
         menu.add(Menu.NONE, SETTINGS, Menu.NONE, L10n.t("HushGram settings"));
+        if (Settings.LOGOUT_IN_HOME_MENU.get() && logout.wired()) {
+            menu.add(Menu.NONE, LOGOUT, Menu.NONE, L10n.t("Log out"));
+        }
     }
 
     /** What a pick does. Never throws. */
@@ -151,6 +178,10 @@ public final class HomeMenuButton {
                     break;
                 case SETTINGS:
                     if (activity == null || !SettingsEntry.requestOpen(activity)) return true;
+                    break;
+                case LOGOUT:
+                    if (activity == null || !logout.start(activity)) return true;
+                    Logger.printDebug(() -> "Home menu: started Instagram's own Log out");
                     break;
                 default:
                     return false;

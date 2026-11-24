@@ -4291,6 +4291,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_menu_button_on_home", FALSE, true);
 
     /**
+     * Log out last in the list of the menu button on Home's header (#850,
+     * {@link app.hushgram.extension.instagram.settings.HomeLogout}), which starts Instagram's own Log out.
+     * Read each time the list opens. Off to start.
+     */
+    public static final BooleanSetting LOGOUT_IN_HOME_MENU =
+            new BooleanSetting("hushgram_logout_in_home_menu", FALSE);
+
+    /**
      * A clock on Home's header that opens the viewing history in one tap (#228,
      * {@link app.hushgram.extension.instagram.settings.HistoryHeaderButton}). The header builds it as it
      * draws, so a change takes a restart. Off to start.

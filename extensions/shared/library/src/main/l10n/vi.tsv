@@ -1801,6 +1801,12 @@ Instagram gradient on dark	Instagram chuyển sắc trên nền tối
 Retro Instagram	Instagram cổ điển
 Menu button on Home's header	Nút menu ở đầu trang chủ
 Adds a menu button at the top of Home with your viewing history, Ghost mode and HushGram settings. Restart Instagram to see the change.	Thêm nút menu ở đầu trang chủ với lịch sử đã xem, Chế độ ẩn và cài đặt HushGram. Hãy khởi động lại Instagram để thấy thay đổi.
+# context: entry of the menu that the menu button on Home's header opens; starts Instagram's own log out (#850)
+Log out	Đăng xuất
+# context: Tab bar settings: switch that adds Log out to the list of the menu button on Home's header (#850)
+Log out in Home's menu	Đăng xuất trong menu trang chủ
+# context: that switch summary (#850)
+Adds Log out after HushGram settings in the list the menu button on Home's header opens. It starts the same Log out as Instagram's own settings.	Thêm Đăng xuất sau cài đặt HushGram trong danh sách mà nút menu ở đầu trang chủ mở ra. Nó bắt đầu cùng quy trình đăng xuất như trong cài đặt của Instagram.
 History button on Home's header	Nút lịch sử ở đầu trang chủ
 Adds a clock at the top of Home that opens your viewing history in one tap. Restart Instagram to see the change.	Thêm một đồng hồ ở đầu trang chủ để mở lịch sử đã xem chỉ với một lần chạm. Hãy khởi động lại Instagram để thấy thay đổi.
 HushGram menu	Menu HushGram

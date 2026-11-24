@@ -1873,6 +1873,12 @@ Instagram gradient on dark	การไล่ระดับสี Instagram บ
 Retro Instagram	Instagram ย้อนยุค
 Menu button on Home's header	ปุ่มเมนูที่ส่วนหัวของหน้าหลัก
 Adds a menu button at the top of Home with your viewing history, Ghost mode and HushGram settings. Restart Instagram to see the change.	เพิ่มปุ่มเมนูที่ด้านบนของหน้าหลักซึ่งมีประวัติการดูของคุณ โหมดโกสต์ และการตั้งค่า HushGram รีสตาร์ท Instagram เพื่อดูการเปลี่ยนแปลง
+# context: entry of the menu that the menu button on Home's header opens; starts Instagram's own log out (#850)
+Log out	ออกจากระบบ
+# context: Tab bar settings: switch that adds Log out to the list of the menu button on Home's header (#850)
+Log out in Home's menu	ออกจากระบบในเมนูหน้าหลัก
+# context: that switch summary (#850)
+Adds Log out after HushGram settings in the list the menu button on Home's header opens. It starts the same Log out as Instagram's own settings.	เพิ่มออกจากระบบต่อจากการตั้งค่า HushGram ในรายการที่ปุ่มเมนูที่ส่วนหัวของหน้าหลักเปิดขึ้น โดยจะเริ่มการออกจากระบบแบบเดียวกับในการตั้งค่าของ Instagram
 History button on Home's header	ปุ่มประวัติที่ส่วนหัวของหน้าหลัก
 Adds a clock at the top of Home that opens your viewing history in one tap. Restart Instagram to see the change.	เพิ่มไอคอนนาฬิกาที่ด้านบนของหน้าหลักเพื่อเปิดประวัติการดูของคุณได้ด้วยการแตะเพียงครั้งเดียว รีสตาร์ท Instagram เพื่อดูการเปลี่ยนแปลง
 HushGram menu	เมนู HushGram

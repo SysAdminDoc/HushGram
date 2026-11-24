@@ -1886,6 +1886,12 @@ Instagram gradient on dark	Instagram sfumato su scuro
 Retro Instagram	Instagram retrò
 Menu button on Home's header	Pulsante Menu nell'intestazione della Home
 Adds a menu button at the top of Home with your viewing history, Ghost mode and HushGram settings. Restart Instagram to see the change.	Aggiunge in alto nella Home un pulsante Menu con la cronologia, la modalità fantasma e le impostazioni di HushGram. Riavvia Instagram per vedere la modifica.
+# context: entry of the menu that the menu button on Home's header opens; starts Instagram's own log out (#850)
+Log out	Esci
+# context: Tab bar settings: switch that adds Log out to the list of the menu button on Home's header (#850)
+Log out in Home's menu	Esci nel menu della Home
+# context: that switch summary (#850)
+Adds Log out after HushGram settings in the list the menu button on Home's header opens. It starts the same Log out as Instagram's own settings.	Aggiunge Esci dopo le impostazioni di HushGram nell'elenco che apre il pulsante Menu nell'intestazione della Home. Avvia la stessa uscita delle impostazioni di Instagram.
 History button on Home's header	Pulsante Cronologia nell'intestazione della Home
 Adds a clock at the top of Home that opens your viewing history in one tap. Restart Instagram to see the change.	Aggiunge in alto nella Home un orologio che apre la cronologia con un tocco. Riavvia Instagram per vedere la modifica.
 HushGram menu	Menu di HushGram

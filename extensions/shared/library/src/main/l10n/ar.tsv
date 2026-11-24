@@ -218,6 +218,12 @@ Adds a gear at the top of Home that opens HushGram settings. Restart Instagram t
 Adds a ghost button at the top of Home, next to Messages when it's there and at the end of the buttons when it isn't. Tap it to turn Ghost mode on or off. Restart Instagram to see the change.	يضيف زر شبح في أعلى الرئيسية، بجوار الرسائل عند وجودها وفي نهاية الأزرار عند عدم وجودها. اضغط عليه لتشغيل وضع الشبح أو إيقافه. أعد تشغيل Instagram لرؤية التغيير.
 Adds a magnifier at the top of Home that opens Search, like the Search tab does. It works with the Search tab hidden too. Restart Instagram to see the change.	يضيف عدسة مكبّرة في أعلى الرئيسية تفتح البحث، كما يفعل تبويب البحث. يعمل أيضًا مع إخفاء تبويب البحث. أعد تشغيل Instagram لرؤية التغيير.
 Adds a menu button at the top of Home with your viewing history, Ghost mode and HushGram settings. Restart Instagram to see the change.	يضيف زر قائمة في أعلى الرئيسية يضم سجل المشاهدة ووضع الشبح وإعدادات HushGram. أعد تشغيل Instagram لرؤية التغيير.
+# context: entry of the menu that the menu button on Home's header opens; starts Instagram's own log out (#850)
+Log out	تسجيل الخروج
+# context: Tab bar settings: switch that adds Log out to the list of the menu button on Home's header (#850)
+Log out in Home's menu	تسجيل الخروج في قائمة الرئيسية
+# context: that switch summary (#850)
+Adds Log out after HushGram settings in the list the menu button on Home's header opens. It starts the same Log out as Instagram's own settings.	يضيف تسجيل الخروج بعد إعدادات HushGram في القائمة التي يفتحها زر القائمة في رأس الصفحة الرئيسية. يبدأ تسجيل الخروج نفسه الموجود في إعدادات Instagram.
 Adds a row next to Download on a reel and a feed video that plays it in an app you pick, such as VLC. The player streams it from Instagram's servers.	يضيف صفًا بجوار تنزيل على مقطع وعلى فيديو في الخلاصة يشغّله في تطبيق تختاره، مثل VLC. يبث المشغّل الفيديو من خوادم Instagram.
 Adds a search box above a post's comments. Type a word or a name and the comments scroll to the next one that has it. Replies you haven't opened aren't searched.	يضيف مربع بحث فوق تعليقات المنشور. اكتب كلمة أو اسمًا وتنتقل التعليقات إلى التالي الذي يتضمنه. الردود التي لم تفتحها لا تُبحث.
 Adds a search box above your blocked accounts in Instagram's settings. It finds them by username or name, and loads the rest of your list as you type.	يضيف مربع بحث فوق حساباتك المحظورة في إعدادات Instagram. يعثر عليها باسم المستخدم أو الاسم، ويحمّل بقية قائمتك أثناء الكتابة.

@@ -175,6 +175,62 @@ public class HomeHeaderSettingsTest {
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.MENU_BUTTON_ON_HOME.key));
     }
 
+    /** Log out in Home's menu (#850) sits right after the menu button's switch, starts off and needs no restart. */
+    @Test public void theLogOutSwitchFollowsTheMenuSwitchAndStartsOff() throws Exception {
+        HomeMenuButton.Logout instagrams = HomeMenuButton.logout;
+        HomeMenuButton.logout = new HomeMenuButton.Logout() {
+            @Override public boolean wired() {
+                return true;
+            }
+
+            @Override public boolean start(Object activity) {
+                return true;
+            }
+        };
+        try {
+            open(PatchFamily.REELS_TAB);
+            SwitchPreference toggle = (SwitchPreference) row(Settings.LOGOUT_IN_HOME_MENU.key);
+            assertNotNull(toggle);
+            assertEquals("Tab bar", String.valueOf(sectionOf(page.getPreferenceScreen(), toggle).getTitle()));
+            PreferenceGroup group = parentOf(page.getPreferenceScreen(), toggle);
+            assertNotNull(group);
+            int menu = -1;
+            for (int i = 0; i < group.getPreferenceCount(); i++) {
+                if (Settings.MENU_BUTTON_ON_HOME.key.equals(group.getPreference(i).getKey())) menu = i;
+            }
+            assertTrue("the menu button's switch sits beside it", menu >= 0);
+            assertEquals("right after the menu button's switch", Settings.LOGOUT_IN_HOME_MENU.key, group.getPreference(menu + 1).getKey());
+            assertEquals("Log out in Home's menu", String.valueOf(toggle.getTitle()));
+            assertTrue(String.valueOf(toggle.getSummary()).contains("Instagram's own settings"));
+            assertFalse(toggle.isChecked());
+            assertEquals(Boolean.FALSE, Settings.LOGOUT_IN_HOME_MENU.defaultValue);
+            assertTrue(PatchFamily.REELS_TAB.switches.contains(Settings.LOGOUT_IN_HOME_MENU));
+            assertTrue(ConfigurationBackup.eligible().containsKey(Settings.LOGOUT_IN_HOME_MENU.key));
+        } finally {
+            HomeMenuButton.logout = instagrams;
+        }
+    }
+
+    /** The group holding [row] itself, or null. */
+    private static PreferenceGroup parentOf(PreferenceGroup group, Preference row) {
+        for (int i = 0; i < group.getPreferenceCount(); i++) {
+            Preference child = group.getPreference(i);
+            if (child == row) return group;
+            if (child instanceof PreferenceGroup) {
+                PreferenceGroup found = parentOf((PreferenceGroup) child, row);
+                if (found != null) return found;
+            }
+        }
+        return null;
+    }
+
+    /** A build whose patch couldn't reach Instagram's own Log out shows no switch for it. */
+    @Test public void withoutInstagramsLogOutTheSwitchStaysOut() throws Exception {
+        open(PatchFamily.REELS_TAB);
+        assertNotNull(row(Settings.MENU_BUTTON_ON_HOME.key));
+        assertNull(row(Settings.LOGOUT_IN_HOME_MENU.key));
+    }
+
     /** History button on Home's header (#228) sits under Tab bar, starts off and asks for a restart. */
     @Test public void theHistoryButtonSwitchStartsOff() throws Exception {
         open(PatchFamily.REELS_TAB);

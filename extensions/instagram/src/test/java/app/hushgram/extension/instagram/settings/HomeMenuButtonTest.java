@@ -44,6 +44,7 @@ import instagram.features.feed.mainfeed.actionbar.MainFeedActionBar;
 public class HomeMenuButtonTest {
     @Rule public final SettingsContextRule settings = new SettingsContextRule();
 
+    private final HomeMenuButton.Logout instagramsLogout = HomeMenuButton.logout;
     private ActivityController<Activity> screen;
     private Activity activity;
     private MainFeedActionBar header;
@@ -71,6 +72,8 @@ public class HomeMenuButtonTest {
         Settings.READ_WITHOUT_SEEN_RECEIPT.resetToDefault();
         Settings.HIDE_TYPING.resetToDefault();
         Settings.GHOST_MODE_PICKS.resetToDefault();
+        Settings.LOGOUT_IN_HOME_MENU.resetToDefault();
+        HomeMenuButton.logout = instagramsLogout;
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         screen.close();
@@ -155,6 +158,83 @@ public class HomeMenuButtonTest {
         assertTrue(HomeMenuButton.pick(popup.getMenu().findItem(HomeMenuButton.HISTORY), activity));
         ShadowLooper.idleMainLooper();
         assertNotNull("the viewing history page", ShadowDialog.getLatestDialog());
+    }
+
+    /** Stands in for Instagram's own Log out (#850), counting the screens it was started from. */
+    private static final class StandInLogout implements HomeMenuButton.Logout {
+        final boolean wired;
+        final RuntimeException failure;
+        final java.util.List<Object> started = new java.util.ArrayList<>();
+
+        StandInLogout(boolean wired, RuntimeException failure) {
+            this.wired = wired;
+            this.failure = failure;
+        }
+
+        @Override public boolean wired() {
+            return wired;
+        }
+
+        @Override public boolean start(Object from) {
+            if (failure != null) throw failure;
+            started.add(from);
+            return true;
+        }
+    }
+
+    private Menu filled() {
+        PopupMenu popup = new PopupMenu(activity, new ImageView(activity));
+        HomeMenuButton.fill(popup.getMenu());
+        return popup.getMenu();
+    }
+
+    @Test public void theLogOutSwitchStartsOffAndLeavesTheListAsItWas() {
+        assertEquals(Boolean.FALSE, Settings.LOGOUT_IN_HOME_MENU.defaultValue);
+        assertFalse("read as the list opens, so no restart", Settings.LOGOUT_IN_HOME_MENU.rebootApp);
+        HomeMenuButton.logout = new StandInLogout(true, null);
+        Menu menu = filled();
+        assertEquals(3, menu.size());
+        assertNull(menu.findItem(HomeMenuButton.LOGOUT));
+    }
+
+    @Test public void withItsSwitchOnLogOutComesAfterSettingsAndStartsInstagramsOwn() {
+        StandInLogout logout = new StandInLogout(true, null);
+        HomeMenuButton.logout = logout;
+        Settings.LOGOUT_IN_HOME_MENU.save(true);
+        Menu menu = filled();
+        assertEquals(4, menu.size());
+        assertEquals("HushGram settings", String.valueOf(menu.getItem(2).getTitle()));
+        assertEquals("Log out", String.valueOf(menu.getItem(3).getTitle()));
+        assertEquals(HomeMenuButton.LOGOUT, menu.getItem(3).getItemId());
+
+        assertTrue(HomeMenuButton.pick(menu.getItem(3), header.getContext()));
+        assertEquals("started once, from the screen the header sits on", java.util.List.of(activity), logout.started);
+        assertNull("nothing of HushGram's opens", ShadowDialog.getLatestDialog());
+    }
+
+    @Test public void aBuildThatCouldNotReachInstagramsLogOutLeavesItOff() {
+        Settings.LOGOUT_IN_HOME_MENU.save(true);
+        assertFalse("an unpatched bridge answers no", instagramsLogout.wired());
+        assertEquals(3, filled().size());
+    }
+
+    @Test public void aLogOutThatFailsIsCaughtAndCounted() {
+        HomeMenuButton.logout = new StandInLogout(true, new ClassCastException("not the main screen"));
+        Settings.LOGOUT_IN_HOME_MENU.save(true);
+        Menu menu = filled();
+        assertTrue(HomeMenuButton.pick(menu.findItem(HomeMenuButton.LOGOUT), activity));
+        assertTrue(HookStatus.report().toString(), HookStatus.report().toString().contains("menu button pick"));
+    }
+
+    @Test public void aPausedLogOutPickStartsNothing() {
+        StandInLogout logout = new StandInLogout(true, null);
+        HomeMenuButton.logout = logout;
+        Settings.LOGOUT_IN_HOME_MENU.save(true);
+        Menu menu = filled();
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        HomeMenuButton.pick(menu.findItem(HomeMenuButton.LOGOUT), activity);
+        assertTrue(logout.started.isEmpty());
     }
 
     @Test public void aPausedPickDoesNothing() {

@@ -101,12 +101,15 @@ val hideReelsTabPatch = bytecodePatch(
         val search = findSearchButton(tabs)
         val home = findHomeTab(tabs)
         val badge = findMessagesBadge()
+        // Log out in Home's menu is left out alone when a build moved Instagram's own Log out.
+        val logout = findHomeLogout()
         hideReelsTab(tabs)
         hideHomeHeaderButtons(header)
         keepChevronRoom(chevron)
         addSearchButton(search)
         hideHomeTab(home)
         hideMessagesBadge(badge)
+        logout?.let { writeHomeLogout(it) }
         enableStatus("reelsTab")
     }
 }

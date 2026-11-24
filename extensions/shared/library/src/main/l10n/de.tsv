@@ -1886,6 +1886,12 @@ Instagram gradient on dark	Instagram-Verlauf auf Dunkel
 Retro Instagram	Retro-Instagram
 Menu button on Home's header	Menütaste oben auf der Startseite
 Adds a menu button at the top of Home with your viewing history, Ghost mode and HushGram settings. Restart Instagram to see the change.	Fügt oben auf der Startseite eine Menütaste mit deinem Verlauf, dem Ghost-Modus und den HushGram-Einstellungen hinzu. Starte Instagram neu, um die Änderung zu sehen.
+# context: entry of the menu that the menu button on Home's header opens; starts Instagram's own log out (#850)
+Log out	Abmelden
+# context: Tab bar settings: switch that adds Log out to the list of the menu button on Home's header (#850)
+Log out in Home's menu	Abmelden im Menü der Startseite
+# context: that switch summary (#850)
+Adds Log out after HushGram settings in the list the menu button on Home's header opens. It starts the same Log out as Instagram's own settings.	Fügt Abmelden nach den HushGram-Einstellungen in die Liste ein, die die Menütaste oben auf der Startseite öffnet. Es startet dasselbe Abmelden wie die Einstellungen von Instagram.
 History button on Home's header	Verlaufstaste oben auf der Startseite
 Adds a clock at the top of Home that opens your viewing history in one tap. Restart Instagram to see the change.	Fügt oben auf der Startseite eine Uhr hinzu, die deinen Verlauf mit einem Tippen öffnet. Starte Instagram neu, um die Änderung zu sehen.
 HushGram menu	HushGram-Menü

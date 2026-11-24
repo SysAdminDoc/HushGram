@@ -1889,6 +1889,12 @@ Instagram gradient on dark	深色底的 Instagram 渐变
 Retro Instagram	复古 Instagram
 Menu button on Home's header	首页顶端的菜单按钮
 Adds a menu button at the top of Home with your viewing history, Ghost mode and HushGram settings. Restart Instagram to see the change.	在首页顶端加入菜单按钮，内含浏览纪录、鬼魂模式与 HushGram 设置。请重新启动 Instagram 以应用变更。
+# context: entry of the menu that the menu button on Home's header opens; starts Instagram's own log out (#850)
+Log out	退出登录
+# context: Tab bar settings: switch that adds Log out to the list of the menu button on Home's header (#850)
+Log out in Home's menu	首页菜单中的退出登录
+# context: that switch summary (#850)
+Adds Log out after HushGram settings in the list the menu button on Home's header opens. It starts the same Log out as Instagram's own settings.	在首页顶端菜单按钮打开的列表中，于 HushGram 设置之后加入退出登录。它会启动与 Instagram 设置相同的退出登录流程。
 History button on Home's header	首页顶端的纪录按钮
 Adds a clock at the top of Home that opens your viewing history in one tap. Restart Instagram to see the change.	在首页顶端加入时钟，轻触一下即可打开浏览纪录。请重新启动 Instagram 以应用变更。
 HushGram menu	HushGram 菜单

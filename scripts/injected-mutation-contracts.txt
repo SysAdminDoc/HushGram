@@ -3085,6 +3085,12 @@ once-call Lapp/hushgram/extension/instagram/reels/HomeLogo;->chevronRoom(I)I in 
 # Messages button; twice or elsewhere, it isn't the hook the patch wrote. MessagesBadgeHookTest
 # checks all four 456 builds.
 once-call Lapp/hushgram/extension/instagram/reels/MessagesBadge;->count(I)I in instance (LX/*;)V holding LX/*;->*(ILjava/lang/Long;)V
+# Its Log out in Home's menu switch (#850) has the patch fill HomeLogout.start with the making of
+# Instagram's Log out controller from the main screen and that controller's start for the logout
+# Instagram's own settings row asks for, so the stub has to leave the extension before it returns.
+# Left as the stub, the menu leaves Log out off. HomeLogout.wired answers true and calls nothing, so
+# no rule can hold it; HomeLogoutHookTest checks both bodies on each declared build.
+first-call Lapp/hushgram/extension/instagram/settings/HomeLogout;->start(Ljava/lang/Object;)Z outside Lapp/hushgram/extension/
 # Profile posts as a list hands a profile's posts tab to PostsList.resumed first thing in the tab's
 # onResume (ProfileMediaTabFragment keeps its name and onResume in 450, and onResume is the one ()V
 # method of the class calling an onResume). The class is the only one holding both strings. Left

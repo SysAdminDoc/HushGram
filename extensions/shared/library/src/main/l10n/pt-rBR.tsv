@@ -1886,6 +1886,12 @@ Instagram gradient on dark	Instagram em degradê no escuro
 Retro Instagram	Instagram retrô
 Menu button on Home's header	Botão de menu no cabeçalho da Página inicial
 Adds a menu button at the top of Home with your viewing history, Ghost mode and HushGram settings. Restart Instagram to see the change.	Adiciona um botão de menu no topo da Página inicial com seu histórico, o modo fantasma e as configurações do HushGram. Reinicie o Instagram para ver a mudança.
+# context: entry of the menu that the menu button on Home's header opens; starts Instagram's own log out (#850)
+Log out	Sair
+# context: Tab bar settings: switch that adds Log out to the list of the menu button on Home's header (#850)
+Log out in Home's menu	Sair no menu da Página inicial
+# context: that switch summary (#850)
+Adds Log out after HushGram settings in the list the menu button on Home's header opens. It starts the same Log out as Instagram's own settings.	Adiciona Sair depois das configurações do HushGram na lista que o botão de menu no cabeçalho da Página inicial abre. Ele inicia a mesma saída das configurações do Instagram.
 History button on Home's header	Botão de histórico no cabeçalho da Página inicial
 Adds a clock at the top of Home that opens your viewing history in one tap. Restart Instagram to see the change.	Adiciona um relógio no topo da Página inicial que abre seu histórico com um toque. Reinicie o Instagram para ver a mudança.
 HushGram menu	Menu do HushGram

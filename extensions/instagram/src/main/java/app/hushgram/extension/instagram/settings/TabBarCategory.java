@@ -106,6 +106,11 @@ final class TabBarCategory {
                 glass.addPreference(toggle(context, Settings.MENU_BUTTON_ON_HOME, L10n.t("Menu button on Home's header"),
                         L10n.t("Adds a menu button at the top of Home with your viewing history, Ghost mode and "
                                 + "HushGram settings. Restart Instagram to see the change.")));
+                if (HomeMenuButton.logout.wired()) {
+                    glass.addPreference(toggle(context, Settings.LOGOUT_IN_HOME_MENU, L10n.t("Log out in Home's menu"),
+                            L10n.t("Adds Log out after HushGram settings in the list the menu button on Home's header "
+                                    + "opens. It starts the same Log out as Instagram's own settings.")));
+                }
                 glass.addPreference(toggle(context, Settings.HISTORY_BUTTON_ON_HOME, L10n.t("History button on Home's header"),
                         L10n.t("Adds a clock at the top of Home that opens your viewing history in one tap. Restart "
                                 + "Instagram to see the change.")));

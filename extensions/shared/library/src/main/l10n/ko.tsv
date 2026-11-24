@@ -1885,6 +1885,12 @@ Instagram gradient on dark	어두운 배경의 Instagram 그라데이션
 Retro Instagram	레트로 Instagram
 Menu button on Home's header	홈 상단의 메뉴 버튼
 Adds a menu button at the top of Home with your viewing history, Ghost mode and HushGram settings. Restart Instagram to see the change.	홈 상단에 본 기록, 고스트 모드, HushGram 설정이 담긴 메뉴 버튼을 추가합니다. 변경 사항을 보려면 Instagram을 다시 시작하세요.
+# context: entry of the menu that the menu button on Home's header opens; starts Instagram's own log out (#850)
+Log out	로그아웃
+# context: Tab bar settings: switch that adds Log out to the list of the menu button on Home's header (#850)
+Log out in Home's menu	홈 메뉴에 로그아웃
+# context: that switch summary (#850)
+Adds Log out after HushGram settings in the list the menu button on Home's header opens. It starts the same Log out as Instagram's own settings.	홈 상단의 메뉴 버튼이 여는 목록에서 HushGram 설정 다음에 로그아웃을 추가합니다. Instagram 설정의 로그아웃과 같은 과정을 시작합니다.
 History button on Home's header	홈 상단의 기록 버튼
 Adds a clock at the top of Home that opens your viewing history in one tap. Restart Instagram to see the change.	홈 상단에 탭 한 번으로 본 기록을 여는 시계를 추가합니다. 변경 사항을 보려면 Instagram을 다시 시작하세요.
 HushGram menu	HushGram 메뉴
