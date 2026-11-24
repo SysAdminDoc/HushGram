@@ -15,7 +15,10 @@ import static org.robolectric.Shadows.shadowOf;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.os.Looper;
+import android.os.SystemClock;
+import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewConfiguration;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.ListView;
@@ -32,6 +35,7 @@ import org.robolectric.annotation.Config;
 import org.robolectric.shadows.ShadowAlertDialog;
 import org.robolectric.shadows.ShadowToast;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -288,6 +292,38 @@ public class FollowListFilterTest {
         strip.addView(new TextView(activity));
 
         assertEquals(2, FollowListFilter.holdTabs(strip));
+    }
+
+    /**
+     * Instagram's accessibility helper takes the hold off a tab's words each time an accessibility
+     * service reads them. Pressing the words puts it back, so holding them still opens the choice.
+     */
+    @Test
+    public void holdingTheWordsWorksAfterAnAccessibilityServiceReadThem() {
+        Settings.FOLLOW_LIST_FILTER.save(true);
+        Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
+        FollowListFilter.stripId = View.generateViewId();
+        FrameLayout screen = new FrameLayout(activity);
+        LinearLayout strip = new LinearLayout(activity);
+        strip.setId(FollowListFilter.stripId);
+        TextView words = tab(activity, "5 following");
+        strip.addView(words);
+        screen.addView(strip);
+        View row = new View(activity);
+        screen.addView(row);
+        activity.setContentView(screen);
+        shadowOf(Looper.getMainLooper()).idle();
+        FollowListFilter.watch(row);
+
+        words.setLongClickable(false);
+        long down = SystemClock.uptimeMillis();
+        words.dispatchTouchEvent(MotionEvent.obtain(down, down, MotionEvent.ACTION_DOWN, 4, 4, 0));
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(ViewConfiguration.getLongPressTimeout() + 100));
+
+        AlertDialog dialog = ShadowAlertDialog.getLatestAlertDialog();
+        assertNotNull(dialog);
+        assertEquals("Show in follow lists", shadowOf(dialog).getTitle().toString());
+        words.dispatchTouchEvent(MotionEvent.obtain(down, SystemClock.uptimeMillis(), MotionEvent.ACTION_UP, 4, 4, 0));
     }
 
     private static TextView tab(Activity activity, String text) {

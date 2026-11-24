@@ -8,6 +8,7 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.ContextWrapper;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
@@ -71,6 +72,21 @@ public final class FollowListFilter {
     static int stripId = -1;
 
     private static final View.OnLongClickListener HOLD_TAB = FollowListFilter::held;
+
+    /**
+     * Gives a tab the hold back as it's pressed. Instagram's accessibility helper takes it off a tab's
+     * words each time an accessibility service reads them, and holding them then did nothing.
+     */
+    private static final View.OnTouchListener PRESSED = (tab, event) -> {
+        try {
+            if (event.getActionMasked() == MotionEvent.ACTION_DOWN && !tab.isLongClickable() && switchedOn()) {
+                tab.setOnLongClickListener(HOLD_TAB);
+            }
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.FRIENDSHIP_STATUS, HOLD, failure);
+        }
+        return false;
+    };
 
     /** Where {@link #filtered} gets what it needs from Instagram's objects. Tests hand in their own. */
     interface Parts {
@@ -198,11 +214,15 @@ public final class FollowListFilter {
         }
     }
 
-    /** Has holding each tab in [strip], every clickable view in it, open the choice. */
+    /**
+     * Has holding each tab in [strip], every clickable view in it, open the choice. Instagram sets no
+     * touch listener of its own on these, so the one that gives the hold back replaces nothing.
+     */
     static int holdTabs(View strip) {
         int tabs = 0;
         if (strip.isClickable()) {
             strip.setOnLongClickListener(HOLD_TAB);
+            strip.setOnTouchListener(PRESSED);
             tabs++;
         }
         if (strip instanceof ViewGroup) {
