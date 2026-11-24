@@ -118,6 +118,7 @@ public enum PatchFamily {
             Settings.ONLY_RECEIVED_CHAT_REELS, Settings.MESSAGES_AFTER_CHAT_REELS, Settings.BLOCK_CHAT_REELS),
     CHAT_MEDIA_WALK(FamilyNames.CHAT_MEDIA_WALK, "chatMediaWalk", null, Settings.SWIPE_CHAT_MEDIA),
     CHAT_HISTORY(FamilyNames.CHAT_HISTORY, "chatHistory", null, Settings.JUMP_IN_CHAT, Settings.EXPORT_CHAT),
+    CHAT_BUTTON_LINKS(FamilyNames.CHAT_BUTTON_LINKS, "chatButtonLinks", null, Settings.COPY_CHAT_BUTTON_LINKS),
     PREVIEW_CHATS(FamilyNames.PREVIEW_CHATS, "previewChats", null, Settings.PREVIEW_CHATS),
     ASK_BEFORE_CALL(FamilyNames.ASK_BEFORE_CALL, "askBeforeCall", null, Settings.ASK_BEFORE_CALL,
             Settings.HIDE_CALL_BUTTONS, Settings.HIDE_CHAT_BLEND, Settings.HIDE_CHAT_BACK_BUTTON),

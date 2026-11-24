@@ -4503,3 +4503,16 @@ once-call Lapp/hushgram/extension/instagram/feed/CaptionLength;->reelCaptionOpen
 # paused reel keeps the screen on; twice or elsewhere, it isn't the hook the patch wrote.
 once-call Lapp/hushgram/extension/instagram/reels/ReelScreenSleep;->keepAwake(Landroid/view/Window;I)V in instance (Z)V holding const:0x80 Landroid/app/Activity;->getWindow()Landroid/view/Window; Landroid/view/Window;->clearFlags(I)V
 once-call Lapp/hushgram/extension/instagram/reels/ReelScreenSleep;->started(Ljava/lang/Object;)V in static (L*;Ljava/lang/String;ZZ)V holding IgVideoPlayerImpl.playInternal\splayAfterSeek:\s
+#
+# Copy links from chat buttons (#852): the maker of a held message's menu model (09YM.invoke on
+# 386215122, the one method reading card buttons around xma_long_press_action) hands its card row list and the message
+# to ChatButtonLinks.rows in place of the list's test, right before the model copies the list, and
+# tests the answer instead. Left out, a message with link buttons gets no Copy link row; twice or
+# elsewhere, it isn't the list the patch means.
+once-call Lapp/hushgram/extension/instagram/direct/ChatButtonLinks;->rows(Ljava/util/List;Ljava/lang/Object;)Ljava/util/List; in instance ()Ljava/lang/Object; pooled holding xma_long_press_action
+# The chat's dispatcher for that menu (0WmY.EIk on 386215122, the (action, text) method reading the
+# chat's thread key and the menu's model) asks ChatButtonLinks.picked first and returns on a yes, so
+# a Copy link row's tap never reaches Instagram's card row action. Not first, the dispatcher could
+# act on the row before it; twice or elsewhere, it isn't the guard the patch wrote.
+start-call Lapp/hushgram/extension/instagram/direct/ChatButtonLinks;->picked(Landroid/app/Activity;Ljava/lang/Object;Ljava/lang/String;)Z in instance (LX/*;Ljava/lang/String;)V holding LX/*;->*:Lcom/instagram/model/direct/DirectThreadKey; LX/*;->*:Lcom/instagram/direct/messagethread/messageactions/model/MessageActionsViewModel;
+once-call Lapp/hushgram/extension/instagram/direct/ChatButtonLinks;->picked(Landroid/app/Activity;Ljava/lang/Object;Ljava/lang/String;)Z in instance (LX/*;Ljava/lang/String;)V holding LX/*;->*:Lcom/instagram/model/direct/DirectThreadKey; LX/*;->*:Lcom/instagram/direct/messagethread/messageactions/model/MessageActionsViewModel;

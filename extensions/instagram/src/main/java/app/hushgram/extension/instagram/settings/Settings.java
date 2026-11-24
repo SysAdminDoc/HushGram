@@ -1218,6 +1218,14 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting EXPORT_CHAT = new BooleanSetting("hushgram_export_chat", FALSE);
 
     /**
+     * Holding a chat message with link buttons, the kind automated accounts send under a text or a
+     * card, offers Copy link, which copies where a button goes without opening it
+     * ({@link app.hushgram.extension.instagram.direct.ChatButtonLinks}, #852). Read each time a
+     * message is held. Off to start.
+     */
+    public static final BooleanSetting COPY_CHAT_BUTTON_LINKS = new BooleanSetting("hushgram_copy_chat_button_links", FALSE);
+
+    /**
      * A call started from a chat waits for a question first
      * ({@link app.hushgram.extension.instagram.direct.CallConfirm}). Off to start.
      */

@@ -219,6 +219,11 @@ final class MessagesCategory {
                                 + "Downloads, HushGram folder, one line per message. Select messages in the same menu lets "
                                 + "you tick messages to copy, share or save.")));
             }
+            if (build.contains(PatchFamily.CHAT_BUTTON_LINKS)) {
+                messages.addPreference(toggle(context, Settings.COPY_CHAT_BUTTON_LINKS, L10n.t("Copy links from chat buttons"),
+                        L10n.t("Hold a message with link buttons, like the ones automated accounts send, and tap Copy "
+                                + "link to copy where a button goes without opening it. With several buttons you pick one.")));
+            }
             if (build.contains(PatchFamily.ASK_BEFORE_CALL)) {
                 messages.addPreference(toggle(context, Settings.ASK_BEFORE_CALL, L10n.t("Ask before a call"),
                         L10n.t("Tapping a call button in a chat asks first, so a stray tap doesn't ring anyone. "

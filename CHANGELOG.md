@@ -4,6 +4,7 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
+* `Copy links from chat buttons` is new under Messages. Hold a chat message with link buttons, like an automated account's, and tap `Copy link` to copy where a button goes without opening it. Starts off. Asked for in #852.
 * `Hold a follow list's tabs to filter it` is new under Profiles. Hold a tab atop any Followers or Following list to show everyone, only public accounts or only private ones. Starts off. Asked for in #847.
 * `Follow dates in your lists` is new under Profiles. Your own Followers and Following lists show since when each account is there, counted from when you turn it on. Starts off. Asked for in #847.
 * With `Hold the Friends tab to pick friends` on, the Friends tab no longer stops on a gray loading screen when a page has none of your picks. It asks Instagram for the next page instead. Reported in #503.

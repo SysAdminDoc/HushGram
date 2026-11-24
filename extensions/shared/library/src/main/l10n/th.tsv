@@ -2003,6 +2003,12 @@ That picture is over %1$d MB.	รูปภาพนั้นมีขนาด�
 Couldn't save the picture.	ไม่สามารถบันทึกรูปภาพได้
 Open a chat, tap the clock button next to the call buttons at the top, or long press the chat's name, and pick Jump to the first message or Jump to a date. The chat loads its older messages on its own, with a count and a Cancel button.	เปิดแชท แตะปุ่มนาฬิกาข้างปุ่มโทรที่ด้านบน หรือกดค้างที่ชื่อแชท แล้วเลือก "ข้ามไปยังข้อความแรก" หรือ "ข้ามไปยังวันที่" แชทจะโหลดข้อความเก่าโดยอัตโนมัติ พร้อมแสดงจำนวนนับและปุ่มยกเลิก
 Open a chat, tap the clock button next to the call buttons at the top, or long press the chat's name, and pick Export chat. The whole chat is saved as a text file in Downloads, HushGram folder, one line per message. Select messages in the same menu lets you tick messages to copy, share or save.	เปิดแชท แตะปุ่มนาฬิกาข้างปุ่มโทรที่ด้านบน หรือกดค้างที่ชื่อแชท แล้วเลือก "ส่งออกแชท" ระบบจะบันทึกทั้งแชทเป็นไฟล์ข้อความในโฟลเดอร์ดาวน์โหลด/HushGram บรรทัดละหนึ่งข้อความ เลือกข้อความในเมนูเดียวกันให้คุณติ๊กข้อความเพื่อคัดลอก แชร์ หรือบันทึก
+# context: settings switch title on the Messages page (#852): link buttons under a chat message, like the ones automated accounts send
+Copy links from chat buttons	คัดลอกลิงก์จากปุ่มในแชท
+# context: that switch's summary (#852); Copy link is the row it adds to the menu you get when you hold a message, same words as the Copy link key
+Hold a message with link buttons, like the ones automated accounts send, and tap Copy link to copy where a button goes without opening it. With several buttons you pick one.	กดค้างที่ข้อความที่มีปุ่มลิงก์ เช่น ข้อความที่บัญชีอัตโนมัติส่งมา แล้วแตะคัดลอกลิงก์เพื่อคัดลอกปลายทางของปุ่มโดยไม่ต้องเปิด หากมีหลายปุ่ม ให้เลือกหนึ่งปุ่ม
+# context: toast after Copy link put a chat button's link on the clipboard (#852)
+Link copied	คัดลอกลิงก์แล้ว
 Instagram stopped loading older messages.	Instagram หยุดโหลดข้อความที่เก่ากว่าแล้ว
 Black settings page	หน้าการตั้งค่าสีดำ
 Black rows and dialogs, with HushGram's name at the top.	แถวและกล่องโต้ตอบสีดำ พร้อมชื่อ HushGram ที่ด้านบน

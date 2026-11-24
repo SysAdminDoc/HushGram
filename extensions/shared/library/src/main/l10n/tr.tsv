@@ -2016,6 +2016,12 @@ That picture is over %1$d MB.	Bu resim %1$d MB'tan büyük.
 Couldn't save the picture.	Resim kaydedilemedi.
 Open a chat, tap the clock button next to the call buttons at the top, or long press the chat's name, and pick Jump to the first message or Jump to a date. The chat loads its older messages on its own, with a count and a Cancel button.	Bir sohbet aç, üstte arama düğmelerinin yanındaki saat düğmesine dokun ya da sohbetin adına uzun bas, sonra İlk mesaja atla veya Bir tarihe atla seçeneğini seç. Sohbet eski mesajlarını kendisi yükler, bir sayaç ve İptal düğmesi gösterir.
 Open a chat, tap the clock button next to the call buttons at the top, or long press the chat's name, and pick Export chat. The whole chat is saved as a text file in Downloads, HushGram folder, one line per message. Select messages in the same menu lets you tick messages to copy, share or save.	Bir sohbet aç, üstte arama düğmelerinin yanındaki saat düğmesine dokun ya da sohbetin adına uzun bas, sonra Sohbeti dışa aktar seçeneğini seç. Sohbetin tamamı İndirilenler içindeki HushGram klasörüne metin dosyası olarak kaydedilir, her mesaj bir satırdır. Aynı menüdeki Mesajları seç ile kopyalamak, paylaşmak veya kaydetmek için mesajları işaretleyebilirsin.
+# context: settings switch title on the Messages page (#852): link buttons under a chat message, like the ones automated accounts send
+Copy links from chat buttons	Sohbet düğmelerindeki bağlantıları kopyala
+# context: that switch's summary (#852); Copy link is the row it adds to the menu you get when you hold a message, same words as the Copy link key
+Hold a message with link buttons, like the ones automated accounts send, and tap Copy link to copy where a button goes without opening it. With several buttons you pick one.	Otomatik hesapların gönderdikleri gibi bağlantı düğmeleri olan bir mesajı basılı tut ve bir düğmenin nereye gittiğini açmadan kopyalamak için Bağlantıyı kopyala'ya dokun. Birden çok düğme varsa birini seçersin.
+# context: toast after Copy link put a chat button's link on the clipboard (#852)
+Link copied	Bağlantı kopyalandı
 Instagram stopped loading older messages.	Instagram eski mesajları yüklemeyi bıraktı.
 Black settings page	Siyah ayarlar sayfası
 Black rows and dialogs, with HushGram's name at the top.	Siyah satırlar ve pencereler, üstte HushGram adıyla.

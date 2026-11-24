@@ -1931,6 +1931,12 @@ That picture is over %1$d MB.	Ảnh đó lớn hơn %1$d MB.
 Couldn't save the picture.	Không lưu được ảnh.
 Open a chat, tap the clock button next to the call buttons at the top, or long press the chat's name, and pick Jump to the first message or Jump to a date. The chat loads its older messages on its own, with a count and a Cancel button.	Mở một cuộc trò chuyện, nhấn nút đồng hồ cạnh các nút gọi ở đầu màn hình, hoặc nhấn giữ tên cuộc trò chuyện, rồi chọn Chuyển đến tin nhắn đầu tiên hoặc Chuyển đến một ngày. Cuộc trò chuyện tự tải các tin nhắn cũ hơn, có hiển thị số lượng và nút Hủy.
 Open a chat, tap the clock button next to the call buttons at the top, or long press the chat's name, and pick Export chat. The whole chat is saved as a text file in Downloads, HushGram folder, one line per message. Select messages in the same menu lets you tick messages to copy, share or save.	Mở một cuộc trò chuyện, nhấn nút đồng hồ cạnh các nút gọi ở đầu màn hình, hoặc nhấn giữ tên cuộc trò chuyện, rồi chọn Xuất cuộc trò chuyện. Toàn bộ cuộc trò chuyện được lưu thành tệp văn bản trong thư mục HushGram của Downloads, mỗi tin nhắn một dòng. Chọn tin nhắn trong cùng menu cho phép bạn đánh dấu tin nhắn để sao chép, chia sẻ hoặc lưu.
+# context: settings switch title on the Messages page (#852): link buttons under a chat message, like the ones automated accounts send
+Copy links from chat buttons	Sao chép liên kết từ nút trong cuộc trò chuyện
+# context: that switch's summary (#852); Copy link is the row it adds to the menu you get when you hold a message, same words as the Copy link key
+Hold a message with link buttons, like the ones automated accounts send, and tap Copy link to copy where a button goes without opening it. With several buttons you pick one.	Nhấn giữ một tin nhắn có nút liên kết, như tin nhắn từ các tài khoản tự động, rồi nhấn Sao chép liên kết để sao chép nơi nút dẫn tới mà không mở nó. Nếu có nhiều nút, bạn chọn một.
+# context: toast after Copy link put a chat button's link on the clipboard (#852)
+Link copied	Đã sao chép liên kết
 Instagram stopped loading older messages.	Instagram đã ngừng tải tin nhắn cũ hơn.
 Black settings page	Trang cài đặt màu đen
 Black rows and dialogs, with HushGram's name at the top.	Hàng và hộp thoại màu đen, tên HushGram ở trên cùng.

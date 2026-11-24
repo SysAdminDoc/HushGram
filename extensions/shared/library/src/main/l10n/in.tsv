@@ -2016,6 +2016,12 @@ That picture is over %1$d MB.	Gambar itu lebih dari %1$d MB.
 Couldn't save the picture.	Gambar tidak bisa disimpan.
 Open a chat, tap the clock button next to the call buttons at the top, or long press the chat's name, and pick Jump to the first message or Jump to a date. The chat loads its older messages on its own, with a count and a Cancel button.	Buka obrolan, ketuk tombol jam di samping tombol panggilan di bagian atas, atau tekan lama nama obrolan, lalu pilih Lompat ke pesan pertama atau Lompat ke tanggal. Obrolan memuat pesan lamanya sendiri, dengan hitungan dan tombol Batal.
 Open a chat, tap the clock button next to the call buttons at the top, or long press the chat's name, and pick Export chat. The whole chat is saved as a text file in Downloads, HushGram folder, one line per message. Select messages in the same menu lets you tick messages to copy, share or save.	Buka obrolan, ketuk tombol jam di samping tombol panggilan di bagian atas, atau tekan lama nama obrolan, lalu pilih Ekspor obrolan. Seluruh obrolan disimpan sebagai berkas teks di Download, folder HushGram, satu baris per pesan. Dengan Pilih pesan di menu yang sama, kamu bisa mencentang pesan untuk disalin, dibagikan, atau disimpan.
+# context: settings switch title on the Messages page (#852): link buttons under a chat message, like the ones automated accounts send
+Copy links from chat buttons	Salin tautan dari tombol obrolan
+# context: that switch's summary (#852); Copy link is the row it adds to the menu you get when you hold a message, same words as the Copy link key
+Hold a message with link buttons, like the ones automated accounts send, and tap Copy link to copy where a button goes without opening it. With several buttons you pick one.	Tahan pesan yang berisi tombol tautan, seperti yang dikirim akun otomatis, lalu ketuk Salin tautan untuk menyalin tujuan tombol tanpa membukanya. Jika ada beberapa tombol, pilih salah satunya.
+# context: toast after Copy link put a chat button's link on the clipboard (#852)
+Link copied	Tautan disalin
 Instagram stopped loading older messages.	Instagram berhenti memuat pesan lama.
 Black settings page	Halaman pengaturan hitam
 Black rows and dialogs, with HushGram's name at the top.	Baris dan dialog hitam, dengan nama HushGram di atas.

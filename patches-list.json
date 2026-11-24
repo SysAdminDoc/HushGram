@@ -1006,6 +1006,46 @@
       "options": []
     },
     {
+      "name": "Copy links from chat buttons",
+      "description": "Adds Copy link to the menu you get when you hold a chat message with link buttons, like the ones automated accounts send. It copies where a button goes without opening it. Starts off. Turn it on in HushGram settings > Messages.",
+      "category": "Downloads",
+      "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "456.1.0.56.78"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "456.1.0.56.78",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 386215122,
+                "ARMEABI_V7A": 386215121,
+                "X86": 386215123,
+                "X86_64": 386215124
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
       "name": "Data saver",
       "description": "Saves mobile data by loading smaller photos and starting videos at the lowest quality. It uses Full resolution photos and Default playback quality, so it turns both on. It starts with mobile data only. Starts off. Turn it on in HushGram settings > Playback.",
       "category": "Playback",

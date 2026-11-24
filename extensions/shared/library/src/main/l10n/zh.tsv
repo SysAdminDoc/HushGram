@@ -2019,6 +2019,12 @@ That picture is over %1$d MB.	这张图片超过 %1$d MB。
 Couldn't save the picture.	无法保存图片。
 Open a chat, tap the clock button next to the call buttons at the top, or long press the chat's name, and pick Jump to the first message or Jump to a date. The chat loads its older messages on its own, with a count and a Cancel button.	打开聊天，点一下上方通话按钮旁的时钟按钮，或长按聊天名称，选择“跳到第一则消息”或“跳到某个日期”。聊天会自动加载较旧的消息，并显示数量和取消按钮。
 Open a chat, tap the clock button next to the call buttons at the top, or long press the chat's name, and pick Export chat. The whole chat is saved as a text file in Downloads, HushGram folder, one line per message. Select messages in the same menu lets you tick messages to copy, share or save.	打开聊天，点一下上方通话按钮旁的时钟按钮，或长按聊天名称，选择“导出聊天”。整个聊天会存成文字档，放在“下载”的 HushGram 文件夹，每则消息一行。 同一菜单中的“选择消息”可让你勾选消息来复制、分享或保存。
+# context: settings switch title on the Messages page (#852): link buttons under a chat message, like the ones automated accounts send
+Copy links from chat buttons	复制聊天按钮中的链接
+# context: that switch's summary (#852); Copy link is the row it adds to the menu you get when you hold a message, same words as the Copy link key
+Hold a message with link buttons, like the ones automated accounts send, and tap Copy link to copy where a button goes without opening it. With several buttons you pick one.	长按带有链接按钮的消息（例如自动账号发送的消息），然后点按复制链接，即可在不打开的情况下复制按钮指向的网址。有多个按钮时可从中选择一个。
+# context: toast after Copy link put a chat button's link on the clipboard (#852)
+Link copied	已复制链接
 Instagram stopped loading older messages.	Instagram 已停止加载较旧的消息。
 Black settings page	黑色设置页面
 Black rows and dialogs, with HushGram's name at the top.	黑色的列和对话框，顶端显示 HushGram 名称。

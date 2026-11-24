@@ -966,6 +966,11 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Rewritten by the Copy links from chat buttons patch. */
+    public static boolean chatButtonLinks() {
+        return false;
+    }
+
     /** Rewritten by the Preview chats patch. */
     public static boolean previewChats() {
         return false;

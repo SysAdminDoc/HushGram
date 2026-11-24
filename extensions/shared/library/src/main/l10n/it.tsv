@@ -2016,6 +2016,12 @@ That picture is over %1$d MB.	L'immagine supera %1$d MB.
 Couldn't save the picture.	Impossibile salvare l'immagine.
 Open a chat, tap the clock button next to the call buttons at the top, or long press the chat's name, and pick Jump to the first message or Jump to a date. The chat loads its older messages on its own, with a count and a Cancel button.	Apri una chat, tocca il pulsante dell'orologio accanto ai pulsanti di chiamata in alto, o tieni premuto il nome della chat, e scegli Vai al primo messaggio o Vai a una data. La chat carica da sola i messaggi più vecchi, con un conteggio e un pulsante Annulla.
 Open a chat, tap the clock button next to the call buttons at the top, or long press the chat's name, and pick Export chat. The whole chat is saved as a text file in Downloads, HushGram folder, one line per message. Select messages in the same menu lets you tick messages to copy, share or save.	Apri una chat, tocca il pulsante dell'orologio accanto ai pulsanti di chiamata in alto, o tieni premuto il nome della chat, e scegli Esporta chat. L'intera chat viene salvata come file di testo in Download, cartella HushGram, con una riga per messaggio. Con Seleziona messaggi, nello stesso menu, spunti i messaggi da copiare, condividere o salvare.
+# context: settings switch title on the Messages page (#852): link buttons under a chat message, like the ones automated accounts send
+Copy links from chat buttons	Copia i link dai pulsanti della chat
+# context: that switch's summary (#852); Copy link is the row it adds to the menu you get when you hold a message, same words as the Copy link key
+Hold a message with link buttons, like the ones automated accounts send, and tap Copy link to copy where a button goes without opening it. With several buttons you pick one.	Tieni premuto un messaggio con pulsanti link, come quelli inviati dagli account automatici, e tocca Copia link per copiare dove porta un pulsante senza aprirlo. Con più pulsanti ne scegli uno.
+# context: toast after Copy link put a chat button's link on the clipboard (#852)
+Link copied	Link copiato
 Instagram stopped loading older messages.	Instagram non carica più i messaggi vecchi.
 Black settings page	Pagina delle impostazioni nera
 Black rows and dialogs, with HushGram's name at the top.	Righe e finestre nere, con il nome di HushGram in alto.
