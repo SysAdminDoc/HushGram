@@ -45,6 +45,7 @@ public class FeedHoldSpeedTest {
         Settings.HOLD_FEED_VIDEO_KEEP.resetToDefault();
         Settings.HOLD_FEED_VIDEO_KEEP_LONG.resetToDefault();
         Settings.HOLD_FEED_VIDEO_KEEP_NAME.resetToDefault();
+        Settings.HOLD_FEED_VIDEO_KEEP_BADGE.resetToDefault();
         FeedHoldSpeed.clock = android.os.SystemClock::uptimeMillis;
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
@@ -240,6 +241,40 @@ public class FeedHoldSpeedTest {
         assertFalse(Settings.HOLD_FEED_VIDEO_KEEP_NAME.rebootApp);
         String report = report();
         assertTrue(report, report.contains(FeedHoldSpeed.LOOK_KEPT + " 2"));
+    }
+
+    /**
+     * #860: Show 2x after you let go hands a kept lift Instagram's hold look only while it, Keep 2x after you let go
+     * and Hold for 2x on feed videos are on, counting each, and puts the look to rest otherwise.
+     */
+    @Test
+    public void showTwoTimesAfterTheLiftOnlyWhileOn() {
+        Settings.HOLD_FEED_VIDEO_KEEP.save(true);
+        assertFalse("off to start", Settings.HOLD_FEED_VIDEO_KEEP_BADGE.get());
+        assertFalse("off", FeedHoldSpeed.showsKept());
+
+        Settings.HOLD_FEED_VIDEO_KEEP_BADGE.save(true);
+        assertTrue("on", FeedHoldSpeed.showsKept());
+        assertTrue("every kept lift", FeedHoldSpeed.showsKept());
+
+        Settings.HOLD_FEED_VIDEO_KEEP.save(false);
+        assertFalse("it needs Keep 2x after you let go", FeedHoldSpeed.showsKept());
+        Settings.HOLD_FEED_VIDEO_KEEP.save(true);
+        Settings.HOLD_FEED_VIDEO_FAST.save(false);
+        assertFalse("it needs Hold for 2x on feed videos", FeedHoldSpeed.showsKept());
+        Settings.HOLD_FEED_VIDEO_FAST.save(true);
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertFalse("paused", FeedHoldSpeed.showsKept());
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        SettingsContextRule.withoutContext(() -> assertFalse("no context", FeedHoldSpeed.showsKept()));
+
+        assertEquals(Collections.singletonList(Settings.HOLD_FEED_VIDEO_KEEP), Settings.HOLD_FEED_VIDEO_KEEP_BADGE.getParentSettings());
+        assertFalse(Settings.HOLD_FEED_VIDEO_KEEP_BADGE.rebootApp);
+        String report = report();
+        assertTrue(report, report.contains(FeedHoldSpeed.BADGE_SHOWN + " 2"));
     }
 
     /**

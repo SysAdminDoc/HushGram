@@ -51,6 +51,7 @@ public class FeedHoldKeepSettingsTest {
         Settings.HOLD_FEED_VIDEO_FAST.resetToDefault();
         Settings.HOLD_FEED_VIDEO_KEEP.resetToDefault();
         Settings.HOLD_FEED_VIDEO_KEEP_LONG.resetToDefault();
+        Settings.HOLD_FEED_VIDEO_KEEP_BADGE.resetToDefault();
         Settings.HOLD_FEED_VIDEO_KEEP_NAME.resetToDefault();
         Settings.HOLD_FEED_VIDEO_MIDDLE_PAUSES.resetToDefault();
         BaseSettings.PAUSED.save(false);
@@ -105,7 +106,33 @@ public class FeedHoldKeepSettingsTest {
         assertEquals(Arrays.toString(keys), Settings.HOLD_FEED_VIDEO_KEEP.key, keys[at - 1]);
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.HOLD_FEED_VIDEO_KEEP_LONG.key));
         assertEquals(Arrays.asList(Settings.HOLD_FEED_VIDEO_FAST, Settings.HOLD_FEED_VIDEO_KEEP, Settings.HOLD_FEED_VIDEO_KEEP_LONG,
-                Settings.HOLD_FEED_VIDEO_KEEP_NAME, Settings.HOLD_FEED_VIDEO_MIDDLE_PAUSES), PatchFamily.FEED_HOLD_FAST.switches);
+                Settings.HOLD_FEED_VIDEO_KEEP_BADGE, Settings.HOLD_FEED_VIDEO_KEEP_NAME, Settings.HOLD_FEED_VIDEO_MIDDLE_PAUSES),
+                PatchFamily.FEED_HOLD_FAST.switches);
+    }
+
+    /** #860: Show 2x after you let go sits right under Only after a long hold, off, rests until Keep 2x after you let go is on, and goes in a backup. */
+    @Test public void theShowTwoTimesSwitchFollowsTheLongHoldSwitch() throws Exception {
+        Settings.HOLD_FEED_VIDEO_FAST.save(true);
+        open(EnumSet.of(PatchFamily.FEED_HOLD_FAST));
+        Preference row = page.getPreferenceScreen().findPreference(Settings.HOLD_FEED_VIDEO_KEEP_BADGE.key);
+        assertNotNull(row);
+        assertEquals("Show 2x after you let go", row.getTitle().toString());
+        assertEquals("A feed video that keeps playing at 2x shows Instagram's 2x and time labels in place of the name until it "
+                + "goes back to normal speed.", row.getSummary().toString());
+        assertFalse(((SwitchPreference) row).isChecked());
+        assertFalse("greyed out with Keep 2x after you let go off", row.isEnabled());
+        PreferenceGroup feed = row.getParent();
+        String[] keys = new String[feed.getPreferenceCount()];
+        for (int i = 0; i < keys.length; i++) keys[i] = feed.getPreference(i).getKey();
+        int at = Arrays.asList(keys).indexOf(Settings.HOLD_FEED_VIDEO_KEEP_BADGE.key);
+        assertEquals(Arrays.toString(keys), Settings.HOLD_FEED_VIDEO_KEEP_LONG.key, keys[at - 1]);
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.HOLD_FEED_VIDEO_KEEP_BADGE.key));
+        controller.close();
+        controller = null;
+        Settings.HOLD_FEED_VIDEO_KEEP.save(true);
+        open(EnumSet.of(PatchFamily.FEED_HOLD_FAST));
+        assertTrue("on with Keep 2x after you let go on",
+                page.getPreferenceScreen().findPreference(Settings.HOLD_FEED_VIDEO_KEEP_BADGE.key).isEnabled());
     }
 
     /** #639: Hold the middle to pause it follows Keep the name, off, rests until Hold for 2x on feed videos is on, and needs the tap patch. */
@@ -145,7 +172,7 @@ public class FeedHoldKeepSettingsTest {
         String[] keys = new String[feed.getPreferenceCount()];
         for (int i = 0; i < keys.length; i++) keys[i] = feed.getPreference(i).getKey();
         int at = Arrays.asList(keys).indexOf(Settings.HOLD_FEED_VIDEO_KEEP_NAME.key);
-        assertEquals(Arrays.toString(keys), Settings.HOLD_FEED_VIDEO_KEEP_LONG.key, keys[at - 1]);
+        assertEquals(Arrays.toString(keys), Settings.HOLD_FEED_VIDEO_KEEP_BADGE.key, keys[at - 1]);
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.HOLD_FEED_VIDEO_KEEP_NAME.key));
         controller.close();
         controller = null;

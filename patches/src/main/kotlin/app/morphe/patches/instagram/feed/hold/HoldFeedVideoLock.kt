@@ -51,6 +51,7 @@ import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 internal const val LOCK_PRESSED = "$FEED_HOLD->pressed(Ljava/util/concurrent/atomic/AtomicBoolean;)V"
 internal const val LOCK_LIFTED = "$FEED_HOLD->lifted(Ljava/util/concurrent/atomic/AtomicBoolean;)Z"
 internal const val LOOK_KEPT = "$FEED_HOLD->keepsLook()Z"
+internal const val KEPT_SHOWN = "$FEED_HOLD->showsKept()Z"
 
 /** What the feed's 2x controller logs when putting the speed back fails, loaded in its reset. */
 internal const val SPEED_RESET_TAG = "FeedVideo2xSpeed"
@@ -352,8 +353,10 @@ private fun MutableMethod.keepLook(look: FeedLook, held: String) {
  * Tells [LOCK_PRESSED] the fast flag before the press entry's reset, and asks [LOCK_LIFTED] before
  * the release's: a yes puts the post's 2x look to rest the way the reset does ([FeedLock.look]) and
  * skips the rest of the reset, its answer set to yes the way a fast lift's is. When the press hands
- * the post its hold state ([FeedLock.held]), [LOOK_KEPT] may swap it for the resting one. Each call is
- * found again by its reference, so other patches' code in either method doesn't matter.
+ * the post its hold state ([FeedLock.held]), [LOOK_KEPT] may swap it for the resting one, and a kept
+ * lift asks [KEPT_SHOWN] first, whose yes hands the post that hold state in place of the resting one
+ * (#860). Each call is found again by its reference, so other patches' code in either method doesn't
+ * matter.
  */
 internal fun BytecodePatchContext.lockFast(found: FeedLock) {
     val press = editable(found.press)
@@ -378,10 +381,23 @@ internal fun BytecodePatchContext.lockFast(found: FeedLock) {
             val setter = lift.free[2]
             "iget-object v$setter, v$asked, $holder\ninvoke-virtual { v$setter, v$asked, v$state }, ${look.show}"
         } ?: "invoke-virtual { v$asked, v$state }, ${look.show}"
+        // Show 2x after you let go (#860): where the press hands the post a hold state, a yes hands it that one.
+        val loads = found.held?.let { held ->
+            """
+                invoke-static { }, $KEPT_SHOWN
+                move-result v$state
+                if-eqz v$state, :resting
+                sget-object v$state, $held
+                goto :look
+                :resting
+                sget-object v$state, ${look.rest}
+                :look
+            """
+        } ?: "sget-object v$state, ${look.rest}"
         """
             ${lift.fieldInto(look.item)}
             if-eqz v$asked, :rested
-            sget-object v$state, ${look.rest}
+            $loads
             $show
             :rested
         """

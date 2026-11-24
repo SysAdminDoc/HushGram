@@ -51,6 +51,7 @@ Every HushGram release, newest first.
 * `Hold the middle to pause it`, new under `Hold for 2x on feed videos`, pauses a feed video while you hold its middle and plays it as you let go. Either side plays 2x. Starts off. Asked for in #639.
 * `Only the middle pauses it` is new under `Tap a feed video to pause it` in Feed. A tap off the video's middle opens Reels instead of pausing. Starts off. Asked for in #706.
 * `Hide ads` now also takes the shop or ad card off the top of a reel's comments. Reported in #857.
+* `Show 2x after you let go` is new under `Keep 2x after you let go` in Feed. A feed video kept at 2x keeps Instagram's 2x and time labels on until it's back to normal speed. Starts off. Asked for in #860.
 * Download on a photo post with a song in Home now asks `Download as video` or `Download as photo`, as reels do. That goes for the post's menu, a hold and `Download button on feed posts`. Asked for in #71.
 
 ## 0.0.22 (2026-11-22)

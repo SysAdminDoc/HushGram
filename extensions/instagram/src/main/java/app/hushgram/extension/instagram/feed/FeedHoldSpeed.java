@@ -42,6 +42,10 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * lets the speed go back. The press entry tells {@link #pressed} before its reset, so a kept flag
  * Instagram has cleared since, because the video went off the screen, isn't taken for a kept one.
  *
+ * <p>Show 2x after you let go (#860) asks {@link #showsKept} on a lift that keeps the speed, and a yes hands
+ * the post the hold state the press entry hands it, in place of the resting one, so Instagram's 2x and time
+ * labels stay on the video while it plays fast. The next held press resets the speed and the look with it.
+ *
  * <p>Only after a long hold (#552) keeps the speed only past a hold that played at 2x for
  * {@link #LONG_HOLD_MS}, timed from that press entry, so a quick hold to peek at 2x goes back to
  * normal on the lift.
@@ -81,6 +85,9 @@ public final class FeedHoldSpeed {
 
     /** Holds that kept the post's look, the name over the video included, for Keep the name while you hold. */
     static final String LOOK_KEPT = "feed holds that kept the name";
+
+    /** Lifts that kept a feed video at 2x and left Instagram's 2x and time labels on it, for Show 2x after you let go. */
+    static final String BADGE_SHOWN = "feed videos showing 2x after the lift";
 
     /**
      * How long a hold plays at 2x before Only after a long hold keeps it (#552). The press entry comes
@@ -213,6 +220,23 @@ public final class FeedHoldSpeed {
             HookStatus.invoked(FamilyNames.FEED_HOLD_FAST);
             if (!on() || !Settings.HOLD_FEED_VIDEO_KEEP_NAME.get()) return false;
             HookStatus.counted(FamilyNames.FEED_HOLD_FAST, LOOK_KEPT);
+            return true;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.FEED_HOLD_FAST, LOCK_HOOK, failure);
+            return false;
+        }
+    }
+
+    /**
+     * Whether a lift that keeps a feed video at 2x hands the post its hold look, Instagram's 2x and time labels,
+     * instead of putting it to rest: yes with Hold for 2x on feed videos, Keep 2x after you let go and Show 2x after
+     * you let go on. Never throws.
+     */
+    public static boolean showsKept() {
+        try {
+            HookStatus.invoked(FamilyNames.FEED_HOLD_FAST);
+            if (!keeps() || !Settings.HOLD_FEED_VIDEO_KEEP_BADGE.get()) return false;
+            HookStatus.counted(FamilyNames.FEED_HOLD_FAST, BADGE_SHOWN);
             return true;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.FEED_HOLD_FAST, LOCK_HOOK, failure);

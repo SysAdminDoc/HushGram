@@ -2659,6 +2659,10 @@ A feed video you hold for 2x keeps playing at 2x after you let go. Hold it again
 Only after a long hold	เฉพาะเมื่อกดค้างนาน
 # context: Summary of Only after a long hold, a switch under Keep 2x after you let go (#552)
 Keeps 2x only when you hold the video for about 3 seconds. Let go sooner and it goes back to normal speed.	คง 2 เท่าไว้เฉพาะเมื่อคุณกดวิดีโอค้างไว้ประมาณ 3 วินาที ปล่อยเร็วกว่านั้นจะกลับสู่ความเร็วปกติ
+# context: Feed settings: a switch under Keep 2x after you let go that leaves Instagram's 2x label on a feed video kept at 2x (#860)
+Show 2x after you let go	แสดง 2 เท่าหลังปล่อยนิ้ว
+# context: Summary of Show 2x after you let go, a switch under Keep 2x after you let go (#860)
+A feed video that keeps playing at 2x shows Instagram's 2x and time labels in place of the name until it goes back to normal speed.	วิดีโอในฟีดที่ยังเล่นที่ 2 เท่าจะแสดงป้าย 2 เท่าและเวลาของ Instagram แทนชื่อ จนกว่าจะกลับสู่ความเร็วปกติ
 # context: Feed settings: a switch under Hold for 2x on feed videos that keeps the poster's name over the video while it's held at 2x (#552)
 Keep the name while you hold	คงชื่อไว้ขณะกดค้าง
 # context: Summary of Keep the name while you hold, a switch under Hold for 2x on feed videos (#552)

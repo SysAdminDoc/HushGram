@@ -585,6 +585,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hold_feed_video_keep_long", FALSE, parent(HOLD_FEED_VIDEO_KEEP));
 
     /**
+     * A feed video {@link #HOLD_FEED_VIDEO_KEEP} keeps at 2x after the lift shows Instagram's 2x and time labels, the
+     * look it has while held, until the next hold puts the speed back
+     * ({@link app.hushgram.extension.instagram.feed.FeedHoldSpeed#showsKept}). Read on every lift, so it needs no
+     * restart. Off to start (#860).
+     */
+    public static final BooleanSetting HOLD_FEED_VIDEO_KEEP_BADGE =
+            new BooleanSetting("hushgram_hold_feed_video_keep_badge", FALSE, parent(HOLD_FEED_VIDEO_KEEP));
+
+    /**
      * A feed video held for 2x under {@link #HOLD_FEED_VIDEO_FAST} keeps its look: the name over it
      * stays, and Instagram's 2x and time labels don't come up
      * ({@link app.hushgram.extension.instagram.feed.FeedHoldSpeed#keepsLook}). Read on every press, so

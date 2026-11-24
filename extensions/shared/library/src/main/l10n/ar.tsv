@@ -101,6 +101,7 @@ A double tap on a post or reel no longer likes it or shows a heart. A single tap
 A double tap on a reel doesn't like it. Turn this off to keep double tap to like on reels.	النقر المزدوج على reel لا يُعجبه. أوقف هذا للإبقاء على النقر المزدوج للإعجاب بـ Reels.
 A double tap on the left side of a reel goes back, and on the right side it goes ahead, as far as Skip length says. A double tap in the middle still likes it. Reels no longer than that don't skip.	النقر المزدوج على يسار reel يرجع، وعلى يمينه يتقدم، بقدر ما يحدده طول التخطي. والنقر المزدوج في الوسط لا يزال يُعجبه. لا يتم تخطي Reels التي لا تزيد مدتها على ذلك.
 A fainter bar and handle, so more of the video shows through.	شريط ومقبض أخفّ، ليظهر المزيد من الفيديو.
+A feed video that keeps playing at 2x shows Instagram's 2x and time labels in place of the name until it goes back to normal speed.	يعرض فيديو المتابَعات الذي يستمر بسرعة 2x علامتي 2x والوقت من Instagram بدلاً من الاسم حتى يعود إلى السرعة العادية.
 A feed video you hold for 2x keeps playing at 2x after you let go. Hold it again to go back to normal speed.	فيديو في آخر الأخبار تضغط عليه مطوّلًا للسرعة 2x يواصل التشغيل بسرعة 2x بعد أن ترفع إصبعك. اضغط مطوّلًا مرة أخرى للعودة إلى السرعة العادية.
 A file named %1$s in %2$s paused HushGram.	ملف باسم %1$s في %2$s أوقف HushGram.
 A finished story stays on screen until you tap or swipe. Turn this off for Instagram's timing.	القصة المنتهية تبقى على الشاشة حتى تنقر أو تسحب. أوقف هذا لتوقيت Instagram.
@@ -252,6 +253,7 @@ In any Followers or Following list, hold a tab at the top to show everyone, only
 # context: settings switch title on the Profiles page (#847): dates on your own Followers and Following lists
 Follow dates in your lists	تواريخ المتابعة في قوائمك
 # context: that switch's summary (#847)
+Show 2x after you let go	إظهار 2x بعد الإفلات
 Your own Followers and Following lists show since when each account follows you, or you them. Dates start the first time you scroll a list to the end with this on, so accounts already there get none.	تعرض قائمتا المتابِعين والمتابَعين الخاصتان بك منذ متى يتابعك كل حساب، أو تتابعه أنت. تبدأ التواريخ من أول مرة تمرر فيها قائمة حتى نهايتها مع تشغيل هذا الخيار، لذا لا تحصل الحسابات الموجودة مسبقًا على تاريخ.
 # context: a choice in the follow list filter dialog (#847): only public accounts
 Public accounts	الحسابات العامة

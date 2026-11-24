@@ -57,7 +57,7 @@ class HoldFeedVideoLockHookTest {
         val declared = ExtensionDex.classDef(FEED_HOLD).methods
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
-        listOf(LOCK_PRESSED, LOCK_LIFTED, LOOK_KEPT).forEach {
+        listOf(LOCK_PRESSED, LOCK_LIFTED, LOOK_KEPT, KEPT_SHOWN).forEach {
             assertTrue("$it is not in the extension: $declared", it.substringAfter("->") in declared)
         }
     }
@@ -380,17 +380,23 @@ internal object FeedLockWrites {
             assertTrue("$what: a yes with no look to rest goes straight to its answer: ${rests.map { it.opcode }}", rests.isEmpty())
             return
         }
-        assertRested(what, rests, asked + 3, yesAt, look)
+        assertRested(what, rests, asked + 3, yesAt, look, lock.held)
     }
 
     /**
      * A kept lift's look put to rest: the feed item read off the controller (through the borrowed local when the
      * controller is above v15), skipped when there's none, and handed the resting state, all in locals up to v15.
+     * Where the press hands the post a hold state ([held]), Show 2x after you let go (#860) asks [KEPT_SHOWN] into the
+     * state register first: a yes loads the hold state and jumps over the resting one, a no loads the resting one, and
+     * both land on the setter.
      */
-    private fun assertRested(what: String, rests: List<Instruction>, from: Int, yesAt: Int, look: FeedLook) {
+    private fun assertRested(what: String, rests: List<Instruction>, from: Int, yesAt: Int, look: FeedLook, held: String?) {
         // Where the item's setter is inlined (457's x86_64), the call goes to the object the item holds, read off it first.
         val extra = if (look.holder == null) 0 else 1
-        assertTrue("$what: the steps putting the look to rest: ${rests.map { it.opcode }}", rests.size == 4 + extra || rests.size == 5 + extra)
+        val asks = if (held == null) 0 else 5
+        assertTrue("$what: the steps putting the look to rest: ${rests.map { it.opcode }}",
+            rests.size == 4 + asks + extra || rests.size == 5 + asks + extra)
+        assertEquals("$what: calls asking about the kept look", if (held == null) 0 else 1, rests.count { it.text() == KEPT_SHOWN })
         val show = rests.last()
         assertEquals("$what: the look's setter", Opcode.INVOKE_VIRTUAL, show.opcode)
         assertEquals("$what: the look's setter", look.show, show.text())
@@ -407,19 +413,41 @@ internal object FeedLockWrites {
             assertEquals("$what: the setter's object read into its register", call.registerC, (setter as TwoRegisterInstruction).registerA)
             assertEquals("$what: the setter's object read off the item", item, setter.registerB)
         }
-        val rest = rests[rests.size - 2 - extra]
+        // Where the setter's steps start: the holder's read where it is inlined, otherwise the call itself.
+        val lookAt = rests.size - 1 - extra
+        val rest = rests[lookAt - 1]
         assertEquals("$what: the resting state", Opcode.SGET_OBJECT, rest.opcode)
         assertEquals("$what: the resting state", look.rest, rest.text())
         assertEquals("$what: the resting state's register", state, (rest as OneRegisterInstruction).registerA)
-        val none = rests[rests.size - 3 - extra]
+        if (held != null) {
+            val jump = rests[lookAt - 2]
+            assertTrue("$what: the hold state jumps over the resting one, not ${jump.opcode}", jump.opcode in gotos)
+            assertEquals("$what: the hold state goes to the setter", from + lookAt, (jump as BuilderOffsetInstruction).target.location.index)
+            val shown = rests[lookAt - 3]
+            assertEquals("$what: a yes loads the hold state", Opcode.SGET_OBJECT, shown.opcode)
+            assertEquals("$what: a yes loads the hold state", held, shown.text())
+            assertEquals("$what: the hold state's register", state, (shown as OneRegisterInstruction).registerA)
+            val no = rests[lookAt - 4]
+            assertEquals("$what: a no", Opcode.IF_EQZ, no.opcode)
+            assertEquals("$what: a no's register", state, (no as OneRegisterInstruction).registerA)
+            assertEquals("$what: a no loads the resting state", from + lookAt - 1, (no as BuilderOffsetInstruction).target.location.index)
+            val answer = rests[lookAt - 5]
+            assertEquals("$what: the ask's answer", Opcode.MOVE_RESULT, answer.opcode)
+            assertEquals("$what: the ask's answer goes to the state register", state, (answer as OneRegisterInstruction).registerA)
+            val ask = rests[lookAt - 6]
+            assertEquals("$what: the ask", Opcode.INVOKE_STATIC, ask.opcode)
+            assertEquals("$what: the ask", KEPT_SHOWN, ask.text())
+            assertEquals("$what: the ask takes nothing", 0, (ask as FiveRegisterInstruction).registerCount)
+        }
+        val none = rests[lookAt - 2 - asks]
         assertEquals("$what: no item skips", Opcode.IF_EQZ, none.opcode)
         assertEquals("$what: no item's register", item, (none as OneRegisterInstruction).registerA)
         assertEquals("$what: no item goes to the yes", yesAt, (none as BuilderOffsetInstruction).target.location.index)
-        val read = rests[rests.size - 4 - extra]
+        val read = rests[lookAt - 3 - asks]
         assertEquals("$what: the item's read", Opcode.IGET_OBJECT, read.opcode)
         assertEquals("$what: the item's read", look.item, read.text())
         assertEquals("$what: the item's register", item, (read as TwoRegisterInstruction).registerA)
-        if (rests.size == 5 + extra) {
+        if (rests.size == 5 + asks + extra) {
             assertEquals("$what: the controller moved down at $from", Opcode.MOVE_OBJECT_FROM16, rests[0].opcode)
             assertEquals("$what: into the item's register", item, (rests[0] as TwoRegisterInstruction).registerA)
             assertEquals("$what: the item read through it", item, read.registerB)
