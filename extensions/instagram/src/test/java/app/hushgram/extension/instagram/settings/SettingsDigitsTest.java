@@ -56,7 +56,11 @@ public class SettingsDigitsTest {
                 HushgramPreferenceFragment.storyRingSummary(StoryRingSize.PERCENT_80));
     }
 
-    /** Instagram in Arabic, which has no HushGram table: English words, Instagram's digits, on every row alike. */
+    /**
+     * Instagram in Arabic, which has HushGram's Arabic table since #817: the table's words, and
+     * Instagram's digits on every row alike. The words are ar.tsv's rows for "%1$d reels",
+     * "%1$s (standard)" and "Fewer than %1$s views".
+     */
     @Test public void instagramInArabicWritesItsDigitsOnEveryRow() {
         RuntimeEnvironment.setQualifiers("ar-rEG");
         Locale.setDefault(Locale.US);
@@ -64,8 +68,8 @@ public class SettingsDigitsTest {
         assertEquals("ar", instagram.getLanguage());
         NumberFormat digits = NumberFormat.getIntegerInstance(instagram);
         assertNotEquals("Arabic writes its own digits", "20", digits.format(20));
-        assertEquals(digits.format(20) + " reels (standard)", reelCount().label(20));
-        assertEquals("Fewer than " + digits.format(12_000) + " views",
+        assertEquals(digits.format(20) + " Reels (قياسي)", reelCount().label(20));
+        assertEquals("أقل من " + digits.format(12_000) + " مشاهدة",
                 HushgramPreferenceFragment.minCountSummary(Settings.MIN_REEL_VIEWS, "12000"));
         assertEquals(digits.format(12) + " Mbps", bitrate(1));
         String half = NumberFormat.getPercentInstance(instagram).format(0.5);
