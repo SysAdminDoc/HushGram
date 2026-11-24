@@ -4,6 +4,7 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
+* `Whole reel in the reel menu` under Reels adds Show the whole reel to a reel's three-dot menu. It fits that one reel inside the screen until you swipe past it. Starts off. Asked for in #845.
 * `Reels on Home below the name` shows the whole reel now. It was cut to Instagram's 4:5 post shape, losing its top and bottom. Reported in #788.
 * `Copy links from chat buttons` is new under Messages. Hold a chat message with link buttons, like an automated account's, and tap `Copy link` to copy where a button goes without opening it. Starts off. Asked for in #852.
 * `Hold a follow list's tabs to filter it` is new under Profiles. Hold a tab atop any Followers or Following list to show everyone, only public accounts or only private ones. Starts off. Asked for in #847.

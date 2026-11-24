@@ -33,10 +33,12 @@ import org.robolectric.shadows.ShadowAlertDialog;
 import org.robolectric.shadows.ShadowToast;
 
 import app.hushgram.extension.instagram.reels.ReelAutoScroll;
+import app.hushgram.extension.instagram.reels.ReelWholeTest;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.instagram.settings.SettingsStatus;
 import app.hushgram.extension.shared.SettingsContextRule;
+import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 import app.hushgram.extension.shared.settings.preference.LogBufferManager;
 
@@ -75,9 +77,11 @@ public class ReelDownloadTest {
         Settings.STOP_VIDEO_LOOPING.resetToDefault();
         Settings.REEL_AUTO_ADVANCE.resetToDefault();
         Settings.AUTO_SCROLL_IN_REEL_MENU.resetToDefault();
+        Settings.WHOLE_REEL_IN_REEL_MENU.resetToDefault();
         Settings.REEL_AUTO_SCROLL_HELD_OFF.resetToDefault();
         Settings.REEL_AUTO_SCROLL_ON.resetToDefault();
         ReelAutoScroll.forgetForTests();
+        Utils.setActivity(null);
     }
 
     /** With the switch on, every reel gets the row, whatever Instagram and its flag say. */
@@ -227,7 +231,8 @@ public class ReelDownloadTest {
     /** The two options a photo with music gets, by the names the extension gives them. */
     private enum Ours {
         HUSHGRAM_DOWNLOAD_AS_VIDEO, HUSHGRAM_DOWNLOAD_AS_PHOTO, HUSHGRAM_DOWNLOAD_REEL, HUSHGRAM_DOWNLOAD_COVER, HUSHGRAM_DOWNLOAD_AUDIO,
-        HUSHGRAM_DOWNLOAD_SONG, HUSHGRAM_REEL_DETAILS, HUSHGRAM_REEL_SPEED, HUSHGRAM_VIDEO_LOOP, HUSHGRAM_REEL_AUTO_SCROLL
+        HUSHGRAM_DOWNLOAD_SONG, HUSHGRAM_REEL_DETAILS, HUSHGRAM_REEL_SPEED, HUSHGRAM_VIDEO_LOOP, HUSHGRAM_REEL_AUTO_SCROLL,
+        HUSHGRAM_REEL_WHOLE
     }
 
     /** A photo the Reels viewer shows with music that has a track to fetch. */
@@ -843,6 +848,50 @@ public class ReelDownloadTest {
         Item.videos = List.of(new MediaSave.Rendition(META + "720.mp4", 720, 1280, 0));
         Built.autoScroll = false;
         assertFalse("a build without the patch", ReelDownload.offerRow(0, reel));
+        assertFalse(ReelDownload.rows(null, reel, null, null, null));
+        assertTrue(Item.rows.isEmpty());
+    }
+
+    /**
+     * With Whole reel in the reel menu on and the reel on screen cut at its sides, a video reel gets
+     * Show the whole reel last of ours (#845). Its tap fits that reel inside the screen and turns the
+     * label to Fill the screen, whose tap crops it again. Download on reels off, the row still lets
+     * Instagram's Download row in. A photo gets none.
+     */
+    @Test
+    @Config(shadows = {Item.class, Built.class})
+    public void aCutReelGetsShowTheWholeReelWithItsSwitch() {
+        org.robolectric.android.controller.ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class);
+        ReelWholeTest.Page shown = ReelWholeTest.screen(controller, 500, 400, -100f)[0];
+        Activity activity = controller.get();
+        Utils.setActivity(activity);
+        Item.videos = List.of(new MediaSave.Rendition(META + "720.mp4", 720, 1280, 0));
+        Object reel = new Object();
+        assertFalse("Whole reel in the reel menu starts off", ReelDownload.rows(null, reel, null, null, null));
+        assertTrue(Item.rows.isEmpty());
+
+        Settings.WHOLE_REEL_IN_REEL_MENU.save(true);
+        assertTrue(ReelDownload.rows(null, reel, null, null, null));
+        assertEquals(List.of("HUSHGRAM_DOWNLOAD_REEL=Download", "HUSHGRAM_REEL_WHOLE=Show the whole reel"), Item.rows);
+
+        assertTrue("the tap is ours", ReelDownload.save(Ours.HUSHGRAM_REEL_WHOLE, reel, activity));
+        assertEquals(0.6f, shown.texture.getScaleX(), 0.0001f);
+        Item.rows.clear();
+        assertTrue(ReelDownload.rows(null, reel, null, null, null));
+        assertEquals(List.of("HUSHGRAM_DOWNLOAD_REEL=Download", "HUSHGRAM_REEL_WHOLE=Fill the screen"), Item.rows);
+        assertTrue(ReelDownload.save(Ours.HUSHGRAM_REEL_WHOLE, reel, activity));
+        assertEquals(1f, shown.texture.getScaleX(), 0f);
+
+        Settings.DOWNLOAD_REELS.save(false);
+        Item.rows.clear();
+        assertTrue(ReelDownload.offerRow(0, reel));
+        assertTrue(ReelDownload.rows(null, reel, null, null, null));
+        assertEquals(List.of("HUSHGRAM_REEL_WHOLE=Show the whole reel"), Item.rows);
+        assertEquals(Arrays.asList(ReelDownload.WHOLE_ICONS), Arrays.asList(ReelDownload.iconsOf(ReelDownload.WHOLE_OPTION)));
+
+        Item.videos = null;
+        Item.rows.clear();
+        assertFalse("a photo has nothing to fit", ReelDownload.offerRow(0, reel));
         assertFalse(ReelDownload.rows(null, reel, null, null, null));
         assertTrue(Item.rows.isEmpty());
     }

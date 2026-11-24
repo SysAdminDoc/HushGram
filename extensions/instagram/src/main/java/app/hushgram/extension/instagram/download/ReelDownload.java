@@ -16,6 +16,7 @@ import java.util.List;
 
 import app.hushgram.extension.instagram.media.StopLooping;
 import app.hushgram.extension.instagram.reels.ReelAutoScroll;
+import app.hushgram.extension.instagram.reels.ReelWhole;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.L10n;
@@ -169,12 +170,22 @@ public final class ReelDownload {
     /** Instagram's auto scroll glyphs, the row's icon, first found wins. */
     static final String[] AUTO_SCROLL_ICONS = {"instagram_auto_play_outline_24", "instagram_auto_play_filled_24"};
 
+    /**
+     * The name of the Show the whole reel row a cut reel gets with Whole reel in the reel menu on
+     * (#845), last of ours. Its label turns to Fill the screen while that reel shows whole.
+     */
+    static final String WHOLE_OPTION = "HUSHGRAM_REEL_WHOLE";
+
+    /** Instagram's fit glyphs, then its crop glyph, the Show the whole reel row's icon, first found wins. */
+    static final String[] WHOLE_ICONS = {"instagram_fit_outline_24", "instagram_fit_pano_outline_24", "instagram_crop_outline_24"};
+
     /** Counted when a reel Instagram keeps Download off gets the player row alone. */
     static final String PLAYER_ALONE = "player row alone";
 
     /** Every row of ours, by name. */
     private static final List<String> OUR_ROWS = Arrays.asList(VIDEO_OPTION, PHOTO_OPTION, REEL_OPTION, COVER_OPTION,
-            AUDIO_OPTION, SONG_OPTION, PLAYER_OPTION, DETAILS_OPTION, SPEED_OPTION, LOOP_OPTION, AUTO_SCROLL_OPTION);
+            AUDIO_OPTION, SONG_OPTION, PLAYER_OPTION, DETAILS_OPTION, SPEED_OPTION, LOOP_OPTION, AUTO_SCROLL_OPTION,
+            WHOLE_OPTION);
 
     /** What the menu found for a reel's cover, and what a tap on Download cover started. */
     static final String HAS_COVER = "has cover";
@@ -245,7 +256,7 @@ public final class ReelDownload {
         playerFits = false;
         if (on()) return true;
         playerFits = ExternalPlayer.offers(media) || detailsFit(media) || speedFit(media) || loopFit(media)
-                || autoScrollFit(media);
+                || autoScrollFit(media) || wholeFit(media);
         if (eligible) return true;
         playerOnly = playerFits;
         return playerOnly;
@@ -284,7 +295,8 @@ public final class ReelDownload {
             if (options == null || download == null || options.contains(download)) return;
             boolean player = !on();
             if (player && !ExternalPlayer.on() && !PostInfo.on() && !ReelSpeedButton.inMenu()
-                    && !StopLooping.offersRow(true) && !ReelAutoScroll.inMenu()) return;
+                    && !StopLooping.offersRow(true) && !ReelAutoScroll.inMenu()
+                    && !ReelWhole.inMenu()) return;
             int at = 0;
             for (int i = 0; i < options.size(); i++) {
                 Object option = options.get(i);
@@ -320,6 +332,7 @@ public final class ReelDownload {
                 added |= speedRow(menu, media, context, sheet, rowState);
                 added |= loopRow(menu, media, context, sheet, rowState);
                 added |= autoScrollRow(menu, media, context, sheet, rowState);
+                added |= wholeRow(menu, media, context, sheet, rowState);
                 if (added && alone) HookStatus.counted(FamilyNames.REEL_DOWNLOAD, PLAYER_ALONE);
                 return alone;
             }
@@ -380,7 +393,8 @@ public final class ReelDownload {
         boolean speed = speedFit(media);
         boolean loop = loopFit(media);
         boolean autoScroll = autoScrollFit(media);
-        if (!cover && !audio && !song && !player && !details && !speed && !loop && !autoScroll) return false;
+        boolean whole = wholeFit(media);
+        if (!cover && !audio && !song && !player && !details && !speed && !loop && !autoScroll && !whole) return false;
         Object reel = InstagramMedia.reelOption(REEL_OPTION);
         Object coverRow = cover ? InstagramMedia.reelOption(COVER_OPTION) : null;
         Object audioRow = audio ? InstagramMedia.reelOption(AUDIO_OPTION) : null;
@@ -390,8 +404,10 @@ public final class ReelDownload {
         Object speedOption = speed ? InstagramMedia.reelOption(SPEED_OPTION) : null;
         Object loopOption = loop ? InstagramMedia.reelOption(LOOP_OPTION) : null;
         Object autoScrollOption = autoScroll ? InstagramMedia.reelOption(AUTO_SCROLL_OPTION) : null;
+        Object wholeOption = whole ? InstagramMedia.reelOption(WHOLE_OPTION) : null;
         if (reel == null || coverRow == null && audioRow == null && songRow == null && playerRow == null
-                && detailsOption == null && speedOption == null && loopOption == null && autoScrollOption == null) {
+                && detailsOption == null && speedOption == null && loopOption == null && autoScrollOption == null
+                && wholeOption == null) {
             return false;
         }
         if (!InstagramMedia.addReelRow(menu, context, reel, sheet, rowState,
@@ -420,6 +436,7 @@ public final class ReelDownload {
         if (speedOption != null) addSpeed(menu, context, speedOption, sheet, rowState);
         if (loopOption != null) addLoop(menu, media, context, loopOption, sheet, rowState);
         if (autoScrollOption != null) addAutoScroll(menu, context, autoScrollOption, sheet, rowState);
+        if (wholeOption != null) addWhole(menu, context, wholeOption, sheet, rowState);
         return true;
     }
 
@@ -461,6 +478,7 @@ public final class ReelDownload {
         if (SPEED_OPTION.equals(name) || FeedPostRows.SPEED_OPTION.equals(name)) return SPEED_ICONS;
         if (FeedPostRows.BLOCK_OPTION.equals(name)) return ReelBlockButton.ICON_NAMES;
         if (AUTO_SCROLL_OPTION.equals(name)) return AUTO_SCROLL_ICONS;
+        if (WHOLE_OPTION.equals(name)) return WHOLE_ICONS;
         return LOOP_OPTION.equals(name) ? LOOP_ICONS : DETAILS_ICONS;
     }
 
@@ -468,6 +486,7 @@ public final class ReelDownload {
         try {
             boolean own = DETAILS_OPTION.equals(name) || PostInfo.OPTION.equals(name) || SPEED_OPTION.equals(name)
                     || LOOP_OPTION.equals(name) || AUTO_SCROLL_OPTION.equals(name) || FeedPostRows.SPEED_OPTION.equals(name)
+                    || WHOLE_OPTION.equals(name)
                     || FeedPostRows.BLOCK_OPTION.equals(name);
             if (!own || download == 0 || context == null) return download;
             Resources resources = context.getResources();
@@ -628,6 +647,44 @@ public final class ReelDownload {
         return ReelAutoScroll.scrolling() ? L10n.t(context, "Turn off auto scroll") : L10n.t(context, "Turn on auto scroll");
     }
 
+    /**
+     * Whether the reel [media] gets the Show the whole reel row: Whole reel in the reel menu is on, the
+     * reel has a video file or a manifest, and the reel on screen is cut or shows whole from this row.
+     */
+    private static boolean wholeFit(Object media) {
+        return media != null && ReelWhole.inMenu()
+                && (!renditions(media).isEmpty() || InstagramMedia.dashManifest(media) != null)
+                && ReelWhole.offer(Utils.getActivity()) != ReelWhole.Offer.NONE;
+    }
+
+    /** Adds the Show the whole reel row to the reel menu when [media] gets it, and whether it went in. Never throws. */
+    private static boolean wholeRow(Object menu, Object media, Object context, Object sheet, Object rowState) {
+        try {
+            if (!wholeFit(media)) return false;
+            Object option = InstagramMedia.reelOption(WHOLE_OPTION);
+            return option != null && addWhole(menu, context, option, sheet, rowState);
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.REEL_DOWNLOAD, "reel menu whole row", t);
+            return false;
+        }
+    }
+
+    private static boolean addWhole(Object menu, Object context, Object option, Object sheet, Object rowState) {
+        try {
+            return InstagramMedia.addReelRow(menu, context, option, sheet, rowState, wholeLabel());
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.REEL_DOWNLOAD, "reel menu whole row", t);
+            return false;
+        }
+    }
+
+    /** The row's label: Fill the screen while the reel on screen shows whole from it, else Show the whole reel. */
+    static String wholeLabel() {
+        Context context = Utils.getContext();
+        return ReelWhole.offer(Utils.getActivity()) == ReelWhole.Offer.CROP
+                ? L10n.t(context, "Fill the screen") : L10n.t(context, "Show the whole reel");
+    }
+
     /** Turns auto scroll in Reels on or off when its row is tapped, and says which. [context] is the menu's. Never throws. */
     static void toggleAutoScroll(Context context) {
         try {
@@ -724,6 +781,11 @@ public final class ReelDownload {
         // Turn off auto scroll belongs to Keep Reels auto scroll on, and goes for every reel after this one.
         if (AUTO_SCROLL_OPTION.equals(row)) {
             toggleAutoScroll(context);
+            return true;
+        }
+        // Show the whole reel belongs to Whole reel in the reel menu, and goes on the reel on screen.
+        if (WHOLE_OPTION.equals(row)) {
+            ReelWhole.toggle(activity != null ? activity : Utils.getActivity());
             return true;
         }
         if (!on()) return false;

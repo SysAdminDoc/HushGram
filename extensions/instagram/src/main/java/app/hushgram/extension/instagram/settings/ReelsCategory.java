@@ -515,6 +515,9 @@ final class ReelsCategory {
                 reels.add(toggle(context, Settings.MUTE_BUTTON_IN_CLEAR_MODE, L10n.t("Mute button in clear mode"),
                         L10n.t("Keeps the speaker icon next to clear mode's exit button.")));
             }
+            reels.add(toggle(context, Settings.WHOLE_REEL_IN_REEL_MENU, L10n.t("Whole reel in the reel menu"),
+                    L10n.t("Adds Show the whole reel to the menu a reel's three dots open. A tap fits that reel inside "
+                            + "the screen until you swipe to the next one. Fill the screen there crops it again.")));
         }
         if (!reels.isEmpty()) {
             PreferenceCategory section = category(screen, L10n.t("Reels"), SettingsIcons.REELS,

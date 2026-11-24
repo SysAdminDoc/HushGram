@@ -4859,6 +4859,14 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting SPEED_IN_REEL_MENU = new BooleanSetting("hushgram_speed_in_reel_menu", FALSE);
 
     /**
+     * A Show the whole reel row in the menu a reel's three dots open, whose tap fits that one reel
+     * inside the screen until it's swiped away, and Fill the screen there crops it again (#845,
+     * {@link app.hushgram.extension.instagram.reels.ReelWhole}). Starts off, so the menu stays
+     * Instagram's own.
+     */
+    public static final BooleanSetting WHOLE_REEL_IN_REEL_MENU = new BooleanSetting("hushgram_whole_reel_in_reel_menu", FALSE);
+
+    /**
      * A Full screen icon in the column beside a reel whose tap turns on Instagram's own Full screen,
      * its clear mode, for that reel (#480). Starts off, so the column stays Instagram's own.
      */
