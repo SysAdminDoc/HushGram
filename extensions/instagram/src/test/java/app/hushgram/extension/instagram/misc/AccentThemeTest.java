@@ -63,6 +63,7 @@ public class AccentThemeTest {
         Settings.ACCENT_HUE.resetToDefault();
         Settings.ACCENT_BADGES.resetToDefault();
         Settings.ACCENT_ICONS.resetToDefault();
+        Settings.ACCENT_REELS.resetToDefault();
         Settings.ACCENT_RINGS.resetToDefault();
         Settings.ACCENT_RINGS_SOLID.resetToDefault();
         Settings.ACCENT_BACKGROUNDS.resetToDefault();
@@ -974,6 +975,79 @@ public class AccentThemeTest {
         PauseForTests.resume();
         String report = HookStatus.report().toString();
         assertTrue(report, report.contains(AccentTheme.TAB_ICONS + " 4"));
+    }
+
+    /**
+     * A reel's button column reads Instagram's white for its counts over the video, and with Reel
+     * buttons in the accent color on that white becomes the picked color's shade for a dark screen, the
+     * dark text color of its look under the video the shade for a light one, alpha kept (#187). The
+     * switch off, Accent color off or paused leaves the color as read, and the icons switch alone
+     * doesn't reach the column.
+     */
+    @Test
+    public void reelButtonsTakeThePickedShadeForTheColorTheColumnReads() {
+        int white = 0xffffffff;
+        int dark = 0xff0c1014;
+        int faded = 0x99ffffff;
+        Settings.ACCENT_REELS.save(true);
+        assertEquals("accent off", white, AccentTheme.reelButtons(white));
+        Settings.ACCENT_COLOR.save(true);
+        Settings.ACCENT_HUE.save(AccentHue.TEAL);
+        Settings.ACCENT_REELS.save(false);
+        Settings.ACCENT_ICONS.save(true);
+        assertEquals("reel buttons off", white, AccentTheme.reelButtons(white));
+        Settings.ACCENT_REELS.save(true);
+
+        int onDark = 0xff000000 | AccentColor.swap(0xff85a1ff, AccentHue.TEAL);
+        int onLight = 0xff000000 | AccentColor.swap(0xff3143e3, AccentHue.TEAL);
+        assertEquals("white over the video", onDark, AccentTheme.reelButtons(white));
+        assertEquals("the text color under the video", onLight, AccentTheme.reelButtons(dark));
+        assertEquals("alpha kept", (faded & 0xff000000) | (onDark & 0xffffff), AccentTheme.reelButtons(faded));
+        assertEquals("already the shade, not counted", onDark, AccentTheme.reelButtons(onDark));
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertEquals("paused", white, AccentTheme.reelButtons(white));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        String report = HookStatus.report().toString();
+        assertTrue(report, report.contains(AccentTheme.REEL_BUTTONS + " 3"));
+    }
+
+    /**
+     * Over the video the column builds no filter for its icons, so they draw the white they're made in.
+     * With Reel buttons in the accent color on it gets one that multiplies by the picked color's shade
+     * for a dark screen: white turns into that shade, black stays black and a see-through pixel stays
+     * see-through, and every icon shares it until the color changes (#187). A filter Instagram built is
+     * kept, and the switch off or paused leaves none.
+     */
+    @Test
+    public void reelIconsTakeAFilterOfThePickedShadeOverTheVideo() {
+        ColorFilter own = new PorterDuffColorFilter(0xff123456, PorterDuff.Mode.SRC_IN);
+        Settings.ACCENT_COLOR.save(true);
+        Settings.ACCENT_HUE.save(AccentHue.TEAL);
+        assertNull("reel buttons off", AccentTheme.reelButtons((ColorFilter) null));
+        Settings.ACCENT_REELS.save(true);
+        assertTrue("Instagram's own kept", own == AccentTheme.reelButtons(own));
+
+        ColorFilter teal = AccentTheme.reelButtons((ColorFilter) null);
+        int shade = AccentColor.swap(0xff85a1ff, AccentHue.TEAL);
+        assertTrue("a multiplying filter", teal instanceof android.graphics.LightingColorFilter);
+        assertEquals("by the shade", shade & 0xffffff, ((android.graphics.LightingColorFilter) teal).getColorMultiply());
+        assertEquals("adding nothing", 0, ((android.graphics.LightingColorFilter) teal).getColorAdd());
+        assertTrue("shared", teal == AccentTheme.reelButtons((ColorFilter) null));
+        Settings.ACCENT_HUE.save(AccentHue.ORANGE);
+        ColorFilter orange = AccentTheme.reelButtons((ColorFilter) null);
+        assertEquals("a new one for a new color", AccentColor.swap(0xff85a1ff, AccentHue.ORANGE) & 0xffffff,
+                ((android.graphics.LightingColorFilter) orange).getColorMultiply());
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertNull("paused", AccentTheme.reelButtons((ColorFilter) null));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        String report = HookStatus.report().toString();
+        assertTrue(report, report.contains(AccentTheme.REEL_BUTTONS + " 3"));
     }
 
     /**

@@ -953,6 +953,8 @@ HushGram settings couldn't open	تعذر فتح إعدادات HushGram
 HushGram settings exported.	تم تصدير إعدادات HushGram.
 HushGram turns back on when Instagram restarts.	يعود HushGram للعمل عند إعادة تشغيل Instagram.
 Icons in the accent color	أيقونات بلون التمييز
+Reel buttons in the accent color	أزرار Reels بلون التمييز
+The buttons beside a reel and their counts take the color you picked instead of white. Restart Instagram to see the change.	تأخذ الأزرار بجانب Reel وأعدادها اللون الذي اخترته بدلاً من الأبيض. أعد تشغيل Instagram لرؤية التغيير.
 Import HushGram settings	استيراد إعدادات HushGram
 Imported %1$d settings.	تم استيراد %1$d إعدادات.
 Imported %1$d settings. Skipped %2$d that this version doesn't know.	تم استيراد %1$d إعدادات. تم تخطي %2$d لا تعرفها هذه النسخة.

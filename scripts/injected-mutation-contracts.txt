@@ -2662,6 +2662,23 @@ single-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->repostDrawn(Lan
 start-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->tabIcons(I)I in instance (ILjava/lang/Integer;)V holding Lcom/instagram/common/ui/colorfilter/ColorFilterAlphaImageView;->setActiveColor(I)V Lcom/instagram/common/ui/colorfilter/ColorFilterAlphaImageView;->setNormalColor(I)V
 once-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->tabIcons(I)I in instance (ILjava/lang/Integer;)V holding Lcom/instagram/common/ui/colorfilter/ColorFilterAlphaImageView;->setActiveColor(I)V Lcom/instagram/common/ui/colorfilter/ColorFilterAlphaImageView;->setNormalColor(I)V
 once-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->tabIcons(Ljava/lang/Integer;)Ljava/lang/Integer; in instance (ILjava/lang/Integer;)V holding Lcom/instagram/common/ui/colorfilter/ColorFilterAlphaImageView;->setActiveColor(I)V Lcom/instagram/common/ui/colorfilter/ColorFilterAlphaImageView;->setNormalColor(I)V
+# A reel's button column (the class whose render loads the share count's id) reads one color for its
+# counts, the theme's white on media, in its one (scope)int, and builds its icons' color filter from it
+# in its one (scope)ColorFilter (0FBY.A00 and A01 on 386215122). Over the video its button builders
+# never ask that filter and build each button with none. Accent color hands the color to
+# AccentTheme.reelButtons at its return, and each button's filter right before the button's
+# constructor takes it: the comment (A0I), like (A0J), repost (A0K), save (A0L) and two share (A0M,
+# A0N) builders once each, and the render three times for the two buttons it builds itself.
+# Left out, Reel buttons in the accent color leaves the buttons white (#187). AccentThemeTest checks
+# every build.
+once-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->reelButtons(I)I in instance (L*;)I class-holding const:0x7f0b3b7a
+once-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->reelButtons(Landroid/graphics/ColorFilter;)Landroid/graphics/ColorFilter; in instance (LX/*;)LX/*; calling instance LX/*;-><init>(Landroid/graphics/ColorFilter;*)V sites 3 class-holding const:0x7f0b3b7a
+once-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->reelButtons(Landroid/graphics/ColorFilter;)Landroid/graphics/ColorFilter; in instance (LX/*;Lkotlin/jvm/functions/Function0;JJ)LX/*; calling instance LX/*;-><init>(Landroid/graphics/ColorFilter;*)V class-holding const:0x7f0b3b7a
+once-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->reelButtons(Landroid/graphics/ColorFilter;)Landroid/graphics/ColorFilter; in instance (LX/*;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;JJZ)LX/*; calling instance LX/*;-><init>(Landroid/graphics/ColorFilter;*)V class-holding const:0x7f0b3b7a
+once-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->reelButtons(Landroid/graphics/ColorFilter;)Landroid/graphics/ColorFilter; in instance (LX/*;LX/*;JJZ)LX/*; calling instance LX/*;-><init>(Landroid/graphics/ColorFilter;*)V class-holding const:0x7f0b3b7a
+once-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->reelButtons(Landroid/graphics/ColorFilter;)Landroid/graphics/ColorFilter; in instance (LX/*;JJ)LX/*; calling instance LX/*;-><init>(Landroid/graphics/ColorFilter;*)V class-holding const:0x7f0b3b7a
+once-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->reelButtons(Landroid/graphics/ColorFilter;)Landroid/graphics/ColorFilter; in instance (Landroid/animation/Animator;LX/*;LX/*;JJZZ)LX/*; calling instance LX/*;-><init>(Landroid/animation/Animator;Landroid/graphics/ColorFilter;*)V class-holding const:0x7f0b3b7a
+once-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->reelButtons(Landroid/graphics/ColorFilter;)Landroid/graphics/ColorFilter; in instance (LX/*;JJ)LX/*; calling instance LX/*;-><init>(Landroid/animation/Animator;Landroid/graphics/ColorFilter;*)V class-holding const:0x7f0b3b7a
 # The default secondary button (Edit profile, Share profile, Following) takes its fill from one
 # button-styles class (03ow on 456's 386214574), which loads the filled color in its int answer for a
 # context and a style (A0C) and the _filled_light color in the static method it calls on a dark screen

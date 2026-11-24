@@ -2522,6 +2522,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_accent_icons", FALSE, true, parent(ACCENT_COLOR));
 
     /**
+     * Under {@link #ACCENT_COLOR}: the buttons beside a reel and their counts, white over the video,
+     * take the picked color too (#187, {@link app.hushgram.extension.instagram.misc.AccentTheme#reelButtons(int)}).
+     * A change shows after a restart. Off to start.
+     */
+    public static final BooleanSetting ACCENT_REELS =
+            new BooleanSetting("hushgram_accent_reels", FALSE, true, parent(ACCENT_COLOR));
+
+    /**
      * Under {@link #ACCENT_COLOR}: the gradient on story rings runs through the picked color instead
      * of Instagram's (#187, {@link app.hushgram.extension.instagram.misc.AccentTheme}). A few other
      * things read that gradient and change with it. A change shows after a restart. Off to start.

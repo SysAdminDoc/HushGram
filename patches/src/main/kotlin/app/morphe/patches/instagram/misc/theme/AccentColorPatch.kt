@@ -98,6 +98,11 @@ private val GET_COLOR = listOf(listOf("I"), listOf("I", THEME))
  * into a layout goes through the extension as the view builds its color list ([swapImageTints]), and an
  * android:tint, as the verified badge on a profile's top bar has, as the view finishes
  * ([swapImageViewTints]).
+ *
+ * The buttons beside a reel are white over the video: the column reads that white for its counts and
+ * builds its buttons with no color filter there. The color goes through the extension as the column
+ * reads it, and each button's filter as the column builds the button ([tintReelButtons]), which answers
+ * the picked color with its own switch on (#187).
  */
 @Suppress("unused")
 val accentColorPatch = bytecodePatch(
@@ -133,6 +138,7 @@ val accentColorPatch = bytecodePatch(
         paintChatHeader()
         tintHeaderIcons()
         tintTabIcons()
+        tintReelButtons()
         tintLithoIcons()
         tintRepostAnimation()
         tintChipDot()

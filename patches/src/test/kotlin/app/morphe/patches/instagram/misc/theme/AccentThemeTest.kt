@@ -21,9 +21,12 @@ import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.builder.BuilderOffsetInstruction
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import app.morphe.patches.instagram.misc.settings.MERGED_LOGO_BAR
+import app.morphe.patches.instagram.reels.cleanup.UFI_ID
+import app.morphe.patches.instagram.reels.cleanup.loadsLiteral
 import app.morphe.patches.instagram.reels.tab.MAIN_FEED_ACTION_BAR
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
@@ -1090,6 +1093,140 @@ class AccentThemeTest {
     }
 
     /**
+     * A reel's button column hands the color it reads to the extension right before its one return, in
+     * the register returned, and the color filter each button is built with right before the button's
+     * constructor takes it, in that argument's register and at the call's own label, so the look under
+     * the video that skips the filter method passes too (#187). The filter method, the render and a call
+     * passing the filter's register twice keep Instagram's code. Two filters, a filter reading no color
+     * of the column's own, or no button built with a filter leave the column as it is, and an extension
+     * without the hooks refuses.
+     */
+    @Test
+    fun aReelsButtonColumnHandsItsColorAndFiltersToTheExtension() {
+        val stock = reelColumn().methods.associate { it.name to it.code().map { op -> op.opcode } }
+        val context = PatchContexts.of(listOf(reelColumn(), extension()))
+        context.tintReelButtons()
+        val methods = context.mutableClassDefBy(REEL_COLUMN).methods.associateBy { it.name }
+
+        val color = methods.getValue("A00").code()
+        val hook = color.indexOfFirst { (it as? ReferenceInstruction)?.reference?.toString() == REEL_BUTTON_COLOR }
+        assertEquals("the color's hook right before its return", color.size - 3, hook)
+        assertEquals("the range form", Opcode.INVOKE_STATIC_RANGE, color[hook].opcode)
+        val returned = (color.last() as OneRegisterInstruction).registerA
+        assertEquals("the color returned handed over", returned, (color[hook] as RegisterRangeInstruction).startRegister)
+        assertEquals("and written back", Opcode.MOVE_RESULT, color[hook + 1].opcode)
+        assertEquals("into the same register", returned, (color[hook + 1] as OneRegisterInstruction).registerA)
+        assertEquals("Instagram's color read kept", stock.getValue("A00"), color.filterIndexed { at, _ -> at != hook && at != hook + 1 }.map { it.opcode })
+
+        for ((name, register) in listOf("A0M" to 3, "A0I" to 1)) {
+            val body = methods.getValue(name).code()
+            val sites = body.indices.filter { (body[it] as? ReferenceInstruction)?.reference?.toString() == REEL_BUTTON_FILTER }
+            assertEquals("$name: one filter hook", 1, sites.size)
+            val at = sites.single()
+            assertEquals("$name: the range form", Opcode.INVOKE_STATIC_RANGE, body[at].opcode)
+            assertEquals("$name: the filter argument handed over", register, (body[at] as RegisterRangeInstruction).startRegister)
+            assertEquals("$name: written back", Opcode.MOVE_RESULT_OBJECT, body[at + 1].opcode)
+            assertEquals("$name: into the same register", register, (body[at + 1] as OneRegisterInstruction).registerA)
+            val built = (body[at + 2] as ReferenceInstruction).reference as MethodReference
+            assertEquals("$name: right before the button's constructor", "<init>", built.name)
+            assertEquals("$name: Instagram's builder kept", stock.getValue(name), body.filterIndexed { index, _ -> index != at && index != at + 1 }.map { it.opcode })
+        }
+        val gated = methods.getValue("A0M").code()
+        val branch = gated.single { it.opcode == Opcode.IF_EQZ } as BuilderOffsetInstruction
+        assertEquals("the branch past the filter method lands on the hook",
+            gated.indexOfFirst { (it as? ReferenceInstruction)?.reference?.toString() == REEL_BUTTON_FILTER }, branch.target.location.index)
+        for (name in listOf("A01", "A0L", "A0p")) {
+            assertEquals("$name: Instagram's code kept", stock.getValue(name), methods.getValue(name).code().map { it.opcode })
+        }
+
+        for ((case, classes) in listOf(
+            "two filters" to listOf(reelColumn(filters = 2), extension()),
+            "a filter reading no color of the column's" to listOf(reelColumn(readsColor = false), extension()),
+            "no column" to listOf(reelColumn(render = false), extension()),
+            "no button built with a filter" to listOf(reelColumn(buttons = false), extension()),
+        )) {
+            val untouched = PatchContexts.of(classes)
+            untouched.tintReelButtons()
+            val hooked = untouched.mutableClassDefBy(REEL_COLUMN).methods.filter { method ->
+                method.code().any { (it as? ReferenceInstruction)?.reference?.toString() in setOf(REEL_BUTTON_COLOR, REEL_BUTTON_FILTER) }
+            }
+            assertTrue("$case: no hook", hooked.isEmpty())
+        }
+        val failure = assertThrows(PatchException::class.java) { PatchContexts.of(listOf(reelColumn(), extension(reelButtons = false))).tintReelButtons() }
+        assertTrue("no hook in the extension: ${failure.message}", failure.message!!.startsWith("Accent color"))
+    }
+
+    /**
+     * Every build of Instagram: the one class rendering a reel's button column has one color filter,
+     * which reads one color of the column's own. That color goes to the extension at its return, in the
+     * register returned, and every button the column builds with a color filter (at least the like,
+     * comment, repost, share and save buttons) hands that filter to the extension right before its
+     * constructor, in that argument's register, with Instagram's code kept (#187).
+     */
+    @Test
+    fun everyBuildHandsItsReelButtonColorsToTheExtension() {
+        for ((code, bundle) in builds()) {
+            val columns = FixtureDex.classesLoadingAny(bundle, setOf("more_button")) { classDef ->
+                classDef.methods.any { it.loadsLiteral(UFI_ID) }
+            }.filter { classDef -> classDef.methods.any { it.parameterTypes.size == 1 && it.loadsLiteral(UFI_ID) } }
+                .distinctBy { it.type }
+            assertEquals("$code: one class renders the column, ${columns.map { it.type }}", 1, columns.size)
+            val column = ImmutableClassDef.of(columns.single())
+            val context = PatchContexts.of(listOf(column, extension()))
+            val found = context.findReelButtonColors()
+            assertTrue("$code: the column's colors found", found != null)
+            context.tintReelButtons()
+            val patched = context.mutableClassDefBy(column.type).methods
+
+            val method = patched.single { it.returnType == "I" && it.parameterTypes.size == 1 && !AccessFlags.STATIC.isSet(it.accessFlags) }
+            val body = method.code()
+            val sites = body.indices.filter { (body[it] as? ReferenceInstruction)?.reference?.toString() == REEL_BUTTON_COLOR }
+            val ends = body.indices.filter { body[it].opcode == Opcode.RETURN }
+            assertEquals("$code: the color hook before each return", ends.map { it - 2 }, sites)
+            for (at in sites) {
+                val register = (body[at + 2] as OneRegisterInstruction).registerA
+                assertEquals("$code: the color hook takes what's returned", register, (body[at] as RegisterRangeInstruction).startRegister)
+                assertEquals("$code: and writes it back", register, (body[at + 1] as OneRegisterInstruction).registerA)
+            }
+            val stockColor = column.methods.single { it.name == method.name && it.returnType == "I" }.code().map { it.opcode }
+            assertEquals("$code: Instagram's color read kept", stockColor.filter { it != Opcode.NOP },
+                body.filterIndexed { at, _ -> at !in sites && at - 1 !in sites }.map { it.opcode }.filter { it != Opcode.NOP })
+
+            var buttons = 0
+            val built = mutableSetOf<String>()
+            for (stock in column.methods) {
+                if (stock.name == method.name && stock.returnType == "I") continue
+                val before = stock.code()
+                val constructors = before.filter { instruction ->
+                    val called = (instruction as? ReferenceInstruction)?.reference as? MethodReference
+                    called?.name == "<init>" && called.parameterTypes.count { it.toString() == FILTER } == 1
+                }
+                val after = patched.single { it.name == stock.name && it.parameterTypes.map(Any::toString) == stock.parameterTypes.map(Any::toString) }.code()
+                val hooks = after.indices.filter { (after[it] as? ReferenceInstruction)?.reference?.toString() == REEL_BUTTON_FILTER }
+                assertEquals("$code: ${stock.name} hooks each button it builds with a filter", constructors.size, hooks.size)
+                for (at in hooks) {
+                    val call = after[at + 2]
+                    val called = (call as ReferenceInstruction).reference as MethodReference
+                    val parameters = called.parameterTypes.map(Any::toString)
+                    val slot = parameters.subList(0, parameters.indexOf(FILTER)).fold(1) { total, type -> total + if (type == "J" || type == "D") 2 else 1 }
+                    val register = when (call) {
+                        is RegisterRangeInstruction -> call.startRegister + slot
+                        else -> (call as FiveRegisterInstruction).let { listOf(it.registerC, it.registerD, it.registerE, it.registerF, it.registerG)[slot] }
+                    }
+                    assertEquals("$code: ${stock.name} hands over the filter argument", register, (after[at] as RegisterRangeInstruction).startRegister)
+                    assertEquals("$code: ${stock.name} writes it back", register, (after[at + 1] as OneRegisterInstruction).registerA)
+                    built += called.definingClass
+                }
+                buttons += hooks.size
+                assertEquals("$code: ${stock.name} keeps Instagram's code", before.map { it.opcode }.filter { it != Opcode.NOP },
+                    after.filterIndexed { at, _ -> at !in hooks && at - 1 !in hooks }.map { it.opcode }.filter { it != Opcode.NOP })
+            }
+            assertTrue("$code: the like, comment, repost, share and save buttons and more get the filter, $buttons calls of ${built.size} buttons",
+                buttons >= 7 && built.size >= 5)
+        }
+    }
+
+    /**
      * Litho's resource resolver hands the Context it keeps the theme of to the extension right before
      * its one return, once the theme is kept, so a tree built on a context the accent never reached
      * still gets the icon style before it reads its icon colors (#724). The branch to the throw keeps
@@ -1402,6 +1539,7 @@ class AccentThemeTest {
             customStub: Boolean = true,
             tabIcons: Boolean = true,
             lithoIcons: Boolean = true,
+            reelButtons: Boolean = true,
         ): ClassDef = classOf(
             ACCENT_THEME,
             *listOfNotNull(
@@ -1413,8 +1551,87 @@ class AccentThemeTest {
                 if (tabIcons) method(ACCENT_THEME, "tabIcons", listOf("I"), 0, "return p0", static = true, returns = "I") else null,
                 if (tabIcons) method(ACCENT_THEME, "tabIcons", listOf(BOXED), 0, "return-object p0", static = true, returns = BOXED) else null,
                 if (lithoIcons) method(ACCENT_THEME, "lithoIcons", listOf(CONTEXT), 0, "return-void", static = true) else null,
+                if (reelButtons) method(ACCENT_THEME, "reelButtons", listOf("I"), 0, "return p0", static = true, returns = "I") else null,
+                if (reelButtons) method(ACCENT_THEME, "reelButtons", listOf(FILTER), 0, "return-object p0", static = true, returns = FILTER) else null,
             ).toTypedArray(),
         )
+
+        const val FILTER = "Landroid/graphics/ColorFilter;"
+        const val REEL_COLUMN = "Lfixture/ReelColumn;"
+        const val REEL_SCOPE = "Lfixture/ReelScope;"
+
+        /**
+         * A reel's button column as 456.1's `LX/0FBY` has it: its render loading the share count's id,
+         * the color read that picks the theme's text color on media or, in the look under the video, its
+         * text and icon color, the filter built from that color in that look and none over the video, and
+         * with [buttons] three builders: A0M asking the filter only in that other look and building its
+         * button with the range form, the filter its second argument and the branch past the filter method
+         * landing on the call, A0I asking the filter every time and passing it first, and A0L passing one
+         * null register as both the filter and another argument. [filters] such filters, with [readsColor]
+         * false one asking another class's color, and with [render] false no render loading the id.
+         */
+        fun reelColumn(filters: Int = 1, readsColor: Boolean = true, render: Boolean = true, buttons: Boolean = true): ClassDef {
+            val renderBody = if (render) "const v0, 0x7f0b3b7a\nconst/4 v0, 0x0\nreturn-object v0" else "const/4 v0, 0x0\nreturn-object v0"
+            val color = """
+                iget-boolean v0, p0, $REEL_COLUMN->A0A:Z
+                const v1, 0x7f040866
+                if-eqz v0, :read
+                const v1, 0x7f0408ce
+                :read
+                invoke-static { p1, v1 }, Lfixture/ReelColors;->A06(Ljava/lang/Object;I)I
+                move-result v0
+                return v0
+            """.trimIndent()
+            val asks = if (readsColor) "$REEL_COLUMN->A00($REEL_SCOPE)I" else "Lfixture/OtherColumn;->A00($REEL_SCOPE)I"
+            val filter = """
+                iget-boolean v0, p0, $REEL_COLUMN->A0A:Z
+                if-eqz v0, :none
+                invoke-virtual { p0, p1 }, $asks
+                move-result v0
+                invoke-static { v0 }, Lfixture/ReelFilters;->A00(I)$FILTER
+                move-result-object v0
+                return-object v0
+                :none
+                const/4 v0, 0x0
+                return-object v0
+            """.trimIndent()
+            val share = """
+                new-instance v1, Lfixture/ShareButton;
+                const/4 v2, 0x0
+                const/4 v3, 0x0
+                const-wide/16 v4, 0x0
+                iget-boolean v0, p0, $REEL_COLUMN->A0A:Z
+                if-eqz v0, :build
+                invoke-virtual { p0, p1 }, $REEL_COLUMN->A01($REEL_SCOPE)$FILTER
+                move-result-object v3
+                :build
+                invoke-direct/range { v1 .. v5 }, Lfixture/ShareButton;-><init>(Landroid/animation/Animator;${FILTER}J)V
+                return-object v1
+            """.trimIndent()
+            val comment = """
+                invoke-virtual { p0, p1 }, $REEL_COLUMN->A01($REEL_SCOPE)$FILTER
+                move-result-object v1
+                new-instance v0, Lfixture/CommentButton;
+                invoke-direct { v0, v1 }, Lfixture/CommentButton;-><init>($FILTER)V
+                return-object v0
+            """.trimIndent()
+            val save = """
+                const/4 v1, 0x0
+                new-instance v0, Lfixture/SaveButton;
+                invoke-direct { v0, v1, v1 }, Lfixture/SaveButton;-><init>(${FILTER}Ljava/lang/Object;)V
+                return-object v0
+            """.trimIndent()
+            val methods = listOf(
+                method(REEL_COLUMN, "A0p", listOf(REEL_SCOPE), 1, renderBody, static = false, returns = "Ljava/lang/Object;"),
+                method(REEL_COLUMN, "A00", listOf(REEL_SCOPE), 2, color, static = false, returns = "I"),
+            ) + (0 until filters).map { method(REEL_COLUMN, "A0" + (1 + it), listOf(REEL_SCOPE), 1, filter, static = false, returns = FILTER) } +
+                if (buttons) listOf(
+                    method(REEL_COLUMN, "A0M", listOf(REEL_SCOPE), 6, share, static = false, returns = "Ljava/lang/Object;"),
+                    method(REEL_COLUMN, "A0I", listOf(REEL_SCOPE), 2, comment, static = false, returns = "Ljava/lang/Object;"),
+                    method(REEL_COLUMN, "A0L", listOf(REEL_SCOPE), 2, save, static = false, returns = "Ljava/lang/Object;"),
+                ) else emptyList()
+            return classOf(REEL_COLUMN, *methods.toTypedArray())
+        }
 
         const val HOLDER = "Lfixture/LithoResources;"
         const val CONFIG = "Lfixture/LithoConfig;"

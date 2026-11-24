@@ -85,8 +85,13 @@ public class AccentColorSettingsTest {
         String[] keys = new String[layout.getPreferenceCount()];
         for (int i = 0; i < keys.length; i++) keys[i] = layout.getPreference(i).getKey();
         assertEquals(Arrays.asList(Settings.ACCENT_COLOR.key, Settings.ACCENT_HUE.key, Settings.ACCENT_CUSTOM.key, Settings.ACCENT_BADGES.key, Settings.ACCENT_ICONS.key,
-                Settings.ACCENT_RINGS.key, Settings.ACCENT_RINGS_SOLID.key, Settings.ACCENT_BACKGROUNDS.key, Settings.CLASSIC_COLORS.key,
+                Settings.ACCENT_REELS.key, Settings.ACCENT_RINGS.key, Settings.ACCENT_RINGS_SOLID.key, Settings.ACCENT_BACKGROUNDS.key, Settings.CLASSIC_COLORS.key,
                 LayoutCategory.PURE_BLACK_HINT_ROW), Arrays.asList(keys));
+        SwitchPreference reels = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.ACCENT_REELS.key);
+        assertEquals("Reel buttons in the accent color", reels.getTitle().toString());
+        assertEquals("The buttons beside a reel and their counts take the color you picked instead of white. Restart "
+                + "Instagram to see the change.", reels.getSummary().toString());
+        assertFalse("starts off", reels.isChecked());
         SwitchPreference classic = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.CLASSIC_COLORS.key);
         assertEquals("Classic colors", classic.getTitle().toString());
         assertEquals("Dark mode turns navy blue with charcoal gray panels, and light mode turns off-white. Story and reel viewers "
@@ -105,13 +110,14 @@ public class AccentColorSettingsTest {
         String[] keys = new String[layout.getPreferenceCount()];
         for (int i = 0; i < keys.length; i++) keys[i] = layout.getPreference(i).getKey();
         assertEquals(Arrays.asList(Settings.REMOVE_BOTTOM_SPACE.key, Settings.NOTO_EMOJI.key, Settings.EMOJI_FONT.key, Settings.ACCENT_COLOR.key,
-                Settings.ACCENT_HUE.key, Settings.ACCENT_CUSTOM.key, Settings.ACCENT_BADGES.key, Settings.ACCENT_ICONS.key, Settings.ACCENT_RINGS.key, Settings.ACCENT_RINGS_SOLID.key,
+                Settings.ACCENT_HUE.key, Settings.ACCENT_CUSTOM.key, Settings.ACCENT_BADGES.key, Settings.ACCENT_ICONS.key, Settings.ACCENT_REELS.key, Settings.ACCENT_RINGS.key, Settings.ACCENT_RINGS_SOLID.key,
                 Settings.ACCENT_BACKGROUNDS.key, Settings.CLASSIC_COLORS.key, LayoutCategory.PURE_BLACK_HINT_ROW),
                 Arrays.asList(keys));
         assertFalse(row.isChecked());
         assertFalse(Settings.ACCENT_COLOR.get());
-        assertEquals(Arrays.asList(Settings.ACCENT_COLOR, Settings.ACCENT_BADGES, Settings.ACCENT_ICONS, Settings.ACCENT_RINGS,
+        assertEquals(Arrays.asList(Settings.ACCENT_COLOR, Settings.ACCENT_BADGES, Settings.ACCENT_ICONS, Settings.ACCENT_REELS, Settings.ACCENT_RINGS,
                 Settings.ACCENT_RINGS_SOLID, Settings.ACCENT_BACKGROUNDS, Settings.CLASSIC_COLORS), PatchFamily.ACCENT_COLOR.switches);
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.ACCENT_REELS.key));
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.CLASSIC_COLORS.key));
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.ACCENT_BACKGROUNDS.key));
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.ACCENT_RINGS_SOLID.key));

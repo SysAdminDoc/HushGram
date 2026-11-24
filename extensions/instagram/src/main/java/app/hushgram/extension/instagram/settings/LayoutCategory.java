@@ -77,6 +77,9 @@ final class LayoutCategory {
                 layout.addPreference(toggle(context, Settings.ACCENT_ICONS, L10n.t("Icons in the accent color"),
                         L10n.t("Instagram's icons on the top bar, the tab bar and under posts take the color you "
                                 + "picked. Text stays as it is. Restart Instagram to see the change.")));
+                layout.addPreference(toggle(context, Settings.ACCENT_REELS, L10n.t("Reel buttons in the accent color"),
+                        L10n.t("The buttons beside a reel and their counts take the color you picked instead of "
+                                + "white. Restart Instagram to see the change.")));
                 layout.addPreference(toggle(context, Settings.ACCENT_RINGS, L10n.t("Story rings in the accent color"),
                         L10n.t("Story rings take the color you picked instead of Instagram's gradient. A few other "
                                 + "gradients share those colors and change with them. Restart Instagram to see the change.")));

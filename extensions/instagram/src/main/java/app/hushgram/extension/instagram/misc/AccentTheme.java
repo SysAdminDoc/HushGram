@@ -9,6 +9,8 @@ import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.content.res.TypedArray;
 import android.graphics.Canvas;
+import android.graphics.ColorFilter;
+import android.graphics.LightingColorFilter;
 import android.graphics.Paint;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffColorFilter;
@@ -77,6 +79,12 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * context they're built on, which isn't always one the overrides or the theme util reached, so the
  * icon style also goes onto each such theme as Litho takes it up ({@link #lithoIcons}, #724).
  *
+ * <p>With {@link Settings#ACCENT_REELS} on, the buttons beside a reel and their counts take the picked
+ * color (#187). The column reads one color for its counts, white over the video, and builds its buttons
+ * with no color filter for their white icons there, so the color goes through {@link #reelButtons(int)}
+ * as the column reads it and each button's filter through {@link #reelButtons(ColorFilter)} as the
+ * column builds the button.
+ *
  * <p>With {@link Settings#ACCENT_RINGS} on, the picked color's ring style goes on (#187). It points the
  * {@code igds_color_gradient_*} attributes Instagram's story rings read at the picked shades. Other
  * things read those gradient colors too, a few pink highlights among them, and change with the rings.
@@ -138,6 +146,9 @@ public final class AccentTheme {
 
     /** What's counted each time a tab's icon is told a color and takes the picked one instead (#663). */
     static final String TAB_ICONS = "Tab icons given the accent color";
+
+    /** What's counted each time a reel's button column takes the picked color for its counts or icons (#187). */
+    static final String REEL_BUTTONS = "Reel buttons given the accent color";
 
     /** What's counted each time a theme a Litho tree reads its colors from takes the icon style (#724). */
     static final String LITHO_ICONS = "Litho themes given accent icons";
@@ -1071,6 +1082,75 @@ public final class AccentTheme {
             this.animation = animation;
             this.canvas = canvas;
             this.count = count;
+        }
+    }
+
+    /**
+     * Injected at the return of the method a reel's button column reads its color with, for the color
+     * it read, [color] (#187): the white Instagram writes the counts in over the video, or the theme's
+     * text color in the column's look under the video, which also tints its icons. With Reel buttons in
+     * the accent color on, answers the picked color's link shade for a dark screen when [color] reads
+     * light and its shade for a light screen when it reads dark, with [color]'s alpha, as
+     * {@link #tabIcons(int)} does for the tab bar. Answers [color] with the switch off, HushGram paused
+     * or anything thrown.
+     */
+    public static int reelButtons(int color) {
+        try {
+            HookStatus.invoked(FamilyNames.ACCENT_COLOR);
+            AccentHue hue = AccentColor.picked();
+            if (hue == null || !Settings.ACCENT_REELS.get()) return color;
+            int shade = AccentColor.swap(readsLight(color) ? LINK_ON_DARK : LINK_ON_LIGHT, hue);
+            int buttons = (color & 0xff000000) | (shade & 0xffffff);
+            if (buttons != color) HookStatus.counted(FamilyNames.ACCENT_COLOR, REEL_BUTTONS);
+            return buttons;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.ACCENT_COLOR, "reel buttons", failure);
+            return color;
+        }
+    }
+
+    /**
+     * Injected where a reel's button column builds each of its buttons, for the color filter the button
+     * is built with, [filter] (#187). Over the video the column builds them with none, so their icons
+     * keep the white they're drawn in. With Reel buttons in the accent color on, answers a filter that
+     * multiplies what an icon draws by the picked color's link shade for a dark screen: white turns into
+     * that shade, the dark shadow under an icon stays dark and a liked heart's red stays a red. A filter
+     * Instagram built is kept, since it's made from {@link #reelButtons(int)}'s answer. Answers [filter]
+     * with the switch off, HushGram paused or anything thrown.
+     */
+    @Nullable
+    public static ColorFilter reelButtons(@Nullable ColorFilter filter) {
+        try {
+            HookStatus.invoked(FamilyNames.ACCENT_COLOR);
+            if (filter != null) return filter;
+            AccentHue hue = AccentColor.picked();
+            if (hue == null || !Settings.ACCENT_REELS.get()) return null;
+            int shade = AccentColor.swap(LINK_ON_DARK, hue) & 0xffffff;
+            ReelFilter known = reelFilter;
+            if (known == null || known.shade != shade) {
+                known = new ReelFilter(shade, new LightingColorFilter(shade, 0));
+                reelFilter = known;
+            }
+            HookStatus.counted(FamilyNames.ACCENT_COLOR, REEL_BUTTONS);
+            return known.filter;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.ACCENT_COLOR, "reel button icons", failure);
+            return filter;
+        }
+    }
+
+    /** The filter {@link #reelButtons(ColorFilter)} last made, kept with its shade so each icon shares it. */
+    @Nullable
+    private static volatile ReelFilter reelFilter;
+
+    /** A filter multiplying by [shade], an RGB with no alpha. */
+    private static final class ReelFilter {
+        final int shade;
+        final ColorFilter filter;
+
+        ReelFilter(int shade, ColorFilter filter) {
+            this.shade = shade;
+            this.filter = filter;
         }
     }
 
