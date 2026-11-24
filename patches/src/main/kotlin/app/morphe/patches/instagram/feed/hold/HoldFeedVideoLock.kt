@@ -23,6 +23,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 
@@ -59,6 +60,7 @@ private const val ATOMIC_BOOLEAN = "Ljava/util/concurrent/atomic/AtomicBoolean;"
 private const val GET_AND_SET = "$ATOMIC_BOOLEAN->getAndSet(Z)Z"
 private const val COMPARE_AND_SET = "$ATOMIC_BOOLEAN->compareAndSet(ZZ)Z"
 private const val FEED_MEDIA = "Lcom/instagram/feed/media/Media;"
+private const val LOOK_STATE_ANY = "Ljava/lang/Object;"
 
 /**
  * The press entry and the release of the feed's hold, the controller's speed reset both call
@@ -79,9 +81,11 @@ internal class FeedLock(
 /**
  * How the reset puts the post's 2x look to rest: it reads the feed item off the controller ([item],
  * a field), and when there is one hands it the resting state ([rest], a static field of the state's
- * enum) through [show], the item's one-argument setter.
+ * enum) through [show], the item's one-argument setter. 457's x86_64 386314286 inlines that setter:
+ * there [holder] is the item's field holding the object the setter called, and [show] that object's
+ * method taking the item and the state.
  */
-internal data class FeedLook(val item: String, val rest: String, val show: String)
+internal data class FeedLook(val item: String, val rest: String, val show: String, val holder: String? = null)
 
 /**
  * Where code goes in front of a method's one call to the reset: the call's index [at], the
@@ -156,65 +160,111 @@ internal fun BytecodePatchContext.findFeedLock(press: Method): FeedLock {
     return found
 }
 
-/** The locals a kept lift borrows: the flag's, and the resting state's when it puts the look back. */
-private fun FeedLock.borrows() = if (look == null) 1 else 2
+/**
+ * The locals a kept lift borrows: the flag's, the resting state's when it puts the look back, and
+ * the setter's object's where the item's setter is inlined.
+ */
+private fun FeedLock.borrows() = when {
+    look == null -> 1
+    look.holder == null -> 2
+    else -> 3
+}
 
 /**
  * The reset's one call putting the post's 2x look to rest: a two-register call to a one-argument
  * void method, handed a static field of that argument's own type loaded right before, on a feed item
- * last loaded from a field of the [controller] holding that method's type. Null when there isn't
- * exactly one such call, so a kept lift only skips the reset.
+ * last loaded from a field of the [controller] holding that method's type. Where the item's setter is
+ * inlined (457's x86_64), a three-register call to a void method taking the item and an object, on an
+ * object of the method's type read off the item right before, handed the item and a static field of
+ * an enum's own type loaded before that read. Null when there isn't exactly one such call, so a kept
+ * lift only skips the reset.
  */
 private fun Method.findLook(controller: String): FeedLook? {
     val code = code()
-    val looks = code.indices.mapNotNull { at ->
-        val call = code[at]
-        if (call.opcode != Opcode.INVOKE_VIRTUAL) return@mapNotNull null
-        val show = (call as ReferenceInstruction).reference as? MethodReference ?: return@mapNotNull null
-        val registers = call as FiveRegisterInstruction
-        if (show.returnType != "V" || show.parameterTypes.size != 1 || registers.registerCount != 2) return@mapNotNull null
-        val state = show.parameterTypes.single().toString()
-        val load = code.getOrNull(at - 1) ?: return@mapNotNull null
-        val rest = (load as? ReferenceInstruction)?.reference as? FieldReference ?: return@mapNotNull null
-        if (load.opcode != Opcode.SGET_OBJECT || (load as OneRegisterInstruction).registerA != registers.registerD ||
-            rest.definingClass != state || rest.type != state
-        ) {
-            return@mapNotNull null
-        }
-        val read = code.subList(0, at).lastOrNull { it.puts(registers.registerC) } ?: return@mapNotNull null
-        val item = (read as? ReferenceInstruction)?.reference as? FieldReference ?: return@mapNotNull null
-        if (read.opcode != Opcode.IGET_OBJECT || item.definingClass != controller || item.type != show.definingClass) {
-            return@mapNotNull null
-        }
-        FeedLook(item.toString(), rest.toString(), show.toString())
-    }
-    return looks.distinct().singleOrNull()
+    return code.indices.mapNotNull { at -> code.lookAt(at, controller) }.distinct().singleOrNull()
 }
 
-/** Whether this is a call to [target] with two registers, as the look's setter is called. */
-private fun Instruction.showsLook(target: String) =
-    opcode == Opcode.INVOKE_VIRTUAL && ((this as ReferenceInstruction).reference as? MethodReference)?.toString() == target &&
-        (this as FiveRegisterInstruction).registerCount == 2
-
-/** The static field a sget-object loads into the look setter's state register, when this is one. */
-private fun Instruction?.loadsState(call: Instruction): String? {
-    if (this?.opcode != Opcode.SGET_OBJECT || (this as OneRegisterInstruction).registerA != (call as FiveRegisterInstruction).registerD) {
+private fun List<Instruction>.lookAt(at: Int, controller: String): FeedLook? {
+    val call = this[at]
+    if (call.opcode != Opcode.INVOKE_VIRTUAL) return null
+    val show = (call as ReferenceInstruction).reference as? MethodReference ?: return null
+    val registers = call as FiveRegisterInstruction
+    val parameters = show.parameterTypes.map(Any::toString)
+    if (show.returnType != "V") return null
+    val holder: FieldReference?
+    val itemType: String
+    when {
+        parameters.size == 1 && registers.registerCount == 2 -> {
+            holder = null
+            itemType = show.definingClass
+        }
+        parameters.size == 2 && parameters[1] == LOOK_STATE_ANY && registers.registerCount == 3 -> {
+            val read = getOrNull(at - 1) ?: return null
+            val field = (read as? ReferenceInstruction)?.reference as? FieldReference ?: return null
+            if (read.opcode != Opcode.IGET_OBJECT || (read as TwoRegisterInstruction).registerA != registers.registerC ||
+                read.registerB != registers.registerD || field.definingClass != parameters[0] || field.type != show.definingClass
+            ) {
+                return null
+            }
+            holder = field
+            itemType = parameters[0]
+        }
+        else -> return null
+    }
+    val look = FeedLook("", "", show.toString(), holder?.toString())
+    val load = getOrNull(look.stateLoadAt(at)) ?: return null
+    val rest = (load as? ReferenceInstruction)?.reference as? FieldReference ?: return null
+    if (load.opcode != Opcode.SGET_OBJECT || (load as OneRegisterInstruction).registerA != look.stateRegister(call) ||
+        rest.definingClass != rest.type || (holder == null && rest.type != parameters.single())
+    ) {
         return null
     }
+    val itemRegister = if (holder == null) registers.registerC else registers.registerD
+    val read = subList(0, at).lastOrNull { it.puts(itemRegister) } ?: return null
+    val item = (read as? ReferenceInstruction)?.reference as? FieldReference ?: return null
+    if (read.opcode != Opcode.IGET_OBJECT || item.definingClass != controller || item.type != itemType) return null
+    return look.copy(item = item.toString(), rest = rest.toString())
+}
+
+/** Whether instruction [at] calls [this] look's setter the way the reset does, through the item's holder where it has one. */
+private fun FeedLook.calledAt(code: List<Instruction>, at: Int): Boolean {
+    val call = code[at]
+    if (call.opcode != Opcode.INVOKE_VIRTUAL || ((call as ReferenceInstruction).reference as? MethodReference)?.toString() != show) {
+        return false
+    }
+    val registers = call as FiveRegisterInstruction
+    if (holder == null) return registers.registerCount == 2
+    val read = code.getOrNull(at - 1)
+    return registers.registerCount == 3 && read?.opcode == Opcode.IGET_OBJECT &&
+        ((read as ReferenceInstruction).reference as? FieldReference)?.toString() == holder &&
+        (read as TwoRegisterInstruction).registerA == registers.registerC && read.registerB == registers.registerD
+}
+
+/** The register a call of [this] look's setter hands the state in. */
+private fun FeedLook.stateRegister(call: Instruction): Int =
+    (call as FiveRegisterInstruction).let { if (holder == null) it.registerD else it.registerE }
+
+/** Where the state handed to the setter called at [at] is loaded: right before the call, or before the holder's read. */
+private fun FeedLook.stateLoadAt(at: Int): Int = if (holder == null) at - 1 else at - 2
+
+/** The static field a sget-object loads into [register], when this is one. */
+private fun Instruction?.loadsState(register: Int): String? {
+    if (this?.opcode != Opcode.SGET_OBJECT || (this as OneRegisterInstruction).registerA != register) return null
     return ((this as ReferenceInstruction).reference as? FieldReference)?.toString()
 }
 
 /**
  * The hold state this press entry hands the post through [look]'s setter: its one call to the setter,
- * handed a static field of the state's enum other than the resting one, loaded right before. Null when
- * there isn't exactly one such call or something jumps straight onto it, so the press keeps its look.
+ * handed a static field of the state's enum other than the resting one, loaded right before (before
+ * the holder's read where the setter is inlined). Null when there isn't exactly one such call or
+ * something jumps straight onto it, so the press keeps its look.
  */
 private fun Method.findHeld(look: FeedLook): String? {
     val code = code()
     val state = look.rest.substringAfterLast(':')
-    val calls = code.indices.filter { code[it].showsLook(look.show) }
+    val calls = code.indices.filter { look.calledAt(code, it) }
     val at = calls.singleOrNull() ?: return null
-    val held = code.getOrNull(at - 1).loadsState(code[at]) ?: return null
+    val held = code.getOrNull(look.stateLoadAt(at)).loadsState(look.stateRegister(code[at])) ?: return null
     if (held == look.rest || held.substringBefore("->") != state || held.substringAfterLast(':') != state || at in jumpTargets()) {
         return null
     }
@@ -279,8 +329,10 @@ private fun BytecodePatchContext.editable(method: Method): MutableMethod =
  */
 private fun MutableMethod.keepLook(look: FeedLook, held: String) {
     val code = code()
-    val at = code.indices.single { code[it].showsLook(look.show) && code.getOrNull(it - 1).loadsState(code[it]) == held }
-    val state = (code[at] as FiveRegisterInstruction).registerD
+    val at = code.indices.single {
+        look.calledAt(code, it) && code.getOrNull(look.stateLoadAt(it)).loadsState(look.stateRegister(code[it])) == held
+    }
+    val state = look.stateRegister(code[at])
     addInstructionsWithLabels(
         at,
         """
@@ -322,11 +374,15 @@ internal fun BytecodePatchContext.lockFast(found: FeedLock) {
     val asked = lift.free.first()
     val rests = found.look?.let { look ->
         val state = lift.free[1]
+        val show = look.holder?.let { holder ->
+            val setter = lift.free[2]
+            "iget-object v$setter, v$asked, $holder\ninvoke-virtual { v$setter, v$asked, v$state }, ${look.show}"
+        } ?: "invoke-virtual { v$asked, v$state }, ${look.show}"
         """
             ${lift.fieldInto(look.item)}
             if-eqz v$asked, :rested
             sget-object v$state, ${look.rest}
-            invoke-virtual { v$asked, v$state }, ${look.show}
+            $show
             :rested
         """
     }.orEmpty()

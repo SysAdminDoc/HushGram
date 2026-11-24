@@ -46,7 +46,9 @@ class HoldFeedVideoLockHookTest {
     private val mode = "Lfixture/Mode;"
     private val reset = "$controller->reset($controller" + "Z)Z"
     private val fast = "$controller->fast:$atomic"
+    private val setter = "Lfixture/Setter;"
     private val look = FeedLook("$controller->item:$item", "$mode->REST:$mode", "$item->show($mode)V")
+    private val inlinedLook = FeedLook("$controller->item:$item", "$mode->REST:$mode", "$setter->set($item" + "Ljava/lang/Object;)V", "$item->setter:$setter")
     private val held = "$mode->ACTIVE:$mode"
 
     /** The lock hooks are in the FeedHoldSpeed the bundle ships, public and static. */
@@ -63,19 +65,20 @@ class HoldFeedVideoLockHookTest {
     /**
      * A handler shaped like 454's 02g8 with its controller like 07kE: the press entry tells the flag before its reset,
      * and the release asks before its own, a yes skipping the reset with the answer set to yes. Nothing stock goes.
+     * 457's x86_64 386314286 inlines the item's setter into a call on an object the item holds, which works the same.
      */
     @Test
     fun thePressTellsAndTheReleaseAsksBeforeTheirResets() {
-        for (high in listOf(false, true)) {
-            val what = if (high) "registers above v15" else "low registers"
-            val context = PatchContexts.of(classes(high = high))
+        for (inlined in listOf(false, true)) for (high in listOf(false, true)) {
+            val what = (if (high) "registers above v15" else "low registers") + if (inlined) ", the setter inlined" else ""
+            val context = PatchContexts.of(classes(high = high, inlinedSetter = inlined))
             val press = context.feedPressEntry()
             val found = context.findFeedLock(press)
             assertEquals("$what: the press entry", "press", found.press.name)
             assertEquals("$what: the release", "release", found.release.name)
             assertEquals("$what: the reset", reset, found.reset)
             assertEquals("$what: the fast flag", fast, found.fast)
-            assertEquals("$what: how the reset puts the look to rest", look, found.look)
+            assertEquals("$what: how the reset puts the look to rest", if (inlined) inlinedLook else look, found.look)
             assertEquals("$what: the hold state the press hands the post", held, found.held)
             val stockPress = FeedLockWrites.code(context, found.press)
             val stockRelease = FeedLockWrites.code(context, found.release)
@@ -126,11 +129,12 @@ class HoldFeedVideoLockHookTest {
             "no hold state" to classes(holds = 0),
             "two hold states" to classes(holds = 2),
             "a jump onto the hold state's call" to classes(jumpsOntoHold = true),
+            "a jump onto the inlined setter's call" to classes(jumpsOntoHold = true, inlinedSetter = true),
         )
         for ((what, classes) in cases) {
             val context = PatchContexts.of(classes)
             val found = context.findFeedLock(context.feedPressEntry())
-            assertEquals("$what: the look the reset puts to rest", look, found.look)
+            assertEquals("$what: the look the reset puts to rest", if ("inlined" in what) inlinedLook else look, found.look)
             assertEquals(what, null, found.held)
             val stockPress = FeedLockWrites.code(context, found.press)
             context.lockFast(found)
@@ -182,6 +186,7 @@ class HoldFeedVideoLockHookTest {
      * feed item it holds and static reset. [high] puts the reset's registers above v15, the way a long method has
      * them. The reset puts the item's look to rest [looks] times, the way 456's does once, and the press hands the
      * item a hold state [holds] times after its 2x, the way 456's does once ([jumpsOntoHold] branching onto that call).
+     * [inlinedSetter] calls the setter the way 457's x86_64 does, through an object the item holds.
      */
     private fun classes(
         high: Boolean = false,
@@ -195,16 +200,23 @@ class HoldFeedVideoLockHookTest {
         looks: Int = 1,
         holds: Int = 1,
         jumpsOntoHold: Boolean = false,
+        inlinedSetter: Boolean = false,
     ): List<ClassDef> {
         val instance = AccessFlags.PUBLIC.value
         val static = AccessFlags.PUBLIC.value or AccessFlags.STATIC.value
+        fun show(on: Int, given: Int, spare: Int, label: String = "") =
+            if (inlinedSetter) {
+                "iget-object v$spare, v$on, ${inlinedLook.holder}\n$label\ninvoke-virtual {v$spare, v$on, v$given}, ${inlinedLook.show}"
+            } else {
+                "$label\ninvoke-virtual {v$on, v$given}, ${look.show}"
+            }
         val hands = (1..holds).joinToString("\n") { n ->
             val state = "$mode->${if (n == 1) "ACTIVE" else "LOCKED"}:$mode"
             """
             iget-object v1, v0, $controller->item:$item
             sget-object v2, $state
-            ${if (jumpsOntoHold) "if-eqz v1, :hold$n\nsget-object v2, $state\n:hold$n" else ""}
-            invoke-virtual {v1, v2}, $item->show($mode)V
+            ${if (jumpsOntoHold) "if-eqz v1, :hold$n\nsget-object v2, $state" else ""}
+            ${show(1, 2, 4, if (jumpsOntoHold) ":hold$n" else "")}
             """
         }
         val setsFast = (if (comparesAndSets) "invoke-virtual {v1, v2, v3}, $atomic->compareAndSet(ZZ)Z" else "invoke-virtual {v1, v3}, $atomic->set(Z)V") +
@@ -260,7 +272,7 @@ class HoldFeedVideoLockHookTest {
             iget-object v1, p0, $controller->item:$item
             if-eqz v1, :rested$n
             sget-object v2, $mode->${if (n == 1) "REST" else "ACTIVE"}:$mode
-            invoke-virtual {v1, v2}, $item->show($mode)V
+            ${show(1, 2, 3)}
             :rested$n
             """
         }
@@ -280,7 +292,8 @@ class HoldFeedVideoLockHookTest {
         val handlerMethods = listOfNotNull(
             method(handler, "tap", listOf(view, media, point, holder, state, "Ljava/lang/Object;", "I", "Z"), "V", 2, instance, tapBody),
             method(handler, "press", listOf(view, media, point, holder, state), "V", if (high) 20 else 6, instance, pressBody),
-            if (release) method(handler, "release", listOf(media, point, state, "Z"), "V", if (high) 20 else 4, instance, releaseBody) else null,
+            // A kept lift borrows a third local for the setter's object where the setter is inlined.
+            if (release) method(handler, "release", listOf(media, point, state, "Z"), "V", if (high) 20 else if (inlinedSetter) 5 else 4, instance, releaseBody) else null,
         )
         val flags = listOfNotNull("fast", if (twoFlags) "slow" else null)
             .map { ImmutableField(controller, it, atomic, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, null, null, null) } +
@@ -290,7 +303,7 @@ class HoldFeedVideoLockHookTest {
                 listOf(ImmutableField(handler, "speed", controller, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, null, null, null)),
                 handlerMethods),
             ImmutableClassDef(controller, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, "Ljava/lang/Object;", emptyList(), null, null,
-                flags, listOf(method(controller, "reset", listOf(controller, "Z"), "Z", 3, static, resetBody))),
+                flags, listOf(method(controller, "reset", listOf(controller, "Z"), "Z", if (inlinedSetter) 4 else 3, static, resetBody))),
         )
     }
 
@@ -375,29 +388,41 @@ internal object FeedLockWrites {
      * controller is above v15), skipped when there's none, and handed the resting state, all in locals up to v15.
      */
     private fun assertRested(what: String, rests: List<Instruction>, from: Int, yesAt: Int, look: FeedLook) {
-        assertTrue("$what: the steps putting the look to rest: ${rests.map { it.opcode }}", rests.size == 4 || rests.size == 5)
+        // Where the item's setter is inlined (457's x86_64), the call goes to the object the item holds, read off it first.
+        val extra = if (look.holder == null) 0 else 1
+        assertTrue("$what: the steps putting the look to rest: ${rests.map { it.opcode }}", rests.size == 4 + extra || rests.size == 5 + extra)
         val show = rests.last()
         assertEquals("$what: the look's setter", Opcode.INVOKE_VIRTUAL, show.opcode)
         assertEquals("$what: the look's setter", look.show, show.text())
         val call = show as FiveRegisterInstruction
-        assertEquals("$what: the setter's registers", 2, call.registerCount)
-        assertTrue("$what: two locals up to v15", call.registerC <= 15 && call.registerD <= 15 && call.registerC != call.registerD)
-        val rest = rests[rests.size - 2]
+        assertEquals("$what: the setter's registers", 2 + extra, call.registerCount)
+        val handed = listOf(call.registerC, call.registerD, call.registerE).take(call.registerCount)
+        assertTrue("$what: locals up to v15: $handed", handed.all { it <= 15 } && handed.toSet().size == handed.size)
+        val item = handed[extra]
+        val state = handed[extra + 1]
+        if (look.holder != null) {
+            val setter = rests[rests.size - 2]
+            assertEquals("$what: the setter's object read", Opcode.IGET_OBJECT, setter.opcode)
+            assertEquals("$what: the setter's object read", look.holder, setter.text())
+            assertEquals("$what: the setter's object read into its register", call.registerC, (setter as TwoRegisterInstruction).registerA)
+            assertEquals("$what: the setter's object read off the item", item, setter.registerB)
+        }
+        val rest = rests[rests.size - 2 - extra]
         assertEquals("$what: the resting state", Opcode.SGET_OBJECT, rest.opcode)
         assertEquals("$what: the resting state", look.rest, rest.text())
-        assertEquals("$what: the resting state's register", call.registerD, (rest as OneRegisterInstruction).registerA)
-        val none = rests[rests.size - 3]
+        assertEquals("$what: the resting state's register", state, (rest as OneRegisterInstruction).registerA)
+        val none = rests[rests.size - 3 - extra]
         assertEquals("$what: no item skips", Opcode.IF_EQZ, none.opcode)
-        assertEquals("$what: no item's register", call.registerC, (none as OneRegisterInstruction).registerA)
+        assertEquals("$what: no item's register", item, (none as OneRegisterInstruction).registerA)
         assertEquals("$what: no item goes to the yes", yesAt, (none as BuilderOffsetInstruction).target.location.index)
-        val read = rests[rests.size - 4]
+        val read = rests[rests.size - 4 - extra]
         assertEquals("$what: the item's read", Opcode.IGET_OBJECT, read.opcode)
         assertEquals("$what: the item's read", look.item, read.text())
-        assertEquals("$what: the item's register", call.registerC, (read as TwoRegisterInstruction).registerA)
-        if (rests.size == 5) {
+        assertEquals("$what: the item's register", item, (read as TwoRegisterInstruction).registerA)
+        if (rests.size == 5 + extra) {
             assertEquals("$what: the controller moved down at $from", Opcode.MOVE_OBJECT_FROM16, rests[0].opcode)
-            assertEquals("$what: into the item's register", call.registerC, (rests[0] as TwoRegisterInstruction).registerA)
-            assertEquals("$what: the item read through it", call.registerC, read.registerB)
+            assertEquals("$what: into the item's register", item, (rests[0] as TwoRegisterInstruction).registerA)
+            assertEquals("$what: the item read through it", item, read.registerB)
         }
     }
 
@@ -409,7 +434,10 @@ internal object FeedLockWrites {
     private fun assertLookKept(what: String, press: List<Instruction>, asks: List<Int>, look: FeedLook, held: String) {
         assertEquals("$what: calls asking about the look", 1, asks.size)
         val ask = asks.single()
-        assertEquals("$what: Instagram's hold state loads right before the ask", held, press[ask - 1].text())
+        // An inlined setter (457's x86_64) reads its object off the item between the state's load and the ask.
+        val extra = if (look.holder == null) 0 else 1
+        if (look.holder != null) assertEquals("$what: the setter's object is read right before the ask", look.holder, press[ask - 1].text())
+        assertEquals("$what: Instagram's hold state loads right before the ask", held, press[ask - 1 - extra].text())
         val answer = press[ask + 1]
         assertEquals("$what: the ask's answer", Opcode.MOVE_RESULT, answer.opcode)
         val state = (answer as OneRegisterInstruction).registerA
@@ -430,7 +458,8 @@ internal object FeedLockWrites {
         val show = press[heldAt + 1]
         assertEquals("$what: then the look's setter", look.show, show.text())
         assertEquals("$what: a yes jumps to the setter", heldAt + 1, (jump as BuilderOffsetInstruction).target.location.index)
-        assertEquals("$what: the setter takes the state register", state, (show as FiveRegisterInstruction).registerD)
+        val call = show as FiveRegisterInstruction
+        assertEquals("$what: the setter takes the state register", state, if (extra == 0) call.registerD else call.registerE)
     }
 
     /** The one register handed to the hook at [at], read from the controller's fast flag right before. */
