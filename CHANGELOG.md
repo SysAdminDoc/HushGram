@@ -44,6 +44,7 @@ Every HushGram release, newest first.
 * HushGram now builds on Morphe patcher 2.5.0, so patching needs Morphe Manager 2.7.0 or newer. On a computer, use Morphe Desktop 2.3.0 or newer.
 * `Expand captions on reels` now opens the caption right on the reel in the Reels tab. On Instagram 456 those captions stayed at a line or two, and the "..." opened the caption sheet. Reported in #821.
 * The time on a story's seek bar sits right over the bar whenever there's room for it, instead of up over the reply row. Reported in #784.
+* Back from a profile you opened on the `Saved profiles` page now goes back to that page, on the folder, search and spot in the list you left. It went to Home. Asked for in #859.
 * `Pinch for clear mode` works when you spread two fingers apart now, not only when you pinch them together. Fingers that started close together were taken as a scroll. Reported in #744.
 * `Time under the tags button` is new under `Time on the seek bar` in Feed. It moves the time from the middle of the bar to the corner under the tags button. Starts off. Asked for in #711.
 * `Show it as an icon at the top`, new under `Show if a profile follows you`, puts a green check or red cross by the menu, or on HushGram's button when the bar's full. Starts off. Asked for in #842.

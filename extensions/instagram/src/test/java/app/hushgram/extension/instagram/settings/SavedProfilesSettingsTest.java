@@ -7,12 +7,15 @@ package app.hushgram.extension.instagram.settings;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -20,10 +23,12 @@ import android.net.Uri;
 import android.preference.Preference;
 import android.preference.SwitchPreference;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.ListView;
 import android.widget.TextView;
 
 import org.json.JSONArray;
@@ -79,6 +84,7 @@ public class SavedProfilesSettingsTest {
         SavedProfilesRows.clear(RuntimeEnvironment.getApplication());
         SavedProfilesRows.forget();
         SavedProfilesPage.forgetPictures();
+        SavedProfilesPage.left = null;
     }
 
     private static void idle() throws Exception {
@@ -217,6 +223,136 @@ public class SavedProfilesSettingsTest {
             fragments.executePendingTransactions();
             assertNull("the settings make way for the profile", fragments.findFragmentByTag(SettingsEntry.DIALOG_TAG));
         }
+    }
+
+    /**
+     * Back from a profile opened off a folder (#859): Instagram's activity for the profile closes, the one under it
+     * comes back, and the page opens there again on the folder, the search and the place in the list it was left
+     * on. It landed on Home before. Once open again it's done: the activity coming back later opens nothing.
+     */
+    @Test public void backFromAProfileOpensThePageAgainWhereItWasLeft() throws Exception {
+        Context context = RuntimeEnvironment.getApplication();
+        Settings.SAVED_PROFILES.save(true);
+        for (int at = 0; at < 40; at++) {
+            String username = String.format(java.util.Locale.ROOT, "pal%02d", at);
+            SavedProfilesRows.save(context, String.valueOf(at + 1), username, "", "", 1_000L + at);
+            if (at % 4 != 0) SavedProfiles.putIn(context, String.valueOf(at + 1), username, Collections.singletonList("Pals"));
+        }
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            SavedProfilesPage page = SavedProfilesPage.open(controller.get(), null);
+            idle();
+            chipNamed(page.dialog, "Pals").performClick();
+            page.search.setText("pal");
+            assertEquals("the folder's 30", 30, page.list.getAdapter().getCount());
+            lay(page.list);
+            page.list.setSelectionFromTop(12, 0);
+            lay(page.list);
+            assertEquals(12, page.list.getFirstVisiblePosition());
+            SavedProfiles.Profile tapped = (SavedProfiles.Profile) page.list.getAdapter().getItem(13);
+            page.list.performItemClick(null, 13, 13);
+            Intent opened = Shadows.shadowOf(RuntimeEnvironment.getApplication()).getNextStartedActivity();
+            assertEquals("https://www.instagram.com/" + tapped.username + "/", String.valueOf(opened.getData()));
+            assertFalse(page.dialog.isShowing());
+
+            // Instagram's activity for the profile comes up over this one, then Back closes it.
+            controller.pause();
+            try (ActivityController<Activity> profile = Robolectric.buildActivity(Activity.class).setup()) {
+                profile.pause();
+                controller.resume();
+                idle();
+            }
+            Dialog back = ShadowDialog.getLatestDialog();
+            assertNotSame(page.dialog, back);
+            assertTrue("the page is open again", back.isShowing());
+            assertEquals("pal", String.valueOf(first(back.getWindow().getDecorView(), EditText.class).getText()));
+            ListView list = first(back.getWindow().getDecorView(), ListView.class);
+            assertEquals("still in the folder", 30, list.getAdapter().getCount());
+            assertTrue(chipNamed(back, "Pals").isSelected());
+            assertFalse(chipNamed(back, "All").isSelected());
+            lay(list);
+            assertEquals("at the place it was left", 12, list.getFirstVisiblePosition());
+
+            back.dismiss();
+            controller.pause();
+            controller.resume();
+            idle();
+            assertSame("once is all", back, ShadowDialog.getLatestDialog());
+        }
+    }
+
+    /** The activity back with no profile between, or Saved profiles off by then, opens no page again (#859). */
+    @Test public void noProfileBetweenOrTheSwitchOffOpensNoPageAgain() throws Exception {
+        Context context = RuntimeEnvironment.getApplication();
+        Settings.SAVED_PROFILES.save(true);
+        SavedProfilesRows.save(context, "1", "amy", "", "", 1_000L);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            SavedProfilesPage page = SavedProfilesPage.open(controller.get(), null);
+            idle();
+            page.list.performItemClick(null, 0, 0);
+            controller.pause();
+            controller.resume();
+            idle();
+            assertSame("no profile came up: nothing opens", page.dialog, ShadowDialog.getLatestDialog());
+            assertNull("and nothing waits", SavedProfilesPage.left);
+
+            SavedProfilesPage again = SavedProfilesPage.open(controller.get(), null);
+            idle();
+            again.list.performItemClick(null, 0, 0);
+            Settings.SAVED_PROFILES.save(false);
+            controller.pause();
+            try (ActivityController<Activity> profile = Robolectric.buildActivity(Activity.class).setup()) {
+                profile.pause();
+                controller.resume();
+                idle();
+            }
+            assertSame("switched off on the profile: nothing opens", again.dialog, ShadowDialog.getLatestDialog());
+
+            Settings.SAVED_PROFILES.save(true);
+            SavedProfilesPage late = SavedProfilesPage.open(controller.get(), null);
+            idle();
+            late.list.performItemClick(null, 0, 0);
+            controller.pause();
+            ShadowLooper.idleMainLooper(SavedProfilesPage.OPEN_MS + 1_000L, java.util.concurrent.TimeUnit.MILLISECONDS);
+            try (ActivityController<Activity> chat = Robolectric.buildActivity(Activity.class).setup()) {
+                assertNull("whatever came up this late wasn't the profile", SavedProfilesPage.left);
+                chat.pause();
+                controller.resume();
+                idle();
+            }
+            assertSame("back from it opens nothing", late.dialog, ShadowDialog.getLatestDialog());
+        }
+    }
+
+    /** Lays [view] out 1080 by 800 pixels, as a screen would. */
+    private static void lay(View view) {
+        view.measure(View.MeasureSpec.makeMeasureSpec(1080, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(800, View.MeasureSpec.EXACTLY));
+        view.layout(0, 0, 1080, 800);
+    }
+
+    /** The first view of [type] under [root], depth first. */
+    private static <T extends View> T first(View root, Class<T> type) {
+        if (type.isInstance(root)) return type.cast(root);
+        if (root instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup) root;
+            for (int i = 0; i < group.getChildCount(); i++) {
+                T found = first(group.getChildAt(i), type);
+                if (found != null) return found;
+            }
+        }
+        return null;
+    }
+
+    /** The folder chip labelled [label] on the page in [dialog]. */
+    private static TextView chipNamed(Dialog dialog, String label) {
+        ArrayList<View> found = new ArrayList<>();
+        dialog.getWindow().getDecorView().findViewsWithText(found, label, View.FIND_VIEWS_WITH_TEXT);
+        for (View each : found) {
+            if (each.isClickable() && each instanceof TextView && label.contentEquals(((TextView) each).getText())) {
+                return (TextView) each;
+            }
+        }
+        throw new AssertionError("no chip " + label);
     }
 
     /** The cross takes the account off at once, says so and brings the settings row up to date. */

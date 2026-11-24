@@ -6,6 +6,7 @@ package app.hushgram.extension.instagram.settings;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.Application;
 import android.app.Dialog;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
@@ -20,6 +21,8 @@ import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.RippleDrawable;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Bundle;
+import android.os.SystemClock;
 import android.preference.Preference;
 import android.text.Editable;
 import android.text.InputFilter;
@@ -49,6 +52,7 @@ import android.widget.TextView;
 
 import androidx.annotation.Nullable;
 
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -57,6 +61,7 @@ import java.util.Objects;
 import app.hushgram.extension.instagram.download.SavedProfiles;
 import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.Utils;
+import app.hushgram.extension.shared.diagnostics.HookStatus;
 import app.hushgram.extension.shared.ui.Dim;
 
 /**
@@ -68,6 +73,10 @@ import app.hushgram.extension.shared.ui.Dim;
  * <p>Move to folder on a long press puts an account in a folder. Once there are folders, a row of
  * chips under the search box shows All or one folder, and a long press on a folder's chip renames
  * it or takes it away, its accounts staying saved.
+ *
+ * <p>Instagram opens the profile tapped in an activity of its own over the one the page showed
+ * in. Back from it comes back to that activity, so the page opens there again ({@link #COMEBACK}),
+ * on the folder, search and place in the list it was left on (#859). Before, it landed on Home.
  */
 @SuppressWarnings("deprecation") // Preference is what the settings page builds on.
 public final class SavedProfilesPage {
@@ -90,6 +99,10 @@ public final class SavedProfilesPage {
     /** What the chips were last built for. */
     @Nullable private List<String> chipsShown;
     @Nullable private String chipsPicked;
+    /** Whether the list has been read, so a folder isn't dropped as empty before its accounts are in. */
+    private boolean readIn;
+    /** The first row shown and how far from the top, to scroll back to once the list is read, or null. */
+    @Nullable private int[] scrollTo;
 
     private SavedProfilesPage(Context context, @Nullable Preference row) {
         origin = row;
@@ -204,6 +217,115 @@ public final class SavedProfilesPage {
         open(activity, null);
     }
 
+    /** How long a page left for a profile still opens again when Back comes back from it. */
+    static final long COMEBACK_MS = 10 * 60 * 1000L;
+    /** How soon Instagram's activity for the profile comes up after the tap, for it to count as the profile's. */
+    static final long OPEN_MS = 10_000L;
+
+    /** The page as it was left for a profile: where it showed, its folder, search and place in the list. */
+    static final class Left {
+        final WeakReference<Activity> under;
+        @Nullable final String folder;
+        final String search;
+        final int first;
+        final int top;
+        final long at = SystemClock.uptimeMillis();
+        /** The activity went behind another, and another of the app's came to the front: the profile. */
+        boolean behind;
+        boolean opened;
+
+        Left(Activity under, @Nullable String folder, String search, int first, int top) {
+            this.under = new WeakReference<>(under);
+            this.folder = folder;
+            this.search = search;
+            this.first = first;
+            this.top = top;
+        }
+    }
+
+    /** The page left for a profile, until it opens again, or the activity it showed in comes back without one. */
+    @Nullable static Left left;
+
+    /**
+     * Opens the page again when the activity it was left in for a profile comes back to the front
+     * after another of the app's activities did, within {@link #OPEN_MS} of the tap: Instagram's for
+     * the profile (#859). The activity coming back with no other in between, another coming up
+     * later than that, or a comeback after {@link #COMEBACK_MS}, ends it unopened.
+     */
+    static final Application.ActivityLifecycleCallbacks COMEBACK = new Application.ActivityLifecycleCallbacks() {
+        @Override public void onActivityPaused(Activity activity) {
+            Left waiting = left;
+            if (waiting != null && waiting.under.get() == activity) waiting.behind = true;
+        }
+
+        @Override public void onActivityResumed(Activity activity) {
+            Left waiting = left;
+            if (waiting == null) return;
+            if (waiting.under.get() != activity) {
+                if (!waiting.behind || waiting.opened) return;
+                // Something else much later: the profile opened where the page was, and this is another trip.
+                if (SystemClock.uptimeMillis() - waiting.at > OPEN_MS) left = null;
+                else waiting.opened = true;
+                return;
+            }
+            if (!waiting.behind) return;
+            left = null;
+            if (!waiting.opened || SystemClock.uptimeMillis() - waiting.at > COMEBACK_MS) return;
+            Window window = activity.getWindow();
+            View decor = window == null ? null : window.peekDecorView();
+            if (decor == null) return;
+            decor.post(() -> comeBack(activity, waiting));
+        }
+
+        @Override public void onActivityDestroyed(Activity activity) {
+            Left waiting = left;
+            if (waiting != null && waiting.under.get() == activity) left = null;
+        }
+
+        @Override public void onActivityCreated(Activity activity, @Nullable Bundle state) {
+        }
+
+        @Override public void onActivityStarted(Activity activity) {
+        }
+
+        @Override public void onActivityStopped(Activity activity) {
+        }
+
+        @Override public void onActivitySaveInstanceState(Activity activity, Bundle state) {
+        }
+    };
+
+    /** The app {@link #COMEBACK} is registered with, so it's registered once. */
+    private static WeakReference<Application> watching = new WeakReference<>(null);
+
+    /** Opens the page left as [was] over [activity] again, while Saved profiles is still on and the activity stays. */
+    static void comeBack(Activity activity, Left was) {
+        try {
+            if (activity.isFinishing() || activity.isDestroyed() || !SavedProfiles.on()) return;
+            SavedProfilesPage page = new SavedProfilesPage(activity, null);
+            page.folder = was.folder;
+            page.scrollTo = new int[] {was.first, was.top};
+            page.search.setText(was.search);
+            page.show();
+            page.read();
+            page.dialog.show();
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.PROFILE_PICTURE, "saved profiles back from a profile", failure);
+        }
+    }
+
+    /** Keeps the page as it is now to open again over [activity] when Back comes back from the profile opened. */
+    private void leaveFor(@Nullable Activity activity) {
+        if (activity == null) return;
+        View firstRow = list.getChildAt(0);
+        left = new Left(activity, folder, String.valueOf(search.getText()), list.getFirstVisiblePosition(),
+                firstRow == null ? 0 : firstRow.getTop() - list.getPaddingTop());
+        Application app = activity.getApplication();
+        if (app == null || watching.get() == app) return;
+        app.registerActivityLifecycleCallbacks(COMEBACK);
+        watching = new WeakReference<>(app);
+    }
+
     /** Reads the list off the main thread, since the first read comes from a file. */
     private void read() {
         Context application = dialog.getContext().getApplicationContext();
@@ -211,19 +333,25 @@ public final class SavedProfilesPage {
             List<SavedProfiles.Profile> read = SavedProfiles.all(application);
             Utils.runOnMainThread(() -> {
                 all = read;
+                readIn = true;
                 show();
             });
         })) {
             all = SavedProfiles.all(application);
+            readIn = true;
             show();
         }
     }
 
     private void show() {
         // A folder its last account left is gone, and the page shows them all again.
-        if (folder != null && SavedProfiles.inFolder(all, folder).isEmpty()) folder = null;
+        if (readIn && folder != null && SavedProfiles.inFolder(all, folder).isEmpty()) folder = null;
         showChips(SavedProfiles.folders(all));
         rows.set(SavedProfiles.matching(SavedProfiles.inFolder(all, folder), String.valueOf(search.getText())));
+        if (readIn && scrollTo != null) {
+            list.setSelectionFromTop(Math.min(scrollTo[0], Math.max(0, rows.getCount() - 1)), scrollTo[1]);
+            scrollTo = null;
+        }
         empty.setText(all.isEmpty() ? HushgramPreferenceFragment.savedProfilesSummary(all)
                 : L10n.t(dialog.getContext(), "Nothing matches."));
         empty.setCompoundDrawablesRelative(null, all.isEmpty() ? nothingYet : nothingMatches, null, null);
@@ -522,6 +650,7 @@ public final class SavedProfilesPage {
             context.startActivity(new Intent(Intent.ACTION_VIEW, link).setPackage(context.getPackageName()));
             // The profile opens on the screen under this page, and the settings make way for it.
             Activity activity = SettingsScreenRow.activityOf(context);
+            leaveFor(activity);
             if (activity != null) SettingsEntry.closeForLink(activity);
             dialog.dismiss();
         } catch (ActivityNotFoundException | SecurityException failure) {
