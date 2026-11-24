@@ -34,7 +34,7 @@ This project has no connection to Meta or to the Morphe project. Neither endorse
 
 1. Install [Morphe Manager](https://github.com/MorpheApp/morphe-manager) 2.7.0 or newer.
 2. Add HushGram as a patch source by opening [this link](https://morphe.software/add-source?github=SysAdminDoc%2FHushGram) on your phone. Or in Manager open **Sources**, tap **+**, choose **Remote** and enter `github.com/SysAdminDoc/HushGram`. Use HushGram as your only Instagram source, since mixing in another one can stop patching.
-3. Get Instagram 457.0.0.55.73 from APKMirror. Take [the bundle labelled (arm64-v8a) (480-640dpi) (Android 9.0+), build 386314341](https://www.apkmirror.com/apk/instagram/instagram-instagram/instagram-457-0-0-55-73-release/). The (480dpi) one, build 386314297, works too (see [Supported Instagram builds](#supported-instagram-builds)).
+3. Get Instagram 457.0.0.55.73 from APKMirror. Take [the bundle labelled (arm64-v8a) (480-640dpi) (Android 9.0+), build 386314341](https://www.apkmirror.com/apk/instagram/instagram-instagram/instagram-457-0-0-55-73-release/). The (480dpi) one, build 386314297, works too. Older 32-bit phones take the armeabi-v7a bundle, build 386314340, and 64-bit emulators the x86_64 one, build 386314286 (see [Supported Instagram builds](#supported-instagram-builds)).
 4. Uninstall the Instagram you got from the Play Store. The patched app is signed with your own key, so Android won't install it over Meta's. Uninstalling signs you out, so have your password and two-factor codes ready. On a rooted phone, Manager's Root Mount can lay HushGram over the Play Store app instead, and you stay signed in.
 5. In Morphe Manager, pick the Instagram file, keep the default patch selection or change it, and patch.
 6. Open HushGram settings and turn on what you want. It's at the top of Instagram's Settings and activity. A long press on the Instagram logo at the top of your feed opens it too.
@@ -355,13 +355,15 @@ For something that's broken, use the [bug form](https://github.com/SysAdminDoc/H
 | Package | `com.instagram.android` |
 | Version | `457.0.0.55.73` |
 | arm64-v8a builds | `386314341` (480-640dpi), for most phones. `386314297` (480dpi) is another build of the same release |
-| Other ABIs | Meta's armeabi-v7a (`386314340`) and x86_64 (`386314286`) builds of this version came out after HushGram moved to it and aren't supported yet. There's no x86 build so far |
-| Minimum Android version | Android 9 (API 28) |
+| armeabi-v7a build | `386314340`, for older 32-bit phones |
+| x86_64 build | `386314286`, for 64-bit emulators |
+| x86 build | Meta hasn't published one for this version |
+| Minimum Android version | Android 9 (API 28) for every ABI |
 | Where to get it | [APKMirror](https://www.apkmirror.com/apk/instagram/instagram-instagram/) |
 
 Other Instagram versions haven't been checked. Meta can publish different APKs under one version name, so go by the build number too.
 
-Patching raises the minimum to Android 9 for any build Instagram ships with an Android 8 minimum, as it did with 456.1's armeabi-v7a and x86 builds. HushGram's settings use Android 9 APIs.
+Patching raises the minimum to Android 9 for the armeabi-v7a build, which Instagram ships with an Android 8 minimum. HushGram's settings use Android 9 APIs.
 
 Meta signs genuine Instagram builds with one of two certificates, and Morphe Manager warns before it patches an APK signed with any other key. To check a file yourself, run `apksigner verify --print-certs` (from Android's build tools) on the base APK and look for one of these certificate SHA-256 digests:
 

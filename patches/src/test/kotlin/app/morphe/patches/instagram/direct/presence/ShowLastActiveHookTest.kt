@@ -159,6 +159,6 @@ class ShowLastActiveHookTest {
     private fun Instruction.reference(): String? = (this as? ReferenceInstruction)?.reference?.toString()
 
     private companion object {
-        val BUILDS = listOf(386314341, 386314297)
+        val BUILDS = listOf(386314341, 386314297, 386314340, 386314286)
     }
 }

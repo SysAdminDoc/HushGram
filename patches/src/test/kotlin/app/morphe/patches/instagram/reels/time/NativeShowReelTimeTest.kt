@@ -106,7 +106,7 @@ class NativeShowReelTimeTest {
     }
 
     private companion object {
-        val BUILDS = listOf(386314341, 386314297)
+        val BUILDS = listOf(386314341, 386314297, 386314340, 386314286)
 
         /** The Reels title's render among [classes]: the one method loading [TITLE_COMPONENT], however Redex pooled it. */
         fun renderOf(classes: List<ClassDef>): Method {

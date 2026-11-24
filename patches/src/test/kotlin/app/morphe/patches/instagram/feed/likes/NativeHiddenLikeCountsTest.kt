@@ -150,7 +150,7 @@ class NativeHiddenLikeCountsTest {
     }
 
     private companion object {
-        val BUILDS = listOf(386314341, 386314297)
+        val BUILDS = listOf(386314341, 386314297, 386314340, 386314286)
         const val SESSION = "Lcom/instagram/common/session/UserSession;"
         fun isDecide(types: List<String>) =
             types.size in 3..5 && types.first() == SESSION && (

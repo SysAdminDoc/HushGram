@@ -75,10 +75,12 @@ public final class Runner extends Instrumentation {
     // Each 457.0.0.55.73 build's view-once receipt names, found from the handler's endpoint and
     // raven_media strings: the build, the visual and voice handlers, their shared method, the
     // visual and voice mutations, the mutation base, its analytics extras and the completion
-    // interface. A set is used only once Instagram's own code agrees with it. The declared build
-    // is all there is; 386314297 carries 386314341's names.
+    // interface. A set is used only once Instagram's own code agrees with it. 386314297 carries
+    // 386314341's names.
     private static final String[][] VISUAL_NAMES = {
             {"386314341", "X.05tf", "X.05ti", "HCv", "X.0ISZ", "X.0ISU", "X.0ArI", "X.02sx", "X.0XoP"},
+            {"386314340", "X.05uf", "X.05ui", "HDM", "X.0JGy", "X.0JGr", "X.0BJC", "X.02ty", "X.0npc"},
+            {"386314286", "X.05tf", "X.05ti", "HD6", "X.0IXq", "X.0IXZ", "X.0AtI", "X.02sx", "X.0Znj"},
     };
     private static final String VISUAL_MUTATION = "send_visual_item_seen_marker";
     private static final String VOICE_MUTATION = "send_voice_item_seen_marker";

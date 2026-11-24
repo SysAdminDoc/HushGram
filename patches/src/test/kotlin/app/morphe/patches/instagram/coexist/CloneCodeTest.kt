@@ -35,13 +35,13 @@ class CloneCodeTest {
      * The const-string loads of an authority each build has, and the loads of Instagram's package that stay,
      * as each build's plan counts them. 455's builds had between 35 and 38 authority loads and kept 89 or 90
      * package loads; 456.0's had 34, or 37 on the x86 build; 456.1's had 34, or 36 on armeabi-v7a, and all kept 93.
-     * 457's two arm64 builds have 36 and keep 95.
+     * 457's arm64 builds have 36, its armeabi-v7a 34 and its x86_64 37, and all keep 95.
      */
     private val authorityLoads = mapOf(
-        "386314297" to 36, "386314341" to 36,
+        "386314286" to 37, "386314297" to 36, "386314340" to 34, "386314341" to 36,
     )
     private val keptLoads = mapOf(
-        "386314297" to 95, "386314341" to 95,
+        "386314286" to 95, "386314297" to 95, "386314340" to 95, "386314341" to 95,
     )
 
     /**
@@ -58,9 +58,9 @@ class CloneCodeTest {
 
     /**
      * The builds whose uses differ from the rest. 456's armeabi-v7a builds opened one screen of their own more
-     * from a click; both arm64 builds of 457 count the same.
+     * from a click, and 457's armeabi-v7a does too.
      */
-    private val usesBy = emptyMap<String, Map<SelfUse, Int>>()
+    private val usesBy = mapOf("386314340" to mapOf(SelfUse.OWN_INTENT to 12))
 
     /**
      * Google Play's uses, a count that differed by build on 455 as R8 kept more or fewer of its helpers in each.
@@ -68,16 +68,18 @@ class CloneCodeTest {
      * 386113969 have no counterpart).
      */
     private val googlePlayUses = mapOf(
-        "386314297" to 5, "386314341" to 5,
+        "386314286" to 5, "386314297" to 5, "386314340" to 5, "386314341" to 5,
     )
 
     /**
      * The share handler's caller check: in BaseShareHandlerActivity or its subclass
      * ClipsMusicShareHandlerActivity, the builds of one version not always agreeing (456.0 and 456.1
-     * had it the other way round from each other). Both of 457's arm64 builds have it in the subclass.
+     * had it the other way round from each other). 457's arm64 builds have it in the subclass, its
+     * armeabi-v7a and x86_64 builds in the base class.
      */
     private val shareHandler = mapOf(
-        "386314297" to "ClipsMusicShareHandlerActivity", "386314341" to "ClipsMusicShareHandlerActivity",
+        "386314286" to "BaseShareHandlerActivity", "386314297" to "ClipsMusicShareHandlerActivity",
+        "386314340" to "BaseShareHandlerActivity", "386314341" to "ClipsMusicShareHandlerActivity",
     )
 
     /**

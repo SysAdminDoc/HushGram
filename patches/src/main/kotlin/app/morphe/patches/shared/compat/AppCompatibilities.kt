@@ -50,13 +50,18 @@ internal object AppCompatibilities {
      * is told about every one, so a 32-bit phone is pointed at the armeabi-v7a build rather than
      * the arm64 one, which it can't install (#346).
      *
-     * The fixture tests read two arm64-v8a builds of 457.0.0.55.73: 386314341 and 386314297
-     * (480dpi). APKMirror listed armeabi-v7a (386314340), x86_64 (386314286) and 320dpi arm64
-     * (386314326) builds only after the retarget, and no x86 one yet, so only arm64 is declared; an
-     * ABI's build joins this map, with its highest code, once its fixtures and verify-all pass.
+     * Instagram ships 457.0.0.55.73 as several builds. The fixture tests read four: arm64 386314297
+     * (480dpi) and 386314341, armeabi-v7a 386314340 and x86_64 386314286. Manager takes one code
+     * per ABI, and each ABI's highest code is declared. APKMirror lists no x86 build of this
+     * version, so none is declared; an x86 device with an arm translator runs the armeabi-v7a build.
      */
+    const val INSTAGRAM_TARGET_VERSION_CODE_ARMEABI_V7A = 386314340
+    const val INSTAGRAM_TARGET_VERSION_CODE_X86_64 = 386314286
+
     val INSTAGRAM_TARGET_VERSION_CODES = mapOf(
         SupportedAbi.ARM64_V8A to INSTAGRAM_TARGET_VERSION_CODE,
+        SupportedAbi.ARMEABI_V7A to INSTAGRAM_TARGET_VERSION_CODE_ARMEABI_V7A,
+        SupportedAbi.X86_64 to INSTAGRAM_TARGET_VERSION_CODE_X86_64,
     )
 
     /** Instagram's own floor, Android 9. */

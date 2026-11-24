@@ -105,7 +105,7 @@ class AppCompatibilitiesMatchFixturesTest {
         // A 32-bit phone told only about the arm64 build gets an APK with no library it can load
         // and fails with INSTALL_FAILED_NO_MATCHING_ABIS (#346), so each ABI Instagram ships needs
         // its own code, and each code has to be the one on that ABI's genuine build. Meta doesn't
-        // publish every ABI of every version (457.0.0.55.73 came as arm64 alone), so the ABIs
+        // publish every ABI of every version (457.0.0.55.73 has no x86 build), so the ABIs
         // declared are the ones the version's fixture builds hold, arm64 always among them.
         val libraryFolders = mapOf(
             SupportedAbi.ARM64_V8A to "arm64-v8a",

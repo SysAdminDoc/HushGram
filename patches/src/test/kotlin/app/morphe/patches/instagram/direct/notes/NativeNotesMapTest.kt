@@ -76,7 +76,7 @@ class NativeNotesMapTest {
     }
 
     private companion object {
-        val BUILDS = listOf(386314341, 386314297)
+        val BUILDS = listOf(386314341, 386314297, 386314340, 386314286)
 
         fun slice(bundle: File): List<ClassDef> {
             val markers = (loadingKeys(bundle, NOTES_TRAY_KEY, NOTES_MAP_KEY) + FixtureDex.classesLoading(bundle, NOTES_MAP_ROW)).distinctBy { it.type }

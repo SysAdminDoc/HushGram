@@ -200,10 +200,11 @@ class ChangeVersionCodeTest {
      * 386215121 and 386215123), whose crash reporter keeps getLongVersionCode's fallback for
      * Android 8: below API 28 it reads versionCode from the same PackageInfo instead. That's Instagram's
      * own code too, one more own read. The declared arm64 build is the .apks bundle, the others are
-     * folders named by version code. Both 457 builds are arm64 at minSdk 28, so none has it.
+     * folders named by version code. On 457 only the armeabi-v7a build, 386314340, has minSdk 26;
+     * the arm64 and x86_64 builds start at 28.
      */
     private fun hasPre28Fallback(label: String) =
-        label.substringAfterLast('-') in setOf<String>()
+        label.substringAfterLast('-') in setOf("386314340")
 
     private fun builds(bundle: File, label: String) {
         val code = realVersionCode(label.removeSuffix(".apks").substringAfterLast('-'))
@@ -253,18 +254,22 @@ class ChangeVersionCodeTest {
         // reporter's one long read (LX/01A8;->GvU). The armeabi-v7a and x86 builds read it there through a
         // helper handed the PackageInfo, which isn't proven to be Instagram's own, so theirs stay at 455's.
         // 457 reads it in two more: an int read in 0q6z.A01, and a long one in 0q7a.A01 (on 386314341).
+        // 457's armeabi-v7a keeps the pre-28 fallback beside both of its long reads (LX/01a8;->GqM
+        // and LX/0fIg;->A00 on 386314340), so its count matches the arm64 builds' with two fewer longs.
         val all = prepared.reads.map { "${it.method.definingClass}->${it.method.name}${if (it.long) " (long)" else ""}" }
-        assertEquals("own reads: $all", if (fallback) 18 else 21, prepared.reads.size)
+        assertEquals("own reads: $all", 21, prepared.reads.size)
         val longReads = prepared.reads.filter { it.long }
         val where = longReads.map { "${it.method.definingClass}->${it.method.name}" }
-        assertEquals("own long reads: $where", if (fallback) 1 else 4, longReads.size)
+        assertEquals("own long reads: $where", if (fallback) 2 else 4, longReads.size)
         val beside = longReads.associateWith { long -> prepared.reads.filter { !it.long && it.method == long.method } }
             .filterValues { it.isNotEmpty() }
         if (fallback) {
-            assertEquals("${label}: the pre-28 fallback beside a long read: $where", 1, beside.size)
-            val (longRead, ints) = beside.entries.single()
-            assertEquals("${label}: the pre-28 fallback beside the long read", 1, ints.size)
-            assertEquals("${label}: it reads the long read's PackageInfo", longRead.holder, ints.single().holder)
+            assertEquals("${label}: a pre-28 fallback beside each long read: $where", longReads.toSet(), beside.keys)
+            for ((longRead, ints) in beside) {
+                val at = "${longRead.method.definingClass}->${longRead.method.name}"
+                assertEquals("${label}: the pre-28 fallback beside $at", 1, ints.size)
+                assertEquals("${label}: it reads $at's PackageInfo", longRead.holder, ints.single().holder)
+            }
         } else {
             assertTrue("${label}: no int read beside a long read: $where", beside.isEmpty())
         }
