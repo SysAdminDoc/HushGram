@@ -255,18 +255,25 @@ public class ReelSeekTouchTest {
     private static final int OVERHANG_PX = 28;
     private static final int TAB_BAR_ID = 0x7f0b404e;
 
+    /** The tab bar laid out under the strip as on the phone, set up by {@link #layTabBar}. */
+    private LinearLayout tabBar;
+    private View tab;
     /**
-     * #526: with the tab bar laid out under the strip as on the phone, a drag where the strip runs over
-     * a tab is Instagram's seek, the whole gesture, and a press on the tab below the strip is the tab's.
-     * Without the tab bar's id, the tab is any other button and takes the press, which was the bug.
+     * What the first tab's touch listener was handed. A tappable view handed a press down to its lift, with
+     * no cancel, clicks; one that hears a cancel doesn't. (Android posts the click, which a test view never
+     * attached to a window doesn't run, so the touches stand for it.)
      */
-    @Test
-    public void aDragWhereTheStripRunsOverTheTabBarSeeks() {
-        LinearLayout tabBar = new LinearLayout(parent.getContext());
+    private final List<Integer> tabTouches = new ArrayList<>();
+    private static final List<Integer> A_TAP = Arrays.asList(MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE, MotionEvent.ACTION_UP);
+    /** A point where the strip runs over the first tab. */
+    private int bandY;
+
+    /** Lays Instagram's tab bar out under the strip, the strip running {@link #OVERHANG_PX} over its top. */
+    private void layTabBar() {
+        tabBar = new LinearLayout(parent.getContext());
         tabBar.setId(TAB_BAR_ID);
-        View tab = new View(parent.getContext());
+        tab = new View(parent.getContext());
         tab.setClickable(true);
-        List<Integer> tabTouches = new ArrayList<>();
         tab.setOnTouchListener((view, event) -> {
             tabTouches.add(event.getActionMasked());
             return false;
@@ -279,10 +286,20 @@ public class ReelSeekTouchTest {
         stripAt.bottomMargin = TAB_BAR_PX - OVERHANG_PX;
         strip.setLayoutParams(stripAt);
         layout();
-        int bandY = HEIGHT - TAB_BAR_PX + OVERHANG_PX / 2;
+        bandY = HEIGHT - TAB_BAR_PX + OVERHANG_PX / 2;
         assertTrue("the press point is on the strip", bandY < strip.getBottom() && bandY >= strip.getTop());
         assertTrue("and on the tab", bandY >= tabBar.getTop());
+    }
 
+    /**
+     * #526: with the tab bar laid out under the strip as on the phone, a drag where the strip runs over
+     * a tab is Instagram's seek, the whole gesture, and a press on the tab below the strip is the tab's.
+     * Without the tab bar's id, the tab is any other button and takes the press, which was the bug. The tab
+     * has the press until the drag starts (#855), and then hears it end without a click.
+     */
+    @Test
+    public void aDragWhereTheStripRunsOverTheTabBarSeeks() {
+        layTabBar();
         ReelSeekTouch.tabBarId = 0;
         assertSame("no tab bar id: the tab is a button", tab, ReelSeekTouch.buttonAt(strip, WIDTH / 10f, bandY - strip.getTop()));
 
@@ -296,9 +313,11 @@ public class ReelSeekTouchTest {
         }
         assertEquals("the drag in the band", Arrays.asList(MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE,
                 MotionEvent.ACTION_MOVE, MotionEvent.ACTION_UP), instagram);
-        assertTrue("the tab saw none of it", tabTouches.isEmpty());
+        assertEquals("the tab had the press and heard it end, so it doesn't click",
+                Arrays.asList(MotionEvent.ACTION_DOWN, MotionEvent.ACTION_CANCEL), tabTouches);
 
         instagram.clear();
+        tabTouches.clear();
         tap(WIDTH / 10, HEIGHT - TAB_BAR_PX / 3);
         assertTrue("below the strip, Instagram's listener sees nothing", instagram.isEmpty());
         assertEquals("the tab takes its own press", MotionEvent.ACTION_DOWN, (int) tabTouches.get(0));
@@ -307,6 +326,57 @@ public class ReelSeekTouchTest {
         layout();
         assertNull("a gone tab bar keeps nothing", ReelSeekTouch.buttonAt(strip, WIDTH / 10f, bandY - strip.getTop()));
         assertFalse(ReelSeekTouch.onTheTabBar(tabBar, WIDTH / 10, bandY));
+    }
+
+    /**
+     * #855: a tap where the strip runs over a tab opens the tab. It went to Instagram's seek listener, which
+     * paused the reel for a moment, and the tab never opened.
+     */
+    @Test
+    public void aTapWhereTheStripRunsOverATabOpensTheTab() {
+        layTabBar();
+        ReelSeekTouch.tabBarId = TAB_BAR_ID;
+
+        tap(WIDTH / 10, bandY);
+
+        assertEquals("the whole tap went to the tab", A_TAP, tabTouches);
+        assertTrue("Instagram's seek listener saw none of it", instagram.isEmpty());
+        assertTrue(HookStatus.report().toString(), HookStatus.report().toString().contains(ReelSeekTouch.COUNT_TAB_PRESS));
+    }
+
+    /** #855 with the glass tab bar, which hands the strip the presses on its top edge: a tap there opens the tab too. */
+    @Test
+    public void aTapTheGlassBarHandsTheStripOpensTheTab() {
+        layTabBar();
+        ReelSeekTouch.tabBarId = TAB_BAR_ID;
+        long down = SystemClock.uptimeMillis();
+        int[] actions = {MotionEvent.ACTION_DOWN, MotionEvent.ACTION_UP};
+        for (int i = 0; i < actions.length; i++) {
+            MotionEvent event = MotionEvent.obtain(down, down + 40L * i, actions[i], WIDTH / 10f, bandY - strip.getTop(), 0);
+            assertTrue(ReelSeekTouch.fromTheBar(strip, event));
+            event.recycle();
+        }
+        assertEquals(Arrays.asList(MotionEvent.ACTION_DOWN, MotionEvent.ACTION_UP), tabTouches);
+        assertTrue(instagram.isEmpty());
+    }
+
+    /** Paused, a tap in the band stays Instagram's, as it was. A press in the band past the last tab does too. */
+    @Test
+    public void pausedOrOffTheTabsTheBandStaysTheSeekBars() {
+        layTabBar();
+        ReelSeekTouch.tabBarId = TAB_BAR_ID;
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        tap(WIDTH / 10, bandY);
+        assertEquals("paused", A_TAP, instagram);
+        assertTrue(tabTouches.isEmpty());
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+
+        instagram.clear();
+        tap(WIDTH / 2, bandY);
+        assertEquals("no tab there", A_TAP, instagram);
+        assertTrue(tabTouches.isEmpty());
     }
 
     /** A strip with no parent, or a press outside it, is Instagram's. */
