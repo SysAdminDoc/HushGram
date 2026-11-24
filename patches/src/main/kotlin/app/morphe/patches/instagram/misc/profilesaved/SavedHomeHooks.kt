@@ -324,8 +324,9 @@ internal fun hookExploreSaved(found: ExploreSaved) {
 
 /**
  * The menu's maker is the one static `(UserSession, X)Fragment` loading [INITIAL_TAB]. The screen it
- * makes with new-instance is the tabbed one. The static `(X, String, Z, Z, Z)` it calls otherwise
- * makes the grid.
+ * makes with new-instance, or through its own class's one-parameter static factory (457's armeabi-v7a
+ * moves the construction into 0L1R.A00), is the tabbed one. The static `(X, String, Z, Z, Z)` it calls
+ * otherwise makes the grid.
  */
 internal fun BytecodePatchContext.findSavedScreens(): SavedScreens {
     val makers = classesLoadingString(INITIAL_TAB).flatMap { owner ->
@@ -336,8 +337,11 @@ internal fun BytecodePatchContext.findSavedScreens(): SavedScreens {
     }
     val maker = makers.singleOrNull() ?: refuse("expected one maker of the tabbed Saved screen, found ${makers.size}")
     val code = maker.code()
-    val made = code.filter { it.opcode == Opcode.NEW_INSTANCE }
-        .mapNotNull { ((it as ReferenceInstruction).reference as? TypeReference)?.type }.distinct()
+    val built = code.filter { it.opcode == Opcode.NEW_INSTANCE }
+        .mapNotNull { ((it as ReferenceInstruction).reference as? TypeReference)?.type }
+    val factories = code.filter { it.isStaticCall() }.mapNotNull { it.called() }
+        .filter { it.parameterTypes.size == 1 && it.returnType == it.definingClass }.map { it.returnType }
+    val made = (built + factories).distinct()
     val tabbed = made.singleOrNull() ?: refuse("expected ${maker.descriptor()} to make one screen, found ${made.size}")
     val grids = code.filter { it.isStaticCall() }.mapNotNull { it.called() }.filter { call ->
         val parameters = call.parameterTypes.map(CharSequence::toString)
