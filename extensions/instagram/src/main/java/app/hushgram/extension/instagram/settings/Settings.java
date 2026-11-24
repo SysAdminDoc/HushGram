@@ -2774,6 +2774,23 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_notify_unfollows", FALSE, parent(TRACK_UNFOLLOWERS));
 
     /**
+     * Hold a tab at the top of a Followers or Following list to show everyone, only public accounts or
+     * only private accounts in it (#847) ({@link app.hushgram.extension.instagram.profile.FollowListFilter}).
+     * Off to start. Read each time Instagram binds a row or rebuilds the rows of a follow list.
+     */
+    public static final BooleanSetting FOLLOW_LIST_FILTER =
+            new BooleanSetting("hushgram_follow_list_filter", FALSE);
+
+    /**
+     * Since when each account on your own Followers and Following lists has followed you, or you them,
+     * counted from the first time HushGram saw the whole list (#847)
+     * ({@link app.hushgram.extension.instagram.profile.FollowDates}). Off to start. Read each time
+     * Instagram binds a row or rebuilds the rows of a follow list.
+     */
+    public static final BooleanSetting FOLLOW_DATES =
+            new BooleanSetting("hushgram_follow_dates", FALSE);
+
+    /**
      * Suggested for you and the Discover people button on profiles
      * ({@link app.hushgram.extension.instagram.profile.ProfileSuggestions}). Read each time Instagram
      * builds or binds a profile's header, so off or paused, the suggestions are back on the next one.

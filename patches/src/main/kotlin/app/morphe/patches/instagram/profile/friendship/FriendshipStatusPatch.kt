@@ -96,7 +96,9 @@ val friendshipStatusPatch = bytecodePatch(
     description = "Adds Follows you or Doesn't follow you beside the name on someone's profile. Other switches " +
         "add a chip and mark accounts on your Following list that don't follow you back, in words or as a red " +
         "cross on the profile picture with a green check for those that do, and Recent unfollowers " +
-        "shows who left your Followers list, with a Follower history of who left, came back or is new. The chip is blue for " +
+        "shows who left your Followers list, with a Follower history of who left, came back or is new. Holding a follow " +
+        "list's tabs can show only its public or private accounts, and your own lists can show since when each follow " +
+        "started, counted from when you turn that on. The chip is blue for " +
         "Follows you, green for Following each other and red for Doesn't follow you, and it can go small under " +
         "the profile picture. Tap the chip to see the rest of what Instagram says about you two, like Close " +
         "Friends, Favorites, mutes, restrictions and pending follow requests. On by default. Turn it " +

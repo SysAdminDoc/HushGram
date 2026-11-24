@@ -295,6 +295,33 @@ public class FollowingListSettingsTest {
         Settings.TRACK_UNFOLLOWERS.resetToDefault();
     }
 
+    /** #847: the follow list filter and follow dates sit after Clear unfollower list, each starting off. */
+    @Test public void theFollowListFilterAndDatesStartOffAfterTheUnfollowerRows() throws Exception {
+        open(true);
+        android.preference.Preference clear = page.getPreferenceScreen().findPreference(HushgramPreferenceFragment.CLEAR_UNFOLLOWERS);
+        SwitchPreference filter = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.FOLLOW_LIST_FILTER.key);
+        SwitchPreference dates = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.FOLLOW_DATES.key);
+        assertNotNull(filter);
+        assertNotNull(dates);
+        assertEquals("Hold a follow list's tabs to filter it", filter.getTitle().toString());
+        assertEquals("Follow dates in your lists", dates.getTitle().toString());
+        assertFalse(filter.isChecked());
+        assertFalse(dates.isChecked());
+        assertFalse(Settings.FOLLOW_LIST_FILTER.get());
+        assertFalse(Settings.FOLLOW_DATES.get());
+        assertEquals(clear.getOrder() + 1, filter.getOrder());
+        assertEquals(filter.getOrder() + 1, dates.getOrder());
+        assertTrue(PatchFamily.FRIENDSHIP_STATUS.switches.contains(Settings.FOLLOW_LIST_FILTER));
+        assertTrue(PatchFamily.FRIENDSHIP_STATUS.switches.contains(Settings.FOLLOW_DATES));
+
+        controller.close();
+        PatchFamily.unfollowersForTests = false;
+        open(true);
+        assertNull(page.getPreferenceScreen().findPreference(Settings.FOLLOW_LIST_FILTER.key));
+        assertNull(page.getPreferenceScreen().findPreference(Settings.FOLLOW_DATES.key));
+        PatchFamily.unfollowersForTests = null;
+    }
+
     @Test public void aBuildWithoutTheFollowersPagerLeavesUnfollowersOut() throws Exception {
         PatchFamily.unfollowersForTests = false;
         open(true);

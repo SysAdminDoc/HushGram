@@ -156,6 +156,13 @@ final class ProfilesCategory {
                         return true;
                     });
                     profiles.addPreference(mark(clearUnfollowers, SettingsIcons.DELETE));
+                    profiles.addPreference(toggle(context, Settings.FOLLOW_LIST_FILTER, L10n.t("Hold a follow list's tabs to filter it"),
+                            L10n.t("In any Followers or Following list, hold a tab at the top to show everyone, only public "
+                                    + "accounts or only private ones. Accounts Instagram hasn't said either way about stay.")));
+                    profiles.addPreference(toggle(context, Settings.FOLLOW_DATES, L10n.t("Follow dates in your lists"),
+                            L10n.t("Your own Followers and Following lists show since when each account follows you, or you "
+                                    + "them. Dates start the first time you scroll a list to the end with this on, so "
+                                    + "accounts already there get none.")));
                 }
             }
             if (build.contains(PatchFamily.ASK_BEFORE_FOLLOW)) {

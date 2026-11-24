@@ -675,6 +675,71 @@ public class FollowingListTest {
         SettingsContextRule.withoutContext(() -> assertFalse(FollowingList.asking()));
     }
 
+    /**
+     * #847: with Follow dates on, a row of your own Followers or Following list says since when, ahead
+     * of the name, and after Doesn't follow you when both apply. A rebind for an undated account, or
+     * another list, takes it back.
+     */
+    @Test
+    public void aDatedRowSaysSinceWhenAheadOfItsName() {
+        String since = "Since Mar 3";
+        FollowingList.Dates dated = (kind, owner, viewer, user) ->
+                ME.equals(owner) && ME.equals(viewer) && user != unknown ? since : null;
+
+        Row follower = new Row();
+        follower.name.setText("Ana");
+        FollowingList.row(binder, follower.view, following, new Reader(Kind.FOLLOWERS, ME, ME), OFF, OFF, dated);
+        assertEquals(since + FriendshipStatus.SEPARATOR + "Ana", follower.text());
+
+        Row followed = new Row();
+        followed.name.setText("Ben");
+        Reader ownFollowing = new Reader(Kind.FOLLOWING, ME, ME);
+        FollowingList.row(binder, followed.view, notFollowing, ownFollowing, ON, OFF, dated);
+        assertEquals(MARK + FriendshipStatus.SEPARATOR + since + FriendshipStatus.SEPARATOR + "Ben", followed.text());
+
+        followed.name.setText("Ben");
+        FollowingList.row(binder, followed.view, following, ownFollowing, ON, OFF, dated);
+        assertEquals(since + FriendshipStatus.SEPARATOR + "Ben", followed.text());
+
+        Row nameless = new Row();
+        nameless.name.setVisibility(View.GONE);
+        FollowingList.row(binder, nameless.view, following, ownFollowing, OFF, OFF, dated);
+        assertEquals(since, nameless.text());
+        assertEquals(View.VISIBLE, nameless.name.getVisibility());
+
+        FollowingList.row(binder, follower.view, unknown, new Reader(Kind.FOLLOWERS, ME, ME), OFF, OFF, dated);
+        assertEquals("an undated account's row is Instagram's", "Ana", follower.text());
+        FollowingList.row(binder, follower.view, following, new Reader(Kind.FOLLOWERS, "2002", ME), OFF, OFF, dated);
+        assertEquals("someone else's list", "Ana", follower.text());
+    }
+
+    /** With the picture switch on, the picture says whether they follow you and the name line still says since when. */
+    @Test
+    public void theDateStaysOnTheNameLineWhenThePictureIsBadged() {
+        Row row = new Row();
+        row.name.setText("Ana");
+
+        FollowingList.row(binder, row.view, notFollowing, new Reader(Kind.FOLLOWING, ME, ME), ON, ON,
+                (kind, owner, viewer, user) -> "Since Mar 3");
+
+        assertEquals("Since Mar 3" + FriendshipStatus.SEPARATOR + "Ana", row.text());
+        assertNotNull(row.badge());
+    }
+
+    /** A row Follow dates has a date for turns back into Instagram's once the switch goes off. */
+    @Test
+    public void turningFollowDatesOffTakesTheDateBack() {
+        Row row = new Row();
+        row.name.setText("Ana");
+        Reader reader = new Reader(Kind.FOLLOWERS, ME, ME);
+        FollowingList.row(binder, row.view, following, reader, OFF, OFF, (kind, owner, viewer, user) -> "Since Mar 3");
+        assertEquals("Since Mar 3" + FriendshipStatus.SEPARATOR + "Ana", row.text());
+
+        FollowingList.row(binder, row.view, following, reader, OFF, OFF, FollowingList.NO_DATES);
+
+        assertEquals("Ana", row.text());
+    }
+
     /** A row of the list: its view, whose tag is the holder, and the holder's name line and profile picture. */
     private final class Row {
         final View view = new View(context);

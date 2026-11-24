@@ -43,6 +43,8 @@ class FollowersTrackerHookTest {
             "listOwner(Ljava/lang/Object;)Ljava/lang/Object;",
             "followerCount(Ljava/lang/Object;)Ljava/lang/Integer;",
             "username(Ljava/lang/Object;)Ljava/lang/String;",
+            "followingCount(Ljava/lang/Object;)Ljava/lang/Integer;",
+            "isPrivate(Ljava/lang/Object;)Ljava/lang/Boolean;",
         )
         for (method in wanted) assertTrue("$method is not in the extension: $declared", method in declared)
     }
@@ -56,6 +58,8 @@ class FollowersTrackerHookTest {
         assertEquals("$BUILDER->owner:$USER", found.owner.toString())
         assertEquals("count", found.followerCount)
         assertEquals("handle", found.username)
+        assertEquals("following", found.followingCount)
+        assertEquals("locked", found.isPrivate)
 
         context.followersStubs().fill(found)
         val extension = context.mutableClassDefBy(UNFOLLOWERS).methods
@@ -66,6 +70,27 @@ class FollowersTrackerHookTest {
         assertTrue("$BUILDER->owner:$USER" in reads("listOwner"))
         assertTrue("$USER->count()Ljava/lang/Integer;" in reads("followerCount"))
         assertTrue("$USER->handle()Ljava/lang/String;" in reads("username"))
+        assertTrue("$USER->following()Ljava/lang/Integer;" in reads("followingCount"))
+        assertTrue("$USER->locked()Ljava/lang/Boolean;" in reads("isPrivate"))
+    }
+
+    /** #847: a build without the following count or the private flag keeps Recent unfollowers, and those stubs answer null. */
+    @Test
+    fun aBuildWithoutTheFollowingCountOrPrivacyKeepsTheRest() {
+        val context = PatchContexts.of(standIns(extras = false))
+        val found = context.findFollowersParts(order())
+        assertEquals(null, found.followingCount)
+        assertEquals(null, found.isPrivate)
+
+        context.followersStubs().fill(found)
+        val extension = context.mutableClassDefBy(UNFOLLOWERS).methods
+        for (stub in listOf("followingCount", "isPrivate")) {
+            val reads = extension.single { it.name == stub }.implementation!!.instructions
+                .mapNotNull { (it as? ReferenceInstruction)?.reference?.toString() }
+            assertTrue("$stub: $reads", reads.none { USER in it })
+        }
+        assertTrue(extension.single { it.name == "followerCount" }.implementation!!.instructions
+            .any { (it as? ReferenceInstruction)?.reference?.toString() == "$USER->count()Ljava/lang/Integer;" })
     }
 
     @Test
@@ -87,7 +112,7 @@ class FollowersTrackerHookTest {
         var checked = 0
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                builds(bundle, bundle.name)
+                builds(bundle, bundle.name, declared = true)
                 checked++
             }
         }
@@ -99,7 +124,7 @@ class FollowersTrackerHookTest {
         for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
     }
 
-    private fun builds(bundle: File, label: String) {
+    private fun builds(bundle: File, label: String, declared: Boolean = false) {
         val builders = FixtureDex.classesLoading(bundle, FOLLOW_LIST_ADDED)
         val builderClass = builders.single { classDef -> classDef.methods.any { it.loads(FOLLOW_LIST_ADDED) } }
         val builder = builderClass.methods.single { it.loads(FOLLOW_LIST_ADDED) }
@@ -116,6 +141,10 @@ class FollowersTrackerHookTest {
         assertTrue("$label: it declares what's asked", pager.methods.any { it.name == found.hasMore && it.returnType == "Z" })
         assertNotEquals("$label: whether there's more, not whether it's loading", IS_LOADING, found.hasMore)
         assertEquals("$label: the owner", USER, found.owner.type)
+        if (declared) {
+            assertTrue("$label: the following count (#847)", found.followingCount != null)
+            assertTrue("$label: whether it's private (#847)", found.isPrivate != null)
+        }
         context.followersStubs().fill(found)
     }
 
@@ -142,6 +171,7 @@ class FollowersTrackerHookTest {
             asksFailed: Boolean = false,
             ownerField: Boolean = true,
             countKey: String = FOLLOWER_COUNT,
+            extras: Boolean = true,
         ): List<ClassDef> {
             val build = method(
                 BUILDER, "build", listOf("Z", "Z"), "V", 4,
@@ -173,7 +203,12 @@ class FollowersTrackerHookTest {
                 ),
                 ImmutableClassDef(
                     USER, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, OBJECT, null, null, null, null,
-                    listOf(keyed("count", countKey, "Ljava/lang/Integer;"), keyed("handle", USERNAME, STRING)),
+                    listOf(keyed("count", countKey, "Ljava/lang/Integer;"), keyed("handle", USERNAME, STRING)) +
+                        if (extras) {
+                            listOf(keyed("following", FOLLOWING_COUNT, "Ljava/lang/Integer;"), keyed("locked", IS_PRIVATE, "Ljava/lang/Boolean;"))
+                        } else {
+                            emptyList()
+                        },
                 ),
                 ExtensionDex.classDef(UNFOLLOWERS),
             )

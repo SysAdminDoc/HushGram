@@ -240,7 +240,9 @@ public final class FollowingList {
      * or with the picture switch on, a check or a cross on its profile picture. Never throws.
      */
     public static void row(Object binder, int position, View row, Object user) {
-        row(binder, row, user, PATCHED, FollowingList::switchedOn, FollowingList::pictureSwitchedOn);
+        FollowListFilter.watch(row);
+        row(binder, row, user, PATCHED, FollowingList::switchedOn, FollowingList::pictureSwitchedOn,
+                FollowDates.switchedOn() ? FollowDates::label : NO_DATES);
     }
 
     static void row(Object binder, View row, Object user, Reader reader, BooleanSupplier on) {
@@ -248,18 +250,38 @@ public final class FollowingList {
     }
 
     static void row(Object binder, View row, Object user, Reader reader, BooleanSupplier on, BooleanSupplier onPicture) {
+        row(binder, row, user, reader, on, onPicture, NO_DATES);
+    }
+
+    /** Since when a row's account has followed you, or you it, in words, or null. {@link FollowDates#label} outside tests. */
+    interface Dates {
+        @Nullable
+        String label(@Nullable Object kind, @Nullable String owner, @Nullable String viewer, @Nullable Object user);
+    }
+
+    static final Dates NO_DATES = (kind, owner, viewer, user) -> null;
+
+    static void row(Object binder, View row, Object user, Reader reader, BooleanSupplier on, BooleanSupplier onPicture,
+                    Dates dates) {
         try {
             HookStatus.invoked(FamilyNames.FRIENDSHIP_STATUS);
             boolean marking = on.getAsBoolean();
-            if (!marking && nothingMarked()) return;
             Object holder = row == null ? null : row.getTag();
+            if (!marking && dates == NO_DATES && nothingMarked()) return;
             TextView subtitle = holder == null ? null : reader.subtitle(holder);
             View picture = row == null ? null : reader.picture(row);
             if (subtitle != null) unmark(subtitle);
             if (picture != null) unbadge(picture);
-            if (!marking || (subtitle == null && picture == null)) return;
+            if (subtitle == null && picture == null) return;
             String viewer = reader.viewerId(binder);
-            if (!ownFollowingList(reader.listKind(binder), reader.listOwnerId(binder), viewer)) return;
+            Object kind = reader.listKind(binder);
+            String owner = reader.listOwnerId(binder);
+            // Since when, on your own Followers and Following lists with Follow dates on (#847).
+            String since = subtitle == null ? null : dates.label(kind, owner, viewer, user);
+            if (!marking || !ownFollowingList(kind, owner, viewer)) {
+                if (since != null) mark(subtitle, since);
+                return;
+            }
             // Only the server's no to a request that asked counts, and a later yes on the account's
             // own status (its profile, say) overrules it. Before the server has answered, nothing.
             Boolean said = reader.answer(viewer, user);
@@ -268,9 +290,12 @@ public final class FollowingList {
             if (picture != null && onPicture.getAsBoolean()) {
                 if (notBack) badge(picture, false);
                 else if (followsYou || Boolean.TRUE.equals(said)) badge(picture, true);
+                if (since != null) mark(subtitle, since);
                 return;
             }
-            if (notBack && subtitle != null) mark(subtitle, L10n.t("Doesn't follow you"));
+            if (subtitle == null) return;
+            if (notBack) mark(subtitle, since == null ? L10n.t("Doesn't follow you") : L10n.t("Doesn't follow you") + FriendshipStatus.SEPARATOR + since);
+            else if (since != null) mark(subtitle, since);
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.FRIENDSHIP_STATUS, ROW, failure);
         }
@@ -329,14 +354,19 @@ public final class FollowingList {
      * list's state holder. Answers the list with the accounts that don't follow you back first, each
      * group in Instagram's order, when it's your own Following list and the switch is on, and the list
      * itself otherwise. The answer is a copy and Instagram's list is never changed. Recent unfollowers
-     * looks at the same list first ({@link Unfollowers#seen}). Never throws.
+     * and the follow dates look at the same list first ({@link Unfollowers#seen}, {@link FollowDates#seen}),
+     * and the public or private filter takes what's left last ({@link FollowListFilter#filtered}).
+     * Never throws.
      */
     public static Object ordered(Object users, Object list) {
         try {
             HookStatus.invoked(FamilyNames.FRIENDSHIP_STATUS);
             Unfollowers.seen(users, list);
-            if (!orderSwitchedOn()) return users;
-            return ordered(users, list, orderBinder(list), PATCHED, FollowingList::orderSwitchedOn);
+            FollowDates.seen(users, list);
+            Object shown = orderSwitchedOn()
+                    ? ordered(users, list, orderBinder(list), PATCHED, FollowingList::orderSwitchedOn)
+                    : users;
+            return FollowListFilter.filtered(shown, list);
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.FRIENDSHIP_STATUS, ORDER, failure);
             return users;

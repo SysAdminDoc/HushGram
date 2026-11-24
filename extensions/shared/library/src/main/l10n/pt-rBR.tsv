@@ -2148,6 +2148,28 @@ Who stopped following you, after you open your Followers list	Quem deixou de seg
 Notify me of unfollowers	Avisar quem deixar de me seguir
 # context: that switch summary (#492)
 After you scroll your own Followers list to the end, posts a notification naming who has left since last time. Nothing extra is asked of Instagram.	Depois que você rola sua lista de seguidores até o fim, mostra uma notificação com quem saiu desde a última vez. Nada extra é pedido ao Instagram.
+# context: settings switch title on the Profiles page (#847); holding a tab (Followers, Following) at the top of a follow list filters it
+Hold a follow list's tabs to filter it	Toque e segure as abas de uma lista para filtrá-la
+# context: that switch's summary (#847); Followers and Following are Instagram's own list names
+In any Followers or Following list, hold a tab at the top to show everyone, only public accounts or only private ones. Accounts Instagram hasn't said either way about stay.	Em qualquer lista Seguidores ou Seguindo, toque e segure uma aba no topo para mostrar todos, só contas públicas ou só privadas. Contas sobre as quais o Instagram não disse nada continuam.
+# context: settings switch title on the Profiles page (#847): dates on your own Followers and Following lists
+Follow dates in your lists	Datas de seguir nas suas listas
+# context: that switch's summary (#847)
+Your own Followers and Following lists show since when each account follows you, or you them. Dates start the first time you scroll a list to the end with this on, so accounts already there get none.	Suas próprias listas Seguidores e Seguindo mostram desde quando cada conta segue você, ou você a ela. As datas começam na primeira vez que você rola uma lista até o fim com isto ativado, então contas que já estavam lá não recebem nenhuma.
+# context: a choice in the follow list filter dialog (#847): only public accounts
+Public accounts	Contas públicas
+# context: a choice in the follow list filter dialog (#847): only private accounts
+Private accounts	Contas privadas
+# context: title of the follow list filter dialog, whose choices are Everyone, Public accounts and Private accounts (#847)
+Show in follow lists	Mostrar nas listas de seguidores
+# context: toast after picking Everyone in the follow list filter (#847)
+Showing everyone	Mostrando todos
+# context: toast after picking Public accounts in the follow list filter (#847)
+Showing public accounts	Mostrando contas públicas
+# context: toast after picking Private accounts in the follow list filter (#847)
+Showing private accounts	Mostrando contas privadas
+# context: before a follow list row's name: since when that follow started, %s is a short date like Mar 3 (#847)
+Since %s	Desde %s
 # context: settings switch title and button label, the row Instagram calls About this account (#492)
 About this account	Sobre esta conta
 About this account button	Botão Sobre esta conta

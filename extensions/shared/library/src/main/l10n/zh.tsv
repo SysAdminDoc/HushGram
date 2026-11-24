@@ -2151,6 +2151,28 @@ Who stopped following you, after you open your Followers list	你打开粉丝清
 Notify me of unfollowers	通知我有人取消关注
 # context: that switch summary (#492)
 After you scroll your own Followers list to the end, posts a notification naming who has left since last time. Nothing extra is asked of Instagram.	你把自己的粉丝清单卷到底后，会用通知告诉你自上次以来谁离开了。不会向 Instagram 多要求任何东西。
+# context: settings switch title on the Profiles page (#847); holding a tab (Followers, Following) at the top of a follow list filters it
+Hold a follow list's tabs to filter it	长按关注名单的标签页进行筛选
+# context: that switch's summary (#847); Followers and Following are Instagram's own list names
+In any Followers or Following list, hold a tab at the top to show everyone, only public accounts or only private ones. Accounts Instagram hasn't said either way about stay.	在任何粉丝或关注名单中，长按顶部的标签页即可显示所有人、仅公开账户或仅私密账户。Instagram 未说明的账户会保留。
+# context: settings switch title on the Profiles page (#847): dates on your own Followers and Following lists
+Follow dates in your lists	名单中的关注日期
+# context: that switch's summary (#847)
+Your own Followers and Following lists show since when each account follows you, or you them. Dates start the first time you scroll a list to the end with this on, so accounts already there get none.	你自己的粉丝和关注名单会显示每个账户从何时开始关注你，或你从何时开始关注对方。开启此项后，从你第一次将名单滚动到底开始记录日期，因此已在名单中的账户没有日期。
+# context: a choice in the follow list filter dialog (#847): only public accounts
+Public accounts	公开账户
+# context: a choice in the follow list filter dialog (#847): only private accounts
+Private accounts	私密账户
+# context: title of the follow list filter dialog, whose choices are Everyone, Public accounts and Private accounts (#847)
+Show in follow lists	在关注名单中显示
+# context: toast after picking Everyone in the follow list filter (#847)
+Showing everyone	正在显示所有人
+# context: toast after picking Public accounts in the follow list filter (#847)
+Showing public accounts	正在显示公开账户
+# context: toast after picking Private accounts in the follow list filter (#847)
+Showing private accounts	正在显示私密账户
+# context: before a follow list row's name: since when that follow started, %s is a short date like Mar 3 (#847)
+Since %s	自 %s 起
 # context: settings switch title and button label, the row Instagram calls About this account (#492)
 About this account	关于这个账户
 About this account button	“关于这个账户”按钮

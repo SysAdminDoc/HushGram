@@ -441,6 +441,8 @@ public final class Unfollowers {
         synchronized (LOCK) {
             try {
                 forgetTaken();
+                // Follow dates keep their files in the same folder.
+                FollowDates.forget();
                 File folder = new File(application.getFilesDir(), DIRECTORY);
                 File[] files = folder.listFiles();
                 boolean cleared = true;
@@ -581,6 +583,18 @@ public final class Unfollowers {
     /** Filled in by the patch: [user]'s username, or null. */
     @Nullable
     public static String username(Object user) {
+        return null;
+    }
+
+    /** Filled in by the patch: how many accounts [user] follows, or null. */
+    @Nullable
+    public static Integer followingCount(Object user) {
+        return null;
+    }
+
+    /** Filled in by the patch: whether [user]'s account is private, or null when Instagram hasn't said. */
+    @Nullable
+    public static Boolean isPrivate(Object user) {
         return null;
     }
 }

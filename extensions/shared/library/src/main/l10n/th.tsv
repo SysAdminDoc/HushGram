@@ -2135,6 +2135,28 @@ Who stopped following you, after you open your Followers list	ใครเลิ
 Notify me of unfollowers	แจ้งเตือนเมื่อมีผู้เลิกติดตาม
 # context: that switch summary (#492)
 After you scroll your own Followers list to the end, posts a notification naming who has left since last time. Nothing extra is asked of Instagram.	หลังจากที่คุณเลื่อนดูรายชื่อผู้ติดตามของตนเองจนสุด จะส่งการแจ้งเตือนระบุชื่อผู้ที่เลิกติดตามนับจากครั้งล่าสุด โดยไม่มีการส่งคำขอเพิ่มเติมไปยัง Instagram แต่อย่างใด
+# context: settings switch title on the Profiles page (#847); holding a tab (Followers, Following) at the top of a follow list filters it
+Hold a follow list's tabs to filter it	กดค้างที่แท็บของรายชื่อการติดตามเพื่อกรอง
+# context: that switch's summary (#847); Followers and Following are Instagram's own list names
+In any Followers or Following list, hold a tab at the top to show everyone, only public accounts or only private ones. Accounts Instagram hasn't said either way about stay.	ในรายชื่อผู้ติดตามหรือกำลังติดตามใดก็ได้ ให้กดค้างที่แท็บด้านบนเพื่อแสดงทุกคน เฉพาะบัญชีสาธารณะ หรือเฉพาะบัญชีส่วนตัว บัญชีที่ Instagram ไม่ได้ระบุจะยังคงอยู่
+# context: settings switch title on the Profiles page (#847): dates on your own Followers and Following lists
+Follow dates in your lists	วันที่ติดตามในรายชื่อของคุณ
+# context: that switch's summary (#847)
+Your own Followers and Following lists show since when each account follows you, or you them. Dates start the first time you scroll a list to the end with this on, so accounts already there get none.	รายชื่อผู้ติดตามและกำลังติดตามของคุณเองจะแสดงว่าแต่ละบัญชีติดตามคุณ หรือคุณติดตามบัญชีนั้นตั้งแต่เมื่อใด วันที่จะเริ่มนับตั้งแต่ครั้งแรกที่คุณเลื่อนรายชื่อจนสุดขณะเปิดตัวเลือกนี้ บัญชีที่อยู่ก่อนแล้วจึงไม่มีวันที่
+# context: a choice in the follow list filter dialog (#847): only public accounts
+Public accounts	บัญชีสาธารณะ
+# context: a choice in the follow list filter dialog (#847): only private accounts
+Private accounts	บัญชีส่วนตัว
+# context: title of the follow list filter dialog, whose choices are Everyone, Public accounts and Private accounts (#847)
+Show in follow lists	แสดงในรายชื่อการติดตาม
+# context: toast after picking Everyone in the follow list filter (#847)
+Showing everyone	กำลังแสดงทุกคน
+# context: toast after picking Public accounts in the follow list filter (#847)
+Showing public accounts	กำลังแสดงบัญชีสาธารณะ
+# context: toast after picking Private accounts in the follow list filter (#847)
+Showing private accounts	กำลังแสดงบัญชีส่วนตัว
+# context: before a follow list row's name: since when that follow started, %s is a short date like Mar 3 (#847)
+Since %s	ตั้งแต่ %s
 # context: settings switch title and button label, the row Instagram calls About this account (#492)
 About this account	เกี่ยวกับบัญชีนี้
 About this account button	ปุ่มเกี่ยวกับบัญชีนี้

@@ -24,6 +24,15 @@ internal const val UNFOLLOWERS_STATUS = "unfollowers"
 internal const val FOLLOWER_COUNT = "follower_count"
 internal const val USERNAME = "username"
 
+/**
+ * The user model's keys of how many accounts it follows and whether it's private, for the follow
+ * dates and the public or private filter (#847). A build missing either leaves those to do nothing.
+ */
+internal const val FOLLOWING_COUNT = "following_count"
+internal const val IS_PRIVATE = "is_private"
+
+private const val BOOLEAN = "Ljava/lang/Boolean;"
+
 /** The one method Instagram keeps the name of on the follow list's pager, which tells the pager apart. */
 internal const val IS_LOADING = "isLoading"
 
@@ -41,6 +50,8 @@ internal class FollowersParts(
     val owner: FieldReference,
     val followerCount: String,
     val username: String,
+    val followingCount: String? = null,
+    val isPrivate: String? = null,
 )
 
 /**
@@ -89,7 +100,22 @@ internal fun BytecodePatchContext.findFollowersParts(order: FollowOrder): Follow
         if (!AccessFlags.PUBLIC.isSet(getter.accessFlags)) refuse("$USER->${getter.name} isn't public")
     }
 
-    return FollowersParts(order.type, pager, hasMore, owner, count.name, username.name)
+    val following = optionalGetter(FOLLOWING_COUNT, INTEGER)
+    val private = optionalGetter(IS_PRIVATE, BOOLEAN)
+    return FollowersParts(order.type, pager, hasMore, owner, count.name, username.name, following, private)
+}
+
+/**
+ * The name of the user model's public getter loading [key], or null with a warning when there isn't
+ * exactly one: the follow dates or the filter it's for then leave the lists alone.
+ */
+private fun BytecodePatchContext.optionalGetter(key: String, returns: String): String? = try {
+    val getter = pandoGetter(PATCH, USER, key, returns)
+    if (!AccessFlags.PUBLIC.isSet(getter.accessFlags)) refuse("$USER->${getter.name} isn't public")
+    getter.name
+} catch (moved: PatchException) {
+    patchLog.warning("${moved.message}. Recent unfollowers goes in, and what reads $key leaves the lists alone.")
+    null
 }
 
 /**
@@ -110,6 +136,8 @@ internal class FollowersStubs(
     private val listOwner: MutableMethod,
     private val followerCount: MutableMethod,
     private val username: MutableMethod,
+    private val followingCount: MutableMethod,
+    private val isPrivate: MutableMethod,
 ) {
     fun fill(found: FollowersParts) {
         // Each way out of a stub answering a Boolean returns on its own (see FriendshipStubs).
@@ -156,6 +184,28 @@ internal class FollowersStubs(
                 return-object p0
             """,
         )
+        found.followingCount?.let { getter ->
+            followingCount.addInstructionsWithLabels(
+                0,
+                """
+                    check-cast p0, $USER
+                    invoke-virtual { p0 }, $USER->$getter()$INTEGER
+                    move-result-object p0
+                    return-object p0
+                """,
+            )
+        }
+        found.isPrivate?.let { getter ->
+            isPrivate.addInstructionsWithLabels(
+                0,
+                """
+                    check-cast p0, $USER
+                    invoke-virtual { p0 }, $USER->$getter()$BOOLEAN
+                    move-result-object p0
+                    return-object p0
+                """,
+            )
+        }
     }
 }
 
@@ -171,5 +221,7 @@ internal fun BytecodePatchContext.followersStubs(): FollowersStubs {
         listOwner = stub("listOwner", OBJECT),
         followerCount = stub("followerCount", INTEGER),
         username = stub("username", STRING),
+        followingCount = stub("followingCount", INTEGER),
+        isPrivate = stub("isPrivate", BOOLEAN),
     )
 }

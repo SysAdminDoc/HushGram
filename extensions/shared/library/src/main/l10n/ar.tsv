@@ -239,6 +239,28 @@ After 15 minutes	بعد 15 دقيقة
 After 5 minutes	بعد 5 دقائق
 After the reels you pick below, swiping in Reels stops until Instagram has been in the background for the time you pick. A reel you open from a message or a post still plays.	بعد المقاطع التي تختارها أدناه، يتوقف التمرير في Reels حتى يبقى Instagram في الخلفية للمدة التي تختارها. المقطع الذي تفتحه من رسالة أو منشور ما زال يُشغَّل.
 After you scroll your own Followers list to the end, posts a notification naming who has left since last time. Nothing extra is asked of Instagram.	بعد أن تصل إلى نهاية قائمة متابعيك، ينشر إشعارًا يذكر من غادر منذ المرة السابقة. لا يُطلب أي شيء إضافي من Instagram.
+# context: settings switch title on the Profiles page (#847); holding a tab (Followers, Following) at the top of a follow list filters it
+Hold a follow list's tabs to filter it	اضغط مطولًا على تبويبات قائمة المتابعة لتصفيتها
+# context: that switch's summary (#847); Followers and Following are Instagram's own list names
+In any Followers or Following list, hold a tab at the top to show everyone, only public accounts or only private ones. Accounts Instagram hasn't said either way about stay.	في أي قائمة متابِعين أو متابَعين، اضغط مطولًا على تبويب في الأعلى لعرض الجميع أو الحسابات العامة فقط أو الخاصة فقط. تبقى الحسابات التي لم يحدد Instagram نوعها.
+# context: settings switch title on the Profiles page (#847): dates on your own Followers and Following lists
+Follow dates in your lists	تواريخ المتابعة في قوائمك
+# context: that switch's summary (#847)
+Your own Followers and Following lists show since when each account follows you, or you them. Dates start the first time you scroll a list to the end with this on, so accounts already there get none.	تعرض قائمتا المتابِعين والمتابَعين الخاصتان بك منذ متى يتابعك كل حساب، أو تتابعه أنت. تبدأ التواريخ من أول مرة تمرر فيها قائمة حتى نهايتها مع تشغيل هذا الخيار، لذا لا تحصل الحسابات الموجودة مسبقًا على تاريخ.
+# context: a choice in the follow list filter dialog (#847): only public accounts
+Public accounts	الحسابات العامة
+# context: a choice in the follow list filter dialog (#847): only private accounts
+Private accounts	الحسابات الخاصة
+# context: title of the follow list filter dialog, whose choices are Everyone, Public accounts and Private accounts (#847)
+Show in follow lists	العرض في قوائم المتابعة
+# context: toast after picking Everyone in the follow list filter (#847)
+Showing everyone	يتم عرض الجميع
+# context: toast after picking Public accounts in the follow list filter (#847)
+Showing public accounts	يتم عرض الحسابات العامة
+# context: toast after picking Private accounts in the follow list filter (#847)
+Showing private accounts	يتم عرض الحسابات الخاصة
+# context: before a follow list row's name: since when that follow started, %s is a short date like Mar 3 (#847)
+Since %s	منذ %s
 All	الكل
 All kept	الكل محفوظ
 All of Instagram stays covered until your fingerprint, face or screen lock says it's you, your messages too.	يظل Instagram كله محجوبًا حتى يؤكد بصمتك أو وجهك أو قفل الشاشة أنك أنت، ورسائلك أيضًا.
