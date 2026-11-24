@@ -552,11 +552,12 @@ shared-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideProductP
 # config in the class whose toString names it, and its check for bubbles above the author is the
 # static method taking three objects that reads the info overlay's flags. 456 merges the check that
 # left out the Liked by line into the method making it, the one instance method answering a boolean
-# that loads the coexistence marker itself (Redex's pool loads it too).
+# that loads the coexistence marker itself (Redex's pool loads it too). The flag the bubbles check
+# reads is A1K()Z on 457's arm64 and A1H()Z on its armeabi-v7a (0KvZ.A01), so that name is data.
 start-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideProductPills()Z in instance (LX/*;Ljava/lang/String;)LX/*; pooled class-holding ads_on_pause_cta_
 shared-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideProductPills()Z in instance (LX/*;Ljava/lang/String;)LX/*; pooled class-holding ads_on_pause_cta_
-start-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideSocialFooter()Z in static (LX/*;LX/*;LX/*;)Z holding LX/*;->A1K()Z LX/*;->A0U:Z LX/*;->A0L:LX/*; LX/*;->A09:Z
-shared-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideSocialFooter()Z in static (LX/*;LX/*;LX/*;)Z holding LX/*;->A1K()Z LX/*;->A0U:Z LX/*;->A0L:LX/*; LX/*;->A09:Z
+start-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideSocialFooter()Z in static (LX/*;LX/*;LX/*;)Z holding LX/*;->*()Z LX/*;->A0U:Z LX/*;->A0L:LX/*; LX/*;->A09:Z
+shared-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideSocialFooter()Z in static (LX/*;LX/*;LX/*;)Z holding LX/*;->*()Z LX/*;->A0U:Z LX/*;->A0L:LX/*; LX/*;->A09:Z
 start-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideSocialFooter()Z in instance (LX/*;)LX/*; pooled holding clips_inline_comment_text_component
 shared-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideSocialFooter()Z in instance (LX/*;)LX/*; pooled holding clips_inline_comment_text_component
 start-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideSocialFooter()Z in instance (LX/*;)LX/*; pooled holding clips_friendly_viewer_component
@@ -1039,9 +1040,12 @@ shared-call Lapp/hushgram/extension/instagram/feed/PostTime;->time(Ljava/lang/Ob
 # 0Z0e ask a string pool for the signature string, the others load it. What tells the two apart on
 # all four is a static (int)Object call of Redex's: the bigger merged invoke makes one (0LZL, 0LZZ,
 # 0G9V, 0LVL) and the other never does, so that call is 456.1 data.
-shared-call Lapp/hushgram/extension/instagram/feed/PostTime;->time(Landroid/content/res/Resources;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Integer;DI)Ljava/lang/String; in instance (Ljava/lang/Object;)Ljava/lang/Object; calling static LX/*;->*(I)Ljava/lang/Object; pooled class-holding formattedTimeProvider(J)Ljava/lang/String; LX/*;->A01:Landroid/content/res/Resources;
-shared-call Lapp/hushgram/extension/instagram/feed/PostTime;->time(Landroid/content/res/Resources;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Integer;DI)Ljava/lang/String; in instance (Ljava/lang/Object;)Ljava/lang/Object; lacking static LX/*;->*(I)Ljava/lang/Object; pooled class-holding formattedTimeProvider(J)Ljava/lang/String; LX/*;->A01:Landroid/content/res/Resources;
-shared-call Lapp/hushgram/extension/instagram/feed/PostTime;->time(Ljava/lang/Object;Landroid/content/Context;D)Ljava/lang/String; in instance ()Ljava/lang/Object; lacking LX/*;->*(Ljava/lang/String;Ljava/lang/String;Ljava/lang/StringBuilder;)Ljava/lang/String; holding LX/*;->A09:Ljava/lang/Long; Ljava/lang/Number;->longValue()J LX/*;->A0B:Landroid/content/Context;
+# On 457 neither makes one on armeabi-v7a or x86_64. There the bigger invoke is the one asking a
+# fragment for its context (0baf, 0aNx, 0P8p across the three 457 builds) and the other never does.
+# The comment row's lambda on 457's armeabi-v7a is a static case of its class (0C55.A0F).
+shared-call Lapp/hushgram/extension/instagram/feed/PostTime;->time(Landroid/content/res/Resources;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Integer;DI)Ljava/lang/String; in instance (Ljava/lang/Object;)Ljava/lang/Object; calling instance Landroidx/fragment/app/Fragment;->requireContext()Landroid/content/Context; pooled class-holding formattedTimeProvider(J)Ljava/lang/String; LX/*;->A01:Landroid/content/res/Resources;
+shared-call Lapp/hushgram/extension/instagram/feed/PostTime;->time(Landroid/content/res/Resources;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Integer;DI)Ljava/lang/String; in instance (Ljava/lang/Object;)Ljava/lang/Object; lacking instance Landroidx/fragment/app/Fragment;->requireContext()Landroid/content/Context; pooled class-holding formattedTimeProvider(J)Ljava/lang/String; LX/*;->A01:Landroid/content/res/Resources;
+shared-call Lapp/hushgram/extension/instagram/feed/PostTime;->time(Ljava/lang/Object;Landroid/content/Context;D)Ljava/lang/String; in (*)Ljava/lang/Object; lacking LX/*;->*(Ljava/lang/String;Ljava/lang/String;Ljava/lang/StringBuilder;)Ljava/lang/String; holding LX/*;->A09:Ljava/lang/Long; Ljava/lang/Number;->longValue()J LX/*;->A0B:Landroid/content/Context;
 shared-call Lapp/hushgram/extension/instagram/feed/PostTime;->time(Ljava/lang/Object;Landroid/content/Context;J)Ljava/lang/String; in (*)Ljava/lang/Object; holding \s·\s LX/*;->A09:Ljava/lang/Long; LX/*;->A0G:Z Ljava/lang/Number;->longValue()J LX/*;->A0B:Landroid/content/Context;
 # Show when someone was last active asks LastActive.exact() with the time a person was last on, in the one
 # method that turns it into Active 5m ago, Active 3h ago or Active yesterday: an instance (Resources, List)
@@ -1931,9 +1935,11 @@ shared-call Lapp/hushgram/extension/instagram/download/StoryDownload;->save(Ljav
 # merges the remove-story case into another listener (0hc8) than the story case's (0aCc), so the
 # merged one is picked by the message of its fallback case, which every 456.1 build keeps in it alone.
 # 457 (0ekI on 386314341) keeps the story case beside the remove-story case again and moves that
-# fallback to another listener (0PTe), so the rule names the remove-story case's event.
+# fallback to another listener (0PTe). 457's armeabi-v7a splits the story case (0hTm) from the
+# remove-story case (0iMX) again, so the rule names what the story case itself holds on every 457
+# build: the shared story's schema field and itas-android.
 shared-call Lapp/hushgram/extension/instagram/download/StoryDownload;->save(Ljava/lang/CharSequence;Ljava/lang/Object;)Z in instance (Landroid/content/DialogInterface;I)V holding recommended_user_see_fewer_suggestions_tapped
-shared-call Lapp/hushgram/extension/instagram/download/StoryDownload;->save(Ljava/lang/CharSequence;Ljava/lang/Object;)Z in instance (Landroid/content/DialogInterface;I)V holding ig_school_story_spp_remove_story_tapped
+shared-call Lapp/hushgram/extension/instagram/download/StoryDownload;->save(Ljava/lang/CharSequence;Ljava/lang/Object;)Z in instance (Landroid/content/DialogInterface;I)V holding LX/*;->*:Lcom/instagram/api/schemas/ShareCommentToStoryNetegoInStoryIntf; itas-android
 #
 # Download any video: the feed menu's builder, one case of a merged lambda holding the feed menu's
 # kept name, calls offer() once, where the rows for anyone else's post start. The feed menu's
@@ -2325,8 +2331,8 @@ once-call Lapp/hushgram/extension/instagram/reels/DoubleTapLike;->holdBackPost()
 # handler likes through the answer. It comes after the skip and forward gestures, so it isn't
 # first. On 452 the handler is inlined into the Reels gesture listener's onDoubleTap (07IG), and
 # 456 dropped the purge marker it was found by: it's the one onDoubleTap loading double_tap
-# (0DCL on 386214574).
-once-call Lapp/hushgram/extension/instagram/reels/DoubleTapLike;->likeAction(Ljava/lang/Object;)Ljava/lang/Object; in instance (Landroid/view/MotionEvent;)Z holding double_tap
+# (0DCL on 386214574). 457's armeabi-v7a asks a string pool for it.
+once-call Lapp/hushgram/extension/instagram/reels/DoubleTapLike;->likeAction(Ljava/lang/Object;)Ljava/lang/Object; in instance (Landroid/view/MotionEvent;)Z pooled holding double_tap
 # Its On comments switch asks first thing in each comment row's double tap, which likes or unlikes
 # the comment, and returns false there the way the row does for a comment it can't like. 450 has
 # three such rows: two file fb_comment_double_tap (0SxY and 0Sxd on 450, told apart by the name of a
