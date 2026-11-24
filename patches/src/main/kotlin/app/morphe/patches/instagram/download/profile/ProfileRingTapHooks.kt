@@ -20,11 +20,11 @@ internal const val RING_TAP_HOOK = "$RING_TAP->storyFirst(I)Z"
 /**
  * The server flag the profile picture's tap reads before it looks for the account's story in
  * Instagram's own store of stories, when the header's state says to show the picture. Off, a tap
- * on a ringed picture opens the picture until the header has the story.
+ * on a ringed picture opens the picture until the header has the story. 0x81172b00007a9f on 456.1.
  */
-internal const val STORY_FIRST_FLAG = 0x81172b00007a9fL
+internal const val STORY_FIRST_FLAG = 0x81170500007b6aL
 
-/** What the tap logs, which names the method on every 456 build. */
+/** What the tap logs, which names the method on every 456 and 457 build. */
 internal const val TAP_PICTURE = "tap_profile_pic"
 internal const val PROFILE_HEADER = "user_profile_header"
 

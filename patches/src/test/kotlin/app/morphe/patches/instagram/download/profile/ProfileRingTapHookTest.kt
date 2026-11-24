@@ -170,7 +170,7 @@ class ProfileRingTapHookTest {
         const val CONFIG = "Lcom/facebook/mobileconfig/factory/MobileConfigUnsafeContext;"
         const val LOGGER = "LX/0Log;"
 
-        /** The tap's shape on every 456 build: a context, the picture's bounds, the view, three of Instagram's own and a callback. */
+        /** The tap's shape on every 456 and 457 build: a context, the picture's bounds, the view, three of Instagram's own and a callback. */
         const val TAP_SHAPE = "\\(Landroid/content/Context;Landroid/graphics/RectF;Landroid/view/View;LX/[^;]+;LX/[^;]+;LX/[^;]+;Lkotlin/jvm/functions/Function0;\\)V"
 
         /** A stand-in tap: it reads the flag into v1, skips past logging [strings] when it's off, as the real one tests it. */

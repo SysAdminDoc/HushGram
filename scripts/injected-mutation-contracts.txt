@@ -3699,11 +3699,12 @@ sole-call Lapp/hushgram/extension/instagram/download/ProfilePictureHold;->hold(L
 once-call Lapp/hushgram/extension/instagram/download/ProfilePictureHold;->flipped(Landroid/view/View;)Z in instance (Landroid/view/MotionEvent;)V calling instance Lkotlin/jvm/functions/Function0;->invoke()Ljava/lang/Object; class-holding LX/*;->*:Lcom/instagram/avatars/coinflip/ProfileCoinFlipView;
 # A story ring opens the story (#823) passes the profile picture tap's one read of the flag that lets
 # it look up the account's story in Instagram's store before it shows the picture through
-# ProfileRingTap.storyFirst, right after the read (0Inj.EMg on 456's 386215122, which logs
-# tap_profile_pic for user_profile_header). Left out, a ringed picture still opens the picture
-# whenever the header doesn't have the story yet, with the switch on. ProfileRingTapHookTest checks
-# the read and its register on every fixture.
-once-call Lapp/hushgram/extension/instagram/download/ProfileRingTap;->storyFirst(I)Z in instance (Landroid/content/Context;Landroid/graphics/RectF;Landroid/view/View;LX/*;LX/*;LX/*;Lkotlin/jvm/functions/Function0;)V pooled holding tap_profile_pic user_profile_header const:0x81172b00007a9f
+# ProfileRingTap.storyFirst, right after the read (0Bld.EEj on 457's 386314341, 0Inj.EMg on 456's
+# 386215122, which logs tap_profile_pic for user_profile_header). Left out, a ringed picture still
+# opens the picture whenever the header doesn't have the story yet, with the switch on.
+# ProfileRingTapHookTest checks the read and its register on every fixture. The flag was
+# 0x81172b00007a9f on 456.1.
+once-call Lapp/hushgram/extension/instagram/download/ProfileRingTap;->storyFirst(I)Z in instance (Landroid/content/Context;Landroid/graphics/RectF;Landroid/view/View;LX/*;LX/*;LX/*;Lkotlin/jvm/functions/Function0;)V pooled holding tap_profile_pic user_profile_header const:0x81170500007b6a
 # Profile extras button (#234) hands ProfileExtras.bound the profile bar and its right row first thing
 # in the bar's bind (ProfileActionBar.A00 on 452, the same one method Hide the Threads button reads the
 # list in). The bar empties both rows on every bind, so the extension puts its button in again behind
