@@ -147,6 +147,19 @@ public final class FeedDownloadButton {
             VideoDownload.choosePages(post, activity);
         }
 
+        /** Whether a tap's Download of [post], or its page on screen, is a photo with music (#71). */
+        default boolean music(Object post, Object itemState) {
+            return VideoDownload.music(post, itemState);
+        }
+
+        /** Download as video: saves the photo with music as a video. Answers whether it started. */
+        default boolean saveAsVideo(Object post, Object itemState, Activity activity) {
+            return VideoDownload.saveAsVideo(post, itemState, activity);
+        }
+
+        /** Asks Download as video or Download as photo at [anchor], as the Reels viewer does. */
+        void chooseMusic(View anchor, Runnable video, Runnable photo);
+
         void nothing(Context context);
     }
 
@@ -160,7 +173,7 @@ public final class FeedDownloadButton {
         }
 
         @Override public boolean save(Object post, Object itemState, Activity activity) {
-            return VideoDownload.save(post, itemState, activity);
+            return VideoDownload.saveNow(post, itemState, activity);
         }
 
         @Override public void saveAll(Object post, Activity activity) {
@@ -179,6 +192,17 @@ public final class FeedDownloadButton {
             menu.setOnMenuItemClickListener(item -> {
                 int id = item.getItemId();
                 (id == 0 ? page : id == 1 || some == null ? all : some).run();
+                return true;
+            });
+            menu.show();
+        }
+
+        @Override public void chooseMusic(View anchor, Runnable video, Runnable photo) {
+            PopupMenu menu = new PopupMenu(anchor.getContext(), anchor);
+            menu.getMenu().add(0, 0, 0, StoryDownload.label(StoryDownload.Choice.VIDEO));
+            menu.getMenu().add(0, 1, 1, StoryDownload.label(StoryDownload.Choice.PHOTO));
+            menu.setOnMenuItemClickListener(item -> {
+                (item.getItemId() == 0 ? video : photo).run();
                 return true;
             });
             menu.show();
@@ -690,8 +714,21 @@ public final class FeedDownloadButton {
         }
     }
 
+    /** Download of one post or page: a photo with music asks video or photo first (#71). */
     private static void saveOne(View anchor, Object post, Object itemState, @Nullable Activity activity) {
+        if (post != null && actions.music(post, itemState)) {
+            actions.chooseMusic(anchor, () -> saveVideo(anchor, post, itemState, activity), () -> savePhoto(anchor, post, itemState, activity));
+            return;
+        }
+        savePhoto(anchor, post, itemState, activity);
+    }
+
+    private static void savePhoto(View anchor, Object post, Object itemState, @Nullable Activity activity) {
         if (post == null || !actions.save(post, itemState, activity)) actions.nothing(contextOf(anchor, activity));
+    }
+
+    private static void saveVideo(View anchor, Object post, Object itemState, @Nullable Activity activity) {
+        if (!actions.saveAsVideo(post, itemState, activity)) actions.nothing(contextOf(anchor, activity));
     }
 
     private static void saveEvery(View anchor, Object post, @Nullable Activity activity) {

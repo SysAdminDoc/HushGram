@@ -134,6 +134,25 @@ public class FeedDownloadButtonTest {
             calls.add("choosePages " + post + " " + activity);
         }
 
+        final Set<Object> music = new HashSet<>();
+        Runnable video;
+        Runnable photo;
+
+        @Override public boolean music(Object post, Object itemState) {
+            return music.contains(post);
+        }
+
+        @Override public boolean saveAsVideo(Object post, Object itemState, Activity activity) {
+            calls.add("video " + post + " " + itemState);
+            return saves;
+        }
+
+        @Override public void chooseMusic(View anchor, Runnable video, Runnable photo) {
+            calls.add("music");
+            this.video = video;
+            this.photo = photo;
+        }
+
         @Override public void nothing(Context context) {
             calls.add("nothing");
         }
@@ -382,6 +401,72 @@ public class FeedDownloadButtonTest {
         clicks.onMenuItemClick(three.getMenu().getItem(0));
         clicks.onMenuItemClick(three.getMenu().getItem(1));
         assertEquals(Arrays.asList("all", "some", "page", "all"), ran);
+    }
+
+    /**
+     * #71: a photo with music asks Download as video or Download as photo, each going to its own
+     * save, and a video that can't start says so. A photo without music saves on the tap.
+     */
+    @Test
+    public void aTapOnAPhotoWithMusicAsksVideoOrPhoto() {
+        recorder.music.add("post");
+        ImageView save = save(activity);
+        LinearLayout row = linearRow(save);
+        FeedDownloadButton.bind(save, "post", "state", activity);
+        buttonOf(row).performClick();
+        assertEquals(Collections.singletonList("music"), recorder.calls);
+
+        recorder.video.run();
+        assertEquals(Arrays.asList("music", "video post state"), recorder.calls);
+        recorder.photo.run();
+        assertEquals(Arrays.asList("music", "video post state", "save post state"), recorder.calls);
+
+        recorder.calls.clear();
+        recorder.saves = false;
+        recorder.video.run();
+        assertEquals(Arrays.asList("video post state", "nothing"), recorder.calls);
+
+        recorder.calls.clear();
+        recorder.saves = true;
+        recorder.music.clear();
+        buttonOf(row).performClick();
+        assertEquals("no music, no question", Collections.singletonList("save post state"), recorder.calls);
+    }
+
+    /** #71: on a carousel, Download on a page with music asks the same question next. */
+    @Test
+    public void aCarouselPageWithMusicAsksAfterDownload() {
+        recorder.pages = Arrays.asList("one", "two", "three");
+        recorder.music.add("post");
+        ImageView save = save(activity);
+        LinearLayout row = linearRow(save);
+        FeedDownloadButton.bind(save, "post", "state", activity);
+        buttonOf(row).performClick();
+        assertEquals(Collections.singletonList("choose"), recorder.calls);
+        recorder.page.run();
+        assertEquals(Arrays.asList("choose", "music"), recorder.calls);
+        recorder.video.run();
+        assertEquals(Arrays.asList("choose", "music", "video post state"), recorder.calls);
+        recorder.all.run();
+        assertEquals("Save all doesn't ask", Arrays.asList("choose", "music", "video post state", "saveAll post"), recorder.calls);
+    }
+
+    /** #71: the real question lists Download as video, then Download as photo, and each runs its answer. */
+    @Test
+    public void theMusicQuestionListsVideoThenPhoto() {
+        List<String> ran = new ArrayList<>();
+        View anchor = new View(activity);
+        activity.setContentView(anchor);
+        original.chooseMusic(anchor, () -> ran.add("video"), () -> ran.add("photo"));
+        PopupMenu menu = ShadowPopupMenu.getLatestPopupMenu();
+        assertNotNull("no question was shown", menu);
+        assertEquals(2, menu.getMenu().size());
+        assertEquals("Download as video", menu.getMenu().getItem(0).getTitle().toString());
+        assertEquals("Download as photo", menu.getMenu().getItem(1).getTitle().toString());
+        PopupMenu.OnMenuItemClickListener clicks = Shadows.shadowOf(menu).getOnMenuItemClickListener();
+        clicks.onMenuItemClick(menu.getMenu().getItem(1));
+        clicks.onMenuItemClick(menu.getMenu().getItem(0));
+        assertEquals(Arrays.asList("photo", "video"), ran);
     }
 
     /** Save every page without asking saves a carousel's pages on the tap, and leaves a single post as it was (#190). */

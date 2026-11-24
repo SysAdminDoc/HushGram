@@ -5,6 +5,7 @@
 package app.hushgram.extension.instagram.download;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Context;
 
 import java.util.ArrayList;
@@ -13,6 +14,7 @@ import java.util.List;
 
 import app.hushgram.extension.instagram.media.StopLooping;
 import app.hushgram.extension.instagram.settings.FamilyNames;
+import app.hushgram.extension.instagram.settings.ScreenColors;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.Logger;
@@ -87,6 +89,105 @@ public final class VideoDownload {
 
     /** Counted when Choose pages is tapped with no screen to show its list on. */
     static final String CHOOSE_NO_SCREEN = "choose pages not shown, no activity";
+
+    /** Counted for each Download of a photo with music that asks Download as video or Download as photo (#71). */
+    static final String MUSIC_ASKED = "photo with music asked video or photo";
+
+    /** Counted for each photo with music whose video save started (#71). */
+    static final String SAVED_AS_VIDEO = "photo with music saved as a video";
+
+    /** How Download asks Download as video or Download as photo over the menu's screen. Replaced by tests. */
+    interface MusicChoice {
+        void ask(Activity activity, Runnable video, Runnable photo);
+    }
+
+    static volatile MusicChoice musicChoice = VideoDownload::askMusic;
+
+    /**
+     * The question itself: a list of Download as video and Download as photo over [activity], the
+     * Reels viewer's two rows. With no screen to show it on the photo saves, as it did before.
+     */
+    private static void askMusic(Activity activity, Runnable video, Runnable photo) {
+        if (CarouselPages.gone(activity)) {
+            photo.run();
+            return;
+        }
+        String[] rows = {StoryDownload.label(StoryDownload.Choice.VIDEO), StoryDownload.label(StoryDownload.Choice.PHOTO)};
+        AlertDialog dialog = new AlertDialog.Builder(activity)
+                .setTitle(L10n.t(activity, "Download"))
+                .setItems(rows, (box, which) -> (which == 0 ? video : photo).run())
+                .create();
+        dialog.show();
+        ScreenColors.dialog(dialog);
+    }
+
+    /**
+     * Whether Download on [post], or the carousel page on screen its feed state [itemState] names,
+     * saves a photo with music, so it asks Download as video or Download as photo (#71). Never throws.
+     */
+    static boolean music(Object post, Object itemState) {
+        try {
+            Object shown = shown(post, itemState);
+            return what(shown) == Save.PHOTO && musicOf(shown, post) != null
+                && MusicVideo.picture(StoryDownload.pictures(shown)) != null;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.VIDEO_DOWNLOAD, "feed music check", failure);
+            return false;
+        }
+    }
+
+    /**
+     * The music [shown] plays: its own, or for a carousel page with none the post's, as the Reels
+     * viewer reads a carousel. Null when neither has a track to fetch. Never throws.
+     */
+    static MusicVideo.Music musicOf(Object shown, Object post) {
+        try {
+            if (shown == null) return null;
+            MusicVideo.Music own = MusicVideo.music(shown);
+            if (own != null && own.url != null) return own;
+            if (post == null || post == shown) return null;
+            MusicVideo.Music shared = MusicVideo.music(post);
+            return shared != null && shared.url != null ? shared : null;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.VIDEO_DOWNLOAD, "feed music", failure);
+            return null;
+        }
+    }
+
+    /**
+     * Saves [post], or the page on screen, as a video: its picture held for the part of the track it
+     * plays, with that part as its sound. The Download button's Download as video. Answers whether it
+     * started. Never throws.
+     */
+    static boolean saveAsVideo(Object post, Object itemState, Activity activity) {
+        try {
+            Object shown = shown(post, itemState);
+            Context context = activity != null ? activity : Utils.getContext();
+            return context != null && startVideo(context, shown, post);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.VIDEO_DOWNLOAD, "feed download as video", failure);
+            return false;
+        }
+    }
+
+    private static boolean startVideo(Context context, Object shown, Object post) {
+        MediaSave.Rendition picture = MusicVideo.picture(StoryDownload.pictures(shown));
+        MusicVideo.Music music = musicOf(shown, post);
+        Logger.diagnosticInfo(DiagnosticCategory.DOWNLOADS, SOURCE, () -> "feed download as video tapped: "
+            + (picture == null ? "no picture" : picture.toString()) + ", " + (music == null ? "no music" : music.toString()));
+        if (picture == null || music == null) return false;
+        Context application = context.getApplicationContext() != null ? context.getApplicationContext() : context;
+        Thread worker = MediaSave.start(application, true, details(shown, post), (writer, progress) ->
+            MusicVideo.save(application, picture, music, writer, MediaSave.policyFor(application), MediaSave.cap(), progress));
+        if (worker == null) return false;
+        HookStatus.counted(FamilyNames.VIDEO_DOWNLOAD, SAVED_AS_VIDEO);
+        return true;
+    }
+
+    /** {@link #save}, without asking about music: the Download button asked already. */
+    static boolean saveNow(Object media, Object itemState, Activity activity) {
+        return save(media, itemState, activity, false);
+    }
 
     public static synchronized Object coverOption() {
         try {
@@ -530,9 +631,14 @@ public final class VideoDownload {
      * the photo switch on its picture when it has no video. Answers whether it did, in which case
      * Instagram's own download is skipped. Anything else, your own photo with the photo switch off
      * for one, goes to Instagram's own download. [activity] is the one the menu belongs to. A save
-     * that can't start says so. Never throws.
+     * that can't start says so. A photo with music asks Download as video or Download as photo
+     * first (#71). Never throws.
      */
     public static boolean save(Object media, Object itemState, Activity activity) {
+        return save(media, itemState, activity, true);
+    }
+
+    private static boolean save(Object media, Object itemState, Activity activity, boolean ask) {
         try {
             if (!videos() && !photos()) return false;
             Object shown = shown(media, itemState);
@@ -542,10 +648,17 @@ public final class VideoDownload {
             if (ExternalDownload.handOff(context, ExternalDownload.postLink(media, false), FamilyNames.VIDEO_DOWNLOAD)) {
                 return true;
             }
-            PostDetails details = details(shown, media);
-            final String on = shown != media ? " on a carousel page" : "";
+            if (ask && what == Save.PHOTO && musicOf(shown, media) != null) {
+                HookStatus.counted(FamilyNames.VIDEO_DOWNLOAD, MUSIC_ASKED);
+                Logger.diagnosticInfo(DiagnosticCategory.DOWNLOADS, SOURCE, () -> "feed photo with music: asking video or photo");
+                final Context screen = context;
+                musicChoice.ask(activity, () -> answered(screen, true, shown, media), () -> answered(screen, false, shown, media));
+                return true;
+            }
             boolean started;
             if (what == Save.VIDEO) {
+                PostDetails details = details(shown, media);
+                final String on = shown != media ? " on a carousel page" : "";
                 List<MediaSave.Rendition> renditions = ReelDownload.renditions(shown);
                 String manifest = InstagramMedia.dashManifest(shown);
                 final int files = renditions.size();
@@ -554,15 +667,9 @@ public final class VideoDownload {
                         + ": " + files + " file(s)" + (dash ? " and a manifest" : ", no manifest"));
                 started = MediaSave.saveVideo(context, renditions, manifest, details);
             } else {
-                List<MediaSave.Rendition> pictures = StoryDownload.pictures(shown);
-                final int sizes = pictures.size();
-                Logger.diagnosticInfo(DiagnosticCategory.DOWNLOADS, SOURCE, () -> "feed photo download tapped" + on + ": " + sizes + " size(s)");
-                started = MediaSave.savePhoto(context, pictures, details);
+                started = startPicture(context, shown, media);
             }
-            if (!started) {
-                Context application = context.getApplicationContext();
-                Feedback.show(application, L10n.t(application, "Download failed"), true);
-            }
+            if (!started) failed(context);
             return true;
         } catch (Throwable t) {
             // It runs inside Instagram's click dispatch, where a throw ends the app. Instagram's own
@@ -570,6 +677,32 @@ public final class VideoDownload {
             HookStatus.threw(FamilyNames.VIDEO_DOWNLOAD, "feed menu", t);
             return false;
         }
+    }
+
+    /** The answer to the music question: [video] saves [shown] as a video, otherwise its picture. Never throws. */
+    private static void answered(Context context, boolean video, Object shown, Object post) {
+        try {
+            boolean started = video ? startVideo(context, shown, post) : startPicture(context, shown, post);
+            if (!started) failed(context);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.VIDEO_DOWNLOAD, "feed music answer", failure);
+        }
+    }
+
+    /** Starts saving the picture of [shown], a carousel page of [post] or the post. Answers whether it started. */
+    private static boolean startPicture(Context context, Object shown, Object post) {
+        PostDetails details = details(shown, post);
+        final String on = shown != post ? " on a carousel page" : "";
+        List<MediaSave.Rendition> pictures = StoryDownload.pictures(shown);
+        final int sizes = pictures.size();
+        Logger.diagnosticInfo(DiagnosticCategory.DOWNLOADS, SOURCE, () -> "feed photo download tapped" + on + ": " + sizes + " size(s)");
+        return MediaSave.savePhoto(context, pictures, details);
+    }
+
+    /** Says a save couldn't start. */
+    private static void failed(Context context) {
+        Context application = context.getApplicationContext();
+        Feedback.show(application, L10n.t(application, "Download failed"), true);
     }
 
     /**
