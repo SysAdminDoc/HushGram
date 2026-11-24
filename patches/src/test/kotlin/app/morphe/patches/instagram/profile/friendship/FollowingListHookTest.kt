@@ -939,7 +939,10 @@ class FollowingListHookTest {
                 classOf(CHECKS, emptyList(), listOf(notNull)),
                 classOf(
                     USER, emptyList(),
-                    listOf(handle, fullName, keyed("count", FOLLOWER_COUNT, "Ljava/lang/Integer;"), keyed("login", USERNAME, STRING)),
+                    listOf(
+                        handle, fullName, keyed("count", FOLLOWER_COUNT, "Ljava/lang/Integer;"), keyed("login", USERNAME, STRING),
+                        keyed("following", FOLLOWING_COUNT, "Ljava/lang/Integer;"), keyed("locked", IS_PRIVATE, "Ljava/lang/Boolean;"),
+                    ),
                 ),
                 classOf(USER_SESSION, listOf(field(USER_SESSION, "userId", STRING)), listOf(getUserId)),
                 ExtensionDex.classDef(FOLLOWING_LIST),
