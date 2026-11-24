@@ -286,6 +286,32 @@ public class StoryViewersTest {
         assertEquals(0, StoryViewers.summary(context, 0, Collections.emptyMap()).since);
     }
 
+    /**
+     * Search viewers (#833): the list on screen is of the kept story whose viewers hold most of its
+     * usernames, in any case; on a tie the one Instagram listed last, then the newest; with no match
+     * the one listed last, and nothing when that isn't kept either.
+     */
+    @Test public void aViewerListOnScreenIsOfTheStoryHoldingMostOfItsNames() {
+        assertNull("nothing kept", StoryViewers.storyListing(context, Arrays.asList("ana")));
+        keep("101", NOW - 2 * DAY, 2, "11", "ana", "12", "bo");
+        keep("102", NOW - DAY, 2, "11", "ana", "13", "cy");
+        keep("103", NOW - 3 * DAY, 1, "14", "dee");
+        assertEquals("only 101 has bo", "101", StoryViewers.storyListing(context, Arrays.asList("ana", "bo")));
+        assertEquals("a tie, neither listed last, the newer", "102", StoryViewers.storyListing(context, Arrays.asList("ANA ")));
+        keep("101", 0, 0, "12", "bo");
+        assertEquals("a tie goes to the one listed last", "101", StoryViewers.storyListing(context, Arrays.asList("ana")));
+        assertEquals("no name kept, the one listed last", "101", StoryViewers.storyListing(context, Arrays.asList("zed")));
+        assertEquals("101", StoryViewers.storyListing(context, Collections.emptyList()));
+        assertEquals("most wins over listed last", "103", StoryViewers.storyListing(context, Arrays.asList("dee")));
+
+        StoryViewers.forgetForTests();
+        assertNull("a new process has listed nothing yet", StoryViewers.storyListing(context, Arrays.asList("zed")));
+        assertEquals("read back from the file", "102", StoryViewers.storyListing(context, Arrays.asList("ana")));
+        keep("104", NOW, 1, "15", "eve");
+        assertTrue(StoryViewers.clear(context));
+        assertNull("clear forgets the one listed last too", StoryViewers.storyListing(context, Arrays.asList("eve")));
+    }
+
     private static List<String> ids(List<StoryViewers.Story> stories) {
         List<String> ids = new ArrayList<>();
         for (StoryViewers.Story story : stories) ids.add(story.id);

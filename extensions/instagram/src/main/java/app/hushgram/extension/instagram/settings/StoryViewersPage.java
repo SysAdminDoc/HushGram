@@ -145,11 +145,16 @@ final class StoryViewersPage {
     Show showing = Show.VIEWERS;
     /** The story opened from Stories, or null. */
     @Nullable StoryViewers.Story opened;
+    /** The id of the story to open once the lists are read, from Instagram's viewer list (#833), or null. */
+    @Nullable private String toOpen;
+    /** The story the page opened on from Instagram's viewer list, where Back goes back to that list. */
+    @Nullable StoryViewers.Story landed;
     private Map<String, String> followers = Collections.emptyMap();
     @Nullable private StoryViewers.Summary allKept;
     @Nullable private StoryViewers.Summary inPeriod;
 
-    private StoryViewersPage(Context context, Preference row) {
+    /** [row] is the settings row the page opened from, null from Instagram's viewer list, which has no Clear. */
+    private StoryViewersPage(Context context, @Nullable Preference row) {
         dialog = new Dialog(context, palette.theme());
         LinearLayout root = new LinearLayout(context);
         root.setOrientation(LinearLayout.VERTICAL);
@@ -168,9 +173,11 @@ final class StoryViewersPage {
         title.setPaddingRelative(Dim.dp(8), 0, 0, 0);
         title.setAccessibilityHeading(true);
         bar.addView(title, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
-        bar.addView(iconButton(context, palette, SettingsIcons.DELETE, L10n.t(context, "Clear story viewers"), v ->
-                HushgramPreferenceFragment.clearStoryViewers(row, row, this::read)),
-                new LinearLayout.LayoutParams(Dim.dp(48), Dim.dp(48)));
+        if (row != null) {
+            bar.addView(iconButton(context, palette, SettingsIcons.DELETE, L10n.t(context, "Clear story viewers"), v ->
+                    HushgramPreferenceFragment.clearStoryViewers(row, row, this::read)),
+                    new LinearLayout.LayoutParams(Dim.dp(48), Dim.dp(48)));
+        }
         root.addView(bar);
 
         periods = chipRow(context, root);
@@ -237,7 +244,7 @@ final class StoryViewersPage {
         FocusRest.on(root);
         dialog.setContentView(root);
         dialog.setOnKeyListener((shown, key, event) -> {
-            if (key != android.view.KeyEvent.KEYCODE_BACK || opened == null) return false;
+            if (key != android.view.KeyEvent.KEYCODE_BACK || opened == null || opened == landed) return false;
             if (event.getAction() == android.view.KeyEvent.ACTION_UP) back();
             return true;
         });
@@ -261,14 +268,48 @@ final class StoryViewersPage {
         return page;
     }
 
-    /** Back from an opened story to the stories, or else off the page. */
+    /**
+     * Opens the page over one of Instagram's screens on the kept story [story], from the Search
+     * viewers bar in its viewer list (#833), with the search box ready to type in. Back goes back to
+     * Instagram's list. A story not kept, or null, opens the page on its viewers instead.
+     */
+    static StoryViewersPage openStory(Context context, @Nullable String story) {
+        StoryViewersPage page = new StoryViewersPage(context, null);
+        page.toOpen = story;
+        page.show();
+        page.read();
+        page.dialog.show();
+        Window window = page.dialog.getWindow();
+        if (window != null) {
+            window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
+                    | WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
+        }
+        page.search.requestFocus();
+        return page;
+    }
+
+    /** Back from an opened story to the stories, or else off the page, as from the story it opened on. */
     private void back() {
-        if (opened == null) {
+        if (opened == null || opened == landed) {
             dialog.dismiss();
             return;
         }
         opened = null;
         show();
+    }
+
+    /** Opens the story the page was asked for, once the lists it's in are read. */
+    private void land() {
+        String id = toOpen;
+        toOpen = null;
+        if (id == null || allKept == null) return;
+        for (StoryViewers.Story story : allKept.stories) {
+            if (story.id.equals(id)) {
+                opened = story;
+                landed = story;
+                return;
+            }
+        }
     }
 
     /** Reads the kept lists and the followers off the main thread, since both come from files. */
@@ -285,12 +326,14 @@ final class StoryViewersPage {
                 followers = known;
                 allKept = all;
                 inPeriod = some;
+                land();
                 show();
             });
         })) {
             followers = Unfollowers.shown(application).followers;
             allKept = StoryViewers.summary(application, 0, followers);
             inPeriod = period == Period.ALL ? allKept : StoryViewers.summary(application, period.from(System.currentTimeMillis()), followers);
+            land();
             show();
         }
     }

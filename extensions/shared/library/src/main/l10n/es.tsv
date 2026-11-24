@@ -2742,6 +2742,10 @@ Hold a finger on the liquid pill's bubble, or slide it across the tabs, and the 
 # context: Keep story viewers, its Stories settings rows and the Story viewers page.
 Keep story viewers	Guardar espectadores de historias
 Each time you open who viewed one of your stories, the list is kept on this phone and set beside your followers. Nothing extra is asked of Instagram. Turn it off and it stops at once.	Cada vez que abres quién vio una de tus historias, la lista se guarda en este teléfono y se pone junto a tus seguidores. No se le pide nada extra a Instagram. Desactívalo y se detiene al instante.
+# context: Stories > Keep story viewers, the switch for a search bar HushGram adds to Instagram's list of who viewed your story, and the bar's own words.
+Search bar in the viewer list	Barra de búsqueda en la lista de espectadores
+Puts a Search viewers bar at the top of the list of who viewed your story. It searches the viewers kept on this phone, the ones Instagram has listed so far.	Pone una barra Buscar espectadores arriba de la lista de quién vio tu historia. Busca entre los espectadores guardados en este teléfono, los que Instagram ha mostrado hasta ahora.
+Search viewers	Buscar espectadores
 Story viewers	Espectadores de historias
 Nothing here yet. With Keep story viewers on, open who viewed one of your stories in Instagram and the list is kept here.	Aún no hay nada. Con Guardar espectadores de historias activado, abre en Instagram quién vio una de tus historias y la lista se guardará aquí.
 %1$d story kept since %2$s. Tap to see who viewed it and who has no view recorded.	%1$d historia guardada desde el %2$s. Toca para ver quién la vio y quién no tiene ninguna vista registrada.

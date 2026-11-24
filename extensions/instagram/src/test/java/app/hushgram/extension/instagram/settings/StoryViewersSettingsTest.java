@@ -63,6 +63,7 @@ public class StoryViewersSettingsTest {
         Utils.awaitBackgroundTasksForTests();
         PatchFamily.inBuildForTests = null;
         Settings.STORY_VIEWERS.resetToDefault();
+        Settings.STORY_VIEWERS_SEARCH.resetToDefault();
         Context context = RuntimeEnvironment.getApplication();
         StoryViewers.clear(context);
         Unfollowers.clear(context);
@@ -74,6 +75,11 @@ public class StoryViewersSettingsTest {
         assertTrue(PatchFamily.STORY_VIEWERS.switches.contains(Settings.STORY_VIEWERS));
         PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.STORY_VIEWERS);
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.STORY_VIEWERS.key));
+        assertFalse("the search bar starts off too (#833)", Settings.STORY_VIEWERS_SEARCH.get());
+        assertTrue(PatchFamily.STORY_VIEWERS.switches.contains(Settings.STORY_VIEWERS_SEARCH));
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.STORY_VIEWERS_SEARCH.key));
+        assertTrue("it hangs off Keep story viewers",
+                Settings.STORY_VIEWERS_SEARCH.getParentSettings().contains(Settings.STORY_VIEWERS));
     }
 
     @Test public void theRowsAreInStoriesWithThePatchAndGoneWithoutIt() throws Exception {
@@ -92,7 +98,11 @@ public class StoryViewersSettingsTest {
             assertNotNull(clear);
             assertEquals("Clear story viewers", String.valueOf(clear.getTitle()));
             assertTrue(((HushgramPreferenceFragment.Row) clear).actsOnTap());
-            for (Preference row : Arrays.asList(toggle, list, clear)) {
+            Preference search = page.findPreference(Settings.STORY_VIEWERS_SEARCH.key);
+            assertTrue(search instanceof SwitchPreference);
+            assertEquals("Search bar in the viewer list", String.valueOf(search.getTitle()));
+            assertFalse(((SwitchPreference) search).isChecked());
+            for (Preference row : Arrays.asList(toggle, search, list, clear)) {
                 assertEquals(String.valueOf(row.getTitle()), "Stories",
                         String.valueOf(StoryTimeSettingsTest.sectionOf(page.getPreferenceScreen(), row).getTitle()));
             }
@@ -101,6 +111,7 @@ public class StoryViewersSettingsTest {
         try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
             HushgramPreferenceFragment page = DownloadSettingsTest.pageIn(controller);
             assertNull(page.findPreference(Settings.STORY_VIEWERS.key));
+            assertNull(page.findPreference(Settings.STORY_VIEWERS_SEARCH.key));
             assertNull(page.findPreference(HushgramPreferenceFragment.STORY_VIEWERS_ROW));
             assertNull(page.findPreference(HushgramPreferenceFragment.CLEAR_STORY_VIEWERS));
         }

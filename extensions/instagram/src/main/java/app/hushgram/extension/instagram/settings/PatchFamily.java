@@ -286,7 +286,7 @@ public enum PatchFamily {
     REEL_DOWNLOAD(FamilyNames.REEL_DOWNLOAD, "reelDownload", null, Settings.DOWNLOAD_REELS),
     VP9_VIDEO(FamilyNames.VP9_VIDEO, "vp9Video", null, Settings.ASK_FOR_VP9),
     ONLINE_HISTORY(FamilyNames.ONLINE_HISTORY, "onlineHistory", null, Settings.ONLINE_HISTORY),
-    STORY_VIEWERS(FamilyNames.STORY_VIEWERS, "storyViewers", null, Settings.STORY_VIEWERS),
+    STORY_VIEWERS(FamilyNames.STORY_VIEWERS, "storyViewers", null, Settings.STORY_VIEWERS, Settings.STORY_VIEWERS_SEARCH),
     DOUBLE_TAP_LIKE(FamilyNames.DOUBLE_TAP_LIKE, "doubleTapLike", null, Settings.TURN_OFF_DOUBLE_TAP_LIKE,
             Settings.TURN_OFF_DOUBLE_TAP_LIKE_ON_POSTS, Settings.TURN_OFF_DOUBLE_TAP_LIKE_ON_REELS,
             Settings.TURN_OFF_DOUBLE_TAP_LIKE_ON_COMMENTS, Settings.TURN_OFF_DOUBLE_TAP_LIKE_ON_MESSAGES),

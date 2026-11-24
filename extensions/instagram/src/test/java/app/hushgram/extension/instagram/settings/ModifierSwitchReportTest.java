@@ -53,7 +53,8 @@ public class ModifierSwitchReportTest {
                 PatchFamily.CHAT_REELS, PatchFamily.FRIENDSHIP_STATUS, PatchFamily.PROFILE_PICTURE,
                 PatchFamily.REEL_SCROLLING, PatchFamily.REEL_DECLUTTER, PatchFamily.LAUNCH_SCREEN, PatchFamily.GLASS_CHAT,
                 PatchFamily.REEL_DOUBLE_TAP_SKIP, PatchFamily.STORY_RING, PatchFamily.FEED_HOLD_FAST,
-                PatchFamily.FEED_HEADER_LINE, PatchFamily.FEED_SOUND, PatchFamily.FEED_TAP_PAUSE),
+                PatchFamily.FEED_HEADER_LINE, PatchFamily.FEED_SOUND, PatchFamily.FEED_TAP_PAUSE,
+                PatchFamily.STORY_VIEWERS),
                 nested);
 
         for (PatchFamily family : nested) {

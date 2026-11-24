@@ -2745,6 +2745,10 @@ Hold a finger on the liquid pill's bubble, or slide it across the tabs, and the 
 # context: Keep story viewers, its Stories settings rows and the Story viewers page.
 Keep story viewers	保留限時動態觀看者
 Each time you open who viewed one of your stories, the list is kept on this phone and set beside your followers. Nothing extra is asked of Instagram. Turn it off and it stops at once.	每次你打開誰看過你的某則限時動態，名單就會保留在這支手機上，並和你的粉絲放在一起對照。不會向 Instagram 多要任何東西。關閉後會立刻停止。
+# context: Stories > Keep story viewers, the switch for a search bar HushGram adds to Instagram's list of who viewed your story, and the bar's own words.
+Search bar in the viewer list	觀看者名單中的搜尋列
+Puts a Search viewers bar at the top of the list of who viewed your story. It searches the viewers kept on this phone, the ones Instagram has listed so far.	在看過你限時動態的名單頂端加上「搜尋觀看者」列。它會搜尋這支手機上保留的觀看者，也就是 Instagram 目前已列出的人。
+Search viewers	搜尋觀看者
 Story viewers	限時動態觀看者
 Nothing here yet. With Keep story viewers on, open who viewed one of your stories in Instagram and the list is kept here.	這裡還沒有東西。開啟「保留限時動態觀看者」後，在 Instagram 打開誰看過你的某則限時動態，名單就會保留在這裡。
 %1$d story kept since %2$s. Tap to see who viewed it and who has no view recorded.	自 %2$s 起保留了 %1$d 則限時動態。點一下即可查看誰看過，以及誰沒有記錄到觀看。

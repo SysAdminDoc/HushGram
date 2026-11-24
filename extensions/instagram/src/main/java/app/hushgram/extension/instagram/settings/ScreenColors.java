@@ -141,6 +141,14 @@ public final class ScreenColors {
     }
 
     /**
+     * Instagram's own colours for something put on one of its screens shown in [context], dark or
+     * light as that screen is, such as the Search viewers bar in a story's viewer list (#833).
+     */
+    static ScreenColors instagramFor(Context context) {
+        return night(context) ? INSTAGRAM_DARK : INSTAGRAM_LIGHT;
+    }
+
+    /**
      * From the settings screen and the shortcut's cover, with the Instagram screen they show over,
      * so Instagram settings page goes dark or light as Instagram is (#797). Instagram's own Dark
      * mode setting reaches its screens, not always the app's context.

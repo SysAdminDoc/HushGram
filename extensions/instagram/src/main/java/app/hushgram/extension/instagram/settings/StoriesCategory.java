@@ -292,6 +292,9 @@ final class StoriesCategory {
             stories.add(toggle(context, Settings.STORY_VIEWERS, L10n.t("Keep story viewers"),
                     L10n.t("Each time you open who viewed one of your stories, the list is kept on this phone and set "
                             + "beside your followers. Nothing extra is asked of Instagram. Turn it off and it stops at once.")));
+            stories.add(toggle(context, Settings.STORY_VIEWERS_SEARCH, L10n.t("Search bar in the viewer list"),
+                    L10n.t("Puts a Search viewers bar at the top of the list of who viewed your story. It searches "
+                            + "the viewers kept on this phone, the ones Instagram has listed so far.")));
             Preference viewers = storyViewersRow(context);
             stories.add(viewers);
             HushgramPreferenceFragment.Row clear = new HushgramPreferenceFragment.Row(context);

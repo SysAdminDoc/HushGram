@@ -382,6 +382,8 @@
         "extensions/instagram/src/test/java/app/hushgram/extension/instagram/stories/StoryViewersRows.java",
         "extensions/instagram/src/main/java/app/hushgram/extension/instagram/settings/StoryViewersPage.java",
         "extensions/instagram/src/test/java/app/hushgram/extension/instagram/settings/StoryViewersSettingsTest.java",
+        "extensions/instagram/src/main/java/app/hushgram/extension/instagram/settings/StoryViewerSearch.java",
+        "extensions/instagram/src/test/java/app/hushgram/extension/instagram/settings/StoryViewerSearchTest.java",
         "patches/src/main/kotlin/app/morphe/patches/instagram/stories/viewers/KeepStoryViewersPatch.kt",
         "patches/src/test/kotlin/app/morphe/patches/instagram/stories/viewers/KeepStoryViewersHookTest.kt",
         "extensions/instagram/src/main/java/app/hushgram/extension/instagram/download/ProfilePictureViewer.java",

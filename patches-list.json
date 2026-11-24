@@ -4369,7 +4369,7 @@
     },
     {
       "name": "Keep story viewers",
-      "description": "Keeps a list on your phone of who viewed each of your stories, from the viewer list Instagram already shows you, and sets it beside your followers. Nothing extra is asked of Instagram. Starts off. Turn it on in HushGram settings > Stories.",
+      "description": "Keeps a list on your phone of who viewed each of your stories, from the viewer list Instagram already shows you, and sets it beside your followers. It can also put a search bar back on that viewer list. Nothing extra is asked of Instagram. Starts off. Turn it on in HushGram settings > Stories.",
       "category": "Downloads",
       "use": true,
       "dependencies": [

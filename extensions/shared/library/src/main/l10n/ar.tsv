@@ -589,6 +589,10 @@ Drop quality to keep playing	خفض الجودة لمتابعة التشغيل
 Dusk blue	أزرق الغسق
 Each save goes into a folder named for the account that posted it, inside the save folder. A save that doesn't know who posted stays in the save folder.	يذهب كل حفظ إلى مجلد مسمى باسم الحساب الذي نشره، داخل مجلد الحفظ. والحفظ الذي لا يعرف من نشره يبقى في مجلد الحفظ.
 Each time you open who viewed one of your stories, the list is kept on this phone and set beside your followers. Nothing extra is asked of Instagram. Turn it off and it stops at once.	في كل مرة تفتح قائمة من شاهدوا إحدى قصصك، تُحفظ القائمة على هذا الهاتف وتُعرض بجانب متابعيك. لا يُطلب شيء إضافي من Instagram. أطفئه فيتوقف فورًا.
+# context: Stories > Keep story viewers, the switch for a search bar HushGram adds to Instagram's list of who viewed your story, and the bar's own words.
+Search bar in the viewer list	شريط بحث في قائمة المشاهدين
+Puts a Search viewers bar at the top of the list of who viewed your story. It searches the viewers kept on this phone, the ones Instagram has listed so far.	يضع شريط «ابحث في المشاهدين» أعلى قائمة من شاهد قصتك. يبحث في المشاهدين المحفوظين على هذا الهاتف، أي الذين أدرجهم Instagram حتى الآن.
+Search viewers	ابحث في المشاهدين
 Each time you scroll your own Followers list to the end, compares it with the last time and lists who's gone. Nothing extra is asked of Instagram, and the list stays on your phone.	في كل مرة تصل بنهاية قائمة متابعيك، تُقارن بآخر مرة وتُسرد من غادر. لا يُطلب شيء إضافي من Instagram، وتبقى القائمة على هاتفك.
 Each video saves at %1$s or the closest quality below it. A video with nothing that low saves at the closest quality above.	يُحفظ كل فيديو بدقة %1$s أو بأقرب جودة أقل منها. وإذا لم تتوفر جودة بهذا الانخفاض، يُحفظ بأقرب جودة أعلى.
 Each video saves at its lowest quality, for the smallest file.	يُحفظ كل فيديو بأدنى جودة له، لأصغر ملف.

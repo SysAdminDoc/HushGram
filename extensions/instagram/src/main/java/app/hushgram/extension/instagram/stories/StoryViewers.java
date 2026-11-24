@@ -242,6 +242,8 @@ public final class StoryViewers {
     private static final Map<String, String> NAMES = new HashMap<>();
     private static long since;
     private static File loadedFrom;
+    /** The story Instagram listed viewers of last in this process, null before any. */
+    @Nullable private static String lastKept;
 
     private static final class Kept {
         final String id;
@@ -406,6 +408,7 @@ public final class StoryViewers {
         Context application = context.getApplicationContext() != null ? context.getApplicationContext() : context;
         synchronized (LOCK) {
             load(application);
+            lastKept = page.story;
             boolean changed = false;
             Kept story = STORIES.get(page.story);
             if (story == null) {
@@ -498,6 +501,42 @@ public final class StoryViewers {
         return byUsername != 0 ? byUsername : a.id.compareTo(b.id);
     }
 
+    /**
+     * Which kept story a viewer list showing [usernames] is of (#833): the one whose kept viewers
+     * hold most of them, on a tie the one Instagram listed viewers of last, then the newest. With
+     * none of them kept anywhere, the one listed last, or null when that isn't kept either.
+     */
+    @Nullable
+    public static String storyListing(Context context, List<String> usernames) {
+        Context application = context.getApplicationContext() != null ? context.getApplicationContext() : context;
+        Set<String> shown = new HashSet<>();
+        for (String name : usernames) {
+            if (name != null && !name.trim().isEmpty()) shown.add(name.trim().toLowerCase(Locale.ROOT));
+        }
+        synchronized (LOCK) {
+            load(application);
+            Kept best = null;
+            int most = 0;
+            for (Kept story : STORIES.values()) {
+                int matches = 0;
+                for (String viewer : story.viewers) {
+                    String name = NAMES.get(viewer);
+                    if (name != null && shown.contains(name.toLowerCase(Locale.ROOT))) matches++;
+                }
+                if (matches == 0) continue;
+                boolean better = best == null || matches > most
+                        || (matches == most && !best.id.equals(lastKept)
+                                && (story.id.equals(lastKept) || story.posted > best.posted));
+                if (better) {
+                    best = story;
+                    most = matches;
+                }
+            }
+            if (best != null) return best.id;
+            return lastKept != null && STORIES.containsKey(lastKept) ? lastKept : null;
+        }
+    }
+
     /** How many stories are kept. */
     public static int count(Context context) {
         Context application = context.getApplicationContext() != null ? context.getApplicationContext() : context;
@@ -517,6 +556,7 @@ public final class StoryViewers {
                 STORIES.clear();
                 NAMES.clear();
                 since = 0;
+                lastKept = null;
                 loadedFrom = file;
                 File work = new File(file.getParentFile(), FILE + ".tmp");
                 if (work.exists() && !work.delete()) return false;
@@ -607,6 +647,7 @@ public final class StoryViewers {
             NAMES.clear();
             since = 0;
             loadedFrom = null;
+            lastKept = null;
         }
         reads = PATCHED;
     }

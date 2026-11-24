@@ -2741,6 +2741,10 @@ Hold a finger on the liquid pill's bubble, or slide it across the tabs, and the 
 # context: Keep story viewers, its Stories settings rows and the Story viewers page.
 Keep story viewers	스토리 조회자 보관
 Each time you open who viewed one of your stories, the list is kept on this phone and set beside your followers. Nothing extra is asked of Instagram. Turn it off and it stops at once.	내 스토리를 누가 봤는지 열 때마다 그 목록이 이 휴대폰에 보관되고 팔로워 옆에 나란히 놓입니다. Instagram에 추가로 요청하는 것은 없습니다. 끄면 바로 멈춥니다.
+# context: Stories > Keep story viewers, the switch for a search bar HushGram adds to Instagram's list of who viewed your story, and the bar's own words.
+Search bar in the viewer list	조회자 목록의 검색창
+Puts a Search viewers bar at the top of the list of who viewed your story. It searches the viewers kept on this phone, the ones Instagram has listed so far.	내 스토리를 본 사람 목록 맨 위에 조회자 검색 창을 넣습니다. 이 휴대폰에 보관된 조회자, 즉 Instagram이 지금까지 보여 준 조회자 중에서 검색합니다.
+Search viewers	조회자 검색
 Story viewers	스토리 조회자
 Nothing here yet. With Keep story viewers on, open who viewed one of your stories in Instagram and the list is kept here.	아직 없습니다. 스토리 조회자 보관을 켠 상태에서 Instagram에서 내 스토리를 누가 봤는지 열면 목록이 여기에 보관됩니다.
 %1$d story kept since %2$s. Tap to see who viewed it and who has no view recorded.	%2$s부터 스토리 %1$d개를 보관했습니다. 누가 봤는지, 조회 기록이 없는 사람은 누구인지 보려면 누르세요.

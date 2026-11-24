@@ -5414,6 +5414,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_story_viewers", FALSE);
 
     /**
+     * Under {@link #STORY_VIEWERS}: the list of who viewed one of your stories gets a Search viewers
+     * bar at its top (#833), as Instagram's own list had before its search asked for a subscription.
+     * It searches the viewers kept on this phone. Off to start.
+     */
+    public static final BooleanSetting STORY_VIEWERS_SEARCH =
+            new BooleanSetting("hushgram_story_viewers_search", FALSE, parent(STORY_VIEWERS));
+
+    /**
      * The name a saved video gets: {date}, {video_id}, {owner} and {posted} fill in per save, the
      * last three only when the save knows them, and the default is IG_VID_ and the date and time.
      * Photos keep their IG_IMG_ names. Cleaned like the folder wherever it's read

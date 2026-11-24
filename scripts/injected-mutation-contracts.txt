@@ -4567,6 +4567,13 @@ once-call Lapp/hushgram/extension/instagram/direct/OnlineHistory;->received(Ljav
 # answer every page of viewers comes back in.
 start-call Lapp/hushgram/extension/instagram/stories/StoryViewers;->listed(Ljava/lang/Object;Ljava/lang/Object;)V in instance (Ljava/lang/Object;)V pooled holding fetched_ig_viewers_count total_viewer_count
 once-call Lapp/hushgram/extension/instagram/stories/StoryViewers;->listed(Ljava/lang/Object;Ljava/lang/Object;)V in instance (Ljava/lang/Object;)V pooled holding fetched_ig_viewers_count total_viewer_count
+# A story's viewer list makes each row in a class whose (int, ViewGroup)View maker loads the row's
+# layout (story_viewers_list_interaction_row, 0x7f0e1618 on 457; 0YXO.createView on 386314341), and
+# binds it in that class's one (int, View, Object, Object)V bindView. Keep story viewers hands the
+# row's view to StoryViewerSearch.row first thing there, which puts the Search viewers bar on the
+# row's list. Left out, the list gets no bar with Search bar in the viewer list on (#833).
+# ViewerSearchBarTest checks every build.
+start-call Lapp/hushgram/extension/instagram/settings/StoryViewerSearch;->row(Landroid/view/View;)V in instance (ILandroid/view/View;Ljava/lang/Object;Ljava/lang/Object;)V class-holding const:0x7f0e1618
 # Don't send feed view history (#664). The two static methods that add feed_view_info to a Home request
 # (feed/timeline/), one taking the context, two objects and the session and the other the context, one
 # object and the session (03aR.A01 and 0Ago.A00 on 455), each hand the record they read for it to
