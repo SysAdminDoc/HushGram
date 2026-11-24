@@ -1006,6 +1006,13 @@ class DownloadVideoHookTest {
         }
         val lithoTypes = (rowBuilders.map { it.definingClass } + rowComposers.map { it.definingClass } + specs).filter { type -> classes.none { it.type == type } }.toSet()
         if (lithoTypes.isNotEmpty()) classes += FixtureDex.classes(bundle, lithoTypes).values
+        // The drawable Save's icon spec draws its glyph with, and the class it extends (#840).
+        val iconTypes = classes.filter { it.type in specs }.flatMap { it.methods }.flatMap { it.code() }
+            .mapNotNull { (it as? ReferenceInstruction)?.reference as? MethodReference }
+            .filter { it.name == "<init>" && it.parameterTypes.size == 6 && it.parameterTypes[0].toString() == "Landroid/content/Context;" }
+            .map { it.definingClass }
+        load(bundle, classes, iconTypes)
+        load(bundle, classes, classes.filter { it.type in iconTypes }.mapNotNull { it.superclass })
         // Save's modifier and the styles the builder gives it, then what the modifier is made of: its
         // part, its empty one, and the parts and kinds the styles (and the calls they make) build.
         val modifiers = rowBuilders.flatMap { it.code() }.mapNotNull { (it as? ReferenceInstruction)?.reference as? MethodReference }
@@ -1031,7 +1038,8 @@ class DownloadVideoHookTest {
         val page = context.offerDownloadOnEveryVideo()
         if (hide == HideRow.AFTER) requireNotNull(context.hideAccountRowOrWarn()) { "$label: no row found after Download" }.write()
         assertFeedDownloadButton(context, page, label)
-        assertLithoDownloadButton(context, page, label)
+        val litho = assertLithoDownloadButton(context, page, label)
+        assertRowIconsKeepTheirSize(context, litho, label)
 
         // Copy caption reads Media's caption, then the comment's text through its interface,
         // by the name the tree-backed class that holds the text's hash gives the getter.
@@ -1216,7 +1224,7 @@ class DownloadVideoHookTest {
      * carrying the list, the spec and the state, each still holding what the hook reads. The bridges
      * go through the build's own post and feed state fields and its own modifier styles.
      */
-    private fun assertLithoDownloadButton(context: BytecodePatchContext, page: PageIndex, label: String) {
+    private fun assertLithoDownloadButton(context: BytecodePatchContext, page: PageIndex, label: String): LithoSaveSite {
         val button = context.findFeedButtonSite(page)
         val site = context.findLithoSaveSite(button, page)
         context.addLithoDownloadButton(site)
@@ -1251,6 +1259,34 @@ class DownloadVideoHookTest {
             instructions.any { (it as? NarrowLiteralInstruction)?.narrowLiteral == SAVE_BUTTON_ID }
         }
         assertDownloadModifierHasNoneOfSavesOwnParts(context, site, saveCode, label)
+        return site
+    }
+
+    /**
+     * #840: in each build Save's icon spec makes one drawable for its glyph, whose superclass hands
+     * the glyph the box in its bounds change. The hook goes in there first, once: instance-of tells
+     * the row's drawable from any other of the class, the call takes this, the bounds and that answer,
+     * and its answer is the bounds the glyph is then given.
+     */
+    private fun assertRowIconsKeepTheirSize(context: BytecodePatchContext, site: LithoSaveSite, label: String) {
+        val icons = requireNotNull(context.findRowIconBounds(site.specType)) { "$label: no row icon drawable found" }
+        assertEquals("$label: the drawable extends the class hooked", icons.wrapperType, context.classDefBy(icons.iconType).superclass)
+        context.keepRowIconsAtTheirSize(icons)
+        val method = context.method(icons.wrapperType, "onBoundsChange", listOf("Landroid/graphics/Rect;"))
+        val code = method.code()
+        val locals = method.implementation!!.registerCount - 2
+        val (self, bounds) = locals to locals + 1
+        assertEquals("$label: one hook", 1, code.count { it.referenceText() == ICON_BOUNDS })
+        val instanceOf = code[0] as TwoRegisterInstruction
+        assertEquals("$label: first, the row's own drawable", Opcode.INSTANCE_OF to icons.iconType, code[0].opcode to code[0].referenceText())
+        assertEquals("$label: asked of this", self, instanceOf.registerB)
+        val call = code[1] as Instruction35c
+        assertEquals("$label: then the hook", ICON_BOUNDS, call.referenceText())
+        assertEquals("$label: this, the bounds and the answer", listOf(self, bounds, instanceOf.registerA), listOf(call.registerC, call.registerD, call.registerE))
+        assertEquals("$label: its answer replaces the bounds", Opcode.MOVE_RESULT_OBJECT to bounds, code[2].opcode to (code[2] as OneRegisterInstruction).registerA)
+        val handed = code.single { it.referenceText() == "Landroid/graphics/drawable/Drawable;->setBounds(Landroid/graphics/Rect;)V" } as Instruction35c
+        assertEquals("$label: the glyph gets the hook's answer", bounds, handed.registerD)
+        assertTrue("$label: low registers", listOf(self, bounds, instanceOf.registerA).all { it < 16 })
     }
 
     /**

@@ -17,6 +17,9 @@ import android.content.ContextWrapper;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.Rect;
+import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.Drawable;
 import android.os.LocaleList;
 import android.view.Gravity;
 import android.view.View;
@@ -326,6 +329,56 @@ public class FeedDownloadButtonTest {
         Settings.DOWNLOAD_PHOTOS.save(true);
         FeedDownloadButton.bind(save, "post", "state", activity);
         assertEquals("photos alone", View.VISIBLE, button.getVisibility());
+    }
+
+    /**
+     * #840: a row icon mounted without Litho's centering matrix gets its whole box, and Instagram's
+     * glyph stretched to fill it. The boxes are Share's and Save's in the S25's row (68 px glyphs):
+     * the glyph keeps its 68 px in the middle of each.
+     */
+    @Test
+    public void aRowIconInABiggerBoxKeepsTheGlyphAtItsOwnSizeInTheMiddle() {
+        Drawable icon = sized(68, 68);
+        assertEquals("Share's box, the glyph's width and the row's height",
+                new Rect(639, 1747, 707, 1815), FeedDownloadButton.iconBounds(icon, new Rect(639, 1717, 707, 1846), 1));
+        assertEquals("Save's box", new Rect(978, 1742, 1046, 1810), FeedDownloadButton.iconBounds(icon, new Rect(950, 1717, 1074, 1835), 1));
+        assertEquals("narrower than the glyph, taller too", new Rect(0, 16, 40, 84), FeedDownloadButton.iconBounds(icon, new Rect(0, 0, 40, 100), 1));
+    }
+
+    @Test
+    public void aRowIconThatFitsItsBoxOrIsNoRowIconKeepsTheBoxItGot() {
+        Drawable icon = sized(68, 68);
+        Rect matrixed = new Rect(0, 0, 68, 68);
+        assertSame("drawn at its size through Litho's matrix", matrixed, FeedDownloadButton.iconBounds(icon, matrixed, 1));
+        Rect smaller = new Rect(0, 0, 40, 40);
+        assertSame("a box smaller than the glyph", smaller, FeedDownloadButton.iconBounds(icon, smaller, 1));
+        Rect box = new Rect(950, 1717, 1074, 1835);
+        assertSame("another drawable of the class", box, FeedDownloadButton.iconBounds(icon, box, 0));
+        assertSame("a glyph with no size of its own", box, FeedDownloadButton.iconBounds(sized(-1, -1), box, 1));
+        assertNull(FeedDownloadButton.iconBounds(icon, null, 1));
+
+        Settings.FEED_DOWNLOAD_BUTTON.save(false);
+        assertSame("the switch off", box, FeedDownloadButton.iconBounds(icon, box, 1));
+        Settings.FEED_DOWNLOAD_BUTTON.save(true);
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertSame("paused", box, FeedDownloadButton.iconBounds(icon, box, 1));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        assertEquals("back on", new Rect(978, 1742, 1046, 1810), FeedDownloadButton.iconBounds(icon, box, 1));
+    }
+
+    /** A drawable of [width] by [height] pixels, or of no size of its own for -1. */
+    private static Drawable sized(int width, int height) {
+        return new ColorDrawable(0xFF000000) {
+            @Override public int getIntrinsicWidth() {
+                return width;
+            }
+
+            @Override public int getIntrinsicHeight() {
+                return height;
+            }
+        };
     }
 
     @Test

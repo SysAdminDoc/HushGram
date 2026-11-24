@@ -179,9 +179,11 @@ val downloadVideoPatch = bytecodePatch(
         val page = offerDownloadOnEveryVideo()
         val button = findFeedButtonSite(page)
         val litho = findLithoSaveSite(button, page)
+        val icons = findRowIconBounds(litho.specType)
         val hold = findHoldSites(page.index.definingClass)
         addFeedDownloadButton(button)
         addLithoDownloadButton(litho)
+        icons?.let { keepRowIconsAtTheirSize(it) }
         addHoldToDownload(hold)
         addFeedPostRows(page)
         enableStatus("videoDownload")

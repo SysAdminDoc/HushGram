@@ -16,6 +16,7 @@ import app.morphe.patches.instagram.misc.extension.classesLoading
 import app.morphe.patches.instagram.misc.extension.freeLocalsAt
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
 import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
+import app.morphe.patches.instagram.misc.extension.patchLog
 import app.morphe.patches.instagram.misc.extension.requireLocals
 import app.morphe.patches.instagram.misc.settings.EXTENSION_ROOT
 import app.morphe.patches.instagram.share.findFeedUfiSite
@@ -685,6 +686,82 @@ internal fun BytecodePatchContext.addLithoDownloadButton(site: LithoSaveSite) {
             iget-boolean v7, p0, ${site.flag}
             invoke-direct/range { v1 .. v7 }, ${site.specConstructor}
             return-object v1
+        """,
+    )
+}
+
+// Row icons kept at their own size (#840).
+
+internal const val ICON_BOUNDS =
+    "$EXTENSION_PACKAGE/download/FeedDownloadButton;->iconBounds(Landroid/graphics/drawable/Drawable;Landroid/graphics/Rect;I)Landroid/graphics/Rect;"
+private const val CONTEXT = "Landroid/content/Context;"
+private const val RECT = "Landroid/graphics/Rect;"
+private const val SET_BOUNDS = "Landroid/graphics/drawable/Drawable;->setBounds(Landroid/graphics/Rect;)V"
+
+/**
+ * What draws a component row's icons: [iconType], the drawable Save's icon spec makes when it
+ * renders (from a Context, the theme holder, the tint, the glyph and color ids and the flag), and
+ * [wrapperType], its superclass, whose bounds change hands the glyph inside the whole box it gets.
+ */
+internal class RowIconBounds(val iconType: String, val wrapperType: String)
+
+/**
+ * The drawable behind the icons of the row Save's icon spec [specType] is in, and the bounds change
+ * the glyph's size is kept in. Null, with a warning, when the spec makes no such drawable or its
+ * superclass passes the bounds on some other way: the patch goes in all the same, and the icons
+ * are drawn as Instagram draws them.
+ */
+internal fun BytecodePatchContext.findRowIconBounds(specType: String): RowIconBounds? {
+    fun skip(detail: String): RowIconBounds? {
+        patchLog.warning("$PATCH: $detail. Download button on feed posts goes in, but Instagram's row icons can stretch to fill their boxes.")
+        return null
+    }
+    val spec = classDefByOrNull(specType) ?: return skip("$specType is missing")
+    val made = spec.methods.flatMap { method ->
+        method.implementation?.instructions?.mapNotNull { instruction ->
+            val call = instruction.calls() ?: return@mapNotNull null
+            call.definingClass.takeIf {
+                (instruction.opcode == Opcode.INVOKE_DIRECT || instruction.opcode == Opcode.INVOKE_DIRECT_RANGE) &&
+                    call.name == "<init>" && call.parameters().let { types ->
+                        types.size == 6 && types[0] == CONTEXT && types[2] == INTEGER && types[3] == "I" && types[4] == "I" && types[5] == "Z"
+                    }
+            }
+        } ?: emptyList()
+    }.distinct()
+    val iconType = made.singleOrNull()
+        ?: return skip("expected $specType to make one icon drawable (Context, theme, Integer, two ints, flag), found ${made.size}")
+    val wrapperType = classDefByOrNull(iconType)?.superclass ?: return skip("$iconType is missing")
+    val wrapper = classDefByOrNull(wrapperType) ?: return skip("$wrapperType is missing")
+    val bounds = wrapper.methods.filter { it.name == "onBoundsChange" && it.parameters() == listOf(RECT) && it.returnType == "V" }
+    val method = bounds.singleOrNull() ?: return skip("expected one bounds change in $wrapperType, found ${bounds.size}")
+    val code = method.implementation?.instructions?.toList() ?: return skip("$wrapperType's bounds change has no body")
+    val rect = method.parameterRegisterNumber(0)
+    val handed = code.filter { it.opcode == Opcode.INVOKE_VIRTUAL && it.calls()?.toString() == SET_BOUNDS }
+    if (handed.size != 1 || (handed[0] as FiveRegisterInstruction).registerD != rect) {
+        return skip("$wrapperType's bounds change doesn't hand its glyph the box it gets")
+    }
+    if (method.localRegisterCount() < 1) return skip("$wrapperType's bounds change has no local register")
+    if (rect > 15) return skip("$wrapperType's bounds change keeps its bounds past v15")
+    return RowIconBounds(iconType, wrapperType)
+}
+
+/**
+ * Hands the bounds of every icon [icons] finds through FeedDownloadButton.iconBounds first thing in
+ * its superclass's bounds change, with 1 for one of the row's icons and 0 for any other drawable of
+ * that class. The glyph then gets the box the extension answers. Nothing branches: the call takes
+ * the instance-of answer as an int, and its answer replaces the bounds parameter.
+ */
+internal fun BytecodePatchContext.keepRowIconsAtTheirSize(icons: RowIconBounds) {
+    val method = mutableClassDefBy(icons.wrapperType).methods.single {
+        it.name == "onBoundsChange" && it.parameters() == listOf(RECT) && it.returnType == "V"
+    }
+    method.requireLocals(PATCH, 1)
+    method.addInstructions(
+        0,
+        """
+            instance-of v0, p0, ${icons.iconType}
+            invoke-static { p0, p1, v0 }, $ICON_BOUNDS
+            move-result-object p1
         """,
     )
 }

@@ -2638,6 +2638,13 @@ once-call Lapp/hushgram/extension/instagram/feed/CommentAiLabel;->shown(I)Z in i
 # hook lands once, directly after the constructor, with the list, spec and row state still intact,
 # and that the icon's modifier leaves out every part of the two kinds Save's id is made in, which
 # cover Save's mount binder (the view-interaction tracker) and its selected state.
+# The same patch keeps the row's icons at their own size (#840): the bounds change of the class the
+# icon spec's glyph drawable extends (07f8.onBoundsChange on 457, whose one subclass is that
+# drawable, 04KJ) calls FeedDownloadButton.iconBounds first thing, with this, the bounds and an
+# instance-of answer, and hands the glyph what it returns. No rule, for the same reason: the class is
+# picked by the constructor the icon spec calls, and it holds no string. DownloadVideoHookTest checks
+# on every build the fixtures hold that the hook lands once, first, with those three registers, and
+# that the glyph's setBounds reads its answer.
 # Hide the Share button passes the same state's Share button flag and share count flag through
 # ShareButton.feedState the same way, with no rule for the same reason. Its Reels guard is first in
 # the check that decides whether a reel shows the Share button, and in no other method. 456 dropped

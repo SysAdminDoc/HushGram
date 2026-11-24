@@ -92,6 +92,7 @@ public final class FeedDownloadButton {
     private static final String COUNT_LITHO_PLACED = "feed button placed (litho row)";
     private static final String COUNT_LITHO_REFUSED = "feed button not placed (litho row)";
     private static final String COUNT_TYPE_OFF = "feed button left off a post whose type is switched off";
+    private static final String COUNT_ICON_KEPT = "row icon kept at its own size";
     /** Instagram's download glyphs, by resource name since the numbers change; the first one found is used. */
     private static final String[] ICON_NAMES = {"instagram_download_outline_24", "instagram_download_pano_outline_24"};
     /** The theme attribute Instagram colors its action-row icons with; looked up by name since the numbers change. */
@@ -328,6 +329,37 @@ public final class FeedDownloadButton {
     public static Object lithoIcon(Object save, Object modifier, Object click, Object consume, int id,
                                    CharSequence description, int drawable) {
         return null;
+    }
+
+    /**
+     * The bounds an icon of a component row hands its glyph, from [bounds], the box its component
+     * got (#840). Litho draws a row icon at the icon's own size, centered by a matrix it works out
+     * when it measures the icon. An icon mounted without that matrix gets the whole box instead, and
+     * Instagram's glyphs stretch to fill it: Share came out tall and Save wide in a row holding the
+     * Download icon. While the Download icon can show, a box bigger than the icon keeps the glyph at
+     * the icon's size in the middle of it. A box the icon fills or overflows, and an icon with no size
+     * of its own, are left as they are. The patch calls this first thing in the bounds change of the
+     * class Instagram's row icons extend, with [rowIcon] 1 when [icon] is one of them and 0 for any
+     * other drawable of that class, so it runs when an icon is mounted, not on every frame. Never
+     * throws.
+     */
+    public static Rect iconBounds(Drawable icon, Rect bounds, int rowIcon) {
+        try {
+            if (rowIcon == 0 || icon == null || bounds == null || !enabled()) return bounds;
+            int width = icon.getIntrinsicWidth();
+            int height = icon.getIntrinsicHeight();
+            if (width <= 0 || height <= 0) return bounds;
+            if (bounds.width() <= width && bounds.height() <= height) return bounds;
+            int keptWidth = Math.min(width, bounds.width());
+            int keptHeight = Math.min(height, bounds.height());
+            int left = bounds.left + (bounds.width() - keptWidth) / 2;
+            int top = bounds.top + (bounds.height() - keptHeight) / 2;
+            HookStatus.counted(FamilyNames.VIDEO_DOWNLOAD, COUNT_ICON_KEPT);
+            return new Rect(left, top, left + keptWidth, top + keptHeight);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.VIDEO_DOWNLOAD, "feed row icon bounds", failure);
+            return bounds;
+        }
     }
 
     /**
