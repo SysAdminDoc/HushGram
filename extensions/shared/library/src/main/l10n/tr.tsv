@@ -2154,6 +2154,9 @@ Full screen didn't open	Tam ekran açılmadı
 Stories fill the screen	Hikayeler ekranı doldursun
 # context: that switch's summary (#436)
 On a tall screen a story covers the whole screen, with the reply bar on top of it like on shorter phones, instead of a rounded card above the bar.	Uzun bir ekranda hikaye, çubuğun üstünde yuvarlak köşeli bir kart yerine daha kısa telefonlardaki gibi tüm ekranı kaplar ve yanıt çubuğu üstünde durur.
+Show the whole story	Hikayenin tamamını göster
+Whole story in the story menu	Hikaye menüsünde hikayenin tamamı
+Adds Show the whole story to the menu a story's three dots open while Stories fill the screen is on. A tap fits that story inside the screen until the next one. Fill the screen there fills it again.	Hikayeler ekranı doldursun açıkken bir hikayenin üç noktasının açtığı menüye Hikayenin tamamını göster seçeneğini ekler. Dokununca o hikaye, sonrakine kadar ekrana sığacak şekilde tamamen görünür. Aynı menüdeki Ekranı doldur onu yeniden ekranı dolduracak hale getirir.
 # context: a button in the select-text window that copies the whole text (#492)
 Copy all	Tümünü kopyala
 # context: toast after Copy all in the select-text window (#492)

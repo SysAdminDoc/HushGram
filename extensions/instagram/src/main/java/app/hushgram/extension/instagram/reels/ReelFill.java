@@ -302,6 +302,7 @@ public final class ReelFill {
     public static int storyBound(Object holder, int sharedReel) {
         try {
             if (holder == null) return 0;
+            StoryWhole.bound(holder);
             SHARED_REELS.put(holder, sharedReel != 0);
             if (!Utils.settingsReady() || !Settings.FILL_STORY_SCREEN.get()) return 0;
             HookStatus.counted(FamilyNames.FULL_SCREEN_BARS, COUNT_STORY_BOUND);
@@ -326,29 +327,19 @@ public final class ReelFill {
             if (holder == null || !(frame instanceof View)) return;
             if (!Utils.settingsReady() || !Settings.FILL_STORY_SCREEN.get()) return;
             View view = (View) frame;
+            boolean whole = StoryWhole.laidOut(holder, view);
             Boolean bound = SHARED_REELS.get(holder);
             if (Boolean.TRUE.equals(bound)) {
                 SHARED_FRAMES.put(view, Boolean.TRUE);
             } else if (bound != null) {
                 SHARED_FRAMES.remove(view);
             }
-            if (!SHARED_FRAMES.containsKey(view)) return;
-            int roomWidth = 0;
-            int roomHeight = 0;
-            if (view.getParent() instanceof View) {
-                View room = (View) view.getParent();
-                roomWidth = room.getWidth();
-                roomHeight = room.getHeight();
+            if (!SHARED_FRAMES.containsKey(view)) {
+                // A story Show the whole story in its menu fitted keeps its whole frame (#845).
+                if (whole) frameWhole(view);
+                return;
             }
-            if (roomWidth <= 0 || roomHeight <= 0) {
-                // Not laid out yet when it first binds: the viewer takes the whole screen.
-                DisplayMetrics screen = view.getResources().getDisplayMetrics();
-                roomWidth = screen.widthPixels;
-                roomHeight = screen.heightPixels;
-            }
-            if (roomWidth <= 0 || roomHeight <= 0) return;
-            int[] size = wholeFrame(roomWidth, roomHeight);
-            view.setLayoutParams(new FrameLayout.LayoutParams(size[0], size[1], Gravity.CENTER));
+            if (!frameWhole(view)) return;
             HookStatus.counted(FamilyNames.FULL_SCREEN_BARS, COUNT_SHARED_REEL);
             if (!loggedSharedReel) {
                 loggedSharedReel = true;
@@ -363,6 +354,31 @@ public final class ReelFill {
      * The width and height of a 9:16 frame as big as fits [roomWidth] by [roomHeight]: the room's whole
      * width on a taller room, its whole height on a wider one, MATCH_PARENT for the side it fills.
      */
+    /**
+     * Gives [view], a story frame, a 9:16 shape as wide as the room holding it, centered with a band
+     * above and below, or the room's full height on a screen wider than 9:16 ({@link #wholeFrame}). A
+     * room not laid out yet, as when a story first binds, goes by the screen, which the viewer takes.
+     * False when there's no size to go by.
+     */
+    static boolean frameWhole(View view) {
+        int roomWidth = 0;
+        int roomHeight = 0;
+        if (view.getParent() instanceof View) {
+            View room = (View) view.getParent();
+            roomWidth = room.getWidth();
+            roomHeight = room.getHeight();
+        }
+        if (roomWidth <= 0 || roomHeight <= 0) {
+            DisplayMetrics screen = view.getResources().getDisplayMetrics();
+            roomWidth = screen.widthPixels;
+            roomHeight = screen.heightPixels;
+        }
+        if (roomWidth <= 0 || roomHeight <= 0) return false;
+        int[] size = wholeFrame(roomWidth, roomHeight);
+        view.setLayoutParams(new FrameLayout.LayoutParams(size[0], size[1], Gravity.CENTER));
+        return true;
+    }
+
     static int[] wholeFrame(int roomWidth, int roomHeight) {
         if ((long) roomWidth * 16 <= (long) roomHeight * 9) {
             return new int[] {ViewGroup.LayoutParams.MATCH_PARENT, Math.round(roomWidth / REEL_SHAPE)};

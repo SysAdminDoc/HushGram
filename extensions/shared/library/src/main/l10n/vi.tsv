@@ -2069,6 +2069,9 @@ Full screen didn't open	Không mở được toàn màn hình
 Stories fill the screen	Tin lấp đầy màn hình
 # context: that switch's summary (#436)
 On a tall screen a story covers the whole screen, with the reply bar on top of it like on shorter phones, instead of a rounded card above the bar.	Trên màn hình dài, tin phủ kín toàn màn hình với thanh trả lời nằm trên, như trên điện thoại ngắn hơn, thay vì một thẻ bo góc phía trên thanh.
+Show the whole story	Hiện toàn bộ tin
+Whole story in the story menu	Toàn bộ tin trong menu tin
+Adds Show the whole story to the menu a story's three dots open while Stories fill the screen is on. A tap fits that story inside the screen until the next one. Fill the screen there fills it again.	Thêm Hiện toàn bộ tin vào menu mà dấu ba chấm của tin mở ra khi Tin lấp đầy màn hình đang bật. Chạm một lần để tin đó hiện trọn trong màn hình cho đến tin tiếp theo. Lấp đầy màn hình trong cùng menu sẽ lấp đầy lại.
 # context: a button in the select-text window that copies the whole text (#492)
 Copy all	Sao chép tất cả
 # context: toast after Copy all in the select-text window (#492)

@@ -2154,6 +2154,9 @@ Full screen didn't open	Layar penuh tidak terbuka
 Stories fill the screen	Cerita memenuhi layar
 # context: that switch's summary (#436)
 On a tall screen a story covers the whole screen, with the reply bar on top of it like on shorter phones, instead of a rounded card above the bar.	Di layar yang tinggi, cerita menutupi seluruh layar dengan bilah balasan di atasnya seperti di ponsel yang lebih pendek, bukan kartu membulat di atas bilah.
+Show the whole story	Tampilkan cerita utuh
+Whole story in the story menu	Cerita utuh di menu cerita
+Adds Show the whole story to the menu a story's three dots open while Stories fill the screen is on. A tap fits that story inside the screen until the next one. Fill the screen there fills it again.	Menambahkan Tampilkan cerita utuh ke menu yang dibuka tiga titik cerita selama Cerita memenuhi layar aktif. Sekali ketuk, cerita itu tampil utuh di layar sampai cerita berikutnya. Penuhi layar di menu yang sama membuatnya memenuhi layar lagi.
 # context: a button in the select-text window that copies the whole text (#492)
 Copy all	Salin semua
 # context: toast after Copy all in the select-text window (#492)

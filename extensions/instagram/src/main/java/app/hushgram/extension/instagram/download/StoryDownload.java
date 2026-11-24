@@ -25,6 +25,7 @@ import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.instagram.stories.StoryCopyText;
 import app.hushgram.extension.instagram.stories.StoryListHold;
+import app.hushgram.extension.instagram.reels.StoryWhole;
 import app.hushgram.extension.instagram.stories.StoryLoop;
 import app.hushgram.extension.instagram.stories.StoryPriority;
 import app.hushgram.extension.instagram.stories.StorySpeed;
@@ -151,7 +152,7 @@ public final class StoryDownload {
             HookStatus.invoked(FamilyNames.STORY_DOWNLOAD);
             if (labels == null) return labels;
             Object menu = building.get();
-            return withPriority(withCopyText(withSpeed(withLoop(on() ? labels(labels, rows(menu)) : labels, menu), menu), menu), menu);
+            return withWhole(withPriority(withCopyText(withSpeed(withLoop(on() ? labels(labels, rows(menu)) : labels, menu), menu), menu), menu));
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.STORY_DOWNLOAD, "story menu", t);
             return labels;
@@ -184,6 +185,24 @@ public final class StoryDownload {
         String priority = priorityLabel(menu);
         if (priority == null || MenuItems.hidesOwn("PRIORITY") || hasPriority(Arrays.asList(labels))) return labels;
         return plus(labels, priority);
+    }
+
+    /**
+     * [labels] with Show the whole story at the end, or Fill the screen while the story shows whole,
+     * when the story on screen gets it (#845).
+     */
+    private static CharSequence[] withWhole(CharSequence[] labels) {
+        String whole = StoryWhole.menuLabel(Utils.getActivity());
+        if (whole == null || hasWhole(Arrays.asList(labels))) return labels;
+        return plus(labels, whole);
+    }
+
+    /** Whether [labels] has Show the whole story or Fill the screen already. */
+    private static boolean hasWhole(List<?> labels) {
+        for (Object label : labels) {
+            if (label instanceof CharSequence && StoryWhole.isMenuLabel((CharSequence) label)) return true;
+        }
+        return false;
     }
 
     private static CharSequence[] plus(CharSequence[] labels, String row) {
@@ -232,6 +251,8 @@ public final class StoryDownload {
             if (speed != null && !hasSpeed(labels)) labels.add(speed);
             String copy = copyTextLabel(menu);
             if (copy != null && !hasCopyText(labels)) labels.add(copy);
+            String whole = StoryWhole.menuLabel(Utils.getActivity());
+            if (whole != null && !hasWhole(labels)) labels.add(whole);
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.STORY_DOWNLOAD, "story menu", t);
         }
@@ -394,7 +415,8 @@ public final class StoryDownload {
      * Saves the story [menu] is open on when [label], the tapped one, is one of HushGram's rows and
      * the switch is on, and answers whether it did, in which case Instagram's handler is skipped. A
      * save that can't start says so. Loop this story loops the story instead, or takes its loop off,
-     * and Playback speed opens the speeds. Never throws.
+     * Playback speed opens the speeds, and Show the whole story fits the story inside the screen or
+     * fills it again. Never throws.
      */
     public static boolean save(CharSequence label, Object menu) {
         try {
@@ -413,6 +435,10 @@ public final class StoryDownload {
             }
             if (StoryCopyText.offersRow() && StoryCopyText.isMenuLabel(label)) {
                 StoryCopyText.copy(InstagramMedia.storyMedia(menu));
+                return true;
+            }
+            if (StoryWhole.offersRow() && StoryWhole.isMenuLabel(label)) {
+                StoryWhole.toggle(Utils.getActivity());
                 return true;
             }
             if (!on()) return false;

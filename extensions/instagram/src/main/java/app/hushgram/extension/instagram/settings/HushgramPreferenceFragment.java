@@ -911,6 +911,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     belongs |= family == PatchFamily.REEL_DOWNLOAD && Settings.REEL_BLOCK_BUTTON.key.equals(key);
                     belongs |= family == PatchFamily.REEL_DOWNLOAD && Settings.TEXT_BUTTON_ON_REELS.key.equals(key);
                     belongs |= family == PatchFamily.REEL_DOWNLOAD && Settings.WHOLE_REEL_IN_REEL_MENU.key.equals(key);
+                    belongs |= (family == PatchFamily.STORY_DOWNLOAD || family == PatchFamily.FULL_SCREEN_BARS)
+                            && Settings.WHOLE_STORY_IN_STORY_MENU.key.equals(key);
                     belongs |= (family == PatchFamily.REEL_DOWNLOAD || family == PatchFamily.KEEP_REEL_SPEED)
                             && (Settings.SPEED_BUTTON_ON_REELS.key.equals(key) || Settings.SPEED_IN_REEL_MENU.key.equals(key));
                     belongs |= (family == PatchFamily.REEL_DOWNLOAD || family == PatchFamily.REEL_AUTO_SCROLL)

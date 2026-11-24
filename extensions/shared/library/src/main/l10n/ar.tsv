@@ -1367,6 +1367,9 @@ On a carousel, the download icon saves all of its pages at once instead of askin
 On a foldable or tablet, Instagram keeps its phone layout across the whole screen, with the tab bar at the bottom instead of down the side. Restart Instagram to see the change.	على جهاز قابل للطي أو جهاز لوحي، يُبقي Instagram تخطيط الهاتف على كامل الشاشة، مع شريط التبويبات في الأسفل بدلًا من جانبه. أعد تشغيل Instagram لرؤية التغيير.
 On a phone under 1440 pixels wide, asks Instagram for photos sized for a wider screen. This uses more data. Restart Instagram to see the change.	على هاتف عرضه أقل من 1440 بكسل، يطلب من Instagram صورًا بحجم شاشة أوسع. يستهلك هذا بيانات أكثر. أعد تشغيل Instagram لرؤية التغيير.
 On a tall screen a story covers the whole screen, with the reply bar on top of it like on shorter phones, instead of a rounded card above the bar.	على شاشة طويلة، تغطي القصة كامل الشاشة، مع شريط الرد فوقها كما في الهواتف الأقصر، بدلًا من بطاقة مستديرة فوق الشريط.
+Show the whole story	إظهار القصة كاملة
+Whole story in the story menu	القصة الكاملة في قائمة القصة
+Adds Show the whole story to the menu a story's three dots open while Stories fill the screen is on. A tap fits that story inside the screen until the next one. Fill the screen there fills it again.	يضيف «إظهار القصة كاملة» إلى القائمة التي تفتحها النقاط الثلاث في القصة عندما يكون «تملأ القصص الشاشة» مفعّلاً. النقر عليه يُظهر تلك القصة كاملة داخل الشاشة حتى القصة التالية. و«ملء الشاشة» في القائمة نفسها يجعلها تملأ الشاشة من جديد.
 On comments	على التعليقات
 On messages	على الرسائل
 On posts	على المنشورات

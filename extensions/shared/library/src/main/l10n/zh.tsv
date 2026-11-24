@@ -2157,6 +2157,9 @@ Full screen didn't open	无法打开全屏幕
 Stories fill the screen	快拍填满屏幕
 # context: that switch's summary (#436)
 On a tall screen a story covers the whole screen, with the reply bar on top of it like on shorter phones, instead of a rounded card above the bar.	在较长的屏幕上，快拍会像在较短的手机上一样覆盖整个屏幕，回复栏叠在上方，而不是以圆角卡片显示在回复栏上方。
+Show the whole story	显示完整的快拍
+Whole story in the story menu	快拍菜单中的完整快拍
+Adds Show the whole story to the menu a story's three dots open while Stories fill the screen is on. A tap fits that story inside the screen until the next one. Fill the screen there fills it again.	在“快拍填满屏幕”开启时，于快拍三个点打开的菜单中加入“显示完整的快拍”。点一下，那条快拍会完整显示在屏幕内，直到下一条。在同一菜单点“填满屏幕”即可再次填满。
 # context: a button in the select-text window that copies the whole text (#492)
 Copy all	全部复制
 # context: toast after Copy all in the select-text window (#492)

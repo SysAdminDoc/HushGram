@@ -200,6 +200,9 @@ public final class ConfigurationBackup {
             if (PatchFamily.feedTypesInBuild()) settings.put(Settings.HIDE_LOW_VIEW_HOME.key, Settings.HIDE_LOW_VIEW_HOME);
         }
         if (PatchFamily.STORY_PRIORITY.inBuild()) settings.put(Settings.STORY_PRIORITY_ACCOUNTS.key, Settings.STORY_PRIORITY_ACCOUNTS);
+        if (PatchFamily.STORY_DOWNLOAD.inBuild() && PatchFamily.FULL_SCREEN_BARS.inBuild()) {
+            settings.put(Settings.WHOLE_STORY_IN_STORY_MENU.key, Settings.WHOLE_STORY_IN_STORY_MENU);
+        }
         if (PatchFamily.CALL_BLOCKER.inBuild()) {
             settings.put(Settings.CALL_BLOCK_MODE.key, Settings.CALL_BLOCK_MODE);
             settings.put(Settings.CALL_BLOCK_ACCOUNTS.key, Settings.CALL_BLOCK_ACCOUNTS);

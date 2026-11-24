@@ -2154,6 +2154,9 @@ Full screen didn't open	A tela cheia não abriu
 Stories fill the screen	Stories preenchem a tela
 # context: that switch's summary (#436)
 On a tall screen a story covers the whole screen, with the reply bar on top of it like on shorter phones, instead of a rounded card above the bar.	Em uma tela alta, o story cobre a tela inteira, com a barra de resposta por cima como em celulares mais curtos, em vez de um cartão arredondado acima da barra.
+Show the whole story	Mostrar o story inteiro
+Whole story in the story menu	Story inteiro no menu do story
+Adds Show the whole story to the menu a story's three dots open while Stories fill the screen is on. A tap fits that story inside the screen until the next one. Fill the screen there fills it again.	Adiciona Mostrar o story inteiro ao menu que os três pontinhos de um story abrem enquanto Stories preenchem a tela estiver ligado. Um toque mostra esse story inteiro na tela até o próximo. Preencher a tela, no mesmo menu, volta a preencher.
 # context: a button in the select-text window that copies the whole text (#492)
 Copy all	Copiar tudo
 # context: toast after Copy all in the select-text window (#492)

@@ -4867,6 +4867,14 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting WHOLE_REEL_IN_REEL_MENU = new BooleanSetting("hushgram_whole_reel_in_reel_menu", FALSE);
 
     /**
+     * A Show the whole story row in the menu a story's three dots open while Stories fill the screen is
+     * on, whose tap fits that one story inside the screen until the next story, and Fill the screen
+     * there fills it again (#845, {@link app.hushgram.extension.instagram.reels.StoryWhole}). Starts off,
+     * so the menu stays Instagram's own.
+     */
+    public static final BooleanSetting WHOLE_STORY_IN_STORY_MENU = new BooleanSetting("hushgram_whole_story_in_story_menu", FALSE);
+
+    /**
      * A Full screen icon in the column beside a reel whose tap turns on Instagram's own Full screen,
      * its clear mode, for that reel (#480). Starts off, so the column stays Instagram's own.
      */

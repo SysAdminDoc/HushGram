@@ -2141,6 +2141,9 @@ Full screen didn't open	ไม่สามารถเปิดแบบเต�
 Stories fill the screen	แสดงสตอรี่เต็มหน้าจอ
 # context: that switch's summary (#436)
 On a tall screen a story covers the whole screen, with the reply bar on top of it like on shorter phones, instead of a rounded card above the bar.	บนหน้าจอแบบยาว สตอรี่จะแสดงครอบคลุมเต็มทั้งหน้าจอ โดยแถบตอบกลับจะอยู่ด้านบนเหมือนบนโทรศัพท์หน้าจอปกติ แทนที่จะแสดงเป็นการ์ดขอบมนเหนือแถบ
+Show the whole story	แสดงสตอรี่ทั้งหมด
+Whole story in the story menu	สตอรี่ทั้งหมดในเมนูสตอรี่
+Adds Show the whole story to the menu a story's three dots open while Stories fill the screen is on. A tap fits that story inside the screen until the next one. Fill the screen there fills it again.	เพิ่ม แสดงสตอรี่ทั้งหมด ลงในเมนูที่เปิดจากจุดสามจุดของสตอรี่ ขณะที่เปิด แสดงสตอรี่เต็มหน้าจอ อยู่ แตะครั้งเดียวเพื่อแสดงสตอรี่นั้นทั้งหมดในหน้าจอจนถึงสตอรี่ถัดไป แตะ ปรับให้พอดีเต็มหน้าจอ ในเมนูเดียวกันเพื่อกลับไปเต็มหน้าจอ
 # context: a button in the select-text window that copies the whole text (#492)
 Copy all	คัดลอกทั้งหมด
 # context: toast after Copy all in the select-text window (#492)
