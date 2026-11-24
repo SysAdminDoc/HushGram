@@ -21,6 +21,7 @@ import app.morphe.patches.instagram.misc.extension.requireThisIntact
 import app.morphe.patches.instagram.misc.extension.stringLoadedAt
 import app.morphe.patches.instagram.misc.extension.uniqueMethod
 import app.morphe.patches.instagram.misc.settings.EXTENSION_ROOT
+import app.morphe.util.ControlFlow
 import app.morphe.util.entryReads
 import app.morphe.util.extendsClass
 import app.morphe.util.literalReads
@@ -332,9 +333,12 @@ private fun requireSendLeavesItsBatchAlone(send: Method, build: Int, batchClass:
     val where = "${send.definingClass}->${send.name}"
     val register = send.parameterRegisterNumber(0)
     val code = send.code()
+    // 457's send hands the batch to the request's success callback once the request is built, and
+    // only what can run before the request can change what it sends.
+    val beforeRequest = leadingTo(send, build)
     code.forEachIndexed { index, instruction ->
         val named = instruction.namedRegisters()
-        if (index == build || register !in named) return@forEachIndexed
+        if (index == build || index !in beforeRequest || register !in named) return@forEachIndexed
         val called = instruction.methodReference()
         if (instruction.opcode in IGETS) {
             if (!onlyAsked(code, index, register)) {
@@ -353,6 +357,19 @@ private fun requireSendLeavesItsBatchAlone(send: Method, build: Int, batchClass:
             refuse("$where hands its batch to ${called ?: instruction.opcode.name} at instruction $index, before the request, which may change what it sends") // opcode-name-ok
         }
     }
+}
+
+/** The instructions of [method] some path leads from to instruction [at], along a branch, a switch or a catch. */
+private fun leadingTo(method: Method, at: Int): Set<Int> {
+    val flow = try { ControlFlow.of(method) } catch (failure: IllegalArgumentException) {
+        refuse("${method.definingClass}->${method.name} has control flow the patch can't follow: ${failure.message}")
+    }
+    val into = Array(flow.instructions.size) { mutableListOf<Int>() }
+    for (from in flow.instructions.indices) for (to in flow.normal[from] + flow.exceptional[from]) into[to] += from
+    val reached = mutableSetOf<Int>()
+    val waiting = ArrayDeque(listOf(at))
+    while (waiting.isNotEmpty()) for (from in into[waiting.removeFirst()]) if (reached.add(from)) waiting += from
+    return reached
 }
 
 /**

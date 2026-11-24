@@ -9,6 +9,7 @@ import app.morphe.Fixtures
 import app.morphe.PatchContexts
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patches.instagram.FixtureDex
+import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -122,6 +123,8 @@ class HideSettingsRowsHookTest {
             val constructor = (made as ReferenceInstruction).reference as MethodReference
             assertEquals("$where: right after the row is made", "${found.row}-><init>", "${constructor.definingClass}->${constructor.name}")
             assertEquals("$where: the row made", (made as RegisterRangeInstruction).startRegister, (code[built.single()] as RegisterRangeInstruction).startRegister)
+            // 457's suspended answer jumps to the return after the row; it holds no row, so it goes around the hand-on.
+            assertTrue("$where: nothing jumps onto the hand-on", built.single() !in method.jumpTargets())
         }
         assertTrue("$label: the id is an interface", AccessFlags.INTERFACE.isSet(context.classDefBy(found.modelId.type).accessFlags))
         assertEquals("$label: one id type", found.modelId.type, found.rowId.type)

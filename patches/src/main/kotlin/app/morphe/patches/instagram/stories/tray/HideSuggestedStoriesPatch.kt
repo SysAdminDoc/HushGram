@@ -58,7 +58,8 @@ internal const val MUSIC_CARD = "$EXTENSION_PACKAGE/stories/StoriesTray;->musicC
  * 0x810c56000145f8, read by 00bM.A00 on 386113969, and 456 to 0x810c3e000145aa, read by 018d.A00
  * on 386214574.
  */
-internal const val MUSIC_CARD_FLAG = 0x810c3e000145aaL
+// 457 moved it from 456's 0x810c3e000145aa.
+internal const val MUSIC_CARD_FLAG = 0x810c2d00014526L
 
 /** The name only the music midcard repository's constructor holds, which it gives its base class. */
 internal const val MUSIC_CARD_REPOSITORY = "MusicMidcardRepository"

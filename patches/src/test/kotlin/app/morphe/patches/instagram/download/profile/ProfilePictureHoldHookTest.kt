@@ -343,7 +343,7 @@ class ProfilePictureHoldHookTest {
         const val LEGACY_SHAPE = "(Landroid/content/Context;Landroid/view/View;LX/*;Lcom/instagram/common/session/UserSession;" +
             "LX/*;LX/*;LX/*;LX/*;LX/*;LX/*;Ljava/lang/Integer;Ljava/lang/Integer;Ljava/lang/Object;Ljava/lang/Object;Ljava/util/List;IZ)V"
         const val COMPOSE_SHAPE = "(Landroidx/fragment/app/Fragment;LX/*;LX/*;LX/*;LX/*;)V"
-        val COMPOSE_NUMBERS = listOf(0x8109600006361aL, 0x810f47000a5516L)
+        val COMPOSE_NUMBERS = listOf(0x810957000635f9L, 0x810f26000a549cL)
         const val LISTENER = "Lfixture/Listener;"
         const val CONTROLLER = "Lfixture/Controller;"
         const val FUNCTION0_TYPE = "Lkotlin/jvm/functions/Function0;"

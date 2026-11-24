@@ -487,7 +487,7 @@ class PhoneLayoutHookTest {
             val inlined = List(widthChecks) { n -> widthCheck(if (n == 0) "notCompact" else "notCompact$n", checkJump) }
             val screenChecks = List(screens) { n -> screenCheck(if (n == 0) "screen" else "screen$n") }
             return ImmutableClassDef(HELPER, AccessFlags.PUBLIC.value, "Ljava/lang/Object;", null, null, null, null,
-                listOf(sorts) + hinges + inlined + sizes() + screenChecks + splitScreen())
+                listOf(sorts) + hinges + inlined + sizes() + screenChecks + splitScreen() + laterTest())
         }
 
         /** The helper's sorting of a size in pixels at a density. Its answer doesn't matter here. */
@@ -506,6 +506,21 @@ class PhoneLayoutHookTest {
                 ImmutableInstruction35c(Opcode.INVOKE_STATIC, 3, 0, 1, 2, 0, 0, ImmutableMethodReference(HELPER, "sizes", listOf("F", "I", "I"), "Z")),
                 ImmutableInstruction11x(Opcode.MOVE_RESULT, 0),
                 ImmutableInstruction11x(Opcode.RETURN, 0),
+            ), null, null))
+
+        /**
+         * Shaped like 457's third Activity check: it hands the window to [sizes] too, but answers from a
+         * later test of its own, so it's no screen check.
+         */
+        fun laterTest(): Method = ImmutableMethod(HELPER, "laterTest", listOf(ImmutableMethodParameter(ACTIVITY, null, null)),
+            "Z", static, null, null, ImmutableMethodImplementation(4, listOf(
+                ImmutableInstruction11n(Opcode.CONST_4, 0, 0),
+                ImmutableInstruction11n(Opcode.CONST_4, 1, 0),
+                ImmutableInstruction11n(Opcode.CONST_4, 2, 0),
+                ImmutableInstruction35c(Opcode.INVOKE_STATIC, 3, 0, 1, 2, 0, 0, ImmutableMethodReference(HELPER, "sizes", listOf("F", "I", "I"), "Z")),
+                ImmutableInstruction11x(Opcode.MOVE_RESULT, 0),
+                ImmutableInstruction11n(Opcode.CONST_4, 1, 1),
+                ImmutableInstruction11x(Opcode.RETURN, 1),
             ), null, null))
 
         /** The helper's other Activity check, asking only about split screen. */

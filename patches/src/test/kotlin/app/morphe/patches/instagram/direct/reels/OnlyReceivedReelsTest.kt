@@ -17,6 +17,7 @@ import app.morphe.patches.instagram.direct.seen.NativeVisualSeenTest.Companion.f
 import app.morphe.patches.instagram.direct.seen.NativeVisualSeenTest.Companion.otherBuilds
 import app.morphe.patches.instagram.direct.seen.visualCode
 import app.morphe.patches.instagram.direct.seen.visualReference
+import app.morphe.patches.instagram.download.mediaIdGetter
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
@@ -87,7 +88,7 @@ class OnlyReceivedReelsTest {
         assertTrue(bridges.getValue("itemId").visualCode().any { it.opcode == Opcode.IGET_OBJECT })
         assertEquals(1, bridges.getValue("itemId").visualCode().count { it.opcode == Opcode.CHECK_CAST })
         assertEquals("$base->sender:Ljava/lang/String;", bridges.getValue("senderId").visualCode()[1].text())
-        assertBridges("stand-in", context.mutableClassDefBy(CHAT_REELS).methods, found)
+        assertBridges("stand-in", context.mutableClassDefBy(CHAT_REELS).methods, found, "${context.mediaIdGetter()}")
     }
 
     @Test
@@ -104,7 +105,7 @@ class OnlyReceivedReelsTest {
             context(reels = 2) to "$where asks $wrapper for 2 reel items holding a $MEDIA, not one",
             context(media = 0) to "$where asks $wrapper for 0 reel items holding a $MEDIA, not one",
             context(media = 2) to "$where asks $wrapper for 0 reel items holding a $MEDIA, not one",
-            context(mediaId = false) to "$MEDIA has no getId() for the extension to key a sent reel by",
+            context(mediaId = false) to "$MEDIA has no id getter for the extension to key a sent reel by",
             context(sessions = 0) to "$wrapper holds 0 accounts, not one",
             context(sessions = 2) to "$wrapper holds 2 accounts, not one",
             context(publicSession = false) to "$wrapper's account session isn't public",
@@ -160,7 +161,7 @@ class OnlyReceivedReelsTest {
     }
 
     /** The reel bridge asks the wrapper for its reel item; the media id bridge reads the item's Media and a null one answers null. */
-    private fun assertBridges(what: String, methods: Iterable<Method>, found: ReelCollector) {
+    private fun assertBridges(what: String, methods: Iterable<Method>, found: ReelCollector, idGetter: String) {
         val bridges = methods.associateBy { it.name }
         val reelCode = bridges.getValue("reel").visualCode()
         assertEquals("$what: the reel bridge's cast", found.reel.definingClass, reelCode[0].text())
@@ -170,7 +171,7 @@ class OnlyReceivedReelsTest {
         assertEquals("$what: the media id bridge's cast", found.media.definingClass, idCode[0].text())
         assertEquals("$what: the media read", "${found.media}", idCode[1].text())
         assertEquals("$what: no media", listOf(Opcode.IF_NEZ, Opcode.CONST_4, Opcode.RETURN_OBJECT), idCode.subList(2, 5).map { it.opcode })
-        assertEquals("$what: the id", "$MEDIA->getId()Ljava/lang/String;", idCode[5].text())
+        assertEquals("$what: the id", idGetter, idCode[5].text())
         assertEquals("$what: the id's answer", Opcode.RETURN_OBJECT, idCode[7].opcode)
 
         // A message you sent names the account the wrapper was made for as its sender (#738).
@@ -417,7 +418,7 @@ class OnlyReceivedReelsTest {
         val hooked = classes.keys.flatMap { type -> context.mutableClassDefBy(type).methods }
             .count { m -> m.visualCode().any { it.text() == RECEIVED } }
         assertEquals("$name: methods hooked", 1, hooked)
-        assertBridges(name, context.mutableClassDefBy(CHAT_REELS).methods, found)
+        assertBridges(name, context.mutableClassDefBy(CHAT_REELS).methods, found, "${context.mediaIdGetter()}")
 
         // Each info the collector builds goes to the extension, and the bar asks it twice (#488).
         context.giveSwipedReelsTheirReplies(found, replies)

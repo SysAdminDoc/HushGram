@@ -249,7 +249,7 @@ class ChatReelsShutTest {
             invoke-virtual {v2}, $MEDIA->productName()$string
             move-result-object v2
             if-eqz v2, :cards
-            invoke-static {v2}, $PRODUCT_TYPE->A00($string)${if (product) PRODUCT_TYPE else "Ljava/lang/Object;"}
+            invoke-static {v2}, $links->productType($string)${if (product) PRODUCT_TYPE else "Ljava/lang/Object;"}
             move-result-object v2
             goto :out
             :cards

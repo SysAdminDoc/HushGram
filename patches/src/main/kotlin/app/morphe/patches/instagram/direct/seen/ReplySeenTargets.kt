@@ -9,7 +9,6 @@ import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.freeLocalsAt
-import app.morphe.patches.instagram.misc.extension.loadsConstString
 import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
 import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
@@ -40,13 +39,14 @@ private const val OPEN_THREAD = "open_thread_id"
 /**
  * The composer's send: takes the typed text, a time and a string, answers whether it went. Redex
  * pools the send's name on some 456 builds (386214562 asks `LX/0000;->A00(I)` for it), so the send
- * is found among that string's loaders, pooled or not.
+ * is found among that string's loaders, pooled or not. 457 pools the scheduled send's name too
+ * (`LX/0061;->A00(I)` on 386314341).
  */
 private fun BytecodePatchContext.composerSends(): List<Method> = classesLoadingString(COMPOSER_SEND).flatMap { owner ->
     owner.methods.filter { method ->
         !AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "Z" &&
             method.parameterTypes.map(Any::toString) == listOf(EDITABLE, LONG_TYPE, STRING) &&
-            method.loadsConstString(COMPOSER_SCHEDULE) && loadsString(method, COMPOSER_SEND)
+            loadsString(method, COMPOSER_SCHEDULE) && loadsString(method, COMPOSER_SEND)
     }
 }
 

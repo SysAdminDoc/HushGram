@@ -19,6 +19,7 @@ import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
@@ -441,7 +442,8 @@ internal class BadgeSite(val type: String, val method: Method, val at: Int, val 
  * the inbox's own reply (LX/0D7K) and the REST refresh (InMemoryBadgingRepository) all go through it
  * before they set the badges. It holds no string of its own, so it's found as the one
  * static call taking one object and returning a LinkedHashMap in the repository, which keeps its name.
- * The method's first act makes the map, and its one return hands it back.
+ * The method's first act makes the map (from 457 after a null check of the reply, `LX/02Xm;->A01` on
+ * 386314341), and its one return hands it back.
  */
 internal fun BytecodePatchContext.findBadgeCounts(): BadgeSite {
     val repository = classDefByOrNull(BADGE_REPOSITORY) ?: refuse("can't find $BADGE_REPOSITORY")
@@ -460,13 +462,15 @@ internal fun BytecodePatchContext.findBadgeCounts(): BadgeSite {
     val at = code.indices.filter { code[it].opcode == Opcode.RETURN_OBJECT }.singleOrNull()
         ?: refuse("$call doesn't have one return")
     val counts = (code[at] as OneRegisterInstruction).registerA
-    val made = code.first()
-    if (made.opcode != Opcode.NEW_INSTANCE || (made.reference() as TypeReference).type != COUNTS_MAP ||
-        (made as OneRegisterInstruction).registerA != counts
+    // From 457 a null check of the reply comes first: a const and a static call, no branch and no new object.
+    val makes = code.indexOfFirst { it.opcode == Opcode.NEW_INSTANCE }
+    val made = code.getOrNull(makes)
+    if (made == null || (made.reference() as TypeReference).type != COUNTS_MAP || (made as OneRegisterInstruction).registerA != counts ||
+        (0 until makes).any { code[it] is OffsetInstruction || code[it].writes(counts) }
     ) {
         refuse("$call doesn't make the map it hands back first")
     }
-    if ((1 until at).any { code[it].writes(counts) }) refuse("$call writes v$counts again before handing the map back")
+    if ((makes + 1 until at).any { code[it].writes(counts) }) refuse("$call writes v$counts again before handing the map back")
     if (counts > 15) refuse("$call keeps its map past v15")
     return BadgeSite(method.definingClass, method, at, counts)
 }

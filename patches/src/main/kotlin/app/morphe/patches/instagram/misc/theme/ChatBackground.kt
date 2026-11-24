@@ -25,10 +25,11 @@ private const val PATCH = "Accent color"
 
 /**
  * Instagram's id/thread_background_view_container, the view behind an opened chat's messages that the
- * chat's theme paints: 0x7f0b4205 in 456's builds 386214534 and 386214574, 0x7f0b4206 in 386214562 and
- * 386214575 (aapt2). Builds of one version differ here, so read them again each update.
+ * chat's theme paints: 0x7f0b41eb in both 457 builds (aapt2). 456.0 had it at 0x7f0b4205 in 386214534 and
+ * 386214574 and at 0x7f0b4206 in 386214562 and 386214575, 456.1 at 0x7f0b4205 in every build. Builds of one
+ * version can differ here, so read them again each update.
  */
-internal val THREAD_BACKGROUND_IDS = listOf(0x7f0b4205L, 0x7f0b4206L)
+internal val THREAD_BACKGROUND_IDS = listOf(0x7f0b41ebL)
 
 /** The extension's hook given an opened chat's background layers (#528). */
 internal const val CHAT_BACKGROUND = "$ACCENT_THEME->chatBackground(Landroid/graphics/drawable/Drawable;)V"

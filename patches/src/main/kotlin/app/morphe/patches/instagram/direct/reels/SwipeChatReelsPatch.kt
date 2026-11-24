@@ -14,6 +14,8 @@ import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.instagram.direct.history.MessageFields
 import app.morphe.patches.instagram.direct.history.findMessageFields
+import app.morphe.patches.instagram.download.mediaIdCall
+import app.morphe.patches.instagram.download.mediaIdGetter
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesAccessing
 import app.morphe.patches.instagram.misc.extension.classesCalling
@@ -61,9 +63,8 @@ internal const val STOP = "$CHAT_REELS->stop()Z"
 internal const val RECEIVED = "$CHAT_REELS->received(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Z"
 internal const val LEAVE_OUT_SENT = "$CHAT_REELS->leaveOutSent(Ljava/util/List;Ljava/lang/Object;)Ljava/util/List;"
 
-/** What a reel item holds and the id the extension keys a sent reel by. Redex keeps both names. */
+/** What a reel item holds. Its id, which the extension keys a sent reel by, is [mediaIdGetter]'s. */
 internal const val MEDIA = "Lcom/instagram/feed/media/Media;"
-private const val MEDIA_ID = "$MEDIA->getId()Ljava/lang/String;"
 
 private const val USER_SESSION = "Lcom/instagram/common/session/UserSession;"
 private const val STRING = "Ljava/lang/String;"
@@ -81,7 +82,8 @@ internal const val MESSAGE_ID = "Lcom/instagram/model/direct/messageid/MessageId
  * the Reels viewer, and which the chat and the Reels viewer ask too. 455's was 0x8114d60000718c,
  * 454's 0x8114ef00007096, 453's 0x81153c00006fb6 and 452.1's 0x81155f00006ed0.
  */
-internal const val CHAT_REELS_FLAG = 0x8114b00000723cL
+// 457 moved it from 456's 0x8114b00000723c.
+internal const val CHAT_REELS_FLAG = 0x81148600007260L
 
 /**
  * The trace name of the Reels viewer's dual paging request (LX/0Dyz;->A03 on 385914557, LX/0Fit;->A03
@@ -288,7 +290,7 @@ private fun fieldsTouched(method: Method, opcode: Opcode, owner: String): Set<St
  * returning nothing that reads such a flag. The object holds one field typed as a subclass of the
  * direct message class [fields] reads (the message itself), with three locals for the hook and nothing
  * jumping to the method's first instruction. The method asks the object, with nothing, for one reel
- * item: an object holding one [MEDIA], which has its `getId()`. The object also holds one public
+ * item: an object holding one [MEDIA], which has its id getter. The object also holds one public
  * [USER_SESSION], the account whose `userId` a message you sent names as its sender (#738). Fails when
  * any of it isn't so.
  */
@@ -333,10 +335,7 @@ internal fun BytecodePatchContext.findReelCollector(
         mediaOf(call.returnType)?.let { call to it }
     }.distinctBy { "${it.first}" }
     val (reel, media) = reels.singleOrNull() ?: refuse("$where asks $wrapper for ${reels.size} reel items holding a $MEDIA, not one")
-    val ids = classDefByOrNull(MEDIA)?.methods?.count { method ->
-        method.name == "getId" && method.parameterTypes.isEmpty() && method.returnType == "Ljava/lang/String;"
-    } ?: 0
-    if (ids != 1) refuse("$MEDIA has no getId() for the extension to key a sent reel by")
+    mediaIdGetter() ?: refuse("$MEDIA has no id getter for the extension to key a sent reel by")
 
     val takes = collector.parameterTypes.map(CharSequence::toString)
     val mutable = mutableClassDefBy(collector.definingClass).methods.single { method ->
@@ -451,7 +450,7 @@ internal fun BytecodePatchContext.skipSentReels(found: ReelCollector = findReelC
             const/4 p0, 0x0
             return-object p0
             :read
-            invoke-virtual { p0 }, $MEDIA_ID
+            invoke-virtual { p0 }, ${mediaIdCall(PATCH)}
             move-result-object p0
             return-object p0
         """.trimIndent(),
@@ -1355,7 +1354,13 @@ internal fun BytecodePatchContext.findReplyBar(collector: ReelCollector = findRe
         collectCode[at].opcode == Opcode.INVOKE_DIRECT && "${(collectCode[at] as ReferenceInstruction).reference}" == initCall
     }
     val built = builds.singleOrNull() ?: refuse("$where builds ${builds.size} $info, not one")
-    if (built + 1 >= collectCode.size || built + 1 in collect.jumpTargets()) refuse("something in $where jumps to just after it builds a $info")
+    // 457 skips the build for a message with no id and jumps on past it holding no info. The hook goes
+    // in on the build's own way down, so a jump from before the build still lands past it, as it should.
+    val flow = ControlFlow.of(collect)
+    val enters = flow.instructions.indices.filter { from -> from != built && built + 1 in flow.normal[from] }
+    if (built + 1 >= collectCode.size || enters.any { it > built } || flow.exceptional.any { built + 1 in it }) {
+        refuse("something in $where jumps to just after it builds a $info")
+    }
     val infoRegister = (collectCode[built] as FiveRegisterInstruction).registerC
     val (wrapper, chat) = collect.freeLocalsAt(PATCH, built + 1, 2, except = listOf(infoRegister))
 

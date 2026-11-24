@@ -117,8 +117,10 @@ internal fun BytecodePatchContext.findFriendPicks(): FriendPicksReads {
 
 /** The social context's getter for its faces: the last list getter its writer calls before their key. */
 private fun BytecodePatchContext.facesGetter(): String {
+    // 457's JSON writer takes the interface too, and reads the faces after their key, so it's the map writer.
     val writers = classesLoadingString(FACEPILE_KEY).flatMap { it.methods }.filter { method ->
-        method.parameterTypes.any { it.toString() == SOCIAL_CONTEXT_INFO } && loadsString(method, FACEPILE_KEY)
+        method.parameterTypes.any { it.toString() == SOCIAL_CONTEXT_INFO } && method.returnType == "Ljava/util/Map;" &&
+            loadsString(method, FACEPILE_KEY)
     }
     val writer = writers.singleOrNull()
         ?: refuse("expected one method writing a $SOCIAL_CONTEXT_INFO with $FACEPILE_KEY, found ${writers.size}")

@@ -100,11 +100,7 @@ internal fun BytecodePatchContext.findInterestQuestion(): InterestQuestion {
     // question's builder is the one that reads a post's question right before the name.
     val candidates = found.filter { (_, code) ->
         code.indices.any { at ->
-            stringLoadedAt(code, at) == HOME_MODULE && at >= 5 &&
-                (code[at - 5] as? ReferenceInstruction)?.reference.let {
-                    it is MethodReference && it.definingClass == MEDIA && it.parameterTypes.isEmpty() &&
-                        it.returnType.startsWith("L")
-                } &&
+            stringLoadedAt(code, at) == HOME_MODULE && at >= 5 && readsQuestion(code[at - 5]) &&
                 code[at - 4].opcode == Opcode.MOVE_RESULT_OBJECT && code[at - 3].opcode == Opcode.IF_EQZ &&
                 code[at - 2].opcode == Opcode.INVOKE_INTERFACE
         }
@@ -123,12 +119,10 @@ internal fun BytecodePatchContext.findInterestQuestion(): InterestQuestion {
     val nameAt = named.singleOrNull() ?: refuse("$where loads $HOME_MODULE ${named.size} times, expected once")
     if (nameAt < 5) refuse("$where reads $HOME_MODULE before it could check a post's question")
     // post.<question>() -> move-result -> if-eqz (no question) -> module.getModuleName() -> move-result -> "feed_timeline"
-    val asked = (code.getOrNull(nameAt - 5) as? ReferenceInstruction)?.reference as? MethodReference
     val module = (code.getOrNull(nameAt - 2) as? ReferenceInstruction)?.reference as? MethodReference
     val questionIn = code.getOrNull(nameAt - 4) as? OneRegisterInstruction
     val checkOn = code.getOrNull(nameAt - 3) as? OneRegisterInstruction
-    if (code[nameAt - 5].opcode != Opcode.INVOKE_VIRTUAL || asked?.definingClass != MEDIA || asked.parameterTypes.isNotEmpty() ||
-        !asked.returnType.startsWith("L") || code[nameAt - 4].opcode != Opcode.MOVE_RESULT_OBJECT ||
+    if (!readsQuestion(code[nameAt - 5]) || code[nameAt - 4].opcode != Opcode.MOVE_RESULT_OBJECT ||
         code[nameAt - 3].opcode != Opcode.IF_EQZ || questionIn == null || checkOn == null ||
         questionIn.registerA != checkOn.registerA
     ) {
@@ -178,6 +172,18 @@ internal fun BytecodePatchContext.findInterestQuestion(): InterestQuestion {
         method.definingClass, method.name, method.parameterTypes.map(CharSequence::toString), addAt, register, endAt,
         ((add as ReferenceInstruction).reference as FieldReference).toString(),
     )
+}
+
+/**
+ * Whether [call] reads a post's question: a getter on the post answering a Redex class (`Media.A2I()`
+ * on 456), or from 457 a read off the post's data by the question's key, answering the same kind of
+ * data (`LX/0BX4;->CuW(I)` on 386314341).
+ */
+private fun readsQuestion(call: Instruction): Boolean {
+    val asked = (call as? ReferenceInstruction)?.reference as? MethodReference ?: return false
+    val parameters = asked.parameterTypes.map(CharSequence::toString)
+    return call.opcode == Opcode.INVOKE_VIRTUAL && asked.definingClass == MEDIA && parameters.isEmpty() && asked.returnType.startsWith("L") ||
+        call.opcode == Opcode.INVOKE_INTERFACE && parameters == listOf("I") && asked.returnType == asked.definingClass
 }
 
 /**

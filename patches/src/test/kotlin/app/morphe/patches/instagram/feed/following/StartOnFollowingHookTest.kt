@@ -234,7 +234,7 @@ class StartOnFollowingHookTest {
                 switch.feedType,
             )
         }
-        assertEquals("$label: remembered feed reads", 12, reads.count { it.flag == REMEMBERED_FEED_FLAG })
+        assertEquals("$label: remembered feed reads", 13, reads.count { it.flag == REMEMBERED_FEED_FLAG })
         assertEquals("$label: For you reads", 3, reads.count { it.flag == FOR_YOU_PICKER_FLAG })
         assertDefaultedAndAnswered(
             "$label ${saved.type}",

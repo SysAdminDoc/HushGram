@@ -70,9 +70,11 @@ class FindReelOriginHookTest {
             snapshot(tab.filter { it.name != "onResume" }))
         val stubs = context.mutableClassDefBy(INSTAGRAM_MEDIA).methods
         assertTrialBridge(stubs)
+        assertIdBridge(stubs)
+        val written = setOf("activeTrial", "mediaId")
         assertEquals("the other bridges stay unwritten",
-            before.getValue(INSTAGRAM_MEDIA).filter { !it.first.contains("->activeTrial(") },
-            snapshot(stubs.filter { it.name != "activeTrial" }))
+            before.getValue(INSTAGRAM_MEDIA).filter { snapshot -> written.none { snapshot.first.contains("->$it(") } },
+            snapshot(stubs.filter { it.name !in written }))
         val hooked = setOf(ReelOriginFixture.OPENER, ReelOriginFixture.TAB, INSTAGRAM_MEDIA)
         for (other in input.filter { it.type !in hooked }) {
             assertEquals("${other.type} changed", before[other.type], snapshot(context.mutableClassDefBy(other.type).methods))
@@ -130,7 +132,7 @@ class FindReelOriginHookTest {
         ReelOriginFixture.with(ReelOriginFixture.destination(media = 2)))
     @Test fun anOpenerNotReadingTheMediaIsRefused() = refuses("LX/07FC;->A03 doesn't read ${ReelOriginFixture.DESTINATION}->A03",
         ReelOriginFixture.with(ReelOriginFixture.opener(reads = "A01")))
-    @Test fun aMediaWithoutPublicGetIdIsRefused() = refuses("$MEDIA has no public getId()",
+    @Test fun aMediaWithoutPublicGetIdIsRefused() = refuses("$MEDIA has no public id getter answering a String",
         ReelOriginFixture.with(ReelOriginFixture.media(AccessFlags.PRIVATE.value)))
     @Test fun aMissingTabIsRefused() = refuses("expected one onCreate(Bundle) reading $USER_KEY, found none",
         ReelOriginFixture.classes().filter { it.type != ReelOriginFixture.TAB })
@@ -198,7 +200,8 @@ class FindReelOriginHookTest {
         assertEquals(MEDIA, bridge[0].reference())
         assertEquals("the getter loading media_type, not its neighbor", "$MEDIA->A6N()Ljava/lang/Integer;", bridge[1].reference())
         assertTrialBridge(stubs)
-        val written = setOf("mediaType", "activeTrial")
+        assertIdBridge(stubs)
+        val written = setOf("mediaType", "activeTrial", "mediaId")
         assertEquals("the other bridges stay unwritten",
             before.getValue(INSTAGRAM_MEDIA).filter { snapshot -> written.none { snapshot.first.contains("->$it(") } },
             snapshot(stubs.filter { it.name !in written }))
@@ -302,8 +305,10 @@ class FindReelOriginHookTest {
         }
         val stubs = context.mutableClassDefBy(INSTAGRAM_MEDIA).methods
         assertTrialBridge(stubs)
-        assertEquals("$INSTAGRAM_MEDIA changed", before.getValue(INSTAGRAM_MEDIA).filter { !it.first.contains("->activeTrial(") },
-            snapshot(stubs.filter { it.name != "activeTrial" }))
+        assertIdBridge(stubs)
+        val written = setOf("activeTrial", "mediaId")
+        assertEquals("$INSTAGRAM_MEDIA changed", before.getValue(INSTAGRAM_MEDIA).filter { snapshot -> written.none { snapshot.first.contains("->$it(") } },
+            snapshot(stubs.filter { it.name !in written }))
     }
 
     /** Refused for [reason], with every class as it was. */
@@ -404,6 +409,15 @@ class FindReelOriginHookTest {
                 bridge.take(4).map { it.opcode })
             assertEquals(MEDIA, bridge[0].reference())
             assertEquals("the getter loading is_active_trial, not its neighbor", "$MEDIA->A4p()Ljava/lang/Boolean;", bridge[1].reference())
+        }
+
+        /** The extension reads a reel's id through InstagramMedia.mediaId, since 457 renamed Media's getId. */
+        internal fun assertIdBridge(stubs: Iterable<Method>) {
+            val bridge = stubs.single { it.name == "mediaId" }.code()
+            assertEquals(listOf(Opcode.CHECK_CAST, Opcode.INVOKE_VIRTUAL, Opcode.MOVE_RESULT_OBJECT, Opcode.RETURN_OBJECT),
+                bridge.take(4).map { it.opcode })
+            assertEquals(MEDIA, bridge[0].reference())
+            assertEquals("$MEDIA->getId()Ljava/lang/String;", bridge[1].reference())
         }
 
         internal fun snapshot(methods: Iterable<Method>) = methods.map { method ->

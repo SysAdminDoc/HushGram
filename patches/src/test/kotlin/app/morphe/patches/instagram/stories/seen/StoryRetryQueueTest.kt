@@ -689,8 +689,8 @@ class StoryRetryQueueTest {
     }
 
     private fun proofInputs(): List<List<ClassDef>> {
-        val declared = Fixtures.files { it.name == "instagram-456.1.0.56.78-386215122.apks" }
-        assertTrue("the authoritative declared 456 build (386215122) is required", declared.isNotEmpty())
+        val declared = Fixtures.files { it.name == "instagram-457.0.0.55.73-386314341.apks" }
+        assertTrue("the authoritative declared 457 build (386314341) is required", declared.isNotEmpty())
         return declared.map { fixtures.keptFixtureClasses(it) } + listOf(fixtures.standIns(), fixtures.standIns(splitQueue = true))
     }
 

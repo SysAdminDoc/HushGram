@@ -468,8 +468,18 @@ class DownloadReelHookTest {
         val all = classes.flatMap { it.methods }
         val handler = loaderIn(classes, EDITING_TOOLS_QUERY)
         val menu = context.method(handler.definingClass, handler.name).code()
+        // 457 keeps the reel in the helper's clips item and reads it through the helper's static
+        // getter (LX/0Ckv;->A00 on 386314341), so the hook calls that before save().
+        val readsReel = menu.map { instruction ->
+            val reference = (instruction as? ReferenceInstruction)?.reference
+            (instruction.opcode == Opcode.IGET_OBJECT && reference.toString().endsWith(":$MEDIA")) ||
+                (instruction.opcode == Opcode.INVOKE_STATIC && reference is MethodReference &&
+                    reference.definingClass == handler.definingClass && reference.returnType == MEDIA)
+        }
         assertEquals("$label: the handler's calls", listOf(OURS, SAVE),
-            menu.filter { it.opcode == Opcode.INVOKE_STATIC }.take(2).map { it.referenceText() })
+            menu.filterIndexed { index, it -> it.opcode == Opcode.INVOKE_STATIC && !readsReel[index] }.take(2).map { it.referenceText() })
+        val save = menu.indexOfFirst { it.referenceText() == SAVE }
+        assertTrue("$label: the reel isn't read before save()", (0 until save).any { readsReel[it] })
         // The adder of one row: the handler's class's method taking a Context and the option first, an icon and a label last.
         val adder = all.single { method ->
             val takes = method.parameterTypes.map(Any::toString)

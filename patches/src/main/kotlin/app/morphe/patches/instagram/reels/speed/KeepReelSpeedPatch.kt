@@ -5,10 +5,15 @@
 package app.morphe.patches.instagram.reels.speed
 
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
+import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
+import app.morphe.patches.instagram.media.PlayerStep
+import app.morphe.patches.instagram.media.receiverPath
+import app.morphe.patches.instagram.media.unreachableAlong
+import app.morphe.patches.instagram.media.walk
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.enableStatus
@@ -94,9 +99,10 @@ private const val OBJECT = "Ljava/lang/Object;"
  * which tells the extension each speed first thing. Fast play's hold handler tells it when a lock
  * begins and when a hold is let go of without one, where it logs those, and the reset tells it why a
  * lock ended and hands it the speed it's about to reset the reel to. The controller's
- * maybeResumePlayer hands it the reel and its player just before it plays them, where the kept speed
- * goes on. The extension's stubs are filled with the player's speed setter, the interface call
- * setPlaybackSpeed makes, and the reel's ad flag, the one fast play picks its ads hint by.
+ * maybeResumePlayer hands it the reel first thing and its player just before it plays it, where the kept speed
+ * goes on. The extension's stubs are filled with the player's speed setter, the call
+ * setPlaybackSpeed makes on the player or, from 457, on what it reaches from the player through a
+ * cast and two fields, and the reel's ad flag, the one fast play picks its ads hint by.
  *
  * Every method is found by strings only it loads, and everything is found and checked
  * before anything changes, so a build that differs stops the patch naming what it couldn't find, and
@@ -133,12 +139,16 @@ internal class ReelSpeedHooks(
     /** setPlaybackSpeed, and the register of its speed parameter. */
     val setter: Method,
     val speedParameter: String,
-    /** The player interface's speed setter, the one interface call setPlaybackSpeed makes. */
+    /** The player's speed setter, the one call setPlaybackSpeed hands its speed to, and whether it's on an interface. */
     val playerSpeed: MethodReference,
+    val speedOnInterface: Boolean,
+    /** The player interface maybeResumePlayer plays the reel through, and the casts and fields from it to the speed setter. */
+    val player: String,
+    val playerPath: List<PlayerStep>,
     /** maybeResumePlayer, the index of its call that plays the reel, and that call's player register. */
     val resume: Method,
     val play: Int,
-    val player: Int,
+    val playerRegister: Int,
     /** The hold handler, the index after its lock-begin marker, and the index after its "ended" event. */
     val hold: Method,
     val lockBegun: Int,
@@ -160,30 +170,36 @@ internal fun BytecodePatchContext.findReelSpeedHooks(): ReelSpeedHooks {
     }
 
     // maybeResumePlayer's class is the controller, and setPlaybackSpeed(Function1, float) its one instance
-    // method of that shape: the speed set on the reel on screen, through one interface call.
+    // method of that shape: the speed set on the reel on screen, through one call handed the speed.
     val resume = single(RESUME_PLAYER_TRACE)
     val setters = classDefBy(resume.definingClass).methods.filter {
         !AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == "V" && it.parameterTypes.map(Any::toString) == listOf(FUNCTION1, "F")
     }
     val setter = setters.singleOrNull()
         ?: refuse("expected one instance (Function1, float) method returning nothing in ${resume.definingClass}, found ${setters.size}")
-    val speedCalls = setter.code().filter { it.isInterfaceCall() }.mapNotNull { it.methodReference() }
-        .filter { it.returnType == "V" && it.parameterTypes.map(Any::toString) == listOf("F") }
-    val playerSpeed = speedCalls.singleOrNull()
-        ?: refuse("${setter.text()} makes ${speedCalls.size} interface calls taking a float, expected one: the player's speed")
-    val playerClass = classDefByOrNull(playerSpeed.definingClass)
-        ?: refuse("the player interface ${playerSpeed.definingClass} isn't in the app")
+    val setterCode = setter.code()
+    val speed = setter.parameterRegisterNumber(1)
+    val speedCalls = setterCode.indices.filter { at ->
+        val call = setterCode[at].methodReference()
+        call != null && setterCode[at].isInstanceCall() && call.returnType == "V" && call.parameterTypes.map(Any::toString) == listOf("F") &&
+            setterCode[at].registers().getOrNull(1) == speed
+    }
+    val speedAt = speedCalls.singleOrNull()
+        ?: refuse("${setter.text()} makes ${speedCalls.size} calls handing on its float, expected one: the player's speed")
+    val playerSpeed = setterCode[speedAt].methodReference()!!
+    val speedOnInterface = setterCode[speedAt].isInterfaceCall()
+    // 456 calls the player itself. 457 casts it to its one implementation, reads its video holder
+    // and the holder's player, and calls that.
+    val (playerType, playerPath) = receiverPath(setterCode, speedAt)
+        ?: refuse("${setter.text()}'s speed call works on something other than a player reached through casts and fields")
+    val playerClass = classDefByOrNull(playerType) ?: refuse("the player interface $playerType isn't in the app")
     if (!AccessFlags.INTERFACE.isSet(playerClass.accessFlags) || !AccessFlags.PUBLIC.isSet(playerClass.accessFlags)) {
         refuse("the player ${playerClass.type} isn't a public interface, so the extension can't call it")
     }
-    if (playerClass.methods.none { it.name == playerSpeed.name && it.parameterTypes.map(Any::toString) == listOf("F") }) {
-        refuse("the player interface ${playerClass.type} doesn't declare ${playerSpeed.name}(F)V")
-    }
+    requireReachable(playerSpeed, speedOnInterface, playerPath)
 
-    // maybeResumePlayer(reel, ...): plays the reel through the player's (String, boolean) call.
-    if (AccessFlags.STATIC.isSet(resume.accessFlags) || resume.parameterTypes.isEmpty()) {
-        refuse("${resume.text()} isn't an instance method taking the reel first")
-    }
+    // maybeResumePlayer(reel, ...): plays the reel through the player's (String, boolean) call. 457 made it static.
+    if (resume.parameterTypes.isEmpty()) refuse("${resume.text()} takes no reel")
     val itemType = resume.parameterTypes.first().toString()
     val resumeCode = resume.code()
     val plays = resumeCode.indices.filter { index ->
@@ -193,8 +209,7 @@ internal fun BytecodePatchContext.findReelSpeedHooks(): ReelSpeedHooks {
     }
     val play = plays.singleOrNull()
         ?: refuse("${resume.text()} makes ${plays.size} (String, boolean) calls on the player, expected one")
-    val player = resumeCode[play].registers().first()
-    resume.requireParameterIntact(PATCH, 0, listOf(play))
+    val playerRegister = resumeCode[play].registers().first()
 
     // The hold handler logs a lock beginning as "locked", and a hold let go of without one as "ended".
     val hold = single(LONG_PRESS_EDGE)
@@ -229,9 +244,21 @@ internal fun BytecodePatchContext.findReelSpeedHooks(): ReelSpeedHooks {
     }
 
     return ReelSpeedHooks(
-        setter, setter.parameterRegister(1), playerSpeed, resume, play, player, hold, lockBegun, holdEnded,
-        reset, lockEnded, reason, resetCall, resetSpeed, adFlag,
+        setter, setter.parameterRegister(1), playerSpeed, speedOnInterface, playerType, playerPath, resume, play, playerRegister,
+        hold, lockBegun, holdEnded, reset, lockEnded, reason, resetCall, resetSpeed, adFlag,
     )
+}
+
+/** Throws unless the extension can reach the speed call along [path]: every class, field and the call public. */
+private fun BytecodePatchContext.requireReachable(call: MethodReference, onInterface: Boolean, path: List<PlayerStep>) {
+    unreachableAlong(path).firstOrNull()?.let { refuse("the extension can't reach $it on the way to the player's speed") }
+    val callClass = classDefByOrNull(call.definingClass) ?: refuse("the player's speed ${call.definingClass} isn't in the app")
+    if (!AccessFlags.PUBLIC.isSet(callClass.accessFlags)) refuse("the player's speed ${callClass.type} isn't public")
+    val method = callClass.methods.singleOrNull { it.name == call.name && it.parameterTypes.map(Any::toString) == listOf("F") && it.returnType == "V" }
+        ?: refuse("${callClass.type} doesn't declare ${call.name}(F)V")
+    if (onInterface != AccessFlags.INTERFACE.isSet(callClass.accessFlags) || !AccessFlags.PUBLIC.isSet(method.accessFlags)) {
+        refuse("${call.definingClass}->${call.name}(F)V isn't a public method the extension can call")
+    }
 }
 
 /**
@@ -251,11 +278,11 @@ internal fun BytecodePatchContext.applyReelSpeedHooks(found: ReelSpeedHooks) {
     if (play < 0) refuse("${found.resume.text()} lost its play call")
     resume.addInstructionsAtControlFlowLabel(
         play,
-        """
-            invoke-static/range { $item .. $item }, $ITEM
-            invoke-static/range { v${found.player} .. v${found.player} }, $RESUMING
-        """,
+        "invoke-static/range { v${found.playerRegister} .. v${found.playerRegister} }, $RESUMING",
     )
+    // The reel goes over first thing, while its parameter still holds it: 457's static
+    // maybeResumePlayer moves it to a local and reuses the parameter before the play call.
+    resume.addInstructions(0, "invoke-static/range { $item .. $item }, $ITEM")
 
     val hold = mutable(found.hold)
     listOf(found.lockBegun to LOCKED_UP, found.holdEnded to HOLD_ENDED).sortedByDescending { it.first }.forEach { (index, hook) ->
@@ -284,12 +311,15 @@ internal fun BytecodePatchContext.applyReelSpeedHooks(found: ReelSpeedHooks) {
 /** The extension's stubs, found before anything changes, and the step that fills them. */
 internal class ReelSpeedStubs(val setPlayerSpeed: MutableMethod, val adItem: MutableMethod) {
     fun fill(found: ReelSpeedHooks) {
-        val player = found.playerSpeed.definingClass
-        setPlayerSpeed.addInstructions(
+        val call = found.playerSpeed
+        val invoke = if (found.speedOnInterface) "invoke-interface" else "invoke-virtual"
+        val path = found.playerPath.walk("p0", ":none")
+        val cast = if (found.playerPath.firstOrNull()?.type != null) "" else "check-cast p0, ${found.player}\n"
+        setPlayerSpeed.addInstructionsWithLabels(
             0,
             """
-                check-cast p0, $player
-                invoke-interface { p0, p1 }, $player->${found.playerSpeed.name}(F)V
+                $cast$path$invoke { p0, p1 }, ${call.definingClass}->${call.name}(F)V
+                :none
                 return-void
             """,
         )
@@ -437,6 +467,9 @@ private fun Instruction.stringLoaded(): String? =
 private fun Instruction.methodReference(): MethodReference? = (this as? ReferenceInstruction)?.reference as? MethodReference
 
 private fun Instruction.isInterfaceCall(): Boolean = opcode == Opcode.INVOKE_INTERFACE || opcode == Opcode.INVOKE_INTERFACE_RANGE
+
+private fun Instruction.isInstanceCall(): Boolean =
+    isInterfaceCall() || opcode == Opcode.INVOKE_VIRTUAL || opcode == Opcode.INVOKE_VIRTUAL_RANGE
 
 /** The registers an invoke names, in order. */
 private fun Instruction.registers(): List<Int> = when (this) {

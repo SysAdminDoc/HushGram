@@ -42,7 +42,10 @@ private const val STORY_ITEM = "Lcom/instagram/model/reels/ReelItem;"
  * 456 from 455's 0x810f890001561a (A1X again); the one read there is still the viewer's private check of one
  * story item.
  */
-internal const val STORY_LOOP_FLAG = 0x810f6b00015603L
+// 457 moved it from 456's 0x810f6b00015603, and reads it a second time outside the viewer: its story
+// video bookmarks (06M0, through 0NOA.A00) log "loop" as a reason when the test is on. That read is
+// left to Instagram.
+internal const val STORY_LOOP_FLAG = 0x810f4a00015588L
 
 /**
  * Plays a story again when it ends instead of moving on. In the default selection with its switch
@@ -88,7 +91,8 @@ internal fun BytecodePatchContext.loopStories() {
 private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $detail")
 
 /**
- * Finds the one read of [STORY_LOOP_FLAG]. It has to be the flag's own read, in a method of the
+ * Finds the story viewer's one read of [STORY_LOOP_FLAG] (457 reads it elsewhere too, see there). It
+ * has to be the flag's own read, in a method of the
  * story viewer taking one story item and answering a boolean, and the viewer's handler for a
  * finished story item (the one Stop Story auto-advance guards) has to ask that method exactly once,
  * since that's where a photo starts over. Fails before anything changes when any of it isn't so,
@@ -97,8 +101,9 @@ private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $det
 internal fun BytecodePatchContext.findStoryLoop(): FlagLoad {
     val done = uniqueMethod(PATCH, "finished story handler", StoryItemDoneFingerprint)
     val flag = STORY_LOOP_FLAG.toString(16)
-    val reads = findFlagLoads(PATCH, STORY_LOOP_FLAG, "Z")
-    val read = reads.singleOrNull() ?: refuse("expected one read of the story loop flag $flag, found ${reads.size}")
+    val all = findFlagLoads(PATCH, STORY_LOOP_FLAG, "Z")
+    val reads = all.filter { it.type == STORY_VIEWER }.ifEmpty { all }
+    val read = reads.singleOrNull() ?: refuse("expected one read of the story loop flag $flag in $STORY_VIEWER, found ${reads.size}")
     val where = "${read.type}->${read.name}"
     if (read.shared) refuse("the read of $flag in $where is shared with another flag")
     if (read.type != STORY_VIEWER || read.parameters != listOf(STORY_ITEM) || read.returnType != "Z") {

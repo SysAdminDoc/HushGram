@@ -138,18 +138,18 @@ class TapFeedVideoToPauseHookTest {
                 assertEquals("$what: the hand-off takes the module's name", listOf("Ljava/lang/String;"),
                     handoff!!.call.parameterTypes.map(Any::toString))
                 if (apk.extension == "apks") {
-                    // The declared build's own names, 386214574, the launcher's first, in one list so a
+                    // The declared build's own names, 386314341, the launcher's first, in one list so a
                     // run shows every name that moved. 451 paused with a string of its own, no Integer
-                    // constant named. On 386214574 the player plays through A04 ("start"), tells A0x
-                    // right after and pauses through A0K ("tapped"); Media->A3F answers the ad details.
-                    // The controller's tap A0R hands the video over to Reels through 06vI.A01 (#706).
+                    // constant named. On 386314341 the player plays through A04 ("start"), tells A0w
+                    // right after and pauses through A0H ("tapped"); Media->A38 answers the ad details.
+                    // The controller's tap A0O hands the video over to Reels through 06nE.A01 (#706).
                     assertEquals("$what: the pause reason", "tapped", found.reasonText)
                     assertEquals(
                         "$what: the names",
                         listOf(
-                            "LX/01qH;", "A00", "A03",
-                            "A07", "A06", "A0A", "A0C", "A0F", "A00", "A0n", "A03", "A00", "A0B", "A04", "A0K", "A0x", "A3F",
-                            "A0R", "LX/06vG;", "A01",
+                            "LX/03f9;", "A00", "A03",
+                            "A07", "A06", "A0A", "A0C", "A0G", "A00", "A0n", "A03", "A00", "A0B", "A04", "A0H", "A0w", "A38",
+                            "A0O", "LX/06nE;", "A01",
                         ),
                         listOf(
                             found.launcher.definingClass, found.launcher.name, found.launcherSupplier.name,

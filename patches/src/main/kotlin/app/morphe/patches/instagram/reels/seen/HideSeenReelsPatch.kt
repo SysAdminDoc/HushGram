@@ -9,6 +9,8 @@ import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
+import app.morphe.patches.instagram.download.mediaIdCall
+import app.morphe.patches.instagram.download.mediaIdGetter
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
@@ -27,7 +29,6 @@ import app.morphe.patches.instagram.reels.partnership.isStaticStub
 import app.morphe.patches.instagram.reels.watchhistory.WatchedReelsRequestFingerprint
 import app.morphe.patches.instagram.reels.watchhistory.recordParameters
 import app.morphe.patches.shared.compat.AppCompatibilities
-import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 
@@ -41,9 +42,6 @@ private const val OBJECT = "Ljava/lang/Object;"
 private const val STRING = "Ljava/lang/String;"
 private const val LIST = "Ljava/util/List;"
 private const val MEDIA = "Lcom/instagram/feed/media/Media;"
-
-/** Media's id getter, which Redex keeps by name. */
-private const val MEDIA_ID = "$MEDIA->getId()$STRING"
 
 /** The parameters, after the batch, of the record of a reel reached: its media id and the id of the blend it came in. */
 internal const val WATCHED_RECORD = "$STRING$STRING"
@@ -107,11 +105,8 @@ internal fun BytecodePatchContext.requireSeenStubs() {
             refuse("the extension has no static $name(${parameters.joinToString("")})$returns")
         }
     }
-    val media = classDefByOrNull(MEDIA) ?: refuse("there's no $MEDIA")
-    val getId = media.methods.singleOrNull { it.name == "getId" && it.parameterTypes.isEmpty() && it.returnType == STRING }
-    if (getId == null || !AccessFlags.PUBLIC.isSet(getId.accessFlags) || AccessFlags.STATIC.isSet(getId.accessFlags)) {
-        refuse("$MEDIA has no public getId()")
-    }
+    classDefByOrNull(MEDIA) ?: refuse("there's no $MEDIA")
+    mediaIdGetter() ?: refuse("$MEDIA has no public id getter")
 }
 
 /**
@@ -129,7 +124,7 @@ internal fun BytecodePatchContext.hideSeenReels(page: ReelsPageSites, inserts: R
         SEEN_REELS, "mediaId", STRING, 1,
         """
             check-cast p0, $MEDIA
-            invoke-virtual { p0 }, $MEDIA_ID
+            invoke-virtual { p0 }, ${mediaIdCall(PATCH)}
             move-result-object p0
             return-object p0
         """,

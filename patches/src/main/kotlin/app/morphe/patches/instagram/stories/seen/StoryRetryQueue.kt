@@ -842,8 +842,13 @@ private fun BytecodePatchContext.requireDiskRemoval(storage: ClassDef, method: M
     val keyField = init.field(5, STRING, task.type)
     init.registers(0, constructor.parameterRegisterNumber(0), constructor.localRegisterCount())
     init.registers(5, constructor.parameterRegisterNumber(1), constructor.localRegisterCount())
-    init.registers(4, constructor.localRegisterCount(), init.reg(1), init.reg(2), init.reg(3), init.reg(3))
-    if (init.call(4).toString() != "${task.superclass}-><init>(IIZZ)V") refuseQueue("disk cleanup changes its native task identity")
+    // 457's task base takes one flag where 456's took two, each false.
+    val flags = when (init.call(4).toString()) {
+        "${task.superclass}-><init>(IIZZ)V" -> 2
+        "${task.superclass}-><init>(IIZ)V" -> 1
+        else -> refuseQueue("disk cleanup changes its native task identity")
+    }
+    init.registers(4, constructor.localRegisterCount(), init.reg(1), init.reg(2), *IntArray(flags) { init.reg(3) })
     constructor.requireThisIntact(PATCH, listOf(0, 4, 5))
     constructor.requireParameterIntact(PATCH, 0, listOf(0))
     constructor.requireParameterIntact(PATCH, 1, listOf(5))

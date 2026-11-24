@@ -257,7 +257,9 @@ public class DexDiff {
      *       matching that reference, written and matched as calling is. For a method whose twin makes
      *       every call it does and one more, as Accent color's second theme color read has the first
      *       one's resolver call and none of its Redex-named checks, and sits in a different class from
-     *       one build to the next.
+     *       one build to the next. A field reference there, Lclass;->name:type with * as in a shape,
+     *       keeps out a method reading or writing a matching field instead ("static" counts only sget
+     *       and sput), as 457's story layout has its sized check's twin, which also reads two flags.
      *   <li>A once-call or shared-call rule with "sites &lt;n&gt;" after its calling clause, or where
      *       that would go, and before "holding" or "class-holding": its method calls the method
      *       reference exactly n times, 2 or more, rather than once. For a filter the patch puts on
@@ -374,7 +376,8 @@ public class DexDiff {
             this.sites = sites;
             this.pooled = pooled;
             this.callMatch = call == null ? null : java.util.regex.Pattern.compile(callPattern(call));
-            this.lackMatch = lack == null ? null : java.util.regex.Pattern.compile(callPattern(lack));
+            this.lackMatch = lack == null ? null
+                    : java.util.regex.Pattern.compile(isFieldReference(lack) ? fieldPattern(lack) : callPattern(lack));
         }
 
         /** Whether this rule picks its method by strings and a shape: start-call, next-call, sole-call, once-call and shared-call. */
@@ -421,7 +424,22 @@ public class DexDiff {
                 descriptor.append(')').append(m.getReturnType());
                 if (!descriptor.toString().matches(shapePattern(shape))) return false;
             }
-            return (call == null || makesCall(m, callMatch, callStatic)) && (lack == null || !makesCall(m, lackMatch, lackStatic));
+            if (call != null && !makesCall(m, callMatch, callStatic)) return false;
+            if (lack == null) return true;
+            return isFieldReference(lack) ? !usesField(m, lackMatch, lackStatic) : !makesCall(m, lackMatch, lackStatic);
+        }
+
+        /** Whether [m] reads or writes a field, a static one when [wantStatic] says so, whose reference matches [match]. */
+        private static boolean usesField(Method m, java.util.regex.Pattern match, Boolean wantStatic) {
+            if (m.getImplementation() == null) return false;
+            for (Instruction i : m.getImplementation().getInstructions()) {
+                if (!(i instanceof ReferenceInstruction)) continue;
+                Reference r = ((ReferenceInstruction) i).getReference();
+                if (!(r instanceof FieldReference)) continue;
+                if (wantStatic != null && STATIC_FIELD_OPCODES.contains(i.getOpcode()) != wantStatic) continue;
+                if (match.matcher(r.toString()).matches()) return true;
+            }
+            return false;
         }
 
         /** Whether [m] makes an invoke of the kind [wantStatic] asks for whose method reference matches [match]. */
@@ -479,6 +497,36 @@ public class DexDiff {
         }
         return shapePattern(reference.substring(0, arrow)) + java.util.regex.Pattern.quote("->") + name
                 + shapePattern(reference.substring(open));
+    }
+
+    /** The instructions that read or write a static field. */
+    private static final java.util.Set<Opcode> STATIC_FIELD_OPCODES = java.util.EnumSet.of(
+            Opcode.SGET, Opcode.SGET_WIDE, Opcode.SGET_OBJECT, Opcode.SGET_BOOLEAN, Opcode.SGET_BYTE, Opcode.SGET_CHAR,
+            Opcode.SGET_SHORT, Opcode.SPUT, Opcode.SPUT_WIDE, Opcode.SPUT_OBJECT, Opcode.SPUT_BOOLEAN, Opcode.SPUT_BYTE,
+            Opcode.SPUT_CHAR, Opcode.SPUT_SHORT);
+
+    /**
+     * A lacking clause's field reference, Lclass;->name:type, as a regular expression. Its class and
+     * its type read as a shape does, and a * in its name stands for any run within the name.
+     */
+    static String fieldPattern(String reference) {
+        int arrow = reference.indexOf("->");
+        int colon = reference.indexOf(':', arrow + 2);
+        String[] pieces = reference.substring(arrow + 2, colon).split("\\*", -1);
+        StringBuilder name = new StringBuilder();
+        for (int k = 0; k < pieces.length; k++) {
+            if (k > 0) name.append("[^:]*");
+            name.append(java.util.regex.Pattern.quote(pieces[k]));
+        }
+        return shapePattern(reference.substring(0, arrow)) + java.util.regex.Pattern.quote("->") + name
+                + java.util.regex.Pattern.quote(":") + shapePattern(reference.substring(colon + 1));
+    }
+
+    /** Whether [written] reads as a field reference a lacking clause can name: a class, ->, a name, then :type. */
+    private static boolean isFieldReference(String written) {
+        int arrow = written.indexOf("->");
+        int colon = arrow < 1 ? -1 : written.indexOf(':', arrow + 2);
+        return colon > arrow + 2 && colon < written.length() - 1 && written.indexOf('(', arrow) < 0;
     }
 
     /** Whether [written] reads as a method reference a calling clause can name: a class, ->, a name, then (parameters)return. */
@@ -550,7 +598,7 @@ public class DexDiff {
                 lackStatic = parts[at].equals("static");
                 at++;
             }
-            if (at >= parts.length || !isCallReference(parts[at])) return null;
+            if (at >= parts.length || !(isCallReference(parts[at]) || isFieldReference(parts[at]))) return null;
             lack = parts[at++];
         }
         int sites = 1;
@@ -597,7 +645,7 @@ public class DexDiff {
                 Contract picked = readPicked(parts);
                 if (picked == null) {
                     throw new IllegalArgumentException("Invalid contract line " + lineNumber + ": expected " + form
-                            + " [in [static|instance] <(parameters)return>] [calling [static|instance] <method reference>] [lacking [static|instance] <method reference>]"
+                            + " [in [static|instance] <(parameters)return>] [calling [static|instance] <method reference>] [lacking [static|instance] <method or field reference>]"
                             + (form.startsWith("once-call") || form.startsWith("shared-call") ? " [sites <2 or more>|returns]"
                                     : form.startsWith("sole-call") ? " [sites each]" : "")
                             + " [pooled] holding or class-holding <string> [<string> ...]");
@@ -625,7 +673,7 @@ public class DexDiff {
                         + " or start-call <method reference>, next-call <method reference> after <method reference>,"
                         + " sole-call <method reference> replacing <method reference>,"
                         + " once-call <method reference> or shared-call <method reference>, each then"
-                        + " [in [static|instance] <(parameters)return>] [calling [static|instance] <method reference>] [lacking [static|instance] <method reference>]"
+                        + " [in [static|instance] <(parameters)return>] [calling [static|instance] <method reference>] [lacking [static|instance] <method or field reference>]"
                         + " [sites <2 or more>|returns, once-call and shared-call only] [sites each, sole-call only]"
                         + " [pooled] holding or class-holding <string> [<string> ...]");
             }
@@ -2453,7 +2501,9 @@ public class DexDiff {
         String call = rule.call == null ? null
                 : (rule.callStatic == null ? "a call to " : rule.callStatic ? "a static call to " : "an instance call to ") + rule.call;
         String lacks = rule.lack == null ? null
-                : (rule.lackStatic == null ? "no call to " : rule.lackStatic ? "no static call to " : "no instance call to ") + rule.lack;
+                : isFieldReference(rule.lack)
+                        ? (rule.lackStatic == null ? "no use of " : rule.lackStatic ? "no static use of " : "no instance use of ") + rule.lack
+                        : (rule.lackStatic == null ? "no call to " : rule.lackStatic ? "no static call to " : "no instance call to ") + rule.lack;
         String how = call == null ? shape : shape == null ? "with " + call : shape + " and " + call;
         if (lacks != null) how = how == null ? "with " + lacks : how + " and " + lacks;
         String holding = rule.pooled ? "holding or asking a string pool for " : "holding ";

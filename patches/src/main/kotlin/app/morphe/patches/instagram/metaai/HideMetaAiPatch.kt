@@ -83,7 +83,8 @@ private const val VIEW = "Landroid/view/View;"
  * 0x81063c00111e3b, 0x8103e60006103b, 0x8103e4001b1031 and 0x811616000174d6, 453
  * 0x81066200111e66, 0x81040000061068, 0x8103fe001b105e and 0x81166400017394).
  */
-internal val SEARCH_FLAGS = listOf(0x81062600111dbbL, 0x8103d700060ff2L, 0x8103d5001b0fe8L, 0x8115d5000176efL)
+// 457 moved them from 456's 0x81062600111dbb, 0x8103d700060ff2, 0x8103d5001b0fe8 and 0x8115d5000176ef.
+internal val SEARCH_FLAGS = listOf(0x81061f00111db1L, 0x8103d200060febL, 0x8103d0001b0fe1L, 0x8115ab00017750L)
 
 /** The Search tab's flag, which the search results page reads too (#152). */
 internal val RESULTS_FLAG = SEARCH_FLAGS[0]

@@ -15,6 +15,7 @@ import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod.Companion.toMuta
 import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.instagram.direct.reels.MEDIA
 import app.morphe.patches.instagram.direct.reels.MESSAGE_ID
+import app.morphe.patches.instagram.download.mediaIdCall
 import app.morphe.patches.instagram.direct.reels.THREAD_KEY
 import app.morphe.patches.instagram.download.pandoGetter
 import app.morphe.patches.instagram.feed.carousel.REBOUND_VIEW_PAGER
@@ -86,7 +87,6 @@ private const val OBJECT = "Ljava/lang/Object;"
 private const val RECT = "Landroid/graphics/RectF;"
 private const val VIEW = "Landroid/view/View;"
 private const val CONTEXT = "Landroid/content/Context;"
-private const val MEDIA_ID = "$MEDIA->getId()$STRING"
 
 /** How many arguments the page builder's full call takes, and where Instagram's flags at its end start. */
 private const val PAGE_ARGUMENTS = 20
@@ -557,7 +557,7 @@ internal fun BytecodePatchContext.findMediaWalk(): MediaWalkSite {
     )) requireReachable(method)
 
     val declared = classDefBy(MEDIA_WALK).methods.map { it.name }.toSet()
-    val stubs = stubs(page, shared, store, legacy, direction, directionOf, reverse, session, activity, builderOf, itemMedia) +
+    val stubs = stubs(page, shared, store, legacy, direction, directionOf, reverse, session, activity, builderOf, itemMedia, mediaIdCall(PATCH)) +
         tapStubs(tap, builderOf, albumMode, mediaType)
     for (stub in stubs) if (stub.name !in declared) refuse("$MEDIA_WALK has no ${stub.name}")
 
@@ -662,6 +662,7 @@ private fun stubs(
     activity: FieldReference,
     builderOf: Method,
     itemMedia: FieldReference,
+    mediaId: String,
 ): List<WalkStub> {
     val message = page.message
     val builder = page.builder
@@ -801,7 +802,7 @@ private fun stubs(
             const/4 v0, 0x0
             return-object v0
             :has
-            invoke-virtual { v0 }, $MEDIA_ID
+            invoke-virtual { v0 }, $mediaId
             move-result-object v0
             return-object v0
         """),

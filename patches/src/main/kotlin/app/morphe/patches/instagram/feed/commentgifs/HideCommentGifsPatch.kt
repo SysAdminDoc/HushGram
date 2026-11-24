@@ -25,6 +25,7 @@ import app.morphe.patches.instagram.misc.comment.hashGetter
 import app.morphe.patches.instagram.misc.comment.matches
 import app.morphe.patches.instagram.misc.comment.one
 import app.morphe.patches.instagram.misc.comment.parameters
+import app.morphe.patches.instagram.misc.comment.rawCommentParameter
 import app.morphe.patches.instagram.misc.comment.refuse
 import app.morphe.patches.instagram.misc.comment.requirePublic
 import app.morphe.patches.instagram.misc.comment.treeBacked
@@ -134,7 +135,7 @@ internal fun BytecodePatchContext.findCommentRow(): CommentRowPlan = discovering
         .filter { type -> type.methods.any { it.abstractGetterOf(GIPHY) } }
         .one("raw comment among $where's parameters")
     raw.requireInterface()
-    val comment = types.indices.filter { types[it] == raw.type }.one("raw comment parameter of $where")
+    val comment = rawCommentParameter(builder, raw.type)
 
     val gif = raw.methods.filter { it.abstractGetterOf(GIPHY) }.one("raw comment's GIF getter")
     val tree = classes.values.filter { raw.type in it.interfaces && treeBacked(it, classes) }.one("tree comment")

@@ -7,6 +7,7 @@ package app.morphe.patches.instagram.reels.origin
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patches.instagram.download.activeTrialBridge
+import app.morphe.patches.instagram.download.mediaIdGetter
 import app.morphe.patches.instagram.download.mediaTypeBridge
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesLoadingString
@@ -91,7 +92,7 @@ private fun refuse(why: String): Nothing = throw PatchException("$REEL_ORIGIN_PA
  * Resolve both hook sites and prove what the extension relies on, before any edit. The profile
  * opener is the one method loading both of its strings, an instance method of one object, whose
  * class has one Media field it reads; nothing jumps to its first instruction, and v0 is a local it
- * writes before any read, so the hook can borrow it. Media keeps a public getId(). The Reels tab is
+ * writes before any read, so the hook can borrow it. Media has a public id getter. The Reels tab is
  * the one class whose onCreate(Bundle) reads the user id key; its onResume is the framework's own
  * ()V, entered only at its first instruction, in a Fragment whose getActivity, getArguments and
  * isResumed are public. The same class looks a tile up by its transition name and keeps its grid in
@@ -119,10 +120,7 @@ internal fun BytecodePatchContext.findReelOriginTargets(): ReelOriginTargets {
                     it.definingClass == destination && it.name == media.name && it.type == MEDIA
                 }
         }) refuse("$opener doesn't read $destination->${media.name}")
-    classDefByOrNull(MEDIA)?.methods?.singleOrNull {
-        it.name == "getId" && it.returnType == "Ljava/lang/String;" && it.parameterTypes.isEmpty() &&
-            AccessFlags.PUBLIC.isSet(it.accessFlags) && !AccessFlags.STATIC.isSet(it.accessFlags)
-    } ?: refuse("$MEDIA has no public getId()Ljava/lang/String;")
+    mediaIdGetter() ?: refuse("$MEDIA has no public id getter answering a String")
 
     val creates = classesLoadingString(USER_KEY).flatMap { it.methods }.filter {
         it.name == "onCreate" && it.returnType == "V" && it.parameterTypes.map(Any::toString) == listOf(BUNDLE) &&

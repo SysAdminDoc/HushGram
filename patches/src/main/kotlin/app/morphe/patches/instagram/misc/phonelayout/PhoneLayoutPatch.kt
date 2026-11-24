@@ -235,23 +235,31 @@ internal class OrientationSite(
 
 /**
  * Finds the one static method in the big screen helper taking an Activity and answering a boolean that
- * calls the helper's own `(FII)Z` sorting of a size: the check whether the activity's largest window is
- * big. The helper's other Activity check asks only about split screen. Fails when there isn't exactly one.
+ * returns the helper's own `(FII)Z` sorting of a size: the check whether the activity's largest window is
+ * big. The helper's other Activity check asks only about split screen, and from 457 a third one sorts the
+ * size too but answers from its own later test (`LX/01tt;->A0A` on 386314341). Fails when there isn't
+ * exactly one.
  */
 internal fun BytecodePatchContext.findScreenCheck(hinge: HingeCheck): ScreenCheck {
     val checks = mutableClassDefBy(hinge.type).methods.filter {
         AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == "Z" &&
-            it.parameterTypes.map(CharSequence::toString) == listOf(ACTIVITY) && it.sortsASize(hinge.type)
+            it.parameterTypes.map(CharSequence::toString) == listOf(ACTIVITY) && it.answersASize(hinge.type)
     }
     val check = checks.singleOrNull()
         ?: refuse("expected one Activity check sorting a screen's size in ${hinge.type}, found ${checks.size}")
     return ScreenCheck(check.definingClass, check.name)
 }
 
-private fun Method.sortsASize(helper: String): Boolean = instructions().any {
-    val called = (it as? ReferenceInstruction)?.reference as? MethodReference
-    called != null && called.definingClass == helper && called.returnType == "Z" &&
-        called.parameterTypes.map(CharSequence::toString) == listOf("F", "I", "I")
+/** Whether the method calls [helper]'s `(FII)Z` sorting of a size and returns that answer's register. */
+private fun Method.answersASize(helper: String): Boolean {
+    val code = instructions()
+    return code.indices.any { at ->
+        val called = (code[at] as? ReferenceInstruction)?.reference as? MethodReference
+        val result = code.getOrNull(at + 1)
+        called != null && called.definingClass == helper && called.returnType == "Z" &&
+            called.parameterTypes.map(CharSequence::toString) == listOf("F", "I", "I") && result?.opcode == Opcode.MOVE_RESULT &&
+            code.any { it.opcode == Opcode.RETURN && (it as OneRegisterInstruction).registerA == (result as OneRegisterInstruction).registerA }
+    }
 }
 
 /**

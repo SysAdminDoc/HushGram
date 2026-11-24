@@ -12,6 +12,7 @@ import app.morphe.patcher.patch.PatchException
 import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.instagram.download.MEDIA
 import app.morphe.patches.instagram.download.USER
+import app.morphe.patches.instagram.download.mediaIdGetter
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -168,7 +169,7 @@ class KeepStoryViewersHookTest {
         bridge("listMedia", site.answer, Opcode.IGET_OBJECT, site.media)
         bridge("viewerUser", site.viewer, Opcode.IGET_OBJECT, site.account)
         bridge("listStory", site.callback, Opcode.IGET_OBJECT, site.story)
-        bridge("mediaId", MEDIA, Opcode.INVOKE_VIRTUAL, "$MEDIA->getId()$TEXT")
+        bridge("mediaId", MEDIA, Opcode.INVOKE_VIRTUAL, "${context.mediaIdGetter()}")
         for (name in listOf("userId", "username", "takenAt")) {
             val body = stubs.single { it.name == name }.code()
             val cast = if (name == "takenAt") MEDIA else USER

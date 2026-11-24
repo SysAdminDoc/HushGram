@@ -206,6 +206,14 @@ class SwipedReelRepliesTest {
         assertEquals("handed the info, the wrapper and the collector", listOf(1, 2, 3), collect[7].arguments())
         assertEquals("then Instagram's", Opcode.GOTO, collect[8].opcode)
 
+        val skipping = collector(skipped = true)
+        val skipFound = context().findReplyBar(skipping)
+        context().giveSwipedReelsTheirReplies(skipping, skipFound)
+        val skipped = skipping.collect.visualCode()
+        assertEquals(COLLECTED, skipped[9].text())
+        assertEquals("the build's own way down hands its info on", listOf(1, 2, 3), skipped[9].arguments())
+        assertEquals("a message with no id still jumps past the hook", setOf(10), skipping.collect.jumpTargets())
+
         val hint = found.hint.visualCode()
         assertEquals(REPLY_TO, hint[8].text())
         assertEquals("handed Instagram's info, the source, the adapter and the page", listOf(1, 3, 2, 0), hint[8].arguments())
@@ -461,7 +469,13 @@ class SwipedReelRepliesTest {
         if (this is RegisterRangeInstruction) List(registerCount) { startRegister + it } else arguments()
 
     /** Shaped like 453's 02YM.A01 where it builds a 0W3G: the info built, then a goto on to Instagram's use of it. */
-    private fun collector(itemType: String = item, jumped: Boolean = false, time: String = "Ljava/lang/String;", thisSpoiled: Boolean = false): ReelCollector {
+    private fun collector(
+        itemType: String = item,
+        jumped: Boolean = false,
+        time: String = "Ljava/lang/String;",
+        thisSpoiled: Boolean = false,
+        skipped: Boolean = false,
+    ): ReelCollector {
         val spoil = if (thisSpoiled) "const/4 p0, 0x0\n" else ""
         val body = spoil + if (jumped) {
             """
@@ -469,7 +483,21 @@ class SwipedReelRepliesTest {
                 move-result-object v0
                 new-instance v1, $info
                 const/4 v2, 0x0
+                invoke-direct {v1, v2, v2, v2, v2}, $initCall
+                :after
+                invoke-static {v1, v0}, Lfixture/Chain;->add(Ljava/lang/Object;Ljava/lang/Object;)V
                 if-eqz v0, :after
+                return-void
+            """
+        } else if (skipped) {
+            // 457's 07Kd.A02: no info and a jump past the build for a message with no id.
+            """
+                invoke-virtual {p1}, $wrapper->reel()$item
+                move-result-object v0
+                const/4 v1, 0x0
+                if-eqz v0, :after
+                new-instance v1, $info
+                const/4 v2, 0x0
                 invoke-direct {v1, v2, v2, v2, v2}, $initCall
                 :after
                 invoke-static {v1, v0}, Lfixture/Chain;->add(Ljava/lang/Object;Ljava/lang/Object;)V

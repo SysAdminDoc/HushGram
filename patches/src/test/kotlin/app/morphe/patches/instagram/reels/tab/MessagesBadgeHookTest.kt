@@ -129,10 +129,11 @@ class MessagesBadgeHookTest {
             }
             assertEquals("$name: the tab button's count update", 1, updates.size)
             val update = updates.single()
+            // 457's tab button calls it itself too, showing again the count it was handed last.
             val callers = FixtureDex.methodsWhere(bundle, { dex -> dex.typeSection.any { it == update.definingClass } }) { method ->
-                method.code().any { it.calls(update) }
+                method.definingClass != update.definingClass && method.code().any { it.calls(update) }
             }
-            assertEquals("$name: callers of the count update, in the whole app", 1, callers.size)
+            assertEquals("$name: callers of the count update outside its class, in the whole app", 1, callers.size)
             val controllerType = callers.single().definingClass
             val controllerClass = FixtureDex.classes(bundle, setOf(controllerType)).values.single()
             val context = PatchContexts.of((buttons + controllerClass + ExtensionDex.classDef(extensionType)).distinctBy { it.type })

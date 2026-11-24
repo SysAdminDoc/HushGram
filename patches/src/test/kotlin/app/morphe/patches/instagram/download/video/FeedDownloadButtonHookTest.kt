@@ -209,16 +209,17 @@ class FeedDownloadButtonHookTest {
         assertEquals("$modifierType->plus(Lfixture/Part;)$modifierType", body("lithoJoin")[2].reference())
         val saveOnly = body("lithoSaveOnly")
         assertEquals("Lfixture/Part;->kind()Lfixture/Kind;", saveOnly[1].reference())
-        assertEquals("both of Save's kinds are told apart", listOf("Lfixture/BinderKind;", "Lfixture/PropKind;"),
+        // The id style's kind, then the binder style's.
+        assertEquals("both of Save's kinds are told apart", listOf("Lfixture/PropKind;", "Lfixture/BinderKind;"),
             saveOnly.filter { it.opcode == Opcode.INSTANCE_OF }.map { it.reference() })
-        assertEquals(listOf("Lfixture/BinderKind;", "Lfixture/PropKind;"), site.parts.saveKinds)
+        assertEquals(listOf("Lfixture/PropKind;", "Lfixture/BinderKind;"), site.parts.saveKinds)
     }
 
     @Test
     fun aModifierThatCannotBeTakenApartFailsThePatch() {
         for ((case, classes) in mapOf(
-            "an id style of one kind" to lithoClasses(idKinds = 1),
-            "an id style of three kinds" to lithoClasses(idKinds = 3),
+            "Save's styles of one kind" to lithoClasses(idKinds = 1),
+            "Save's styles of three kinds" to lithoClasses(idKinds = 3),
             "no walk over the parts" to lithoClasses(walk = false),
             "a part that is no interface" to lithoClasses(partInterface = false),
             "no empty modifier" to lithoClasses(empty = false),
@@ -254,6 +255,7 @@ class FeedDownloadButtonHookTest {
             "two builders" to lithoClasses(twoBuilders = true),
             "Save's id loaded twice" to lithoClasses(saveTwice = true),
             "no description style" to lithoClasses(description = false),
+            "no binder style" to lithoClasses(binderStyle = false),
             "one function style" to lithoClasses(functionStyles = 1),
             "three function styles" to lithoClasses(functionStyles = 3),
             "no list add" to lithoClasses(add = false),
@@ -302,10 +304,10 @@ class FeedDownloadButtonHookTest {
             )
 
         /**
-         * The component builder as 450 has it, in the parts the hook reads: the row state narrowed
-         * to, the list, Save's modifier given a description, an id, a tap and a long press, the
-         * icon spec built from it, and the spec added to the list. The spec keeps the modifier,
-         * the scale type, the drawable, the color and the flag. Every option breaks one thing.
+         * The component builder as 457 has it, in the parts the hook reads: the row state narrowed
+         * to, the list, Save's modifier given a description, an id, a tap, a long press and the binder
+         * style, the icon spec built from it, and the spec added to the list. The spec keeps the
+         * modifier, the scale type, the drawable, the color and the flag. Every option breaks one thing.
          */
         fun lithoClasses(
             rowId: Int = ROW_BUTTONS_ID,
@@ -320,6 +322,7 @@ class FeedDownloadButtonHookTest {
             items: Int = 1,
             busy: Boolean = false,
             idKinds: Int = 2,
+            binderStyle: Boolean = true,
             walk: Boolean = true,
             partInterface: Boolean = true,
             empty: Boolean = true,
@@ -346,6 +349,10 @@ class FeedDownloadButtonHookTest {
                 appendLine("const/4 v9, 0x0")
                 for (style in listOf("tap", "hold", "extra").take(functionStyles)) {
                     appendLine("invoke-static { v2, v9 }, Lfixture/Style;->$style($modifier$function)$modifier")
+                    appendLine("move-result-object v2")
+                }
+                if (binderStyle) {
+                    appendLine("invoke-static { v2, v9, v9 }, Lfixture/Style;->bind(${modifier}Ljava/lang/Object;Ljava/lang/Object;)$modifier")
                     appendLine("move-result-object v2")
                 }
                 appendLine("new-instance v$SPEC_REGISTER, Lfixture/Icon;")
@@ -401,9 +408,11 @@ class FeedDownloadButtonHookTest {
         }
 
         /**
-         * The modifier as 450 has it, in the parts the bridges use: a chain of parts with a walk, a
+         * The modifier as 457 has it, in the parts the bridges use: a chain of parts with a walk, a
          * join and an empty one; the part interface with its kind; an item made in a binder kind and
-         * a common prop kind; and the id style, which makes its part in both (by a server flag).
+         * a common prop kind; the id style, which makes its part in the prop kind (up to 456 it made
+         * either, by a server flag), and the binder style, which makes the binder kind. [idKinds]
+         * counts the kinds the two make between them.
          */
         fun modifierClasses(idKinds: Int, walk: Boolean, partInterface: Boolean, empty: Boolean, kindGetter: Boolean): List<ClassDef> {
             val modifier = "Lfixture/Modifier;"
@@ -437,11 +446,21 @@ class FeedDownloadButtonHookTest {
                     assembled(
                         "Lfixture/Style;", "id", listOf(modifier, "I"), modifier, AccessFlags.PUBLIC.value or AccessFlags.STATIC.value, 4,
                         buildString {
-                            for (kind in kinds.take(idKinds)) {
+                            for (kind in kinds.drop(1).take(idKinds - 1)) {
                                 appendLine("new-instance v0, Lfixture/Item;")
                                 appendLine("sget-object v1, $kind->ID:$kind")
                                 appendLine("invoke-direct { v0, v1, v1 }, Lfixture/Item;-><init>(${kind}Ljava/lang/Object;)V")
                             }
+                            appendLine("return-object p0")
+                        },
+                    ),
+                    assembled(
+                        "Lfixture/Style;", "bind", listOf(modifier, "Ljava/lang/Object;", "Ljava/lang/Object;"), modifier,
+                        AccessFlags.PUBLIC.value or AccessFlags.STATIC.value, 5,
+                        buildString {
+                            appendLine("new-instance v0, Lfixture/Item;")
+                            appendLine("sget-object v1, ${kinds[0]}->ID:${kinds[0]}")
+                            appendLine("invoke-direct { v0, v1, v1 }, Lfixture/Item;-><init>(${kinds[0]}Ljava/lang/Object;)V")
                             appendLine("return-object p0")
                         },
                     ),

@@ -13,6 +13,9 @@ import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.instagram.download.reel.rewriteStub
+import app.morphe.patches.instagram.media.PlayerStep
+import app.morphe.patches.instagram.media.valuePath
+import app.morphe.patches.instagram.media.walk
 import app.morphe.patches.instagram.media.taptoplay.CLIPS_PAUSE
 import app.morphe.patches.instagram.media.taptoplay.FRAGMENT_ACTIVITY
 import app.morphe.patches.instagram.media.taptoplay.FUNCTION0
@@ -28,6 +31,7 @@ import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
 import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.loadsString
+import app.morphe.patches.instagram.misc.extension.parameterRegister
 import app.morphe.patches.instagram.misc.extension.patchLog
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.extension.requireThisIntact
@@ -205,6 +209,8 @@ internal class AudioState(
  * boolean. [stateOf] is an interface call when [stateOfInterface] is set. On 454 there's no [indexOf]:
  * the list (an interface, so [holderInterface]) hands over its current holder from a call taking nothing.
  * Some 454 builds keep [indexOf] but answer the list as an interface, cast to [listCast] before it's asked.
+ * 457's player, a [playerType], has no [stateOf]: its one implementation holds the state, reached
+ * through the casts and fields of [statePath].
  */
 internal class PlayerAudio(
     val currentList: MethodReference,
@@ -214,10 +220,18 @@ internal class PlayerAudio(
     val listCast: String?,
     val factoryField: FieldReference,
     val playerFor: MethodReference,
-    val stateOf: MethodReference,
+    val stateOf: MethodReference?,
     val stateOfInterface: Boolean,
+    val playerType: String,
+    val statePath: List<PlayerStep>,
     val flag: FieldReference,
-)
+) {
+    /** The smali taking [register] from the player to its audio state, jumping to [none] when that's null. */
+    fun toState(register: String, none: String): String = stateOf?.let { call ->
+        "${if (stateOfInterface) "invoke-interface" else "invoke-virtual"} { $register }, $call\n" +
+            "move-result-object $register\nif-eqz $register, $none\n"
+    } ?: ((if (statePath.firstOrNull()?.type != null) "" else "check-cast $register, $playerType\n") + statePath.walk(register, none))
+}
 
 private const val USER_SESSION = "Lcom/instagram/common/session/UserSession;"
 
@@ -451,7 +465,18 @@ private fun BytecodePatchContext.playerReachable(from: String, player: PlayerAud
     }
     return reaches(player.currentList) && player.indexOf?.let { reaches(it) } != false && reaches(player.holderAt, player.holderInterface) &&
         reaches(player.playerFor) && player.listCast?.let { classDefByOrNull(it) != null && opensTo(from, it, AccessFlags.PUBLIC.value) } != false &&
-        reaches(player.stateOf, player.stateOfInterface) && fieldOpen(player.factoryField) && fieldOpen(player.flag)
+        (player.stateOf?.let { reaches(it, player.stateOfInterface) } ?: pathOpen(from, player)) && fieldOpen(player.factoryField) && fieldOpen(player.flag)
+}
+
+/** Whether code in [from]'s class can walk 457's [PlayerAudio.statePath]: every class it casts to and every field it reads. */
+private fun BytecodePatchContext.pathOpen(from: String, player: PlayerAudio): Boolean {
+    val castFirst = player.statePath.firstOrNull()?.type != null || opensTo(from, player.playerType, AccessFlags.PUBLIC.value)
+    return castFirst && player.statePath.isNotEmpty() && player.statePath.all { step ->
+        step.type?.let { opensTo(from, it, AccessFlags.PUBLIC.value) } ?: step.field!!.let { field ->
+            val declared = classDefByOrNull(field.definingClass)?.fields?.singleOrNull { it.name == field.name && it.type == field.type }
+            declared != null && !AccessFlags.STATIC.isSet(declared.accessFlags) && opensTo(from, field.definingClass, declared.accessFlags)
+        }
+    }
 }
 
 /**
@@ -463,7 +488,7 @@ private fun BytecodePatchContext.playerReachable(from: String, player: PlayerAud
  * before an xor with 1 whose object came from a no-argument call on that player, with the controller's
  * chain in front of it exactly as written above. Null when the toggle doesn't read it that way.
  */
-private fun findPlayerAudio(code: List<Instruction>, controller: String): PlayerAudio? {
+private fun BytecodePatchContext.findPlayerAudio(code: List<Instruction>, controller: String): PlayerAudio? {
     val found = mutableListOf<PlayerAudio>()
     for (x in 2 until code.size) {
         val flip = code[x]
@@ -472,19 +497,36 @@ private fun findPlayerAudio(code: List<Instruction>, controller: String): Player
         val flag = read.fieldReference()
         if (read.opcode != Opcode.IGET_BOOLEAN || flag == null || (flip as TwoRegisterInstruction).registerB != (read as OneRegisterInstruction).registerA) continue
         val holder = (read as TwoRegisterInstruction).registerB
-        // The state object came from a no-argument call on the player, taken just before.
-        val taken = (x - 2 downTo maxOf(1, x - 30)).firstOrNull { code[it].opcode == Opcode.MOVE_RESULT_OBJECT && (code[it] as OneRegisterInstruction).registerA == holder } ?: continue
-        if (code[taken].opcode != Opcode.MOVE_RESULT_OBJECT) continue
-        val stateOf = code[taken - 1].methodReference() ?: continue
-        val interfaceCall = code[taken - 1].opcode == Opcode.INVOKE_INTERFACE
-        if (!interfaceCall && code[taken - 1].opcode != Opcode.INVOKE_VIRTUAL) continue
-        if (stateOf.parameterTypes.isNotEmpty() || stateOf.returnType != flag.definingClass) continue
-        val playerRegister = (code[taken - 1] as? FiveRegisterInstruction)?.registerC ?: continue
-        // The player is what the controller's factory made of the holder, a few calls up.
-        val j = (taken - 2 downTo 6).firstOrNull { at ->
-            code[at].opcode == Opcode.INVOKE_VIRTUAL && code[at].methodReference()?.returnType == stateOf.definingClass &&
-                (code[at + 1] as? OneRegisterInstruction)?.registerA == playerRegister && code[at + 1].opcode == Opcode.MOVE_RESULT_OBJECT
-        } ?: continue
+        // The state object came from a no-argument call on the player, taken just before. 457's
+        // player has no such call: the toggle casts it to its one implementation and reads the state.
+        val taken = (x - 2 downTo maxOf(1, x - 30)).firstOrNull { code[it].opcode == Opcode.MOVE_RESULT_OBJECT && (code[it] as OneRegisterInstruction).registerA == holder }
+        val stateCall = taken?.let { code[it - 1] }
+        val stateOf = stateCall?.methodReference()?.takeIf { call ->
+            (stateCall?.opcode == Opcode.INVOKE_INTERFACE || stateCall?.opcode == Opcode.INVOKE_VIRTUAL) &&
+                call.parameterTypes.isEmpty() && call.returnType == flag.definingClass
+        }
+        val interfaceCall = stateOf != null && stateCall?.opcode == Opcode.INVOKE_INTERFACE
+        val j: Int
+        val playerType: String
+        val statePath: List<PlayerStep>
+        if (stateOf != null) {
+            val playerRegister = (stateCall as? FiveRegisterInstruction)?.registerC ?: continue
+            // The player is what the controller's factory made of the holder, a few calls up.
+            j = (taken!! - 2 downTo 6).firstOrNull { at ->
+                code[at].opcode == Opcode.INVOKE_VIRTUAL && code[at].methodReference()?.returnType == stateOf.definingClass &&
+                    (code[at + 1] as? OneRegisterInstruction)?.registerA == playerRegister && code[at + 1].opcode == Opcode.MOVE_RESULT_OBJECT
+            } ?: continue
+            playerType = stateOf.definingClass
+            statePath = emptyList()
+        } else {
+            // The player is the answer of the factory call right in front of the path's start.
+            val path = valuePath(code, x - 1, holder) ?: continue
+            if (path.steps.lastOrNull()?.field?.type != flag.definingClass || code[path.start].opcode != Opcode.MOVE_RESULT_OBJECT) continue
+            j = path.start - 1
+            if (j < 6 || code[j].opcode != Opcode.INVOKE_VIRTUAL || code[j].methodReference()?.returnType != path.player) continue
+            playerType = path.player
+            statePath = path.steps
+        }
         val playerFor = code[j].methodReference() ?: continue
         val make = code[j] as? FiveRegisterInstruction ?: continue
         if (make.registerCount != 2 || playerFor.parameterTypes.size != 1) continue
@@ -497,9 +539,13 @@ private fun findPlayerAudio(code: List<Instruction>, controller: String): Player
         if (make.registerD != (code[j - 3] as OneRegisterInstruction).registerA) continue
         val chain = holderChain(code, j - 4, controller) ?: continue
         if (playerFor.parameterTypes[0] != chain.holderAt.returnType) continue
-        found += PlayerAudio(chain.list, chain.indexOf, chain.holderAt, chain.holderInterface, chain.listCast, factoryField, playerFor, stateOf, interfaceCall, flag)
+        found += PlayerAudio(
+            chain.list, chain.indexOf, chain.holderAt, chain.holderInterface, chain.listCast, factoryField, playerFor, stateOf, interfaceCall,
+            playerType, statePath, flag,
+        )
     }
-    return found.distinctBy { "${it.currentList}${it.listCast}${it.holderAt}${it.playerFor}${it.stateOf}${it.flag}" }.singleOrNull()
+    return found.distinctBy { "${it.currentList}${it.listCast}${it.holderAt}${it.playerFor}${it.stateOf}${it.statePath.joinToString()}${it.flag}" }
+        .singleOrNull()
 }
 
 private class HolderChain(
@@ -586,9 +632,7 @@ internal fun BytecodePatchContext.applyKeepMuted(site: VolumeSite) {
                 invoke-virtual { v$state, v$direction }, ${player.playerFor}
                 move-result-object v$direction
                 if-eqz v$direction, :session
-                ${if (player.stateOfInterface) "invoke-interface" else "invoke-virtual"} { v$direction }, ${player.stateOf}
-                move-result-object v$direction
-                if-eqz v$direction, :session
+                ${player.toState("v$direction", ":session")}
                 iget-boolean v$state, v$direction, ${player.flag}
                 goto :ask
                 :session
@@ -618,10 +662,12 @@ internal fun BytecodePatchContext.applyKeepMuted(site: VolumeSite) {
 /**
  * What the speaker icon beside a reel (#608) needs: the controller's maybeResumePlayer, its audio
  * toggle, and the sound state the toggle reads, with whether the extension can read it the player's
- * way ([playerOpen]) and the session's ([sessionOpen]).
+ * way ([playerOpen]) and the session's ([sessionOpen]). [controllerParameter] is the register
+ * maybeResumePlayer gets its controller in: `this`, or on 457, where it's static, its controller parameter.
  */
 internal class SpeakerSite(
     val resume: Method,
+    val controllerParameter: String,
     val toggle: Method,
     val controller: String,
     val audio: AudioState,
@@ -647,7 +693,12 @@ internal fun BytecodePatchContext.findSpeakerSite(tap: ReelTapSite, volume: Volu
     val resume = resumes.singleOrNull() ?: return leftOut("expected one method loading \"$RESUME_PLAYER_TRACE\", found ${resumes.size}")
     val where = "${resume.definingClass}->${resume.name}"
     if (resume.definingClass != controller) return leftOut("$where isn't in $controller")
-    if (AccessFlags.STATIC.isSet(resume.accessFlags) || resume.implementation == null) return leftOut("$where isn't an instance method with a body")
+    if (resume.implementation == null) return leftOut("$where has no body")
+    // 457 made maybeResumePlayer static, the controller one of its parameters.
+    val controllerParameter = if (!AccessFlags.STATIC.isSet(resume.accessFlags)) "p0" else {
+        val taking = resume.parameterTypes.indices.filter { resume.parameterTypes[it].toString() == controller }
+        resume.parameterRegister(taking.singleOrNull() ?: return leftOut("$where is static and takes ${taking.size} $controller parameters, not one"))
+    }
     if (0 in resume.jumpTargets()) return leftOut("something in $where jumps to its start")
     if (0 in tap.toggle.jumpTargets()) return leftOut("something in $controller->${tap.toggle.name} jumps to its start")
     if (!AccessFlags.PUBLIC.isSet(classDefBy(controller).accessFlags)) return leftOut("$controller isn't public, so the extension can't call its audio toggle")
@@ -660,18 +711,18 @@ internal fun BytecodePatchContext.findSpeakerSite(tap: ReelTapSite, volume: Volu
     val playerOpen = playerReachable(REEL_TAP_AND_VOLUME, audio.player)
     val sessionOpen = sessionReachable(REEL_TAP_AND_VOLUME, controller, audio)
     if (!playerOpen && !sessionOpen) patchLog.warning("$PATCH: the extension can't read the Reels sound state, so the speaker icon always shows sound on.")
-    return SpeakerSite(resume, tap.toggle, controller, audio, playerOpen, sessionOpen)
+    return SpeakerSite(resume, controllerParameter, tap.toggle, controller, audio, playerOpen, sessionOpen)
 }
 
 /**
  * Hands the extension the controller first thing in maybeResumePlayer (through the range form, which
- * names `this` wherever it sits), asks the icon to redraw first thing in the audio toggle, so a mute
+ * names `this` or the controller parameter wherever it sits), asks the icon to redraw first thing in the audio toggle, so a mute
  * from Instagram's own button or a tap shows on the icon too, and fills the extension's two stubs: the
  * toggle's call with the reason the audio button gives, and the sound state, read the player's way
  * first and the session's way when the reel has no player yet, -1 when neither can be read.
  */
 internal fun BytecodePatchContext.applySpeaker(site: SpeakerSite) {
-    mutable(site.resume).addInstructions(0, "invoke-static/range { p0 .. p0 }, $SPEAKER_RESUMING")
+    mutable(site.resume).addInstructions(0, "invoke-static/range { ${site.controllerParameter} .. ${site.controllerParameter} }, $SPEAKER_RESUMING")
     mutable(site.toggle).addInstructions(0, "invoke-static { }, $SPEAKER_REFRESH")
 
     val bridges = mutableClassDefBy(REEL_TAP_AND_VOLUME)
@@ -717,9 +768,7 @@ internal fun BytecodePatchContext.applySpeaker(site: SpeakerSite) {
         invoke-virtual { v1, v0 }, ${player.playerFor}
         move-result-object v0
         if-eqz v0, :session
-        ${if (player.stateOfInterface) "invoke-interface" else "invoke-virtual"} { v0 }, ${player.stateOf}
-        move-result-object v0
-        if-eqz v0, :session
+        ${player.toState("v0", ":session")}
         iget-boolean v1, v0, ${player.flag}
         return v1
     """

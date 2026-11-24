@@ -27,7 +27,8 @@ internal const val SPLIT_NOTES_ROW = "$EXTENSION_PACKAGE/direct/SplitNotesRow;->
  * messages open (a fragment's onCreate, which picks the split row's maker over the old row's),
  * in the notes row's constructor, and in two places that get the row's contents ready.
  */
-internal const val SPLIT_NOTES_ROW_FLAG = 0x8115ae0000761eL
+// 457 moved it from 456's 0x8115ae0000761e.
+internal const val SPLIT_NOTES_ROW_FLAG = 0x81158300007669L
 
 internal const val SPLIT_NOTES_STORIES = "$EXTENSION_PACKAGE/direct/SplitNotesRow;->storiesOff(I)Z"
 
@@ -37,7 +38,8 @@ internal const val SPLIT_NOTES_STORIES = "$EXTENSION_PACKAGE/direct/SplitNotesRo
  * on the way into your messages (a yes skips loading the stories it shows). Accounts in the split
  * test with this one on see only Instants and Notes.
  */
-internal const val SPLIT_NOTES_STORIES_OFF_FLAG = 0x8115ae000e762bL
+// 457 moved it from 456's 0x8115ae000e762b.
+internal const val SPLIT_NOTES_STORIES_OFF_FLAG = 0x811583000e7676L
 
 /** The read that picks the split row when your messages open: an onCreate taking a Bundle. */
 private val INBOX_OPEN = listOf("Landroid/os/Bundle;")

@@ -63,7 +63,8 @@ private const val LIST = "Ljava/util/List;"
  * config through Bbu instead of BbW. 455 moved it again from 454's 0x208107cd00102a43, and 456 from
  * 455's 0x208107bf001029f9, read by the same gate (08va.A05 on 386214574).
  */
-internal const val NEW_TAB_BAR_FLAG = 0x208107b700102a11L
+// 457 moved it from 456's 0x208107b700102a11.
+internal const val NEW_TAB_BAR_FLAG = 0x208107ae001029f8L
 
 /**
  * Picks the tab bar, newer or classic, instead of leaving it to Instagram (#356). Included in the

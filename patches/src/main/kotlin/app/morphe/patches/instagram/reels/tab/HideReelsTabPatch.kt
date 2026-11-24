@@ -45,7 +45,8 @@ internal const val PAGER_START = "$REELS_TAB->startAtTab(I)Z"
  */
 // 451: 0x8104dd00051545. 452 moved it to 0x8104d5000514d5, 453 to 0x8104c700051499, 454 to 0x8104a90005146d
 // 455 to 0x8104a000051441 and 456 to 0x81049c0005141d, in the same tab switch.
-internal const val PAGER_START_FLAG = 0x81049c0005141dL
+// 457 moved it from 456's 0x81049c0005141d.
+internal const val PAGER_START_FLAG = 0x8104960005141aL
 
 /** The names Instagram's tab enum gives Reels and Home, and the module name only its Reels tab carries. */
 internal const val REELS = "CLIPS"

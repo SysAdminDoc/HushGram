@@ -28,6 +28,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstructio
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
+import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import com.android.tools.smali.dexlib2.immutable.ImmutableField
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
@@ -42,6 +43,9 @@ import java.io.File
 class KeepReelSpeedHookTest {
     private val controller = "Lfixture/ClipsVideoPlayerController;"
     private val player = "Lfixture/VideoPlayer;"
+    private val impl = "Lfixture/VideoPlayerImpl;"
+    private val holder = "Lfixture/VideoHolder;"
+    private val engine = "Lfixture/VideoEngine;"
     private val item = "Lfixture/ClipsItem;"
     private val hold = "Lfixture/LongPressEnd;"
     private val feature = "Lfixture/LongPressToFeature;"
@@ -82,13 +86,13 @@ class KeepReelSpeedHookTest {
         assertCall("the setter's hook", setter[0], SPEED_SET, listOf(4))
 
         val resume = context.method(controller, "A0E")
-        val itemHook = resume.indexOfFirst { it.referenceText() == ITEM }
         // Two locals, then this and the reel.
-        assertCall("the reel handed over", resume[itemHook], ITEM, listOf(3))
-        assertCall("the player handed over", resume[itemHook + 1], RESUMING, listOf(1))
-        assertTrue("the play call doesn't follow", resume[itemHook + 2].referenceText()!!.startsWith("$player->play("))
+        assertCall("the reel handed over first thing", resume[0], ITEM, listOf(3))
+        val playerHook = resume.indexOfFirst { it.referenceText() == RESUMING }
+        assertCall("the player handed over", resume[playerHook], RESUMING, listOf(1))
+        assertTrue("the play call doesn't follow", resume[playerHook + 1].referenceText()!!.startsWith("$player->play("))
         val branch = resume.indexOfFirst { it.opcode == Opcode.IF_EQZ }
-        assertEquals("the branch to the play call skips the hooks", itemHook, resume.target(branch))
+        assertEquals("the branch to the play call skips the hook", playerHook, resume.target(branch))
 
         val holdCode = context.method(hold, "end")
         val begun = holdCode.indexOfFirst { it.string() == LOCKED_EVENT }
@@ -117,7 +121,7 @@ class KeepReelSpeedHookTest {
 
     /**
      * Control taps and volume (#608) hands the extension the controller first thing in maybeResumePlayer.
-     * With that hook already in, the reel and its player still go right in front of the play call.
+     * With that hook already in, the reel still goes over first and its player right in front of the play call.
      */
     @Test
     fun aHookFirstInMaybeResumePlayerLeavesThePlayCallsHooksInFront() {
@@ -128,13 +132,60 @@ class KeepReelSpeedHookTest {
         context.keepReelSpeed()
 
         val resume = context.method(controller, "A0E")
-        assertEquals("the controller's hook stays first", SPEAKER_RESUMING, resume[0].referenceText())
-        val itemHook = resume.indexOfFirst { it.referenceText() == ITEM }
-        assertCall("the reel handed over", resume[itemHook], ITEM, listOf(3))
-        assertCall("the player handed over", resume[itemHook + 1], RESUMING, listOf(1))
-        assertTrue("the play call doesn't follow", resume[itemHook + 2].referenceText()!!.startsWith("$player->play("))
+        assertCall("the reel handed over first thing", resume[0], ITEM, listOf(3))
+        assertEquals("the controller's hook stays", SPEAKER_RESUMING, resume[1].referenceText())
+        val playerHook = resume.indexOfFirst { it.referenceText() == RESUMING }
+        assertCall("the player handed over", resume[playerHook], RESUMING, listOf(1))
+        assertTrue("the play call doesn't follow", resume[playerHook + 1].referenceText()!!.startsWith("$player->play("))
         val branch = resume.indexOfFirst { it.opcode == Opcode.IF_EQZ }
-        assertEquals("the branch to the play call lands on the hooks", itemHook, resume.target(branch))
+        assertEquals("the branch to the play call lands on the hook", playerHook, resume.target(branch))
+    }
+
+    /**
+     * Instagram 457's setPlaybackSpeed casts the player to its one implementation and sets the speed
+     * on what it reaches through two fields, and its maybeResumePlayer is static, taking the reel
+     * first. The stub walks the same way, letting a null along it go, and the reel still goes over.
+     */
+    @Test
+    fun aSpeedSetThroughThePlayersFieldsIsWalkedTheSameWay() {
+        val context = PatchContexts.of(classes(Shape(viaHolder = true, staticResume = true)))
+
+        context.keepReelSpeed()
+
+        val speed = context.method(REEL_SPEED, SET_PLAYER_SPEED_STUB)
+        assertEquals(
+            listOf(Opcode.CHECK_CAST, Opcode.IGET_OBJECT, Opcode.IF_EQZ, Opcode.IGET_OBJECT, Opcode.IF_EQZ, Opcode.INVOKE_VIRTUAL, Opcode.RETURN_VOID),
+            speed.take(7).map { it.opcode },
+        )
+        assertEquals(impl, speed[0].referenceText())
+        assertEquals("$impl->video:$holder", speed[1].referenceText())
+        assertEquals("$holder->engine:$engine", speed[3].referenceText())
+        assertEquals("$engine->setSpeed(F)V", speed[5].referenceText())
+        assertEquals("a null holder skips the call", 6, speed.target(2))
+        assertEquals("a null engine skips the call", 6, speed.target(4))
+
+        val resume = context.method(controller, "A0E")
+        // Two locals, then the reel.
+        assertCall("the reel handed over first thing", resume[0], ITEM, listOf(2))
+        val playerHook = resume.indexOfFirst { it.referenceText() == RESUMING }
+        assertCall("the player handed over", resume[playerHook], RESUMING, listOf(1))
+        assertTrue("the play call doesn't follow", resume[playerHook + 1].referenceText()!!.startsWith("$player->play("))
+    }
+
+    /**
+     * Instagram 457's maybeResumePlayer reuses the reel's register before its play call. The reel
+     * still goes over, read first thing, where the parameter holds it.
+     */
+    @Test
+    fun aReelOverwrittenBeforeThePlayIsHandedOverFirstThing() {
+        val context = PatchContexts.of(classes(Shape(itemOverwritten = true)))
+
+        context.keepReelSpeed()
+
+        val resume = context.method(controller, "A0E")
+        assertCall("the reel handed over first thing", resume[0], ITEM, listOf(3))
+        val playerHook = resume.indexOfFirst { it.referenceText() == RESUMING }
+        assertTrue("the play call doesn't follow", resume[playerHook + 1].referenceText()!!.startsWith("$player->play("))
     }
 
     /** A build the patch can't read fails at patch time, saying what it found, before anything is written. */
@@ -144,13 +195,13 @@ class KeepReelSpeedHookTest {
             Shape(setters = 0) to "$setterFound $controller, found 0",
             Shape(setters = 2) to "$setterFound $controller, found 2",
             Shape(setterTakesInt = true) to "$setterFound $controller, found 0",
-            Shape(speedCalls = 2) to "makes 2 interface calls taking a float",
+            Shape(speedCalls = 2) to "makes 2 calls handing on its float",
             Shape(playerPublic = false) to "isn't a public interface",
+            Shape(viaHolder = true, holderFieldPublic = false) to "on the way to the player's speed",
             Shape(resumeElsewhere = true) to "$setterFound Lfixture/Other;, found 0",
             Shape(resumes = 0) to "expected one method loading \"$RESUME_PLAYER_TRACE\", found 0",
             Shape(plays = 0) to "makes 0 (String, boolean) calls on the player",
             Shape(plays = 2) to "makes 2 (String, boolean) calls on the player",
-            Shape(itemOverwritten = true) to "writes over parameter 0",
             Shape(holdAtEdge = false) to "expected one method loading \"$LONG_PRESS_EDGE\", found 0",
             Shape(endedEvents = 2) to "loads \"$HOLD_ENDED_EVENT\" 2 times",
             Shape(branchAfterBegin = true) to "reaches the instruction after the \"$LOCKED_EVENT\" event",
@@ -230,9 +281,19 @@ class KeepReelSpeedHookTest {
             !AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == "V" &&
                 it.parameterTypes.map(Any::toString) == listOf("Lkotlin/jvm/functions/Function1;", "F")
         }
-        val playerType = setter.code().mapNotNull { it.methodRef() }.single { it.parameterTypes.map(Any::toString) == listOf("F") }.definingClass
+        val speedOwner = setter.code().mapNotNull { it.methodRef() }
+            .single { it.parameterTypes.map(Any::toString) == listOf("F") && it.returnType == "V" }.definingClass
         val itemType = resume.parameterTypes.first().toString()
-        val extra = FixtureDex.classes(bundle, setOf(playerType, itemType)).values
+        // Everything the setter goes through to its speed call: 457 casts the player and reads two fields first.
+        val touched = setter.code().flatMap { instruction ->
+            when (val reference = (instruction as? ReferenceInstruction)?.reference) {
+                is MethodReference -> listOf(reference.definingClass, reference.returnType)
+                is FieldReference -> listOf(reference.definingClass, reference.type)
+                is TypeReference -> listOf(reference.type)
+                else -> emptyList()
+            }
+        }.filter { it.startsWith("L") }
+        val extra = FixtureDex.classes(bundle, (touched + itemType).toSet()).values
         val context = PatchContexts.of((holders + extra + ExtensionDex.classDef(REEL_SPEED)).distinctBy { it.type })
 
         context.keepReelSpeed()
@@ -244,12 +305,13 @@ class KeepReelSpeedHookTest {
         assertEquals("$name: the setter grew", setter.code().size + 1, newSetter.size)
 
         val newResume = after(resume)
-        val itemHook = newResume.indexOfFirst { it.referenceText() == ITEM }
         assertEquals("$name: maybeResumePlayer grew", resume.code().size + 2, newResume.size)
-        assertEquals("$name: the player follows the reel", RESUMING, newResume[itemHook + 1].referenceText())
-        val playCall = newResume[itemHook + 2]
-        assertTrue("$name: the play call follows", playCall.methodRef()?.definingClass == playerType && playCall.methodRef()?.returnType == "Z")
-        assertEquals("$name: the player handed over is the one played", playCall.registers().first(), newResume[itemHook + 1].registers().single())
+        assertEquals("$name: the reel goes over first thing", ITEM, newResume[0].referenceText())
+        val playerHook = newResume.indexOfFirst { it.referenceText() == RESUMING }
+        val playCall = newResume[playerHook + 1]
+        assertTrue("$name: the play call follows", playCall.methodRef()?.parameterTypes?.map(Any::toString) == listOf("Ljava/lang/String;", "Z") &&
+            playCall.methodRef()?.returnType == "Z")
+        assertEquals("$name: the player handed over is the one played", playCall.registers().first(), newResume[playerHook].registers().single())
 
         val holdBefore = loading(LONG_PRESS_EDGE)
         val newHold = after(holdBefore)
@@ -277,7 +339,7 @@ class KeepReelSpeedHookTest {
         val ad = context.method(REEL_SPEED, AD_ITEM_STUB)
         assertEquals("$name: the ad flag is the reel's", itemType, (ad[1] as ReferenceInstruction).reference.let { (it as FieldReference).definingClass })
         val speed = context.method(REEL_SPEED, SET_PLAYER_SPEED_STUB)
-        assertEquals("$name: the stub calls the player's setter", playerType, speed[1].methodRef()?.definingClass)
+        assertEquals("$name: the stub calls the setter's speed call", speedOwner, speed.mapNotNull { it.methodRef() }.single().definingClass)
     }
 
     // ---- stand-ins shaped like Instagram 449's -------------------------------------------------
@@ -288,6 +350,11 @@ class KeepReelSpeedHookTest {
         val setterTakesInt: Boolean = false,
         val speedCalls: Int = 1,
         val playerPublic: Boolean = true,
+        /** 457's setter: the player cast to its implementation, then two fields down to what takes the speed. */
+        val viaHolder: Boolean = false,
+        val holderFieldPublic: Boolean = true,
+        /** 457's maybeResumePlayer: static, the reel first and the controller after it. */
+        val staticResume: Boolean = false,
         val resumeElsewhere: Boolean = false,
         val resumes: Int = 1,
         val plays: Int = 1,
@@ -317,30 +384,43 @@ class KeepReelSpeedHookTest {
      */
     private fun classes(shape: Shape = Shape()): List<ClassDef> {
         val speedParameter = if (shape.setterTakesInt) "I" else "F"
+        val setSpeed = if (shape.viaHolder) {
+            "check-cast v0, $impl\niget-object v0, v0, $impl->video:$holder\nif-eqz v0, :done\n" +
+                "iget-object v0, v0, $holder->engine:$engine\n" + "invoke-virtual { v0, p2 }, $engine->setSpeed(F)V\n".repeat(shape.speedCalls)
+        } else {
+            "invoke-interface { v0, p2 }, $player->setSpeed(F)V\n".repeat(shape.speedCalls)
+        }
         val setters = (0 until shape.setters).map { copy ->
             method(controller, if (copy == 0) "A19" else "A1B", listOf("Lkotlin/jvm/functions/Function1;", speedParameter), "V", 5, """
                 iget-object v0, p0, $controller->player:$player
                 if-eqz v0, :done
-                ${"invoke-interface { v0, p2 }, $player->setSpeed(F)V\n".repeat(shape.speedCalls)}
+                $setSpeed
                 :done
                 return-void
             """)
         }
-        val plays = "invoke-interface { v1, p2, p3 }, $player->play(Ljava/lang/String;Z)Z\nmove-result v0\n".repeat(shape.plays)
+        // The static one takes the controller second, so the string and the flag move up one.
+        val (self, reel, text, flag) = if (shape.staticResume) listOf("p1", "p0", "p2", "p3") else listOf("p0", "p1", "p2", "p3")
+        val plays = "invoke-interface { v1, $text, $flag }, $player->play(Ljava/lang/String;Z)Z\nmove-result v0\n".repeat(shape.plays)
         val resume = method(if (shape.resumeElsewhere) "Lfixture/Other;" else controller, "A0E",
-            listOf(item, "Ljava/lang/String;", "Z"), "V", 6, """
+            if (shape.staticResume) listOf(item, controller, "Ljava/lang/String;", "Z") else listOf(item, "Ljava/lang/String;", "Z"),
+            "V", 6, """
                 const-string v0, "${if (shape.resumes > 0) RESUME_PLAYER_TRACE else "maybeResumePlayer"}"
-                iget-object v1, p0, $controller->player:$player
-                ${if (shape.itemOverwritten) "const/4 p1, 0x0" else ""}
-                iget-boolean v0, p1, $item->ready:Z
+                iget-object v1, $self, $controller->player:$player
+                ${if (shape.itemOverwritten) "const/4 $reel, 0x0" else ""}
+                iget-boolean v0, $reel, $item->ready:Z
                 if-eqz v0, :play
                 invoke-interface { v1 }, $player->prepare()V
                 :play
                 $plays
                 return-void
-            """, AccessFlags.PRIVATE.value or AccessFlags.FINAL.value)
+            """, if (shape.staticResume) AccessFlags.PUBLIC.value or AccessFlags.STATIC.value else AccessFlags.PRIVATE.value or AccessFlags.FINAL.value)
         val controllerClass = classDef(controller, setters + (if (shape.resumeElsewhere) emptyList() else listOf(resume)),
             fields = listOf(field(controller, "player", player)))
+        val implClass = ImmutableClassDef(impl, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, "Ljava/lang/Object;", listOf(player),
+            null, null, listOf(field(impl, "video", holder)), emptyList())
+        val holderClass = classDef(holder, emptyList(), listOf(field(holder, "engine", engine, shape.holderFieldPublic)))
+        val engineClass = classDef(engine, listOf(method(engine, "setSpeed", listOf("F"), "V", 2, "return-void")))
         val playerClass = ImmutableClassDef(
             player,
             (if (shape.playerPublic) AccessFlags.PUBLIC.value else 0) or AccessFlags.INTERFACE.value or AccessFlags.ABSTRACT.value,
@@ -436,6 +516,9 @@ class KeepReelSpeedHookTest {
             controllerClass,
             if (shape.resumeElsewhere) classDef("Lfixture/Other;", listOf(resume)) else null,
             playerClass,
+            if (shape.viaHolder) implClass else null,
+            if (shape.viaHolder) holderClass else null,
+            if (shape.viaHolder) engineClass else null,
             itemClass,
             classDef(hold, listOf(holdMethod)),
             classDef(feature, listOf(resetMethod)),

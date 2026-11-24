@@ -21,11 +21,12 @@ private const val PATCH = "Accent color"
 /**
  * Instagram's color/igds_prism_secondary_button_background_filled and its _filled_light sibling, the
  * fills its button styles give the default secondary button (Edit profile, Share profile, Following):
- * 0x7f060357 and 0x7f060359 in 455, 0x7f060389 and 0x7f06038b in 456 (aapt2, the same in every build of
- * a version). One class loads both of a version's pair. 454 had the fill at 0x7f060355, which 455 gives
- * a borderless button's label, so read them again each update.
+ * 0x7f06038b and 0x7f06038d in 457 (aapt2, the same in both 457 builds; 0x7f060389 and 0x7f06038b in 456,
+ * 0x7f060357 and 0x7f060359 in 455). One class loads both of a version's pair. 454 had the fill at
+ * 0x7f060355, which 455 gives a borderless button's label, and 457 gives 456's fill, 0x7f060389, to one too,
+ * so only the declared version's pair is read. Read it again each update.
  */
-internal val SECONDARY_FILL_PAIRS = listOf(0x7f060357L to 0x7f060359L, 0x7f060389L to 0x7f06038bL)
+internal val SECONDARY_FILL_PAIRS = listOf(0x7f06038bL to 0x7f06038dL)
 
 /** Every fill of [SECONDARY_FILL_PAIRS]. */
 internal val SECONDARY_FILL_IDS = SECONDARY_FILL_PAIRS.flatMap { listOf(it.first, it.second) }

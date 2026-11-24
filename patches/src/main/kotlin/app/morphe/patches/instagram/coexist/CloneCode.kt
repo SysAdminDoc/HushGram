@@ -445,7 +445,7 @@ internal fun BytecodePatchContext.keepLanguagePackReturnInTask() {
     val implementation = method.implementation!!
     val code = implementation.instructions.toList()
     val activity = implementation.registerCount - 1
-    val at = code.indices.singleOrNull { index ->
+    val found = code.indices.filter { index ->
         val called = (code[index] as? ReferenceInstruction)?.reference as? MethodReference
         val launch = (code.getOrNull(index + 2) as? ReferenceInstruction)?.reference as? MethodReference
         val result = code.getOrNull(index + 1) as? OneRegisterInstruction
@@ -454,7 +454,22 @@ internal fun BytecodePatchContext.keepLanguagePackReturnInTask() {
             code.getOrNull(index + 1)?.opcode == Opcode.MOVE_RESULT_OBJECT &&
             launch?.parameterTypes == listOf(context, intent) && launch.returnType == "Z" &&
             arguments(code[index + 2]).firstOrNull() == result?.registerA
-    } ?: refuse("could not find the language-pack return's application context")
+    }
+    if (found.isEmpty()) {
+        // 457 launches the return from the activity itself (WaitingForStringsActivity;->A01 on
+        // 386314341), so it stays in the activity's task already and nothing changes.
+        val packageAt = code.indexOfFirst {
+            ((it as? ReferenceInstruction)?.reference as? MethodReference)?.let { set -> set.definingClass == intent && set.name == "setPackage" } == true
+        }
+        val fromActivity = (packageAt + 1 until code.size).count { index ->
+            val launch = (code[index] as? ReferenceInstruction)?.reference as? MethodReference
+            code[index].opcode in setOf(Opcode.INVOKE_STATIC, Opcode.INVOKE_STATIC_RANGE) &&
+                launch?.parameterTypes?.map(Any::toString) == listOf(context, intent) && launch.returnType == "Z" &&
+                arguments(code[index]).firstOrNull() == activity
+        }
+        if (fromActivity == 1) return
+    }
+    val at = found.singleOrNull() ?: refuse("could not find the language-pack return's application context")
     val result = (code[at + 1] as OneRegisterInstruction).registerA
     // Preserve the existing scoped launcher, caller checks, and URI-grant filtering.
     method.replaceInstruction(at, BuilderInstruction22x(Opcode.MOVE_OBJECT_FROM16, result, activity))

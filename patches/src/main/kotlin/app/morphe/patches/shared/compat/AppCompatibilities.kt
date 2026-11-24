@@ -36,34 +36,27 @@ internal object AppCompatibilities {
     const val META_ROTATED_SIGNER_SHA256 = "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014"
 
     /** The Instagram build every patch here was applied to and read against. */
-    const val INSTAGRAM_TARGET_VERSION = "456.1.0.56.78"
+    const val INSTAGRAM_TARGET_VERSION = "457.0.0.55.73"
 
     /**
      * The version code of the arm64-v8a build of [INSTAGRAM_TARGET_VERSION]: APKMirror's
-     * (arm64-v8a) (480-640dpi) (Android 9.0+) bundle of that release, the highest arm64 code and
-     * the one the fixtures hold.
+     * (arm64-v8a) (480dpi) (Android 9.0+) bundle of that release, the highest arm64 code and the
+     * one the fixtures hold.
      */
-    const val INSTAGRAM_TARGET_VERSION_CODE = 386215122
+    const val INSTAGRAM_TARGET_VERSION_CODE = 386314341
 
     /**
-     * The other declared builds of [INSTAGRAM_TARGET_VERSION], one per ABI, each with its own
-     * version code. Manager is told about every one, so a 32-bit phone is pointed at the
-     * armeabi-v7a build rather than the arm64 one, which it can't install (#346).
+     * Each declared ABI's build of [INSTAGRAM_TARGET_VERSION], with its own version code. Manager
+     * is told about every one, so a 32-bit phone is pointed at the armeabi-v7a build rather than
+     * the arm64 one, which it can't install (#346).
      *
-     * Instagram ships 456.1.0.56.78 as many builds. The fixture tests read five: arm64 386215069
-     * and 386215122, armeabi-v7a 386215121, x86 386215123 and x86_64 386215124. Manager takes one
-     * code per ABI, and each ABI's highest code is declared.
+     * APKMirror has only two builds of 457.0.0.55.73 so far, both arm64-v8a: 386314297 and
+     * 386314341. The fixture tests read both. Meta published no armeabi-v7a, x86 or x86_64 build of
+     * this version yet, so only arm64 is declared; an ABI's build joins this map, with its highest
+     * code, once Meta publishes it.
      */
-    const val INSTAGRAM_TARGET_VERSION_CODE_ARMEABI_V7A = 386215121
-    const val INSTAGRAM_TARGET_VERSION_CODE_X86 = 386215123
-    const val INSTAGRAM_TARGET_VERSION_CODE_X86_64 = 386215124
-
-    /** Each declared ABI's build of [INSTAGRAM_TARGET_VERSION]. */
     val INSTAGRAM_TARGET_VERSION_CODES = mapOf(
         SupportedAbi.ARM64_V8A to INSTAGRAM_TARGET_VERSION_CODE,
-        SupportedAbi.ARMEABI_V7A to INSTAGRAM_TARGET_VERSION_CODE_ARMEABI_V7A,
-        SupportedAbi.X86 to INSTAGRAM_TARGET_VERSION_CODE_X86,
-        SupportedAbi.X86_64 to INSTAGRAM_TARGET_VERSION_CODE_X86_64,
     )
 
     /** Instagram's own floor, Android 9. */

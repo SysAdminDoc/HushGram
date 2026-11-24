@@ -10,6 +10,7 @@ import app.morphe.patches.instagram.download.pandoGetter
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesHolding
 import app.morphe.patches.instagram.misc.extension.methodsCalling
+import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
 import app.morphe.util.ControlFlow
 import app.morphe.util.getFreeRegisterProvider
 import com.android.tools.smali.dexlib2.AccessFlags
@@ -36,6 +37,7 @@ internal const val FUNCTION = "Lkotlin/jvm/functions/Function0;"
 internal const val OBJECT = "Ljava/lang/Object;"
 internal const val STRING = "Ljava/lang/String;"
 internal const val LIST = "Ljava/util/List;"
+internal const val CONTEXT_TYPE = "Landroid/content/Context;"
 internal const val INTEGER = "Ljava/lang/Integer;"
 internal const val GIPHY = "Lcom/instagram/api/schemas/CommentGiphyMediaInfoIntf;"
 internal const val JSON_ROOT_FIELD = "Current token not FIELD_NAME (to contain expected root name %s), but %s"
@@ -234,16 +236,19 @@ private fun BytecodePatchContext.findCommentSurface(classes: Map<String, ClassDe
 
     // The selected comment's register is counted back from the list, so the value between them
     // must take one register.
+    // 457's renderer turns the rows into popup items in a static (Context, List)List helper, where
+    // 456's did it inline, so the rows are read in the renderer or in that helper.
+    fun rowCode(method: Method) = method.code() + rowConverter(method, classes)?.code().orEmpty()
     // The parameter count reads no type name, so it goes first: decoding every method's return type was most of this walk (#173).
     val renderer = methods().filter { method ->
         method.parameterTypes.size == 5 && method.publicInstance() && method.returnType == "V" && method.parameters().let {
             it[1] == selectedType && it[2] != "J" && it[2] != "D" && it[3] == LIST && it[4] == "F"
-        } && method.code().any { it.field()?.toString() == callback.toString() ||
+        } && rowCode(method).any { it.field()?.toString() == callback.toString() ||
             (it.reference() as? TypeReference)?.type == rowBase.type }
     }.toList().one("common comment menu renderer")
     // The stock renderer supplies its own callback wrapper. Its click consumes Function0,
     // and its boolean callback says to dismiss the popup, regardless of the row subtype.
-    val wrapper = renderer.code().mapNotNull { it.call() }.filter {
+    val wrapper = rowCode(renderer).mapNotNull { it.call() }.filter {
         it.name == "<init>" && it.parameters() == listOf(OBJECT, "I")
     }.mapNotNull { classes[it.definingClass] }.distinctBy { it.type }.filter { type ->
         type.methods.any { method -> method.code().any { it.field()?.toString() == callback.toString() } &&
@@ -262,25 +267,42 @@ private fun BytecodePatchContext.findCommentSurface(classes: Map<String, ClassDe
         code.take(before).filter { it.writes(register) }.let { writes ->
             writes.isNotEmpty() && writes.all { it.opcode in LIST_COPIES && (it as TwoRegisterInstruction).registerB == listRegister }
         }
+    // The list boundary is where the renderer first reads its list after asking for its context: its
+    // size up to 456, and 457's helper turning it into popup items, handed that context and the list.
+    fun boundaryList(index: Int): Int? {
+        val call = code[index].call() ?: return null
+        val arguments = code[index].arguments()
+        val list = when {
+            call.parameters() == listOf("Ljava/lang/Iterable;") && call.returnType == "I" -> arguments.singleOrNull()
+            call.parameters() == listOf(CONTEXT_TYPE, LIST) && call.returnType == LIST &&
+                arguments.firstOrNull() == (code.getOrNull(index - 1) as? OneRegisterInstruction)?.registerA -> arguments.getOrNull(1)
+            else -> null
+        }
+        return list?.takeIf { holdsList(it, index) }
+    }
     val at = code.indices.filter { index ->
-        code[index].call()?.let { it.parameterTypes.map(Any::toString) == listOf("Ljava/lang/Iterable;") &&
-            it.returnType == "I" } == true && code[index].arguments().singleOrNull()?.let { holdsList(it, index) } == true &&
-            code.getOrNull(index - 1)?.opcode == Opcode.MOVE_RESULT_OBJECT &&
-            code.getOrNull(index - 2)?.call()?.let { it.name == "requireContext" &&
-                it.returnType == "Landroid/content/Context;" } == true
+        boundaryList(index) != null && code.getOrNull(index - 1)?.opcode == Opcode.MOVE_RESULT_OBJECT &&
+            code.getOrNull(index - 2)?.call()?.let { it.name == "requireContext" && it.returnType == CONTEXT_TYPE } == true
     }.one("guarded renderer's list boundary")
     if (code.take(at).any { it.writes(listRegister) || it.writes(selectedRegister) }) refuse("renderer reuses its input parameters")
     if (code.take(at).count { it.opcode == Opcode.IF_NEZ } < 2) refuse("renderer lacks its duplicate-popup guards")
-    val rows = code[at].arguments().single()
+    val rows = boundaryList(at)!!
     if (rows != listRegister && rendererJumpsBack(renderer, at)) refuse("renderer jumps back over the copy of its list")
     val context = (code[at - 1] as OneRegisterInstruction).registerA
     // A plain call takes three 4-bit registers dead at the boundary. 455 reads every low register
-    // past it, so there the call takes three dead registers in a row through /range.
+    // past it, so there the call takes three dead registers in a row through /range. 457 leaves
+    // neither, so an argument already in a 4-bit register goes from its own register (its copy
+    // onto itself changes nothing) and the others take the dead 4-bit ones there are.
+    fun lowOrOwn(free: List<Int>): List<Int>? {
+        val low = free.filter { it < 16 }.toMutableList()
+        return listOf(rows, selectedRegister, context).map { source -> if (source < 16) source else low.removeFirstOrNull() ?: return null }
+    }
     val spare = try {
         val provider = renderer.getFreeRegisterProvider(at, 3, listRegister, selectedRegister, context, rows)
         val free = List(provider.availableCount()) { provider.getFreeRegister() }
         free.filter { it < 16 }.take(3).takeIf { it.size == 3 }
             ?: free.sorted().firstOrNull { it + 1 in free && it + 2 in free }?.let { listOf(it, it + 1, it + 2) }
+            ?: lowOrOwn(free)
             ?: refuse("renderer has no safe invocation registers: free ${free.sorted()}")
     } catch (failure: IllegalArgumentException) {
         refuse("renderer has no safe invocation registers: ${failure.message}")
@@ -296,7 +318,7 @@ private fun BytecodePatchContext.findCommentSurface(classes: Map<String, ClassDe
 
 /**
  * The conversion and copies of a selected comment keeping no raw comment ([RawKeeping]). The
- * conversion is the one method answering it from exactly one raw comment and making it. Every other
+ * conversion is the one method answering it from a raw comment and making it. Every other
  * method making one is a copy: a static method of the selected comment answering one from exactly one
  * other. Each is static, so the patch can call its stock body under another name and keep the raw
  * comment on its answer.
@@ -305,8 +327,9 @@ private fun BytecodePatchContext.rawKeeping(model: ClassDef, classes: Map<String
     val type = model.type
     fun makes(method: Method) = method.code().any { it.opcode == Opcode.NEW_INSTANCE && (it.reference() as? TypeReference)?.type == type }
     val makers = methodsBesideCall(type, "<init>", classes).filter(::makes).toList()
-    val conversion = makers.filter { it.returnType == type && it.parameters().count(rawShaped) == 1 }
+    val conversion = makers.filter { it.returnType == type && it.parameters().any(rawShaped) }
         .one("selected-comment conversion from the raw comment")
+    val rawType = conversion.parameters().filter(rawShaped).distinct().one("raw comment type the conversion takes")
     val copies = makers.filter { it.definingClass == type && it != conversion }
     for (method in listOf(conversion) + copies) {
         if (!AccessFlags.STATIC.isSet(method.accessFlags)) refuse("${method.definingClass}->${method.name} makes the selected comment but isn't static")
@@ -325,7 +348,33 @@ private fun BytecodePatchContext.rawKeeping(model: ClassDef, classes: Map<String
         refuse("${it.definingClass}->${it.name} copies the selected comment outside it")
     }
     if (model.fields.any { it.name == KEPT_RAW }) refuse("selected comment already has $KEPT_RAW")
-    return RawKeeping(ImmutableMethodReference.of(conversion), conversion.parameters().indexOfFirst(rawShaped), copied)
+    return RawKeeping(ImmutableMethodReference.of(conversion), rawCommentParameter(conversion, rawType), copied)
+}
+
+/**
+ * Which of [method]'s parameters is the raw comment of type [raw]: the only one, or with more, the one
+ * its stock body reads the GIF of. Up to 456 the selected-comment conversion, which is the comment row
+ * builder too, takes one raw comment. 457's takes the comment and then another raw comment it only
+ * checks the author of.
+ */
+internal fun rawCommentParameter(method: Method, raw: String): Int {
+    val where = "${method.definingClass}->${method.name}"
+    val candidates = method.parameterTypes.indices.filter { method.parameterTypes[it].toString() == raw }
+    if (candidates.size < 2) return candidates.one("raw comment parameter of $where")
+    val registers = candidates.associateBy { method.parameterRegisterNumber(it) }
+    val code = method.code()
+    val read = code.indices.filter { at ->
+        code[at].call()?.let { it.definingClass == raw && it.returnType == GIPHY && it.parameterTypes.isEmpty() } == true
+    }.map { at ->
+        val receiver = code[at].arguments().firstOrNull() ?: refuse("$where reads a GIF off nothing at instruction $at")
+        val source = code.take(at).lastOrNull { it.writes(receiver) }
+        when {
+            source == null -> registers[receiver]
+            source.opcode in LIST_COPIES -> registers[(source as TwoRegisterInstruction).registerB]
+            else -> null
+        } ?: refuse("$where reads a GIF at instruction $at off a register none of its raw comments fills")
+    }.toSet()
+    return read.one("raw comment parameter $where reads the GIF of")
 }
 
 /** The name suffix a kept-raw conversion's or copy's stock body moves to. */
@@ -364,6 +413,15 @@ internal fun BytecodePatchContext.commentSelect(): Method =
         COMMENT_SELECT in it.strings() && it.publicInstance() &&
             it.returnType == "V" && it.parameters() == listOf(STRING, STRING, "F", "Z")
     }.toList().one("selected-comment anchor")
+
+/**
+ * The static `(Context, List)List` helper [method] turns the comment menu's rows into popup items
+ * with, or null when it calls none or more than one. 457's renderer moved that step out of its own
+ * body (`LX/0hPd;->A01` on 386314341).
+ */
+internal fun rowConverter(method: Method, classes: Map<String, ClassDef>): Method? = method.code().mapNotNull { it.call() }
+    .filter { it.parameters() == listOf(CONTEXT_TYPE, LIST) && it.returnType == LIST }.distinctBy { it.toString() }.singleOrNull()
+    ?.let { call -> classes[call.definingClass]?.methods?.singleOrNull { it.matches(call) && AccessFlags.STATIC.isSet(it.accessFlags) } }
 
 /** The selected comment, as resolved by the controller for the two comment IDs. */
 internal fun selectionType(select: Method): String = select.code().mapNotNull { it.call() }.filter {

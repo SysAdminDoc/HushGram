@@ -55,7 +55,8 @@ internal const val AUTO_SCROLL_STORED = "$REEL_AUTO_SCROLL->stored(I)V"
  * a static copy of the check and the Reels viewer's item builder load it too, and none of them is
  * an instance method taking the session and answering a boolean.
  */
-internal const val AUTOSCROLL_ACTIVE_FLAG = 0x8108f0000a331bL
+// 457 moved it from 456's 0x8108f0000a331b.
+internal const val AUTOSCROLL_ACTIVE_FLAG = 0x8108e8000a32feL
 
 /** What the plugin's handler for the switches that turn auto scroll on or off logs (0D6m.A00 on 456's 386214574). */
 internal const val AUTOSCROLL_TAP = "instagram_clips_viewer_autoplay_tap"
@@ -184,8 +185,9 @@ internal class MemoryRead(val method: MethodSite, val index: Int, val register: 
  *
  * The completed duration callback hands over the actual expiration timestamp after each native
  * save. [findTimerChoices] proves its captured preferences and the wide value through the setter.
- * The memory is the one boolean field the check reads. Its class has a static method answering it,
- * holds an [AUTOSCROLL_MEMORY_CALLBACKS] and keeps no other instance boolean. The handler writes it once,
+ * The memory is the one boolean field the check reads. Its class has a static method answering it
+ * (or from 457 a constructor taking the session, `LX/0Fev;` on 386314341), holds an
+ * [AUTOSCROLL_MEMORY_CALLBACKS] and keeps no other instance boolean. The handler writes it once,
  * with the choice it was handed (see [requireKeepsChoice]). Every other read of it anywhere in the
  * app is found here, so none is left reading Instagram's own value.
  *
@@ -253,8 +255,12 @@ internal fun BytecodePatchContext.findReelAutoScroll(): ReelAutoScrollSites {
         }
     }
     val memoryClass = memoryClasses.singleOrNull() ?: refuse("${memory.definingClass}, whose boolean ${isActive.text()} reads, isn't in the app")
-    if (memoryClass.methods.none { it.isStatic() && it.returnType == memoryClass.type }) {
-        refuse("${memoryClass.type}, whose boolean ${isActive.text()} reads, has no static method answering it")
+    // Through 456 a static answers the session's one; from 457 the session makes it through its constructor.
+    if (memoryClass.methods.none {
+            it.isStatic() && it.returnType == memoryClass.type || it.name == "<init>" && it.parameters() == listOf(USER_SESSION)
+        }
+    ) {
+        refuse("${memoryClass.type}, whose boolean ${isActive.text()} reads, has no static method answering it and no constructor taking the session")
     }
     if (memoryClass.fields.none { it.type == AUTOSCROLL_MEMORY_CALLBACKS && !AccessFlags.STATIC.isSet(it.accessFlags) }) {
         refuse("${memoryClass.type}, whose boolean ${isActive.text()} reads, keeps no $AUTOSCROLL_MEMORY_CALLBACKS")

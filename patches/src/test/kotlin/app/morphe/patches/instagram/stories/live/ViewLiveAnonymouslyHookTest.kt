@@ -139,7 +139,8 @@ class ViewLiveAnonymouslyHookTest {
     }
 
     private fun builds(bundle: File, label: String) {
-        val classes = (FixtureDex.classesHolding(bundle, LIVE_WITH_ELIGIBILITY) +
+        // 457 asks a Redex string pool for live_with_eligibility, so the pool comes too.
+        val classes = (FixtureDex.classesLoading(bundle, LIVE_WITH_ELIGIBILITY) +
             FixtureDex.classes(bundle, setOf(LIVE_HEARTBEAT_MANAGER)).values).distinctBy { it.type }
         val context = PatchContexts.of(classes)
         val site = context.findViewerHeartbeat()

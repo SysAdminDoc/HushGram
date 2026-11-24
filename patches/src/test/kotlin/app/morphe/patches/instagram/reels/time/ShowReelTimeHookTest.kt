@@ -662,7 +662,11 @@ class ShowReelTimeHookTest {
 
         internal fun snapshot(methods: Iterable<Method>): List<Pair<String, ReelTimeCode>> = methods.map { it.toString() to shape(it.code()) }
 
-        internal fun shape(code: List<Instruction>): ReelTimeCode = code.map { Triple(it.opcode, it.reference()?.toString(), it.namedRegisters()) }
+        /** Each instruction's kind, reference and registers. A goto an insert pushed out of reach is widened, so every goto reads as one. */
+        internal fun shape(code: List<Instruction>): ReelTimeCode = code.map {
+            val kind = if (it.opcode == Opcode.GOTO_16 || it.opcode == Opcode.GOTO_32) Opcode.GOTO else it.opcode
+            Triple(kind, it.reference()?.toString(), it.namedRegisters())
+        }
 
         internal fun Method.code(): List<Instruction> = implementation?.instructions?.toList().orEmpty()
 

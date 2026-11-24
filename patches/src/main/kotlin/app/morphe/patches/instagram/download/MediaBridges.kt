@@ -14,7 +14,11 @@ import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 
 /** Instagram's post, reel or story, which keeps its name. */
@@ -54,6 +58,51 @@ internal fun BytecodePatchContext.pandoGetter(patch: String, type: String, field
     )
 }
 
+private const val LIVE_TREE_CREATE =
+    "Lcom/instagram/pando/livetree/LiveTreeJNI;->create(Ljava/lang/String;Ljava/lang/String;Lcom/instagram/pando/livetree/SupportedFieldsJNI;)Lcom/instagram/pando/livetree/LiveTreeJNI;"
+
+/**
+ * Media's id getter, or null when there isn't exactly one. Up to 456 it kept the name getId(). 457's
+ * Redex renamed it, so there it's the public instance getter taking nothing whose whole body answers
+ * the String field Media's constructor fills with the id it hands LiveTreeJNI.create (type name, id,
+ * fields), as 457's 386314341 does with A0C (read by CZr).
+ */
+internal fun BytecodePatchContext.mediaIdGetter(): Method? {
+    val media = classDefByOrNull(MEDIA) ?: return null
+    fun gettable(method: Method) = method.parameterTypes.isEmpty() && method.returnType == "Ljava/lang/String;" &&
+        AccessFlags.PUBLIC.isSet(method.accessFlags) && !AccessFlags.STATIC.isSet(method.accessFlags)
+    media.methods.filter { it.name == "getId" && gettable(it) }.let { if (it.isNotEmpty()) return it.singleOrNull() }
+    val idFields = media.methods.filter { it.name == "<init>" }.mapNotNull { init ->
+        val code = init.implementation?.instructions?.toList() ?: return@mapNotNull null
+        val create = code.indexOfFirst { (it as? ReferenceInstruction)?.reference?.toString() == LIVE_TREE_CREATE }
+        if (create < 0) return@mapNotNull null
+        val id = (code[create] as? FiveRegisterInstruction)?.registerD ?: return@mapNotNull null
+        code.drop(create + 1).firstOrNull { step ->
+            step.opcode == Opcode.IPUT_OBJECT && (step as TwoRegisterInstruction).registerA == id &&
+                ((step as ReferenceInstruction).reference as FieldReference).let { it.definingClass == MEDIA && it.type == "Ljava/lang/String;" }
+        }?.let { ((it as ReferenceInstruction).reference as FieldReference).name }
+    }.toSet()
+    val field = idFields.singleOrNull() ?: return null
+    return media.methods.filter { method ->
+        val code = method.implementation?.instructions?.filter { it.opcode != Opcode.NOP } ?: return@filter false
+        gettable(method) && code.size == 2 && code[0].opcode == Opcode.IGET_OBJECT && code[1].opcode == Opcode.RETURN_OBJECT &&
+            ((code[0] as ReferenceInstruction).reference as FieldReference).let { it.definingClass == MEDIA && it.name == field }
+    }.singleOrNull()
+}
+
+/** The [mediaIdGetter] as the reference an invoke-virtual takes, or a refusal naming [patch]. */
+internal fun BytecodePatchContext.mediaIdCall(patch: String): String =
+    "$MEDIA->${(mediaIdGetter() ?: throw PatchException("$patch: $MEDIA has no id getter")).name}()Ljava/lang/String;"
+
+/**
+ * Writes only the extension's InstagramMedia.mediaId bridge, for a patch that keys things by a post's id
+ * without the download bridges. [mediaBridges] writes the same body, and whichever comes second skips it.
+ */
+internal fun BytecodePatchContext.mediaIdBridge(patch: String): () -> Unit {
+    val mediaId = mediaIdGetter() ?: throw PatchException("$patch: $MEDIA has no id getter")
+    return bridgeWriter(patch, listOf(Bridge("mediaId", MEDIA, virtual(mediaId))))
+}
+
 private fun com.android.tools.smali.dexlib2.iface.instruction.Instruction.loadsLiteral(value: Int): Boolean =
     (opcode == Opcode.CONST || opcode == Opcode.CONST_16 || opcode == Opcode.CONST_HIGH16 || opcode == Opcode.CONST_4) &&
         (this as NarrowLiteralInstruction).narrowLiteral == value
@@ -79,9 +128,7 @@ internal fun BytecodePatchContext.mediaBridges(patch: String): () -> Unit {
     val owner = pandoGetter(patch, MEDIA, "user", USER)
     val takenAt = pandoGetter(patch, MEDIA, "taken_at", "Ljava/lang/Long;")
     val username = pandoGetter(patch, USER, "username", "Ljava/lang/String;")
-    val mediaId = classDefBy(MEDIA).methods.singleOrNull {
-        it.name == "getId" && it.parameterTypes.isEmpty() && it.returnType == "Ljava/lang/String;"
-    } ?: throw PatchException("$patch: $MEDIA has no getId()")
+    val mediaId = mediaIdGetter() ?: throw PatchException("$patch: $MEDIA has no id getter")
     // A version comes as either of Instagram's two classes, so it's read through their interface,
     // by the name the tree-backed class gives each getter.
     fun version(field: String, returns: String) = throughInterface(patch, VIDEO_VERSION, PANDO_VIDEO_VERSION, field, returns)

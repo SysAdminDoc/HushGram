@@ -9,6 +9,7 @@ import app.morphe.Fixtures
 import app.morphe.PatchContexts
 import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.instagram.download.INSTAGRAM_MEDIA
+import app.morphe.patches.instagram.download.mediaIdGetter
 import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.reels.origin.FindReelOriginHookTest.Companion.assertGridHook
 import app.morphe.patches.instagram.reels.origin.FindReelOriginHookTest.Companion.assertOpenHook
@@ -40,7 +41,7 @@ import java.io.File
  * The hooks on each declared build: the one profile opener, the one Reels tab onResume and
  * the posts grid's onResume they land in, nothing else changed, and the media type bridge a photo
  * reel is told by and the trial bridge a trial reel is (#225). And what the extension's search goes by: the grid's binder
- * names each tile by the string its reel's getId() returns, and the Reels tab puts up nine unnamed
+ * names each tile by the string its reel's id getter returns, and the Reels tab puts up nine unnamed
  * placeholder tiles while its first page loads, which the search waits out (#30).
  */
 class NativeFindReelOriginTest {
@@ -85,7 +86,13 @@ class NativeFindReelOriginTest {
             val stubs = context.mutableClassDefBy(INSTAGRAM_MEDIA).methods
             assertBridge(name, classes, stubs.single { it.name == "mediaType" }, "media_type", "Ljava/lang/Integer;")
             // A trial reel, kept off its poster's profile, is told by is_active_trial and not looked for.
-            assertBridge(name, classes, stubs.single { it.name == "activeTrial" }, "is_active_trial", "Ljava/lang/Boolean;")
+            // 457 dropped the field, so there the stub keeps its null and every reel is looked for.
+            val trial = stubs.single { it.name == "activeTrial" }
+            if (knowsTrials(classes)) {
+                assertBridge(name, classes, trial, "is_active_trial", "Ljava/lang/Boolean;")
+            } else {
+                assertEquals("$name: the trial stub keeps its null", listOf(Opcode.CONST_4, Opcode.RETURN_OBJECT), trial.code().map { it.opcode })
+            }
             for (classDef in classes.values) {
                 assertEquals("$name: ${classDef.type} changed", snapshot(classDef.methods.filter { it.toString() !in hooked }),
                     snapshot(context.mutableClassDefBy(classDef.type).methods.filter { it.toString() !in hooked }))
@@ -95,7 +102,7 @@ class NativeFindReelOriginTest {
             // one method that loads the tile's thumbnail prefix and sets a transition name.
             val bindings = methods.filter { method -> context.loadsString(method, GRID_THUMB) && method.code().any { it.reference() == SET_TRANSITION_NAME } }
             assertEquals("$name: one method loads $GRID_THUMB and names a tile, found $bindings", 1, bindings.size)
-            assertTilesNamedByTheReelsId(name, bundle, classes, bindings.single())
+            assertTilesNamedByTheReelsId(name, bundle, classes, bindings.single(), context.mediaIdGetter()!!)
             assertNinePlaceholdersFirst(name, classes, tab)
             checked += name
         }
@@ -118,14 +125,12 @@ class NativeFindReelOriginTest {
 
     /**
      * The name the binder gives a tile is a String of the tile's state, which the state's builder
-     * reads the way Media.getId() does, through the same two fields. So the id the opener holds and
+     * reads the way Media's id getter does, through the same two fields. So the id the opener holds and
      * the tile's name are one string, and a tile matches the reel by it. The builder is the one static
      * method in the app answering the state that sets its name.
      */
-    private fun assertTilesNamedByTheReelsId(name: String, bundle: File, classes: Map<String, ClassDef>, bind: Method) {
-        val getId = classes.getValue(MEDIA).methods.single { it.name == "getId" && it.parameterTypes.isEmpty() }.code()
-        val idReads = getId.filter { it.opcode == Opcode.IGET_OBJECT }.map { it.reference() }
-        assertEquals("$name: getId reads its holder, then the id", 2, idReads.size)
+    private fun assertTilesNamedByTheReelsId(name: String, bundle: File, classes: Map<String, ClassDef>, bind: Method, getter: Method) {
+        val idReads = idPath(name, classes, getter)
 
         val bindCode = bind.code()
         val naming = bindCode.indexOfFirst { it.reference() == SET_TRANSITION_NAME }
@@ -145,9 +150,36 @@ class NativeFindReelOriginTest {
         val sets = buildCode.indices.filter { buildCode[it].opcode == Opcode.IPUT_OBJECT && buildCode[it].reference() == nameField.toString() }
         assertEquals("$name: the state's name is set once", 1, sets.size)
         val id = writer(buildCode, sets.single(), buildCode[sets.single()].namedRegisters()[0])
-        assertEquals("$name: the state's name is getId's id", idReads[1], id?.let { buildCode[it].reference() })
+        assertEquals("$name: the state's name is Media's id", idReads[1], id?.let { buildCode[it].reference() })
         val holder = writer(buildCode, id!!, buildCode[id].namedRegisters()[1])
-        assertEquals("$name: read from what getId reads it from", idReads[0], holder?.let { buildCode[it].reference() })
+        assertEquals("$name: read from the holder Media reads it from", idReads[0], holder?.let { buildCode[it].reference() })
+    }
+
+    /**
+     * The two fields Media's id is read through: its holder, then the holder's id. Up to 456 the id
+     * getter reads them itself. 457's getter reads a copy Media's constructor takes from that holder's
+     * id, and the constructor keeps the holder too, in Media's one field of its type.
+     */
+    private fun idPath(name: String, classes: Map<String, ClassDef>, getter: Method): List<String?> {
+        val reads = getter.code().filter { it.opcode == Opcode.IGET_OBJECT }.map { it.reference() }
+        if (reads.size == 2) return reads
+        assertEquals("$name: ${getter.name} reads its holder then the id, or a copy of the id", 1, reads.size)
+        val copies = classes.getValue(MEDIA).methods.filter { it.name == "<init>" }.mapNotNull { init ->
+            val code = init.code()
+            val stored = code.indices.singleOrNull { code[it].opcode == Opcode.IPUT_OBJECT && code[it].reference() == reads.single() }
+            stored?.let { writer(code, it, code[it].namedRegisters()[0]) }?.takeIf { code[it].opcode == Opcode.IGET_OBJECT }
+                ?.let { (code[it] as ReferenceInstruction).reference as FieldReference }
+        }.distinctBy { it.toString() }
+        assertEquals("$name: Media's constructors copy the id from one holder field", 1, copies.size)
+        val id = copies.single()
+        val holders = classes.getValue(MEDIA).fields.filter { it.type == id.definingClass && !AccessFlags.STATIC.isSet(it.accessFlags) }
+        assertEquals("$name: Media keeps one ${id.definingClass}", 1, holders.size)
+        return listOf("$MEDIA->${holders.single().name}:${id.definingClass}", id.toString())
+    }
+
+    /** Whether Media still reads `is_active_trial`, which 457 dropped. */
+    private fun knowsTrials(classes: Map<String, ClassDef>) = classes.getValue(MEDIA).methods.any { method ->
+        method.code().any { (it as? NarrowLiteralInstruction)?.narrowLiteral == "is_active_trial".hashCode() }
     }
 
     /**
@@ -202,7 +234,7 @@ class NativeFindReelOriginTest {
             val context = PatchContexts.of(classes.values + ExtensionDex.classDef(REEL_ORIGIN) + ExtensionDex.classDef(INSTAGRAM_MEDIA))
             val found = context.findReelOriginTargets()
             assertNotNull("${bundle.name}: a photo reel's posts grid is found", found.photoReels)
-            assertNotNull("${bundle.name}: Media's trial getter is found", found.writeTrial)
+            assertEquals("${bundle.name}: Media's trial getter is found where Media has one", knowsTrials(classes), found.writeTrial != null)
             val open = found.openProfile.code()
             val resume = found.tabResume.code()
             val tile = found.photoReels!!.tileBind
@@ -219,7 +251,7 @@ class NativeFindReelOriginTest {
     }
 
     private companion object {
-        val BUILDS = listOf(386215122, 386215069, 386215121, 386215123, 386215124)
+        val BUILDS = listOf(386314341, 386314297)
         /** What the binder of a tile in a profile's Reels grid names the tile's thumbnail view by. */
         const val GRID_THUMB = "thumb_"
         const val SET_TRANSITION_NAME = "Landroid/view/View;->setTransitionName(Ljava/lang/String;)V"

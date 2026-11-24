@@ -25,7 +25,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * The code half on every build of Instagram 456.1.0.56.78. Each build names its own package by the same
+ * The code half on every build of Instagram 457.0.0.55.73. Each build names its own package by the same
  * uses, Redex's names aside, and every use that means the running app moves while the rest stay.
  */
 class CloneCodeTest {
@@ -34,13 +34,14 @@ class CloneCodeTest {
     /**
      * The const-string loads of an authority each build has, and the loads of Instagram's package that stay,
      * as each build's plan counts them. 455's builds had between 35 and 38 authority loads and kept 89 or 90
-     * package loads; 456.0's had 34, or 37 on the x86 build; 456.1's have 34, or 36 on armeabi-v7a, and all keep 93.
+     * package loads; 456.0's had 34, or 37 on the x86 build; 456.1's had 34, or 36 on armeabi-v7a, and all kept 93.
+     * 457's two arm64 builds have 36 and keep 95.
      */
     private val authorityLoads = mapOf(
-        "386215069" to 34, "386215121" to 36, "386215122" to 34, "386215123" to 34, "386215124" to 34,
+        "386314297" to 36, "386314341" to 36,
     )
     private val keptLoads = mapOf(
-        "386215069" to 93, "386215121" to 93, "386215122" to 93, "386215123" to 93, "386215124" to 93,
+        "386314297" to 95, "386314341" to 95,
     )
 
     /**
@@ -56,12 +57,10 @@ class CloneCodeTest {
     )
 
     /**
-     * The builds whose uses differ from the rest: the armeabi-v7a build 386214562 opens one screen of its own
-     * more from a click.
+     * The builds whose uses differ from the rest. 456's armeabi-v7a builds opened one screen of their own more
+     * from a click; both arm64 builds of 457 count the same.
      */
-    private val usesBy = mapOf(
-        "386215121" to mapOf(SelfUse.OWN_INTENT to 12),
-    )
+    private val usesBy = emptyMap<String, Map<SelfUse, Int>>()
 
     /**
      * Google Play's uses, a count that differed by build on 455 as R8 kept more or fewer of its helpers in each.
@@ -69,18 +68,16 @@ class CloneCodeTest {
      * 386113969 have no counterpart).
      */
     private val googlePlayUses = mapOf(
-        "386215069" to 5, "386215121" to 5, "386215122" to 5, "386215123" to 5, "386215124" to 5,
+        "386314297" to 5, "386314341" to 5,
     )
 
     /**
-     * The share handler's caller check: in BaseShareHandlerActivity on the arm64 and x86_64 builds, and on
-     * 456.1's armeabi-v7a and x86 builds in its subclass ClipsMusicShareHandlerActivity instead (456.0 had it
-     * the other way round).
+     * The share handler's caller check: in BaseShareHandlerActivity or its subclass
+     * ClipsMusicShareHandlerActivity, the builds of one version not always agreeing (456.0 and 456.1
+     * had it the other way round from each other). Both of 457's arm64 builds have it in the subclass.
      */
     private val shareHandler = mapOf(
-        "386215069" to "BaseShareHandlerActivity", "386215121" to "ClipsMusicShareHandlerActivity",
-        "386215122" to "BaseShareHandlerActivity", "386215123" to "ClipsMusicShareHandlerActivity",
-        "386215124" to "BaseShareHandlerActivity",
+        "386314297" to "ClipsMusicShareHandlerActivity", "386314341" to "ClipsMusicShareHandlerActivity",
     )
 
     /**
@@ -113,7 +110,7 @@ class CloneCodeTest {
         run {
             val authorities = readCloneManifest(CloneFixtures.manifest(file)).authorities
             val classes = CloneFixtures.classes(file, authorities)
-            if (build == "386215122") {
+            if (build == "386314341") {
                 val withoutAnswer = PatchContexts.of(classes).planClone(clone, authorities)
                 val refusal = assertThrows(PatchException::class.java) { withoutAnswer.requireComplete() }
                 assertTrue(refusal.message, refusal.message!!.contains("OwnPackage.name()"))
@@ -181,17 +178,31 @@ class CloneCodeTest {
             context.classDefBy(WAITING_FOR_STRINGS).methods.single().implementation!!.instructions.toList())
     }
 
-    private fun waitingForStrings(registers: Int, copies: Int = 1): ImmutableClassDef {
+    /** 457 launches the return from the activity itself, so the patch finds nothing to change and changes nothing. */
+    @Test fun languagePackReturnFromTheActivityIsLeftAsItIs() {
+        val context = PatchContexts.of(listOf(waitingForStrings(4, direct = true)))
+        val before = context.mutableClassDefBy(WAITING_FOR_STRINGS).methods.single().implementation!!.instructions.toList()
+        context.keepLanguagePackReturnInTask()
+        assertEquals(before, context.classDefBy(WAITING_FOR_STRINGS).methods.single().implementation!!.instructions.toList())
+        val twice = PatchContexts.of(listOf(waitingForStrings(4, copies = 2, direct = true)))
+        assertThrows(PatchException::class.java) { twice.keepLanguagePackReturnInTask() }
+    }
+
+    private fun waitingForStrings(registers: Int, copies: Int = 1, direct: Boolean = false): ImmutableClassDef {
         val method = MutableMethod(ImmutableMethod(
             WAITING_FOR_STRINGS, "resume", listOf(ImmutableMethodParameter(WAITING_FOR_STRINGS, null, null)), "V",
             AccessFlags.PUBLIC.value or AccessFlags.STATIC.value, null, null,
             ImmutableMethodImplementation(registers, emptyList(), null, null),
         ))
-        val launch = """
-            invoke-static/range {p0 .. p0}, Lx/Contexts;->application(Landroid/content/Context;)Landroid/content/Context;
-            move-result-object v1
-            invoke-static {v1, v2}, Lx/Launchers;->openPublic(Landroid/content/Context;Landroid/content/Intent;)Z
-        """.trimIndent()
+        val launch = if (direct) {
+            "invoke-static {p0, v2}, Lx/Launchers;->openPublic(Landroid/content/Context;Landroid/content/Intent;)Z"
+        } else {
+            """
+                invoke-static/range {p0 .. p0}, Lx/Contexts;->application(Landroid/content/Context;)Landroid/content/Context;
+                move-result-object v1
+                invoke-static {v1, v2}, Lx/Launchers;->openPublic(Landroid/content/Context;Landroid/content/Intent;)Z
+            """.trimIndent()
+        }
         method.addInstructionsWithLabels(0, """
             const/4 v2, 0x0
             const-string v0, "com.instagram.android"

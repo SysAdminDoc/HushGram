@@ -48,11 +48,11 @@ class FeedReelHeaderHookTest {
 
     /**
      * The header tap's read of its post's media is hooked, and a method that loads the same string
-     * but reads a Media from something carrying no User, as 0TSv does on 456, is left alone.
+     * and reads a Media but looks no author up by it is left alone.
      */
     @Test
     fun theHeaderTapsReadIsHooked() {
-        val context = PatchContexts.of(listOf(tap(), tap(type = OTHER, author = false), extension()))
+        val context = PatchContexts.of(listOf(tap(), tap(type = OTHER, lookup = false), extension()))
         val before = tap().methods.single().code()
 
         val taps = context.findFeedHeaderTaps()
@@ -66,6 +66,18 @@ class FeedReelHeaderHookTest {
     }
 
     /**
+     * A merged tap that builds the post's media from a tree and looks the author up by MediaExtKt's
+     * own Media of it (456.1's 0BRD.A08, 457's 08Zy.A0O) reads no media out of a tap's event, so it's
+     * left alone, as it always was.
+     */
+    @Test
+    fun aTapBuildingItsMediaIsLeftAlone() {
+        val context = PatchContexts.of(listOf(tap(), tap(type = OTHER, built = true), extension()))
+
+        assertEquals("one tap", listOf(TAP), context.findFeedHeaderTaps().map { it.type })
+    }
+
+    /**
      * A build the patch can't read fails at patch time, saying what it found, before anything is
      * written, and the patch goes on for reels opened from Reels with the log saying why.
      */
@@ -73,7 +85,6 @@ class FeedReelHeaderHookTest {
     fun aTapThePatchCantReadFailsBeforeAnythingChanges() {
         val cases = listOf(
             listOf(tap(key = "source_media_username"), extension()) to "no method loading",
-            listOf(tap(author = false), extension()) to "no method loading",
             listOf(tap(lookup = false), extension()) to "no method loading",
             listOf(tap(twice = true), extension()) to "2 times, not once",
             listOf(tap(jumpPast = true), extension()) to "jumps to just past",
@@ -222,9 +233,6 @@ class FeedReelHeaderHookTest {
             val before = method.code()
             val field = (before[tap.read] as ReferenceInstruction).reference as FieldReference
             assertEquals("$label: ${tap.type} reads the post's media", MEDIA, field.type)
-            assertTrue("$label: ${tap.type} reads the event's User too", before.any { instruction ->
-                ((instruction as? ReferenceInstruction)?.reference as? FieldReference)?.let { it.definingClass == field.definingClass && it.type == POST_AUTHOR } == true
-            })
             context.hookFeedHeaderTap(tap)
             assertHooked(label, before, method.code(), tap)
         }
@@ -251,17 +259,21 @@ class FeedReelHeaderHookTest {
     /**
      * A stand-in for a feed post's header tap: it reads the post's media out of the tap's event, hands
      * it to MediaExtKt's look-up of the author, reads the event's User, and names the entry point.
+     * [built] builds the media from the event instead and looks the author up by MediaExtKt's own
+     * Media of it, as the merged main feed tap does.
      */
     private fun tap(
         type: String = TAP,
         key: String = FEED_HEADER,
-        author: Boolean = true,
         lookup: Boolean = true,
         twice: Boolean = false,
         jumpPast: Boolean = false,
+        built: Boolean = false,
     ): ClassDef {
-        val read = "iget-object v0, p1, $EVENT->media:$MEDIA"
-        val look = if (lookup) "invoke-static { v1, v0 }, $LOOKUP" else "invoke-static { v1, v0 }, $AUTHOR_LOOKUPS->A0H($SESSION$MEDIA)$MEDIA"
+        val read = if (built) "invoke-static { p1 }, $EVENT->tree(Ljava/lang/Object;)$MEDIA\nmove-result-object v0" else "iget-object v0, p1, $EVENT->media:$MEDIA"
+        val shown = if (built) "invoke-static { v1, v0 }, $AUTHOR_LOOKUPS->A0G($SESSION$MEDIA)$MEDIA\nmove-result-object v4\n" else ""
+        val asked = if (built) "v4" else "v0"
+        val look = if (lookup) "${shown}invoke-static { v1, $asked }, $LOOKUP" else "invoke-static { v1, v0 }, $AUTHOR_LOOKUPS->A0H($SESSION$MEDIA)$MEDIA"
         val body = listOfNotNull(
             "check-cast p1, $EVENT",
             if (jumpPast) "if-eqz p1, :past" else "nop",
@@ -273,7 +285,7 @@ class FeedReelHeaderHookTest {
             if (twice) read else null,
             if (twice) look else null,
             if (twice) "move-result-object v2" else null,
-            if (author) "iget-object v3, p1, $EVENT->author:$POST_AUTHOR" else "iget-object v3, p1, $EVENT->tag:Ljava/lang/String;",
+            "iget-object v3, p1, $EVENT->author:$POST_AUTHOR",
             "const-string v4, \"$key\"",
             "return-void",
         ).joinToString("\n")

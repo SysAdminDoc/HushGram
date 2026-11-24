@@ -99,6 +99,21 @@ class FollowingListHookTest {
     }
 
     /**
+     * 457's fetch is a merged lambda keeping the list as an Object and casting it right after the read,
+     * as LX/0ijX;->invoke does on 386314341. The cast's register is the list handed on.
+     */
+    @Test
+    fun theAnswerHookTakesAListCastFromAnObject() {
+        val context = PatchContexts.of(standIns(listAsObject = true))
+        val found = context.findFollowAnswers()
+        assertEquals(LIST_STATE, found.listType)
+        assertEquals("$LIST_STATE->data:$FOLLOW_LIST_DATA", found.listData.toString())
+        context.askFollowAnswers(found)
+
+        assertAsked("cast stand-in", context, found)
+    }
+
+    /**
      * 454 inlines the lookup past the parse, as LX/0P0J;->A00 does on 386014758: the session's
      * UserCache is asked for the account's entry, the entry is checked, and the account is made from it.
      */
@@ -625,6 +640,7 @@ class FollowingListHookTest {
             orderListAgain: String = "",
             orderBinderField: Boolean = true,
             pagerParts: Boolean = true,
+            listAsObject: Boolean = false,
         ): List<ClassDef> {
             val bind = method(
                 BINDER, "bindView", parameters, "V", 10,
@@ -702,7 +718,7 @@ class FollowingListHookTest {
             val fetch = method(
                 FETCH, "invoke", emptyList(), OBJECT, 7,
                 """
-                    iget-object v5, p0, $FETCH->list:$LIST_STATE
+                    ${if (listAsObject) "iget-object v5, p0, $FETCH->list:$OBJECT\ncheck-cast v5, $LIST_STATE" else "iget-object v5, p0, $FETCH->list:$LIST_STATE"}
                     const-string v4, "$NON_RECIP_FOLLOWERS"
                     new-instance v3, Ljava/util/ArrayList;
                     invoke-direct { v3 }, Ljava/util/ArrayList;-><init>()V
@@ -896,7 +912,7 @@ class FollowingListHookTest {
                     PAGER, AccessFlags.PUBLIC.value or AccessFlags.INTERFACE.value or AccessFlags.ABSTRACT.value, OBJECT,
                     null, null, null, null, pagerMethods,
                 ),
-                classOf(FETCH, listOf(field(FETCH, "list", LIST_STATE)), listOf(fetch)),
+                classOf(FETCH, listOf(field(FETCH, "list", if (listAsObject) OBJECT else LIST_STATE)), listOf(fetch)),
                 classOf(LIST_STATE, listOf(field(LIST_STATE, "data", FOLLOW_LIST_DATA), field(LIST_STATE, "session", USER_SESSION)), emptyList()),
                 classOf(
                     PARSER,

@@ -4,31 +4,31 @@
  */
 package app.morphe.patches.instagram.stories.live
 
-import app.morphe.patcher.Fingerprint
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
 import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
-import app.morphe.patcher.string
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesLoading
+import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.freeLocalsAt
 import app.morphe.patches.instagram.direct.ghost.ghostModeEntryPatch
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.jumpTargets
+import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.parameterRegister
 import app.morphe.patches.instagram.misc.extension.requireParameterIntact
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
-import app.morphe.patches.instagram.misc.extension.uniqueMethod
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
@@ -46,7 +46,7 @@ internal const val BIND_LIVE_SEEN_BUTTON = "$LIVE_SEEN_BUTTON->bind(Landroid/vie
 
 /**
  * The live header's three-dot menu and close button (`id/iglive_header_options` and
- * `id/iglive_header_close`), the same in all four 456 builds (aapt2; 455 had 0x7f0b1f77 and 0x7f0b1f6f, 454 0x7f0b1f45
+ * `id/iglive_header_close`), the same in every 456 and 457 build (aapt2; 455 had 0x7f0b1f77 and 0x7f0b1f6f, 454 0x7f0b1f45
  * and 0x7f0b1f3d). The live viewer's header
  * holds both; the host's own header has only the close button.
  */
@@ -68,16 +68,24 @@ internal const val INTEGER = "Ljava/lang/Integer;"
 internal const val STRING = "Ljava/lang/String;"
 internal const val OBJECT = "Ljava/lang/Object;"
 
-/** The heartbeat a viewer or guest sends: the one (tick, role, broadcast id, continuation) method naming [LIVE_WITH_ELIGIBILITY]. */
-internal object ViewerHeartbeatFingerprint : Fingerprint(
-    returnType = OBJECT,
-    filters = listOf(string(LIVE_WITH_ELIGIBILITY)),
-    custom = { method, _ ->
-        val parameters = method.parameterTypes.map(CharSequence::toString)
-        !AccessFlags.STATIC.isSet(method.accessFlags) && parameters.size == 4 &&
-            parameters[1] == INTEGER && parameters[2] == STRING
-    },
-)
+/**
+ * The heartbeat a viewer or guest sends: the one instance (tick, role, broadcast id, continuation)
+ * method answering an Object and loading [LIVE_WITH_ELIGIBILITY], held or from 457 asked of a Redex
+ * string pool (`LX/0Ahq;->A00` on 386314341). Fails when there isn't exactly one.
+ */
+internal fun BytecodePatchContext.findHeartbeatRequest(): Method {
+    val found = classesLoadingString(LIVE_WITH_ELIGIBILITY).flatMap { classDef ->
+        classDef.methods.filter { method ->
+            val parameters = method.parameterTypes.map(CharSequence::toString)
+            !AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == OBJECT && parameters.size == 4 &&
+                parameters[1] == INTEGER && parameters[2] == STRING && loadsString(method, LIVE_WITH_ELIGIBILITY)
+        }
+    }
+    return found.singleOrNull() ?: refuse(
+        "expected exactly one viewer heartbeat in this Instagram build, found " +
+            found.joinToString { "${it.definingClass}->${it.name}" }.ifEmpty { "none" },
+    )
+}
 
 @Suppress("unused")
 val viewLiveAnonymouslyPatch = bytecodePatch(
@@ -120,7 +128,7 @@ private fun MutableMethod.code() = implementation!!.instructions.toList()
  * returns its plain result, a singleton loaded right before it's returned, for the hook to jump to.
  */
 internal fun BytecodePatchContext.findViewerHeartbeat(): ViewerHeartbeatSite {
-    val heartbeat = uniqueMethod(LIVE_SEEN_PATCH, "viewer heartbeat", ViewerHeartbeatFingerprint)
+    val heartbeat = findHeartbeatRequest()
     val manager = mutableClassDefByOrNull(LIVE_HEARTBEAT_MANAGER) ?: refuse("$LIVE_HEARTBEAT_MANAGER is missing")
     fun MethodReference.isHeartbeat() = definingClass == heartbeat.definingClass && name == heartbeat.name &&
         parameterTypes.map(CharSequence::toString) == heartbeat.parameterTypes.map(CharSequence::toString) &&

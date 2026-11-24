@@ -16,6 +16,7 @@ import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
@@ -32,9 +33,10 @@ private const val CONTEXT = "Landroid/content/Context;"
 
 /**
  * Copy username's boundaries on top of the shared surface (#35): the raw comment's getter for who
- * wrote it, the renderer's read of a row's label, and the step that fills User's username bridge.
+ * wrote it, the renderer's read of a row's label, the method holding that read (the renderer or
+ * its row helper), and the step that fills User's username bridge.
  */
-internal class CopyAuthorPlan(val user: MethodReference, val label: LabelRead, val username: () -> Unit)
+internal class CopyAuthorPlan(val user: MethodReference, val label: LabelRead, val labelIn: MethodReference, val username: () -> Unit)
 
 /** A row's label as the renderer reads it: the row's label field, then the label's string id. */
 internal class LabelRead(val labelField: FieldReference, val idField: FieldReference)
@@ -59,11 +61,13 @@ internal fun BytecodePatchContext.findCopyAuthor(surface: CommentSurface, classe
     requirePublic(raw)
     val user = commentUserGetter(raw, clazz(surface.pando))
     val label = labelRead(surface, classes)
-    labelSite(clazz(surface.renderer.definingClass).methods.filter { it.matches(surface.renderer) }.one("comment menu renderer"), label)
+    val renderer = clazz(surface.renderer.definingClass).methods.filter { it.matches(surface.renderer) }.one("comment menu renderer")
+    val labelIn = labelHolder(renderer, label, classes)
+    labelSite(labelIn, label)
     stub(AUTHOR_NATIVE, "author", listOf(OBJECT), OBJECT)
     stub(COMMENT_AUTHOR, "label", listOf(CONTEXT, "I", OBJECT), STRING)
     validateActionRow(AUTHOR_ROW, AUTHOR_NATIVE)
-    CopyAuthorPlan(ImmutableMethodReference.of(user), label, usernameBridge(COPY_PATCH))
+    CopyAuthorPlan(ImmutableMethodReference.of(user), label, ImmutableMethodReference.of(labelIn), usernameBridge(COPY_PATCH))
 } catch (unknown: PatchException) {
     patchLog.warning("${unknown.message}. Copy comment goes in without Copy username.")
     null
@@ -71,11 +75,11 @@ internal fun BytecodePatchContext.findCopyAuthor(surface: CommentSurface, classe
 
 /** Only called once [findCopyAuthor] found every boundary, after Copy's own row is written. */
 internal fun BytecodePatchContext.applyCopyAuthor(surface: CommentSurface, plan: CopyAuthorPlan, icon: Int, label: Int) {
-    val renderer = mutableClassDefBy(surface.renderer.definingClass).methods.single { it.matches(surface.renderer) }
+    val holder = mutableClassDefBy(plan.labelIn.definingClass).methods.single { it.matches(plan.labelIn) }
     // Found again here: the shared hook may have gone in since discovery and moved it.
-    val site = labelSite(renderer, plan.label)
+    val site = labelSite(holder, plan.label)
     // In place, on the call's own registers, so nothing shifts and every branch still reaches it.
-    renderer.replaceInstruction(site.at + 2, "invoke-static { v${site.context}, v${site.id}, v${site.row} }, $AUTHOR_LABEL")
+    holder.replaceInstruction(site.at + 2, "invoke-static { v${site.context}, v${site.id}, v${site.row} }, $AUTHOR_LABEL")
     keepRawComment(surface)
     replace(stub(AUTHOR_NATIVE, "author", listOf(OBJECT), OBJECT), 2, """
         instance-of v0, p0, ${surface.selectedType}
@@ -112,18 +116,7 @@ private fun labelRead(surface: CommentSurface, classes: Map<String, ClassDef>): 
  */
 internal fun labelSite(renderer: Method, read: LabelRead): LabelSite {
     val code = renderer.code()
-    val at = code.indices.filter { at ->
-        if (at + 3 >= code.size) return@filter false
-        val label = code[at]
-        val id = code[at + 1]
-        val call = code[at + 2]
-        label.opcode == Opcode.IGET_OBJECT && label.field()?.toString() == read.labelField.toString() &&
-            id.opcode == Opcode.IGET && id.field()?.toString() == read.idField.toString() &&
-            (id as TwoRegisterInstruction).registerB == (label as TwoRegisterInstruction).registerA &&
-            call.opcode == Opcode.INVOKE_VIRTUAL && call.call()?.toString() == GET_STRING &&
-            call.arguments().getOrNull(1) == id.registerA &&
-            code[at + 3].opcode == Opcode.MOVE_RESULT_OBJECT
-    }.one("renderer's row label read")
+    val at = labelReads(code, read).one("renderer's row label read")
     val label = code[at] as TwoRegisterInstruction
     val id = code[at + 1] as TwoRegisterInstruction
     val context = code[at + 2].arguments().first()
@@ -134,3 +127,25 @@ internal fun labelSite(renderer: Method, read: LabelRead): LabelSite {
     if (at + 1 in targets || at + 2 in targets) refuse("a branch enters the renderer's label read")
     return LabelSite(at, row, id.registerA, context)
 }
+
+/** Where [code] reads a row's label text as [labelSite] describes it. */
+private fun labelReads(code: List<Instruction>, read: LabelRead): List<Int> = code.indices.filter { at ->
+    if (at + 3 >= code.size) return@filter false
+    val label = code[at]
+    val id = code[at + 1]
+    val call = code[at + 2]
+    label.opcode == Opcode.IGET_OBJECT && label.field()?.toString() == read.labelField.toString() &&
+        id.opcode == Opcode.IGET && id.field()?.toString() == read.idField.toString() &&
+        (id as TwoRegisterInstruction).registerB == (label as TwoRegisterInstruction).registerA &&
+        call.opcode == Opcode.INVOKE_VIRTUAL && call.call()?.toString() == GET_STRING &&
+        call.arguments().getOrNull(1) == id.registerA &&
+        code[at + 3].opcode == Opcode.MOVE_RESULT_OBJECT
+}
+
+/**
+ * The method holding the renderer's read of a row's label: the renderer, or from 457 the static
+ * helper it turns its rows into popup items with ([rowConverter], `LX/0hPd;->A01` on 386314341).
+ */
+private fun labelHolder(renderer: Method, read: LabelRead, classes: Map<String, ClassDef>): Method =
+    listOfNotNull(renderer, rowConverter(renderer, classes)).filter { labelReads(it.code(), read).isNotEmpty() }
+        .one("renderer's row label read in the renderer or its row helper")

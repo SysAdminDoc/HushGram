@@ -36,13 +36,15 @@ internal const val AUTO_SCROLL_LEAD_TIME = "$REEL_AUTO_SCROLL->leadTime(I)I"
  * The MobileConfig flag deciding whether this account is offered auto scroll in Reels at all, read
  * as a wide constant by the one check of it (076m.A09 on 456's 386214574). No other method loads it.
  */
-internal const val OPT_IN_AUTOSCROLL_FLAG = 0x8108f000003316L
+// 457 moved it from 456's 0x8108f000003316.
+internal const val OPT_IN_AUTOSCROLL_FLAG = 0x8108e8000032f9L
 
 /**
  * The MobileConfig flag the scroller's check of whether to move on reads as it decides (0AMZ.A07 on
  * 456's 386214574), loaded as a wide constant. No other method in the app loads it.
  */
-internal const val SCROLLER_SHOULD_SCROLL_FLAG = 0x810d8c00a24cb9L
+// 457 moved it from 456's 0x810d8c00a24cb9.
+internal const val SCROLLER_SHOULD_SCROLL_FLAG = 0x810d7500a24c26L
 
 /** What the scroller's move to the next reel logs (0AMZ.A04 on 456's 386214574). No other method loads it. */
 internal const val SCROLLER_SCROLL_EVENT = "instagram_clips_viewer_autoplay_scroll"
@@ -51,7 +53,8 @@ internal const val SCROLLER_SCROLL_EVENT = "instagram_clips_viewer_autoplay_scro
  * The MobileConfig flag for how long before a reel's end the scroller may move on, read as a wide
  * constant by the scroller's constructor alone (0AMZ.<init> on 456's 386214574).
  */
-internal const val SCROLLER_LEAD_FLAG = 0x8208f0000c13ebL
+// 457 moved it from 456's 0x8208f0000c13eb.
+internal const val SCROLLER_LEAD_FLAG = 0x8208e8000c13c3L
 
 /** Every method loading [flag] as a wide constant. */
 internal fun BytecodePatchContext.methodsLoadingWide(flag: Long): List<Method> =

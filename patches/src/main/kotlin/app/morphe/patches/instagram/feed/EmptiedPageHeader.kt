@@ -8,6 +8,7 @@ import app.morphe.patcher.extensions.InstructionExtensions.replaceInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.instagram.misc.extension.classesCalling
 import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.loadsString
@@ -43,16 +44,23 @@ internal val emptiedPageHeaderPatch = bytecodePatch {
 }
 
 /**
- * Hands the insert that follows the header's title to the extension, on the same registers. Only the
+ * Hands the insert that follows the header's title (or the making of a header holding it) to the
+ * extension, on the same registers. Only the
  * call changes, so whatever jumps onto it lands on the hook. A build without one still patches: the
  * filters it serves matter more than this guard.
  */
 internal fun BytecodePatchContext.guardNewPostsHeader() {
     var guarded = 0
-    for (owner in classesLoadingString(NEW_POSTS_HEADER).distinctBy { it.type }) {
-        for (found in owner.methods.filter { loadsString(it, NEW_POSTS_HEADER) }) {
+    val owners = classesLoadingString(NEW_POSTS_HEADER).distinctBy { it.type }
+    // 457 moved the title into the header's own constructor (0C2n on 386314341), so the page names
+    // the header by making one.
+    val headers = owners.flatMap { owner -> owner.methods.filter { it.name == "<init>" && loadsString(it, NEW_POSTS_HEADER) } }
+        .mapTo(HashSet()) { "${it.definingClass}(${it.parameterTypes.joinToString("")})" }
+    val makers = headers.flatMap { classesCalling(it.substringBefore('('), "<init>") }
+    for (owner in (owners + makers).distinctBy { it.type }) {
+        for (found in owner.methods) {
             val code = found.implementation?.instructions?.toList() ?: continue
-            val sites = code.indices.filter { stringLoadedAt(code, it) == NEW_POSTS_HEADER }
+            val sites = code.indices.filter { stringLoadedAt(code, it) == NEW_POSTS_HEADER || code[it].makesHeader(headers) }
                 .mapNotNull { title -> (title + 1 until code.size).firstOrNull { code[it].isIndexedInsert() } }
                 .distinct()
             if (sites.isEmpty()) continue
@@ -73,6 +81,13 @@ private fun guardedInsert(insert: Instruction): String = if (insert is RegisterR
 } else {
     val call = insert as FiveRegisterInstruction
     "invoke-static { v${call.registerC}, v${call.registerD}, v${call.registerE} }, $ADD_PAGE_HEADER"
+}
+
+/** Whether this makes one of [headers] ("type(parameters)"), a header whose constructor holds the title. */
+private fun Instruction.makesHeader(headers: Set<String>): Boolean {
+    if (opcode != Opcode.INVOKE_DIRECT && opcode != Opcode.INVOKE_DIRECT_RANGE) return false
+    val made = (this as ReferenceInstruction).reference as? MethodReference ?: return false
+    return made.name == "<init>" && "${made.definingClass}(${made.parameterTypes.joinToString("")})" in headers
 }
 
 private fun Instruction.isIndexedInsert(): Boolean {

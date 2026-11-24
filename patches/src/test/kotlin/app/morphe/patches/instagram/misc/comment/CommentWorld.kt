@@ -18,10 +18,13 @@ import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.immutable.*
 import com.android.tools.smali.dexlib2.immutable.instruction.*
+import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
+import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableStringReference
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -469,6 +472,35 @@ internal object CommentWorld {
             result, flags, null, null, ImmutableMethodImplementation(registers, emptyList(), null, null))).apply {
             addInstructionsWithLabels(0, body.trimIndent())
         }.let(ImmutableMethod::of)
+
+    /**
+     * The types a fixture's comment menu renderer reaches through its row conversion: 457's renderer
+     * turns its rows into popup items in a static (Context, List)List helper, which makes the stock
+     * row callback the renderer itself never names. A fixture one reference deep loads the helper only.
+     */
+    fun rowConversionTypes(classes: Collection<ClassDef>): Set<String> {
+        val methods = classes.flatMap { it.methods }
+        val helpers = methods.filter { method ->
+            method.parameterTypes.size == 5 && method.returnType == "V" &&
+                method.parameterTypes[3].toString() == "Ljava/util/List;" && method.parameterTypes[4].toString() == "F"
+        }.flatMap { renderer -> renderer.implementation?.instructions?.toList().orEmpty() }.mapNotNull { instruction ->
+            ((instruction as? ReferenceInstruction)?.reference as? MethodReference)?.takeIf { call ->
+                instruction.opcode == Opcode.INVOKE_STATIC && call.returnType == "Ljava/util/List;" &&
+                    call.parameterTypes.map(Any::toString) == listOf("Landroid/content/Context;", "Ljava/util/List;")
+            }
+        }.map { it.toString() }.toSet()
+        val types = mutableSetOf<String>()
+        for (helper in methods.filter { method -> AccessFlags.STATIC.isSet(method.accessFlags) && helpers.any { it.startsWith("${method.definingClass}->${method.name}(") } }) {
+            for (instruction in helper.implementation?.instructions?.toList().orEmpty()) {
+                when (val reference = (instruction as? ReferenceInstruction)?.reference) {
+                    is MethodReference -> types += reference.definingClass
+                    is FieldReference -> { types += reference.definingClass; types += reference.type }
+                    is TypeReference -> types += reference.type
+                }
+            }
+        }
+        return types.filter { it.startsWith("L") }.toSet()
+    }
 
     /** Each class's superclass and every method's body, to show a refusal changed nothing. */
     fun snapshot(patch: BytecodePatchContext, types: Collection<String>) = types.associateWith { type ->

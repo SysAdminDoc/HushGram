@@ -26,12 +26,12 @@ import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 internal const val COLLECTION_TILE = "$EXTENSION_PACKAGE/direct/CollectionLockMenu;->tile(Landroid/view/View;)V"
 
 /**
- * Instagram 456's id/saved_collection_thumbnail, the same in all four 456 builds (aapt2). Only the
+ * Instagram 457's id/saved_collection_thumbnail, the same in both 457 builds (aapt2; 0x7f0b393d on 456). Only the
  * two makers of a Saved collection tile load it: the See all grid's row binder (0IZf.createView,
  * layout save_home_collections_saved_collection) and the Saved home row's adapter (0Csf.A0Z,
  * layout layout_grid_item_collections_list_item). The extension finds the same view by name.
  */
-internal const val SAVED_COLLECTION_THUMBNAIL = 0x7f0b393d
+internal const val SAVED_COLLECTION_THUMBNAIL = 0x7f0b391e
 
 /** A maker of collection tiles, where the hook goes in it and the register holding the tile there. */
 internal class CollectionTileSite(val method: MutableMethod, val at: Int, val tile: Int)

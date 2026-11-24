@@ -23,6 +23,7 @@ import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.extension.stringLoadedAt
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
+import app.morphe.util.ControlFlow
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
@@ -180,7 +181,8 @@ private fun Field.reference(): FieldReference = ImmutableFieldReference(defining
 
 /**
  * A builder's row model parameter register and its one constructor call of the row, checked: it
- * has a local for the answer, nothing jumps to its first instruction or right after the call.
+ * has a local for the answer, nothing jumps to its first instruction, and nothing that can run after
+ * the call jumps right after it.
  */
 private fun BytecodePatchContext.builderOf(method: Method, model: String, row: String): RowBuilder {
     val where = "$UI_STATE->${method.name}"
@@ -198,7 +200,7 @@ private fun BytecodePatchContext.builderOf(method: Method, model: String, row: S
             call?.definingClass == row && call.name == "<init>"
     }
     val made = calls.singleOrNull() ?: refuse("expected one $row constructor call in $where, found ${calls.size}")
-    if (made + 1 in targets) refuse("a jump lands right after the $row constructor call in $where")
+    if (made + 1 in targets && method.jumpsBackAfter(made)) refuse("a jump lands right after the $row constructor call in $where")
     val rowRegister = when (val call = code[made]) {
         is RegisterRangeInstruction -> call.startRegister
         is FiveRegisterInstruction -> call.registerC
@@ -208,6 +210,33 @@ private fun BytecodePatchContext.builderOf(method: Method, model: String, row: S
         candidate.name == method.name && candidate.parameterTypes.map(Any::toString) == parameters && candidate.returnType == method.returnType
     }
     return RowBuilder(mutable, "p$register", made, rowRegister)
+}
+
+/**
+ * Whether something that jumps onto the instruction after the constructor call at [made] can run
+ * after that call. Such a jump would carry a made row past the hook. One that can only come before
+ * it carries no row of this call, and skipping the hook is right: 457's builders are suspend
+ * functions, and their suspended answer jumps straight to the return the row shares
+ * (`UiStateKt.A05` on 386314341).
+ */
+private fun Method.jumpsBackAfter(made: Int): Boolean {
+    val flow = ControlFlow.of(this)
+    val count = flow.instructions.size
+    val sources = (0 until count).filter { from ->
+        from != made && (made + 1 in flow.normal[from] || made + 1 in flow.exceptional[from])
+    }
+    val seen = java.util.BitSet(count)
+    val pending = ArrayDeque<Int>().apply { addLast(made) }
+    while (pending.isNotEmpty()) {
+        val at = pending.removeFirst()
+        for (next in (flow.normal[at] + flow.exceptional[at]).filter { it < count }) {
+            if (!seen[next]) {
+                seen.set(next)
+                pending.addLast(next)
+            }
+        }
+    }
+    return sources.any { seen[it] }
 }
 
 /** The row field the row's toString appends right after it appends [LABEL_TEXT]. It has to hold a FbtModel. */

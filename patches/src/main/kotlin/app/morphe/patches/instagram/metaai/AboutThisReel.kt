@@ -34,7 +34,8 @@ internal const val ASK_META_AI_BOX = "$EXTENSION_PACKAGE/metaai/MetaAi;->askMeta
  * summary (`LX/0dnQ;->A02` on 456's 386214574; 455 had 0x81104e00115b00, 454 0x81106500115afc, 453
  * 0x8110a600115abd).
  */
-internal const val SUMMARY_FLAG = 0x81103000115aeaL
+// 457 moved it from 456's 0x81103000115aea.
+internal const val SUMMARY_FLAG = 0x81100c00115a67L
 
 /** Two strings the summary row's binder holds on 450 and 451, the method that adds its Ask Meta AI box. */
 internal val SUMMARY_ROW_STRINGS = listOf("overflow_open", "defer_eligibility_enabled")

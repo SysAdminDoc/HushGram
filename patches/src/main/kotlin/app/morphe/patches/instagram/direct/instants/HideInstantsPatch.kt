@@ -33,8 +33,10 @@ internal const val HIDE_INSTANTS = "$EXTENSION_PACKAGE/direct/Instants;->hide()Z
  * from 454's 0x81057c000019a6 and 0x810c740000467c, and 456 from 455's 0x81057100001960 and
  * 0x810c6400004654 (`LX/03hF;->A0U` on 386214574). The check reading them is the same method.
  */
-internal const val INSTANTS_FLAG = 0x81056a00001920L
-internal const val INSTANTS_SECOND_FLAG = 0x810c4c0000460cL
+// 457 moved it from 456's 0x81056a00001920.
+internal const val INSTANTS_FLAG = 0x81056300001919L
+// 457 moved it from 456's 0x810c4c0000460c.
+internal const val INSTANTS_SECOND_FLAG = 0x810c3a00004587L
 
 /** The check's shape: static, (UserSession, boolean that logs an exposure), answering a boolean. */
 internal val GATE_PARAMETERS = listOf("Lcom/instagram/common/session/UserSession;", "Z")

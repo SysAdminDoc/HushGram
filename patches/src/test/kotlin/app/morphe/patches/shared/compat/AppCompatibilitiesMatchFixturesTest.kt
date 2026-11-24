@@ -104,7 +104,9 @@ class AppCompatibilitiesMatchFixturesTest {
     fun `every ABI is declared with the version code of its own vendor build`() {
         // A 32-bit phone told only about the arm64 build gets an APK with no library it can load
         // and fails with INSTALL_FAILED_NO_MATCHING_ABIS (#346), so each ABI Instagram ships needs
-        // its own code, and each code has to be the one on that ABI's genuine build.
+        // its own code, and each code has to be the one on that ABI's genuine build. Meta doesn't
+        // publish every ABI of every version (457.0.0.55.73 came as arm64 alone), so the ABIs
+        // declared are the ones the version's fixture builds hold, arm64 always among them.
         val libraryFolders = mapOf(
             SupportedAbi.ARM64_V8A to "arm64-v8a",
             SupportedAbi.ARMEABI_V7A to "armeabi-v7a",
@@ -114,7 +116,21 @@ class AppCompatibilitiesMatchFixturesTest {
         for (target in AppCompatibilities.instagram().single().targets) {
             val version = checkNotNull(target.version)
             val codes = target.versionCodes.orEmpty()
-            assertEquals("ABIs declared for $version", libraryFolders.keys, codes.keys)
+            val shipped = Fixtures.folder().listFiles().orEmpty()
+                .filter { it.isDirectory && it.name.startsWith("instagram-$version-") }
+                .map { File(it, "base.apk") }.filter { it.isFile }
+                .flatMap { base ->
+                    ZipFile(base).use { zip ->
+                        zip.entries().asSequence().map { it.name }.filter { it.startsWith("lib/") }
+                            .map { it.split('/')[1] }.toSet()
+                    }
+                }.toSet()
+            assertTrue("no fixture build of $version holds arm64-v8a libraries", "arm64-v8a" in shipped)
+            assertEquals(
+                "ABIs declared for $version",
+                libraryFolders.filterValues { it in shipped }.keys,
+                codes.keys,
+            )
             for ((abi, code) in codes) {
                 val base = File(Fixtures.folder(), "instagram-$version-$code/base.apk")
                 assertTrue("no fixture build for $abi at $base", base.isFile)

@@ -9,6 +9,7 @@ import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLa
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
+import app.morphe.patches.instagram.download.mediaIdBridge
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
@@ -59,6 +60,9 @@ val findReelOriginPatch = bytecodePatch(
  */
 internal fun BytecodePatchContext.hookReelOrigin() {
     val targets = findReelOriginTargets()
+    // 457 renamed Media's getId, so the extension reads a reel's id through InstagramMedia.mediaId.
+    val writeMediaId = mediaIdBridge(REEL_ORIGIN_PATCH)
+    writeMediaId()
     val media = targets.media
     mutable(targets.openProfile).addInstructions(
         0,

@@ -62,7 +62,8 @@ private const val QUERY_PARAMETER = "Landroid/net/Uri;->getQueryParameter(Ljava/
  * config's check for turning the controller off (07NO.A1K on 456's 386214574). 456 dropped the
  * controller's getUiState trace the check was found by, and the method loads no string at all.
  */
-internal const val FLASH_SYNC_FLAG = 0x81033800080c49L
+// 457 moved it from 456's 0x81033800080c49.
+internal const val FLASH_SYNC_FLAG = 0x81033400080c42L
 
 /** How far before the config's flag read the sync flow's flag is loaded: its load, a cast, the read, its result and check. */
 private const val FLASH_SYNC_REACH = 6

@@ -652,22 +652,25 @@ internal class SocialContextRead(val method: Method, val at: Int, val type: Int,
 /**
  * Finds where the method deciding on the social context line reads the line's type, before
  * anything changes. The method answers a boolean, whether to show the line. It makes the line with
- * a call and reads its type straight off the answer: a field holding an enum naming
- * [SOCIAL_CONTEXT_TYPES], whose ordinal it asks later. That read has to be there once, and nothing
- * may jump to just past it.
+ * a call (or from 457 is handed it) and reads its type straight off it: a field holding an enum
+ * naming [SOCIAL_CONTEXT_TYPES], whose ordinal it asks later. That read has to be there once, and
+ * nothing may jump to just past it.
  */
 private fun BytecodePatchContext.socialContextRead(method: Method): SocialContextRead {
     val what = "$PATCH: ${method.definingClass}->${method.name}, holding the $SOCIAL_CONTEXT_CHECK marker,"
     if (method.implementation == null || method.returnType != "Z") throw PatchException("$what is not a check answering a boolean")
     val code = method.implementation!!.instructions.toList()
+    val parameters = method.parameterTypes.map(CharSequence::toString)
     val reads = code.indices.filter { at ->
         val read = code[at]
         val field = (read as? ReferenceInstruction)?.reference as? FieldReference
-        val made = code.getOrNull(at - 1)
-        if (read.opcode != Opcode.IGET_OBJECT || field == null || made?.opcode != Opcode.MOVE_RESULT_OBJECT) return@filter false
+        if (read.opcode != Opcode.IGET_OBJECT || field == null) return@filter false
         val registers = read as TwoRegisterInstruction
-        (made as OneRegisterInstruction).registerA == registers.registerB &&
-            (at + 1 until code.size).any { code[it].asksOrdinalOf(registers.registerA) } && namesSocialContextTypes(field.type)
+        val made = code.getOrNull(at - 1)
+        // From 457 the line comes in as a parameter (LX/0Iqx; to LX/0Iqw;->A06 on 386314341).
+        val madeOrHanded = made?.opcode == Opcode.MOVE_RESULT_OBJECT && (made as OneRegisterInstruction).registerA == registers.registerB ||
+            field.definingClass in parameters
+        madeOrHanded && (at + 1 until code.size).any { code[it].asksOrdinalOf(registers.registerA) } && namesSocialContextTypes(field.type)
     }
     val read = reads.singleOrNull() ?: throw PatchException(
         "$what: expected it to read the type of the line it makes, an enum naming $SOCIAL_CONTEXT_TYPES, once, found ${reads.size}",

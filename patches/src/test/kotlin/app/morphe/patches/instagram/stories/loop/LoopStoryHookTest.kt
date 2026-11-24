@@ -98,9 +98,9 @@ class LoopStoryHookTest {
         val check = "$STORY_VIEWER->plays"
         val cases = listOf(
             classes(handlerHolds = "sponsored") to "expected exactly one finished story handler in this Instagram build, found none",
-            classes(reads = 0) to "expected one read of the story loop flag $flagHex, found 0",
-            classes(reads = 2) to "expected one read of the story loop flag $flagHex, found 2",
-            classes(flag = STORY_LOOP_FLAG + 1) to "expected one read of the story loop flag $flagHex, found 0",
+            classes(reads = 0) to "expected one read of the story loop flag $flagHex in $STORY_VIEWER, found 0",
+            classes(reads = 2) to "expected one read of the story loop flag $flagHex in $STORY_VIEWER, found 2",
+            classes(flag = STORY_LOOP_FLAG + 1) to "expected one read of the story loop flag $flagHex in $STORY_VIEWER, found 0",
             classes(sharedRead = true) to "the read of $flagHex in $check is shared with another flag",
             classes(checkOwner = "Lfixture/Elsewhere;") to "$flagHex is read in Lfixture/Elsewhere;->plays($storyItem)Z, not in the story viewer's check of one story item",
             classes(checkTakes = "Ljava/lang/Object;") to "$flagHex is read in $check(Ljava/lang/Object;)Z, not in the story viewer's check of one story item",
@@ -149,7 +149,9 @@ class LoopStoryHookTest {
                 if (classDef.type == STORY_VIEWER || classDef.methods.any { it.loadsTheFlag() }) holders += ImmutableClassDef.of(classDef)
             }
         }
-        assertEquals("${label}: classes loading $flagHex", setOf(STORY_VIEWER), holders.filter { c -> c.methods.any { it.loadsTheFlag() } }.map { it.type }.toSet())
+        // 457's story video bookmarks read it too (0NOA), which the patch leaves alone.
+        val loading = holders.filter { c -> c.methods.any { it.loadsTheFlag() } }.map { it.type }.toSet()
+        assertTrue("${label}: classes loading $flagHex: $loading", STORY_VIEWER in loading && loading.size <= 2)
         val viewer = holders.single { it.type == STORY_VIEWER }
         val context = PatchContexts.of(holders)
 

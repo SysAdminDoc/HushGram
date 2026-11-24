@@ -550,9 +550,11 @@ class PureBlackTest {
                         Regex("""<color name="igds_prism_gray_1500">#(ff)?191c1f</color>""", RegexOption.IGNORE_CASE)
                             .containsMatchIn(File(res, "values/colors.xml").readText()),
                     )
+                    // 457 folded igds_prism_gray_09 into the camera settings' gray of the same value.
+                    val storyGray = "camera_settings_secondary_background"
                     assertTrue(
                         "$code: the story viewer's gray is #ff25292e",
-                        Regex("""<color name="igds_prism_gray_09">#(ff)?25292e</color>""", RegexOption.IGNORE_CASE)
+                        Regex("""<color name="$storyGray">#(ff)?25292e</color>""", RegexOption.IGNORE_CASE)
                             .containsMatchIn(File(res, "values/colors.xml").readText()),
                     )
                     val before = attributeColors(res, SHEET_BACKGROUND)
@@ -560,13 +562,13 @@ class PureBlackTest {
                     assertEquals(
                         "$code: the dark stories' gray",
                         mapOf(
-                            "values/IgdsPrismSemanticColorsExperimentDark" to "@color/igds_prism_gray_09",
-                            "values/IgdsPrismGrayOverridesDark" to "@color/igds_prism_gray_09",
+                            "values/IgdsPrismSemanticColorsExperimentDark" to "@color/$storyGray",
+                            "values/IgdsPrismGrayOverridesDark" to "@color/$storyGray",
                             "values/IgdsSemanticColorsDark" to "@color/bds_grey_9",
                         ),
                         storiesBefore.filterKeys { it in darkStories },
                     )
-                    assertEquals("$code: the light stories' gray", "@color/igds_prism_gray_09", storiesBefore[light])
+                    assertEquals("$code: the light stories' gray", "@color/$storyGray", storiesBefore[light])
                     val menusBefore = attributeColors(res, MENU_BACKGROUND)
                     assertEquals(
                         "$code: the dark menus' grays",
@@ -679,10 +681,12 @@ class PureBlackTest {
                         commentAttributes.associateWith { attributeColors(res, it)[comments] },
                     )
                     val primaryAfter = attributeColors(res, "igds_color_primary_background")
+                    // 457 names Prism's black camera_settings_background, a color of the same value.
+                    val blacks = setOf(PRISM_BLACK_COLOR) + prismBlackColors(File(res, "values/colors.xml").readText())
                     assertEquals(
                         "$code: every other style's background but the prism black ones",
-                        (primaryBefore - comments).filterValues { it != PRISM_BLACK_COLOR },
-                        (primaryAfter - comments).filterKeys { primaryBefore[it] != PRISM_BLACK_COLOR },
+                        (primaryBefore - comments).filterValues { it !in blacks },
+                        (primaryAfter - comments).filterKeys { primaryBefore[it] !in blacks },
                     )
                     val row = File(res, "drawable/$ROW_DRAWABLE.xml").readText()
                     assertTrue("$code: the Likes row fills with its own attribute (#639)\n$row", "?attr/$ROW_ATTRIBUTE" in row)

@@ -4,8 +4,10 @@
  */
 package app.morphe.patches.instagram.feed.sound
 
+import app.morphe.patcher.extensions.InstructionExtensions.addInstruction
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
 import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
+import app.morphe.patcher.extensions.InstructionExtensions.removeInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
@@ -16,7 +18,6 @@ import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.freeLocalsAt
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
-import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.extension.requireThisIntact
@@ -136,7 +137,6 @@ internal fun BytecodePatchContext.findFeedSoundSite(): FeedSoundSite {
         ?: refuse("expected ${controller.type} to hold one video start that sets a sound flag on the state it makes, found ${found.size}")
     val where = "${controller.type}->${start.name}"
     val index = call.index
-    if (index in start.jumpTargets()) refuse("something in $where jumps to the sound flag call")
     start.requireThisIntact(PATCH, listOf(index))
     if (call.flag >= start.localRegisterCount()) refuse("$where keeps the sound flag in a parameter register")
 
@@ -198,6 +198,8 @@ private fun BytecodePatchContext.flagCall(method: Method): FlagCall? {
             call.registerC == register
     }
     val at = calls.singleOrNull() ?: return null
+    // Every way to the call makes the object first (457 branches onto the call from after it's made).
+    if (!passesFirst(method, at, newAt)) return null
     val flag = (code[at] as FiveRegisterInstruction).registerD
     // Nothing rewrites the made object's register between making it and the call.
     for (k in newAt + 1 until at) {
@@ -213,6 +215,29 @@ private fun BytecodePatchContext.flagCall(method: Method): FlagCall? {
         return null
     }
     return FlagCall(at, flag)
+}
+
+/** Whether every way into instruction [at] from the method's start, exception edges included, passes instruction [through]. */
+private fun passesFirst(method: Method, at: Int, through: Int): Boolean {
+    val flow = ControlFlow.of(method)
+    val count = flow.instructions.size
+    val before = Array(count) { mutableListOf<Int>() }
+    for (from in 0 until count) {
+        (flow.normal[from] + flow.exceptional[from]).filter { it < count }.forEach { before[it] += from }
+    }
+    val seen = java.util.BitSet(count)
+    val pending = ArrayDeque<Int>().apply { addLast(at) }
+    while (pending.isNotEmpty()) {
+        val next = pending.removeFirst()
+        if (next == 0) return false
+        for (k in before[next]) {
+            if (k != through && !seen[k]) {
+                seen.set(k)
+                pending.addLast(k)
+            }
+        }
+    }
+    return true
 }
 
 /**
@@ -264,6 +289,10 @@ internal fun writesReaching(method: Method, at: Int, register: Int): Set<Int> {
  * audio state from the controller's session and set it to on, with false for the setter's second
  * boolean where it takes one, as the story hook does. No session goes straight on. When the flag is
  * already true, ask [FEED_KEEPS_MUTED], and on a yes make it false, leaving the account's state alone.
+ *
+ * The hook takes the call's own label, so a branch to the call goes through the hook too (457's video
+ * start has five, `06mS.A0D` on 386314341): the call goes in again right after itself, the hook in
+ * front of that copy, and the original comes out, handing its label to the hook's first instruction.
  */
 internal fun BytecodePatchContext.applyFeedSound(site: FeedSoundSite) {
     val (answer, state, extra) = site.scratch
@@ -273,8 +302,13 @@ internal fun BytecodePatchContext.applyFeedSound(site: FeedSoundSite) {
         "invoke-virtual { v$state, v${site.flag} }, ${site.setter}"
     }
     mutable(site.start).apply {
+        val call = getInstruction<FiveRegisterInstruction>(site.index)
+        addInstruction(
+            site.index + 1,
+            "invoke-virtual { v${call.registerC}, v${call.registerD} }, ${(call as ReferenceInstruction).reference}",
+        )
         addInstructionsWithLabels(
-            site.index,
+            site.index + 1,
             """
                 if-nez v${site.flag}, :loud
                 invoke-static/range { p0 .. p0 }, $FEED_START_WITH_SOUND
@@ -294,8 +328,9 @@ internal fun BytecodePatchContext.applyFeedSound(site: FeedSoundSite) {
                 if-eqz v$answer, :stock
                 const/4 v${site.flag}, 0
             """,
-            ExternalLabel("stock", getInstruction(site.index)),
+            ExternalLabel("stock", getInstruction(site.index + 1)),
         )
+        removeInstruction(site.index)
     }
 }
 

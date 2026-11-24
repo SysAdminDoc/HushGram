@@ -12,6 +12,7 @@ import app.morphe.patches.instagram.direct.seen.NativeThreadSeenTest.Companion.t
 import app.morphe.patches.instagram.direct.seen.NativeVisualSeenTest.Companion.fixtures
 import app.morphe.patches.instagram.direct.seen.NativeVisualSeenTest.Companion.otherBuilds
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import org.junit.Assert.assertEquals
@@ -28,12 +29,14 @@ class NativeReplySeenTest {
 
     private fun check(bundle: File) {
         val classes = threadClasses(bundle).toMutableMap()
-        // Some builds ask a Redex pool for the send's name, so the slice takes the pool too.
+        // Some builds ask a Redex pool for the send's name, so the slice takes the pool too. 457 pools
+        // the scheduled send's name as well.
         val loading = FixtureDex.classesLoading(bundle, "direct_composer_send_text")
-        val composers = loading.filter { candidate -> candidate.methods.any { it.isComposerSend() } }.associateBy { it.type }
+        val scheduling = FixtureDex.classesLoading(bundle, "direct_schedule_message").associateBy { it.type }
+        val composers = loading.filter { candidate -> candidate.methods.any { it.isComposerSend(scheduling) } }.associateBy { it.type }
         assertEquals("one class has the composer's send", 1, composers.size)
-        classes += loading.associateBy { it.type }
-        val send = composers.values.single().methods.single { it.isComposerSend() }
+        classes += loading.associateBy { it.type } + scheduling
+        val send = composers.values.single().methods.single { it.isComposerSend(scheduling) }
         // The static call reading the thread id, its class and the chat handle's.
         val needs = mutableSetOf<String>()
         for (instruction in send.visualCode()) {
@@ -71,8 +74,8 @@ class NativeReplySeenTest {
     }
 
     private companion object {
-        fun com.android.tools.smali.dexlib2.iface.Method.isComposerSend() =
+        fun com.android.tools.smali.dexlib2.iface.Method.isComposerSend(pools: Map<String, ClassDef>) =
             returnType == "Z" && parameterTypes.map(Any::toString) == listOf("Landroid/text/Editable;", "Ljava/lang/Long;", "Ljava/lang/String;") &&
-                visualCode().any { it.visualString() == "direct_schedule_message" }
+                FixtureDex.loads(this, "direct_schedule_message", pools)
     }
 }

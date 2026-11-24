@@ -19,7 +19,9 @@ import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
+import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 import java.util.BitSet
 
 internal const val KNOWN = "$FOLLOWING_LIST->known($OBJECT$OBJECT)$OBJECT"
@@ -157,7 +159,8 @@ private class ListHolder(val register: Int, val type: String, val data: FieldRef
 
 /**
  * The register holding the list's state at [at]: one written by reading a field whose class keeps
- * one [FOLLOW_LIST_DATA] and one [USER_SESSION], and holding that value on every way to [at].
+ * one [FOLLOW_LIST_DATA] and one [USER_SESSION] (or from 457 an Object field cast to that class right
+ * after, `LX/0ijX;->invoke` on 386314341), and holding that value on every way to [at].
  * Instagram's fetch reads other objects of that shape too (the row binder, say), into registers it
  * has reused by the time it asks about a row.
  */
@@ -167,11 +170,18 @@ private fun BytecodePatchContext.listHolder(classDef: ClassDef, method: Method, 
     val holders = code.indices.mapNotNull { index ->
         val read = code[index].fieldReference() ?: return@mapNotNull null
         if (code[index].opcode != Opcode.IGET_OBJECT) return@mapNotNull null
-        val heldClass = classDefByOrNull(read.type) ?: return@mapNotNull null
+        val register = (code[index] as OneRegisterInstruction).registerA
+        // From 457 a merged lambda keeps the list as an Object and casts it right after the read.
+        val cast = code.getOrNull(index + 1)?.takeIf {
+            read.type == OBJECT && it.opcode == Opcode.CHECK_CAST && (it as OneRegisterInstruction).registerA == register
+        }
+        val held = cast?.let { ((it as ReferenceInstruction).reference as TypeReference).type } ?: read.type
+        val write = if (cast != null) index + 1 else index
+        val heldClass = classDefByOrNull(held) ?: return@mapNotNull null
         val data = heldClass.instanceFields(FOLLOW_LIST_DATA).singleOrNull() ?: return@mapNotNull null
         val session = heldClass.instanceFields(USER_SESSION).singleOrNull() ?: return@mapNotNull null
-        if (!method.holdsAt((code[index] as OneRegisterInstruction).registerA, index, at)) return@mapNotNull null
-        Triple(index, heldClass, data to session)
+        if (!method.holdsAt(register, write, at)) return@mapNotNull null
+        Triple(write, heldClass, data to session)
     }
     val (write, heldClass, fields) = holders.singleOrNull()
         ?: refuse("expected $where to hold one follow list keeping a $FOLLOW_LIST_DATA and a $USER_SESSION where it asks about a row, found ${holders.size}")

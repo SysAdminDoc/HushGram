@@ -233,9 +233,44 @@ private fun resultAfter(code: List<Instruction>, at: Int): Int? =
     code.getOrNull(at + 1)?.takeIf { it.opcode == Opcode.MOVE_RESULT_OBJECT }?.let { (it as OneRegisterInstruction).registerA }
 
 /**
+ * The String field of a row the key in register [key] goes into, after [at]: put there by the
+ * builder itself, or (from 457) handed to the row's constructor, which puts it there.
+ */
+private fun BytecodePatchContext.rowKeyField(code: List<Instruction>, at: Int, key: Int): FieldReference? {
+    for (index in at + 1 until code.size) {
+        val instruction = code[index]
+        val reference = (instruction as? ReferenceInstruction)?.reference
+        if (instruction.opcode == Opcode.IPUT_OBJECT && (instruction as TwoRegisterInstruction).registerA == key) {
+            if ((reference as FieldReference).type == STRING) return reference
+        }
+        if (instruction.opcode != Opcode.INVOKE_DIRECT && instruction.opcode != Opcode.INVOKE_DIRECT_RANGE) continue
+        val made = reference as MethodReference
+        if (made.name != "<init>") continue
+        val types = made.parameterTypes.map(Any::toString)
+        val slots = types.indices.map { 1 + types.take(it).sumOf { type -> type.width() } }
+        val arguments = instruction.arguments()
+        val parameter = types.indices.singleOrNull { types[it] == STRING && arguments.getOrNull(slots[it]) == key } ?: continue
+        val constructor = classDefByOrNull(made.definingClass)?.methods?.singleOrNull {
+            it.name == "<init>" && it.parameterTypes.map(Any::toString) == types
+        } ?: return null
+        val registers = constructor.implementation?.registerCount ?: return null
+        val self = registers - 1 - types.sumOf { it.width() }
+        return constructor.code().firstNotNullOfOrNull { store ->
+            val field = (store as? ReferenceInstruction)?.reference as? FieldReference
+            field?.takeIf {
+                store.opcode == Opcode.IPUT_OBJECT && it.type == STRING && it.definingClass == made.definingClass &&
+                    (store as TwoRegisterInstruction).registerA == self + slots[parameter] && store.registerB == self
+            }
+        }
+    }
+    return null
+}
+
+/**
  * The Made with Edits part [method] builds, or null when it builds none: [EDITS_KEY] (loaded, or
- * asked of Redex's string pool) put into a String field of a row, an array of those rows made into
- * a List, and that List handed to one adder that also takes the part's title.
+ * asked of Redex's string pool) put into a String field of a row (by the builder, or from 457 by the
+ * row's constructor), an array of those rows made into a List, and that List handed to one adder
+ * that also takes the part's title.
  */
 private fun BytecodePatchContext.editsRowsIn(method: Method): EditsRows? {
     val code = method.code()
@@ -244,11 +279,7 @@ private fun BytecodePatchContext.editsRowsIn(method: Method): EditsRows? {
         Opcode.CONST_STRING, Opcode.CONST_STRING_JUMBO -> (code[at] as OneRegisterInstruction).registerA
         else -> resultAfter(code, at)
     } ?: return null
-    val store = (at + 1 until code.size).firstOrNull {
-        code[it].opcode == Opcode.IPUT_OBJECT && (code[it] as TwoRegisterInstruction).registerA == key &&
-            ((code[it] as ReferenceInstruction).reference as FieldReference).type == STRING
-    } ?: return null
-    val field = (code[store] as ReferenceInstruction).reference as FieldReference
+    val field = rowKeyField(code, at, key) ?: return null
     val lists = code.indices.mapNotNull { index ->
         val array = code[index]
         if (array.opcode != Opcode.FILLED_NEW_ARRAY && array.opcode != Opcode.FILLED_NEW_ARRAY_RANGE) return@mapNotNull null

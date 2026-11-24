@@ -276,11 +276,14 @@ class StoryTrayOrderHookTest {
             AccessFlags.STATIC.isSet(it.accessFlags) && it.parameterTypes.map(Any::toString) == listOf(state, STRING, "J")
         }.key()
         // 456's reel write calls the store's own write of a reel's time, which calls the state's.
+        // 457's store write calls a write of the state's own first (02th.A04), which calls it.
         val stateWriters = callersOf(bundle, stateWrite)
-        val storeWrites = stateWriters.filter { method ->
+        val forwards = stateWriters.filter { it.definingClass == state && it.parameterTypes.map(Any::toString) == listOf(STRING, "J") }
+        val forwardWriters = forwards.flatMap { callersOf(bundle, it.key()) }
+        val storeWrites = (stateWriters + forwardWriters).filter { method ->
             stores.any { it.type == method.definingClass } && method.parameterTypes.map(Any::toString) == listOf(STRING, "J")
         }
-        val writers = stateWriters + storeWrites.flatMap { callersOf(bundle, it.key()) }
+        val writers = stateWriters + forwardWriters + storeWrites.flatMap { callersOf(bundle, it.key()) }
         val reelWrite = writers.single {
             it.definingClass != state && stores.none { store -> store.type == it.definingClass } &&
                 it.parameterTypes.map(Any::toString) == listOf(USER_SESSION, "J")

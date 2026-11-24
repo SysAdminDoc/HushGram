@@ -1281,6 +1281,9 @@ public final class ReelOrigin {
 
     /** The reel's id, the string Instagram names its grid tile by, or null after reporting it missing. */
     private static String mediaId(Object media) throws ReflectiveOperationException {
+        // The patch writes this bridge with Media's id getter, whatever Redex named it (457 renamed getId).
+        String bridged = InstagramMedia.mediaId(media);
+        if (bridged != null) return bridged;
         Method id = getId;
         if (id == null || !id.getDeclaringClass().isInstance(media)) {
             try {

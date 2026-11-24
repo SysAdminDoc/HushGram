@@ -69,7 +69,8 @@ private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $det
  * `new Reel(null, type, list, list)` (454 adds a String after the type, so the type stays the
  * constructor's second argument), the type an Integer that the reel's constructor turns into
  * its id through one static `(Integer)String`, the method holding [SUGGESTED_USERS_MIDCARD] among
- * the other types' names. The adders are the static methods making that call that take the
+ * the other types' names (457 asks a string pool for each of them, one merged switch case jumping
+ * to one pool call). The adders are the static methods making that call that take the
  * viewer's list and answer a boolean (whether they added a card) or an object they may answer
  * null for (no card). Some builds move one build into a static void helper taking the type as an
  * Integer and the list, which builds the reel with that type and adds it (the x86 453.0.0.57.79

@@ -79,7 +79,7 @@ public class SavedHomeTest {
     }
 
     @Test public void theBookmarksIntentIsMarkedAndKeepsTheSession() {
-        Intent intent = ProfileSaved.savedIntent("com.instagram.android", "token-1");
+        Intent intent = ProfileSaved.savedIntent("com.instagram.android", ProfileSaved.SAVED_HANDLER, "token-1");
         Bundle bundle = intent.getBundleExtra(ProfileSaved.LINK_BUNDLE);
         assertEquals("token-1", bundle.getString(ProfileSaved.SESSION_TOKEN));
         assertTrue(bundle.getBoolean(SavedHome.FROM_BOOKMARK));

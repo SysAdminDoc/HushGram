@@ -50,7 +50,8 @@ private const val OBJECT = "Ljava/lang/Object;"
  * key and a boxed yes or no. The listener only gets the pinch
  * while Instagram's zoom for Reels is off.
  */
-internal const val PINCH_CLEAR_MODE_FLAG = 0x810586000a199fL
+// 457 moved it from 456's 0x810586000a199f.
+internal const val PINCH_CLEAR_MODE_FLAG = 0x81057f000a1998L
 
 /**
  * Where Pinch for clear mode goes (#744): the flag's read, the pinch's two writes of the reel's

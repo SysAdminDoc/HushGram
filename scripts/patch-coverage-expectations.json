@@ -3,65 +3,8 @@
   "fixtures": [
     {
       "package": "com.instagram.android",
-      "versionName": "456.1.0.56.78",
-      "versionCode": "386215122",
-      "families": [
-        {
-          "family": "sanitizeSharingLinks",
-          "patch": "Sanitize sharing links",
-          "targets": ["permalink parser", "clipboard copies", "share sheets", "direct shares", "in-app browser menu"],
-          "optional": []
-        },
-        {
-          "family": "translatedStart",
-          "patch": "Start on x86 devices",
-          "targets": ["code protection call 1", "code protection call 2"],
-          "optional": []
-        }
-      ]
-    },
-    {
-      "package": "com.instagram.android",
-      "versionName": "456.1.0.56.78",
-      "versionCode": "386215121",
-      "families": [
-        {
-          "family": "sanitizeSharingLinks",
-          "patch": "Sanitize sharing links",
-          "targets": ["permalink parser", "clipboard copies", "share sheets", "direct shares", "in-app browser menu"],
-          "optional": []
-        },
-        {
-          "family": "translatedStart",
-          "patch": "Start on x86 devices",
-          "targets": ["code protection call 1", "code protection call 2"],
-          "optional": []
-        }
-      ]
-    },
-    {
-      "package": "com.instagram.android",
-      "versionName": "456.1.0.56.78",
-      "versionCode": "386215123",
-      "families": [
-        {
-          "family": "sanitizeSharingLinks",
-          "patch": "Sanitize sharing links",
-          "targets": ["permalink parser", "clipboard copies", "share sheets", "direct shares", "in-app browser menu"],
-          "optional": []
-        },
-        {
-          "family": "translatedStart",
-          "patch": "Start on x86 devices",
-          "targets": ["code protection call 1", "code protection call 2"],
-          "optional": []
-        }
-      ]
-    },
-    {
-      "package": "com.instagram.android",
-      "versionName": "456.1.0.56.78",
-      "versionCode": "386215124",
+      "versionName": "457.0.0.55.73",
+      "versionCode": "386314341",
       "families": [
         {
           "family": "sanitizeSharingLinks",

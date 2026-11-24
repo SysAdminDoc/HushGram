@@ -21,6 +21,7 @@ import app.morphe.patches.instagram.misc.comment.discovering
 import app.morphe.patches.instagram.misc.comment.hashGetter
 import app.morphe.patches.instagram.misc.comment.matches
 import app.morphe.patches.instagram.misc.comment.one
+import app.morphe.patches.instagram.misc.comment.rawCommentParameter
 import app.morphe.patches.instagram.misc.comment.treeBacked
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesLoadingString
@@ -162,7 +163,7 @@ internal fun BytecodePatchContext.findCommentWords(): CommentWordsPlan = discove
             method.parameterTypes.isEmpty() && method.returnType == GIPHY && AccessFlags.ABSTRACT.isSet(method.accessFlags)
         }
     }.one("raw comment among $where's parameters")
-    val comment = types.indices.filter { types[it] == raw.type }.one("raw comment parameter of $where")
+    val comment = rawCommentParameter(builder, raw.type)
     val tree = classes.values.filter { raw.type in it.interfaces && treeBacked(it, classes) }.one("tree comment")
     val treeText = hashGetter(tree, COMMENT_TEXT_FIELD, STRING, classes)
     val text = raw.methods.filter { it.matches(treeText) && AccessFlags.ABSTRACT.isSet(it.accessFlags) }

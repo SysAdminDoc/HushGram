@@ -30,10 +30,11 @@ internal const val NOTE_CARD = "$EXTENSION_PACKAGE/misc/NoteBubble;->card(J)J"
 internal const val NOTE_CARD_TRACE = "com.instagram.direct.inbox.notes.tray.compose.bubble.NotesTrayBubbleCard ("
 
 /**
- * The key the card's Compose trace starts with on 456, which logs the key without its label
- * (`LX/0P9R;->A0A` on 386214574). The key moves with the card's source, so it holds for 456 only.
+ * The key the card's Compose trace starts with on 457, which logs the key without its label
+ * (`LX/04zO;->A01` on 386314341). The key moves with the card's source, so it holds for one version
+ * only: 456's was 0xb2ebae6f.
  */
-internal const val NOTE_CARD_TRACE_KEY = 0xb2ebae6f.toInt()
+internal const val NOTE_CARD_TRACE_KEY = 0x4191fbaa
 
 /** A note's own theme, which the card takes as an argument. */
 internal const val NOTE_CUSTOM_THEME = "Lcom/instagram/direct/inbox/notes/models/domain/notecustomtheme/NoteCustomTheme;"

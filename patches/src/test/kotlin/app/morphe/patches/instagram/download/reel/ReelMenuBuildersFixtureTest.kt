@@ -59,7 +59,7 @@ class ReelMenuBuildersFixtureTest {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
         val bundles = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } } +
             Fixtures.otherBuilds()
-        assertTrue("three builds of the declared version", bundles.size >= 3)
+        assertTrue("two builds of the declared version", bundles.size >= 2)
         val kept = LinkedHashMap<String, Int>()
         for (bundle in bundles) {
             val name = if (bundle.extension == "apks") bundle.name else bundle.parentFile.name

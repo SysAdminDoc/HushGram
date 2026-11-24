@@ -218,7 +218,7 @@ class StoryRetryOwnershipTest {
     private fun forInputs(check: (List<ClassDef>) -> Unit) {
         check(StorySeenHookTest().standIns())
         check(StorySeenHookTest().standIns(splitQueue = true))
-        for (bundle in Fixtures.files { it.name == "instagram-456.1.0.56.78-386215122.apks" }) {
+        for (bundle in Fixtures.files { it.name == "instagram-457.0.0.55.73-386314341.apks" }) {
             check(StorySeenHookTest().keptFixtureClasses(bundle))
         }
     }

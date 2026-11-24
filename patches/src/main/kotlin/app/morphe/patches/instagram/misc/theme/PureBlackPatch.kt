@@ -47,6 +47,15 @@ internal val BLACK_BACKGROUNDS = setOf(
 internal const val PRISM_BLACK_COLOR = "@color/igds_prism_black"
 
 /**
+ * The colors one decoded values/colors.xml gives Prism's black, #ff0c1014, as styles name them. 457
+ * folds igds_prism_black into camera_settings_background, a color of the same value, so its styles
+ * name that instead of [PRISM_BLACK_COLOR].
+ */
+internal fun prismBlackColors(colors: String): Set<String> =
+    Regex("""<color name="([^"]+)">#(?:ff)?0c1014</color>""", RegexOption.IGNORE_CASE).findAll(colors)
+        .mapTo(linkedSetOf()) { "@color/${it.groupValues[1]}" }
+
+/**
  * A stock color that's #ff000000 already. Setting igds_prism_black itself would have the patcher
  * re-encode the color table, and that breaks the color state lists Instagram shares between two
  * entries (on 449 three of them named files the patched APK didn't have).
@@ -89,7 +98,8 @@ internal val DARK_SHEETS = listOf(
 /**
  * The theme attribute the story viewer's root (reel_viewer_root) fills with, which shows in the
  * strip above a story and behind its reply bar, and the color a story's picture shows while it
- * loads. Prism sets it to igds_prism_gray_09, #ff25292e, in both themes (#279).
+ * loads. Prism sets it to igds_prism_gray_09, #ff25292e, in both themes (#279); 457 names that gray
+ * camera_settings_secondary_background, a color of the same value it folded it into.
  */
 internal const val STORY_BACKGROUND = "igds_color_stories_loading_background"
 
@@ -210,15 +220,16 @@ internal fun blackenLaunchScreen(styles: Document): Int {
 
 /**
  * Points each of [BLACK_BACKGROUNDS] that a style in one decoded styles.xml sets to
- * [PRISM_BLACK_COLOR] at [PURE_BLACK_COLOR] instead, and answers the styles it changed.
+ * [PRISM_BLACK_COLOR], or another of [blacks] ([prismBlackColors]), at [PURE_BLACK_COLOR] instead,
+ * and answers the styles it changed.
  */
-internal fun blackenStyles(styles: Document): List<String> {
+internal fun blackenStyles(styles: Document, blacks: Set<String> = setOf(PRISM_BLACK_COLOR)): List<String> {
     val list = styles.getElementsByTagName("style")
     val changed = mutableListOf<String>()
     for (style in (0 until list.length).map { list.item(it) as Element }) {
         val items = style.getElementsByTagName("item")
         val black = (0 until items.length).map { items.item(it) as Element }.filter { item ->
-            item.getAttribute("name").substringAfter(':') in BLACK_BACKGROUNDS && item.textContent.trim() == PRISM_BLACK_COLOR
+            item.getAttribute("name").substringAfter(':') in BLACK_BACKGROUNDS && item.textContent.trim() in blacks
         }
         black.forEach { it.textContent = PURE_BLACK_COLOR }
         if (black.isNotEmpty()) changed += style.getAttribute("name")
@@ -386,6 +397,7 @@ internal fun ResourcePatchContext.blackenThemes() {
     ) {
         throw PatchException("$PATCH: $PURE_BLACK_COLOR is no longer #%08x".format(PURE_BLACK))
     }
+    val blacks = setOf(PRISM_BLACK_COLOR) + prismBlackColors(colors.readText())
     val backgrounds = mutableListOf<String>()
     val sheets = mutableListOf<String>()
     val stories = mutableListOf<String>()
@@ -398,13 +410,13 @@ internal fun ResourcePatchContext.blackenThemes() {
         val file = File(directory, "styles.xml")
         if (!file.isFile) return@forEach
         val text = file.readText()
-        val palettes = PRISM_BLACK_COLOR in text
+        val palettes = blacks.any { it in text }
         val launch = isNightValues(directory.name) && SPLASH_BACKGROUND_COLOR in text
         val row = ROW_BACKGROUND in text
         if (!palettes && !launch && !row) return@forEach
         document("res/${directory.name}/styles.xml").use { styles ->
             if (palettes) {
-                backgrounds += blackenStyles(styles)
+                backgrounds += blackenStyles(styles, blacks)
                 sheets += blackenSheets(styles)
                 stories += blackenStories(styles)
                 menus += blackenMenus(styles)
@@ -418,7 +430,7 @@ internal fun ResourcePatchContext.blackenThemes() {
     if (rowStyles.isEmpty()) throw PatchException("$PATCH: no style sets $ROW_BACKGROUND for $ROW_ATTRIBUTE to follow")
     val missing = DARK_PALETTES - backgrounds.toSet()
     if (missing.isNotEmpty()) {
-        throw PatchException("$PATCH: ${missing.joinToString()} no longer set a background to $PRISM_BLACK_COLOR")
+        throw PatchException("$PATCH: ${missing.joinToString()} no longer set a background to ${blacks.joinToString(" or ")}")
     }
     val gray = DARK_SHEETS - sheets.toSet()
     if (gray.isNotEmpty()) throw PatchException("$PATCH: ${gray.joinToString()} no longer set $SHEET_BACKGROUND")

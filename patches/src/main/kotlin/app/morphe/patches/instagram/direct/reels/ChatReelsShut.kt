@@ -67,7 +67,7 @@ private fun MethodReference.takesOnly(vararg types: String) = parameterTypes.map
  * that ask the chat reels test [read], it's the one static method handed the chat and the message
  * that looks the message's wrapper, the type [collector] reads ([ReelCollector.message]'s owner), up
  * by a string and then reads a [MEDIA] off the wrapper's message, asks it for a string and turns that
- * into a [PRODUCT_TYPE]; and for no media, asks the message for a list, picks a share card from it
+ * into a [PRODUCT_TYPE] by a static call; and for no media, asks the message for a list, picks a share card from it
  * and parses that card's string field as a [PARSED_URI], next to the strings "reel" and "reels". Every
  * piece has to be public, since the extension's bridges read them. Fails when any of it isn't so.
  */
@@ -137,9 +137,8 @@ private fun before(from: Int) = (from - 1 downTo maxOf(0, from - 4))
  */
 private fun productRead(code: List<Instruction>, at: Int, message: FieldReference): Pair<FieldReference, MethodReference>? {
     val call = code[at].calledMethod() ?: return null
-    if (code[at].opcode != Opcode.INVOKE_STATIC || call.definingClass != PRODUCT_TYPE || !call.takesOnly(TEXT) ||
-        call.returnType != PRODUCT_TYPE
-    ) {
+    // ProductType's own static up to 456, a helper class's on 457 (01Xk).
+    if (code[at].opcode != Opcode.INVOKE_STATIC || !call.takesOnly(TEXT) || call.returnType != PRODUCT_TYPE) {
         return null
     }
     val (named, product) = before(at).firstNotNullOfOrNull { near ->

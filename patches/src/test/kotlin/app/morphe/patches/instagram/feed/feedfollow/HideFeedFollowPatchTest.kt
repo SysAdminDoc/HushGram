@@ -197,15 +197,12 @@ class HideFeedFollowPatchTest {
     }
 
     /**
-     * 456.1.0.56.78's five builds, found with SubscribeNames: each header has one candidate read, followed
+     * 457.0.0.55.73's two builds, found with SubscribeNames: each header has one candidate read, followed
      * by Subscribe's label and the click that casts to the header and calls the logger's A07.
      */
     private val subscribeBuilds = mapOf(
-        "386215069" to NativeSubscribe("LX/018e;", "A0p", "LX/00y9;", "LX/0C67;", "LX/0Bmw;", 0x7f1385a2),
-        "386215121" to NativeSubscribe("LX/01x1;", "A0p", "LX/01k5;", "LX/08sT;", "LX/0Dax;", 0x7f1385a4),
-        "386215122" to NativeSubscribe("LX/018e;", "A0p", "LX/00y9;", "LX/0C67;", "LX/0Bmw;", 0x7f1385a2),
-        "386215123" to NativeSubscribe("LX/01B6;", "A0p", "LX/011f;", "LX/0G8F;", "LX/0BxQ;", 0x7f1385a4),
-        "386215124" to NativeSubscribe("LX/018e;", "A0p", "LX/00y9;", "LX/0C67;", "LX/0Bmy;", 0x7f1385a2),
+        "386314297" to NativeSubscribe("LX/01r4;", "A0p", "LX/01Zc;", "LX/0muD;", "LX/0GeP;", 0x7f138702),
+        "386314341" to NativeSubscribe("LX/01r4;", "A0p", "LX/01Zc;", "LX/0muD;", "LX/0GeP;", 0x7f138702),
     )
 
     private val FEED_BUTTON = "$EXTENSION_PACKAGE/feed/FeedFollowButton;"

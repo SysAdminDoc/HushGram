@@ -186,12 +186,15 @@ internal fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $de
 internal fun BytecodePatchContext.findProfileUser(refuse: (String) -> Nothing): ProfileUser {
     val viewModelClass = classDefByOrNull(VIEW_MODEL) ?: refuse("$VIEW_MODEL isn't in this build")
     viewModelClass.instanceFields(USER).singleOrNull()?.let { return ProfileUser(it, null, null, null, null) }
+    // Up to 456 the setter takes the view model and the user and wraps the user itself; 457's takes the
+    // wrapped user first and the view model second (UserDetailViewModel.A02(0Bca, UserDetailViewModel)).
     val setters = viewModelClass.methods.filter {
-        AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == "V" &&
-            it.parameterTypes.map(CharSequence::toString) == listOf(VIEW_MODEL, USER) && it.implementation != null
+        val takes = it.parameterTypes.map(CharSequence::toString)
+        AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == "V" && it.implementation != null &&
+            (takes == listOf(VIEW_MODEL, USER) || takes.size == 2 && takes[1] == VIEW_MODEL && takes[0].startsWith("L") && takes[0] != VIEW_MODEL)
     }
     val setter = setters.singleOrNull()
-        ?: refuse("expected one static ($VIEW_MODEL, $USER) setter, found ${setters.size}")
+        ?: refuse("expected one static ($VIEW_MODEL, $USER) or (user holder, $VIEW_MODEL) setter, found ${setters.size}")
     val setterCode = setter.implementation!!.instructions.toList()
     val live = setterCode.indices.mapNotNull { at ->
         val read = setterCode[at]

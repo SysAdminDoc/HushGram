@@ -546,7 +546,7 @@ class ClearModeHookTest {
             // 456 drops all nine markers, and on every build the handler's turn-on is inlined into its
             // callers (386214574's LX/09HX;->A03, LX/0PHO;->A0E and LX/09Ip;->A0A read the handler's
             // action and run it themselves), so everything is found by the strings it keeps.
-            assertTrue("$label: only 456 drops clear mode's markers", label.contains("-456.1.0.56.78-"))
+            assertTrue("$label: only 456 drops clear mode's markers", label.contains("-457.0.0.55.73-"))
             anchoredBuild(bundle, label, declared)
             return
         }

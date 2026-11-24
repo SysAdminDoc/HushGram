@@ -338,8 +338,8 @@ class TurnOffHdrBoostsHookTest {
         assertEquals(
             "$label: methods making each call",
             mapOf(
-                surface to 1, transaction to 1, windowHeadroom to 2, colorMode to 6, extendedRange to 1, screenRatio to 6,
-                dataSpace to 1, isHdr to 4, hdrTypes to 10, modeHdrTypes to 5, ratioAvailable to 7,
+                surface to 1, transaction to 1, windowHeadroom to 2, colorMode to 6, extendedRange to 3, screenRatio to 8,
+                dataSpace to 3, isHdr to 4, hdrTypes to 10, modeHdrTypes to 5, ratioAvailable to 8,
             ),
             byCall,
         )

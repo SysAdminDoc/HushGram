@@ -46,15 +46,20 @@ internal val RENDER_STRINGS = mapOf(
     "ProductTagCTAComponent_render" to "product_tag_cta_component",
     "RelatedAdsPivotCTAComponent_render" to "Shop with Muse",
     "ShopLensCtaComponent_render" to "ShopLensCta",
+    // 457 dropped the bar's render marker; its render still names the card it opens.
+    "ShopLensBarCtaComponent_render" to "ShopNowCardCta",
     "ShopLensPausePillComponent_render" to "ShopLensPausePill",
     "ClipsFriendlyViewerComponent_render" to "clips_friendly_viewer_component",
+    // 457 dropped the comment preview's render marker; its render still names its text component.
+    "ClipsInlineCommentSocialContextComponent_render" to "clips_inline_comment_text_component",
 )
 
 /** Parts whose render is the one loading a resource id or a flag of its own, by marker. */
 internal val RENDER_LITERALS = mapOf(
-    "ClipsFollowButtonComponent_render" to 0x8112950000677bL,
-    "ClipsMetaAiPillComponent_render" to 0x7f0801d5L,
-    "PollCTAComponent_render" to 0x7f1102e7L,
+    // 457 moved it from 456's 0x8112950000677b.
+    "ClipsFollowButtonComponent_render" to 0x81126f00006726L,
+    "ClipsMetaAiPillComponent_render" to 0x7f0801deL,
+    "PollCTAComponent_render" to 0x7f1102f5L,
 )
 
 private const val SUBSCRIPTION = "SubscriptionCtaButtonComponent_render"
@@ -68,12 +73,12 @@ private const val BUBBLES_CHECK = "ClipsInfoOverlayUseCase_shouldShowFloatingBub
 internal const val AUTHOR_INFO = "clips_author_info_component"
 
 /** The affiliate pill's icon, which the product tag's render loads too; only the affiliate's reads the affiliate info. */
-internal const val AFFILIATE_ICON = 0x7f0829e8L
+internal const val AFFILIATE_ICON = 0x7f08131fL
 internal const val AFFILIATE_INFO = "Lcom/instagram/api/schemas/ProductAffiliateInformationDict;"
 
 /** The Ray-Ban Meta glasses icon of the shop pills, and the semi-transparent pills' background. */
-internal const val GLASSES_ICON = 0x7f082479L
-internal const val SEMI_BACKGROUND = 0x7f08053fL
+internal const val GLASSES_ICON = 0x7f080e0cL
+internal const val SEMI_BACKGROUND = 0x7f080559L
 
 /** The dwell CTA's text, which two renders load: the shopping CTA's keeps four fields, the other many more. */
 internal const val DWELL_CTA = "trans_key_dwell_cta"
@@ -83,7 +88,7 @@ private const val SHOPPING_CTA_FIELDS = 4
 internal const val INFO_OVERLAY = "clips_info_overlay_component"
 
 /** The clips UFI's render loads this id, right before it builds the share count. */
-internal const val UFI_ID = 0x7f0b3b7aL
+internal const val UFI_ID = 0x7f0b3b57L
 internal const val LIKE_BUTTON = "like_button"
 internal const val COMMENT_BUTTON_NAME = "comment_button"
 internal const val SAVE_BUTTON = "save_button"

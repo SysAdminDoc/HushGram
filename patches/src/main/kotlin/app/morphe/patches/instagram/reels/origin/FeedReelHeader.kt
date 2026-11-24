@@ -16,7 +16,6 @@ import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
-import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 
@@ -27,9 +26,6 @@ internal const val FEED_HEADER = "media_username"
 internal const val POST_AUTHOR = "Lcom/instagram/user/model/User;"
 internal const val AUTHOR_LOOKUPS = "Lcom/instagram/feed/media/MediaExtKt;"
 
-/** How many instructions past its read the post's media may reach Instagram's look-up of its author. */
-internal const val AUTHOR_LOOKUP_REACH = 8
-
 /** A header tap's read of its post's media: the method, the read's index, and the register it reads into. */
 internal class FeedHeaderTap(val type: String, val name: String, val parameters: List<String>, val read: Int, val register: Int)
 
@@ -37,27 +33,25 @@ private fun refuseTap(why: String): Nothing = throw PatchException("$REEL_ORIGIN
 
 /**
  * Every feed post's header tap (#795): the methods loading [FEED_HEADER] that read a post's Media out
- * of the tap's event, whose class also carries the post's User, the method reading that too, and
- * hand the Media to MediaExtKt's look-up of the post's author a few instructions on. 456 has two, the
- * main feed's (07p6) and the other feeds' (08NA). Each reads it once, and nothing jumps to just past
- * the read, where the hook goes. The extension has openingFromFeed.
+ * of the tap's event and hand it to MediaExtKt's look-up of the post's author ([headerReads]). 456.1
+ * has two (0BSh, 0H6x) and 457 has two (05YX, 09Jh), whose event no longer carries the post's User.
+ * A merged tap building its media from a tree instead (456.1's 0BRD.A08, 457's 08Zy.A0O) isn't one.
+ * Each reads it once, and nothing jumps to just past the read, where the hook goes. The extension
+ * has openingFromFeed.
  */
 internal fun BytecodePatchContext.findFeedHeaderTaps(): List<FeedHeaderTap> {
     val methods = classesLoadingString(FEED_HEADER).flatMap { it.methods }.filter { loadsString(it, FEED_HEADER) }
     val taps = methods.mapNotNull { method ->
         val code = method.implementation?.instructions?.toList() ?: return@mapNotNull null
-        val reads = code.indices.filter { at -> isHeaderRead(code, at) }
+        val reads = headerReads(code)
         if (reads.isEmpty()) return@mapNotNull null
         val where = "${method.definingClass}->${method.name}"
-        val read = reads.singleOrNull() ?: refuseTap("$where reads a post's media for its header ${reads.size} times, not once")
+        val (read, register) = reads.singleOrNull() ?: refuseTap("$where reads a post's media for its header ${reads.size} times, not once")
         if (read + 1 !in code.indices) refuseTap("$where ends on its read of the post's media")
         if (read + 1 in method.jumpTargets()) refuseTap("something in $where jumps to just past its read of the post's media")
-        FeedHeaderTap(
-            method.definingClass, method.name, method.parameterTypes.map(Any::toString), read,
-            (code[read] as TwoRegisterInstruction).registerA,
-        )
+        FeedHeaderTap(method.definingClass, method.name, method.parameterTypes.map(Any::toString), read, register)
     }
-    if (taps.isEmpty()) refuseTap("no method loading $FEED_HEADER reads a post's $MEDIA beside its $POST_AUTHOR")
+    if (taps.isEmpty()) refuseTap("no method loading $FEED_HEADER reads a post's $MEDIA it looks its $POST_AUTHOR up by")
     requireFeedOpening()
     return taps
 }
@@ -88,10 +82,9 @@ internal fun BytecodePatchContext.hookFeedHeaderTap(tap: FeedHeaderTap) {
         it.name == tap.name && it.parameterTypes.map(Any::toString) == tap.parameters
     }
     val code = method.implementation?.instructions?.toList() ?: refuseTap("${tap.type}->${tap.name} has no body")
-    val read = code.indices.singleOrNull { at -> isHeaderRead(code, at) }
+    val (read, register) = headerReads(code).singleOrNull()
         ?: refuseTap("${tap.type}->${tap.name} no longer reads the post's media once")
     if (read + 1 in method.jumpTargets()) refuseTap("something in ${tap.type}->${tap.name} jumps to just past its read of the post's media")
-    val register = (code[read] as TwoRegisterInstruction).registerA
     method.addInstructions(read + 1, "invoke-static/range { v$register .. v$register }, $FEED_OPENING")
 }
 
@@ -146,24 +139,40 @@ internal fun BytecodePatchContext.hookFeedProfileOpen(open: FeedProfileOpen) {
 }
 
 /**
- * Whether [code] at [at] reads a post's Media out of a header tap's event: an iget-object of a Media
- * field whose class has a User field the method reads too, with the Media handed to MediaExtKt's
- * look-up of a User within [AUTHOR_LOOKUP_REACH] instructions.
+ * Where a header tap reads the post's Media it looks the author up by, as the read's index and its
+ * register: each MediaExtKt look-up answering a [POST_AUTHOR] from a [MEDIA] hands on a Media
+ * register, which is traced back through MediaExtKt's own Media to Media steps to an iget-object of a
+ * Media field. A Media some other call answers isn't a header read. The code is read in order, which
+ * these straight runs of Instagram's are.
  */
-private fun isHeaderRead(code: List<Instruction>, at: Int): Boolean {
-    val read = code[at]
-    if (read.opcode != Opcode.IGET_OBJECT) return false
-    val field = (read as ReferenceInstruction).reference as FieldReference
-    if (field.type != MEDIA) return false
-    val register = (read as TwoRegisterInstruction).registerA
-    val readsUser = code.any { instruction ->
-        instruction.opcode == Opcode.IGET_OBJECT &&
-            ((instruction as ReferenceInstruction).reference as FieldReference).let { it.definingClass == field.definingClass && it.type == POST_AUTHOR }
+private fun headerReads(code: List<Instruction>): List<Pair<Int, Int>> = code.indices.mapNotNull { at ->
+    val call = code[at].lookup()?.takeIf { it.returnType == POST_AUTHOR } ?: return@mapNotNull null
+    mediaArgument(code[at], call)?.let { mediaSource(code, at, it) }
+}.distinct()
+
+/** Where the Media in [register], handed on at [at], comes from, as [headerReads] traces it, or null. */
+private tailrec fun mediaSource(code: List<Instruction>, at: Int, register: Int): Pair<Int, Int>? {
+    val writer = (at - 1 downTo 0).firstOrNull { code[it].opcode.setsRegister() && code[it].namedRegisters().firstOrNull() == register }
+        ?: return null
+    val written = code[writer]
+    if (written.opcode == Opcode.IGET_OBJECT) {
+        return if (((written as ReferenceInstruction).reference as FieldReference).type == MEDIA) writer to register else null
     }
-    if (!readsUser) return false
-    return (at + 1..minOf(at + AUTHOR_LOOKUP_REACH, code.lastIndex)).any { next ->
-        val call = (code[next] as? ReferenceInstruction)?.reference as? MethodReference
-        (code[next].opcode == Opcode.INVOKE_STATIC || code[next].opcode == Opcode.INVOKE_STATIC_RANGE) &&
-            call != null && call.definingClass == AUTHOR_LOOKUPS && call.returnType == POST_AUTHOR && register in code[next].namedRegisters()
-    }
+    if (written.opcode != Opcode.MOVE_RESULT_OBJECT || writer == 0) return null
+    val step = code[writer - 1].lookup()?.takeIf { it.returnType == MEDIA } ?: return null
+    val handed = mediaArgument(code[writer - 1], step) ?: return null
+    return mediaSource(code, writer - 1, handed)
+}
+
+/** A static call to one of MediaExtKt's look-ups, or null. */
+private fun Instruction.lookup(): MethodReference? {
+    if (opcode != Opcode.INVOKE_STATIC && opcode != Opcode.INVOKE_STATIC_RANGE) return null
+    return ((this as ReferenceInstruction).reference as? MethodReference)?.takeIf { it.definingClass == AUTHOR_LOOKUPS }
+}
+
+/** The register [call] hands its one [MEDIA] in, or null when it takes none or several. */
+private fun mediaArgument(instruction: Instruction, call: MethodReference): Int? {
+    val types = call.parameterTypes.map(Any::toString)
+    val at = types.indexOf(MEDIA).takeIf { it >= 0 && types.lastIndexOf(MEDIA) == it } ?: return null
+    return instruction.namedRegisters().getOrNull(types.take(at).sumOf { if (it == "J" || it == "D") 2 else 1 })
 }

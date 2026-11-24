@@ -25,11 +25,11 @@ private const val PATCH = "Clean up Reels"
 
 /**
  * The view id Instagram gives the Create button on the screen's own top bar over a reel
- * (`clips_viewer_camera_button`, the same in all four 456 builds; 0x7f0b0c7c in 455). Only the
- * method building the button loads it. 455 also logged a purge marker where the bar updated the
+ * (`clips_viewer_camera_button`, the same in both 457 builds; 0x7f0b0c77 in 456, 0x7f0b0c7c in 455). Only
+ * the method building the button loads it. 455 also logged a purge marker where the bar updated the
  * button, which 456 dropped.
  */
-internal const val CAMERA_BUTTON_ID = 0x7f0b0c77
+internal const val CAMERA_BUTTON_ID = 0x7f0b0c7c
 
 internal const val CAMERA_BUTTON_HOOK = "$EXTENSION_PACKAGE/reels/ReelsTopBar;->keepsCameraButton(Ljava/lang/Object;)Z"
 

@@ -262,7 +262,7 @@ class DownloadVoiceMessagesHookTest {
                 val saver = context.mutableClassDefBy(found.saver.method.definingClass).methods.single {
                     it.name == found.saver.method.name && it.parameterTypes == found.saver.method.parameterTypes
                 }
-                if (bundle.name == "instagram-456.1.0.56.78-386215122.apks") {
+                if (bundle.name == "instagram-457.0.0.55.73-386314341.apks") {
                     // Where it lands on 456's declared build, read off the dex by hand.
                     val at = builder.instructions().indexOfFirst { it.referenceText() == OFFER_VOICE }
                     assertEquals(
@@ -349,12 +349,12 @@ class DownloadVoiceMessagesHookTest {
          * then 00xN.A08 and its BYj. The view mode stays in 06Gj.A0D.
          */
         val DECLARED_SITES = listOf(
-            "LX/09YM;->invoke", "LX/0Lic;->AZk(Lcom/instagram/common/session/UserSession;LX/05rW;)Z",
-            "LX/0VlN;->A03", "LX/0FsM;->A00:LX/05rW;", "LX/0VlN;->A00:Landroid/app/Activity;",
-            "LX/05rW;->A0L:LX/06Fl;", "LX/06Fl;->A02:Lcom/instagram/feed/media/Media;",
-            "Lcom/instagram/feed/media/Media;->AUD(Ljava/lang/String;I)LX/0C73;", "LX/00uX;->A01(LX/0C73;)LX/00xM;",
-            "LX/00xM;->A08:LX/05Gq;", "LX/05Gq;->BYn()Ljava/lang/String;",
-            "LX/05rW;->A0L:LX/06Fl;", "LX/06Fl;->A0D:Ljava/lang/String;",
+            "LX/0PH4;->invoke", "LX/0mwr;->AcV(Lcom/instagram/common/session/UserSession;LX/02wO;)Z",
+            "LX/0UOB;->A03", "LX/0aod;->A00:LX/02wO;", "LX/0UOB;->A00:Landroid/app/Activity;",
+            "LX/02wO;->A0L:LX/07Qx;", "LX/07Qx;->A02:Lcom/instagram/feed/media/Media;",
+            "Lcom/instagram/feed/media/Media;->ATW(Ljava/lang/String;I)LX/0BX4;", "LX/04hC;->A01(LX/0BX4;)LX/04jI;",
+            "LX/04jI;->A08:LX/0jyN;", "LX/0jyN;->BIG()Ljava/lang/String;",
+            "LX/02wO;->A0L:LX/07Qx;", "LX/07Qx;->A0D:Ljava/lang/String;",
         )
 
         const val MENU = "Lfixture/ThreadFragment;"

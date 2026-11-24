@@ -38,7 +38,7 @@ internal class FlagRead(
 
 /**
  * Every place Instagram loads one of [flags] and reads it as a boolean: on 449 a server flag is
- * `const-wide <id>`, at most a cast, a call taking the id last and answering a boolean
+ * `const-wide <id>`, at most a cast (or from 457 a move of the id), a call taking the id last and answering a boolean
  * (`MobileConfigUnsafeContext.BXd(J)Z` or a static wrapper), and its move-result. Fails, in
  * [patch]'s name, when a flag is never read or is loaded for any other use, since that's an update
  * the patch hasn't seen. The extension's own code is left out.
@@ -55,10 +55,15 @@ internal fun BytecodePatchContext.findFlagReads(patch: String, flags: List<Long>
                 val flag = (instruction as WideLiteralInstruction).wideLiteral
                 if (flag !in flags) return@forEachIndexed
                 val where = "${classDef.type}->${method.name} loads ${flag.toString(16)}"
-                val id = (instruction as OneRegisterInstruction).registerA
+                var id = (instruction as OneRegisterInstruction).registerA
                 val callAt = (index + 1..minOf(index + READ_WITHIN, code.lastIndex))
                     .firstOrNull { code[it].methodReference() != null }
                     ?: refuse(patch, "$where with no call after it")
+                // 457 can move the id into the call's registers first (DirectSearchInboxFragment.onCreateView on 386314341).
+                for (k in index + 1 until callAt) {
+                    val move = code[k] as? TwoRegisterInstruction ?: continue
+                    if (code[k].opcode in MOVE_WIDES && move.registerB == id) id = move.registerA
+                }
                 val call = code[callAt].methodReference()!!
                 val passed = code[callAt].arguments()
                 if (passed.takeLast(2) != listOf(id, id + 1) || call.parameterTypes.lastOrNull()?.toString() != "J") {
@@ -73,6 +78,29 @@ internal fun BytecodePatchContext.findFlagReads(patch: String, flags: List<Long>
                     flag, classDef.type, method.name, method.parameterTypes.map(CharSequence::toString), method.returnType,
                     callAt + 1, (result as OneRegisterInstruction).registerA,
                 )
+                // 457 keeps a load in its register and reads it again further on, moving it into the
+                // call's registers each time (DirectSearchInboxFragment.onCreateView on 386314341).
+                // Only a register nothing else writes still holds the flag there.
+                val held = (instruction as OneRegisterInstruction).registerA
+                if (code.indices.any { it != index && code[it].writesPair(held) }) return@forEachIndexed
+                for (k in callAt + 1 until code.size) {
+                    val move = code[k] as? TwoRegisterInstruction ?: continue
+                    if (code[k].opcode !in MOVE_WIDES || move.registerB != held) continue
+                    val again = "$where and moves it at $k"
+                    val readAt = code.getOrNull(k + 1)?.methodReference() ?: refuse(patch, "$again with no call after it")
+                    val to = move.registerA
+                    if (code[k + 1].arguments().takeLast(2) != listOf(to, to + 1) || readAt.parameterTypes.lastOrNull()?.toString() != "J" ||
+                        readAt.returnType != "Z"
+                    ) {
+                        refuse(patch, "$again to ${readAt.definingClass}->${readAt.name}, which doesn't read it as a boolean")
+                    }
+                    val answer = code.getOrNull(k + 2)
+                    if (answer?.opcode != Opcode.MOVE_RESULT) refuse(patch, "$again and drops the answer")
+                    reads += FlagRead(
+                        flag, classDef.type, method.name, method.parameterTypes.map(CharSequence::toString), method.returnType,
+                        k + 2, (answer as OneRegisterInstruction).registerA,
+                    )
+                }
             }
         }
     }
@@ -303,6 +331,16 @@ private fun Instruction.toSmali(): String {
 }
 
 private fun Instruction.methodReference(): MethodReference? = (this as? ReferenceInstruction)?.reference as? MethodReference
+
+/** Whether this writes [register] or the register after it, the pair a wide value takes. */
+private fun Instruction.writesPair(register: Int): Boolean {
+    val written = (this as? OneRegisterInstruction)?.registerA ?: return false
+    return when {
+        opcode.setsWideRegister() -> written in register - 1..register + 1
+        opcode.setsRegister() -> written == register || written == register + 1
+        else -> false
+    }
+}
 
 /** The registers an invoke passes, in order. */
 private fun Instruction.arguments(): List<Int> = when (this) {

@@ -413,6 +413,28 @@ class UploadStoriesAtFullQualityHookTest {
         }
     }
 
+    /**
+     * 457 reads the same settings a second time only to keep them (`JarvisVideoQualityProvider.H7v` on
+     * 386314341). That reader calls no transcoder, so it's passed over.
+     */
+    @Test
+    fun aReaderThatOnlyKeepsTheSettingsIsPassedOver() {
+        val keeper = "Lfixture/QualityProvider;"
+        val keeps = method(
+            keeper, "H7v", listOf("Lorg/json/JSONObject;"), "V", 2, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value,
+            """
+                const-string v0, "$TRANSCODE_DIMENSION"
+                move-object/from16 v1, p1
+                invoke-virtual {v1, v0}, Lorg/json/JSONObject;->optInt(Ljava/lang/String;)I
+                move-result v0
+                return-void
+            """,
+        )
+        val context = PatchContexts.of(uploadSettingsClasses() + classDef(keeper, listOf(keeps)))
+        val settings = context.findUploadSettings()
+        assertEquals("the method", reply to "A01", settings.method.definingClass to settings.method.name)
+    }
+
     /** Upload settings the patch can't read fail at patch time, saying what it found, before anything is written. */
     @Test
     fun uploadSettingsThePatchCantReadFail() {

@@ -6,18 +6,16 @@
  */
 package app.morphe.patches.instagram
 
+import app.morphe.patches.instagram.misc.extension.poolAsks
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.Opcodes
 import com.android.tools.smali.dexlib2.dexbacked.DexBackedDexFile
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
-import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
-import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.SwitchPayload
-import com.android.tools.smali.dexlib2.iface.instruction.formats.Instruction35c
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
@@ -218,16 +216,12 @@ internal object FixtureDex {
         return found.values.toList()
     }
 
-    /** Whether [method] calls one of [pools] (by "type->name") with a number it answers, loaded right before the call. */
+    /** Whether [method] calls one of [pools] (by "type->name") with a number it answers, handed to the call as the patches read it ([poolAsks]). */
     private fun asksPool(method: Method, pools: Map<String, Set<Int>>): Boolean {
         val code = method.implementation?.instructions?.toList() ?: return false
-        return code.indices.any { at ->
-            val call = code[at]
-            val pool = (call as? ReferenceInstruction)?.reference as? MethodReference ?: return@any false
-            val numbers = pools["${pool.definingClass}->${pool.name}"] ?: return@any false
-            val number = code.getOrNull(at - 1) as? NarrowLiteralInstruction ?: return@any false
-            call.opcode == Opcode.INVOKE_STATIC && pool.parameterTypes.map(Any::toString) == listOf("I") &&
-                (number as OneRegisterInstruction).registerA == (call as Instruction35c).registerC && number.narrowLiteral in numbers
+        return poolAsks(code).any { (at, number) ->
+            val pool = (code[at] as ReferenceInstruction).reference as MethodReference
+            pools["${pool.definingClass}->${pool.name}"]?.contains(number) == true
         }
     }
 
@@ -258,17 +252,14 @@ internal object FixtureDex {
 
     /**
      * Whether [method] loads [string], itself or by asking one of [classes]' static `(int)String` pools for it
-     * with a number loaded right before the call.
+     * with a number handed to the call as the patches read it ([poolAsks]).
      */
     fun loads(method: Method, string: String, classes: Map<String, ClassDef>): Boolean {
         if (holdsString(method, string)) return true
         val code = method.implementation?.instructions?.toList() ?: return false
-        return code.indices.any { at ->
-            val pool = (code[at] as? ReferenceInstruction)?.reference as? MethodReference ?: return@any false
-            val number = code.getOrNull(at - 1) as? NarrowLiteralInstruction ?: return@any false
-            code[at].opcode == Opcode.INVOKE_STATIC && pool.parameterTypes.map(Any::toString) == listOf("I") &&
-                (number as OneRegisterInstruction).registerA == (code[at] as Instruction35c).registerC &&
-                classes[pool.definingClass]?.methods?.any { it.name == pool.name && number.narrowLiteral in poolNumbers(it, string) } == true
+        return poolAsks(code).any { (at, number) ->
+            val pool = (code[at] as ReferenceInstruction).reference as MethodReference
+            classes[pool.definingClass]?.methods?.any { it.name == pool.name && number in poolNumbers(it, string) } == true
         }
     }
 

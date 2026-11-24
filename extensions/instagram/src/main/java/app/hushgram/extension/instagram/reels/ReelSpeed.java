@@ -27,7 +27,7 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * <p>The patch tells this class every speed set through that setter ({@link #speedSet}), each lock
  * ({@link #lockedUp}), each end of a lock and why ({@link #lockUpEnded}), and each hold let go of
  * without a lock ({@link #holdEnded}). A lock keeps the speed the reel was set to last. The
- * controller's maybeResumePlayer hands over the reel ({@link #item}) and then its player
+ * controller's maybeResumePlayer hands over the reel first thing ({@link #item}) and its player
  * ({@link #resuming}) just before it plays it, and a reel that isn't an ad gets the kept speed then.
  * Instagram's own reset of the reel's speed, after a lock or a hold and on every scroll to the next
  * reel, is handed the kept speed in place of normal ({@link #resetSpeed}). That reset sets the reel
@@ -93,7 +93,7 @@ public final class ReelSpeed {
     /** The speed kept for the next reels, or {@link #NORMAL} when none is. */
     private static float kept = NORMAL;
 
-    /** The reel maybeResumePlayer is about to play, handed over just before its player. */
+    /** The reel maybeResumePlayer is about to play, handed over when it starts. */
     private static final ThreadLocal<Object> RESUMING = new ThreadLocal<>();
 
     /** The player maybeResumePlayer played last, weakly: the reel on screen, for the speed icon (#480). */
@@ -233,7 +233,10 @@ public final class ReelSpeed {
         }
     }
 
-    /** The hook, in maybeResumePlayer just before {@link #resuming}: the reel it's about to play. */
+    /**
+     * The hook, first thing in maybeResumePlayer: the reel it's about to play. It's read there because
+     * Instagram 457 reuses the reel's register before the play call that {@link #resuming} sits at.
+     */
     public static void item(@Nullable Object item) {
         try {
             HookStatus.invoked(FAMILY);

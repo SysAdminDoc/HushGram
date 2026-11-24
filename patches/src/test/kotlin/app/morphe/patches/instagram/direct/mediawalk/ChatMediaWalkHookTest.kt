@@ -13,6 +13,7 @@ import app.morphe.patches.instagram.NeutralNativePath
 import app.morphe.patches.instagram.direct.reels.MEDIA
 import app.morphe.patches.instagram.direct.reels.MESSAGE_ID
 import app.morphe.patches.instagram.direct.reels.THREAD_KEY
+import app.morphe.patches.instagram.download.mediaIdGetter
 import app.morphe.patches.instagram.feed.carousel.REBOUND_VIEW_PAGER
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
 import app.morphe.patches.shared.compat.AppCompatibilities
@@ -190,7 +191,7 @@ class ChatMediaWalkHookTest {
         assertTrue("$label: messages reads the store", calls("messages").last().endsWith("($THREAD_KEY" + "Z)Ljava/util/List;"))
         assertEquals("$label: the viewer's session", 1, calls("session").count { it.endsWith(":Lcom/instagram/common/session/UserSession;") })
         assertTrue("$label: factory takes the viewer's activity", calls("factory").any { it.endsWith(":Landroidx/fragment/app/FragmentActivity;") })
-        assertTrue("$label: itemId reads the page's media id", calls("itemId").last() == "$MEDIA->getId()Ljava/lang/String;")
+        assertTrue("$label: itemId reads the page's media id", calls("itemId").last() == "${context.mediaIdGetter()}")
         assertTrue("$label: scroll names a direction", calls("scroll").any { it.contains("->valueOf(Ljava/lang/String;)") })
         assertTrue("$label: scroll sets it", calls("scroll").last().startsWith("$REBOUND_VIEW_PAGER->setScrollDirection("))
         assertEquals("$label: forward turns the pager's reverse layout off", "$REBOUND_VIEW_PAGER->setReverseLayout(Z)V", calls("forward").last())

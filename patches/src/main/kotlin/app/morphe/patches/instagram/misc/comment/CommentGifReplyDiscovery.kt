@@ -36,15 +36,16 @@ internal const val GIF_REPLY_SELECTING = "$COMMENT_GIF_REPLY->selecting($OBJECT$
 /** Compose's source label on the quick reply bar, whose GIF button carries Instagram's own GIF label and icon. */
 internal const val REPLY_BAR ="com.instagram.quicksnap.viewer.compose.QuickSnapReplyBar ("
 /**
- * The key the quick reply bar's Compose trace starts with. 456 logs the key without [REPLY_BAR]
- * (`LX/0rcv;->A00` on 386214574), and the key stays put as long as the bar's source does.
+ * The keys the quick reply bar's Compose trace starts with, logged without [REPLY_BAR]. A key stays put
+ * only while the bar's signature does: 456 logs 0x90a9935e (`LX/0rcv;->A00` on 386214574), and 457's
+ * bar, which takes three more parameters, logs 0xdaec6b12 (`LX/0qjw;->A00` on 386314341).
  */
-internal const val REPLY_BAR_TRACE_KEY = 0x90a9935e.toInt()
+internal val REPLY_BAR_TRACE_KEYS = listOf(0x90a9935e.toInt(), 0xdaec6b12.toInt())
 private const val ACTIVITY = "Landroid/app/Activity;"
 
-/** Whether [method] starts the quick reply bar's Compose trace with [REPLY_BAR_TRACE_KEY], as 456's bar does. */
+/** Whether [method] starts the quick reply bar's Compose trace with one of [REPLY_BAR_TRACE_KEYS], as 456's and 457's bars do. */
 internal fun startsReplyBarTrace(method: Method): Boolean = method.implementation?.instructions?.any {
-    it.opcode == Opcode.CONST && (it as NarrowLiteralInstruction).narrowLiteral == REPLY_BAR_TRACE_KEY
+    it.opcode == Opcode.CONST && (it as NarrowLiteralInstruction).narrowLiteral in REPLY_BAR_TRACE_KEYS
 } == true
 
 /**
@@ -52,13 +53,14 @@ internal fun startsReplyBarTrace(method: Method): Boolean = method.implementatio
  * selection hands the extension the screen, the comment it resolved and the two IDs it resolved it
  * from ([registers], copied into [spares] at [hookAt]). [reply] is the screen's own Reply on those
  * IDs, [target] reads the reply target Reply sets through the screen's [composer], and [send] is the
- * screen's GIF send, handed the comment's GIF after [toHelper] and [toInfo] convert it. All of it
- * holds plain references, never the app's classes or methods.
+ * screen's GIF send, handed the comment's GIF after [toHelper] and [toInfo] convert it, or as it is
+ * when both are null (457's send takes the GIF's interface). All of it holds plain references, never
+ * the app's classes or methods.
  */
 internal data class GifReplyPlan(
     val select: MethodReference, val hookAt: Int, val registers: List<Int>, val spares: List<Int>,
     val reply: MethodReference, val composer: FieldReference, val target: MethodReference,
-    val toHelper: MethodReference, val toInfo: MethodReference, val helperInterface: Boolean, val send: MethodReference,
+    val toHelper: MethodReference?, val toInfo: MethodReference?, val helperInterface: Boolean, val send: MethodReference,
     val icon: Int, val label: Int,
 )
 
@@ -142,13 +144,17 @@ private fun BytecodePatchContext.findGifReply(surface: CommentSurface, classes: 
     val conversions = giphy.methods.filter { it.parameterTypes.isEmpty() && AccessFlags.ABSTRACT.isSet(it.accessFlags) }
         .flatMap { toHelper -> (classes[toHelper.returnType]?.methods ?: emptyList())
             .filter { it.publicInstance() && it.parameterTypes.isEmpty() }.map { toHelper to it } }
+    // 457's send takes the GIF's interface itself (CommentListViewModel;->FjJ on 386314341), with no conversion.
     val (send, conversion) = screen.methods.filter { method -> method.publicInstance() && method.returnType == "V" &&
         method.parameters().size == 2 && method.parameters()[0] == ACTIVITY
-    }.flatMap { send -> conversions.filter { it.second.returnType == send.parameters()[1] }.map { send to it } }
-        .one("comment screen's GIF send")
-    val (toHelper, toInfo) = conversion
-    val helper = clazz(toHelper.returnType)
-    requirePublic(helper)
+    }.flatMap<Method, Pair<Method, Pair<Method, Method>?>> { send ->
+        if (send.parameters()[1] == GIPHY) listOf(send to null)
+        else conversions.filter { it.second.returnType == send.parameters()[1] }.map { send to it }
+    }.one("comment screen's GIF send")
+    val toHelper = conversion?.first
+    val toInfo = conversion?.second
+    val helper = toHelper?.let { clazz(it.returnType) }
+    helper?.let(::requirePublic)
     requirePublic(clazz(send.parameters()[1]))
 
     // The send answers the composer's target, and Reply makes a new one each time it takes a comment,
@@ -166,8 +172,8 @@ private fun BytecodePatchContext.findGifReply(surface: CommentSurface, classes: 
     validateActionRow(GIF_REPLY_ROW, GIF_REPLY_NATIVE)
     return GifReplyPlan(ImmutableMethodReference.of(select), hookAt, listOf(self, resolved, self + 1, self + 2), spares,
         ImmutableMethodReference.of(reply), ImmutableFieldReference.of(composer), ImmutableMethodReference.of(target),
-        ImmutableMethodReference.of(toHelper), ImmutableMethodReference.of(toInfo),
-        AccessFlags.INTERFACE.isSet(helper.accessFlags), ImmutableMethodReference.of(send), icon, label)
+        toHelper?.let(ImmutableMethodReference::of), toInfo?.let(ImmutableMethodReference::of),
+        helper?.let { AccessFlags.INTERFACE.isSet(it.accessFlags) } == true, ImmutableMethodReference.of(send), icon, label)
 }
 
 /** Only called after [gifReplyOrNull] found every step and checked every bridge. */
@@ -191,15 +197,19 @@ internal fun BytecodePatchContext.applyGifReply(surface: CommentSurface, plan: G
         :none
         return-object p0
     """)
-    replace(bridges.getValue("info"), 2, """
-        instance-of v0, p0, $GIPHY
-        if-eqz v0, :none
-        check-cast p0, $GIPHY
+    // 457's send takes the comment's GIF as it's read, so there's nothing to convert.
+    val convert = if (plan.toHelper == null || plan.toInfo == null) "" else """
         invoke-interface { p0 }, ${plan.toHelper}
         move-result-object p0
         if-eqz p0, :none
         ${if (plan.helperInterface) "invoke-interface" else "invoke-virtual"} { p0 }, ${plan.toInfo}
         move-result-object p0
+    """
+    replace(bridges.getValue("info"), 2, """
+        instance-of v0, p0, $GIPHY
+        if-eqz v0, :none
+        check-cast p0, $GIPHY
+        $convert
         return-object p0
         :none
         const/4 v0, 0x0
@@ -248,7 +258,7 @@ private val literals = setOf(Opcode.CONST, Opcode.CONST_16, Opcode.CONST_HIGH16,
  * The bar is the class starting its Compose trace, by its label or by its key alone as 456 does.
  */
 private fun BytecodePatchContext.replyBarGif(classes: Map<String, ClassDef>): Pair<Int, Int> {
-    val keyed = classesLoading(REPLY_BAR_TRACE_KEY.toLong()).filter { type -> type.methods.any(::startsReplyBarTrace) }
+    val keyed = REPLY_BAR_TRACE_KEYS.flatMap { key -> classesLoading(key.toLong()) }.filter { type -> type.methods.any(::startsReplyBarTrace) }
     val bar = (classDefByStrings(REPLY_BAR, StringComparisonType.STARTS_WITH) + keyed).map { it.type }.distinct()
         .mapNotNull { classes[it] }.one("quick reply bar")
     return bar.methods.flatMap { method -> method.code().let { code -> code.indices.mapNotNull { gifButton(method, code, it) } } }

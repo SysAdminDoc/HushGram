@@ -74,8 +74,8 @@ class ReelFillHookTest {
     fun eachDeclaredBuildAsksFitFirst() = eachDeclaredBundle(::fitsFirst)
 
     /**
-     * #436: the story layout's tall-screen check asks first and answers false on a yes, and its card
-     * layout asks first and lays out the whole screen instead. On no both run as Instagram wrote them.
+     * #436: the story layout's tall-screen check and its sized layout's check ask first and answer
+     * false on a yes, so no card is laid out. On no both run as Instagram wrote them.
      */
     @Test
     fun eachDeclaredBuildLaysStoriesOutFullScreen() = eachDeclaredBundle(::laysStoriesOut)
@@ -232,25 +232,31 @@ class ReelFillHookTest {
     private fun laysStoriesOut(bundle: File, label: String) {
         val context = PatchContexts.of(FixtureDex.withStringPools(bundle, FixtureDex.classesLoading(bundle, STORY_ASPECT_RATIO)))
         val layout = context.findStoryLayout()
-        val methods = context.mutableClassDefBy(layout.card.definingClass).methods
+        val methods = context.mutableClassDefBy(layout.tall.definingClass).methods
         fun own(call: MethodReference) = methods.single {
             it.name == call.name && it.returnType == call.returnType &&
                 it.parameterTypes.map(CharSequence::toString) == call.parameterTypes.map(CharSequence::toString)
         }
         val tall = own(layout.tall)
-        val card = own(layout.card)
-        assertEquals("$label: the whole-screen layout takes the card's holder", listOf(card.parameterTypes[1].toString()),
-            layout.full.parameterTypes.map(CharSequence::toString))
+        val sized = own(layout.sizedTall)
+        val holder = layout.full.parameterTypes.single().toString()
+        assertEquals("$label: the tall-screen check asks about the story", tall.parameterTypes[1].toString(),
+            sized.parameterTypes[0].toString())
+        assertEquals("$label: the sized check takes a width and a height", listOf("I", "I"),
+            sized.parameterTypes.drop(1).map(CharSequence::toString))
         // 454's other (holder) layout, behind a second check, keeps the card's rounded corners.
         assertTrue("$label: the whole-screen layout squares the card's corners",
             own(layout.full).code().any { it.referenceText()?.endsWith("->setCornerRadius(I)V") == true })
-        val holder = card.parameterRegisterNumber(1)
-        val before = listOf(tall, card).associateWith { it.code() }
-        val natives = listOf(tall, card).associateWith { NeutralNativePath(it) }
+        // 457 lays the card out from the holder's frame and views, so each card layout sits behind one of the two checks.
+        val cards = methods.filter { method -> method.parameterTypes.any { it.toString().endsWith("/RoundedCornerFrameLayout;") } }
+        assertTrue("$label: the card layouts take the story's rounded frame", cards.isNotEmpty())
+        assertTrue("$label: the whole-screen layout takes the holder", holder.startsWith("L"))
+        val before = listOf(tall, sized).associateWith { it.code() }
+        val natives = listOf(tall, sized).associateWith { NeutralNativePath(it) }
 
         context.fillStoryScreen()
 
-        for ((what, method) in listOf("$label tall-screen check" to tall, "$label card layout" to card)) {
+        for ((what, method) in listOf("$label tall-screen check" to tall, "$label sized layout's check" to sized)) {
             val stock = before.getValue(method)
             val code = method.code()
             assertEquals("$what: five instructions added", stock.count { it.opcode != Opcode.NOP } + 5, code.count { it.opcode != Opcode.NOP })
@@ -262,26 +268,17 @@ class ReelFillHookTest {
             assertEquals("$what: in the first local", 0, (code[1] as OneRegisterInstruction).registerA)
             assertEquals("$what: a no goes on", Opcode.IF_EQZ, code[2].opcode)
             assertEquals("$what: on the answer", 0, (code[2] as OneRegisterInstruction).registerA)
+            assertEquals("$what: past the return", 2 + 1 + 1, (code[2] as OffsetInstruction).codeOffset)
+            assertEquals("$what: a yes answers", Opcode.CONST_4, code[3].opcode)
+            assertEquals("$what: no card", 0, (code[3] as NarrowLiteralInstruction).narrowLiteral)
+            assertEquals("$what: into the answer", 0, (code[3] as OneRegisterInstruction).registerA)
+            assertEquals("$what: and returns it", Opcode.RETURN, code[4].opcode)
+            assertEquals("$what: returning the answer", 0, (code[4] as OneRegisterInstruction).registerA)
             assertEquals("$what: then Instagram's first instruction", stock[0].opcode, code[5].opcode)
             natives.getValue(method).assertPreserved(what, method, (0 until 5).toSet())
         }
-
-        val check = tall.code()
-        assertEquals("$label tall-screen check: past the return", 2 + 1 + 1, (check[2] as OffsetInstruction).codeOffset)
-        assertEquals("$label tall-screen check: a yes answers", Opcode.CONST_4, check[3].opcode)
-        assertEquals("$label tall-screen check: no card", 0, (check[3] as NarrowLiteralInstruction).narrowLiteral)
-        assertEquals("$label tall-screen check: into the answer", 0, (check[3] as OneRegisterInstruction).registerA)
-        assertEquals("$label tall-screen check: and returns it", Opcode.RETURN, check[4].opcode)
-        assertEquals("$label tall-screen check: returning the answer", 0, (check[4] as OneRegisterInstruction).registerA)
-
-        val cardCode = card.code()
-        assertEquals("$label card layout: past the return", 2 + 3 + 1, (cardCode[2] as OffsetInstruction).codeOffset)
-        assertEquals("$label card layout: a yes lays out the whole screen", layout.full.toString(), cardCode[3].referenceText())
-        assertEquals("$label card layout: with an invoke-static", Opcode.INVOKE_STATIC, cardCode[3].opcode)
-        assertEquals("$label card layout: on the holder", listOf(holder), (cardCode[3] as FiveRegisterInstruction).let {
-            listOf(it.registerC).take(it.registerCount)
-        })
-        assertEquals("$label card layout: and returns", Opcode.RETURN_VOID, cardCode[4].opcode)
+        val hooked = methods.filter { method -> method.code().any { it.referenceText() == STORY_HOOK } }
+        assertEquals("$label: only the two checks ask", setOf(tall, sized).map { it.toString() }.toSet(), hooked.map { it.toString() }.toSet())
     }
 
     /**

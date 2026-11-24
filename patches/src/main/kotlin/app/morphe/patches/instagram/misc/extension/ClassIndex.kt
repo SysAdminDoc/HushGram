@@ -16,10 +16,7 @@ import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
-import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
-import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
-import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.SwitchPayload
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
@@ -67,13 +64,15 @@ internal fun BytecodePatchContext.classesLoadingString(value: String): List<Clas
  * the pool, narrowed by the patcher's literal index to the ones that also load the number when
  * there's only one. A pool is called from thousands of classes, and reading each of them for every
  * pooled string was a measured share of patching (#173). A class asking for the number loads it
- * right before the call, so it always passes both filters, and [asksPool] still decides.
+ * right before the call, or from 457 right before a goto back to a call its switch's cases share,
+ * so it passes both filters in one order or the other, and [asksPool] still decides.
  */
 private fun BytecodePatchContext.classesMightAsk(pool: Method, numbers: Set<Int>): List<ClassDef> {
     val number = numbers.singleOrNull() ?: return classesCalling(pool.definingClass, pool.name)
-    return classesMatching(
-        Fingerprint(filters = listOf(literal(number.toLong()), methodCall(definingClass = pool.definingClass, name = pool.name))),
-    )
+    fun call() = methodCall(definingClass = pool.definingClass, name = pool.name)
+    val before = classesMatching(Fingerprint(filters = listOf(literal(number.toLong()), call())))
+    val after = classesMatching(Fingerprint(filters = listOf(call(), literal(number.toLong()))))
+    return (before + after).distinctBy { it.type }
 }
 
 /**
@@ -103,17 +102,12 @@ private fun Method.numbersFor(value: String): Set<Int> {
     return numbers
 }
 
-/** Whether this method asks [pool] for one of [numbers], a constant loaded into the call's register right before it. */
+/** Whether this method asks [pool] for one of [numbers], a constant handed to the call ([poolAsks]). */
 private fun Method.asksPool(pool: Method, numbers: Set<Int>): Boolean {
     val code = implementation?.instructions?.toList() ?: return false
-    return code.indices.any { at ->
-        val call = code[at]
-        val called = (call as? ReferenceInstruction)?.reference as? MethodReference ?: return@any false
-        val number = code.getOrNull(at - 1) as? NarrowLiteralInstruction ?: return@any false
-        call.opcode == Opcode.INVOKE_STATIC && called.definingClass == pool.definingClass && called.name == pool.name &&
-            called.parameterTypes.map(Any::toString) == listOf("I") && called.returnType == STRING &&
-            (number as OneRegisterInstruction).registerA == (call as FiveRegisterInstruction).registerC &&
-            number.narrowLiteral in numbers
+    return poolAsks(code).any { (at, number) ->
+        val called = (code[at] as ReferenceInstruction).reference as MethodReference
+        called.definingClass == pool.definingClass && called.name == pool.name && number in numbers
     }
 }
 

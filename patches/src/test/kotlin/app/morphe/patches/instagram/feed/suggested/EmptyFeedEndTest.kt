@@ -475,6 +475,35 @@ class EmptyFeedEndTest {
         assertEquals(listOf(16, 3), (call as RegisterRangeInstruction).let { listOf(it.startRegister, it.registerCount) })
     }
 
+    /** 457 names the header by making it: its constructor holds the title, and the insert after the making is guarded. */
+    @Test
+    fun aHeaderWhoseConstructorHoldsTheTitleIsGuardedWhereItsMade() {
+        val banner = "Lfixture/Banner;"
+        val type = "Lfixture/BannerPages;"
+        val context = PatchContexts.of(listOf(
+            classDef(banner, listOf(method(banner, "<init>", "V", registers = 2, body = """
+                const-string v0, "$NEW_POSTS_HEADER"
+                return-void
+            """))),
+            classDef(type, listOf(method(type, "build", "V", registers = 3, static = true, body = """
+                new-instance v0, Ljava/util/ArrayList;
+                invoke-direct { v0 }, Ljava/util/ArrayList;-><init>()V
+                const/4 v1, 0x1
+                new-instance v2, $banner
+                invoke-direct { v2 }, $banner-><init>()V
+                invoke-virtual { v0, v1, v2 }, $HEADER_INSERT
+                invoke-virtual { v0, v1, v2 }, $PLAIN_INSERT
+                return-void
+            """))),
+        ))
+
+        context.guardNewPostsHeader()
+
+        val code = context.classDefBy(type).methods.single().implementation!!.instructions.toList()
+        assertEquals("the insert after the making", listOf(5), code.indices.filter { code[it].calls(ADD_PAGE_HEADER) })
+        assertEquals("the next one stays", 1, code.count { it.calls(PLAIN_INSERT) })
+    }
+
     /** Hide suggested posts and the others still go in on a build that moved the header. */
     @Test
     fun aBuildWithoutTheHeaderInsertStillPatches() {
@@ -510,7 +539,18 @@ class EmptyFeedEndTest {
         assertTrue("other builds of the declared version were not read", others.isNotEmpty())
         for (bundle in bundles + others) {
             val where = "${bundle.parentFile.name}/${bundle.name}"
-            val classes = FixtureDex.classesLoading(bundle, NEW_POSTS_HEADER).distinctBy { it.type }
+            val loading = FixtureDex.classesLoading(bundle, NEW_POSTS_HEADER)
+            // 457 makes the header from a class whose constructor holds the title (0C2n), so the page making one joins the slice.
+            val headers = loading.flatMap { it.methods }
+                .filter { it.name == "<init>" && FixtureDex.loads(it, NEW_POSTS_HEADER, loading.associateBy { c -> c.type }) }
+                .map { it.definingClass }.toSet()
+            fun Method.makesHeader() = implementation?.instructions?.any { instruction ->
+                val made = (instruction as? ReferenceInstruction)?.reference as? MethodReference
+                instruction.opcode == Opcode.INVOKE_DIRECT && made?.name == "<init>" && made.definingClass in headers
+            } == true
+            val makers = FixtureDex.methodsWhere(bundle, { dex -> dex.typeSection.any { it in headers } }) { it.makesHeader() }
+                .map { it.definingClass }.toSet() - headers
+            val classes = (loading + FixtureDex.classes(bundle, makers).values).distinctBy { it.type }
             val context = PatchContexts.of(classes)
 
             context.guardNewPostsHeader()
@@ -520,7 +560,7 @@ class EmptyFeedEndTest {
             }
             assertEquals("$where: one method guarded", 1, guarded.size)
             val method = guarded.single()
-            assertTrue("$where: the one naming the header", context.loadsString(method, NEW_POSTS_HEADER))
+            assertTrue("$where: the one naming the header", context.loadsString(method, NEW_POSTS_HEADER) || method.makesHeader())
             assertEquals("$where: one insert", 1, method.implementation!!.instructions.count { it.calls(ADD_PAGE_HEADER) })
         }
     }

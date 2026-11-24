@@ -51,7 +51,8 @@ internal const val STORY_ITEM = "Lcom/instagram/model/reels/ReelItem;"
  * 455 from 454's 0x81140e00016c91 (05R0.A0I on 386113969), and 456 from 455's 0x8113f600016d4f (06Q7.A0J on
  * 386214574).
  */
-internal const val RELATIVE_HEADER_FLAG = 0x8113d100016dbeL
+// 457 moved it from 456's 0x8113d100016dbe.
+internal const val RELATIVE_HEADER_FLAG = 0x8113a700016d88L
 
 private const val STRING = "Ljava/lang/String;"
 

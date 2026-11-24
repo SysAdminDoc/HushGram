@@ -571,8 +571,16 @@ class CommentPhotoHookTest {
         val info = read("info")
         assertEquals(listOf(Opcode.INSTANCE_OF, Opcode.IF_EQZ, Opcode.CHECK_CAST), info.take(3).map { it.opcode })
         assertEquals(GIPHY, (info[0].reference() as TypeReference).type)
-        assertEquals(listOf(reply.toHelper, reply.toInfo).map { it.toString() }, info.mapNotNull { it.call()?.toString() })
-        assertEquals(reply.send.parameters()[1], reply.toInfo.returnType)
+        val toInfo = reply.toInfo
+        if (toInfo == null) {
+            // 457's send takes the GIF's interface itself: the bridge hands it over as it is.
+            assertEquals(null, reply.toHelper)
+            assertEquals(emptyList<String>(), info.mapNotNull { it.call()?.toString() })
+            assertEquals(GIPHY, reply.send.parameters()[1])
+        } else {
+            assertEquals(listOf(reply.toHelper, toInfo).map { it.toString() }, info.mapNotNull { it.call()?.toString() })
+            assertEquals(reply.send.parameters()[1], toInfo.returnType)
+        }
         val send = read("send")
         assertEquals(listOf(Opcode.CHECK_CAST, Opcode.CHECK_CAST, Opcode.CHECK_CAST, Opcode.INVOKE_VIRTUAL, Opcode.RETURN_VOID),
             send.map { it.opcode })
@@ -638,6 +646,7 @@ class CommentPhotoHookTest {
         scan { type -> type.methods.any { method -> method.name == "unsafeParseFromJson" &&
             method.code().any { it.call()?.let { call -> call.name == "<init>" && call.definingClass in parsed } == true } } }
         load(references(pool.values.toList()))
+        load(CommentWorld.rowConversionTypes(pool.values))
         // The comment's own media: its interface, both of its classes and the parser of the parsed one.
         val info = pool.values.filter { raw in it.interfaces }.flatMap { it.methods }
             .filter { method -> method.parameterTypes.isEmpty() && method.returnType.startsWith("L") &&
@@ -664,6 +673,12 @@ class CommentPhotoHookTest {
             .map { it.returnType } +
             kindReads.flatMap { method -> method.code().mapNotNull { it.field() }.filter { it.type == "Ljava/util/Map;" } }
                 .map { it.definingClass })
+        // 457 maps it in the media's Kotlin extensions (MediaExtKt;->A0a(Integer, boolean) on 386314341).
+        val extensions = "${MEDIA.removeSuffix(";")}ExtKt;"
+        load(listOf(extensions))
+        load(pool[extensions]?.methods?.filter { method ->
+            AccessFlags.STATIC.isSet(method.accessFlags) && method.parameters().firstOrNull() == INTEGER
+        }?.map { it.returnType }.orEmpty())
         // A comment GIF's model: its interfaces, the classes implementing them, and the trees' superclasses.
         gifFixture(bundle).forEach { (type, classDef) -> pool.putIfAbsent(type, classDef) }
         // The GIF reply: the quick reply bar its label and icon come from, the comment screen's Reply
@@ -679,7 +694,11 @@ class CommentPhotoHookTest {
     }
 
     private companion object {
-        /** Instagram's GIF icon and its GIF label on the quick reply bar, read from the declared build's resources. */
-        val GIF_BUTTONS = mapOf("456.1.0.56.78" to (0x7f082660 to 0x7f1371a9))
+        /**
+         * Instagram's GIF icon and its GIF label on the quick reply bar, read from the declared build's resources:
+         * instagram_gif_outline_24 (0x7f082660 in 456.1) and the label loaded beside it in the bar
+         * (LX/0qjw;->A00 on 386314341; 0x7f1371a9 in 456.1).
+         */
+        val GIF_BUTTONS = mapOf("457.0.0.55.73" to (0x7f080fe4 to 0x7f1372d6))
     }
 }

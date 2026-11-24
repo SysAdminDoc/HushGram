@@ -24,7 +24,6 @@ import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
-import com.android.tools.smali.dexlib2.iface.reference.StringReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
@@ -192,13 +191,15 @@ class StoryMidcardsHookTest {
         for (bundle in bundles) {
             val holders = linkedMapOf<String, ClassDef>()
             val namers = HashSet<String>()
-            FixtureDex.forEach(bundle) { dex ->
-                for (classDef in dex.classes) {
-                    if (classDef.methods.any { m -> m.code().any { it.string() == SUGGESTED_USERS_MIDCARD } }) {
-                        holders[classDef.type] = ImmutableClassDef.of(classDef)
-                        namers += classDef.type
-                    }
+            // 457 asks a string pool for the name (LX/078q;->A00 on 386314341), so the classes asking
+            // the pool and the pool come along. A namer has a static (Integer)String; the pool takes an int.
+            for (classDef in FixtureDex.classesLoading(bundle, SUGGESTED_USERS_MIDCARD)) {
+                holders[classDef.type] = classDef
+                val names = classDef.methods.any { m ->
+                    AccessFlags.STATIC.isSet(m.accessFlags) && m.returnType == "Ljava/lang/String;" &&
+                        m.parameterTypes.map(CharSequence::toString) == listOf(integer)
                 }
+                if (names) namers += classDef.type
             }
             val reels = HashSet<String>()
             FixtureDex.forEach(bundle) { dex ->
@@ -502,6 +503,4 @@ class StoryMidcardsHookTest {
     private fun Instruction.methodReference(): MethodReference? = (this as? ReferenceInstruction)?.reference as? MethodReference
 
     private fun Instruction.referenceText(): String? = (this as? ReferenceInstruction)?.reference?.toString()
-
-    private fun Instruction.string(): String? = ((this as? ReferenceInstruction)?.reference as? StringReference)?.string
 }

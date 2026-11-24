@@ -92,10 +92,19 @@ internal fun BytecodePatchContext.findStoryRings(): StoryRingTargets {
     // 456 moved the reel's write into the store, as a write of a reel's time that only moves it
     // forward (02nv.A02 on 386214574), and the reel's write calls that. The story viewer's controller
     // calls it too, for another reel than the one it shows, so only a write shaped like the reel's counts.
+    // 457 moved that forward-only check into the state, as a write of its own the store's calls
+    // (02th.A04 on 386314341), which calls the static one.
+    val stateForwards = stateClass.methods.filter { method ->
+        !AccessFlags.STATIC.isSet(method.accessFlags) && method.parameterTypes.map(Any::toString) == listOf(STRING, "J") &&
+            method.body().any { it.calledMethod()?.sameCall(stateWrite) == true }
+    }
     val storeWrites = (classDefByOrNull(store.definingClass) ?: refuseRings("${store.definingClass}, the store of the stories seen, isn't in this build"))
         .methods.filter { method ->
             !AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "V" &&
-                method.parameterTypes.map(Any::toString) == listOf(STRING, "J") && method.body().any { it.calledMethod()?.sameCall(stateWrite) == true }
+                method.parameterTypes.map(Any::toString) == listOf(STRING, "J") && method.body().any { instruction ->
+                    val called = instruction.calledMethod() ?: return@any false
+                    called.sameCall(stateWrite) || stateForwards.any(called::sameCall)
+                }
         }
     val reelWrites = (listOf(stateWrite) + storeWrites).flatMap { write ->
         classesCalling(write.definingClass, write.name)

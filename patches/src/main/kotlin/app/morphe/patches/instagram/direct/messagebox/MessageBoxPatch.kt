@@ -44,12 +44,13 @@ private const val FIND_VIEW = "$VIEW->findViewById(I)$VIEW"
 internal val BOX_BUTTON_NAMES = listOf("GALLERY", "STICKER", "VOICE_MESSAGE")
 
 /**
- * Instagram 456's row_thread_composer_button_gallery, row_thread_composer_button_sticker and
- * row_thread_composer_voice ids, in the order of [BOX_BUTTON_NAMES]. The same in all four 456 builds (aapt2;
- * 455 had 0x7f0b3870, 0x7f0b387a and 0x7f0b3894, 454 0x7f0b3833, 0x7f0b383d and 0x7f0b3857). 453 gave 0x7f0b3859 to a row_thread_composer_button_voice
- * nothing here looks up, so the voice id isn't the one after the sticker's any more.
+ * Instagram 457's row_thread_composer_button_gallery, row_thread_composer_button_sticker and
+ * row_thread_composer_voice ids, in the order of [BOX_BUTTON_NAMES]. The same in both 457 builds (aapt2;
+ * 456 had 0x7f0b387b, 0x7f0b3885 and 0x7f0b389f, 455 0x7f0b3870, 0x7f0b387a and 0x7f0b3894, 454 0x7f0b3833, 0x7f0b383d and 0x7f0b3857).
+ * 453 gave 0x7f0b3859 to a row_thread_composer_button_voice nothing here looks up, so the voice id isn't the
+ * one after the sticker's any more.
  */
-internal val BOX_BUTTON_IDS = listOf(0x7f0b387b, 0x7f0b3885, 0x7f0b389f)
+internal val BOX_BUTTON_IDS = listOf(0x7f0b385c, 0x7f0b3866, 0x7f0b3880)
 
 /**
  * Leaves the gallery, sticker and voice message buttons off the message box of a chat, as the user

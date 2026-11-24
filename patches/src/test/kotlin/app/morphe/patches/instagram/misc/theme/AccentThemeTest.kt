@@ -1571,7 +1571,7 @@ class AccentThemeTest {
          * false one asking another class's color, and with [render] false no render loading the id.
          */
         fun reelColumn(filters: Int = 1, readsColor: Boolean = true, render: Boolean = true, buttons: Boolean = true): ClassDef {
-            val renderBody = if (render) "const v0, 0x7f0b3b7a\nconst/4 v0, 0x0\nreturn-object v0" else "const/4 v0, 0x0\nreturn-object v0"
+            val renderBody = if (render) "const v0, 0x${UFI_ID.toString(16)}\nconst/4 v0, 0x0\nreturn-object v0" else "const/4 v0, 0x0\nreturn-object v0"
             val color = """
                 iget-boolean v0, p0, $REEL_COLUMN->A0A:Z
                 const v1, 0x7f040866

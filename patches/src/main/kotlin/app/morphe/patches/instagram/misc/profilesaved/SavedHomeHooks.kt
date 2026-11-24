@@ -63,15 +63,19 @@ internal const val EXPLORE_ACTION_BAR = "Lcom/instagram/discovery/actionbar/Expl
 
 /**
  * The stub the Search tab's top bar turns into its Saved bookmark (`explore_action_bar_secondary_button_stub`),
- * the same id in all four 456 builds.
+ * the same id in both 457 builds (0x7f0b1680 in 456).
  */
-internal const val EXPLORE_SAVED_STUB = 0x7f0b1680
+internal const val EXPLORE_SAVED_STUB = 0x7f0b166a
 
 /** The tab the newer Saved screen opens on. Only that screen and the menu's maker of it load the key. */
 internal const val INITIAL_TAB = "SaveFragment.ARGUMENT_SAVED_HOME_INITIAL_TAB"
 
-/** The screen Instagram's own Saved link opens. The manifest names it, so it keeps its name. */
-internal const val SAVED_LINK_SCREEN = "Lcom/instagram/urlhandlers/saved/SavedUrlHandlerActivity;"
+/**
+ * The screen Instagram's own Saved link opens. The manifest names it, so it keeps its name within a
+ * version, but 457 moved it into `com.instagram.save.urlhandlers.saved` (`com.instagram.urlhandlers.saved`
+ * through 456.1). The extension starts it by name and knows both.
+ */
+internal const val SAVED_LINK_SCREEN = "Lcom/instagram/save/urlhandlers/saved/SavedUrlHandlerActivity;"
 
 private const val USER_SESSION = "Lcom/instagram/common/session/UserSession;"
 private const val FRAGMENT = "Landroidx/fragment/app/Fragment;"

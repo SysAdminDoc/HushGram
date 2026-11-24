@@ -162,18 +162,18 @@ internal fun BytecodePatchContext.downloadCheck(patch: String): Method {
 
 /**
  * The options of the reduced reel menu, a short list that never had a Download row: the one method
- * of its own class answering a list from a post that the method naming [REDUCED_SHEET] calls.
+ * of its own class answering an ArrayList that the method naming [REDUCED_SHEET] calls. Through 456
+ * it took the post; 457 made it static, taking a part of the post's tree and the sheet's state.
  */
 internal fun BytecodePatchContext.reducedMenuList(patch: String): Method {
     val sheet = onlyLoaderOf(REDUCED_SHEET, patch, "reduced reel menu")
     val asked = calls(sheet, sheet.definingClass)
     val lists = classDefBy(sheet.definingClass).methods.filter { method ->
-        method.returnType == "Ljava/util/ArrayList;" && MEDIA in method.parameterTypes.map(Any::toString) &&
-            asked.any { it.isOf(method) }
+        method.returnType == "Ljava/util/ArrayList;" && asked.any { it.isOf(method) }
     }
     return lists.singleOrNull() ?: throw PatchException(
         "$patch: expected ${sheet.definingClass}->${sheet.name}, the reduced reel menu, to list its options through one " +
-            "method of its class taking a post, found " + if (lists.isEmpty()) "none" else lists.joinToString { it.name },
+            "method of its class, found " + if (lists.isEmpty()) "none" else lists.joinToString { it.name },
     )
 }
 
@@ -271,7 +271,7 @@ internal fun BytecodePatchContext.offerDownloadOnEveryReel() {
     val gates = builders.associateWith { it.downloadGates(eligible, handsToRows(it, adder)) }
     val reduced = reducedMenuList(PATCH)
     val reducedReturns = reduced.optionListReturns()
-    val media = instanceField(helper, MEDIA)
+    val media = mediaRead(helper)
     val activity = instanceField(helper, FRAGMENT_ACTIVITY)
     val icon = optionIcon(PATCH)
     val writeBridges = mediaBridges(PATCH)
@@ -340,7 +340,7 @@ internal fun BytecodePatchContext.offerDownloadOnEveryReel() {
             if-eqz v1, :handle
             :save
             move-object/from16 v0, p0
-            iget-object v1, v0, $media
+            $media
             iget-object v2, v0, $activity
             move-object/from16 v0, p1
             invoke-static { v0, v1, v2 }, $SAVE
@@ -358,7 +358,7 @@ internal fun BytecodePatchContext.offerDownloadOnEveryReel() {
             sget-object v1, $DOWNLOAD
             if-ne v0, v1, :add
             move-object/from16 v0, p0
-            iget-object v1, v0, $media
+            $media
             move-object/from16 v2, p1
             move-object/from16 v3, p3
             move-object/from16 v4, p4
@@ -439,6 +439,25 @@ private fun BytecodePatchContext.instanceField(owner: String, type: String): Str
     val field = fields.singleOrNull()
         ?: throw PatchException("$PATCH: expected one $type field in $owner, the reel menu's class, found ${fields.size}")
     return "$owner->${field.name}:$type"
+}
+
+/**
+ * The smali putting the reel the menu is about in v1, with the menu's helper in v0: its [MEDIA]
+ * field, or, from 457, which keeps the reel in the helper's clips item, the helper's one static
+ * getter of it (`LX/0Ckv;->A00` on 386314341), the read Instagram's own rows make.
+ */
+private fun BytecodePatchContext.mediaRead(owner: String): String {
+    val helper = classDefBy(owner)
+    val fields = helper.fields.filter { !AccessFlags.STATIC.isSet(it.accessFlags) && it.type == MEDIA }
+    if (fields.size == 1) return "iget-object v1, v0, $owner->${fields.single().name}:$MEDIA"
+    val getters = helper.methods.filter {
+        AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == MEDIA && it.parameterTypes.map(Any::toString) == listOf(owner)
+    }
+    val getter = getters.singleOrNull() ?: throw PatchException(
+        "$PATCH: expected one $MEDIA field in $owner, the reel menu's class, or one static getter of it there, " +
+            "found ${fields.size} fields and ${getters.size} getters",
+    )
+    return "invoke-static { v0 }, $owner->${getter.name}($owner)$MEDIA\nmove-result-object v1"
 }
 
 private fun BytecodePatchContext.mutable(method: Method): MutableMethod =

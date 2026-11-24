@@ -673,8 +673,9 @@ internal class UploadSettings(
 )
 
 /**
- * The one instance method loading [TRANSCODE_DIMENSION] and reading the server's reply with
- * JSONObject.optInt, its one call to a transcode builder ([isTranscodeBuilderShape]) handed a size read
+ * The one instance method loading [TRANSCODE_DIMENSION], reading the server's reply with
+ * JSONObject.optInt and calling a transcode builder (457 adds a second reader that only keeps the
+ * settings, `JarvisVideoQualityProvider.H7v`, which calls none), that one call ([isTranscodeBuilderShape]) handed a size read
  * from that reply, and the route from the upload that call is handed to its share type: the upload's
  * one field of a class declaring a share type field, and that field. Builds differ in how the method
  * reaches the upload (a field of `this` on most, a field of `this` cast to a merged class on some) and
@@ -685,7 +686,7 @@ internal fun BytecodePatchContext.findUploadSettings(): UploadSettings {
     val readers = classesLoadingString(TRANSCODE_DIMENSION).flatMap { classDef ->
         classDef.methods.filter { method ->
             !AccessFlags.STATIC.isSet(method.accessFlags) && loadsString(method, TRANSCODE_DIMENSION) &&
-                method.calls { it.definingClass == JSON_OBJECT && it.name == "optInt" }
+                method.calls { it.definingClass == JSON_OBJECT && it.name == "optInt" } && method.calls { it.isTranscodeBuilderShape() }
         }
     }
     val method = readers.singleOrNull()

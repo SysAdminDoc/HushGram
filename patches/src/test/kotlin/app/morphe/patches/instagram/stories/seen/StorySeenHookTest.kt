@@ -149,6 +149,16 @@ class StorySeenHookTest {
         assertRefused(standIns(sendHandsBatchOut = true), "hands its batch to $ELSEWHERE->keep(Ljava/lang/Object;)V")
     }
 
+    /** 457's send hands its batch to the request's success callback once the request is built, which can't change what it sends. */
+    @Test
+    fun aSendHandingItsBatchOnAfterTheRequestIsHooked() {
+        val context = PatchContexts.of(standIns(sendHandsBatchOnAfter = true))
+
+        context.holdBackStoryViews()
+
+        assertSendHooked("the send", context.mutableClassDefBy(STORE).methods.single { it.name == "A0O" }, BATCH)
+    }
+
     /** 386214574 writes the batch's emptiness check out in the send: its fields read and asked isEmpty() is still only reading. */
     @Test
     fun aSendAskingItsBatchsFieldsIsHooked() {
@@ -567,6 +577,7 @@ class StorySeenHookTest {
         sendOverwrites: Boolean = false,
         sendChangesBatch: Boolean = false,
         sendHandsBatchOut: Boolean = false,
+        sendHandsBatchOnAfter: Boolean = false,
         sendInlinesCheck: SendCheck = SendCheck.CALLED,
         sendRegisters: Int = 3,
         reelsTwice: Boolean = false,
@@ -746,6 +757,7 @@ class StorySeenHookTest {
                 invoke-virtual { p0 }, $STORE_BASE->A0H()$USER_SESSION
                 move-result-object v0
                 invoke-virtual { p1, v0 }, $BATCH->A04($USER_SESSION)$REQUEST
+                ${if (sendHandsBatchOnAfter) "invoke-static { p1 }, $ELSEWHERE->keep(Ljava/lang/Object;)V" else ""}
                 :done
                 return-void
             """

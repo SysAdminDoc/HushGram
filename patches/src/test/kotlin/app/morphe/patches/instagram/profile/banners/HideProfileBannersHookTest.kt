@@ -303,7 +303,11 @@ class HideProfileBannersHookTest {
             val wanted = found.values.flatMap { classDef ->
                 val above = listOfNotNull(classDef.superclass) + classDef.interfaces.map(CharSequence::toString)
                 if (classDef.type != VIEW_MODEL) return@flatMap above
-                val setter = classDef.methods.filter { it.parameterTypes.map(CharSequence::toString) == listOf(VIEW_MODEL, USER) }
+                // 457's setter takes the user's holder first and the view model second.
+                val setter = classDef.methods.filter { method ->
+                    val takes = method.parameterTypes.map(CharSequence::toString)
+                    takes == listOf(VIEW_MODEL, USER) || takes.size == 2 && takes[1] == VIEW_MODEL && takes[0].startsWith("L") && takes[0] != VIEW_MODEL
+                }
                     .flatMap { it.code() }
                     .flatMap { instruction ->
                         when (val reference = (instruction as? ReferenceInstruction)?.reference) {

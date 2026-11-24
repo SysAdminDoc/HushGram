@@ -39,20 +39,42 @@ internal fun BytecodePatchContext.pooledString(pool: MethodReference, number: In
 
 /**
  * Whether [method] loads [value] itself or, as 450's Redex has it, asks a static pool of shared
- * strings for it by a constant number loaded right before the call.
+ * strings for it by a constant number ([poolAsks]).
  */
 internal fun BytecodePatchContext.loadsString(method: Method, value: String): Boolean {
     if (value in method.strings()) return true
     val code = method.implementation?.instructions?.toList() ?: return false
-    return code.indices.any { at ->
-        val call = code[at]
-        val pool = (call as? ReferenceInstruction)?.reference as? MethodReference ?: return@any false
-        val number = code.getOrNull(at - 1) as? NarrowLiteralInstruction ?: return@any false
-        call.opcode == Opcode.INVOKE_STATIC && pool.parameterTypes.map(Any::toString) == listOf("I") &&
-            pool.returnType == "Ljava/lang/String;" &&
-            (number as OneRegisterInstruction).registerA == (call as Instruction35c).registerC &&
-            pooledString(pool, number.narrowLiteral) == value
+    return poolAsks(code).any { (at, number) -> pooledString((code[at] as ReferenceInstruction).reference as MethodReference, number) == value }
+}
+
+/**
+ * Each static `(I)String` call in [code] handed a constant number, as the call's index and the
+ * number: one loaded into the call's register right before it, or, from 457, one loaded right before
+ * a goto landing on a call the cases of a merged switch share (`LX/078q;->A00` on 386314341 loads a
+ * midcard type's number in each case and jumps to one pool call).
+ */
+internal fun poolAsks(code: List<Instruction>): List<Pair<Int, Int>> {
+    val calls = code.indices.filter { at ->
+        val pool = (code[at] as? ReferenceInstruction)?.reference as? MethodReference
+        code[at].opcode == Opcode.INVOKE_STATIC && pool != null && pool.returnType == "Ljava/lang/String;" &&
+            pool.parameterTypes.map(Any::toString) == listOf("I")
     }
+    if (calls.isEmpty()) return emptyList()
+    fun number(load: Int, call: Int): Int? {
+        val literal = code.getOrNull(load) as? NarrowLiteralInstruction ?: return null
+        return literal.narrowLiteral.takeIf { (literal as OneRegisterInstruction).registerA == (code[call] as Instruction35c).registerC }
+    }
+    val asks = calls.mapNotNullTo(mutableListOf()) { at -> number(at - 1, at)?.let { at to it } }
+    val gotos = code.indices.filter { code[it].opcode == Opcode.GOTO || code[it].opcode == Opcode.GOTO_16 || code[it].opcode == Opcode.GOTO_32 }
+    if (gotos.isEmpty()) return asks
+    val address = IntArray(code.size + 1)
+    code.forEachIndexed { index, instruction -> address[index + 1] = address[index] + instruction.codeUnits }
+    val callAt = calls.associateBy { address[it] }
+    for (jump in gotos) {
+        val call = callAt[address[jump] + (code[jump] as OffsetInstruction).codeOffset] ?: continue
+        number(jump - 1, call)?.let { asks += call to it }
+    }
+    return asks
 }
 
 /**

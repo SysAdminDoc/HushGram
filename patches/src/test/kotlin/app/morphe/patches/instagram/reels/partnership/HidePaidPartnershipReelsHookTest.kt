@@ -392,9 +392,14 @@ class HidePaidPartnershipReelsHookTest {
                     ?.let { "clips_viewer_" + values[it.name] }
             }.toSet()
             // The tab container's name: the viewer's one getter of no arguments answering a String that can answer the connected tab's name.
-            val container = loadersOf(CONNECTED_MODULE).single { method ->
-                method.parameterTypes.isEmpty() && method.returnType == "Ljava/lang/String;" && !AccessFlags.STATIC.isSet(method.accessFlags)
-            }.code().mapNotNull { it.string() }.filter { it.startsWith("clips_viewer_") }
+            // 457 moved it onto the viewer's source, taking the account (ClipsViewerSource.A04), and pools some of its names.
+            val containerName = loadersOf(CONNECTED_MODULE).single { method ->
+                method.returnType == "Ljava/lang/String;" && !AccessFlags.STATIC.isSet(method.accessFlags) &&
+                    method.parameterTypes.map(Any::toString).let { it.isEmpty() || it == listOf(USER_SESSION) }
+            }
+            val namePools = FixtureDex.classesLoadingAny(bundle, tabModules).associateBy { it.type }
+            val container = (containerName.code().mapNotNull { it.string() }.filter { it.startsWith("clips_viewer_") } +
+                tabModules.filter { FixtureDex.loads(containerName, it, namePools) }).distinct()
             assertTrue("${bundle.name}: the tab container answers no name", container.isNotEmpty())
             // 453's builds don't all offer the same lanes (some have no blend lane), so the list may name
             // a lane this build doesn't offer, as long as it's one of the viewer's sources here.

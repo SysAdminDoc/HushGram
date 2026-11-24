@@ -30,10 +30,11 @@ internal const val COMPOSER_BUTTON = "$EXTENSION_PACKAGE/metaai/MetaAi;->compose
 internal val COMPOSER_BUTTON_NAMES = listOf("META_AI_DISCOVERY", "META_AI_INVOCATION", "META_AI_VOICE")
 
 /**
- * Instagram 456's row_thread_composer_meta_ai_discover, invocation and voice ids, the same in all
- * four 456 builds (aapt2). 455 had them at 0x7f0b3885 to 0x7f0b3887, 454 at 0x7f0b3848 to 0x7f0b384a.
+ * Instagram 457's row_thread_composer_meta_ai_discover, invocation and voice ids, the same in both
+ * 457 builds (aapt2). 456 had them at 0x7f0b3890 to 0x7f0b3892, 455 at 0x7f0b3885 to 0x7f0b3887, 454 at
+ * 0x7f0b3848 to 0x7f0b384a.
  */
-internal val COMPOSER_BUTTON_IDS = listOf(0x7f0b3890, 0x7f0b3891, 0x7f0b3892)
+internal val COMPOSER_BUTTON_IDS = listOf(0x7f0b3871, 0x7f0b3872, 0x7f0b3873)
 private const val VIEW = "Landroid/view/View;"
 private const val FIND_VIEW = "$VIEW->findViewById(I)$VIEW"
 

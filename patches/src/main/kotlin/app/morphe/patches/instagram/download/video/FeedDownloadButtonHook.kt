@@ -44,8 +44,8 @@ private const val PATCH = "Download any video"
 internal const val FEED_BUTTON =
     "$EXTENSION_PACKAGE/download/FeedDownloadButton;->bind(Landroid/view/View;Ljava/lang/Object;Ljava/lang/Object;Landroid/app/Activity;)V"
 
-/** Feed's inflated Save button in Instagram 456 (`row_feed_button_save`; 0x7f0b3727 in 455, 0x7f0b36e5 in 454), the same id in all four 456 builds. */
-internal const val SAVE_BUTTON_ID = 0x7f0b3732
+/** Feed's inflated Save button in Instagram 457 (`row_feed_button_save`; 0x7f0b3732 in 456, 0x7f0b3727 in 455, 0x7f0b36e5 in 454), the same id in both 457 builds. */
+internal const val SAVE_BUTTON_ID = 0x7f0b3717
 
 private const val BOUNCY = "Lcom/instagram/ui/widget/bouncyufibutton/IgBouncyUfiButtonImageView;"
 private const val ACTIVITY = "Landroid/app/Activity;"
@@ -171,8 +171,8 @@ internal const val LITHO_BUTTON =
     "$EXTENSION_PACKAGE/download/FeedDownloadButton;->litho(Ljava/util/List;Ljava/lang/Object;Ljava/lang/Object;)V"
 private const val FEED_BUTTON_CLASS = "$EXTENSION_PACKAGE/download/FeedDownloadButton;"
 
-/** The Feed action row's own id (`row_feed_view_group_buttons`, 456, the same in all four builds; 0x7f0b3765 in 455, 0x7f0b3728 in 454), set on the host that holds the buttons. */
-internal const val ROW_BUTTONS_ID = 0x7f0b3770
+/** The Feed action row's own id (`row_feed_view_group_buttons`, 457, the same in both builds; 0x7f0b3770 in 456, 0x7f0b3765 in 455, 0x7f0b3728 in 454), set on the host that holds the buttons. */
+internal const val ROW_BUTTONS_ID = 0x7f0b3755
 
 private const val OBJECT = "Ljava/lang/Object;"
 private const val CHAR_SEQUENCE_TYPE = "Ljava/lang/CharSequence;"
@@ -185,8 +185,8 @@ private val LISTS = setOf("Ljava/util/AbstractCollection;", "Ljava/util/ArrayLis
  * How a component modifier is taken apart and put back together. A modifier is a chain of parts
  * ([part], an interface): [walk] hands each part to a function in the order they apply, [join]
  * answers the modifier with one more part at the end, and [empty] is the modifier with none. Each
- * part answers its kind through [kind], and [saveKinds] are the two kinds Save's id style makes its
- * part of, by a server flag: the binder kind (what mounts the view with Instagram's own logic, such
+ * part answers its kind through [kind], and [saveKinds] are the two kinds Save's id and binder
+ * styles make their parts of: the binder kind (what mounts the view with Instagram's own logic, such
  * as the view-interaction tracker's Save element) and the common prop kind (id, tap, long press,
  * selected state). Parts of either kind belong to Save alone.
  */
@@ -310,6 +310,14 @@ internal fun BytecodePatchContext.findLithoSaveSite(button: FeedButtonSite, page
         }
     }
     val description = descriptions.lastOrNull() ?: refuse("$label gives Save no description style before its id")
+    // The binder style registering Save's view with the view-interaction tracker, the first static
+    // style after the id taking the modifier and more besides.
+    val binder = (idCall + 1 until constructorAt).firstNotNullOfOrNull { at ->
+        code[at].calls()?.takeIf {
+            code[at].opcode in setOf(Opcode.INVOKE_STATIC, Opcode.INVOKE_STATIC_RANGE) && it.returnType == modifierType &&
+                modifierType in it.parameters() && it.parameterTypes.size > 2
+        }
+    } ?: refuse("$label gives Save no binder style after its id")
 
     val specClass = classDefByOrNull(specType) ?: refuse("$specType is missing")
     val constructors = specClass.methods.filter {
@@ -350,7 +358,7 @@ internal fun BytecodePatchContext.findLithoSaveSite(button: FeedButtonSite, page
         specType, constructor, modifierType, modifier, scale, color, flag,
         idStyle, functionStyles[0], functionStyles[1], description,
         stateType, button.media, ImmutableFieldReference(item.definingClass, item.name, item.type),
-        findModifierParts(modifierType, idStyle),
+        findModifierParts(modifierType, idStyle, binder),
     )
 }
 
@@ -475,11 +483,12 @@ private fun MethodReference.parameters() = parameterTypes.map(CharSequence::toSt
  * The parts of [modifierType] by shape: its one instance field of an interface type is the part,
  * its one call taking a Function1 the walk, its one call taking a part and answering a modifier the
  * join, and its one static field of its own type or a subclass the empty modifier. Save's id style
- * [idStyle] makes its part in one of two kinds, the constructor's first parameter, and the part's
+ * [idStyle] and binder style [binder] make their parts in two kinds between them, each the part
+ * constructor's first parameter, and the part's
  * one call that takes nothing and answers a type both kinds implement is the kind. Fails naming
  * what it didn't find exactly once.
  */
-internal fun BytecodePatchContext.findModifierParts(modifierType: String, idStyle: MethodReference): ModifierParts {
+internal fun BytecodePatchContext.findModifierParts(modifierType: String, idStyle: MethodReference, binder: MethodReference): ModifierParts {
     val modifier = classDefByOrNull(modifierType) ?: refuse("$modifierType is missing")
     fun instance(flags: Int) = !AccessFlags.STATIC.isSet(flags)
     val partTypes = modifier.fields.filter { instance(it.accessFlags) && it.type != modifierType && it.type.startsWith("L") }.map { it.type }.distinct()
@@ -499,19 +508,30 @@ internal fun BytecodePatchContext.findModifierParts(modifierType: String, idStyl
     }
     val empty = empties.singleOrNull() ?: refuse("expected one empty $modifierType, found ${empties.size}")
 
-    val styles = classDefByOrNull(idStyle.definingClass)?.methods?.filter {
-        it.name == idStyle.name && it.returnType == idStyle.returnType && it.parameterTypes.map(CharSequence::toString) == idStyle.parameters()
-    }.orEmpty()
-    val style = styles.singleOrNull() ?: refuse("expected one id style $idStyle, found ${styles.size}")
-    val made = style.implementation?.instructions?.toList().orEmpty().mapNotNull { instruction ->
-        instruction.calls()?.takeIf {
-            (instruction.opcode == Opcode.INVOKE_DIRECT || instruction.opcode == Opcode.INVOKE_DIRECT_RANGE) && it.name == "<init>" &&
-                it.parameterTypes.size == 2 && it.parameterTypes[1].toString() == OBJECT &&
-                classDefByOrNull(it.definingClass)?.interfaces?.contains(part) == true
-        }
+    fun body(style: MethodReference, what: String): Method {
+        val styles = classDefByOrNull(style.definingClass)?.methods?.filter {
+            it.name == style.name && it.returnType == style.returnType && it.parameterTypes.map(CharSequence::toString) == style.parameters()
+        }.orEmpty()
+        return styles.singleOrNull() ?: refuse("expected one $what $style, found ${styles.size}")
     }
-    val kinds = made.map { it.parameterTypes[0].toString() }.distinct()
-    if (kinds.size != 2) refuse("expected Save's id style to make its part in two kinds, found ${kinds.size}")
+    /** The kinds of part [style] makes, and with [depth] left, those the modifier styles it calls make. */
+    fun kindsMade(style: Method, depth: Int): List<String> {
+        val calls = style.implementation?.instructions?.toList().orEmpty().mapNotNull { instruction -> instruction.calls()?.let { instruction to it } }
+        val own = calls.mapNotNull { (instruction, call) ->
+            call.takeIf {
+                (instruction.opcode == Opcode.INVOKE_DIRECT || instruction.opcode == Opcode.INVOKE_DIRECT_RANGE) && it.name == "<init>" &&
+                    it.parameterTypes.size == 2 && it.parameterTypes[1].toString() == OBJECT &&
+                    classDefByOrNull(it.definingClass)?.interfaces?.contains(part) == true
+            }?.parameterTypes?.get(0)?.toString()
+        }
+        if (depth == 0) return own
+        return own + calls.filter { (_, call) -> call.name != "<init>" && call.returnType == modifierType }
+            .flatMap { (_, call) -> kindsMade(body(call, "modifier style"), depth - 1) }
+    }
+    // Up to 456 the id style makes its part in either kind, by a server flag. 457's makes only the
+    // common prop kind, and the binder's style makes the binder kind.
+    val kinds = (kindsMade(body(idStyle, "id style"), 0) + kindsMade(body(binder, "binder style"), 1)).distinct()
+    if (kinds.size != 2) refuse("expected Save's id and binder styles to make their parts in two kinds, found ${kinds.size}")
     val kindClasses = kinds.map { classDefByOrNull(it) ?: refuse("$it is missing") }
     val getters = partClass.methods.filter { getter ->
         instance(getter.accessFlags) && getter.parameterTypes.isEmpty() && kindClasses.all { getter.returnType in it.interfaces }

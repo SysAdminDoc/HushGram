@@ -27,7 +27,8 @@ internal const val REELS_PIP = "$EXTENSION_PACKAGE/media/ReelsPip;->on()Z"
  * session check says yes, and both the menu row and the window's automatic start ask it through
  * ClipsViewerPipUtil.
  */
-internal const val PIP_ALLOWED_FLAG = 0x810a4200003abbL
+// 457 moved it from 456's 0x810a4200003abb.
+internal const val PIP_ALLOWED_FLAG = 0x810a3700003a7aL
 
 /**
  * The server flag the check of Instagram's own switch for it reads (0ATr.A08 on 456's 386214574;
@@ -35,7 +36,8 @@ internal const val PIP_ALLOWED_FLAG = 0x810a4200003abbL
  * starts off and that only a menu row behind this flag turns on. A reel's picture in picture window
  * opens on its own as you leave only when this check says yes.
  */
-internal const val PIP_SWITCH_FLAG = 0x810a4200063ac1L
+// 457 moved it from 456's 0x810a4200063ac1.
+internal const val PIP_SWITCH_FLAG = 0x810a3700063a80L
 
 private const val USER_SESSION = "Lcom/instagram/common/session/UserSession;"
 

@@ -107,6 +107,16 @@ class StorySeenRingsHookTest {
         assertEquals(WRITE, context.findStoryRings().write)
     }
 
+    /**
+     * 457's reel write calls the store's write of a reel's time, which calls a forward-only write of
+     * the state's own, which makes the static write: the reel's is still the one found.
+     */
+    @Test
+    fun aWriteThroughTheStatesOwnWriteIsTheReels() {
+        val context = PatchContexts.of(standIns(forwarded = true))
+        assertEquals(WRITE, context.findStoryRings().write)
+    }
+
     @Test
     fun aWriteTheExtensionCantCallFails() = assertRefused(standIns(writePublic = false), "isn't public for the extension to call")
 
@@ -257,11 +267,14 @@ class StorySeenRingsHookTest {
             AccessFlags.STATIC.isSet(it.accessFlags) && it.parameterTypes.map(Any::toString) == listOf(state, STRING, "J")
         }.key()
         // 456's reel write calls the store's own write of a reel's time, which calls the state's.
+        // 457's store write calls a write of the state's own first (02th.A04), which calls it.
         val stateWriters = callersOf(bundle, stateWrite)
-        val storeWrites = stateWriters.filter { method ->
+        val forwards = stateWriters.filter { it.definingClass == state && it.parameterTypes.map(Any::toString) == listOf(STRING, "J") }
+        val forwardWriters = forwards.flatMap { callersOf(bundle, it.key()) }
+        val storeWrites = (stateWriters + forwardWriters).filter { method ->
             stores.any { it.type == method.definingClass } && method.parameterTypes.map(Any::toString) == listOf(STRING, "J")
         }
-        val writers = stateWriters + storeWrites.flatMap { callersOf(bundle, it.key()) }
+        val writers = stateWriters + forwardWriters + storeWrites.flatMap { callersOf(bundle, it.key()) }
         val reelWrite = writers.single {
             it.definingClass != state && stores.none { store -> store.type == it.definingClass } &&
                 it.parameterTypes.map(Any::toString) == listOf(USER_SESSION, "J")
@@ -297,7 +310,22 @@ class StorySeenRingsHookTest {
         branchToWrite: Boolean = false,
         viewerTakesStory: Boolean = true,
         extension: Boolean = true,
+        forwarded: Boolean = false,
     ): List<ClassDef> {
+        // 457's shape: the reel's write goes through the store's, and that through the state's own.
+        val forwards = if (forwarded) {
+            listOf(
+                method(
+                    STORE, "A05", listOf(STRING, "J"), "V", 5, """
+                        iget-object v0, p0, $STORE->state:$STATE
+                        invoke-virtual { v0, p1, p2, p3 }, $STATE->A04(${STRING}J)Z
+                        return-void
+                    """, static = false,
+                ),
+            )
+        } else {
+            emptyList()
+        }
         val storeClass = classOf(
             STORE, listOf(field(STORE, "state", STATE)),
             listOf(
@@ -317,7 +345,7 @@ class StorySeenRingsHookTest {
                         return-void
                     """, static = false,
                 ),
-            ),
+            ) + forwards,
         )
         val stateBody = """
             iget-object v0, p0, $STATE->seen:Ljava/util/HashMap;
@@ -328,18 +356,42 @@ class StorySeenRingsHookTest {
         """
         val stateClass = classOf(
             STATE, listOf(field(STATE, "seen", "Ljava/util/HashMap;")),
-            (0 until stateWrites).map { method(STATE, "A0$it", listOf(STATE, STRING, "J"), "V", 6, stateBody) },
+            (0 until stateWrites).map { method(STATE, "A0$it", listOf(STATE, STRING, "J"), "V", 6, stateBody) } +
+                if (forwarded) {
+                    listOf(
+                        method(
+                            STATE, "A04", listOf(STRING, "J"), "Z", 5, """
+                                invoke-static { p0, p1, p2, p3 }, $STATE_WRITE
+                                const/4 v0, 0x1
+                                return v0
+                            """, static = false,
+                        ),
+                    )
+                } else {
+                    emptyList()
+                },
         )
         val reelClass = classOf(
-            REEL, listOf(field(REEL, "state", STATE), field(REEL, "id", STRING)),
+            REEL, listOf(field(REEL, "state", STATE), field(REEL, "store", STORE), field(REEL, "id", STRING)),
             listOf(
                 method(
-                    REEL, "A0e", listOf(USER_SESSION, "J"), "V", 6, """
-                        iget-object v0, p0, $REEL->state:$STATE
-                        iget-object v1, p0, $REEL->id:$STRING
-                        invoke-static { v0, v1, p2, p3 }, $STATE_WRITE
-                        return-void
-                    """, static = false, public = writePublic,
+                    REEL, "A0e", listOf(USER_SESSION, "J"), "V", 6,
+                    if (forwarded) {
+                        """
+                            iget-object v0, p0, $REEL->store:$STORE
+                            iget-object v1, p0, $REEL->id:$STRING
+                            invoke-virtual { v0, v1, p2, p3 }, $STORE->A05(${STRING}J)V
+                            return-void
+                        """
+                    } else {
+                        """
+                            iget-object v0, p0, $REEL->state:$STATE
+                            iget-object v1, p0, $REEL->id:$STRING
+                            invoke-static { v0, v1, p2, p3 }, $STATE_WRITE
+                            return-void
+                        """
+                    },
+                    static = false, public = writePublic,
                 ),
                 method(
                     REEL, "A0f", listOf(USER_SESSION, "I"), "V", 5, """

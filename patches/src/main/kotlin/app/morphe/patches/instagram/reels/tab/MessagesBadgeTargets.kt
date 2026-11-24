@@ -51,8 +51,10 @@ internal class MessagesBadgeHook(val controller: Method, val store: Int, val cou
  * it isn't there exactly once:
  *
  *  - the tab button's count update is the one instance `(int, Long)V` method making [BADGE_UPDATE];
- *  - the badge controller is the one method calling it, with the count as the call's first argument
- *    (on 456 `01uD.A03`, which only the Messages tab's badge feeds, since the other tabs show a dot);
+ *  - the badge controller is the one method calling it from outside the tab button's own class, with
+ *    the count as the call's first argument (on 456 `01uD.A03`, which only the Messages tab's badge
+ *    feeds, since the other tabs show a dot). 457's tab button also calls it itself (`01CA.A0D`),
+ *    showing again the count it was handed last, which the hook has already answered;
  *  - before that call the controller writes the count to its own int field and tests it with
  *    `if-lez`, calling the update above zero and hiding the badge otherwise. The write is where the
  *    hook goes, so the field, the test and the call all see the answer.
@@ -65,10 +67,10 @@ internal fun BytecodePatchContext.findMessagesBadge(): MessagesBadgeHook {
     }
     val update = updates.singleOrNull()
         ?: refuse("expected one tab button method making $BADGE_UPDATE from a count, found ${updates.size}")
-    val calls = classesCalling(update.definingClass, update.name, UPDATE_PARAMETERS, "V").flatMap { it.methods }
-        .flatMap { method -> method.code().withIndex().filter { it.value.calls(update) }.map { method to it.index } }
+    val calls = classesCalling(update.definingClass, update.name, UPDATE_PARAMETERS, "V").filter { it.type != update.definingClass }
+        .flatMap { it.methods }.flatMap { method -> method.code().withIndex().filter { it.value.calls(update) }.map { method to it.index } }
     val (controller, call) = calls.singleOrNull()
-        ?: refuse("expected one call to ${update.describe()}, the Messages tab's badge update, found ${calls.size}")
+        ?: refuse("expected one call to ${update.describe()}, the Messages tab's badge update, from outside its class, found ${calls.size}")
     val code = controller.code()
     val count = when (val invoke = code[call]) {
         is FiveRegisterInstruction -> invoke.registerD

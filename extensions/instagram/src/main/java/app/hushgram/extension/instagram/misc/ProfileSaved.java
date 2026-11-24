@@ -325,8 +325,10 @@ public final class ProfileSaved {
 
     /** Instagram's own link to the Saved screen. Its router only follows it when Instagram sent it. */
     static final String SAVED_LINK = "instagram://saved";
-    /** The screen the link leads to. */
-    static final String SAVED_HANDLER = "com.instagram.urlhandlers.saved.SavedUrlHandlerActivity";
+    /** The screen the link leads to, from 457 on. */
+    static final String SAVED_HANDLER = "com.instagram.save.urlhandlers.saved.SavedUrlHandlerActivity";
+    /** The same screen through 456.1, before Instagram moved it. */
+    static final String OLD_SAVED_HANDLER = "com.instagram.urlhandlers.saved.SavedUrlHandlerActivity";
     /** The bundle a link's screen reads, and the key in it naming the signed-in account. */
     static final String LINK_BUNDLE = "com.instagram.url.extra.BUNDLE";
     static final String SESSION_TOKEN = "IgSessionManager.SESSION_TOKEN_KEY";
@@ -337,17 +339,21 @@ public final class ProfileSaved {
      * can't be sent: Instagram's router follows it only when Instagram sent it, and drops one from anywhere
      * else without a word, HushGram included (453 and 454). So the screen is started by name, with the
      * account's session in the bundle the router would have given it. The language doesn't matter and no
-     * menu opens. False when this build has no such screen or [activity] holds no session. Never throws.
+     * menu opens. The screen goes by its 457 name first, then by the one it had through 456.1. False
+     * when this build has neither screen or [activity] holds no session. Never throws.
      */
     static boolean openSavedScreen(Activity activity) {
         try {
             String token = sessionToken(activity);
             if (token == null) return false;
-            Intent saved = savedIntent(activity.getPackageName(), token);
-            // Intent.resolveActivity answers an explicit component without asking; the package manager checks it's there.
-            if (activity.getPackageManager().resolveActivity(saved, 0) == null) return false;
-            activity.startActivity(saved);
-            return true;
+            for (String handler : new String[] {SAVED_HANDLER, OLD_SAVED_HANDLER}) {
+                Intent saved = savedIntent(activity.getPackageName(), handler, token);
+                // Intent.resolveActivity answers an explicit component without asking; the package manager checks it's there.
+                if (activity.getPackageManager().resolveActivity(saved, 0) == null) continue;
+                activity.startActivity(saved);
+                return true;
+            }
+            return false;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.SAVED_ON_PROFILE, "link", failure);
             return false;
@@ -355,15 +361,16 @@ public final class ProfileSaved {
     }
 
     /**
-     * What Instagram's router makes of its Saved link, for the account whose session is [token], marked
-     * as the bookmark's so the screen opens the tabbed Saved on All ({@link SavedHome}).
+     * What Instagram's router makes of its Saved link for the screen named [handler], for the account
+     * whose session is [token], marked as the bookmark's so the screen opens the tabbed Saved on All
+     * ({@link SavedHome}).
      */
-    static Intent savedIntent(String pkg, String token) {
+    static Intent savedIntent(String pkg, String handler, String token) {
         Bundle bundle = new Bundle();
         bundle.putString(SESSION_TOKEN, token);
         SavedHome.markFromBookmark(bundle);
         return new Intent(Intent.ACTION_VIEW, Uri.parse(SAVED_LINK))
-                .setClassName(pkg, SAVED_HANDLER)
+                .setClassName(pkg, handler)
                 .putExtra(LINK_BUNDLE, bundle);
     }
 

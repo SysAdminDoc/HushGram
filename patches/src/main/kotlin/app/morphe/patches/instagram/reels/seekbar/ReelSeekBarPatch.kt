@@ -67,7 +67,8 @@ internal const val LISTEN = "$EXTENSION_PACKAGE/reels/ReelSeekTouch;->listen(Lan
  */
 // 451: 0x82091900291476. 452 moved it to 0x82090f00291471, 453 to 0x8208fe00291415 (config index -10, slot -5),
 // 454 to 0x8208d0002913a8, 455 to 0x8208c200291371 and 456 to 0x8208b900291365; same three readers.
-internal const val ORGANIC_MIN_SECONDS = 0x8208b900291365L
+// 457 moved it from 456's 0x8208b900291365.
+internal const val ORGANIC_MIN_SECONDS = 0x8208b100291340L
 internal const val ORGANIC_MIN_SECONDS_READS = 3
 
 /**
@@ -76,7 +77,8 @@ internal const val ORGANIC_MIN_SECONDS_READS = 3
  */
 // 451: 0x8109190010330c. 452 moved it to 0x81090f00103271, 453 to 0x8108fe00103259, 454 to 0x8108d00010323f
 // 455 to 0x8108c2001031f3 and 456 to 0x8108b9001031f3, read by the same seek bar row state.
-internal const val ORGANIC_LAZY = 0x8108b9001031f3L
+// 457 moved it from 456's 0x8108b9001031f3.
+internal const val ORGANIC_LAZY = 0x8108b1001031dcL
 internal const val ORGANIC_LAZY_READS = 1
 
 internal const val PASS_THROUGH = "$REEL_SEEK_BAR->passThrough(I)Z"
@@ -87,8 +89,10 @@ internal const val PASS_THROUGH = "$REEL_SEEK_BAR->passThrough(I)Z"
  * enableUniversalScrubberPassThroughGesture and enableScrubberPassThroughGesture. 456 reads each once, in the
  * builder of that config (on 456's 386214574 LX/0JBj->A01), which also reads [ORGANIC_MIN_SECONDS].
  */
-internal const val UNIVERSAL_PASS_THROUGH = 0x8108b9001431f6L
-internal const val ATTACHED_PASS_THROUGH = 0x8108b9001131f4L
+// 457 moved it from 456's 0x8108b9001431f6.
+internal const val UNIVERSAL_PASS_THROUGH = 0x8108b1001431dfL
+// 457 moved it from 456's 0x8108b9001131f4.
+internal const val ATTACHED_PASS_THROUGH = 0x8108b1001131ddL
 
 /**
  * What the check of whether a reel gets the attached bar takes: the session, the reel's length and two

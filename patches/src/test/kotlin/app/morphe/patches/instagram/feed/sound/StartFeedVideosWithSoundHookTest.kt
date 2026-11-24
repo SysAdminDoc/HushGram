@@ -171,10 +171,31 @@ class StartFeedVideosWithSoundHookTest {
         }
     }
 
+    /**
+     * 457 branches onto the flag call from after the state is made (06mS.A0D on 386314341): the branch lands on the
+     * hook, the flag call still follows it, and nothing outside the hook goes straight to the call.
+     */
+    @Test
+    fun aJumpOntoTheCallLandsOnTheHook() {
+        val context = PatchContexts.of(classes(shape = StartShape.JUMP_AFTER_STATE))
+        val original = context.start().code().size
+
+        context.apply { applyFeedSound(findFeedSoundSite()) }
+
+        val code = context.start().code()
+        val ask = code.indexOfFirst { it.referenceText() == FEED_START_WITH_SOUND }
+        val call = ask - 1 + hookLength
+        assertEquals("the flag call follows the hook", "$item->setSound(Z)V", code[call].referenceText())
+        assertEquals("the branch lands on the hook", 1, code.take(ask - 1).count { it.jumpTarget() == ask - 1 })
+        assertTrue("nothing outside the hook goes straight to the call", code.take(ask - 1).none { it.jumpTarget() == call })
+        assertEquals("what's left of the method", original + hookLength, code.size)
+    }
+
+    /** A branch onto the call from before the state is made can't be told which state it hands the flag to. */
     @Test
     fun aJumpIntoTheCallOrAnOverwrittenControllerFails() {
         val jump = assertThrows(PatchException::class.java) { PatchContexts.of(classes(shape = StartShape.JUMP_TO_CALL)).findFeedSoundSite() }
-        assertTrue(jump.message!!, jump.message!!.contains("jumps to the sound flag call"))
+        assertTrue(jump.message!!, jump.message!!.contains("found 0"))
         val overwritten = assertThrows(PatchException::class.java) { PatchContexts.of(classes(shape = StartShape.THIS_OVERWRITTEN)).findFeedSoundSite() }
         assertTrue(overwritten.message!!, overwritten.message!!.isNotEmpty())
     }
@@ -263,7 +284,7 @@ class StartFeedVideosWithSoundHookTest {
             .toSet() + holder.type + toggles.map { it.type } + called.filter { it.startsWith("L") }
     }
 
-    private enum class StartShape { PLAIN, NO_CALL, TWO_STATES, FLAG_FROM_A_CALL, STATE_REWRITTEN, JUMP_TO_CALL, THIS_OVERWRITTEN }
+    private enum class StartShape { PLAIN, NO_CALL, TWO_STATES, FLAG_FROM_A_CALL, STATE_REWRITTEN, JUMP_TO_CALL, JUMP_AFTER_STATE, THIS_OVERWRITTEN }
 
     /**
      * A small app: a controller holding the user session, whose video start makes a state object, hands it a flag that
@@ -294,11 +315,12 @@ class StartFeedVideosWithSoundHookTest {
         val setCall = when (shape) {
             StartShape.NO_CALL -> ""
             StartShape.TWO_STATES -> "invoke-virtual { v2, v0 }, $item->setSound(Z)V\nnew-instance v2, $item\ninvoke-virtual { v2, v0 }, $item->setSound(Z)V"
-            StartShape.JUMP_TO_CALL -> ":call\ninvoke-virtual { v2, v0 }, $item->setSound(Z)V"
+            StartShape.JUMP_TO_CALL, StartShape.JUMP_AFTER_STATE -> ":call\ninvoke-virtual { v2, v0 }, $item->setSound(Z)V"
             else -> "invoke-virtual { v2, v0 }, $item->setSound(Z)V"
         }
         val rewritten = if (shape == StartShape.STATE_REWRITTEN) "const/4 v2, 0x0" else ""
         val jumpIn = if (shape == StartShape.JUMP_TO_CALL) "if-eqz p9, :call" else ""
+        val jumpAfter = if (shape == StartShape.JUMP_AFTER_STATE) "if-eqz p9, :call" else ""
         val thisBefore = if (shape == StartShape.THIS_OVERWRITTEN) "const/4 p0, 0x0" else ""
         val parameters = listOf(media, "Ljava/lang/Object;", "Ljava/lang/Object;", "Ljava/lang/Object;", "I", "I", "I", "Z", "Z", "Z")
         val start = method(controller, "start", parameters, "V", 10, body = """
@@ -306,6 +328,7 @@ class StartFeedVideosWithSoundHookTest {
             $flagInit
             $jumpIn
             $make
+            $jumpAfter
             $rewritten
             $setCall
             iput-object v2, p0, $controller->item:$item

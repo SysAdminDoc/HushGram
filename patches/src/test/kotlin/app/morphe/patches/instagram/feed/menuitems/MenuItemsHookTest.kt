@@ -115,8 +115,11 @@ class MenuItemsHookTest {
             .mapNotNull { instruction ->
                 when (val reference = (instruction as? ReferenceInstruction)?.reference) {
                     is FieldReference -> reference.definingClass.takeIf { instruction.opcode == Opcode.IPUT_OBJECT }
+                    // 457 sets a row's key in its constructor, so the row's class comes along by its <init>.
                     is MethodReference -> reference.definingClass.takeIf {
-                        instruction.opcode == Opcode.INVOKE_VIRTUAL || instruction.opcode == Opcode.INVOKE_VIRTUAL_RANGE
+                        instruction.opcode == Opcode.INVOKE_VIRTUAL || instruction.opcode == Opcode.INVOKE_VIRTUAL_RANGE ||
+                            ((instruction.opcode == Opcode.INVOKE_DIRECT || instruction.opcode == Opcode.INVOKE_DIRECT_RANGE) &&
+                                reference.name == "<init>")
                     }
                     else -> null
                 }

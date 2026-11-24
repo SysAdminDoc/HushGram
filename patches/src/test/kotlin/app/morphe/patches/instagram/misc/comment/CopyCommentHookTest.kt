@@ -261,7 +261,9 @@ class CopyCommentHookTest {
                 is TypeReference -> dependencies += reference.type
             }
         }
-        val classes = (core + FixtureDex.classes(bundle, dependencies).values).distinctBy { it.type }
+        val loaded = (core + FixtureDex.classes(bundle, dependencies).values).distinctBy { it.type }
+        val classes = (loaded + FixtureDex.classes(bundle, CommentWorld.rowConversionTypes(loaded) - loaded.map { it.type }.toSet()).values)
+            .distinctBy { it.type }
         val patch = PatchContexts.of(classes + extension())
         val legacy = classes.filter { type -> type.methods.any { COMMENT_LEGACY in it.strings() } }.map { it.type }
         assertTrue("fixture lost the separate legacy surface", legacy.isNotEmpty())
@@ -274,8 +276,11 @@ class CopyCommentHookTest {
         val author = menu.author ?: error("${label}: Copy username's boundaries weren't found")
         assertEquals(menu.surface.raw, author.user.definingClass)
         assertEquals(USER, author.user.returnType)
-        val stockLabel = labelSite(renderer, author.label)
-        assertEquals(GET_STRING, renderer.code()[stockLabel.at + 2].call().toString())
+        // 457 reads the label in the renderer's row helper (LX/0hPd;->A01 on 386314341).
+        val holder = patch.mutableClassDefBy(author.labelIn.definingClass).methods.single { it.matches(author.labelIn) }
+        val inRenderer = holder.matches(menu.surface.renderer)
+        val stockLabel = labelSite(holder, author.label)
+        assertEquals(GET_STRING, holder.code()[stockLabel.at + 2].call().toString())
         assertEquals("$label: the patch keeps the raw comment", model.fields.none { it.type == raw }, menu.surface.keeping != null)
         copyCommentPatch.execute(patch)
         assertWiring(patch, menu)
@@ -283,22 +288,22 @@ class CopyCommentHookTest {
         assertEquals("${label}: Copy's status", 1, status(patch, "commentCopy"))
         assertEquals("${label}: Copy username's status", 1, status(patch, COMMENT_AUTHOR_STATUS))
         val hook = renderer.code().indexOfFirst { it.call()?.toString() == COMMENT_HOOK }
-        val labelAt = renderer.code().indexOfFirst { it.call()?.toString() == AUTHOR_LABEL }
-        assertEquals("one label read goes through Copy username", 1, renderer.code().count { it.call()?.toString() == AUTHOR_LABEL })
-        assertEquals("the label read keeps its place", Opcode.IGET, renderer.code()[labelAt - 1].opcode)
-        assertEquals(author.label.idField.toString(), renderer.code()[labelAt - 1].field().toString())
-        assertEquals(Opcode.MOVE_RESULT_OBJECT, renderer.code()[labelAt + 1].opcode)
+        val labelAt = holder.code().indexOfFirst { it.call()?.toString() == AUTHOR_LABEL }
+        assertEquals("one label read goes through Copy username", 1, holder.code().count { it.call()?.toString() == AUTHOR_LABEL })
+        assertEquals("the label read keeps its place", Opcode.IGET, holder.code()[labelAt - 1].opcode)
+        assertEquals(author.label.idField.toString(), holder.code()[labelAt - 1].field().toString())
+        assertEquals(Opcode.MOVE_RESULT_OBJECT, holder.code()[labelAt + 1].opcode)
         assertEquals("the call keeps the row's context and id, and adds the row",
-            renderer.code()[labelAt].arguments(), listOf(stockLabel.context, stockLabel.id, stockLabel.row))
-        assertTrue("no row label is read past Copy username", renderer.code().none { it.call()?.toString() == GET_STRING &&
-            renderer.code().getOrNull(renderer.code().indexOf(it) - 1)?.field()?.toString() == author.label.idField.toString() })
+            holder.code()[labelAt].arguments(), listOf(stockLabel.context, stockLabel.id, stockLabel.row))
+        assertTrue("no row label is read past Copy username", holder.code().none { it.call()?.toString() == GET_STRING &&
+            holder.code().getOrNull(holder.code().indexOf(it) - 1)?.field()?.toString() == author.label.idField.toString() })
         val reader = patch.mutableClassDefBy(AUTHOR_NATIVE).methods.single { it.name == "author" }.code()
         assertTrue(reader.any { it.field()?.toString() == menu.surface.rawField.toString() })
         assertTrue(reader.any { it.call()?.toString() == author.user.toString() })
         assertEquals(menu.surface.rowConstructor.definingClass, patch.mutableClassDefBy(AUTHOR_ROW).superclass)
         val username = patch.mutableClassDefBy(INSTAGRAM_MEDIA).methods.single { it.name == "username" }.code()
         assertTrue("User's username bridge is written", username.any { it.call()?.definingClass == USER })
-        original.assertPreserved(label, renderer, (hook - 3..hook + 1).toSet(), setOf(labelAt))
+        original.assertPreserved(label, renderer, (hook - 3..hook + 1).toSet(), if (inRenderer) setOf(labelAt) else emptySet())
         assertEquals("legacy surface must not be reported as patched", unchanged, CommentWorld.snapshot(patch, legacy))
     }
 

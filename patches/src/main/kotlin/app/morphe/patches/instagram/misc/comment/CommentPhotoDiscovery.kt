@@ -18,6 +18,7 @@ import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
@@ -325,19 +326,25 @@ private fun Method.outlinedRead(classes: Map<String, ClassDef>): Method? {
  * The media kind meaning a still photo: the enum the media's media_type reads are mapped through,
  * whose PHOTO constant is built, on a path with no branch, with a constant its constructor keeps.
  * The mapping is a static (Integer) call answering the enum, or on 454 that call inlined, a get
- * on a static Map the enum keeps (`LX/07jb;->A01` in `Media;->AM0` on 386014758).
+ * on a static Map the enum keeps (`LX/07jb;->A01` in `Media;->AM0` on 386014758). 457 moved it into
+ * the media's Kotlin extensions, a static taking the Integer first (`MediaExtKt;->A0a(Integer, boolean)`
+ * on 386314341).
  */
 private fun photoKind(media: ClassDef, classes: Map<String, ClassDef>): Int {
-    val kinds = media.methods.filter { it.loads("media_type".hashCode()) }.flatMap { method ->
+    fun mapsIn(code: List<Instruction>) = code.indices.filter { at -> code[at].opcode == Opcode.SGET_OBJECT && code[at].field()?.type == MAP &&
+        code.getOrNull(at + 1)?.let { get -> get.opcode == Opcode.INVOKE_INTERFACE && get.call()?.toString() == MAP_GET &&
+            get.arguments().firstOrNull() == (code[at] as OneRegisterInstruction).registerA } == true
+    }.map { code[it].field()!!.definingClass }
+    val read = media.methods.filter { it.loads("media_type".hashCode()) }.flatMap { method ->
         val code = method.code()
         val calls = code.filter { it.opcode == Opcode.INVOKE_STATIC }.mapNotNull { it.call() }
             .filter { it.parameters() == listOf(INTEGER) }.map { it.returnType }
-        val maps = code.indices.filter { at -> code[at].opcode == Opcode.SGET_OBJECT && code[at].field()?.type == MAP &&
-            code.getOrNull(at + 1)?.let { get -> get.opcode == Opcode.INVOKE_INTERFACE && get.call()?.toString() == MAP_GET &&
-                get.arguments().firstOrNull() == (code[at] as OneRegisterInstruction).registerA } == true
-        }.map { code[it].field()!!.definingClass }
-        (calls + maps).mapNotNull { classes[it] }
-    }.distinctBy { it.type }.filter { type -> AccessFlags.ENUM.isSet(type.accessFlags) &&
+        calls + mapsIn(code)
+    }
+    val extensions = classes["${media.type.removeSuffix(";")}ExtKt;"]?.methods?.toList().orEmpty().filter {
+        AccessFlags.STATIC.isSet(it.accessFlags) && it.parameterTypes.firstOrNull()?.toString() == INTEGER
+    }.flatMap { listOf(it.returnType) + mapsIn(it.code()) }
+    val kinds = (read + extensions).mapNotNull { classes[it] }.distinctBy { it.type }.filter { type -> AccessFlags.ENUM.isSet(type.accessFlags) &&
         type.methods.any { it.name == "<clinit>" && "PHOTO" in it.strings() } }
     val kind = kinds.one("media kind enum")
     val init = kind.methods.filter { it.name == "<clinit>" }.one("media kind initializer")
