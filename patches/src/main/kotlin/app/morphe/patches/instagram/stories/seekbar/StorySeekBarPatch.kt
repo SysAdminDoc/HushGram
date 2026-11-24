@@ -24,7 +24,9 @@ import app.morphe.patches.instagram.misc.extension.localRegisterCount
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.extension.requireThisIntact
 import app.morphe.patches.instagram.misc.settings.settingsPatch
+import app.morphe.patches.instagram.stories.time.STORY_ITEM
 import app.morphe.patches.shared.compat.AppCompatibilities
+import app.morphe.util.addInstructionsAtControlFlowLabel
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
@@ -40,6 +42,7 @@ internal const val STORY_SEEK_BAR = "$EXTENSION_PACKAGE/stories/StorySeekBar;"
 internal const val STORY_SEEK_READER = "$EXTENSION_PACKAGE/stories/StorySeekReader;"
 internal const val SEEK_RESUMED = "$STORY_SEEK_BAR->resumed(Ljava/lang/Object;)V"
 internal const val SEEK_PAUSED = "$STORY_SEEK_BAR->paused(Ljava/lang/Object;)V"
+internal const val SEEK_PLAYING = "$STORY_SEEK_BAR->playing(Ljava/lang/Object;)V"
 
 /** The string the viewer's own resume passes, which picks it out beside the resume holding [RESUME_STORY]. */
 internal const val RESUME = "resume"
@@ -66,6 +69,11 @@ private const val VIEW = "Landroid/view/View;"
  * which pauses the video and the story's timer) and resume (the one handing [RESUME] to the method
  * holding [RESUME_STORY] and calling nothing else), and right after the viewer's onResume and onPause hand on to its
  * superclass, tells the extension the viewer came and went. Nothing else of Instagram's changes.
+ *
+ * The bar catches up with the video every quarter of a second, so on a story whose video wasn't ready
+ * as it came up, such as a reel shared to a story, it hid and came back that long after the video had
+ * started (#618). Before each return of the viewer's callback for a story's video starting, the patch
+ * also tells the extension, which shows the bar then.
  */
 @Suppress("unused")
 val storySeekBarPatch = bytecodePatch(
@@ -89,8 +97,9 @@ private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $det
 
 /**
  * What the stubs call and where the viewer tells the extension: the player interface and its
- * method names, the viewer's static pause and its resume's name, and the viewer's onResume and
- * onPause, each of which hands on to its superclass once with `this`.
+ * method names, the viewer's static pause and its resume's name, the viewer's onResume and
+ * onPause, each of which hands on to its superclass once with `this`, and the viewer's callback for
+ * a story's video starting, by name and parameters.
  */
 internal class StorySeekSites(
     val viewer: String,
@@ -100,6 +109,8 @@ internal class StorySeekSites(
     val seekTo: String,
     val pause: String,
     val resume: String,
+    val started: String,
+    val startedParameters: List<String>,
 )
 
 /**
@@ -117,7 +128,11 @@ internal class StorySeekSites(
  *   one holding [RESUME_STORY] (on 452 F8S; Grw makes the same call and then posts more of its own),
  *   an instance (String, boolean) method on 454;
  * - the viewer's own onResume and onPause, each with one call on to its superclass's, on `this`,
- *   whose next instruction nothing jumps to and where `this` is still the viewer.
+ *   whose next instruction nothing jumps to and where `this` is still the viewer;
+ * - the viewer's callback for a story's video starting (#618), its one instance method taking a story
+ *   first and an object second that calls the player's one (float) method, its speed setter (Gi1 on
+ *   457), with `this` still the viewer at each of its returns. Speed button on stories hooks the same
+ *   callback.
  */
 internal fun BytecodePatchContext.findStorySeek(): StorySeekSites {
     val viewer = classDefByOrNull(REEL_VIEWER_FRAGMENT) ?: refuse("this build has no $REEL_VIEWER_FRAGMENT")
@@ -199,12 +214,40 @@ internal fun BytecodePatchContext.findStorySeek(): StorySeekSites {
         ?: refuse("expected one public no-argument method on $REEL_VIEWER_FRAGMENT handing $RESUME to ${resumer.name} and calling nothing else, found ${resumes.size}")
 
     listOf("onResume", "onPause").forEach { viewer.lifecycleSite(it) }
+    val started = viewer.videoStart(where, shaped(listOf("F"), "V"))
     val reader = classDefByOrNull(STORY_SEEK_READER) ?: refuse("the extension has no $STORY_SEEK_READER")
     STUBS.forEach { (name, shape) ->
         reader.methods.singleOrNull { it.name == name && AccessFlags.STATIC.isSet(it.accessFlags) && it.shape() == shape }
             ?: refuse("$STORY_SEEK_READER has no static $name$shape")
     }
-    return StorySeekSites(viewer.type, playerInterface.type, position, duration, seekTo, pause.reference(), resume.name)
+    return StorySeekSites(
+        viewer.type, playerInterface.type, position, duration, seekTo, pause.reference(), resume.name,
+        started.name, started.parameters(),
+    )
+}
+
+/**
+ * The viewer's callback for a story's video starting (#618): its one instance method taking a story
+ * first and an object second that calls [player]'s one (float) method, of [setters], refused when it
+ * already tells the extension or `this` may hold something else at a return.
+ */
+private fun ClassDef.videoStart(player: String, setters: List<String>): Method {
+    val setter = setters.singleOrNull() ?: refuse("expected one (float) method on $player, its speed setter, found ${setters.size}")
+    val reference = "$player->$setter(F)V"
+    val callbacks = methods.filter { method ->
+        !AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "V" && method.parameters().size >= 2 &&
+            method.parameters()[0] == STORY_ITEM && method.parameters()[1].startsWith("L") &&
+            method.code().any { it.opcode == Opcode.INVOKE_INTERFACE && it.method()?.toString() == reference }
+    }
+    val callback = callbacks.singleOrNull()
+        ?: refuse("expected one method on $REEL_VIEWER_FRAGMENT taking a story and its page that sets the video's speed, found ${callbacks.size}")
+    if (callback.code().any { it.method()?.definingClass == STORY_SEEK_BAR }) {
+        refuse("$REEL_VIEWER_FRAGMENT->${callback.name} already calls $STORY_SEEK_BAR")
+    }
+    val returns = callback.returns()
+    if (returns.isEmpty()) refuse("$REEL_VIEWER_FRAGMENT->${callback.name} never returns")
+    callback.requireThisIntact(PATCH, returns)
+    return callback
 }
 
 /** The extension's stubs, by name and shape. */
@@ -318,9 +361,20 @@ internal fun BytecodePatchContext.hookStorySeek(found: StorySeekSites) {
         target.methods.single { it.name == name && it.parameterTypes.isEmpty() && it.returnType == "V" }
             .addInstructions(at, "invoke-static { p0 }, $hook")
     }
+
+    // #618: before each return of the video start callback, on the label any branch to it carries, from
+    // the last return up so each index found before the first insert still points at its return.
+    val callback = target.methods.single {
+        it.name == found.started && it.parameters() == found.startedParameters && !AccessFlags.STATIC.isSet(it.accessFlags)
+    }
+    for (at in callback.returns().sortedDescending()) {
+        callback.addInstructionsAtControlFlowLabel(at, "invoke-static/range { p0 .. p0 }, $SEEK_PLAYING")
+    }
 }
 
 private fun Method.parameters(): List<String> = parameterTypes.map(Any::toString)
+
+private fun Method.returns(): List<Int> = code().let { code -> code.indices.filter { code[it].opcode == Opcode.RETURN_VOID } }
 
 private fun Method.shape(): String = "(${parameters().joinToString("")})$returnType"
 

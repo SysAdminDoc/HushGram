@@ -74,8 +74,9 @@ public class StorySeekBarTest {
 
         @Override public View view(Object of) { return of == viewer ? viewerView : null; }
         int reads;
+        int durationReads;
         @Override public int position(Object of) { reads++; return position; }
-        @Override public int duration(Object of) { return duration; }
+        @Override public int duration(Object of) { durationReads++; return duration; }
         @Override public boolean seekTo(Object of, int positionMs) {
             calls.add("seek " + positionMs);
             if (liveSeekThrows) throw new IllegalStateException("Check failed.");
@@ -644,6 +645,115 @@ public class StorySeekBarTest {
         drag.start();
         drag.stop();
         assertEquals(Arrays.asList("pause long_pressed", "seek 3000", "resume"), player.calls);
+    }
+
+    /**
+     * #618: going on to a reel shared to a story, a tick came while the reel's video wasn't ready yet
+     * and hid the bar, and the next tick brought it back a quarter of a second after the video had
+     * started, so the bar and its time came in late under the story. The viewer's callback for the
+     * video starting shows them at once, with the new video's length and no tick in between.
+     */
+    @Test
+    public void aVideoStartingShowsTheBarAndItsTimeAtOnce() {
+        Settings.STORY_SEEK_BAR.save(true);
+        Settings.STORY_SEEK_TIME.save(true);
+        StorySeekBar.resumed(viewer);
+        SeekBar bar = bar();
+        TextView time = time();
+        assertEquals("0:03 / 0:15", time.getText().toString());
+
+        // The next story is up, and a tick lands before its video is ready.
+        player.duration = -1;
+        player.position = -1;
+        tick();
+        assertEquals(View.GONE, bar.getVisibility());
+        assertEquals(View.GONE, time.getVisibility());
+
+        player.duration = 40000;
+        player.position = 0;
+        StorySeekBar.playing(viewer);
+        assertEquals("the bar shows as the video starts", View.VISIBLE, bar.getVisibility());
+        assertEquals(40000, bar.getMax());
+        assertEquals(0, bar.getProgress());
+        assertEquals(View.VISIBLE, time.getVisibility());
+        assertEquals("0:00 / 0:40", time.getText().toString());
+    }
+
+    /**
+     * #618: a story's video starting right after another's, the bar showed the last video's time and
+     * length until the next tick. It takes the new video's at once.
+     */
+    @Test
+    public void aVideoStartingRightAfterAnotherTakesItsLengthAtOnce() {
+        Settings.STORY_SEEK_BAR.save(true);
+        Settings.STORY_SEEK_TIME.save(true);
+        StorySeekBar.resumed(viewer);
+        SeekBar bar = bar();
+        TextView time = time();
+
+        player.duration = 30000;
+        player.position = 0;
+        StorySeekBar.playing(viewer);
+        assertEquals(30000, bar.getMax());
+        assertEquals(0, bar.getProgress());
+        assertEquals("0:00 / 0:30", time.getText().toString());
+    }
+
+    /**
+     * #618: a video whose player doesn't know its length yet as it starts gets a look every frame for a
+     * moment, so the bar shows the frame the length comes in, and after that moment the looks stop.
+     */
+    @Test
+    public void aVideoStartingBeforeItsLengthIsKnownShowsTheBarTheFrameItIs() {
+        ShadowChoreographer.setPaused(true);
+        try {
+            Settings.STORY_SEEK_BAR.save(true);
+            StorySeekBar.resumed(viewer);
+            SeekBar bar = bar();
+            player.duration = -1;
+            tick();
+            assertEquals(View.GONE, bar.getVisibility());
+
+            StorySeekBar.playing(viewer);
+            assertEquals(View.GONE, bar.getVisibility());
+            player.duration = 40000;
+            player.position = 0;
+            shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(20));
+            assertEquals("shown a frame later, long before the next tick", View.VISIBLE, bar.getVisibility());
+            assertEquals(40000, bar.getMax());
+
+            // A photo next: the looks a start began end after their moment, and only ticks read on.
+            player.duration = -1;
+            tick();
+            assertEquals(View.GONE, bar.getVisibility());
+            StorySeekBar.playing(viewer);
+            shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(StorySeekBar.START_WATCH_MS + 20));
+            int reads = player.durationReads;
+            shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(StorySeekBar.TICK_MS - 40));
+            assertTrue("no more than a tick reads once the moment is over: " + (player.durationReads - reads),
+                    player.durationReads - reads <= 1);
+        } finally {
+            ShadowChoreographer.setPaused(false);
+        }
+    }
+
+    /** #618: a start from another viewer, or after this one went, changes nothing. */
+    @Test
+    public void aStartFromAnotherViewerOrAfterTheViewerWentDoesNothing() {
+        Settings.STORY_SEEK_BAR.save(true);
+        StorySeekBar.resumed(viewer);
+        SeekBar bar = bar();
+        player.duration = -1;
+        tick();
+        player.duration = 40000;
+        StorySeekBar.playing(new Object());
+        assertEquals(View.GONE, bar.getVisibility());
+
+        StorySeekBar.paused(viewer);
+        StorySeekBar.playing(viewer);
+        assertNull(StorySeekBar.barForTests());
+        assertEquals(View.GONE, bar.getVisibility());
+        assertNull(bar.getParent());
     }
 
     @Test

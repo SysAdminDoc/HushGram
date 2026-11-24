@@ -41,7 +41,9 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * on screen and goes. While it's resumed, a seek bar sits over the bottom of the viewer, just above
  * the row along the story's bottom ({@link #FOOTER}) when that's showing, under any sheet opened over
  * the story, and every {@link #TICK_MS} it shows
- * where the story's video is, following a playing one every frame in between. A photo has no length,
+ * where the story's video is, following a playing one every frame in between. The viewer's callback
+ * for a story's video starting tells {@link #playing} too, so a new video's bar and time show as it
+ * starts rather than at the next tick (#618). A photo has no length,
  * so the bar hides for it. Dragging pauses the
  * story the way a press and hold does; letting go moves the video to that point and plays on, and
  * Instagram's own segment along the top follows the video. A live story's player refuses a seek, so
@@ -91,6 +93,12 @@ public final class StorySeekBar {
      * that doesn't move for longer is a paused video, and the bar settles where it is.
      */
     static final long GLIDE_MS = 150;
+
+    /**
+     * How long, in ms, a story's video that started before its player knew its length gets a look
+     * every frame (#618), so the bar shows the frame the length comes in.
+     */
+    static final long START_WATCH_MS = 500;
 
     /** The fastest the bar takes a story's video to play, in ms of video a ms, past any speed there is. */
     static final float FASTEST = 4f;
@@ -190,6 +198,30 @@ public final class StorySeekBar {
         }
     }
 
+    /**
+     * Called by the story viewer's callback for a story's video starting (#618), with the viewer. The
+     * bar takes the new video's length and place right then, rather than at its next tick, which could
+     * come a quarter of a second after the video was already playing. A video whose player doesn't
+     * know its length yet gets a look every frame for {@link #START_WATCH_MS}.
+     */
+    public static void playing(Object viewer) {
+        try {
+            Utils.runOnMainThreadNowOrLater(() -> started(viewer));
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.STORY_SEEK_BAR, HOOK, failure);
+        }
+    }
+
+    private static void started(Object viewer) {
+        try {
+            Overlay overlay = current;
+            if (overlay == null || overlay.viewer.get() != viewer) return;
+            overlay.started();
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.STORY_SEEK_BAR, HOOK, failure);
+        }
+    }
+
     @VisibleForTesting
     static void playerForTests(Player stand) {
         player = stand;
@@ -263,6 +295,13 @@ public final class StorySeekBar {
         boolean framing;
         final Runnable frame = this::frame;
         /**
+         * Until when a video that started before its length was known gets a look every frame (#618),
+         * and whether one is coming.
+         */
+        long watchUntil;
+        boolean watching;
+        final Runnable watch = this::watch;
+        /**
          * The rows this bar lifted to make room under them (#636), each with the translation it had
          * before, and how far up they went. Weak, since Instagram drops a story's views as it pages.
          */
@@ -309,18 +348,53 @@ public final class StorySeekBar {
             if (!removed) Utils.runOnMainThreadDelayed(this, TICK_MS);
         }
 
-        private void update(Object owner) {
+        /**
+         * A story's video started (#618): the bar shows its length and place now. When the player
+         * doesn't know the length yet, it looks again every frame for {@link #START_WATCH_MS}, so it
+         * shows the frame the length comes in; a photo's stays unknown and the looks run out.
+         */
+        void started() {
+            Object owner = viewer.get();
+            if (removed || owner == null) return;
+            forget();
+            if (update(owner) || !wanted()) return;
+            watchUntil = SystemClock.uptimeMillis() + START_WATCH_MS;
+            if (!watching) look(owner);
+        }
+
+        private void look(Object owner) {
+            View view = player.view(owner);
+            if (view == null) return;
+            watching = true;
+            view.postOnAnimation(watch);
+        }
+
+        /** One frame's look at a video that started before its length was known. */
+        private void watch() {
+            watching = false;
+            Object owner = viewer.get();
+            if (removed || owner == null) return;
+            try {
+                if (update(owner) || !wanted() || SystemClock.uptimeMillis() >= watchUntil) return;
+                look(owner);
+            } catch (Throwable failure) {
+                HookStatus.threw(FamilyNames.STORY_SEEK_BAR, HOOK, failure);
+            }
+        }
+
+        /** Shows the bar where the video is, or hides it; true when it shows. */
+        private boolean update(Object owner) {
             if (!wanted()) {
                 hide(owner);
-                return;
+                return false;
             }
             int duration = player.duration(owner);
             if (duration <= 0) {
                 hide(owner);
-                return;
+                return false;
             }
             GlassSeekBar seek = bar != null ? bar : make(owner);
-            if (seek == null) return;
+            if (seek == null) return false;
             seek.look(Settings.STORY_SEEK_BAR_LOOK.get());
             seek.shape(SeekShapes.wanted(), false);
             if (!dragging) {
@@ -330,6 +404,7 @@ public final class StorySeekBar {
             place(owner, seek);
             if (seek.getVisibility() != View.VISIBLE) seek.setVisibility(View.VISIBLE);
             showTime(seek);
+            return true;
         }
 
         /**

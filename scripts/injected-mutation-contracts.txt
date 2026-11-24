@@ -3955,6 +3955,11 @@ once-call Lapp/hushgram/extension/instagram/stories/StorySound;->resuming(Ljava/
 # StorySeekBarHookTest checks on the 452 fixtures that each call sits right after the super call.
 once-call Lapp/hushgram/extension/instagram/stories/StorySeekBar;->resumed(Ljava/lang/Object;)V in instance ()V holding ReelViewerFragment.onResume
 once-call Lapp/hushgram/extension/instagram/stories/StorySeekBar;->paused(Ljava/lang/Object;)V in instance ()V holding ReelViewerFragment.onPause
+# It also calls StorySeekBar.playing() with the viewer right before the return of the viewer's video
+# start callback (#618), the one method calling the mVideoPlayer field's (float) setter, which Speed
+# button on stories hooks too (Gi1 on 457.0.0.55.73 arm64). Left out, a new video's bar and time come
+# back at the next tick, a quarter of a second late; twice or elsewhere, it isn't the call the patch wrote.
+once-call Lapp/hushgram/extension/instagram/stories/StorySeekBar;->playing(Ljava/lang/Object;)V in instance (Lcom/instagram/model/reels/ReelItem;L*;ZZ)V pooled holding STORY_SOUND_ON audio\sstate\sdid\snot\smatch
 # Hide the reply box on stories tells StoryReplyBox the story viewer came back, once, right after
 # ReelViewerFragment's onResume hands on to its superclass's (#486). Left out, the box never
 # hides; twice or elsewhere, it isn't the call the patch wrote.
