@@ -2433,6 +2433,18 @@ once-call Lapp/hushgram/extension/instagram/share/ShareSheet;->hideGroupSend()Z 
 once-call Lapp/hushgram/extension/instagram/share/QuickSend;->people(I)I in instance (*)V pooled holding add_content_note
 once-call Lapp/hushgram/extension/instagram/share/QuickSend;->people(I)I in instance (I)V pooled class-holding spring Landroid/widget/PopupWindow;-><init>()V Landroid/view/ViewGroup$LayoutParams;->width:I
 once-call Lapp/hushgram/extension/instagram/share/QuickSend;->people(I)I in instance (Landroid/app/Activity;Landroid/graphics/Rect;Landroid/view/ViewParent;LX/*;Lcom/instagram/common/session/UserSession;Lcom/instagram/feed/media/Media;Ljava/lang/Integer;IJ)V pooled class-holding spring Landroid/widget/PopupWindow;-><init>()V Landroid/view/ViewGroup$LayoutParams;->width:I
+# The popup's layout has four slots, so the same constructor inflates it through QuickSend.inflate,
+# in place of its one LayoutInflater.inflate and with its registers, so the copies the extra slots
+# come from are of that layout, and right before its one return asks QuickSend.addSlots for a slot
+# for each face past four, keeping how many it made room for as the most faces. The face for each
+# rank, the one constructor loading "rank higher than MAX_AVATAR_COUNT", asks QuickSend.avatarId and
+# QuickSend.labelId for a rank past the ones it knows before it throws. Left out, a fifth face finds
+# no slot and the popup crashes when Share is held (discussion #811); twice or elsewhere, it isn't
+# the ask the patch wrote. QuickSendHookTest checks each lands where it should.
+sole-call Lapp/hushgram/extension/instagram/share/QuickSend;->inflate(Landroid/view/LayoutInflater;ILandroid/view/ViewGroup;)Landroid/view/View; replacing Landroid/view/LayoutInflater;->inflate(ILandroid/view/ViewGroup;)Landroid/view/View; in instance (Landroid/app/Activity;Landroid/graphics/Rect;Landroid/view/ViewParent;LX/*;Lcom/instagram/common/session/UserSession;Lcom/instagram/feed/media/Media;Ljava/lang/Integer;IJ)V pooled class-holding spring Landroid/widget/PopupWindow;-><init>()V Landroid/view/ViewGroup$LayoutParams;->width:I
+once-call Lapp/hushgram/extension/instagram/share/QuickSend;->addSlots(Landroid/widget/PopupWindow;I)I in instance (Landroid/app/Activity;Landroid/graphics/Rect;Landroid/view/ViewParent;LX/*;Lcom/instagram/common/session/UserSession;Lcom/instagram/feed/media/Media;Ljava/lang/Integer;IJ)V pooled class-holding spring Landroid/widget/PopupWindow;-><init>()V Landroid/view/ViewGroup$LayoutParams;->width:I
+once-call Lapp/hushgram/extension/instagram/share/QuickSend;->avatarId(I)I in instance (LX/*;I)V pooled holding rank\shigher\sthan\sMAX_AVATAR_COUNT
+once-call Lapp/hushgram/extension/instagram/share/QuickSend;->labelId(I)I in instance (LX/*;I)V pooled holding rank\shigher\sthan\sMAX_AVATAR_COUNT
 # Story ring size passes the stories row's item size through StoryRing.size right after each of the
 # three places a method settles it, in the row's dimensions and in two static helpers on 449. It gets
 # no rule: none of the three loads a string or reads a field of its own the others don't, and every

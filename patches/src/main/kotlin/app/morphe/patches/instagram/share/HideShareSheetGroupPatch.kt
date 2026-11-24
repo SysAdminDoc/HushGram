@@ -6,10 +6,12 @@ package app.morphe.patches.instagram.share
 
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
+import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
 import app.morphe.patcher.extensions.InstructionExtensions.replaceInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
+import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.enableStatus
@@ -21,6 +23,7 @@ import app.morphe.patches.instagram.misc.extension.patchLog
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
+import app.morphe.util.addInstructionsAtControlFlowLabel
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
@@ -40,6 +43,16 @@ internal const val HIDE_GROUP_SEND = "$EXTENSION_PACKAGE/share/ShareSheet;->hide
 internal const val FILTER_ACTIONS = "$EXTENSION_PACKAGE/share/ShareSheetActions;->filter(Ljava/util/List;)Ljava/util/List;"
 internal const val HIDE_SEARCH_BOX = "$EXTENSION_PACKAGE/share/ShareSheet;->searchBox(Landroid/view/View;)V"
 internal const val QUICK_SEND_PEOPLE = "$EXTENSION_PACKAGE/share/QuickSend;->people(I)I"
+internal const val QUICK_SEND_INFLATE =
+    "$EXTENSION_PACKAGE/share/QuickSend;->inflate(Landroid/view/LayoutInflater;ILandroid/view/ViewGroup;)Landroid/view/View;"
+internal const val QUICK_SEND_SLOTS = "$EXTENSION_PACKAGE/share/QuickSend;->addSlots(Landroid/widget/PopupWindow;I)I"
+internal const val QUICK_SEND_AVATAR = "$EXTENSION_PACKAGE/share/QuickSend;->avatarId(I)I"
+internal const val QUICK_SEND_LABEL = "$EXTENSION_PACKAGE/share/QuickSend;->labelId(I)I"
+
+/** The message the face for a rank throws with past the ranks it knows. Only that constructor loads it. */
+internal const val QUICK_SEND_RANKS = "rank higher than MAX_AVATAR_COUNT"
+private const val POPUP_WINDOW = "Landroid/widget/PopupWindow;"
+private const val LAYOUT_INFLATER = "Landroid/view/LayoutInflater;"
 
 /**
  * The name the share sheet's list gives its Add a note entry, which the row a long press on Share
@@ -353,6 +366,7 @@ internal fun BytecodePatchContext.hookSearchBox(site: SearchBoxSite) {
  * width clamp, the `(I)V` method it hands the row's size to, which keeps the size at four or less
  * with a `const/4 vM, 4` and a `const/4 p1, 4`, and vM there; and the clamp class's constructor,
  * the index of the `iput` keeping the most faces the row draws, and the register holding its four.
+ * [slots] says where the faces past Instagram's go.
  */
 internal class QuickSendSites(
     val fill: SheetMethod,
@@ -364,6 +378,37 @@ internal class QuickSendSites(
     val build: SheetMethod,
     val cap: Int,
     val faces: Int,
+    val slots: QuickSendSlots,
+)
+
+/**
+ * Where the row gets room for more faces than its layout has. Instagram's layout holds four slots, an
+ * avatar and its name each, and the class making a face for each rank finds its slot by a switch over
+ * the ranks it knows, five, throwing past them. In the popup's constructor: [inflate], the index of
+ * its one `LayoutInflater.inflate(int, ViewGroup)`, which [QUICK_SEND_INFLATE] takes over so the
+ * layout is known; [end], its one `return-void`, where [QUICK_SEND_SLOTS] adds the slots and the
+ * most faces is kept again as the count it made room for; and [kept], that field. In [slot], the
+ * constructor of a face by rank: [ranks], the index of its `const-string` of [QUICK_SEND_RANKS]
+ * that starts the throw; [tail], the index where every rank's branch meets to find the slot's name
+ * with [find] on the content view in [content] and the id in [id]; the registers holding the rank
+ * and the popup; [avatar], the field the slot's avatar is kept in; and [look], the call each known
+ * rank finds its avatar with. The two lookups differ where Redex folded the name's cast to a text
+ * view into [find] (armeabi-v7a), so the avatar, an image, never goes through it.
+ */
+internal class QuickSendSlots(
+    val inflate: Int,
+    val end: Int,
+    val kept: String,
+    val slot: SheetMethod,
+    val ranks: Int,
+    val tail: Int,
+    val find: String,
+    val content: Int,
+    val id: Int,
+    val rank: Int,
+    val popup: Int,
+    val avatar: String,
+    val look: String,
 )
 
 /**
@@ -424,7 +469,80 @@ internal fun BytecodePatchContext.findQuickSend(): QuickSendSites {
     }.map { it.first }
     val (build, cap, faces) = caps.singleOrNull() ?: refuse("expected one constructor of ${call.definingClass} keeping four faces, found ${caps.size}")
     if (cap in build.jumpTargets()) refuse("a branch enters ${call.definingClass}'s constructor at its four faces")
-    return QuickSendSites(fill.site(type), four, count, clamp.site(call.definingClass), limit, size, build.site(call.definingClass), cap, faces)
+    val kept = ((build.implementation!!.instructions.elementAt(cap) as ReferenceInstruction).reference as FieldReference).toString()
+    val slots = findQuickSendSlots(call.definingClass, build, kept)
+    return QuickSendSites(fill.site(type), four, count, clamp.site(call.definingClass), limit, size, build.site(call.definingClass), cap, faces, slots)
+}
+
+/**
+ * Finds where the row gets room for more faces ([QuickSendSlots]): in the popup's constructor
+ * [build] its one inflate and its one `return-void`, and the one constructor loading
+ * [QUICK_SEND_RANKS], which takes the popup and a rank, and in it the throw, the one call finding
+ * the slot's name every rank's branch meets at, the popup's register and the avatar's field. Fails
+ * unless each is there once and in reach of the plain invokes and field writes the patch adds.
+ */
+private fun BytecodePatchContext.findQuickSendSlots(popup: String, build: Method, kept: String): QuickSendSlots {
+    val made = build.implementation!!.instructions.toList()
+    val inflates = made.indices.filter { at ->
+        val call = (made[at] as? ReferenceInstruction)?.reference as? MethodReference
+        made[at].opcode == Opcode.INVOKE_VIRTUAL && call != null && call.definingClass == LAYOUT_INFLATER && call.name == "inflate" &&
+            call.parameterTypes.map(CharSequence::toString) == listOf("I", "Landroid/view/ViewGroup;") && call.returnType == VIEW
+    }
+    val inflate = inflates.singleOrNull() ?: refuse("$popup's constructor inflates ${inflates.size} layouts, expected one")
+    val ends = made.indices.filter { made[it].opcode == Opcode.RETURN_VOID }
+    val end = ends.singleOrNull() ?: refuse("$popup's constructor returns in ${ends.size} places, expected one")
+    // The slots go in with the popup in p0 and the count in v0, both plain invoke registers.
+    if (build.locals() > 15) refuse("$popup's constructor keeps this past v15")
+
+    val makers = classesLoadingString(QUICK_SEND_RANKS).flatMap { classDef ->
+        classDef.methods.filter { it.name == "<init>" && loadsString(it, QUICK_SEND_RANKS) }.map { classDef.type to it }
+    }
+    val (type, slot) = makers.singleOrNull() ?: refuse("expected one constructor loading \"$QUICK_SEND_RANKS\", found ${makers.size}")
+    val at = "$type's constructor"
+    if (slot.parameters() != listOf(popup, "I")) refuse("$at doesn't take the popup and a rank")
+    val code = slot.implementation!!.instructions.toList()
+    val ranks = code.indices.singleOrNull { (code[it] as? ReferenceInstruction)?.reference?.toString() == QUICK_SEND_RANKS }
+        ?: refuse("$at loads \"$QUICK_SEND_RANKS\" more than once")
+    if (code.drop(ranks + 1).take(3).none { it.opcode == Opcode.THROW }) refuse("$at doesn't throw past the ranks it knows")
+    val targets = slot.jumpTargets()
+    if (ranks in targets) refuse("a branch enters $at at its throw")
+    val compared = code.take(ranks).filter { it.opcode == Opcode.IF_EQ }.map { (it as TwoRegisterInstruction).registerA }.toSet()
+    val rank = compared.singleOrNull() ?: refuse("$at tests ${compared.size} registers against the ranks, expected one")
+
+    val meets = code.indices.filter { it in targets && code[it].findsView() }
+    val tail = meets.singleOrNull() ?: refuse("expected one call finding a view where $at's ranks meet, found ${meets.size}")
+    val find = code[tail] as FiveRegisterInstruction
+    val shown = code.filter { it.opcode == Opcode.INVOKE_VIRTUAL && it.calls(POPUP_WINDOW, "getContentView") }
+        .map { (it as FiveRegisterInstruction).registerC }.toSet()
+    val window = shown.singleOrNull() ?: refuse("$at reads the popup's content view from ${shown.size} registers, expected one")
+    val avatars = code.filter { it.opcode == Opcode.IPUT_OBJECT }.map { (it as ReferenceInstruction).reference as FieldReference }
+        .filter { it.definingClass == type && it.type == VIEW }.map(FieldReference::toString).toSet()
+    val avatar = avatars.singleOrNull() ?: refuse("$at keeps ${avatars.size} views of its own, expected the avatar alone")
+    // Each known rank keeps the view its lookup answered: the call two before each write of the avatar.
+    val looks = code.indices.filter { (code[it] as? ReferenceInstruction)?.reference?.toString() == avatar && code[it].opcode == Opcode.IPUT_OBJECT }
+        .map { put -> code.getOrNull(put - 2)?.takeIf { it.findsView() && code[put - 1].opcode == Opcode.MOVE_RESULT_OBJECT } }
+    if (looks.isEmpty() || looks.any { it == null }) refuse("$at keeps an avatar it didn't find with a view lookup")
+    val look = looks.map { (it as ReferenceInstruction).reference }
+        .filter { (it as MethodReference).returnType == VIEW }.map(Any::toString).toSet().singleOrNull()
+        ?: refuse("$at finds its avatars with other than one lookup answering a view")
+    val registers = listOf(find.registerC, find.registerD, rank, window)
+    if (registers.toSet().size != 4) refuse("$at shares a register between the rank, the popup and the slot's lookup")
+    if (registers.any { it > 15 } || slot.locals() > 15) refuse("$at keeps a register the patch writes past v15")
+    return QuickSendSlots(
+        inflate, end, kept, slot.site(type), ranks, tail, (find as ReferenceInstruction).reference.toString(),
+        find.registerC, find.registerD, rank, window, avatar, look,
+    )
+}
+
+/**
+ * Whether this is a static `(View, int)` call with two registers answering a view, Instagram's view
+ * lookup that never answers null. Where Redex folded a cast into it, it answers the view's own class.
+ */
+private fun Instruction.findsView(): Boolean {
+    if (opcode != Opcode.INVOKE_STATIC) return false
+    val call = (this as ReferenceInstruction).reference as? MethodReference ?: return false
+    return call.returnType.startsWith("L") && call.parameterTypes.map(CharSequence::toString) == listOf(VIEW, "I") &&
+        (this as FiveRegisterInstruction).registerCount == 2
 }
 
 /**
@@ -488,12 +606,67 @@ internal fun BytecodePatchContext.askQuickSendPeople(sites: QuickSendSites) {
         """,
     )
     clamp.replaceInstruction(4, "move v${sites.size}, v${sites.limit}")
-    mutableMethod(sites.build).addInstructions(
+    val slots = sites.slots
+    val build = mutableMethod(sites.build)
+    // Last first, so the earlier sites keep their indices: the slots before the return, which a
+    // branch onto it runs too; the inflate, in place; then the most faces.
+    build.addInstructionsAtControlFlowLabel(
+        slots.end,
+        """
+            iget v0, p0, ${slots.kept}
+            invoke-static { p0, v0 }, $QUICK_SEND_SLOTS
+            move-result v0
+            iput v0, p0, ${slots.kept}
+        """,
+    )
+    val inflate = build.getInstruction<FiveRegisterInstruction>(slots.inflate)
+    build.replaceInstruction(
+        slots.inflate,
+        "invoke-static { v${inflate.registerC}, v${inflate.registerD}, v${inflate.registerE} }, $QUICK_SEND_INFLATE",
+    )
+    build.addInstructions(
         sites.cap,
         """
             invoke-static/range { v${sites.faces} .. v${sites.faces} }, $QUICK_SEND_PEOPLE
             move-result v${sites.faces}
         """,
+    )
+    askQuickSendRanks(slots)
+}
+
+/**
+ * Gives the face for a rank past the ones Instagram knows the slot [QUICK_SEND_SLOTS] made for it:
+ * right before the throw, [QUICK_SEND_AVATAR] answers the avatar's id for the rank, or zero for a
+ * rank with no slot, which goes on to the throw. With an id, the avatar is found and kept as a
+ * known rank's is, the name's id comes from [QUICK_SEND_LABEL], and it goes on where the known
+ * ranks meet to find the name.
+ */
+private fun BytecodePatchContext.askQuickSendRanks(slots: QuickSendSlots) {
+    val slot = mutableMethod(slots.slot)
+    val content = "v${slots.content}"
+    val id = "v${slots.id}"
+    val rank = "v${slots.rank}"
+    val popup = "v${slots.popup}"
+    slot.addInstructionsWithLabels(
+        slots.ranks,
+        """
+            invoke-static { $rank }, $QUICK_SEND_AVATAR
+            move-result $id
+            if-eqz $id, :ranks
+            invoke-virtual { $popup }, $POPUP_WINDOW->getContentView()$VIEW
+            move-result-object $content
+            invoke-static { $content, $id }, ${slots.look}
+            move-result-object $content
+            iput-object $content, p0, ${slots.avatar}
+            invoke-virtual { $popup }, $POPUP_WINDOW->getContentView()$VIEW
+            move-result-object $content
+            invoke-static { $rank }, $QUICK_SEND_LABEL
+            move-result $id
+            goto :meet
+            :ranks
+            nop
+        """,
+        ExternalLabel("meet", slot.getInstruction(slots.tail)),
     )
 }
 

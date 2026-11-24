@@ -20,6 +20,7 @@ import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
@@ -41,11 +42,25 @@ import java.io.File
  */
 class QuickSendHookTest {
     @Test
-    fun theHookIsInTheExtension() {
+    fun theHooksAreInTheExtension() {
         val declared = ExtensionDex.classDef(QUICK_SEND_PEOPLE.substringBefore("->")).methods
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
-        assertTrue("$QUICK_SEND_PEOPLE is not in the extension: $declared", QUICK_SEND_PEOPLE.substringAfter("->") in declared)
+        for (hook in listOf(QUICK_SEND_PEOPLE, QUICK_SEND_INFLATE, QUICK_SEND_SLOTS, QUICK_SEND_AVATAR, QUICK_SEND_LABEL)) {
+            assertTrue("$hook is not in the extension: $declared", hook.substringAfter("->") in declared)
+        }
+    }
+
+    /** A face maker that no longer throws past the ranks it knows isn't the one the slots were written for. */
+    @Test
+    fun aFaceMakerThatNoLongerThrowsLeavesTheSwitchOut() {
+        val context = firstOtherBuild()
+        val slots = context.findQuickSend().slots
+        val maker = context.mutable(slots.slot)
+        val throwAt = maker.code().indices.first { it > slots.ranks && maker.code()[it].opcode == Opcode.THROW }
+        maker.replaceInstruction(throwAt, "nop")
+        refuses("doesn't throw past the ranks it knows") { context.findQuickSend() }
+        assertNull(context.findQuickSendOrWarn())
     }
 
     @Test
@@ -105,7 +120,9 @@ class QuickSendHookTest {
         }.toSet()
         assertEquals("${bundle.name}: one class clamps the row", 1, clampTypes.size)
         val clamps = FixtureDex.classes(bundle, clampTypes).values
-        return FixtureDex.withStringPools(bundle, (loading + clamps).distinctBy { it.type })
+        val makers = FixtureDex.classesLoading(bundle, QUICK_SEND_RANKS)
+        assertEquals("${bundle.name}: one class makes a face by rank", 1, makers.size)
+        return FixtureDex.withStringPools(bundle, (loading + clamps + makers).distinctBy { it.type })
     }
 
     private fun asks(bundle: File, label: String): String {
@@ -114,6 +131,7 @@ class QuickSendHookTest {
         val fillBefore = context.mutable(sites.fill).code()
         val clampBefore = context.mutable(sites.clamp).code()
         val buildBefore = context.mutable(sites.build).code()
+        val slotBefore = context.mutable(sites.slots.slot).code()
         context.askQuickSendPeople(sites)
 
         // The fill: the stock four stays where the loop over the list ends, and the answer goes into its register before the take.
@@ -160,8 +178,76 @@ class QuickSendHookTest {
         assertEquals("$made: and keeps the answer", listOf(Opcode.MOVE_RESULT, sites.faces), listOf(built[sites.cap + 1].opcode, (built[sites.cap + 1] as OneRegisterInstruction).registerA))
         assertEquals("$made: in the field", kept.reference(), built[sites.cap + 2].reference())
         assertEquals("$made: one ask", 1, built.count { it.reference() == QUICK_SEND_PEOPLE })
-        assertEquals("$made: the rest is Instagram's", buildBefore.shapes(), built.filterIndexed { i, _ -> i != sites.cap && i != sites.cap + 1 }.shapes())
+
+        // The constructor also inflates through the extension, with Instagram's registers, and adds
+        // the slots right before its one return, keeping the room they made as the most faces.
+        val slots = sites.slots
+        val inflateBefore = buildBefore[slots.inflate] as FiveRegisterInstruction
+        assertEquals("$made: inflates", "Landroid/view/LayoutInflater;->inflate(ILandroid/view/ViewGroup;)Landroid/view/View;", buildBefore[slots.inflate].reference())
+        val inflateAt = if (sites.cap < slots.inflate) slots.inflate + 2 else slots.inflate
+        val inflate = built[inflateAt] as FiveRegisterInstruction
+        assertEquals("$made: through the extension", listOf(Opcode.INVOKE_STATIC, QUICK_SEND_INFLATE), listOf(inflate.opcode, built[inflateAt].reference()))
+        assertEquals(
+            "$made: with Instagram's inflater, layout and parent",
+            listOf(inflateBefore.registerC, inflateBefore.registerD, inflateBefore.registerE),
+            listOf(inflate.registerC, inflate.registerD, inflate.registerE),
+        )
+        assertEquals("$made: returns once", Opcode.RETURN_VOID, buildBefore[slots.end].opcode)
+        val end = slots.end + 2
+        assertEquals(
+            "$made: adds the slots and keeps their room",
+            listOf(
+                Opcode.IGET to kept.reference(), Opcode.INVOKE_STATIC to QUICK_SEND_SLOTS, Opcode.MOVE_RESULT to null,
+                Opcode.IPUT to kept.reference(), Opcode.RETURN_VOID to null,
+            ),
+            built.subList(end, end + 5).map { it.opcode to it.reference() },
+        )
+        val asks = setOf(sites.cap, sites.cap + 1, inflateAt) + (end until end + 4)
+        assertEquals(
+            "$made: the rest is Instagram's",
+            buildBefore.filterIndexed { i, _ -> i != slots.inflate }.shapes(),
+            built.filterIndexed { i, _ -> i !in asks }.shapes(),
+        )
+
+        // The face for a rank past Instagram's asks the extension for its slot's ids before the throw, and meets the known ranks.
+        val slot = context.mutable(slots.slot)
+        val maker = slot.code()
+        val face = "$label: ${slots.slot.type} constructor"
+        assertEquals("$face: throws past its ranks", QUICK_SEND_RANKS, slotBefore[slots.ranks].reference())
+        val block = maker.subList(slots.ranks, slots.ranks + 14)
+        assertEquals(
+            "$face: the slot's ids",
+            listOf(
+                Opcode.INVOKE_STATIC, Opcode.MOVE_RESULT, Opcode.IF_EQZ, Opcode.INVOKE_VIRTUAL, Opcode.MOVE_RESULT_OBJECT, Opcode.INVOKE_STATIC,
+                Opcode.MOVE_RESULT_OBJECT, Opcode.IPUT_OBJECT, Opcode.INVOKE_VIRTUAL, Opcode.MOVE_RESULT_OBJECT, Opcode.INVOKE_STATIC,
+                Opcode.MOVE_RESULT, Opcode.GOTO, Opcode.NOP,
+            ),
+            block.map { if (it.opcode == Opcode.GOTO_16 || it.opcode == Opcode.GOTO_32) Opcode.GOTO else it.opcode },
+        )
+        assertEquals("$face: asks for the avatar's id", listOf(QUICK_SEND_AVATAR, slots.rank), listOf(block[0].reference(), (block[0] as FiveRegisterInstruction).registerC))
+        assertEquals("$face: finds it as Instagram finds the others", slots.look, block[5].reference())
+        assertTrue("$face: with a lookup answering a view", slots.look.endsWith(")Landroid/view/View;"))
+        assertEquals(
+            "$face: the one Instagram keeps the others with",
+            setOf(slots.look),
+            slotBefore.indices.filter { slotBefore[it].opcode == Opcode.IPUT_OBJECT && slotBefore[it].reference() == slots.avatar }
+                .map { slotBefore[it - 2].reference() }.toSet(),
+        )
+        assertEquals("$face: keeps it in the avatar's field", slots.avatar, block[7].reference())
+        assertEquals("$face: asks for the name's id", listOf(QUICK_SEND_LABEL, slots.rank), listOf(block[10].reference(), (block[10] as FiveRegisterInstruction).registerC))
+        assertEquals("$face: a rank without a slot goes on to the throw", slots.ranks + 13, maker.targetOf(slots.ranks + 2))
+        val meet = if (slots.tail > slots.ranks) slots.tail + 14 else slots.tail
+        assertEquals("$face: and one with a slot meets the known ranks", meet, maker.targetOf(slots.ranks + 12))
+        assertEquals("$face: where the name is found", slots.find, maker[meet].reference())
+        assertEquals("$face: the rest is Instagram's", slotBefore.shapes(), maker.filterIndexed { i, _ -> i !in slots.ranks until slots.ranks + 14 }.shapes())
         return label
+    }
+
+    /** The index a branch or goto at [at] lands on. */
+    private fun List<Instruction>.targetOf(at: Int): Int {
+        val addresses = runningFold(0) { address, instruction -> address + instruction.codeUnits }
+        val target = addresses[at] + (this[at] as OffsetInstruction).codeOffset
+        return addresses.indexOf(target).also { assertTrue("no instruction at $target", it in indices) }
     }
 
     /** A constructor that no longer keeps four faces isn't the one the hook was written for. */
