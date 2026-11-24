@@ -7,6 +7,7 @@ package app.hushgram.extension.instagram.misc;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
@@ -1247,83 +1248,87 @@ public class AccentThemeTest {
     }
 
     /**
-     * Saved's filters (#187): with Filters in the accent color on, an outlined pill takes a border and
-     * title in the picked link shade for the screen, and the selected one the picked fill under a title
-     * that reads on it. Another background, one that isn't a shape, the switch off or paused leaves the
-     * pill as it is.
+     * Saved's filters (#187): with Filters in the accent color on, their background comes back as two
+     * pills in the picked color, the others bordered in its link shade for the screen and the one you're
+     * on filled, and the title follows the tab: the link shade, or a color that reads on the fill once
+     * it's the one you're on. Another background, the switch off or paused answer Instagram's own and
+     * leave the title as it was.
      */
     @Test
     public void savedsFiltersTakeThePickedColorWithTheirSwitch() {
-        int outlined = 0x7f0816b2;
-        int selected = 0x7f0816b3;
+        int tabs = 0x7f081a36;
         Ids ids = (name, type) -> {
-            if (type.equals("drawable") && name.equals(AccentTheme.PILL_OUTLINED)) return outlined;
-            if (type.equals("drawable") && name.equals(AccentTheme.PILL_SELECTED)) return selected;
+            if (type.equals("drawable") && name.equals(AccentTheme.SAVED_TAB)) return tabs;
             return type.equals("attr") && name.equals(AccentTheme.ICON_ATTRIBUTE) ? android.R.attr.colorForeground : 0;
         };
-        Context light = new ContextThemeWrapper(themed(THEMED + ".pills", ids), android.R.style.Theme_Material_Light);
+        Context light = new ContextThemeWrapper(themed(THEMED + ".filters", ids), android.R.style.Theme_Material_Light);
         int gray = 0xff737373;
-        android.widget.TextView pill = pill(light, gray);
-        AccentTheme.pills(pill, outlined);
-        assertEquals("off", gray, pill.getCurrentTextColor());
+        Drawable stock = new ColorDrawable(0xff222222);
+        android.widget.TextView tab = filter(light, gray);
+        assertSame("off", stock, AccentTheme.savedFilter(stock, tab, tabs));
+        assertEquals("off", gray, tab.getCurrentTextColor());
         Settings.ACCENT_COLOR.save(true);
         Settings.ACCENT_HUE.save(AccentHue.TEAL);
-        AccentTheme.pills(pill, outlined);
-        assertEquals("the filters' switch off", gray, pill.getCurrentTextColor());
+        assertSame("the filters' switch off", stock, AccentTheme.savedFilter(stock, tab, tabs));
+        assertEquals("the filters' switch off", gray, tab.getCurrentTextColor());
         Settings.ACCENT_PILLS.save(true);
 
+        float density = light.getResources().getDisplayMetrics().density;
         int onLight = 0xff000000 | AccentColor.swap(0xff3143e3, AccentHue.TEAL);
-        int width = Math.max(1, Math.round(AccentTheme.PILL_STROKE_DP * light.getResources().getDisplayMetrics().density));
-        AccentTheme.pills(pill, outlined);
-        assertEquals("the outlined title", onLight, pill.getCurrentTextColor());
-        assertEquals("the outlined border", onLight, stroke(pill).getStrokeColor());
-        assertEquals("Instagram's border width", width, stroke(pill).getStrokeWidth());
-
         int fill = 0xff000000 | AccentColor.swap(0xff4a5df9, AccentHue.TEAL);
-        android.widget.TextView picked = pill(light, gray);
-        AccentTheme.pills(picked, selected);
-        assertEquals("the selected fill", fill, stroke(picked).getLastSetColor());
-        assertEquals("a title that reads on it", AccentTheme.readsLight(fill) ? 0xff000000 : 0xffffffff, picked.getCurrentTextColor());
+        int onFill = AccentTheme.readsLight(fill) ? 0xff000000 : 0xffffffff;
+        Drawable pills = AccentTheme.savedFilter(stock, tab, tabs);
+        assertTrue("a pill for each state", pills instanceof android.graphics.drawable.StateListDrawable);
+        GradientDrawable others = pill(pills, new int[0]);
+        assertEquals("the others' border", onLight, shadow(others).getStrokeColor());
+        assertEquals("Instagram's border width", Math.max(1, Math.round(AccentTheme.PILL_STROKE_DP * density)), shadow(others).getStrokeWidth());
+        assertEquals("round at their height", AccentTheme.CHIP_RADIUS_DP * density, others.getCornerRadius(), 0.01f);
+        GradientDrawable picked = pill(pills, new int[] {android.R.attr.state_selected});
+        assertEquals("the selected fill", fill, shadow(picked).getLastSetColor());
+        assertEquals("round too", AccentTheme.CHIP_RADIUS_DP * density, picked.getCornerRadius(), 0.01f);
+        assertEquals("the others' title", onLight, tab.getCurrentTextColor());
+        tab.setSelected(true);
+        assertEquals("the selected title reads on the fill", onFill, tab.getCurrentTextColor());
 
-        Context dark = new ContextThemeWrapper(themed(THEMED + ".pills", ids), android.R.style.Theme_Material);
-        android.widget.TextView night = pill(dark, gray);
-        AccentTheme.pills(night, outlined);
-        assertEquals("the dark screen's shade", 0xff000000 | AccentColor.swap(0xff85a1ff, AccentHue.TEAL), night.getCurrentTextColor());
+        Context dark = new ContextThemeWrapper(themed(THEMED + ".filters", ids), android.R.style.Theme_Material);
+        android.widget.TextView night = filter(dark, gray);
+        int onDark = 0xff000000 | AccentColor.swap(0xff85a1ff, AccentHue.TEAL);
+        assertEquals("the dark screen's border", onDark, shadow(pill(AccentTheme.savedFilter(stock, night, tabs), new int[0])).getStrokeColor());
+        assertEquals("the dark screen's title", onDark, night.getCurrentTextColor());
 
-        android.widget.TextView other = pill(light, gray);
-        AccentTheme.pills(other, 0x7f080001);
+        android.widget.TextView other = filter(light, gray);
+        assertSame("another background", stock, AccentTheme.savedFilter(stock, other, 0x7f080001));
         assertEquals("another background", gray, other.getCurrentTextColor());
-        android.widget.TextView flat = new android.widget.TextView(light);
-        flat.setTextColor(gray);
-        flat.setBackground(new ColorDrawable(0xff222222));
-        AccentTheme.pills(flat, outlined);
-        assertEquals("not a shape", gray, flat.getCurrentTextColor());
-        AccentTheme.pills(null, outlined);
+        assertSame("no tab", stock, AccentTheme.savedFilter(stock, null, tabs));
+        assertNull("nothing to give", AccentTheme.savedFilter(null, filter(light, gray), tabs));
 
         BaseSettings.PAUSED.save(true);
         PauseForTests.pause(HushgramPause.Reason.SWITCH);
-        android.widget.TextView paused = pill(light, gray);
-        AccentTheme.pills(paused, outlined);
+        android.widget.TextView paused = filter(light, gray);
+        assertSame("paused", stock, AccentTheme.savedFilter(stock, paused, tabs));
         assertEquals("paused", gray, paused.getCurrentTextColor());
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         String report = HookStatus.report().toString();
-        assertTrue(report, report.contains(AccentTheme.PILLS + " 3"));
+        assertTrue(report, report.contains(AccentTheme.PILLS + " 2"));
     }
 
-    /** A filter as Instagram builds one: a title on a pill shape, its text [color]. */
-    private static android.widget.TextView pill(Context context, int color) {
-        android.widget.TextView pill = new android.widget.TextView(context);
-        pill.setTextColor(color);
-        GradientDrawable shape = new GradientDrawable();
-        shape.setCornerRadius(100);
-        pill.setBackground(shape);
-        return pill;
+    /** A filter as Instagram builds one: a title in [color]. */
+    private static android.widget.TextView filter(Context context, int color) {
+        android.widget.TextView tab = new android.widget.TextView(context);
+        tab.setTextColor(color);
+        return tab;
     }
 
-    /** What [pill]'s shape was last given, read through Robolectric's record of it. */
-    private static org.robolectric.shadows.ShadowGradientDrawable stroke(android.widget.TextView pill) {
-        return (org.robolectric.shadows.ShadowGradientDrawable) org.robolectric.shadow.api.Shadow.extract(pill.getBackground());
+    /** The shape [pills] draws in [state]. */
+    private static GradientDrawable pill(Drawable pills, int[] state) {
+        pills.setState(state);
+        return (GradientDrawable) pills.getCurrent();
+    }
+
+    /** What [shape] was last given, read through Robolectric's record of it. */
+    private static org.robolectric.shadows.ShadowGradientDrawable shadow(GradientDrawable shape) {
+        return (org.robolectric.shadows.ShadowGradientDrawable) org.robolectric.shadow.api.Shadow.extract(shape);
     }
 
     /**

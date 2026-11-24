@@ -2786,13 +2786,15 @@ once-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->reelButtons(Landr
 shared-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->secondaryButtonFill(Landroid/content/Context;I)I in static (Landroid/content/Context;LX/*;)I holding const:0x7f06038d
 shared-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->secondaryButtonFill(Landroid/content/Context;I)I in instance (Landroid/content/Context;LX/*;)I holding const:0x7f06038b
 shared-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->secondaryButtonFill(Landroid/content/Context;I)I in instance (Landroid/content/Context;)Landroid/content/res/ColorStateList; holding const:0x7f06038b
-# Saved's filters along the top (All, Collections, Reels and the rest) get their outlined or selected
-# pill background (mini_pdp_pill_bg_large_outlined and _selected, 0x7f0816b2 and 0x7f0816b3 on 457)
-# through a static (View, int, int) call in the method laying them out (0WI9.A0g on 386314341).
-# Accent color hands the pill and the background's id to AccentTheme.pills right after that call.
-# The method loads no string, so the rule names the backgrounds' numbers, which move every update.
-# Left out, Filters in the accent color leaves Saved's filters gray (#187). PillsTest checks every build.
-once-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->pills(Landroid/view/View;I)V holding const:0x7f0816b2 const:0x7f0816b3
+# Saved's filters along the top (All, Collections, Reels and the rest) are tabs made from
+# fixed_tabbar_button (0x7f0e0612 on 457) in one private ()V method (0LXK.A01 on 386314341), which
+# loads each tab's background (saved_tab_background) by id and gives it to the tab through a static
+# (Drawable, View, int) call. Accent color hands the background, the tab and the id to
+# AccentTheme.savedFilter between the load and that call. FixedTabBar.setTabs loads the same layout
+# but takes (List), so the shape leaves it out. The method loads no string, so the rule names the
+# layout's number, which moves every update. Left out, Filters in the accent color leaves Saved's
+# filters gray (#187). PillsTest checks every build.
+once-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->savedFilter(Landroid/graphics/drawable/Drawable;Landroid/view/View;I)Landroid/graphics/drawable/Drawable; in instance ()V holding const:0x7f0e0612
 # The Search tab's top bar keeps the Saved bookmark it inflates in a field, in its one method loading
 # the bookmark stub's id (the one SavedHome.hideExploreSaved is asked in). Accent color hands the
 # bookmark to AccentTheme.searchSaved right after the store. Left out, the bookmark stays white with

@@ -16,7 +16,6 @@ import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
-import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
@@ -25,94 +24,110 @@ private const val PATCH = "Accent color"
 
 private const val VIEW = "Landroid/view/View;"
 
-/**
- * The outlined pill Saved's filters along the top are drawn with (`mini_pdp_pill_bg_large_outlined`),
- * the same id in every 457 build (aapt2; read it again each update).
- */
-internal const val PILL_OUTLINED = 0x7f0816b2
-
-/** The selected one, for the filter you're on (`mini_pdp_pill_bg_large_selected`), the same id in every 457 build. */
-internal const val PILL_SELECTED = 0x7f0816b3
-
-/** Hands the extension a pill and the background it was just given (#187). */
-internal const val PILLS = "$ACCENT_THEME->pills(${VIEW}I)V"
-
-/** Where a pill gets one of [PILL_OUTLINED] or [PILL_SELECTED]: right after the call at [at], with the pill in [view] and the background's id in [background]. */
-internal class PillBackground(val method: MutableMethod, val at: Int, val view: Int, val background: Int)
+private const val DRAWABLE = "Landroid/graphics/drawable/Drawable;"
 
 /**
- * Every call giving a view one of Saved's pill backgrounds: a static `(View, int, int)V` (Instagram's
- * setBackgroundResource with a marker, `LX/01cE;->A0U` on 386314341) whose second register was loaded
- * with [PILL_OUTLINED] or [PILL_SELECTED] in the few instructions before it, in the classes loading
- * [PILL_SELECTED]. The call's five-register form keeps both registers under v16, so the hook takes
- * them as they are. A call with something jumping onto the instruction after it is left out, since
- * the jump would skip the hook. Answers none, with a warning, when there's no such call, so the pills
- * keep Instagram's colors. Refuses when the extension lacks [PILLS].
+ * The tab layout Saved's filters along the top are inflated from (`fixed_tabbar_button`), the same id
+ * in every 457 build (aapt2; read it again each update). The class making Saved's tabs loads it.
  */
-internal fun BytecodePatchContext.findPillBackgrounds(): List<PillBackground> {
-    val sites = mutableListOf<Triple<String, Method, Triple<Int, Int, Int>>>()
-    for (classDef in classesLoading(PILL_SELECTED.toLong()).distinctBy { it.type }) {
+internal const val SAVED_TAB_BUTTON = 0x7f0e0612
+
+/** Hands the extension a filter's background, the tab it's for and its id, and gives the tab what comes back (#187). */
+internal const val SAVED_FILTER = "$ACCENT_THEME->savedFilter($DRAWABLE${VIEW}I)$DRAWABLE"
+
+/**
+ * Where a tab's background is loaded and given to it: at [at], right after `Context.getDrawable(id)`
+ * answers into [drawable], with the id still in [id] and the tab in [tab], the register the
+ * background call that follows gives it to.
+ */
+internal class FilterBackground(val method: MutableMethod, val at: Int, val drawable: Int, val tab: Int, val id: Int)
+
+/**
+ * Every place Saved's tabs get their background: in the classes loading [SAVED_TAB_BUTTON], a
+ * `Context.getDrawable(I)` whose answer goes, within the next few instructions, to a static
+ * (Drawable, View, int)V call (Instagram's setBackground with a marker, `LX/01cE;->A03` in
+ * `LX/0LXK;->A01` on 386314341) with no call and nothing writing the drawable or the tab in between.
+ * A place something jumps onto, or one needing a register past v15, is left out. Answers none, with
+ * a warning, when there's no such place, so the filters keep Instagram's colors. Refuses when the
+ * extension lacks [SAVED_FILTER].
+ */
+internal fun BytecodePatchContext.findSavedFilterBackgrounds(): List<FilterBackground> {
+    val sites = mutableListOf<Pair<String, Pair<Method, IntArray>>>()
+    for (classDef in classesLoading(SAVED_TAB_BUTTON.toLong()).distinctBy { it.type }) {
         for (method in classDef.methods) {
             val code = method.code()
             val targets by lazy { method.jumpTargets() }
-            for (at in code.indices) {
-                val call = code[at]
-                if (call.opcode != Opcode.INVOKE_STATIC) continue
-                val called = (call as ReferenceInstruction).reference as? MethodReference ?: continue
-                if (called.returnType != "V" || called.parameterTypes.map(Any::toString) != listOf(VIEW, "I", "I")) continue
-                val registers = call as FiveRegisterInstruction
-                val background = registers.registerD
-                if (!pillLoaded(code, at, background) || at + 1 in targets) continue
-                sites += Triple(classDef.type, method, Triple(at, registers.registerC, background))
+            for (at in 0 until code.size - 1) {
+                val load = code[at]
+                if (load.opcode != Opcode.INVOKE_VIRTUAL || !load.isGetDrawable()) continue
+                val result = code[at + 1]
+                if (result.opcode != Opcode.MOVE_RESULT_OBJECT) continue
+                val drawable = (result as OneRegisterInstruction).registerA
+                val id = (load as FiveRegisterInstruction).registerD
+                if (drawable == id) continue
+                val given = (at + 2 until minOf(code.size, at + 5)).firstOrNull { code[it].isBackgroundCall() } ?: continue
+                val call = code[given] as FiveRegisterInstruction
+                if (call.registerC != drawable) continue
+                val tab = call.registerD
+                val between = (at + 2 until given).map { code[it] }
+                if (between.any { it.writes(drawable) || it.writes(tab) || it.called() != null }) continue
+                if (at + 2 in targets || maxOf(drawable, tab, id) > 15) continue
+                sites += classDef.type to (method to intArrayOf(at + 2, drawable, tab, id))
             }
         }
     }
     if (sites.isEmpty()) {
-        patchLog.warning("$PATCH: nothing gives a pill Saved's pill backgrounds, so Saved's filters keep Instagram's colors")
+        patchLog.warning("$PATCH: nothing gives Saved's tabs their background, so Saved's filters keep Instagram's colors")
         return emptyList()
     }
     val present = classDefByOrNull(ACCENT_THEME)?.methods?.any {
-        "${it.definingClass}->${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" == PILLS &&
+        "${it.definingClass}->${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" == SAVED_FILTER &&
             AccessFlags.STATIC.isSet(it.accessFlags) && AccessFlags.PUBLIC.isSet(it.accessFlags)
     } == true
-    if (!present) throw PatchException("$PATCH: the extension has no public static $PILLS")
-    return sites.map { (type, method, site) ->
+    if (!present) throw PatchException("$PATCH: the extension has no public static $SAVED_FILTER")
+    return sites.map { (type, found) ->
+        val (method, site) = found
         val mutable = mutableClassDefBy(type).methods.single {
             it.name == method.name && it.returnType == method.returnType &&
                 it.parameterTypes.map(Any::toString) == method.parameterTypes.map(Any::toString)
         }
-        PillBackground(mutable, site.first, site.second, site.third)
+        FilterBackground(mutable, site[0], site[1], site[2], site[3])
     }
 }
 
 /**
- * Hands each pill given Saved's outlined or selected background to the extension right after, which
- * colors its border, title and fill with Filters in the accent color on (#187). Saved's filters
- * (All, Collections, Reels and the rest) kept Instagram's gray border and fill: the backgrounds read
- * Instagram's border and secondary background colors, which other borders share.
+ * Hands each of Saved's tab backgrounds to the extension between its load and the call giving it to
+ * the tab, and gives the tab what comes back, the same background or, with Filters in the accent
+ * color on, pills in the picked color (#187). Saved's filters (All, Collections, Reels and the rest)
+ * kept Instagram's gray border: their background reads Instagram's stroke and secondary button
+ * colors, which other borders and buttons share.
  */
-internal fun BytecodePatchContext.tintPills() {
-    for (site in findPillBackgrounds().sortedByDescending { it.at }) {
-        site.method.addInstructions(site.at + 1, "invoke-static { v${site.view}, v${site.background} }, $PILLS")
+internal fun BytecodePatchContext.tintSavedFilters() {
+    for (site in findSavedFilterBackgrounds().sortedByDescending { it.at }) {
+        site.method.addInstructions(
+            site.at,
+            """
+                invoke-static { v${site.drawable}, v${site.tab}, v${site.id} }, $SAVED_FILTER
+                move-result-object v${site.drawable}
+            """,
+        )
     }
 }
 
-/**
- * Whether [register] holds [PILL_OUTLINED] or [PILL_SELECTED] at [at]: one of them is loaded into it
- * within the four instructions before, with nothing else writing it after that load but a load of the
- * other one.
- */
-private fun pillLoaded(code: List<Instruction>, at: Int, register: Int): Boolean {
-    var found = false
-    for (back in (at - 1) downTo maxOf(0, at - 4)) {
-        val instruction = code[back]
-        val literal = (instruction as? NarrowLiteralInstruction)?.narrowLiteral
-        val writes = instruction is OneRegisterInstruction && instruction.opcode.setsRegister() && instruction.registerA == register
-        if (!writes) continue
-        if (literal != PILL_OUTLINED && literal != PILL_SELECTED) return found
-        found = true
-    }
-    return found
-}
+private fun Instruction.called(): MethodReference? = (this as? ReferenceInstruction)?.reference as? MethodReference
+
+private fun Instruction.isGetDrawable(): Boolean = called()?.let {
+    it.definingClass == "Landroid/content/Context;" && it.name == "getDrawable" &&
+        it.parameterTypes.map(Any::toString) == listOf("I") && it.returnType == DRAWABLE
+} == true
+
+/** A static (Drawable, View, int)V call: Instagram's setBackground with a marker. */
+private fun Instruction.isBackgroundCall(): Boolean = opcode == Opcode.INVOKE_STATIC && called()?.let {
+    it.returnType == "V" && it.parameterTypes.map(Any::toString) == listOf(DRAWABLE, VIEW, "I")
+} == true
+
+private fun Instruction.writes(register: Int): Boolean =
+    opcode.setsRegister() && this is OneRegisterInstruction &&
+        (registerA == register || opcode.setsWideRegister() && registerA + 1 == register)
 
 private fun Method.code(): List<Instruction> = implementation?.instructions?.toList().orEmpty()

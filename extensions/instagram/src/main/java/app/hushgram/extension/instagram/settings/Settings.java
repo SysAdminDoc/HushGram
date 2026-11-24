@@ -2564,7 +2564,7 @@ public class Settings extends BaseSettings {
     /**
      * Under {@link #ACCENT_COLOR}: Saved's filters take the picked color, a border and title on the
      * others and a fill on the one you're on (#187,
-     * {@link app.hushgram.extension.instagram.misc.AccentTheme#pills(android.view.View, int)}). Off to start.
+     * {@link app.hushgram.extension.instagram.misc.AccentTheme#savedFilter}). Off to start.
      */
     public static final BooleanSetting ACCENT_PILLS =
             new BooleanSetting("hushgram_accent_pills", FALSE, true, parent(ACCENT_COLOR));

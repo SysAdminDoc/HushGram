@@ -5,6 +5,7 @@
 package app.hushgram.extension.instagram.misc;
 
 import android.content.Context;
+import android.content.res.ColorStateList;
 import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.content.res.TypedArray;
@@ -20,9 +21,9 @@ import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.LayerDrawable;
 import android.graphics.drawable.ShapeDrawable;
+import android.graphics.drawable.StateListDrawable;
 import android.util.TypedValue;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -89,8 +90,8 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * it. Secondary text stays gray.
  *
  * <p>With {@link Settings#ACCENT_PILLS} on, Saved's filters take the picked color through
- * {@link #pills} as each gets its background (#187): the outlined ones a border and title in the link
- * shade, the selected one the picked fill.
+ * {@link #savedFilter} as each gets its background (#187): the outlined ones a border and title in the
+ * link shade, the selected one the picked fill.
  *
  * <p>With {@link Settings#ACCENT_REELS} on, the buttons beside a reel and their counts take the picked
  * color (#187). The column reads one color for its counts, white over the video, and builds its buttons
@@ -175,14 +176,20 @@ public final class AccentTheme {
     /** Counted each time one of Saved's filters takes the accent. */
     static final String PILLS = "Saved filters given the accent color";
 
-    /** The outlined pill Saved's filters are drawn with, a 1.25dp border in Instagram's border color. */
-    static final String PILL_OUTLINED = "mini_pdp_pill_bg_large_outlined";
+    /**
+     * The background Saved's filters are given: a selector of two pills, the one you're on filled with
+     * Instagram's secondary button color and the others outlined 1.25dp in its stroke color.
+     */
+    static final String SAVED_TAB = "saved_tab_background";
 
-    /** The selected one, filled with Instagram's strong secondary background. */
-    static final String PILL_SELECTED = "mini_pdp_pill_bg_large_selected";
+    /** The corner radius of those pills, round at their height. */
+    static final String CHIP_RADIUS = "igds_chip_radius";
 
     /** The outlined pill's border width, as Instagram draws it. */
     static final float PILL_STROKE_DP = 1.25f;
+
+    /** {@link #CHIP_RADIUS} as Instagram 457 has it, for a build without it. */
+    static final float CHIP_RADIUS_DP = 99f;
 
     /** How far apart a color's channels can be for {@link #barIcons(int)} to take it for a gray. */
     static final int NEUTRAL_SPREAD = 0x18;
@@ -1286,56 +1293,60 @@ public final class AccentTheme {
     }
 
     /**
-     * Injected right after a pill, [view], is given the drawable [background] (#187). Saved's filters
-     * along the top (All, Collections, Reels and the rest) get Instagram's outlined pill, and the one
-     * you're on its selected pill. Those read Instagram's border and strong secondary background
-     * colors, which other borders and panels share, so no style can reach them alone. With Filters in
-     * the accent color on, an outlined pill's border and title take the picked color's link shade for
-     * the screen, and the selected one fills with the picked color's fill under a white title, or a
-     * black one on a light fill. Any other background, the switch off, HushGram paused or anything
-     * thrown leaves the pill as it is.
+     * Injected where one of Saved's filters, [tab], is about to be given [background], the drawable
+     * Instagram just loaded for the id [id] (#187); the answer is given in its place. Saved's filters
+     * along the top (All, Collections, Reels and the rest) are tabs whose background is
+     * {@link #SAVED_TAB}: a selector filling the one you're on with Instagram's secondary button color
+     * and outlining the others in its stroke color, which other borders share, so no style can reach
+     * them alone. With Filters in the accent color on, the answer is the same two pills in the picked
+     * color: the outlined ones bordered in its link shade for the screen, the selected one filled
+     * with its fill. The tab's title follows, in the link shade, or white on the fill (black on a
+     * light one). Any other background, the switch off, HushGram paused or anything thrown answers
+     * [background] and leaves the tab as it is.
      */
-    public static void pills(View view, int background) {
+    public static Drawable savedFilter(Drawable background, View tab, int id) {
         try {
             HookStatus.invoked(FamilyNames.ACCENT_COLOR);
             AccentHue hue = AccentColor.picked();
-            if (view == null || hue == null || !Settings.ACCENT_PILLS.get()) return;
-            Context context = view.getContext();
+            if (background == null || tab == null || id == 0 || hue == null || !Settings.ACCENT_PILLS.get()) return background;
+            Context context = tab.getContext();
             Resources resources = context.getResources();
             String app = Utils.resourcePackage(context);
-            boolean selected = background != 0 && background == id(resources, PILL_SELECTED, "drawable", app);
-            if (!selected && (background == 0 || background != id(resources, PILL_OUTLINED, "drawable", app))) return;
-            Drawable drawn = view.getBackground();
-            if (!(drawn instanceof GradientDrawable)) return;
-            GradientDrawable pill = (GradientDrawable) drawn.mutate();
-            int title;
-            if (selected) {
-                int fill = 0xff000000 | AccentColor.swap(FILL, hue);
-                pill.setColor(fill);
-                title = readsLight(fill) ? 0xff000000 : 0xffffffff;
-            } else {
-                // Without the icon attribute, the screen's night mode decides.
-                boolean dark = dark(context, context.getTheme(), id(resources, ICON_ATTRIBUTE, "attr", app));
-                int link = 0xff000000 | AccentColor.swap(dark ? LINK_ON_DARK : LINK_ON_LIGHT, hue);
-                pill.setStroke(Math.max(1, Math.round(PILL_STROKE_DP * resources.getDisplayMetrics().density)), link);
-                title = link;
+            if (id != id(resources, SAVED_TAB, "drawable", app)) return background;
+            float density = resources.getDisplayMetrics().density;
+            int round = id(resources, CHIP_RADIUS, "dimen", app);
+            float radius = round != 0 ? resources.getDimension(round) : CHIP_RADIUS_DP * density;
+            // Without the icon attribute, the screen's night mode decides.
+            boolean dark = dark(context, context.getTheme(), id(resources, ICON_ATTRIBUTE, "attr", app));
+            int link = 0xff000000 | AccentColor.swap(dark ? LINK_ON_DARK : LINK_ON_LIGHT, hue);
+            int fill = 0xff000000 | AccentColor.swap(FILL, hue);
+            GradientDrawable picked = new GradientDrawable();
+            picked.setCornerRadius(radius);
+            picked.setColor(fill);
+            GradientDrawable others = new GradientDrawable();
+            others.setCornerRadius(radius);
+            others.setColor(0);
+            others.setStroke(Math.max(1, Math.round(PILL_STROKE_DP * density)), link);
+            StateListDrawable pills = new StateListDrawable();
+            pills.addState(new int[] {android.R.attr.state_selected}, picked);
+            pills.addState(new int[0], others);
+            if (tab instanceof TextView) {
+                TextView title = (TextView) tab;
+                ColorStateList titles = new ColorStateList(
+                        new int[][] {{android.R.attr.state_selected}, {}},
+                        new int[] {readsLight(fill) ? 0xff000000 : 0xffffffff, link});
+                title.setTextColor(titles);
+                for (Drawable icon : title.getCompoundDrawablesRelative()) {
+                    if (icon == null) continue;
+                    title.setCompoundDrawableTintList(titles);
+                    break;
+                }
             }
-            titles(view, title);
             HookStatus.counted(FamilyNames.ACCENT_COLOR, PILLS);
+            return pills;
         } catch (Throwable failure) {
-            HookStatus.threw(FamilyNames.ACCENT_COLOR, "pills", failure);
-        }
-    }
-
-    /** Gives [view], when it's a title, or the titles right inside it, the color [color]. */
-    private static void titles(View view, int color) {
-        if (view instanceof TextView) {
-            ((TextView) view).setTextColor(color);
-        } else if (view instanceof ViewGroup) {
-            ViewGroup group = (ViewGroup) view;
-            for (int i = 0; i < group.getChildCount(); i++) {
-                if (group.getChildAt(i) instanceof TextView) ((TextView) group.getChildAt(i)).setTextColor(color);
-            }
+            HookStatus.threw(FamilyNames.ACCENT_COLOR, "saved filter", failure);
+            return background;
         }
     }
 
