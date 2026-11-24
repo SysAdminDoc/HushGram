@@ -6,6 +6,7 @@ Every HushGram release, newest first.
 
 * HushGram now patches Instagram 457.0.0.55.73 instead of 456.0.0.53.78. Get APKMirror's (arm64-v8a) (480-640dpi) (Android 9.0+) bundle, build 386314341. Its 480dpi build, 386314297, works too. 32-bit phones take build 386314340 (armeabi-v7a) and x86_64 emulators build 386314286.
 * With `Liquid glass look` on, Search's icon shows whole in its circle, and the other tabs sit in the middle of the pill. Instagram's padding on its floating tab bar cut the icon off. Reported in #843.
+* On feed videos with tagged people, the tags button now moves up above the seek bar too, and the button from `Seek bar button on feed videos` sits beside it instead of on it. Reported in #794.
 * `Log out in Home's menu` is new under Tab bar. It puts Log out after HushGram settings in the list `Menu button on Home's header` opens, and starts Instagram's own Log out. Starts off. Asked for in #850.
 * `A story ring opens the story` is new under Profiles. Tapping a ringed profile picture opens the story whenever Instagram has it, where it sometimes opened the picture. Starts off. Asked for in #823.
 * `Whole story in the story menu` under Stories adds Show the whole story to a story's menu while `Stories fill the screen` is on. It fits just that story inside the screen. Starts off. Asked for in #845.
