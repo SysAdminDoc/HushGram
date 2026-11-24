@@ -6491,6 +6491,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 return L10n.t("WhatsApp");
             case "copy_link":
                 return L10n.t("Copy link");
+            case "meta_ai":
+                return L10n.t("Meta AI");
             case "download_media":
                 return L10n.t("Download");
             case "user_sms":

@@ -75,6 +75,14 @@ public class ShareSheetButtonsSettingsTest {
         assertFalse(ConfigurationBackup.textAllowed(Settings.HIDDEN_SHARE_SHEET_BUTTONS, "whatsapp,add_to_your_story"));
     }
 
+    /** The Meta AI button is in the list under its own name (#846), and its summary names it. */
+    @Test public void metaAiIsListedByName() {
+        assertTrue(ShareSheetActions.ACTIONS.contains("meta_ai"));
+        assertEquals("Meta AI", HushgramPreferenceFragment.shareSheetButtonLabel("meta_ai"));
+        String summary = HushgramPreferenceFragment.shareSheetButtonsSummary("meta_ai");
+        assertTrue(summary, summary.startsWith("Left off the share sheet: ") && summary.contains("Meta AI"));
+    }
+
     /**
      * Paused, Instagram is answered every button, but the row and its list still show what was
      * unticked, so one more tick adds to the choice instead of saving over it.
@@ -101,6 +109,8 @@ public class ShareSheetButtonsSettingsTest {
         int whatsapp = ShareSheetActions.ACTIONS.indexOf("whatsapp");
         int download = ShareSheetActions.ACTIONS.indexOf("download_media");
         int sms = ShareSheetActions.ACTIONS.indexOf("user_sms");
+        // The dialog's adapter ticks an item as it binds it, and a longer list leaves SMS below the fold.
+        for (int at : new int[] {whatsapp, download, sms}) list.getAdapter().getView(at, null, list);
         assertFalse(list.isItemChecked(whatsapp));
         assertFalse(list.isItemChecked(download));
         assertTrue(list.isItemChecked(sms));

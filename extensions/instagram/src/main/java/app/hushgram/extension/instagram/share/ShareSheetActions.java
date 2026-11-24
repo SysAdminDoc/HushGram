@@ -41,7 +41,7 @@ public final class ShareSheetActions {
      * settings list shows them. A name not here is never hidden.
      */
     public static final List<String> ACTIONS = Collections.unmodifiableList(Arrays.asList(
-            "add_to_your_story", "system_share_sheet", "whatsapp", "copy_link", "download_media", "user_sms",
+            "add_to_your_story", "system_share_sheet", "whatsapp", "copy_link", "meta_ai", "download_media", "user_sms",
             "messenger", "facebook", "snapchat", "twitter", "barcelona", "add_to_channel", "save", "qr_code",
             "whatsapp_status", "reply_to_author", "watch_on_tv", "profile_card_download", "line", "kakaotalk",
             "discord", "band"));

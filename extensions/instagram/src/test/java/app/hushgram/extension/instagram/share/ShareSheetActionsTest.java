@@ -72,6 +72,18 @@ public class ShareSheetActionsTest {
         assertEquals(Arrays.asList("whatsapp", "barcelona", "clips_download"), ShareSheetActions.filter(chatReel));
     }
 
+    /**
+     * The sheet's Meta AI button, named meta_ai in the row Instagram builds, can be unticked like the rest (#846),
+     * and the list labels it.
+     */
+    @Test
+    public void metaAiCanBeLeftOff() {
+        List<String> row = Arrays.asList("copy_link", "meta_ai", "whatsapp", "add_to_your_story", "system_share_sheet");
+        Settings.HIDDEN_SHARE_SHEET_BUTTONS.save("meta_ai");
+        assertEquals(Arrays.asList("copy_link", "whatsapp", "add_to_your_story", "system_share_sheet"), ShareSheetActions.filter(row));
+        assertEquals("meta_ai", ShareSheetActions.join(ShareSheetActions.hidden("meta_ai")));
+    }
+
     /** A name the choice doesn't know is dropped on reading, so a stray one never hides a button. */
     @Test
     public void unknownNamesHideNothing() {
