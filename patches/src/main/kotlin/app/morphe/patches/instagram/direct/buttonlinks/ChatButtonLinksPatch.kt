@@ -144,6 +144,7 @@ internal class ButtonLinkSite(
     val actionParameter: Int,
     val textParameter: Int,
     val rowHandlers: List<RowHandler>,
+    val scratch: Int? = null,
 )
 
 /**
@@ -268,21 +269,28 @@ internal fun BytecodePatchContext.findChatButtonLinks(): ButtonLinkSite {
         val call = code[it].call()
         call?.name == "add" && call.parameters() == listOf(OBJECT) && code[it].arguments().getOrNull(1) == made
     }
-    val list = adds.singleOrNull()?.let { code[it].arguments()[0] } ?: refuse("$where doesn't add its card row to a list")
+    val addAt = adds.singleOrNull() ?: refuse("$where doesn't add its card row to a list")
+    val list = listKeptIn(code, rowAt, addAt, where)
 
     // The test of the list right before the model copies it.
     val tests = (rowAt + 1 until code.size - 1).filter { at ->
         val next = code[at + 1].call()
         code[at].opcode == Opcode.IF_EQZ && (code[at] as OneRegisterInstruction).registerA == list &&
-            code[at + 1].opcode == Opcode.INVOKE_STATIC && next?.parameters() == listOf(ITERABLE) && code[at + 1].arguments() == listOf(list)
+            code[at + 1].opcode in STATIC_CALLS && next?.parameters() == listOf(ITERABLE) && code[at + 1].arguments() == listOf(list)
     }
     val hookAt = tests.singleOrNull() ?: refuse("$where tests its card row list before copying it ${tests.size} times, not once")
     val flow = ControlFlow.of(builder)
     val skipTo = flow.normal[hookAt].first()
-    if (list > 15 || message > 15) refuse("$where keeps the list or the message past v15")
     val liveness = RegisterLiveness.of(builder)
     if (list in liveness.liveInto(hookAt + 2) || list in liveness.liveInto(skipTo)) {
         refuse("$where reads its card row list again after copying it")
+    }
+    // 457 keeps the list past v15 (v31 on 386314341), where a plain call can't name it, so the ask
+    // copies the list and the message into two registers in a row that nothing reads from the test on.
+    val scratch = if (list <= 15 && message <= 15) null else {
+        val live = liveness.liveInto(hookAt) + list + message
+        (0 until builder.localRegisterCount() - 1).firstOrNull { it !in live && it + 1 !in live }
+            ?: refuse("$where keeps the list or the message past v15 and has no two free registers in a row for them")
     }
     requireMessageHeld(code, flow, message, messageType, cardsAt, hookAt, where)
 
@@ -298,8 +306,24 @@ internal fun BytecodePatchContext.findChatButtonLinks(): ButtonLinkSite {
         builder.definingClass, builder.name, builder.parameters(), builder.returnType, hookAt, list, message, skipTo,
         messageType, cards, cardButtons.definingClass, cardButtons, buttonType, title, url, row, textButtons,
         dispatcher.type, dispatcher.name, dispatcher.parameters, dispatcher.activity, dispatcher.action, dispatcher.text,
-        rowHandlers,
+        rowHandlers, scratch,
     )
+}
+
+/** The calls the builder can copy its card row list with. */
+private val STATIC_CALLS = setOf(Opcode.INVOKE_STATIC, Opcode.INVOKE_STATIC_RANGE)
+
+/**
+ * The register the card row list is kept in: the one the add at [addAt] names, or, when that was set
+ * between the row at [rowAt] and the add, the register it was copied from (457 copies v31 into v0
+ * for the add on 386314341).
+ */
+private fun listKeptIn(code: List<Instruction>, rowAt: Int, addAt: Int, where: String): Int {
+    val added = code[addAt].arguments()[0]
+    val write = (rowAt + 1 until addAt).lastOrNull { code[it].writes(added) } ?: return added
+    val copy = code[write]
+    if (copy.opcode !in OBJECT_MOVES) refuse("$where sets the list it adds its card row to after making the row")
+    return (copy as TwoRegisterInstruction).registerB
 }
 
 /**
@@ -580,17 +604,32 @@ internal fun BytecodePatchContext.applyChatButtonLinks(site: ButtonLinkSite) {
         it.name == site.builderName && it.returnType == site.builderReturns && it.parameters() == site.builderParameters
     }
     val skip = builder.getInstruction(site.skipTo)
-    // The test is a jump target, so the call takes its place, which keeps the jump onto it, and
-    // the test goes back right after the answer.
-    builder.replaceInstruction(site.hookAt, "invoke-static { v${site.list}, v${site.message} }, $BUTTON_ROWS")
-    builder.addInstructionsWithLabels(
-        site.hookAt + 1,
-        """
-            move-result-object v${site.list}
-            if-eqz v${site.list}, :none
-        """,
-        ExternalLabel("none", skip),
-    )
+    // The test is a jump target, so the ask's first instruction takes its place, which keeps the
+    // jump onto it, and the test goes back right after the answer.
+    val scratch = site.scratch
+    if (scratch == null) {
+        builder.replaceInstruction(site.hookAt, "invoke-static { v${site.list}, v${site.message} }, $BUTTON_ROWS")
+        builder.addInstructionsWithLabels(
+            site.hookAt + 1,
+            """
+                move-result-object v${site.list}
+                if-eqz v${site.list}, :none
+            """,
+            ExternalLabel("none", skip),
+        )
+    } else {
+        builder.replaceInstruction(site.hookAt, "move-object/from16 v$scratch, v${site.list}")
+        builder.addInstructionsWithLabels(
+            site.hookAt + 1,
+            """
+                move-object/from16 v${scratch + 1}, v${site.message}
+                invoke-static/range { v$scratch .. v${scratch + 1} }, $BUTTON_ROWS
+                move-result-object v${site.list}
+                if-eqz v${site.list}, :none
+            """,
+            ExternalLabel("none", skip),
+        )
+    }
 
     val dispatcher = mutableClassDefBy(site.dispatcherType).methods.single {
         it.name == site.dispatcherName && it.returnType == "V" && it.parameters() == site.dispatcherParameters

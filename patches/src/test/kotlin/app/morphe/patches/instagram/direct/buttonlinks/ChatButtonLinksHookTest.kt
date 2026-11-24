@@ -11,6 +11,7 @@ import app.morphe.patcher.patch.PatchException
 import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.util.ControlFlow
+import app.morphe.util.RegisterLiveness
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
@@ -127,25 +128,43 @@ class ChatButtonLinksHookTest {
             "${handler.type}->${handler.name}" to classes.single { it.type == handler.type }.methods
                 .single { it.name == handler.name && it.parameters() == handler.parameters && it.returnType == handler.returns }.code()
         }
+        // A list or message past v15 (457) is copied into two free registers in a row and asked with a range.
+        val scratch = site.scratch
+        if (scratch != null) {
+            assertTrue("$where: copies only what a plain call can't name", site.list > 15 || site.message > 15)
+            val live = RegisterLiveness.of(stockBuilder).liveInto(site.hookAt)
+            assertTrue("$where: the copies go where nothing is read", listOf(scratch, scratch + 1).none { it in live || it == site.list || it == site.message })
+        }
+        val grow = if (scratch == null) 2 else 4
+        val askAt = site.hookAt + grow - 2
         val stockFlow = ControlFlow.of(stockBuilder)
-        val intoTest = stockFlow.normal.indices.filter { site.hookAt in stockFlow.normal[it] }.map { if (it < site.hookAt) it else it + 2 }
+        val intoTest = stockFlow.normal.indices.filter { site.hookAt in stockFlow.normal[it] }.map { if (it < site.hookAt) it else it + grow }
 
         context.applyChatButtonLinks(site)
 
         val builder = context.mutableClassDefBy(site.builderType).methods.single { it.name == site.builderName && it.parameters() == site.builderParameters }
         val code = builder.code()
-        assertEquals("$where: grew by the answer and the test", stock.size + 2, code.size)
+        assertEquals("$where: grew by the answer and the test", stock.size + grow, code.size)
         assertEquals("$where: Instagram's code up to the test stays", stock.take(site.hookAt).map { it.opcode }, code.take(site.hookAt).map { it.opcode })
-        val ask = code[site.hookAt]
+        val ask = code[askAt]
         assertEquals("$where: asks the extension in the test's place", BUTTON_ROWS, ask.reference().toString())
-        assertEquals("$where: with the list and the message", listOf(site.list, site.message), ask.arguments())
-        assertEquals("$where: keeps the answer in the list", site.list, (code[site.hookAt + 1] as OneRegisterInstruction).registerA)
-        assertEquals(Opcode.MOVE_RESULT_OBJECT, code[site.hookAt + 1].opcode)
-        assertEquals("$where: tests the answer", Opcode.IF_EQZ, code[site.hookAt + 2].opcode)
-        assertEquals(site.list, (code[site.hookAt + 2] as OneRegisterInstruction).registerA)
+        if (scratch == null) {
+            assertEquals("$where: with the list and the message", listOf(site.list, site.message), ask.arguments())
+        } else {
+            assertEquals("$where: with copies of the list and the message", listOf(scratch, scratch + 1), ask.arguments())
+            assertEquals(Opcode.INVOKE_STATIC_RANGE, ask.opcode)
+            for ((at, from) in listOf(site.hookAt to site.list, site.hookAt + 1 to site.message)) {
+                assertEquals("$where: copies v$from", Opcode.MOVE_OBJECT_FROM16, code[at].opcode)
+                assertEquals("$where: copies v$from", from, (code[at] as TwoRegisterInstruction).registerB)
+            }
+        }
+        assertEquals("$where: keeps the answer in the list", site.list, (code[askAt + 1] as OneRegisterInstruction).registerA)
+        assertEquals(Opcode.MOVE_RESULT_OBJECT, code[askAt + 1].opcode)
+        assertEquals("$where: tests the answer", Opcode.IF_EQZ, code[askAt + 2].opcode)
+        assertEquals(site.list, (code[askAt + 2] as OneRegisterInstruction).registerA)
         val flow = ControlFlow.of(builder)
-        assertEquals("$where: no list goes where none went", site.skipTo + 2, flow.normal[site.hookAt + 2].first())
-        assertEquals("$where: the rest is Instagram's", stock.drop(site.hookAt + 1).map { it.opcode }, code.drop(site.hookAt + 3).map { it.opcode })
+        assertEquals("$where: no list goes where none went", site.skipTo + grow, flow.normal[askAt + 2].first())
+        assertEquals("$where: the rest is Instagram's", stock.drop(site.hookAt + 1).map { it.opcode }, code.drop(site.hookAt + 1 + grow).map { it.opcode })
         for (at in intoTest) assertTrue("$where: instruction $at still goes to the test, now the ask", site.hookAt in flow.normal[at])
 
         val dispatcher = context.mutableClassDefBy(site.dispatcherType).methods.single { it.name == site.dispatcherName && it.parameters() == site.dispatcherParameters }
