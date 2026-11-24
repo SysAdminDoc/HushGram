@@ -193,7 +193,7 @@ Adds Copy text to the menu a story's three dots open. It copies the words Instag
 Adds Copy to a selected comment's menu. Copies the original text, including line breaks.	يضيف نسخًا إلى قائمة التعليق المحدد. ينسخ النص الأصلي بما في ذلك فواصل الأسطر.
 Adds Copy username and Copy bio to the menu on someone's profile. Each copies the text exactly as the account has it.	يضيف نسخ اسم المستخدم ونسخ النبذة إلى القائمة في ملف شخص ما. كل واحد ينسخ النص كما هو في الحساب تمامًا.
 Adds Copy username to a selected comment's menu, for the account that wrote it.	يضيف نسخ اسم المستخدم إلى قائمة التعليق المحدد، للحساب الذي كتبه.
-Adds Details to a feed post's or reel's menu. It shows when it went up, who posted it, its media ID and the size Download saves, with buttons to copy the file link, username and caption.	يضيف التفاصيل إلى قائمة منشور في الخلاصة أو مقطع Reels. يعرض وقت النشر ومن نشره ومعرف الوسائط وحجم التنزيل، مع أزرار لنسخ رابط الملف واسم المستخدم والتعليق.
+Adds Details to a feed post's or reel's menu. It shows when it went up, who posted it, its media ID and the size Download saves, with buttons to copy the file link, username and caption, open the photo or video in another app, and read its text with Google Lens. A story's menu gets Copy username.	يضيف التفاصيل إلى قائمة منشور في الخلاصة أو مقطع Reels. يعرض وقت النشر ومن نشره ومعرف الوسائط وحجم التنزيل، مع أزرار لنسخ رابط الملف واسم المستخدم والتعليق، وفتح الصورة أو الفيديو في تطبيق آخر، وقراءة نصه باستخدام Google Lens. وتحصل قائمة القصة على نسخ اسم المستخدم.
 Adds Download audio under Download. It saves the sound of the reel as an audio file.	يضيف تنزيل الصوت ضمن التنزيل. يحفظ صوت مقطع Reels كملف صوتي.
 Adds Download cover to the menu of a feed post with a video, and of a carousel showing one. It saves the still picture shown before the video plays, at its largest size.	يضيف تنزيل الغلاف إلى قائمة منشور في الخلاصة يحتوي على فيديو، وإلى قائمة منشور دائري يعرض واحدًا. يحفظ الصورة الثابتة التي تظهر قبل تشغيل الفيديو بأكبر حجم لها.
 Adds Download cover under Download. It saves the still picture a reel shows before it plays, at its largest size.	يضيف تنزيل الغلاف ضمن التنزيل. يحفظ الصورة الثابتة التي يعرضها مقطع Reels قبل تشغيله بأكبر حجم لها.
@@ -2489,3 +2489,11 @@ Long press a chat to group it	اضغط مطولًا على دردشة لتجمي
 # context: Stories switch Story rings on saved posts and its summary, for posts on the Saved page (#790)
 Story rings on saved posts	حلقات القصص في المنشورات المحفوظة
 Posts you saved show the story ring around the author's picture, like Home does, and a tap on it opens their story. It only uses stories Instagram has already loaded.	تُظهر المنشورات التي حفظتها حلقة القصة حول صورة صاحبها، كما في الرئيسية، والضغط عليها يفتح قصته. يستخدم فقط القصص التي حمّلها Instagram بالفعل.
+# context: Details in a post's menu (#839): a row under the facts that sends the photo, or a video's cover, to Google Lens to read its words
+Read text with Lens	قراءة النص باستخدام Lens
+# context: Details in a post's menu (#839): a toast while Open with or Read text with Lens fetches the post's file
+Getting the file ready	جارٍ تجهيز الملف
+# context: Details in a post's menu (#839): a toast when Open with or Read text with Lens couldn't fetch the post's file
+Couldn't get the file	تعذّر جلب الملف
+# context: Details in a post's menu (#839): a toast when no app on the phone takes the photo or video Open with offers
+No app here can open it	لا يوجد تطبيق هنا يفتحه

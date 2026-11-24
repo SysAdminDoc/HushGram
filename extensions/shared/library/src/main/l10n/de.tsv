@@ -893,7 +893,7 @@ Media link copied. It stops working after a few days.	Medienlink kopiert. Er fun
 No direct link for this one	Dafür gibt es keinen direkten Link
 Posted %1$s	Gepostet am %1$s
 Size %1$d × %2$d	Größe %1$d × %2$d
-Adds Details to a feed post's or reel's menu. It shows when it went up, who posted it, its media ID and the size Download saves, with buttons to copy the file link, username and caption.	Fügt dem Menü eines Feed-Beitrags oder Reels „Details“ hinzu. Es zeigt, wann er veröffentlicht wurde, wer ihn gepostet hat, seine Medien-ID und die Größe, die Download speichert, mit Buttons zum Kopieren von Dateilink, Benutzername und Beschreibung.
+Adds Details to a feed post's or reel's menu. It shows when it went up, who posted it, its media ID and the size Download saves, with buttons to copy the file link, username and caption, open the photo or video in another app, and read its text with Google Lens. A story's menu gets Copy username.	Fügt dem Menü eines Feed-Beitrags oder Reels „Details“ hinzu. Es zeigt, wann er veröffentlicht wurde, wer ihn gepostet hat, seine Medien-ID und die Größe, die Download speichert, mit Buttons zum Kopieren von Dateilink, Benutzername und Beschreibung, zum Öffnen des Fotos oder Videos in einer anderen App und zum Lesen seines Texts mit Google Lens. Das Menü einer Story bekommt „Benutzernamen kopieren“.
 Caption	Bildunterschrift
 Caption copied	Bildunterschrift kopiert
 Copy caption	Bildunterschrift kopieren
@@ -2953,3 +2953,11 @@ Long press a chat to group it	Halte einen Chat gedrückt, um ihn zu gruppieren
 # context: Stories switch Story rings on saved posts and its summary, for posts on the Saved page (#790)
 Story rings on saved posts	Story-Ringe bei gespeicherten Beiträgen
 Posts you saved show the story ring around the author's picture, like Home does, and a tap on it opens their story. It only uses stories Instagram has already loaded.	Gespeicherte Beiträge zeigen den Story-Ring um das Bild des Autors, wie auf der Startseite, und ein Tippen darauf öffnet die Story. Es nutzt nur Storys, die Instagram schon geladen hat.
+# context: Details in a post's menu (#839): a row under the facts that sends the photo, or a video's cover, to Google Lens to read its words
+Read text with Lens	Text mit Lens lesen
+# context: Details in a post's menu (#839): a toast while Open with or Read text with Lens fetches the post's file
+Getting the file ready	Datei wird vorbereitet
+# context: Details in a post's menu (#839): a toast when Open with or Read text with Lens couldn't fetch the post's file
+Couldn't get the file	Datei nicht geladen
+# context: Details in a post's menu (#839): a toast when no app on the phone takes the photo or video Open with offers
+No app here can open it	Keine App kann es öffnen

@@ -886,7 +886,7 @@ Media link copied. It stops working after a few days.	คัดลอกลิ�
 No direct link for this one	ไม่มีลิงก์โดยตรงสำหรับรายการนี้
 Posted %1$s	โพสต์เมื่อ %1$s
 Size %1$d × %2$d	ขนาด %1$d × %2$d
-Adds Details to a feed post's or reel's menu. It shows when it went up, who posted it, its media ID and the size Download saves, with buttons to copy the file link, username and caption.	เพิ่ม "รายละเอียด" ลงในเมนูของโพสต์ในฟีดหรือรีลส์ โดยจะแสดงเวลาที่โพสต์ ผู้โพสต์ ID สื่อ และขนาดที่ดาวน์โหลดจะบันทึก พร้อมปุ่มสำหรับคัดลอกลิงก์ไฟล์ ชื่อผู้ใช้ และคำบรรยาย
+Adds Details to a feed post's or reel's menu. It shows when it went up, who posted it, its media ID and the size Download saves, with buttons to copy the file link, username and caption, open the photo or video in another app, and read its text with Google Lens. A story's menu gets Copy username.	เพิ่ม "รายละเอียด" ลงในเมนูของโพสต์ในฟีดหรือรีลส์ โดยจะแสดงเวลาที่โพสต์ ผู้โพสต์ ID สื่อ และขนาดที่ดาวน์โหลดจะบันทึก พร้อมปุ่มสำหรับคัดลอกลิงก์ไฟล์ ชื่อผู้ใช้ และคำบรรยาย เปิดรูปภาพหรือวิดีโอในแอปอื่น และอ่านข้อความด้วย Google Lens ส่วนเมนูของสตอรี่จะมีคัดลอกชื่อผู้ใช้
 Caption	คำบรรยาย
 Caption copied	คัดลอกคำบรรยายแล้ว
 Copy caption	คัดลอกคำบรรยาย
@@ -2950,3 +2950,11 @@ Long press a chat to group it	กดค้างที่แชทเพื่�
 # context: Stories switch Story rings on saved posts and its summary, for posts on the Saved page (#790)
 Story rings on saved posts	วงแหวนสตอรี่ในโพสต์ที่บันทึกไว้
 Posts you saved show the story ring around the author's picture, like Home does, and a tap on it opens their story. It only uses stories Instagram has already loaded.	โพสต์ที่คุณบันทึกไว้จะแสดงวงแหวนสตอรี่รอบรูปของเจ้าของโพสต์ เหมือนในหน้าหลัก และแตะที่วงแหวนเพื่อเปิดสตอรี่ ใช้เฉพาะสตอรี่ที่ Instagram โหลดไว้แล้วเท่านั้น
+# context: Details in a post's menu (#839): a row under the facts that sends the photo, or a video's cover, to Google Lens to read its words
+Read text with Lens	อ่านข้อความด้วย Lens
+# context: Details in a post's menu (#839): a toast while Open with or Read text with Lens fetches the post's file
+Getting the file ready	กำลังเตรียมไฟล์
+# context: Details in a post's menu (#839): a toast when Open with or Read text with Lens couldn't fetch the post's file
+Couldn't get the file	ไม่สามารถดึงไฟล์ได้
+# context: Details in a post's menu (#839): a toast when no app on the phone takes the photo or video Open with offers
+No app here can open it	ไม่มีแอปที่เปิดได้

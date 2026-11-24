@@ -892,7 +892,7 @@ Media link copied. It stops working after a few days.	미디어 링크를 복사
 No direct link for this one	이 항목에는 직접 링크가 없습니다
 Posted %1$s	게시 시간 %1$s
 Size %1$d × %2$d	크기 %1$d × %2$d
-Adds Details to a feed post's or reel's menu. It shows when it went up, who posted it, its media ID and the size Download saves, with buttons to copy the file link, username and caption.	피드 게시물이나 릴스의 메뉴에 상세 정보를 추가합니다. 게시 시각, 올린 사람, 미디어 ID, 다운로드로 저장되는 크기를 보여주고 파일 링크, 사용자 이름, 캡션을 복사하는 버튼이 있습니다.
+Adds Details to a feed post's or reel's menu. It shows when it went up, who posted it, its media ID and the size Download saves, with buttons to copy the file link, username and caption, open the photo or video in another app, and read its text with Google Lens. A story's menu gets Copy username.	피드 게시물이나 릴스의 메뉴에 상세 정보를 추가합니다. 게시 시각, 올린 사람, 미디어 ID, 다운로드로 저장되는 크기를 보여주고 파일 링크, 사용자 이름, 캡션을 복사하고, 사진이나 동영상을 다른 앱에서 열고, Google Lens로 텍스트를 읽는 버튼이 있습니다. 스토리 메뉴에는 사용자 이름 복사가 추가됩니다.
 Caption	캡션
 Caption copied	캡션을 복사했습니다
 Copy caption	캡션 복사
@@ -2952,3 +2952,11 @@ Long press a chat to group it	채팅을 길게 눌러 그룹에 넣으세요
 # context: Stories switch Story rings on saved posts and its summary, for posts on the Saved page (#790)
 Story rings on saved posts	저장한 게시물의 스토리 링
 Posts you saved show the story ring around the author's picture, like Home does, and a tap on it opens their story. It only uses stories Instagram has already loaded.	저장한 게시물에서도 홈처럼 작성자 사진에 스토리 링이 보이고, 누르면 스토리가 열립니다. Instagram이 이미 불러온 스토리만 사용합니다.
+# context: Details in a post's menu (#839): a row under the facts that sends the photo, or a video's cover, to Google Lens to read its words
+Read text with Lens	Lens로 텍스트 읽기
+# context: Details in a post's menu (#839): a toast while Open with or Read text with Lens fetches the post's file
+Getting the file ready	파일을 준비하는 중
+# context: Details in a post's menu (#839): a toast when Open with or Read text with Lens couldn't fetch the post's file
+Couldn't get the file	파일을 가져오지 못했어요
+# context: Details in a post's menu (#839): a toast when no app on the phone takes the photo or video Open with offers
+No app here can open it	열 수 있는 앱이 없어요

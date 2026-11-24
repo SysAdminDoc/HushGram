@@ -893,7 +893,7 @@ Media link copied. It stops working after a few days.	Link del media copiato. Sm
 No direct link for this one	Nessun link diretto per questo
 Posted %1$s	Pubblicato %1$s
 Size %1$d × %2$d	Dimensione %1$d × %2$d
-Adds Details to a feed post's or reel's menu. It shows when it went up, who posted it, its media ID and the size Download saves, with buttons to copy the file link, username and caption.	Aggiunge Dettagli al menu di un post del feed o di un reel. Mostra quando è stato pubblicato, chi l'ha pubblicato, il suo ID media e la dimensione che Scarica salva, con pulsanti per copiare il link del file, il nome utente e la didascalia.
+Adds Details to a feed post's or reel's menu. It shows when it went up, who posted it, its media ID and the size Download saves, with buttons to copy the file link, username and caption, open the photo or video in another app, and read its text with Google Lens. A story's menu gets Copy username.	Aggiunge Dettagli al menu di un post del feed o di un reel. Mostra quando è stato pubblicato, chi l'ha pubblicato, il suo ID media e la dimensione che Scarica salva, con pulsanti per copiare il link del file, il nome utente e la didascalia, aprire la foto o il video in un'altra app e leggerne il testo con Google Lens. Il menu di una storia riceve Copia il nome utente.
 Caption	Didascalia
 Caption copied	Didascalia copiata
 Copy caption	Copia la didascalia
@@ -2953,3 +2953,11 @@ Long press a chat to group it	Tieni premuta una chat per raggrupparla
 # context: Stories switch Story rings on saved posts and its summary, for posts on the Saved page (#790)
 Story rings on saved posts	Cerchi delle storie nei post salvati
 Posts you saved show the story ring around the author's picture, like Home does, and a tap on it opens their story. It only uses stories Instagram has already loaded.	I post che hai salvato mostrano il cerchio della storia attorno all'immagine dell'autore, come nella Home, e toccandolo si apre la sua storia. Usa solo le storie che Instagram ha già caricato.
+# context: Details in a post's menu (#839): a row under the facts that sends the photo, or a video's cover, to Google Lens to read its words
+Read text with Lens	Leggi testo con Lens
+# context: Details in a post's menu (#839): a toast while Open with or Read text with Lens fetches the post's file
+Getting the file ready	Preparo il file
+# context: Details in a post's menu (#839): a toast when Open with or Read text with Lens couldn't fetch the post's file
+Couldn't get the file	Impossibile ottenere il file
+# context: Details in a post's menu (#839): a toast when no app on the phone takes the photo or video Open with offers
+No app here can open it	Nessuna app qui lo apre

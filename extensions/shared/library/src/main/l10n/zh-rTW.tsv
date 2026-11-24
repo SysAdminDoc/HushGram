@@ -896,7 +896,7 @@ Media link copied. It stops working after a few days.	已複製媒體連結。�
 No direct link for this one	此項目沒有直接連結
 Posted %1$s	發佈於 %1$s
 Size %1$d × %2$d	尺寸 %1$d × %2$d
-Adds Details to a feed post's or reel's menu. It shows when it went up, who posted it, its media ID and the size Download saves, with buttons to copy the file link, username and caption.	在動態首頁貼文或 Reel 的選單中新增「詳細資料」，顯示發佈時間、發佈者、媒體 ID 與下載儲存的尺寸，並提供複製檔案連結、使用者名稱與說明文字的按鈕。
+Adds Details to a feed post's or reel's menu. It shows when it went up, who posted it, its media ID and the size Download saves, with buttons to copy the file link, username and caption, open the photo or video in another app, and read its text with Google Lens. A story's menu gets Copy username.	在動態首頁貼文或 Reel 的選單中新增「詳細資料」，顯示發佈時間、發佈者、媒體 ID 與下載儲存的尺寸，並提供複製檔案連結、使用者名稱與說明文字、在其他應用程式中開啟相片或影片，以及用 Google Lens 讀取文字的按鈕。限時動態的選單會加入「複製使用者名稱」。
 Caption	說明文字
 Caption copied	已複製說明文字
 Copy caption	複製說明文字
@@ -2956,3 +2956,11 @@ Long press a chat to group it	長按聊天即可分組
 # context: Stories switch Story rings on saved posts and its summary, for posts on the Saved page (#790)
 Story rings on saved posts	已儲存貼文的限時動態光圈
 Posts you saved show the story ring around the author's picture, like Home does, and a tap on it opens their story. It only uses stories Instagram has already loaded.	你儲存的貼文會像首頁一樣在作者大頭貼照周圍顯示限時動態光圈，點一下就能開啟限時動態。只會使用 Instagram 已載入的限時動態。
+# context: Details in a post's menu (#839): a row under the facts that sends the photo, or a video's cover, to Google Lens to read its words
+Read text with Lens	用 Lens 讀取文字
+# context: Details in a post's menu (#839): a toast while Open with or Read text with Lens fetches the post's file
+Getting the file ready	正在準備檔案
+# context: Details in a post's menu (#839): a toast when Open with or Read text with Lens couldn't fetch the post's file
+Couldn't get the file	無法取得檔案
+# context: Details in a post's menu (#839): a toast when no app on the phone takes the photo or video Open with offers
+No app here can open it	沒有可開啟的應用程式

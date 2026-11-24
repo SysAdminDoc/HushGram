@@ -896,7 +896,7 @@ Media link copied. It stops working after a few days.	已复制媒体链接。�
 No direct link for this one	此项目没有直接链接
 Posted %1$s	发布于 %1$s
 Size %1$d × %2$d	尺寸 %1$d × %2$d
-Adds Details to a feed post's or reel's menu. It shows when it went up, who posted it, its media ID and the size Download saves, with buttons to copy the file link, username and caption.	在动态首页帖子或 Reel 的菜单中添加“详细数据”，显示发布时间、发布者、媒体 ID 与下载保存的尺寸，并提供复制文件链接、用户名与说明文字的按钮。
+Adds Details to a feed post's or reel's menu. It shows when it went up, who posted it, its media ID and the size Download saves, with buttons to copy the file link, username and caption, open the photo or video in another app, and read its text with Google Lens. A story's menu gets Copy username.	在动态首页帖子或 Reel 的菜单中添加“详细数据”，显示发布时间、发布者、媒体 ID 与下载保存的尺寸，并提供复制文件链接、用户名与说明文字、在其他应用中打开照片或视频，以及用 Google Lens 读取文字的按钮。快拍的菜单会加入“复制用户名”。
 Caption	说明文字
 Caption copied	已复制说明文字
 Copy caption	复制说明文字
@@ -2956,3 +2956,11 @@ Long press a chat to group it	长按聊天即可分组
 # context: Stories switch Story rings on saved posts and its summary, for posts on the Saved page (#790)
 Story rings on saved posts	已保存帖子的快拍光圈
 Posts you saved show the story ring around the author's picture, like Home does, and a tap on it opens their story. It only uses stories Instagram has already loaded.	你保存的帖子会像首页一样在作者头像周围显示快拍光圈，点一下即可打开快拍。只使用 Instagram 已加载的快拍。
+# context: Details in a post's menu (#839): a row under the facts that sends the photo, or a video's cover, to Google Lens to read its words
+Read text with Lens	用 Lens 读取文字
+# context: Details in a post's menu (#839): a toast while Open with or Read text with Lens fetches the post's file
+Getting the file ready	正在准备文件
+# context: Details in a post's menu (#839): a toast when Open with or Read text with Lens couldn't fetch the post's file
+Couldn't get the file	无法获取文件
+# context: Details in a post's menu (#839): a toast when no app on the phone takes the photo or video Open with offers
+No app here can open it	没有可打开的应用

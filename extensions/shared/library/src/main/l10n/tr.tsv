@@ -893,7 +893,7 @@ Media link copied. It stops working after a few days.	Medya bağlantısı kopyal
 No direct link for this one	Bunun için doğrudan bağlantı yok
 Posted %1$s	Paylaşıldı: %1$s
 Size %1$d × %2$d	Boyut %1$d × %2$d
-Adds Details to a feed post's or reel's menu. It shows when it went up, who posted it, its media ID and the size Download saves, with buttons to copy the file link, username and caption.	Akıştaki bir gönderinin ya da reelin menüsüne Ayrıntılar ekler. Ne zaman paylaşıldığını, kimin paylaştığını, medya kimliğini ve İndir'in kaydettiği boyutu gösterir. Dosya bağlantısını, kullanıcı adını ve açıklamayı kopyalayan düğmeler de vardır.
+Adds Details to a feed post's or reel's menu. It shows when it went up, who posted it, its media ID and the size Download saves, with buttons to copy the file link, username and caption, open the photo or video in another app, and read its text with Google Lens. A story's menu gets Copy username.	Akıştaki bir gönderinin ya da reelin menüsüne Ayrıntılar ekler. Ne zaman paylaşıldığını, kimin paylaştığını, medya kimliğini ve İndir'in kaydettiği boyutu gösterir. Dosya bağlantısını, kullanıcı adını ve açıklamayı kopyalayan, fotoğrafı ya da videoyu başka bir uygulamada açan ve metnini Google Lens ile okuyan düğmeler de vardır. Bir hikayenin menüsüne Kullanıcı adını kopyala eklenir.
 Caption	Açıklama
 Caption copied	Açıklama kopyalandı
 Copy caption	Açıklamayı kopyala
@@ -2953,3 +2953,11 @@ Long press a chat to group it	Gruplamak için bir sohbete basılı tut
 # context: Stories switch Story rings on saved posts and its summary, for posts on the Saved page (#790)
 Story rings on saved posts	Kayıtlı gönderilerde hikâye halkaları
 Posts you saved show the story ring around the author's picture, like Home does, and a tap on it opens their story. It only uses stories Instagram has already loaded.	Kaydettiğin gönderiler, Ana sayfadaki gibi paylaşanın fotoğrafının çevresinde hikâye halkasını gösterir ve ona dokunmak hikâyeyi açar. Yalnızca Instagram'ın zaten yüklediği hikâyeleri kullanır.
+# context: Details in a post's menu (#839): a row under the facts that sends the photo, or a video's cover, to Google Lens to read its words
+Read text with Lens	Metni Lens ile oku
+# context: Details in a post's menu (#839): a toast while Open with or Read text with Lens fetches the post's file
+Getting the file ready	Dosya hazırlanıyor
+# context: Details in a post's menu (#839): a toast when Open with or Read text with Lens couldn't fetch the post's file
+Couldn't get the file	Dosya alınamadı
+# context: Details in a post's menu (#839): a toast when no app on the phone takes the photo or video Open with offers
+No app here can open it	Açacak uygulama yok

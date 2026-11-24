@@ -77,6 +77,8 @@ public class StoryDownloadTest {
         Built.storyDownload = false;
         Built.storyPriority = false;
         Built.menuItems = false;
+        Built.videoDownload = false;
+        Settings.POST_DETAILS.resetToDefault();
         Settings.HIDDEN_MENU_ITEMS.resetToDefault();
         StoryLoop.forget();
         StoryDownload.building(null);
@@ -440,8 +442,10 @@ public class StoryDownloadTest {
         static boolean storyDownload;
         static boolean storyPriority;
         static boolean menuItems;
+        static boolean videoDownload;
 
         @Implementation protected static boolean menuItems() { return menuItems; }
+        @Implementation protected static boolean videoDownload() { return videoDownload; }
         @Implementation protected static boolean storyLoop() { return storyLoop; }
         @Implementation protected static boolean storySpeed() { return storySpeed; }
         @Implementation protected static boolean storyDownload() { return storyDownload; }
@@ -516,6 +520,57 @@ public class StoryDownloadTest {
         Built.storyPriority = false;
         CharSequence[] unpatched = {"Report"};
         assertSame("without the patch", unpatched, StoryDownload.labels(unpatched));
+    }
+
+    /**
+     * #839: with Details in a post's menu on, in a build with it, a story's menu gets Copy username,
+     * once, with Download off. A tap puts the poster's username on the clipboard, marked sensitive, and
+     * says so. Details off, a build without it, a story whose account can't be read and a paused
+     * HushGram get no row, and the label is Instagram's again.
+     */
+    @Test
+    @Config(shadows = {Story.class, Built.class})
+    public void aStoryGetsCopyUsernameWithDetails() {
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        Built.videoDownload = true;
+        Settings.DOWNLOAD_STORIES.save(false);
+        Object menu = new Object();
+        StoryDownload.building(menu);
+        Story.media = new Object();
+        Story.account = "nasa";
+
+        CharSequence[] off = {"Report"};
+        assertSame("Details off", off, StoryDownload.labels(off));
+        assertFalse(StoryDownload.save("Copy username", menu));
+
+        Settings.POST_DETAILS.save(true);
+        assertArrayEquals(new CharSequence[] {"Report", "Copy username"}, StoryDownload.labels(new CharSequence[] {"Report"}));
+        CharSequence[] already = {"Report", new SpannableString("Copy username")};
+        assertSame("added twice", already, StoryDownload.labels(already));
+
+        ShadowToast.reset();
+        assertTrue(StoryDownload.save(new SpannableString("Copy username"), menu));
+        Shadows.shadowOf(Looper.getMainLooper()).idle();
+        ClipboardManager clipboard = (ClipboardManager) RuntimeEnvironment.getApplication().getSystemService(Context.CLIPBOARD_SERVICE);
+        assertEquals("nasa", clipboard.getPrimaryClip().getItemAt(0).getText().toString());
+        assertTrue(clipboard.getPrimaryClip().getDescription().getExtras().getBoolean("android.content.extra.IS_SENSITIVE"));
+        assertEquals("Username copied", String.valueOf(ShadowToast.getTextOfLatestToast()));
+
+        Story.account = " ";
+        CharSequence[] noAccount = {"Report"};
+        assertSame("a story whose account can't be read", noAccount, StoryDownload.labels(noAccount));
+        assertFalse("the label is Instagram's again", StoryDownload.save("Copy username", menu));
+
+        Story.account = "nasa";
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        CharSequence[] paused = {"Report"};
+        assertSame("paused", paused, StoryDownload.labels(paused));
+        PauseForTests.resume();
+
+        Built.videoDownload = false;
+        CharSequence[] unpatched = {"Report"};
+        assertSame("without Details in the build", unpatched, StoryDownload.labels(unpatched));
     }
 
     /**

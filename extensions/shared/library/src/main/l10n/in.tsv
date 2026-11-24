@@ -893,7 +893,7 @@ Media link copied. It stops working after a few days.	Tautan media disalin. Taut
 No direct link for this one	Tidak ada tautan langsung untuk yang ini
 Posted %1$s	Diposting %1$s
 Size %1$d × %2$d	Ukuran %1$d × %2$d
-Adds Details to a feed post's or reel's menu. It shows when it went up, who posted it, its media ID and the size Download saves, with buttons to copy the file link, username and caption.	Menambahkan Detail ke menu postingan di feed atau reel. Menampilkan kapan diunggah, siapa yang mengunggah, ID medianya, dan ukuran yang disimpan Unduh, dengan tombol untuk menyalin tautan file, nama pengguna, dan keterangan.
+Adds Details to a feed post's or reel's menu. It shows when it went up, who posted it, its media ID and the size Download saves, with buttons to copy the file link, username and caption, open the photo or video in another app, and read its text with Google Lens. A story's menu gets Copy username.	Menambahkan Detail ke menu postingan di feed atau reel. Menampilkan kapan diunggah, siapa yang mengunggah, ID medianya, dan ukuran yang disimpan Unduh, dengan tombol untuk menyalin tautan file, nama pengguna, dan keterangan, membuka foto atau video di aplikasi lain, serta membaca teksnya dengan Google Lens. Menu cerita mendapat Salin nama pengguna.
 Caption	Keterangan
 Caption copied	Keterangan disalin
 Copy caption	Salin keterangan
@@ -2953,3 +2953,11 @@ Long press a chat to group it	Tekan lama chat untuk mengelompokkannya
 # context: Stories switch Story rings on saved posts and its summary, for posts on the Saved page (#790)
 Story rings on saved posts	Lingkaran cerita di postingan tersimpan
 Posts you saved show the story ring around the author's picture, like Home does, and a tap on it opens their story. It only uses stories Instagram has already loaded.	Postingan yang kamu simpan menampilkan lingkaran cerita di sekitar foto pembuatnya, seperti di Beranda, dan mengetuknya membuka ceritanya. Hanya memakai cerita yang sudah dimuat Instagram.
+# context: Details in a post's menu (#839): a row under the facts that sends the photo, or a video's cover, to Google Lens to read its words
+Read text with Lens	Baca teks dengan Lens
+# context: Details in a post's menu (#839): a toast while Open with or Read text with Lens fetches the post's file
+Getting the file ready	Menyiapkan file
+# context: Details in a post's menu (#839): a toast when Open with or Read text with Lens couldn't fetch the post's file
+Couldn't get the file	File tidak dapat diambil
+# context: Details in a post's menu (#839): a toast when no app on the phone takes the photo or video Open with offers
+No app here can open it	Tak ada aplikasi untuk membukanya

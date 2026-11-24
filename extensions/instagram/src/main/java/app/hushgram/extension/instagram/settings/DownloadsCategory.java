@@ -60,7 +60,8 @@ final class DownloadsCategory {
                 downloads.addPreference(toggle(context, Settings.POST_DETAILS, L10n.t("Details in a post's menu"),
                         L10n.t("Adds Details to a feed post's or reel's menu. It shows when it went up, who posted it, "
                                 + "its media ID and the size Download saves, with buttons to copy the file link, "
-                                + "username and caption.")));
+                                + "username and caption, open the photo or video in another app, and read its text "
+                                + "with Google Lens. A story's menu gets Copy username.")));
                 downloads.addPreference(toggle(context, Settings.POST_MENU_BLOCK, L10n.t("Block in a post's menu"),
                         L10n.t("Adds Block to the menu of someone else's feed post. It opens Instagram's own block "
                                 + "sheet, so nothing happens until you confirm there.")));

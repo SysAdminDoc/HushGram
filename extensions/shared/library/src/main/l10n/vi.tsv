@@ -888,7 +888,7 @@ Media link copied. It stops working after a few days.	Đã sao chép liên kết
 No direct link for this one	Mục này không có liên kết trực tiếp
 Posted %1$s	Đã đăng %1$s
 Size %1$d × %2$d	Kích thước %1$d × %2$d
-Adds Details to a feed post's or reel's menu. It shows when it went up, who posted it, its media ID and the size Download saves, with buttons to copy the file link, username and caption.	Thêm Chi tiết vào menu của bài viết bảng feed hoặc reel. Hiện thời gian đăng, người đăng, ID phương tiện và kích thước Tải xuống lưu, kèm nút sao chép liên kết tệp, tên người dùng và chú thích.
+Adds Details to a feed post's or reel's menu. It shows when it went up, who posted it, its media ID and the size Download saves, with buttons to copy the file link, username and caption, open the photo or video in another app, and read its text with Google Lens. A story's menu gets Copy username.	Thêm Chi tiết vào menu của bài viết bảng feed hoặc reel. Hiện thời gian đăng, người đăng, ID phương tiện và kích thước Tải xuống lưu, kèm nút sao chép liên kết tệp, tên người dùng và chú thích, mở ảnh hoặc video trong ứng dụng khác và đọc chữ trong đó bằng Google Lens. Menu của tin có thêm Sao chép tên người dùng.
 Caption	Chú thích
 Caption copied	Đã sao chép chú thích
 Copy caption	Sao chép chú thích
@@ -2868,3 +2868,11 @@ Long press a chat to group it	Nhấn giữ cuộc trò chuyện để xếp nhó
 # context: Stories switch Story rings on saved posts and its summary, for posts on the Saved page (#790)
 Story rings on saved posts	Vòng tin trên bài viết đã lưu
 Posts you saved show the story ring around the author's picture, like Home does, and a tap on it opens their story. It only uses stories Instagram has already loaded.	Bài viết bạn đã lưu hiện vòng tin quanh ảnh của người đăng, giống trang chủ, và chạm vào đó sẽ mở tin của họ. Chỉ dùng các tin Instagram đã tải sẵn.
+# context: Details in a post's menu (#839): a row under the facts that sends the photo, or a video's cover, to Google Lens to read its words
+Read text with Lens	Đọc chữ bằng Lens
+# context: Details in a post's menu (#839): a toast while Open with or Read text with Lens fetches the post's file
+Getting the file ready	Đang chuẩn bị tệp
+# context: Details in a post's menu (#839): a toast when Open with or Read text with Lens couldn't fetch the post's file
+Couldn't get the file	Không lấy được tệp
+# context: Details in a post's menu (#839): a toast when no app on the phone takes the photo or video Open with offers
+No app here can open it	Không có ứng dụng nào mở được

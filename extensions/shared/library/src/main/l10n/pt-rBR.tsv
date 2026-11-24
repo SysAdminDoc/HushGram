@@ -893,7 +893,7 @@ Media link copied. It stops working after a few days.	Link da mídia copiado. El
 No direct link for this one	Não há link direto para este
 Posted %1$s	Postado em %1$s
 Size %1$d × %2$d	Tamanho %1$d × %2$d
-Adds Details to a feed post's or reel's menu. It shows when it went up, who posted it, its media ID and the size Download saves, with buttons to copy the file link, username and caption.	Adiciona Detalhes ao menu de um post do feed ou de um reel. Mostra quando foi publicado, quem postou, o ID da mídia e o tamanho que o Baixar salva, com botões para copiar o link do arquivo, o nome de usuário e a legenda.
+Adds Details to a feed post's or reel's menu. It shows when it went up, who posted it, its media ID and the size Download saves, with buttons to copy the file link, username and caption, open the photo or video in another app, and read its text with Google Lens. A story's menu gets Copy username.	Adiciona Detalhes ao menu de um post do feed ou de um reel. Mostra quando foi publicado, quem postou, o ID da mídia e o tamanho que o Baixar salva, com botões para copiar o link do arquivo, o nome de usuário e a legenda, abrir a foto ou o vídeo em outro app e ler o texto com o Google Lens. O menu de um story ganha Copiar nome de usuário.
 Caption	Legenda
 Caption copied	Legenda copiada
 Copy caption	Copiar legenda
@@ -2953,3 +2953,11 @@ Long press a chat to group it	Toque e segure uma conversa para agrupá-la
 # context: Stories switch Story rings on saved posts and its summary, for posts on the Saved page (#790)
 Story rings on saved posts	Anéis de stories em posts salvos
 Posts you saved show the story ring around the author's picture, like Home does, and a tap on it opens their story. It only uses stories Instagram has already loaded.	Os posts que você salvou mostram o anel do story em volta da foto do autor, como no Início, e um toque nele abre o story. Só usa stories que o Instagram já carregou.
+# context: Details in a post's menu (#839): a row under the facts that sends the photo, or a video's cover, to Google Lens to read its words
+Read text with Lens	Ler texto com o Lens
+# context: Details in a post's menu (#839): a toast while Open with or Read text with Lens fetches the post's file
+Getting the file ready	Preparando o arquivo
+# context: Details in a post's menu (#839): a toast when Open with or Read text with Lens couldn't fetch the post's file
+Couldn't get the file	Não deu para pegar o arquivo
+# context: Details in a post's menu (#839): a toast when no app on the phone takes the photo or video Open with offers
+No app here can open it	Nenhum app aqui abre isso

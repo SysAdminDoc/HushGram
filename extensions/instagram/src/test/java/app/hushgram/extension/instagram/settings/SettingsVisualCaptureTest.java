@@ -755,12 +755,12 @@ public class SettingsVisualCaptureTest {
                 sample.recycle();
 
                 Class<?> rendition = MediaSave.Rendition.class;
+                MediaSave.Rendition photo = new MediaSave.Rendition("https://example.invalid/photo.jpg", 1080, 1350, 0);
                 Object facts = construct("app.hushgram.extension.instagram.download.PostInfo$Facts",
                         new Class<?>[]{Long.class, String.class, String.class, int.class, int.class,
-                                rendition, int.class, int.class, String.class},
-                        1_790_000_000L, "sample.account", "example_media", 1, 3,
-                        new MediaSave.Rendition("https://example.invalid/photo.jpg", 1080, 1350, 0), 1080, 1350,
-                        "A photo in the afternoon.");
+                                rendition, int.class, int.class, String.class, rendition, boolean.class},
+                        1_790_000_000L, "sample.account", "example_media", 1, 3, photo, 1080, 1350,
+                        "A photo in the afternoon.", photo, false);
                 invoke(Class.forName("app.hushgram.extension.instagram.download.PostInfo"), null, "present",
                         new Class<?>[]{Activity.class, facts.getClass()}, host, facts);
                 AlertDialog details = ShadowAlertDialog.getLatestAlertDialog();
@@ -871,14 +871,16 @@ public class SettingsVisualCaptureTest {
         assertActionBounds(root, footer);
         List<View> copies = new ArrayList<>();
         collectButtons(rows, copies);
-        // A known username and a caption with no hashtags, Select text off: Copy username, Copy
-        // caption and Translate caption, in the post's language (PostInfo.copies).
+        // A known username, a caption with no hashtags and a photo, Select text off: Copy username,
+        // Copy caption, Translate caption, Open with and Read text with Lens, in the post's language
+        // (PostInfo.copies).
         Context language = details.getContext();
         List<String> wanted = java.util.Arrays.asList(L10n.t(language, "Copy username"),
-                L10n.t(language, "Copy caption"), L10n.t(language, "Translate caption"));
+                L10n.t(language, "Copy caption"), L10n.t(language, "Translate caption"),
+                L10n.t(language, "Open with"), L10n.t(language, "Read text with Lens"));
         List<String> shown = new ArrayList<>();
         for (View action : copies) shown.add(String.valueOf(((TextView) action).getText()));
-        assertEquals("Known username and caption keep their copy and translate rows", wanted, shown);
+        assertEquals("Known username, caption and photo keep their copy, translate and open rows", wanted, shown);
         for (View action : copies) {
             assertSame("Copy rows share the facts' native scroll", scroll, parentScroll(action));
             assertContentInset(root, action);
