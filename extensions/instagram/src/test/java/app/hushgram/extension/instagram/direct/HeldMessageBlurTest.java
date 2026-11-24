@@ -335,6 +335,27 @@ public class HeldMessageBlurTest {
         assertEquals(1f, move[1], 0f);
     }
 
+    /**
+     * The layout in #684's screenshot: a short sent message held low, the reactions across the top and a tall menu
+     * starting right under them on the message's side, covering it. It comes out below the menu at full size, clear
+     * of the reactions, the menu and the message bar.
+     */
+    @Test
+    public void theMessageHiddenUnderATallMenuComesOutBelowIt() {
+        Rect row = new Rect(0, 1120, 1080, 1200);
+        Rect reactions = new Rect(46, 113, 1034, 271);
+        Rect menu = new Rect(590, 287, 1058, 1470);
+        Rect composer = new Rect(0, 1600, 1080, 1740);
+        List<Rect> covers = Arrays.asList(reactions, menu, composer);
+        float[] move = HeldMessageBlur.place(row, 0, 1600, covers, 8);
+        assertEquals(1f, move[1], 0f);
+        Rect after = new Rect(row);
+        after.offset(0, Math.round(move[0]));
+        for (Rect cover : covers) assertFalse(cover + " still over " + after, Rect.intersects(after, cover));
+        assertEquals("just below the menu, the nearer free stretch", 1478, after.top);
+        assertTrue("still in the chat: " + after, after.bottom <= 1600);
+    }
+
     /** A cover beside the message, not over it, takes no room from it. */
     @Test
     public void aCoverBesideTheMessageLeavesItsRoom() {
