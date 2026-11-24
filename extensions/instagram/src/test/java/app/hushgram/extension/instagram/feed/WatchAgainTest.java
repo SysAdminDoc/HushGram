@@ -146,6 +146,37 @@ public class WatchAgainTest {
         assertTrue(report, report.contains(WatchAgain.MORE_HOOK));
     }
 
+    /**
+     * The card in Saved and the other lists of posts (#568): with the switch on, Watch again gets the
+     * in-place replay whatever listener the card picked; off, paused or unready, the card keeps its own.
+     */
+    @Test
+    public void watchAgainReplaysHereOnlyWithTheSwitchOn() {
+        assertTrue("on", WatchAgain.replayHere());
+        assertTrue(HookStatus.missing(FamilyNames.WATCH_AGAIN).toString(), HookStatus.missing(FamilyNames.WATCH_AGAIN).isEmpty());
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertFalse("paused", WatchAgain.replayHere());
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+
+        SettingsContextRule.withoutContext(() -> assertFalse("unready", WatchAgain.replayHere()));
+
+        Settings.WATCH_AGAIN_IN_FEED.resetToDefault();
+        assertFalse("off to start", WatchAgain.replayHere());
+    }
+
+    /** A failing read keeps the card's own listener and is reported. */
+    @Test
+    public void aFailureKeepsTheCardsListener() {
+        assertFalse(WatchAgain.replayHere(() -> {
+            throw new IllegalStateException("boom");
+        }));
+        String report = String.join("\n", HookStatus.report());
+        assertTrue(report, report.contains(WatchAgain.HERE_HOOK));
+    }
+
     private static View shownButton() {
         View button = new FrameLayout(RuntimeEnvironment.getApplication());
         button.setVisibility(View.VISIBLE);

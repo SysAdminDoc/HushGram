@@ -12,11 +12,15 @@ import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -28,7 +32,7 @@ import org.junit.Test
 class WatchAgainInFeedPatchTest {
     @Test
     fun theHooksAreInTheExtension() {
-        for (hook in listOf(WATCH_AGAIN_IN_FEED, WATCH_MORE_REELS)) {
+        for (hook in listOf(WATCH_AGAIN_IN_FEED, WATCH_MORE_REELS, WATCH_AGAIN_HERE)) {
             val declared = ExtensionDex.classDef(hook.substringBefore("->")).methods
                 .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
                 .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
@@ -98,6 +102,65 @@ class WatchAgainInFeedPatchTest {
         }
         assertEquals("every build of 454 is read", Fixtures.BUILDS, checked)
     }
+
+    /**
+     * The card in Saved and the other lists of posts (#568): past the flag, the card's setup builds
+     * another listener for "Watch again" than the in-place one. In every build the setup asks the
+     * extension right before the button gets its listener, and on a yes builds the in-place listener,
+     * the one the flag's copy hands on, into the register the setter reads.
+     */
+    @Test
+    fun eachBuildPutsTheInPlaceListenerOnWatchAgain() {
+        var checked = 0
+        for (bundle in bundles()) {
+            val context = PatchContexts.of(FixtureDex.classesLoading(bundle, CONTINUE_WATCHING))
+            val site = context.findWatchAgain()
+            val stock = context.classDefBy(site.controller).methods.single { text(it) == site.bind }.code()
+
+            context.replayWatchAgainInFeed(site)
+            context.replayWatchAgainHere(site)
+
+            val code = context.mutableClassDefBy(site.controller).methods.single { text(it) == site.bind }.code()
+            val asks = code.indices.filter { code[it].reference().toString() == WATCH_AGAIN_HERE }
+            assertEquals("${bundle.name}: the setup asks once", 1, asks.size)
+            val at = asks.single()
+            val answer = (code[at + 1] as OneRegisterInstruction).registerA
+            assertEquals("${bundle.name}: the answer is kept", Opcode.MOVE_RESULT, code[at + 1].opcode)
+            assertEquals("${bundle.name}: a no skips the build", Opcode.IF_EQZ, code[at + 2].opcode)
+            assertEquals("${bundle.name}: on the answer", answer, (code[at + 2] as OneRegisterInstruction).registerA)
+            val made = code[at + 3]
+            assertEquals("${bundle.name}: a new listener", Opcode.NEW_INSTANCE, made.opcode)
+            assertEquals("${bundle.name}: of the in-place kind", site.listener, made.reference().toString())
+            val listener = (made as OneRegisterInstruction).registerA
+            assertEquals("${bundle.name}: its number", site.case, (code[at + 4] as NarrowLiteralInstruction).narrowLiteral)
+            val init = code[at + 5] as FiveRegisterInstruction
+            assertEquals("${bundle.name}: built", site.init, code[at + 5].reference().toString())
+            val self = context.mutableClassDefBy(site.controller).methods.single { text(it) == site.bind }.implementation!!.registerCount - 1
+            assertEquals("${bundle.name}: from the controller and the number", listOf(listener, self, answer),
+                listOf(init.registerC, init.registerD, init.registerE))
+            // The setter comes right after, where a no lands, and takes that listener for the TextView.
+            val setter = code[at + 6] as FiveRegisterInstruction
+            val shape = (code[at + 6].reference() as MethodReference).let { "(${it.parameterTypes.joinToString("")})${it.returnType}" }
+            assertEquals("${bundle.name}: the click setter", "(Landroid/view/View\$OnClickListener;Landroid/view/View;)V", shape)
+            assertEquals("${bundle.name}: hands the listener", listener, setter.registerC)
+            val target = context.mutableClassDefBy(site.controller).methods.single { text(it) == site.bind }
+                .implementation!!.instructions.toList().let { list ->
+                    val offsets = list.runningFold(0) { sum, instruction -> sum + instruction.codeUnits }
+                    offsets.indexOf(offsets[at + 2] + (list[at + 2] as OffsetInstruction).codeOffset)
+                }
+            assertEquals("${bundle.name}: a no lands on the setter", at + 6, target)
+            // The in-place listener is the one the flag's copy hands on: built with the same number before the copy.
+            val inPlace = stock.indices.filter { stock[it].opcode == Opcode.INVOKE_DIRECT && stock[it].reference().toString() == site.init }
+                .map { index -> (stock[index] as FiveRegisterInstruction).registerE.let { number ->
+                    (index - 1 downTo 0).first { (stock[it] as? OneRegisterInstruction)?.registerA == number }.let { stock[it] as? NarrowLiteralInstruction }?.narrowLiteral
+                } }
+            assertTrue("${bundle.name}: the number ${site.case} is one the setup builds: $inPlace", site.case in inPlace)
+            checked++
+        }
+        assertEquals("every build of 456 is read", Fixtures.BUILDS, checked)
+    }
+
+    private fun text(method: Method) = "${method.definingClass}->${method.name}(${method.parameterTypes.joinToString("")})${method.returnType}"
 
     private fun Method.code(): List<Instruction> = implementation?.instructions?.toList().orEmpty()
 

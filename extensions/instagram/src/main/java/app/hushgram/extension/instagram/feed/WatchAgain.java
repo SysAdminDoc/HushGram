@@ -20,7 +20,9 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * Reels viewer. Instagram also has a way to replay the reel right there in the feed, behind a server
  * flag its end card controller takes as it's built: on, "Watch again" hides the card and starts the
  * reel over in place. The patch hands that flag over as the controller stores it, and this turns it
- * on while the switch is on. "Watch more reels" still opens Reels.
+ * on while the switch is on. "Watch more reels" still opens Reels. Past the flag, the card in Saved
+ * and the other lists of posts picks a listener of its own for "Watch again", so the patch also asks
+ * {@link #replayHere} as the card hands the button its listener, and puts the in-place one there.
  *
  * <p>The second switch (#652) takes "Watch more reels" off the card. The patch hands the button over
  * once the controller has shown it and wired its tap, and this hides it. The card's own setup shows
@@ -29,6 +31,7 @@ import app.hushgram.extension.shared.settings.HushgramPause;
 public final class WatchAgain {
     static final String HOOK = "watch again";
     static final String MORE_HOOK = "watch more reels";
+    static final String HERE_HOOK = "watch again here";
 
     private WatchAgain() {
     }
@@ -50,6 +53,26 @@ public final class WatchAgain {
 
     static boolean wanted() {
         return Utils.settingsReady() && !HushgramPause.isPaused() && Settings.WATCH_AGAIN_IN_FEED.get();
+    }
+
+    /**
+     * Whether "Watch again" gets the in-place replay as the card is set up, whatever listener the card
+     * picked past the flag: the one in Saved, on a profile's posts and in other lists of posts, where
+     * the card shows Watch again alone, opens the reel in another viewer (#568). True while the switch
+     * is on. Never throws.
+     */
+    public static boolean replayHere() {
+        return replayHere(WatchAgain::wanted);
+    }
+
+    static boolean replayHere(BooleanSupplier on) {
+        try {
+            HookStatus.invoked(FamilyNames.WATCH_AGAIN);
+            return on.getAsBoolean();
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.WATCH_AGAIN, HERE_HOOK, failure);
+            return false;
+        }
     }
 
     /** Hides the end card's "Watch more reels" button while its switch is on. */

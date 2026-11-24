@@ -1996,6 +1996,10 @@ once-call Lapp/hushgram/extension/instagram/feed/WatchAgain;->inFeed(I)Z in inst
 # controller method that gives it its tap (05Wa's A00 on 386014758, the ()V that calls the static
 # click setter). Left out, the button stays; anywhere else, it isn't the hook the patch wrote.
 once-call Lapp/hushgram/extension/instagram/feed/WatchAgain;->moreReels(Landroid/view/View;)V in instance ()V calling static L*;->*(Landroid/view/View$OnClickListener;Landroid/view/View;)V pooled class-holding continue_watching
+# The same method asks WatchAgain.replayHere right before Watch again gets its listener, and on a
+# yes builds the in-place one there (05Au's A00 on 456's 386215122). Saved and the other lists of
+# posts pick a listener past the replay flag. Left out, Watch again opens the reel elsewhere there.
+once-call Lapp/hushgram/extension/instagram/feed/WatchAgain;->replayHere()Z in instance ()V calling static L*;->*(Landroid/view/View$OnClickListener;Landroid/view/View;)V pooled class-holding continue_watching
 #
 # Keep the tab bar on a reel's profile (#385) asks ReelProfileTabBar.open before the launcher of
 # the profile's own screen, on both routes a reel opens one by: the author row's opener, the one

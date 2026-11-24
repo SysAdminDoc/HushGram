@@ -5,17 +5,22 @@
 package app.morphe.patches.instagram.feed.watchagain
 
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
+import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
+import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.enableStatus
+import app.morphe.patches.instagram.misc.extension.freeLocalsAt
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
+import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
+import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.util.addInstructionsAtControlFlowLabel
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -23,6 +28,7 @@ import com.android.tools.smali.dexlib2.iface.Field
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
@@ -33,6 +39,8 @@ internal const val WATCH_AGAIN_STATUS = "watchAgain"
 internal const val WATCH_AGAIN_IN_FEED = "$EXTENSION_PACKAGE/feed/WatchAgain;->inFeed(I)Z"
 
 internal const val WATCH_MORE_REELS = "$EXTENSION_PACKAGE/feed/WatchAgain;->moreReels(Landroid/view/View;)V"
+
+internal const val WATCH_AGAIN_HERE = "$EXTENSION_PACKAGE/feed/WatchAgain;->replayHere()Z"
 
 /** The source the end card's "Watch more reels" tap opens Reels with, loaded by its controller alone. */
 internal const val CONTINUE_WATCHING = "continue_watching"
@@ -46,8 +54,19 @@ private const val CLICK_SETTER = "(Landroid/view/View\$OnClickListener;Landroid/
 
 private fun refuse(detail: String): Nothing = throw PatchException("Watch again in the feed: $detail")
 
-/** The end card controller and the flag field that has "Watch again" replay the reel in place. */
-internal class WatchAgainSite(val controller: String, val flag: String)
+/**
+ * The end card controller and the flag field that has "Watch again" replay the reel in place, and
+ * where the card hands "Watch again" its listener: the controller's setup [bind], and the in-place
+ * listener it makes, a [listener] built by [init] from the controller and the number [case] (#568).
+ */
+internal class WatchAgainSite(
+    val controller: String,
+    val flag: String,
+    val bind: String = "",
+    val listener: String = "",
+    val init: String = "",
+    val case: Int = 0,
+)
 
 /**
  * The end card controller is the class whose "Watch more reels" tap loads [CONTINUE_WATCHING], built
@@ -76,7 +95,71 @@ internal fun BytecodePatchContext.findWatchAgain(): WatchAgainSite {
     if ((read as TwoRegisterInstruction).registerA != (test as OneRegisterInstruction).registerA) refuse("the test reads another register")
     val flag = read.reference() as FieldReference
     if (flag.definingClass != controller.type) refuse("the flag $flag is not the controller's")
-    return WatchAgainSite(controller.type, flag.toString())
+    // The in-place listener the copy hands on: built right before it from the controller and a case number.
+    val source = (code[copy] as TwoRegisterInstruction).registerB
+    val made = (copy - 1 downTo 0).firstOrNull { code[it].writes(source) } ?: refuse("nothing makes the in-place listener")
+    val init = code[made].takeIf { it.opcode == Opcode.INVOKE_DIRECT }?.reference() as? MethodReference
+        ?: refuse("the in-place listener isn't built right before the copy")
+    val call = code[made] as FiveRegisterInstruction
+    val self = (bind.implementation ?: refuse("the card's setup has no body")).registerCount - 1
+    if (init.name != "<init>" || init.parameterTypes.map { it.toString() } != listOf("Ljava/lang/Object;", "I") ||
+        call.registerCount != 3 || call.registerD != self || bind.parameterTypes.isNotEmpty() ||
+        AccessFlags.STATIC.isSet(bind.accessFlags)
+    ) {
+        refuse("the in-place listener isn't built from the controller and a number in its setup: $init")
+    }
+    val created = (made - 1 downTo 0).firstOrNull { code[it].writes(source) }?.let { code[it] }
+    if (created?.opcode != Opcode.NEW_INSTANCE || created.reference().toString() != init.definingClass) {
+        refuse("the in-place listener isn't a new ${init.definingClass}")
+    }
+    val number = (made - 1 downTo 0).firstOrNull { code[it].writes(call.registerE) }?.let { code[it] as? NarrowLiteralInstruction }
+        ?: refuse("the in-place listener's number isn't a constant")
+    return WatchAgainSite(controller.type, flag.toString(), methodText(bind), init.definingClass, init.toString(), number.narrowLiteral)
+}
+
+/** Whether this writes register [register] as its first, written register (a move-result counts for the call before it). */
+private fun Instruction.writes(register: Int): Boolean = when {
+    opcode == Opcode.NEW_INSTANCE || opcode == Opcode.MOVE_RESULT || opcode == Opcode.MOVE_RESULT_OBJECT ||
+        opcode == Opcode.CONST_4 || opcode == Opcode.CONST_16 || opcode == Opcode.CONST || opcode == Opcode.CONST_HIGH16 ||
+        opcode == Opcode.CONST_STRING || opcode == Opcode.IGET_OBJECT || opcode == Opcode.IGET_BOOLEAN || opcode == Opcode.SGET_OBJECT ||
+        opcode in MOVES || opcode == Opcode.MOVE || opcode == Opcode.CHECK_CAST ->
+        (this as OneRegisterInstruction).registerA == register
+    // A constructor fills the object it's handed in place.
+    opcode == Opcode.INVOKE_DIRECT && (reference() as? MethodReference)?.name == "<init>" ->
+        (this as FiveRegisterInstruction).registerC == register
+    else -> false
+}
+
+/**
+ * Right before the card hands "Watch again" its listener, a new in-place listener takes the
+ * listener's place while WatchAgain.replayHere says so (#568). Past the replay flag the card can
+ * still pick a listener that opens the reel in another viewer: in Saved, on a profile's posts and in
+ * the other lists of posts, where the card shows Watch again alone.
+ */
+internal fun BytecodePatchContext.replayWatchAgainHere(site: WatchAgainSite) {
+    val bind = mutableClassDefBy(site.controller).methods.single { methodText(it) == site.bind }
+    val code = bind.code()
+    val reads = code.indices.mapNotNull { at -> watchAgainListener(code, at)?.let { at to it } }
+    val (read, listener) = reads.singleOrNull() ?: refuse("expected one Watch again listener in ${site.bind}, found ${reads.size}")
+    val setter = if (code[read + 1].opcode == Opcode.IF_EQZ) read + 2 else read + 1
+    if (setter in bind.jumpTargets()) refuse("something branches onto the Watch again listener's setter")
+    val self = bind.implementation!!.registerCount - 1
+    val view = (code[setter] as FiveRegisterInstruction).registerD
+    if (listener > 15 || self > 15) refuse("the listener v$listener or the controller v$self is past v15")
+    val free = bind.freeLocalsAt("Watch again in the feed", setter, 1, except = listOf(listener, view, self)).single()
+    if (free > 15) refuse("no free register up to v15 before the Watch again listener's setter")
+    bind.addInstructionsWithLabels(
+        setter,
+        """
+            invoke-static { }, $WATCH_AGAIN_HERE
+            move-result v$free
+            if-eqz v$free, :keep
+            new-instance v$listener, ${site.listener}
+            const v$free, ${site.case}
+            invoke-direct { v$listener, v$self, v$free }, ${site.init}
+        """,
+        ExternalLabel("keep", bind.getInstruction(setter)),
+    )
 }
 
 /** Every constructor storing the flag hands it to the extension first, so the controller keeps the answer. */
@@ -185,9 +268,9 @@ private fun Method.code(): List<Instruction> = implementation?.instructions?.toL
 private fun Instruction.reference() = (this as? ReferenceInstruction)?.reference
 
 /**
- * Has "Watch again" on a feed reel's end card replay it in place instead of opening Reels (#568), and
- * can take "Watch more reels" off that card (#652). See WatchAgain in the extension. In the default
- * selection with both switches off.
+ * Has "Watch again" on a feed reel's end card replay it in place instead of opening Reels (#568), in
+ * Saved and the other lists of posts too, and can take "Watch more reels" off that card (#652). See
+ * WatchAgain in the extension. In the default selection with both switches off.
  */
 @Suppress("unused")
 val watchAgainInFeedPatch = bytecodePatch(
@@ -204,6 +287,7 @@ val watchAgainInFeedPatch = bytecodePatch(
         requireStatusMethod(WATCH_AGAIN_STATUS)
         val site = findWatchAgain()
         replayWatchAgainInFeed(site)
+        replayWatchAgainHere(site)
         hideWatchMoreReels(findWatchMoreReels(site.controller))
         enableStatus(WATCH_AGAIN_STATUS)
     }
