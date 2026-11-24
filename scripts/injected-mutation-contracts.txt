@@ -4523,9 +4523,23 @@ once-call Lapp/hushgram/extension/instagram/reels/ReelScreenSleep;->started(Ljav
 # tests the answer instead. Left out, a message with link buttons gets no Copy link row; twice or
 # elsewhere, it isn't the list the patch means.
 once-call Lapp/hushgram/extension/instagram/direct/ChatButtonLinks;->rows(Ljava/util/List;Ljava/lang/Object;)Ljava/util/List; in instance ()Ljava/lang/Object; pooled holding xma_long_press_action
-# The chat's dispatcher for that menu (0WmY.EIk on 386215122, the (action, text) method reading the
-# chat's thread key and the menu's model) asks ChatButtonLinks.picked first and returns on a yes, so
-# a Copy link row's tap never reaches Instagram's card row action. Not first, the dispatcher could
-# act on the row before it; twice or elsewhere, it isn't the guard the patch wrote.
-start-call Lapp/hushgram/extension/instagram/direct/ChatButtonLinks;->picked(Landroid/app/Activity;Ljava/lang/Object;Ljava/lang/String;)Z in instance (LX/*;Ljava/lang/String;)V holding LX/*;->*:Lcom/instagram/model/direct/DirectThreadKey; LX/*;->*:Lcom/instagram/direct/messagethread/messageactions/model/MessageActionsViewModel;
-once-call Lapp/hushgram/extension/instagram/direct/ChatButtonLinks;->picked(Landroid/app/Activity;Ljava/lang/Object;Ljava/lang/String;)Z in instance (LX/*;Ljava/lang/String;)V holding LX/*;->*:Lcom/instagram/model/direct/DirectThreadKey; LX/*;->*:Lcom/instagram/direct/messagethread/messageactions/model/MessageActionsViewModel;
+# The menu's action dispatcher (0UnR.A08 on 386215122, the void method the chat's handler for that
+# menu hands every action but More on to with the activity, and the one the rows of the list More
+# opens call straight) asks ChatButtonLinks.picked first and returns on a yes, so a Copy link row's
+# tap from the bottom row or the dialog list (0UpI, which hands on its row's text) never reaches
+# Instagram's card row action. Not first, the dispatcher could act on the row before it; twice or
+# elsewhere, it isn't the guard the patch wrote. In the chat's handler for the menu (0WmY.EIk) it
+# missed the rows of the list More opens.
+start-call Lapp/hushgram/extension/instagram/direct/ChatButtonLinks;->picked(Landroid/app/Activity;Ljava/lang/Object;Ljava/lang/String;)Z in instance (Landroid/app/Activity;*)V pooled holding delete_message_for_you direct_replace_pin_open
+once-call Lapp/hushgram/extension/instagram/direct/ChatButtonLinks;->picked(Landroid/app/Activity;Ljava/lang/Object;Ljava/lang/String;)Z in instance (Landroid/app/Activity;*)V pooled holding delete_message_for_you direct_replace_pin_open
+# The rows of the popup lists More opens (0XAd.FRk, 0dno.invoke and 0UyB.onClick on 386215122, each
+# logging more_action_sheet and calling the dispatcher) keep their row in a field and hand the
+# dispatcher More's text in place of the row's own, so each asks ChatButtonLinks.picked first with
+# its row's text and returns on a yes. Left out, a Copy link row in those lists does nothing (#852);
+# not first, the row could act before it; twice or elsewhere, it isn't the guard the patch wrote.
+start-call Lapp/hushgram/extension/instagram/direct/ChatButtonLinks;->picked(Landroid/app/Activity;Ljava/lang/Object;Ljava/lang/String;)Z in instance ()V calling instance LX/*;->*(Landroid/app/Activity;Landroid/view/View;*)V pooled holding more_action_sheet
+once-call Lapp/hushgram/extension/instagram/direct/ChatButtonLinks;->picked(Landroid/app/Activity;Ljava/lang/Object;Ljava/lang/String;)Z in instance ()V calling instance LX/*;->*(Landroid/app/Activity;Landroid/view/View;*)V pooled holding more_action_sheet
+start-call Lapp/hushgram/extension/instagram/direct/ChatButtonLinks;->picked(Landroid/app/Activity;Ljava/lang/Object;Ljava/lang/String;)Z in instance ()Ljava/lang/Object; calling instance LX/*;->*(Landroid/app/Activity;Landroid/view/View;*)V pooled holding more_action_sheet
+once-call Lapp/hushgram/extension/instagram/direct/ChatButtonLinks;->picked(Landroid/app/Activity;Ljava/lang/Object;Ljava/lang/String;)Z in instance ()Ljava/lang/Object; calling instance LX/*;->*(Landroid/app/Activity;Landroid/view/View;*)V pooled holding more_action_sheet
+start-call Lapp/hushgram/extension/instagram/direct/ChatButtonLinks;->picked(Landroid/app/Activity;Ljava/lang/Object;Ljava/lang/String;)Z in instance (Landroid/view/View;)V calling instance LX/*;->*(Landroid/app/Activity;Landroid/view/View;*)V pooled holding more_action_sheet
+once-call Lapp/hushgram/extension/instagram/direct/ChatButtonLinks;->picked(Landroid/app/Activity;Ljava/lang/Object;Ljava/lang/String;)Z in instance (Landroid/view/View;)V calling instance LX/*;->*(Landroid/app/Activity;Landroid/view/View;*)V pooled holding more_action_sheet

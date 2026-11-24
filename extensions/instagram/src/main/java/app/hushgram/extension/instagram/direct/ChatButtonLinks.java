@@ -183,9 +183,11 @@ public final class ChatButtonLinks {
     }
 
     /**
-     * Injected first in Instagram's dispatcher for a held message's menu, with the chat's activity,
-     * the row's action and the text the row carries. True when the row is a Copy link row, which
-     * this then handles: the dispatcher returns at once. Never throws.
+     * Injected first in the dispatcher every row of a held message's menu reaches, the bottom row's
+     * and the ones in the list More opens, and first in each row of a popup list More opens (those
+     * hand the dispatcher More's text, not their own), with the chat's activity, the row's action and
+     * the text the row carries. True when the row is a Copy link row, which this then handles: the
+     * caller returns at once. Never throws.
      */
     public static boolean picked(@Nullable Activity activity, Object action, @Nullable String payload) {
         return picked(activity, payload, CLIPBOARD);
