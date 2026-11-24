@@ -75,6 +75,7 @@ public class HiddenChatsTest {
 
     @After
     public void restore() {
+        HiddenChats.pagersForgottenForTests();
         MessagesLock.resetForTests();
         Settings.HIDDEN_CHATS.resetToDefault();
         Settings.LOCK_MESSAGES.resetToDefault();
@@ -733,6 +734,85 @@ public class HiddenChatsTest {
 
         assertFalse("leaving Instagram hides them again", HiddenChats.revealed());
         assertEquals(Arrays.asList(BOB), ids(HiddenChats.inbox(null, list(ALICE, BOB))));
+    }
+
+    /**
+     * After a fresh start the inbox holds only its first page of chats or so, and a double tap showed
+     * just the hidden chats on it (#661). While a hidden chat is missing from Instagram's list, each
+     * inbox's load-more is asked for its next page, once for each list that grew, until every hidden
+     * chat shows or the list stops growing. Nothing is asked while they're left out.
+     */
+    @Test
+    public void shownHiddenChatsPageInTheOnesInstagramHasntLoaded() {
+        List<Object> asked = new ArrayList<>();
+        HiddenChats.pages = asked::add;
+        HiddenChats.add(ALICE, "Alice");
+        HiddenChats.add(BOB, "Bob");
+        Object pager = new Object();
+        HiddenChats.pager(pager);
+        Object inbox = new Object();
+        assertEquals(Arrays.asList("7", "8"), ids(HiddenChats.inbox(inbox, list("7", ALICE, "8"))));
+        idle();
+        assertEquals("nothing asked while they're left out", 0, asked.size());
+
+        HiddenChats.reveal();
+        idle();
+        assertEquals("Bob isn't loaded, so the next page", Collections.singletonList(pager), asked);
+
+        assertEquals(Arrays.asList(ALICE), ids(HiddenChats.inbox(inbox, list("7", ALICE, "8"))));
+        idle();
+        assertEquals("the same list again asks nothing more", 1, asked.size());
+
+        assertEquals(Arrays.asList(ALICE), ids(HiddenChats.inbox(inbox, list("7", ALICE, "8", "9", "10"))));
+        idle();
+        assertEquals("a longer list still without Bob asks again", 2, asked.size());
+
+        assertEquals(Arrays.asList(ALICE, BOB), ids(HiddenChats.inbox(inbox, list("7", ALICE, "8", "9", "10", BOB))));
+        idle();
+        assertEquals("every hidden chat shows, so no more", 2, asked.size());
+
+        assertTrue(HiddenChats.conceal());
+        HiddenChats.inbox(inbox, list("7", ALICE, "8", "9", "10", "11"));
+        idle();
+        assertEquals("left out again, nothing asked", 2, asked.size());
+        assertTrue(HookStatus.report().toString(), HookStatus.report().toString().contains(HiddenChats.PAGED + " 2"));
+        assertTrue(HookStatus.missing(FamilyNames.MESSAGES_LOCK).toString(), HookStatus.missing(FamilyNames.MESSAGES_LOCK).isEmpty());
+    }
+
+    /**
+     * A hidden chat that's gone (left, or deleted on another phone) never comes, so a showing stops
+     * asking after {@link HiddenChats#PAGES_ASKED} pages, and the next showing starts counting again.
+     * An inbox with no load-more yet, or one Instagram dropped, is never asked.
+     */
+    @Test
+    public void aChatThatNeverComesStopsThePagingAfterSoMany() {
+        List<Object> asked = new ArrayList<>();
+        HiddenChats.pages = asked::add;
+        HiddenChats.add(ALICE, "Alice");
+        HiddenChats.add("gone", "Gone");
+        Object inbox = new Object();
+        HiddenChats.reveal();
+        HiddenChats.inbox(inbox, list("7", ALICE));
+        idle();
+        assertEquals("no load-more made yet", 0, asked.size());
+
+        HiddenChats.pager(new Object());
+        List<String> growing = new ArrayList<>(Arrays.asList("7", ALICE));
+        for (int i = 0; i < HiddenChats.PAGES_ASKED + 5; i++) {
+            growing.add("x" + i);
+            HiddenChats.inbox(inbox, list(growing.toArray(new String[0])));
+            idle();
+        }
+        assertEquals(HiddenChats.PAGES_ASKED, asked.size());
+
+        assertTrue(HiddenChats.conceal());
+        HiddenChats.reveal();
+        idle();
+        assertEquals("a new showing asks again", HiddenChats.PAGES_ASKED + 1, asked.size());
+    }
+
+    private static void idle() {
+        shadowOf(Looper.getMainLooper()).idle();
     }
 
     /** The list the inbox was asked to draw its rows from the [n]th time. */

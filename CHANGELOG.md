@@ -4,6 +4,7 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
+* `Double-tap Messages for hidden chats` now shows every hidden chat after Instagram restarts, not only the ones on your inbox's first page. It loads more of the inbox until they're all there. Reported in #661.
 * `Buttons on the share sheet` can leave off Meta AI now, along with the other round buttons under the people. Asked for in #846.
 * `Reel buttons in the accent color` is new under `Accent color` in Layout. The like, comment, share and other buttons beside a reel, and their counts, take your accent color instead of white. Starts off. Asked for in #187.
 * `Chat groups` is new under Messages. Long press a chat to file it in a group you name, off your main inbox. Long press the Messages button to show one group. Starts off. Asked for in discussion #838.

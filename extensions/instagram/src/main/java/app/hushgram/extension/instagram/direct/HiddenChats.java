@@ -49,7 +49,8 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  *
  * <p>Double-tap Messages shows the hidden chats in the inbox by themselves, after the phone's lock
  * or the PIN ({@link #reveal}), until the next double tap or until you leave Instagram ({@link
- * #conceal}) (#661). Search, the folder counts, the unread badge and pushes leave them out all along.
+ * #conceal}) (#661), asking the inbox for more pages while one hasn't loaded yet ({@link #pageIn}).
+ * Search, the folder counts, the unread badge and pushes leave them out all along.
  *
  * <p>Nothing here throws into Instagram. A list that can't be read hides nothing, and a summary
  * whose id can't be read stays in the inbox.
@@ -63,6 +64,7 @@ public final class HiddenChats {
     static final String LEFT_OUT_RECENTS = "hidden chats left out of recent searches";
     static final String SILENCED = "hidden chat notifications dropped";
     static final String REDRAWN = "inbox redrawn after hidden chats changed";
+    static final String PAGED = "inbox pages asked for to show hidden chats";
 
     /** Steps a failure is reported under. */
     static final String LIST = "hidden chats";
@@ -72,6 +74,7 @@ public final class HiddenChats {
     static final String BADGE_FILTER = "unread badge filter";
     static final String SEARCH = "inbox search filter";
     static final String RECENTS = "recent searches filter";
+    static final String PAGE = "inbox next page";
 
     /** Instagram's own names for a chat as the inbox search lists it, and for a chat whose messages matched. */
     private static final String SHARE_TARGET = "com.instagram.model.direct.DirectShareTarget";
@@ -110,6 +113,10 @@ public final class HiddenChats {
 
     /** The inbox shows the hidden chats by themselves, until {@link #conceal}. */
     static void reveal() {
+        synchronized (pagers) {
+            asked = 0;
+            askedAt = -1;
+        }
         revealed = true;
         ChatGroups.left();
         changedSoon();
@@ -121,6 +128,97 @@ public final class HiddenChats {
         revealed = false;
         changedSoon();
         return true;
+    }
+
+    // ---------------------------------------------------------------- paging the hidden chats in
+
+    /** The most pages one showing of the hidden chats asks an inbox for, a page being about 20 chats. */
+    static final int PAGES_ASKED = 30;
+
+    /** Asks an inbox's load-more for its next page. Tests put a fake in. */
+    interface Pages {
+        void next(Object pager);
+    }
+
+    static volatile Pages pages = HiddenChats::nextPage;
+
+    /** The load-mores the inboxes made, held weakly. Guards {@link #asked} and {@link #askedAt} too. */
+    private static final ArrayList<WeakReference<Object>> pagers = new ArrayList<>();
+    /** Pages asked for since the hidden chats were last shown. */
+    private static int asked;
+    /** How many chats Instagram's list held at the last ask, or -1 before one. */
+    private static int askedAt = -1;
+
+    /**
+     * Asked with an inbox's load-more as the inbox makes it: the one its list's scroll asks for the
+     * next page of chats near the end. Kept weakly, for {@link #pageIn}.
+     */
+    public static void pager(Object pager) {
+        try {
+            HookStatus.invoked(FamilyNames.MESSAGES_LOCK);
+            if (pager == null) return;
+            synchronized (pagers) {
+                for (Iterator<WeakReference<Object>> it = pagers.iterator(); it.hasNext(); ) {
+                    Object kept = it.next().get();
+                    if (kept == null || kept == pager) it.remove();
+                }
+                pagers.add(new WeakReference<>(pager));
+            }
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.MESSAGES_LOCK, PAGE, t);
+        }
+    }
+
+    /**
+     * Asks [pager], an inbox's load-more, for its next page of chats, as a scroll near the end of the
+     * list does. The patch writes the body at patch time, and a build without it does nothing.
+     */
+    public static void nextPage(Object pager) {
+    }
+
+    /**
+     * While the hidden chats show by themselves, one Instagram hasn't loaded yet has no row: after a
+     * fresh start the inbox holds about its first page of chats, and with every other chat left out
+     * there's no list to scroll for more (#661). So while a hidden chat is missing from [summaries],
+     * Instagram's own list, each inbox's load-more is asked for its next page on the main thread, once
+     * for each list that grew, up to {@link #PAGES_ASKED} pages a showing. A page comes back through
+     * {@link #inbox}, which asks again until every hidden chat shows or Instagram has no more.
+     */
+    private static void pageIn(@Nullable List<Object> summaries, View view) {
+        if (!view.shown || summaries == null) return;
+        if (only(summaries, view.hidden, Collections.emptySet()).size() >= view.hidden.size()) return;
+        List<Object> asking = new ArrayList<>();
+        synchronized (pagers) {
+            if (asked >= PAGES_ASKED || summaries.size() <= askedAt) return;
+            for (Iterator<WeakReference<Object>> it = pagers.iterator(); it.hasNext(); ) {
+                Object kept = it.next().get();
+                if (kept == null) it.remove();
+                else asking.add(kept);
+            }
+            if (asking.isEmpty()) return;
+            asked++;
+            askedAt = summaries.size();
+        }
+        HookStatus.counted(FamilyNames.MESSAGES_LOCK, PAGED);
+        Utils.runOnMainThread(() -> {
+            for (Object pager : asking) {
+                try {
+                    pages.next(pager);
+                } catch (Throwable t) {
+                    HookStatus.threw(FamilyNames.MESSAGES_LOCK, PAGE, t);
+                }
+            }
+        });
+    }
+
+    /** Forgets every load-more and what was asked of them, and asks through the patch's bridge again. */
+    static void pagersForgottenForTests() {
+        synchronized (pagers) {
+            pagers.clear();
+            asked = 0;
+            askedAt = -1;
+        }
+        pages = HiddenChats::nextPage;
     }
 
     /**
@@ -149,7 +247,9 @@ public final class HiddenChats {
             View view = view();
             remember(holder, summaries, view);
             if (summaries == null || summaries.isEmpty()) return summaries;
-            return drawnRows(summaries, view, true);
+            List<Object> rows = drawnRows(summaries, view, true);
+            pageIn(summaries, view);
+            return rows;
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.MESSAGES_LOCK, FILTER, t);
             return summaries;
@@ -369,9 +469,11 @@ public final class HiddenChats {
             if (!Utils.settingsReady() || HushgramPause.isPaused()) return;
             List<Object> holders = new ArrayList<>();
             List<List<Object>> lists = new ArrayList<>();
+            View now;
+            List<Object> longest = null;
             synchronized (drawn) {
                 if (drawn.isEmpty()) return;
-                View now = view();
+                now = view();
                 for (Iterator<Drawn> it = drawn.iterator(); it.hasNext(); ) {
                     Drawn one = it.next();
                     Object holder = one.holder.get();
@@ -379,6 +481,7 @@ public final class HiddenChats {
                         it.remove();
                         continue;
                     }
+                    if (longest == null || one.summaries.size() > longest.size()) longest = one.summaries;
                     if (one.view.equals(now)) continue;
                     List<Object> before = drawnRows(one.summaries, one.view, false);
                     List<Object> after = drawnRows(one.summaries, now, false);
@@ -396,6 +499,7 @@ public final class HiddenChats {
                     HookStatus.threw(FamilyNames.MESSAGES_LOCK, REDRAW, t);
                 }
             }
+            pageIn(longest, now);
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.MESSAGES_LOCK, REDRAW, t);
         }
