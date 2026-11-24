@@ -16,6 +16,7 @@ import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.Utils;
+import app.hushgram.extension.shared.diagnostics.DiagnosticCategory;
 import app.hushgram.extension.shared.diagnostics.FeedFilterCounters;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 
@@ -146,15 +147,22 @@ public final class Ads {
      * browser card Instagram shows above the comments, an ad's page ("iab_card") or the shop page a
      * post links to ("product_iab_card"). Answers null, the type of a sheet with no card, while Hide
      * ads is on, so the comments open on their own, and [card] otherwise: with the switch off,
-     * HushGram paused, the settings not ready or anything thrown. Never throws.
+     * HushGram paused, the settings not ready or anything thrown. Logs one line for each card either
+     * way, since a sheet with one is rare enough that a report needs to say whether it came. Never
+     * throws.
      */
     public static String commentCard(String card) {
         if (card == null) return null;
         HookStatus.invoked(FamilyNames.HIDE_ADS);
         try {
-            if (!Utils.settingsReady() || !Settings.HIDE_ADS.get()) return card;
+            if (!Utils.settingsReady() || !Settings.HIDE_ADS.get()) {
+                Logger.diagnosticInfo(DiagnosticCategory.FEED_AND_NAVIGATION, "Ads",
+                        () -> "comments open with the " + card + " on top: Hide ads is off or HushGram is paused");
+                return card;
+            }
             HookStatus.counted(FamilyNames.HIDE_ADS, COMMENT_CARDS_OFF);
-            Logger.printDebug(() -> "Hide ads: took the " + card + " off the top of the comments");
+            Logger.diagnosticInfo(DiagnosticCategory.FEED_AND_NAVIGATION, "Ads",
+                    () -> "took the " + card + " off the top of the comments");
             return null;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.HIDE_ADS, "comment card", failure);
