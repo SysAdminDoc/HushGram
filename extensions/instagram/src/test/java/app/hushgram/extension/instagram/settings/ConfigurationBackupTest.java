@@ -131,6 +131,7 @@ public class ConfigurationBackupTest {
         assertTrue(settings.containsKey(Settings.FEED_SEEK_TIME.key));
         assertTrue(settings.containsKey(Settings.FEED_SEEK_TIME_LEFT.key));
         assertTrue(settings.containsKey(Settings.FEED_SEEK_TIME_UNDER_TAGS.key));
+        assertTrue(settings.containsKey(Settings.FEED_SEEK_TIME_TOP.key));
         assertTrue(settings.containsKey(Settings.STORY_SEEK_TIME.key));
         assertTrue(settings.containsKey(Settings.STORY_SEEK_TIME_LEFT.key));
     }

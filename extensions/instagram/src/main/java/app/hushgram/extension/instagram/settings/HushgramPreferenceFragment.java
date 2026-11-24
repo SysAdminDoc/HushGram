@@ -877,7 +877,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                             || Settings.FEED_SEEK_SHAPE.key.equals(key)
                             || Settings.FEED_DOUBLE_TAP_SKIP_SECONDS.key.equals(key)
                             || Settings.FEED_SEEK_TIME.key.equals(key) || Settings.FEED_SEEK_TIME_LEFT.key.equals(key)
-                            || Settings.FEED_SEEK_TIME_UNDER_TAGS.key.equals(key));
+                            || Settings.FEED_SEEK_TIME_UNDER_TAGS.key.equals(key)
+                            || Settings.FEED_SEEK_TIME_TOP.key.equals(key));
                     belongs |= family == PatchFamily.REEL_DOUBLE_TAP_SKIP
                             && Settings.DOUBLE_TAP_SKIP_REELS_SECONDS.key.equals(key);
                     belongs |= family == PatchFamily.FEED_AUTO_SCROLL && Settings.FEED_AUTO_SCROLL_SECONDS.key.equals(key);
@@ -7633,6 +7634,11 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             preference.setSummary(Settings.FIT_REEL_SCREEN.savedValue()
                     ? L10n.t("Turn off Show the whole reel to use this choice.")
                     : ReelsCategory.fillSummary());
+        } else if (setting == Settings.FEED_SEEK_TIME_TOP) {
+            // Time under the tags button wins over it, so the row says which switch to turn off (#788).
+            preference.setSummary(Settings.FEED_SEEK_TIME_UNDER_TAGS.savedValue()
+                    ? L10n.t("Turn off Time under the tags button to use this choice.")
+                    : FeedCategory.timeTopSummary());
         } else if (setting == Settings.HIDDEN_MESSAGE_BOX_BUTTONS) {
             // Gallery and microphone in the plus menu changes what the bar shows, so its flip redoes this.
             preference.setSummary(messageBoxSummary(Settings.HIDDEN_MESSAGE_BOX_BUTTONS.savedValue()));

@@ -173,6 +173,7 @@ public class FeedSeekBarTest {
         Settings.FEED_SEEK_TIME.resetToDefault();
         Settings.FEED_SEEK_TIME_LEFT.resetToDefault();
         Settings.FEED_SEEK_TIME_UNDER_TAGS.resetToDefault();
+        Settings.FEED_SEEK_TIME_TOP.resetToDefault();
         HookStatus.clear();
     }
 
@@ -186,6 +187,7 @@ public class FeedSeekBarTest {
         Settings.FEED_SEEK_TIME.resetToDefault();
         Settings.FEED_SEEK_TIME_LEFT.resetToDefault();
         Settings.FEED_SEEK_TIME_UNDER_TAGS.resetToDefault();
+        Settings.FEED_SEEK_TIME_TOP.resetToDefault();
         TabSwipe.forgetForTests();
         Settings.FEED_SEEK_BAR.resetToDefault();
         Settings.FEED_SEEK_BUTTON.resetToDefault();
@@ -547,6 +549,110 @@ public class FeedSeekBarTest {
                 + Math.round(FeedSeekBar.BUTTON_GAP_DP * density);
         assertEquals("past the toggle in the corner", pastToggle - plain.getPaddingStart(),
                 ((FrameLayout.LayoutParams) plain.getLayoutParams()).getMarginStart());
+    }
+
+    /**
+     * #788: Time in the top corner moves the time from over the bar to the video's top end corner, just
+     * under Instagram's countdown there, its text ending where the countdown's does, and under the post's
+     * menu button when the name row lies over the video. Instagram's row then only clears the bar. Time
+     * under the tags button wins over it.
+     */
+    @Test
+    public void theTimeCanSitInTheTopCornerUnderInstagramsCountdown() {
+        assertEquals(Boolean.FALSE, Settings.FEED_SEEK_TIME_TOP.defaultValue);
+        assertEquals(Settings.FEED_SEEK_TIME, Settings.FEED_SEEK_TIME_TOP.getParentSettings().get(0));
+        Activity activity = controller.get();
+        Post post = new Post(activity);
+        // Instagram's countdown, wrapped in the post's media, in the video's top end corner.
+        FrameLayout states = new FrameLayout(activity);
+        TextView countdown = new TextView(activity);
+        countdown.setText("0:38");
+        countdown.setPadding(16, 8, 12, 8);
+        states.addView(countdown, new FrameLayout.LayoutParams(94, 66, Gravity.TOP | Gravity.END));
+        post.root.addView(states, 1, new FrameLayout.LayoutParams(720, 400));
+        // The post around its media, taller than the video, and its name row with the menu button.
+        FrameLayout item = new FrameLayout(activity);
+        FrameLayout.LayoutParams media = new FrameLayout.LayoutParams(720, 400);
+        item.addView(post.root, media);
+        FrameLayout names = new FrameLayout(activity);
+        View menu = new View(activity);
+        menu.setId(View.generateViewId());
+        FeedSeekBar.idForTests(activity, FeedSeekBar.MENU_BUTTON, menu.getId());
+        names.addView(menu, new FrameLayout.LayoutParams(88, 96, Gravity.END));
+        names.setVisibility(View.GONE);
+        item.addView(names, new FrameLayout.LayoutParams(720, 96, Gravity.TOP));
+        feed.addView(item, 0, new LinearLayout.LayoutParams(720, 600));
+        stand.plays(player, post.video);
+        idle();
+        Settings.FEED_SEEK_BAR.save(true);
+        Settings.FEED_SEEK_TIME.save(true);
+        FeedSeekBar.progress(player, 3000, 15000);
+        idle();
+        TextView time = FeedSeekBar.timeForTests();
+        assertNotNull(time);
+        FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) time.getLayoutParams();
+        assertEquals("over the bar while it's off", Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL, params.gravity);
+        assertSame(time, FeedSeekBar.shownTime());
+        int barHeight = FeedSeekBar.barHeight(post.video, bar());
+        assertTrue("the row clears the time too", -post.row.getTranslationY() > barHeight);
+
+        Settings.FEED_SEEK_TIME_TOP.save(true);
+        FeedSeekBar.progress(player, 4000, 15000);
+        idle();
+        assertSame("the same label, moved", time, FeedSeekBar.timeForTests());
+        params = (FrameLayout.LayoutParams) time.getLayoutParams();
+        assertEquals(Gravity.TOP | Gravity.END, params.gravity);
+        assertEquals("nothing under it to clear", 0, params.bottomMargin);
+        int gap = Math.round(FeedSeekBar.TIME_GAP_DP * post.video.getResources().getDisplayMetrics().density);
+        int[] clock = new int[2];
+        int[] chip = new int[2];
+        time.getLocationOnScreen(clock);
+        countdown.getLocationOnScreen(chip);
+        assertEquals("just under the countdown", chip[1] + 66 + gap, clock[1]);
+        assertEquals("its text ends where the countdown's does", chip[0] + 94 - 12,
+                clock[0] + time.getWidth() - time.getPaddingRight());
+        assertTrue("and stays in the video", clock[0] + time.getWidth() <= chip[0] + 94);
+        assertNull("the carousel pill has no time over the bar to clear", FeedSeekBar.shownTime());
+        assertEquals("the row only clears the bar", -barHeight, post.row.getTranslationY(), 0f);
+
+        // The name row over the top of the video, as Home lays out a reel: under its menu button too.
+        names.setVisibility(View.VISIBLE);
+        idle();
+        FeedSeekBar.progress(player, 5000, 15000);
+        idle();
+        int[] dots = new int[2];
+        menu.getLocationOnScreen(dots);
+        time.getLocationOnScreen(clock);
+        assertEquals("under the menu button", dots[1] + 96 + gap, clock[1]);
+        assertEquals("still lined up with the countdown", chip[0] + 94 - 12,
+                clock[0] + time.getWidth() - time.getPaddingRight());
+        // The name row above the video instead: only the countdown counts again.
+        media.topMargin = 96;
+        post.root.setLayoutParams(media);
+        idle();
+        FeedSeekBar.progress(player, 6000, 15000);
+        idle();
+        time.getLocationOnScreen(clock);
+        countdown.getLocationOnScreen(chip);
+        assertEquals("a menu above the video doesn't count", chip[1] + 66 + gap, clock[1]);
+
+        Settings.FEED_SEEK_TIME_UNDER_TAGS.save(true);
+        assertFalse("Time under the tags button wins", Settings.FEED_SEEK_TIME_TOP.isAvailable());
+        FeedSeekBar.progress(player, 7000, 15000);
+        idle();
+        params = (FrameLayout.LayoutParams) time.getLayoutParams();
+        assertEquals(Gravity.BOTTOM | Gravity.START, params.gravity);
+        assertEquals(0, params.topMargin);
+        assertEquals(0, params.getMarginEnd());
+        Settings.FEED_SEEK_TIME_UNDER_TAGS.save(false);
+
+        Settings.FEED_SEEK_TIME_TOP.save(false);
+        FeedSeekBar.progress(player, 9000, 15000);
+        idle();
+        params = (FrameLayout.LayoutParams) time.getLayoutParams();
+        assertEquals("off again, back over the bar", Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL, params.gravity);
+        assertEquals(0, params.topMargin);
+        assertEquals(0, params.getMarginEnd());
     }
 
     /** #711: a row's buttons give the corner its inset from either side, read as the toggle reads them, right to left too. */

@@ -517,6 +517,8 @@ Turn on %1$s to use this slider.	Hãy bật %1$s để dùng thanh trượt này
 Turn on Story ring size to use this choice.	Hãy bật Kích thước vòng tin để dùng lựa chọn này.
 # context: Settings page, Reels: the line under the greyed-out Fill the screen switch while Show the whole reel is on
 Turn off Show the whole reel to use this choice.	Hãy tắt Hiện toàn bộ reel để dùng lựa chọn này.
+# context: Settings page, Feed: the line under the greyed-out Time in the top corner switch while Time under the tags button is on (#788)
+Turn off Time under the tags button to use this choice.	Hãy tắt Thời gian dưới nút gắn thẻ để dùng lựa chọn này.
 Turn on Default playback quality to use this choice.	Hãy bật Chất lượng phát mặc định để dùng lựa chọn này.
 Updating remembered positions...	Đang cập nhật vị trí đã nhớ...
 Undo cleared positions	Hoàn tác việc xóa vị trí
@@ -2548,6 +2550,10 @@ The time on the seek bar counts down what's left of the video, like -0:33 / 0:45
 Time under the tags button	Thời gian dưới nút gắn thẻ
 # context: Summary of Time under the tags button (#711)
 Puts the time in the corner under the tags button instead of the middle of the bar.	Đặt thời gian ở góc dưới nút gắn thẻ thay vì ở giữa thanh.
+# context: Feed settings: a switch under Time on the seek bar that moves the time to the video's top corner, below Instagram's countdown (#788)
+Time in the top corner	Thời gian ở góc trên
+# context: Summary of Time in the top corner (#788)
+Puts the time in the top corner of the video instead of over the bar, just below anything Instagram shows there, like its countdown.	Đặt thời gian ở góc trên của video thay vì trên thanh, ngay dưới những gì Instagram hiện ở đó, như bộ đếm ngược.
 # context: Feed settings: a switch under Tap a feed video to pause it that keeps any tap on a feed video from opening Reels (#706)
 Taps on feed videos stay in the feed	Chạm vào video bảng feed vẫn ở lại bảng feed
 # context: Summary of Taps on feed videos stay in the feed; Tap a feed video to pause it is the switch above it, use its translation (#706)

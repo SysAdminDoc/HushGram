@@ -30,6 +30,7 @@ import androidx.annotation.VisibleForTesting;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -123,6 +124,15 @@ public final class FeedSeekBar {
      */
     static final int CAROUSEL_LEVELS = 4;
 
+    /**
+     * The post's menu button, three dots in its name row. A reel on Home lays that row over the top of
+     * the video, and the time in the top corner goes under the button there (#788).
+     */
+    static final String MENU_BUTTON = "media_option_button";
+
+    /** How far above the video's frame the post's menu button is looked for, short of the feed's list. */
+    static final int MENU_LEVELS = 8;
+
     private static final ResourceIdCache ids = new ResourceIdCache();
 
     /** The feed's video player, through the patch's stubs; tests stand in. */
@@ -166,6 +176,14 @@ public final class FeedSeekBar {
     }
 
     /**
+     * Whether the time goes in the video's top corner (#788): Time in the top corner on, and Time under
+     * the tags button off, since that one wins.
+     */
+    static boolean timeTopWanted() {
+        return Settings.FEED_SEEK_TIME_TOP.isAvailable() && Settings.FEED_SEEK_TIME_TOP.get();
+    }
+
+    /**
      * The time over the bar: the time played, past the end counted as the end, and the length, "0:12 / 0:45",
      * or with [left] the time still to go, "-0:33 / 0:45". The story seek bar's time reads it too (#784).
      */
@@ -199,11 +217,14 @@ public final class FeedSeekBar {
         return label;
     }
 
-    /** The time showing over the bar on a feed video now, or null. A carousel's dots pill goes above it too. */
+    /**
+     * The time showing over the bar on a feed video now, or null. A carousel's dots pill goes above it too.
+     * Null too while the time sits in the video's top corner (#788), away from the bar.
+     */
     @Nullable
     static View shownTime() {
         Overlay overlay = current;
-        TextView label = overlay == null || overlay.removed ? null : overlay.time;
+        TextView label = overlay == null || overlay.removed || overlay.timeOnTop ? null : overlay.time;
         return label != null && label.getVisibility() == View.VISIBLE && label.getParent() != null ? label : null;
     }
 
@@ -301,6 +322,8 @@ public final class FeedSeekBar {
         @Nullable GlassSeekBar bar;
         @Nullable Toggle button;
         @Nullable TextView time;
+        /** Whether the time sits in the video's top corner, away from the bar (#788). */
+        boolean timeOnTop;
         int position;
         int duration;
         long hiddenSince = -1;
@@ -386,11 +409,12 @@ public final class FeedSeekBar {
         /**
          * How much higher than the bar Instagram's [rows] go so their buttons end above the time showing
          * over the bar, a gap clear of it (#711): the time's height and a gap on each side of it, less the
-         * room the rows already leave under their lowest button. Zero with no time showing.
+         * room the rows already leave under their lowest button. Zero with no time showing, or with the
+         * time up in the video's top corner (#788).
          */
         private int clearOfTime(List<ViewGroup> rows, View view) {
             TextView shown = time;
-            if (shown == null || shown.getParent() == null) return 0;
+            if (shown == null || shown.getParent() == null || timeOnTop) return 0;
             int under = roomUnder(rows);
             if (under < 0) return 0;
             int height = shown.getHeight();
@@ -450,9 +474,12 @@ public final class FeedSeekBar {
                 shown.setOnClickListener(tapped -> flipTime());
                 time = shown;
             }
-            int bottom = barHeight(view, seek) + dp(view, TIME_GAP_DP);
-            boolean corner = Settings.FEED_SEEK_TIME_UNDER_TAGS.get();
-            int gravity = Gravity.BOTTOM | (corner ? Gravity.START : Gravity.CENTER_HORIZONTAL);
+            boolean top = timeTopWanted();
+            timeOnTop = top;
+            int bottom = top ? 0 : barHeight(view, seek) + dp(view, TIME_GAP_DP);
+            boolean corner = !top && Settings.FEED_SEEK_TIME_UNDER_TAGS.get();
+            int gravity = top ? Gravity.TOP | Gravity.END
+                    : Gravity.BOTTOM | (corner ? Gravity.START : Gravity.CENTER_HORIZONTAL);
             if (shown.getParent() != frame) {
                 if (shown.getParent() != null) ((ViewGroup) shown.getParent()).removeView(shown);
                 frame.addView(shown, frame.indexOfChild(seek) + 1, new FrameLayout.LayoutParams(
@@ -460,13 +487,57 @@ public final class FeedSeekBar {
             }
             fit(shown, ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, bottom);
             int start = corner ? Math.max(0, cornerStart(frame, view, rows) - shown.getPaddingStart()) : 0;
+            int[] place = {0, 0};
+            if (top) {
+                topCorner(frame, view, shown, place);
+                place[1] = Math.max(0, place[1] - shown.getPaddingEnd());
+            }
             FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) shown.getLayoutParams();
-            if (params.gravity != gravity || params.getMarginStart() != start) {
+            if (params.gravity != gravity || params.getMarginStart() != start
+                    || params.topMargin != place[0] || params.getMarginEnd() != place[1]) {
                 params.gravity = gravity;
                 params.setMarginStart(start);
+                params.topMargin = place[0];
+                params.setMarginEnd(place[1]);
                 shown.setLayoutParams(params);
             }
             showTimeAt(dragging ? seek.getProgress() : position);
+        }
+
+        /**
+         * Where the time goes in the video's top end corner with Time in the top corner on (#788),
+         * written into [place] as its top margin and how far in from the end its text ends: a gap under
+         * the lowest of Instagram's small views shown in that corner, like the countdown or a carousel's
+         * count, with its text's end lined up with theirs ({@link #cornerViews}). With none there, 8 dp
+         * down and in.
+         */
+        private void topCorner(FrameLayout frame, View view, TextView shown, int[] place) {
+            List<View> found = cornerViews(frame, shown, bar, button);
+            if (found.isEmpty()) {
+                place[0] = dp(view, 8);
+                place[1] = dp(view, 8);
+                return;
+            }
+            boolean rtl = frame.getLayoutDirection() == View.LAYOUT_DIRECTION_RTL;
+            boolean texts = false;
+            for (View corner : found) texts |= corner instanceof TextView;
+            int[] at = new int[2];
+            frame.getLocationInWindow(at);
+            int frameLeft = at[0];
+            int frameTop = at[1];
+            int lowest = 0;
+            int inset = Integer.MAX_VALUE;
+            for (View corner : found) {
+                corner.getLocationInWindow(at);
+                lowest = Math.max(lowest, at[1] - frameTop + corner.getHeight());
+                if (texts && !(corner instanceof TextView)) continue;
+                // How far in from the video's end the view's content ends, inside its padding.
+                int end = rtl ? at[0] - frameLeft + corner.getPaddingLeft()
+                        : frame.getWidth() - (at[0] - frameLeft + corner.getWidth() - corner.getPaddingRight());
+                inset = Math.min(inset, Math.max(0, end));
+            }
+            place[0] = lowest + dp(view, TIME_GAP_DP);
+            place[1] = inset;
         }
 
         /**
@@ -506,6 +577,7 @@ public final class FeedSeekBar {
         private void removeTime() {
             TextView shown = time;
             time = null;
+            timeOnTop = false;
             if (shown == null) return;
             shown.setOnClickListener(null);
             ViewGroup parent = (ViewGroup) shown.getParent();
@@ -853,6 +925,80 @@ public final class FeedSeekBar {
             if (roomUnder((ViewGroup) child) >= 0) rows.add((ViewGroup) child);
         }
         return rows;
+    }
+
+    /**
+     * Instagram's small views showing in the top end corner of the video in [frame] (#788): its
+     * countdown, a carousel's count, or the post's menu button when the name row lies over the video.
+     * They're looked for in the post's media around the frame, as far up as the sound button's row is
+     * ({@link #buttonRow}), plus the post's {@link #MENU_BUTTON}. Each one reaches into the video's top
+     * third, lies in its end half, reaches its last quarter and is less than half its width and a third
+     * of its height, so the play button in the middle and the rows along the bottom never count.
+     * HushGram's own views, [ours], don't either.
+     */
+    static List<View> cornerViews(FrameLayout frame, View... ours) {
+        ViewGroup root = frame;
+        for (int up = 0; up < ROW_LEVELS && root.getParent() instanceof ViewGroup; up++) root = (ViewGroup) root.getParent();
+        for (int up = ROW_LEVELS; up < CAROUSEL_LEVELS && wraps(root.getParent(), frame); up++) root = (ViewGroup) root.getParent();
+        List<View> found = new ArrayList<>();
+        int[] at = new int[2];
+        frame.getLocationInWindow(at);
+        boolean rtl = frame.getLayoutDirection() == View.LAYOUT_DIRECTION_RTL;
+        List<View> skip = Arrays.asList(ours);
+        corners(root, frame, at[0], at[1], rtl, skip, found);
+        View menu = menuButton(frame);
+        if (menu != null && !found.contains(menu) && inCorner(menu, frame, at[0], at[1], rtl)) found.add(menu);
+        return found;
+    }
+
+    /** Adds every shown view under [group] that sits in [frame]'s top end corner ({@link #inCorner}) to [found]. */
+    private static void corners(ViewGroup group, FrameLayout frame, int left, int top, boolean rtl, List<View> skip,
+                                List<View> found) {
+        for (int i = 0; i < group.getChildCount(); i++) {
+            View child = group.getChildAt(i);
+            if (child.getVisibility() != View.VISIBLE || child.getAlpha() == 0f || skip.contains(child)) continue;
+            if (inCorner(child, frame, left, top, rtl)) found.add(child);
+            if (child instanceof ViewGroup) corners((ViewGroup) child, frame, left, top, rtl, skip, found);
+        }
+    }
+
+    /**
+     * Whether [view] is a small view in the top end corner of [frame], which starts at [left] and [top]
+     * in the window: reaching into its top third, in its end half, out to its last quarter, and less
+     * than half as wide and a third as tall.
+     */
+    private static boolean inCorner(View view, FrameLayout frame, int left, int top, boolean rtl) {
+        int width = frame.getWidth();
+        int height = frame.getHeight();
+        int w = view.getWidth();
+        int h = view.getHeight();
+        if (w == 0 || h == 0 || w * 2 > width || h * 3 > height || !view.isShown()) return false;
+        int[] at = new int[2];
+        view.getLocationInWindow(at);
+        int x = at[0] - left;
+        int y = at[1] - top;
+        if (y + h <= 0 || y * 3 > height) return false;
+        if (rtl) return x >= -1 && (x + w) * 2 <= width && x * 4 <= width;
+        return x * 2 >= width && x + w <= width + 1 && (x + w) * 4 >= 3 * width;
+    }
+
+    /**
+     * The post's menu button around [frame]: the nearest under the frame's wrappers, looked for up to
+     * {@link #MENU_LEVELS} above it and never in a list that scrolls, which holds other posts. Null
+     * when there's none.
+     */
+    @Nullable
+    private static View menuButton(FrameLayout frame) {
+        int menu = ids.resolve(frame.getResources(), Utils.resourcePackage(frame.getContext()), MENU_BUTTON, false);
+        if (menu == 0) return null;
+        ViewParent at = frame.getParent();
+        for (int up = 0; up < MENU_LEVELS && at instanceof ViewGroup; up++, at = at.getParent()) {
+            ViewGroup group = (ViewGroup) at;
+            if (group.canScrollVertically(1) || group.canScrollVertically(-1)) return null;
+            View found = group.findViewById(menu);
+            if (found != null) return found;
+        }
+        return null;
     }
 
     /**

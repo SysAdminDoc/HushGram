@@ -43,6 +43,12 @@ import app.hushgram.extension.shared.L10n;
 final class FeedCategory {
     private FeedCategory() { }
 
+    /** What Time in the top corner does, which its row shows again once Time under the tags button goes off (#788). */
+    static String timeTopSummary() {
+        return L10n.t("Puts the time in the top corner of the video instead of over the bar, just below anything "
+                + "Instagram shows there, like its countdown.");
+    }
+
     static void add(HushgramPreferenceFragment page, PreferenceScreen screen, Context context, Set<PatchFamily> build) {
         boolean suggestions = build.contains(PatchFamily.FEED_SUGGESTIONS);
         boolean following = build.contains(PatchFamily.FOLLOWING_FEED);
@@ -323,6 +329,7 @@ final class FeedCategory {
                             + "A tap on the time switches back.")));
             feed.addPreference(toggle(context, Settings.FEED_SEEK_TIME_UNDER_TAGS, L10n.t("Time under the tags button"),
                     L10n.t("Puts the time in the corner under the tags button instead of the middle of the bar.")));
+            feed.addPreference(toggle(context, Settings.FEED_SEEK_TIME_TOP, L10n.t("Time in the top corner"), timeTopSummary()));
             feed.addPreference(toggle(context, Settings.FEED_DOUBLE_TAP_SKIP, L10n.t("Double tap to skip on feed videos"),
                     L10n.t("Double tap the left side of the video playing in a feed to go back, or the right side to go "
                             + "ahead, as far as Skip length says. A double tap in the middle works as before.")));
