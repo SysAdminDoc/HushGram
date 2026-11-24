@@ -63,6 +63,7 @@ import org.robolectric.annotation.Implements;
 import org.robolectric.shadows.ShadowAlertDialog;
 import org.robolectric.shadows.ShadowLooper;
 
+import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.settings.BaseSettings;
@@ -990,9 +991,11 @@ public class SettingsVisualCaptureTest {
         return result;
     }
 
+    /** Opens the category titled [title] in English, read in the page's language. */
     private void openCategory(String title) throws Exception {
+        String shown = L10n.t(controller.get(), title);
         for (Preference category : categories()) {
-            if (title.contentEquals(category.getTitle())) {
+            if (shown.contentEquals(category.getTitle())) {
                 tap(category);
                 return;
             }

@@ -45,6 +45,7 @@ import org.robolectric.shadows.ShadowAlertDialog;
 import org.robolectric.shadows.ShadowAudioManager;
 
 import app.hushgram.extension.instagram.media.SettingsPauseForTests;
+import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.Utils;
 
@@ -440,13 +441,16 @@ public class SettingsDialogBoundaryTest {
     public void rotationRetainsReadableFailureAndRejectsTheOldRetry() {
         BrokenPage.constructorFailures = 1;
         openRecovery();
-        View oldRetry = text(dialog.getView(), "Retry");
+        // The page speaks the locale's language, Arabic here, so its text is looked up in it.
+        String retryLabel = L10n.t(controller.get(), "Retry");
+        String failed = L10n.t(controller.get(), "Settings couldn't open");
+        View oldRetry = text(dialog.getView(), retryLabel);
         assertNotNull(oldRetry);
         controller.recreate();
         dialog = (SettingsDialog) controller.get().getFragmentManager().findFragmentByTag("boundary_settings");
         assertNotNull(dialog);
-        assertNotNull(text(dialog.getView(), "Settings couldn't open"));
-        View retry = text(dialog.getView(), "Retry");
+        assertNotNull(text(dialog.getView(), failed));
+        View retry = text(dialog.getView(), retryLabel);
         assertNotSame(oldRetry, retry);
         oldRetry.performClick();
         assertNull(dialog.getChildFragmentManager().findFragmentById(SettingsDialog.CONTAINER_ID));
@@ -455,7 +459,7 @@ public class SettingsDialogBoundaryTest {
         root.measure(View.MeasureSpec.makeMeasureSpec(640, View.MeasureSpec.EXACTLY),
                 View.MeasureSpec.makeMeasureSpec(1280, View.MeasureSpec.EXACTLY));
         root.layout(0, 0, 640, 1280);
-        TextView message = (TextView) text(root, "Settings couldn't open");
+        TextView message = (TextView) text(root, failed);
         assertEquals(0, message.getLayout().getEllipsisCount(0));
         assertEquals(message.getText().length(), message.getLayout().getLineEnd(message.getLineCount() - 1));
         assertTrue(retry.getHeight() >= 96);

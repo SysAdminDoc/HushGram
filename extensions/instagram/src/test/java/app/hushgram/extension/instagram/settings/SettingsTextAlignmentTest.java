@@ -37,6 +37,7 @@ import org.robolectric.annotation.GraphicsMode;
 import org.robolectric.shadows.ShadowLooper;
 
 import app.hushgram.extension.instagram.download.SavesForTests;
+import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.Utils;
 
@@ -227,7 +228,10 @@ public class SettingsTextAlignmentTest {
         ShadowLooper.idleMainLooper();
     }
 
-    /** Version, Hide ads, the last carousel save and the running save, in that order. */
+    /**
+     * Version, Hide ads, the last carousel save and the running save, in that order. Version is
+     * titled in the page's language, Arabic in the right-to-left cases.
+     */
     private List<Preference> rows() {
         List<Preference> found = new ArrayList<>();
         found.add(page.about.getPreference(0));
@@ -235,7 +239,7 @@ public class SettingsTextAlignmentTest {
         found.add(page.findPreference("hushgram_last_carousel_save"));
         found.add(page.findPreference("running_save_" + save));
         for (Preference row : found) assertNotNull(found.toString(), row);
-        assertEquals("Version", String.valueOf(found.get(0).getTitle()));
+        assertEquals(L10n.t(page.getActivity(), "Version"), String.valueOf(found.get(0).getTitle()));
         return found;
     }
 
