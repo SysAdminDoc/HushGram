@@ -122,14 +122,144 @@ public class GlassScrollHideTest {
     }
 
     @After public void tearDown() {
-        if (reelsNamed) {
+        if (reelsNamed || sheetNamed) {
             Map<String, Integer> ids = ReflectionHelpers.getStaticField(GlassTabBar.class, "IDS");
             synchronized (ids) {
-                if (reelsIdBefore == null) ids.remove(GlassTabBar.REELS_ROOT);
-                else ids.put(GlassTabBar.REELS_ROOT, reelsIdBefore);
+                if (reelsNamed) {
+                    if (reelsIdBefore == null) ids.remove(GlassTabBar.REELS_ROOT);
+                    else ids.put(GlassTabBar.REELS_ROOT, reelsIdBefore);
+                }
+                if (sheetNamed) {
+                    if (sheetIdBefore == null) ids.remove(GlassTabBar.SHEET_HOLDER);
+                    else ids.put(GlassTabBar.SHEET_HOLDER, sheetIdBefore);
+                }
             }
         }
         controller.close();
+    }
+
+    /** The id the sheet tests give Instagram's bottom sheet holder, the holder, and what the name had before. */
+    private static final int SHEET_ID = 0x7f0a0171;
+    private FrameLayout sheetHolder;
+    private FakeList sheetList;
+    private boolean sheetNamed;
+    private Integer sheetIdBefore;
+
+    /**
+     * Opens a bottom sheet the way Instagram does, in its holder over the screens and the bar: the lower part
+     * of the window, a scrolled list of comments in it.
+     */
+    private void openSheet() {
+        if (sheetHolder == null) {
+            Map<String, Integer> ids = ReflectionHelpers.getStaticField(GlassTabBar.class, "IDS");
+            synchronized (ids) { sheetIdBefore = ids.put(GlassTabBar.SHEET_HOLDER, SHEET_ID); }
+            sheetNamed = true;
+            sheetHolder = new FrameLayout(activity);
+            sheetHolder.setId(SHEET_ID);
+            root.addView(sheetHolder, new FrameLayout.LayoutParams(1080, 1920));
+        }
+        sheetList = new FakeList(activity);
+        sheetList.awayFromTop = true;
+        FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(1080, 1300);
+        params.topMargin = 620;
+        sheetHolder.addView(sheetList, params);
+        sheetHolder.setVisibility(View.VISIBLE);
+        layout();
+    }
+
+    /** The sheet goes, and Instagram keeps its holder, hidden. */
+    private void closeSheet() {
+        sheetHolder.removeAllViews();
+        sheetHolder.setVisibility(View.GONE);
+        layout();
+    }
+
+    /** Instagram's comments shrink the reel to the part above them. */
+    private void reelAboveTheSheet(boolean above) {
+        viewer.getLayoutParams().height = above ? 620 : 1770;
+        viewer.requestLayout();
+        layout();
+    }
+
+    /**
+     * #854: on Instagram's own bar a move resizes the reel, and a reel resized with its comments open stayed on
+     * its first frame once they closed. While a sheet is up, nothing the reel's comments do brings the bar back.
+     */
+    @Test public void aSheetOverAReelKeepsTheBarAwayUntilItHasGone() {
+        HookStatus.clear();
+        try {
+            onReels(true, 2000);
+            idle(2100);
+            settle();
+            assertTrue(hide.isOffScreen());
+            openSheet();
+            reelAboveTheSheet(true);
+            idle(GlassScrollHide.WATCH_MS * 5);
+            assertTrue("the reel shrunk above its comments is still the screen", hide.isHidden());
+            // A tap on the comment box, where the bar sits.
+            tap(500, 1850);
+            assertTrue("a tap in the sheet is the sheet's", hide.isHidden());
+            // The sheet's list scrolled back up, then the sheet dragged down and closed with Back.
+            touch(MotionEvent.ACTION_DOWN, 500, 900);
+            for (int i = 1; i <= 10; i++) touch(MotionEvent.ACTION_MOVE, 500, 900 + 60 * i);
+            touch(MotionEvent.ACTION_UP, 500, 1500);
+            activity.getWindow().getCallback().dispatchKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_BACK));
+            idle(10_000);
+            assertTrue(hide.isOffScreen());
+            closeSheet();
+            reelAboveTheSheet(false);
+            idle(10_000);
+            assertTrue("the reel is the screen again, and the bar stays away for it", hide.isOffScreen());
+            String report = HookStatus.report().toString();
+            assertTrue(report, report.contains(GlassScrollHide.COUNT_REELS_HID + " 1"));
+            assertFalse(report, report.contains(GlassScrollHide.COUNT_TAPPED_BACK));
+            assertFalse(report, report.contains(GlassScrollHide.COUNT_RESTORED));
+            assertFalse(report, report.contains(GlassScrollHide.COUNT_SHOWED));
+        } finally {
+            HookStatus.clear();
+        }
+    }
+
+    /**
+     * #854: the wait and a scroll in the sheet leave a bar that shows where it is, and the wait comes after the
+     * sheet. Here the reel keeps its size under the sheet, as it does under Share.
+     */
+    @Test public void theWaitAndAScrollInASheetMoveNothingUntilItHasGone() {
+        onReels(true, 2000);
+        tap(500, 300);
+        idle(1000);
+        openSheet();
+        idle(10_000);
+        assertFalse("the wait ran out with the sheet open", hide.isHidden());
+        drag(-300);
+        touch(MotionEvent.ACTION_UP, 500, 600);
+        assertFalse("the sheet's list scrolled down", hide.isHidden());
+        idle(10_000);
+        assertFalse(hide.isHidden());
+        closeSheet();
+        idle(2100);
+        assertTrue("the wait runs again once the sheet has gone", hide.isHidden());
+    }
+
+    /** #854: a bar a scroll hid stays away under a sheet, and comes back once the sheet has gone and its list is at the top. */
+    @Test public void aBarAScrollHidStaysPutUnderASheet() {
+        list.awayFromTop = true;
+        drag(-300);
+        touch(MotionEvent.ACTION_UP, 500, 600);
+        settle();
+        assertTrue(hide.isOffScreen());
+        openSheet();
+        list.awayFromTop = false;
+        sheetList.awayFromTop = false;
+        touch(MotionEvent.ACTION_DOWN, 500, 900);
+        for (int i = 1; i <= 10; i++) touch(MotionEvent.ACTION_MOVE, 500, 900 + 60 * i);
+        touch(MotionEvent.ACTION_UP, 500, 1500);
+        hide.onBack();
+        idle(GlassScrollHide.WATCH_MS * 5);
+        assertTrue(hide.isOffScreen());
+        closeSheet();
+        idle(GlassScrollHide.WATCH_MS * 2);
+        assertFalse(hide.isHidden());
     }
 
     private void touch(int action, float x, float y) {

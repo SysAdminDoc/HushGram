@@ -5,6 +5,7 @@
 package app.hushgram.extension.instagram.misc;
 
 import android.graphics.Rect;
+import android.os.SystemClock;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.SurfaceView;
@@ -61,6 +62,12 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * is away for a reel the timer looks at the viewer in place of a list, and brings the bar back as soon as
  * the viewer isn't the screen showing. The wait is one delayed call, dropped whenever the bar is put back
  * at once, and never made with the choice on Never.
+ *
+ * <p>Nothing moves the bar while one of Instagram's bottom sheets (a reel's comments or description, Share, a
+ * menu) is up, since the sheet covers where it sits anyway. On Instagram's own bar a move hands the screens
+ * the bar's room or takes it back, so the reel under the sheet changed size, and a reel resized with its
+ * comments open stayed on its first frame with the sound still playing once they closed (#854, as #222).
+ * A scroll in the sheet, the wait, the timer and Back all leave the bar where it is until the sheet has gone.
  *
  * <p>With the glass bar's liquid look (#65) and this switch off, a scroll down shrinks the bar to its compact
  * row through a {@link Shrinker} where it would have slid away. Everything that brings a slid bar back grows
@@ -212,6 +219,10 @@ final class GlassScrollHide {
     private boolean roomGiven;
     /** Whether a scroll shrank the bar, in place of sliding it away. */
     private boolean shrunk;
+    /** Instagram's bottom sheet holder in the bar's window, once found. It stays once Instagram adds it. */
+    @Nullable private WeakReference<View> sheetHolder;
+    /** When the holder was last looked for and wasn't there. */
+    private long sheetLookedAt = -GlassTabBar.SHEET_LOOK_MS;
     private final Runnable watch = this::watchScroller;
     private final Runnable reelsWait = this::waitedOnReels;
 
@@ -372,7 +383,7 @@ final class GlassScrollHide {
                 disarm();
                 refused = false;
                 tapAtHome = false;
-                if (byReels && atHome(event)) {
+                if (byReels && atHome(event) && !sheetUp()) {
                     // Away for a reel, and a finger where the bar sits. The reel's seek bar is there now (#221),
                     // so only a tap wants the bar back, at its lift. Moving the reel up under a finger that
                     // went down on the seek bar lost the drag. That is all this touch does.
@@ -415,7 +426,7 @@ final class GlassScrollHide {
                 if (direction == SHOW) {
                     refused = false;
                     // A bar away for a reel stays away whichever way the reels are swiped.
-                    if (!byReels) show();
+                    if (!byReels && hidden && !sheetUp()) show();
                 } else if (direction == HIDE) {
                     hideIfScrolled();
                 }
@@ -455,10 +466,27 @@ final class GlassScrollHide {
         return rect.contains(Math.round(event.getRawX()), Math.round(event.getRawY()));
     }
 
-    /** Back brings the bar back, and starts the wait on Reels over. */
+    /** Back brings the bar back, and starts the wait on Reels over. Back that closes a sheet leaves the bar be. */
     void onBack() {
-        show();
+        if (hidden && !sheetUp()) show();
         arm();
+    }
+
+    /**
+     * Whether one of Instagram's bottom sheets is up over the screen ({@link GlassTabBar#showsASheet}).
+     * Looked for at most every {@link GlassTabBar#SHEET_LOOK_MS} until Instagram adds the holder.
+     */
+    private boolean sheetUp() {
+        View root = bar.getRootView();
+        View holder = sheetHolder == null ? null : sheetHolder.get();
+        if (holder == null || holder.getRootView() != root) {
+            long now = SystemClock.uptimeMillis();
+            if (holder == null && now - sheetLookedAt < GlassTabBar.SHEET_LOOK_MS) return false;
+            holder = GlassTabBar.find(root, GlassTabBar.SHEET_HOLDER);
+            sheetHolder = holder == null ? null : new WeakReference<>(holder);
+            if (holder == null) sheetLookedAt = now;
+        }
+        return GlassTabBar.showsASheet(holder);
     }
 
     /**
@@ -483,6 +511,11 @@ final class GlassScrollHide {
             if (hidden || fingerDown || !running.getAsBoolean() || !bar.isAttachedToWindow() || !bar.isShown()) return;
             View viewer = reelsOnScreen();
             if (viewer == null) return;
+            if (sheetUp()) {
+                // The reel's comments are open, say: the bar waits until they've gone (#854).
+                bar.postDelayed(reelsWait, reelsMillis);
+                return;
+            }
             slideAway(new WeakReference<>(viewer), true, COUNT_REELS_HID);
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.GLASS_TAB_BAR, "reels hide", failure);
@@ -545,7 +578,8 @@ final class GlassScrollHide {
         View list = scroller == null ? null : scroller.get();
         // A list still at its top has not been scrolled down, however far a finger has gone.
         if (list == null || !list.isShown() || !list.canScrollVertically(-1)) return;
-        if (inReels(list) || fullScreenVideo()) {
+        // A list in a sheet, like a reel's comments, isn't the screen's, and the sheet covers the bar (#854).
+        if (inReels(list) || fullScreenVideo() || sheetUp()) {
             refused = true;
             return;
         }
@@ -644,7 +678,9 @@ final class GlassScrollHide {
             boolean fine = running.getAsBoolean() && bar.isAttachedToWindow() && list != null
                     && (byReels ? reelsShowing(list)
                     : list.isAttachedToWindow() && list.isShown() && list.canScrollVertically(-1));
-            if (fine) {
+            // A sheet over the screen can hide what the bar is away for, as a reel's comments shrink the reel. The
+            // bar stays put until the sheet has gone and the look is made again (#854).
+            if (fine || running.getAsBoolean() && bar.isAttachedToWindow() && list != null && sheetUp()) {
                 bar.postDelayed(watch, WATCH_MS);
                 return;
             }
