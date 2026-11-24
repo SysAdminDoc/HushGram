@@ -16,7 +16,12 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.os.Looper;
 import android.view.MotionEvent;
+import android.view.View;
 import android.view.ViewConfiguration;
+import android.view.ViewGroup;
+import android.view.WindowManager;
+import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ListView;
 
 import org.junit.After;
@@ -295,6 +300,37 @@ public class ChatGroupsTest {
         assertTrue(toast, toast.contains("Alice") && toast.contains("Work"));
     }
 
+    @Test
+    public void aNewGroupRaisesTheKeyboardAndSavesOnlyANamedGroup() {
+        Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
+        ChatGroups.pickFor(activity, ME, ALICE, "Alice", null, null);
+        AlertDialog list = ShadowAlertDialog.getLatestAlertDialog();
+        list.getButton(AlertDialog.BUTTON_POSITIVE).performClick();
+        shadowOf(Looper.getMainLooper()).idle();
+
+        AlertDialog ask = ShadowAlertDialog.getLatestAlertDialog();
+        assertEquals("New group", shadowOf(ask).getTitle().toString());
+        int mode = ask.getWindow().getAttributes().softInputMode;
+        assertEquals("the keyboard comes up although the window only gains focus as the list closes",
+                WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE,
+                mode & WindowManager.LayoutParams.SOFT_INPUT_MASK_STATE);
+        assertEquals(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE,
+                mode & WindowManager.LayoutParams.SOFT_INPUT_MASK_ADJUST);
+
+        Button save = ask.getButton(AlertDialog.BUTTON_POSITIVE);
+        assertFalse("nothing to save before a name", save.isEnabled());
+        EditText field = firstField(ask.findViewById(android.R.id.custom));
+        assertNotNull("the name field", field);
+        field.setText("   ");
+        assertFalse("spaces alone aren't a name", save.isEnabled());
+        field.setText(" Work ");
+        assertTrue(save.isEnabled());
+        save.performClick();
+        shadowOf(Looper.getMainLooper()).idle();
+
+        assertEquals("Work", ChatGroups.groupOf(ME, ALICE));
+    }
+
     // ---------------------------------------------------------------- a long press on Messages
 
     @Test
@@ -336,6 +372,18 @@ public class ChatGroupsTest {
 
         assertEquals("Work", ChatGroups.showing(ME));
         assertEquals(Collections.singletonList(ALICE), ids(HiddenChats.inbox(null, list(ALICE, BOB))));
+    }
+
+    private static EditText firstField(View view) {
+        if (view instanceof EditText) return (EditText) view;
+        if (view instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup) view;
+            for (int i = 0; i < group.getChildCount(); i++) {
+                EditText found = firstField(group.getChildAt(i));
+                if (found != null) return found;
+            }
+        }
+        return null;
     }
 
     private List<Object> rows(int redraw) {

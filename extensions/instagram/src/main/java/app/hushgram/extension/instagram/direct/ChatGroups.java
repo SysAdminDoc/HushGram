@@ -6,8 +6,11 @@ package app.hushgram.extension.instagram.direct;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.text.Editable;
 import android.text.InputType;
+import android.text.TextWatcher;
 import android.view.WindowManager;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.FrameLayout;
 
@@ -356,10 +359,25 @@ public final class ChatGroups {
                     .create();
             dialog.show();
             if (dialog.getWindow() != null) {
+                // ALWAYS_VISIBLE: this window gains focus as the group list closes, which STATE_VISIBLE
+                // doesn't count as moving forward, so the keyboard stayed down on a Samsung.
                 dialog.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
-                        | WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE);
+                        | WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
             }
             ScreenColors.dialog(dialog);
+            final Button save = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+            if (save != null) {
+                save.setEnabled(false);
+                field.addTextChangedListener(new TextWatcher() {
+                    @Override public void beforeTextChanged(CharSequence text, int start, int count, int after) {
+                    }
+                    @Override public void onTextChanged(CharSequence text, int start, int before, int count) {
+                    }
+                    @Override public void afterTextChanged(Editable text) {
+                        save.setEnabled(clean(text.toString()) != null);
+                    }
+                });
+            }
             field.requestFocus();
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.MESSAGES_LOCK, PICK, t);
