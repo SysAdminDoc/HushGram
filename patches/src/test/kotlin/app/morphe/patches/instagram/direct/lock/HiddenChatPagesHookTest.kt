@@ -44,6 +44,7 @@ class HiddenChatPagesHookTest {
     private val presenter = "Lfixture/Presenter;"
     private val pager = "Lfixture/Pager;"
     private val loadMore = "Lfixture/LoadMore;"
+    private val reason = "Lfixture/Reason;"
     private val final = AccessFlags.PUBLIC.value or AccessFlags.FINAL.value
 
     @Test
@@ -66,6 +67,24 @@ class HiddenChatPagesHookTest {
 
         assertHandsOver("fixture", found.init.instructions(), stock)
         assertBridge("fixture", context, pager, "$pager->more()V")
+    }
+
+    /**
+     * 457's load more takes why it loads, an enum, and the load-more asks it with one of the enum's
+     * values (01Po.A0g, asked by 01c0.EoU with 09Fp.A05 on 386314341). A null there isn't a value.
+     */
+    @Test
+    fun aLoadMoreTakingWhyItLoadsIsHandedOverToo() {
+        val context = context(why = true)
+        val found = context.findInboxPager()
+        assertEquals("$pager->more()V", found.more)
+        val stock = found.init.instructions().map(::text)
+
+        pageHiddenChats(found)
+
+        assertHandsOver("why", found.init.instructions(), stock)
+        assertBridge("why", context, pager, "$pager->more()V")
+        refuses("expected one load-more asking $coordinator->load", context(why = true, yes = false))
     }
 
     @Test
@@ -155,7 +174,14 @@ class HiddenChatPagesHookTest {
         pagers: Int = 1,
         yes: Boolean = true,
         constructors: Int = 1,
+        why: Boolean = false,
     ): BytecodePatchContext {
+        val takes = if (why) reason else "Z"
+        val ask = when {
+            !yes -> "const/4 v1, 0x0"
+            why -> "sget-object v1, $reason->TAP:$reason"
+            else -> "const/4 v1, 0x1"
+        }
         val classes = mutableListOf<ClassDef>()
         repeat(coordinators) { index ->
             val type = if (index == 0) coordinator else "Lfixture/Coordinator$index;"
@@ -163,7 +189,7 @@ class HiddenChatPagesHookTest {
                 type,
                 listOf(
                     method(type, "log", emptyList(), "V", 1, final, "const-string v0, \"$INBOX_COORDINATOR\"\nreturn-void"),
-                    method(type, "load", listOf("Z"), "Z", 1, final, "const/4 v0, 0x1\nreturn v0"),
+                    method(type, "load", listOf(takes), "Z", 1, final, "const/4 v0, 0x1\nreturn v0"),
                 ),
             )
         }
@@ -186,8 +212,8 @@ class HiddenChatPagesHookTest {
                             iget-object v0, p0, $type->presenter:$presenter
                             invoke-virtual {v0}, $presenter->coordinator()$coordinator
                             move-result-object v0
-                            const/4 v1, ${if (yes) "0x1" else "0x0"}
-                            invoke-virtual {v0, v1}, $coordinator->load(Z)Z
+                            $ask
+                            invoke-virtual {v0, v1}, $coordinator->load($takes)Z
                             return-void
                         """,
                     ),
@@ -204,7 +230,7 @@ class HiddenChatPagesHookTest {
                     """
                         iget-object v0, p0, Lfixture/Runnable;->coordinator:$coordinator
                         const/4 v1, 0x0
-                        invoke-virtual {v0, v1}, $coordinator->load(Z)Z
+                        invoke-virtual {v0, v1}, $coordinator->load($takes)Z
                         return-void
                     """,
                 ),

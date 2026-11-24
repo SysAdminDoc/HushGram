@@ -19,6 +19,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 
 /**
@@ -55,23 +56,26 @@ internal fun BytecodePatchContext.findInboxPagerOrSkip(): InboxPager? = try {
 
 /**
  * Finds the inbox's load-more before anything changes. The inbox's data load coordinator is the one
- * class loading [INBOX_COORDINATOR] with an instance (boolean)boolean method, its load more (01CE.A0f).
- * The load-more is the one other class calling that with a constant yes from an instance method
- * taking and answering nothing, its next page (01Lo.EvW), with the isLoading()Z of the load-more
- * interface it implements and one constructor. Fails when any of it isn't so.
+ * class loading [INBOX_COORDINATOR] with an instance load more answering a boolean and taking one
+ * boolean (01CE.A0f on 456.1) or, from 457, one object, the enum of why it loads (01Po.A0g, taking
+ * 09Fp on 386314341). The load-more is the one other class calling that with a constant (a yes, or
+ * one of that enum's values) from an instance method taking and answering nothing, its next page
+ * (01Lo.EvW, 01c0.EoU), with the isLoading()Z of the load-more interface it implements and one
+ * constructor. Fails when any of it isn't so.
  */
 internal fun BytecodePatchContext.findInboxPager(): InboxPager {
     val coordinators = classesLoadingString(INBOX_COORDINATOR).mapNotNull { owner ->
         owner.methods.singleOrNull { method ->
-            !method.static() && method.parameterTypes.map(Any::toString) == listOf("Z") && method.returnType == "Z" &&
-                method.implementation != null
+            !method.static() && method.returnType == "Z" && method.implementation != null &&
+                method.parameterTypes.map(Any::toString).let { it == listOf("Z") || it.size == 1 && it[0].startsWith("L") }
         }?.let { owner to it }
     }
     val (coordinator, load) = coordinators.singleOrNull()
-        ?: refusePages("expected one class loading \"$INBOX_COORDINATOR\" with an instance (Z)Z load more, found ${coordinators.size}")
-    val pagers = classesCalling(coordinator.type, load.name, listOf("Z"), "Z").filter { it.type != coordinator.type }.mapNotNull { owner ->
+        ?: refusePages("expected one class loading \"$INBOX_COORDINATOR\" with an instance (Z)Z or (enum)Z load more, found ${coordinators.size}")
+    val takes = load.parameterTypes.map(Any::toString)
+    val pagers = classesCalling(coordinator.type, load.name, takes, "Z").filter { it.type != coordinator.type }.mapNotNull { owner ->
         val more = owner.methods.singleOrNull { method ->
-            !method.static() && method.parameterTypes.isEmpty() && method.returnType == "V" && method.asksYes(load)
+            !method.static() && method.parameterTypes.isEmpty() && method.returnType == "V" && method.asksConstant(load)
         }
         val loading = owner.methods.any { it.name == "isLoading" && it.parameterTypes.isEmpty() && it.returnType == "Z" && !it.static() }
         if (more == null || !loading || owner.interfaces.isEmpty()) null else owner to more
@@ -115,17 +119,26 @@ internal fun pageHiddenChats(found: InboxPager) {
 
 private fun Method.static() = AccessFlags.STATIC.isSet(accessFlags)
 
-/** Whether this calls [load] with a constant yes, loaded right before the call. */
-private fun Method.asksYes(load: Method): Boolean {
+/**
+ * Whether this calls [load] with a constant loaded right before the call: a yes when it takes a
+ * boolean, or one of the values its object parameter's own class keeps (457's enum of why it loads).
+ */
+private fun Method.asksConstant(load: Method): Boolean {
+    val takes = load.parameterTypes.map(Any::toString)
     val code = implementation?.instructions?.toList() ?: return false
     return code.indices.any { at ->
         val call = code[at]
         val called = (call as? ReferenceInstruction)?.reference as? MethodReference ?: return@any false
         if (call.opcode != Opcode.INVOKE_VIRTUAL || called.definingClass != load.definingClass || called.name != load.name ||
-            called.parameterTypes.map(Any::toString) != listOf("Z") || called.returnType != "Z"
+            called.parameterTypes.map(Any::toString) != takes || called.returnType != "Z"
         ) return@any false
-        val yes = code.getOrNull(at - 1) ?: return@any false
-        yes.opcode == Opcode.CONST_4 && (yes as NarrowLiteralInstruction).narrowLiteral == 1 &&
-            (yes as OneRegisterInstruction).registerA == (call as FiveRegisterInstruction).registerD
+        val constant = code.getOrNull(at - 1) ?: return@any false
+        if ((constant as? OneRegisterInstruction)?.registerA != (call as FiveRegisterInstruction).registerD) return@any false
+        if (takes == listOf("Z")) {
+            constant.opcode == Opcode.CONST_4 && (constant as NarrowLiteralInstruction).narrowLiteral == 1
+        } else {
+            val value = (constant as? ReferenceInstruction)?.reference as? FieldReference
+            constant.opcode == Opcode.SGET_OBJECT && value?.definingClass == takes.single() && value.type == takes.single()
+        }
     }
 }

@@ -299,12 +299,13 @@ once-call Lapp/hushgram/extension/instagram/direct/ChatAccounts;->resumed(Ljava/
 once-call Lapp/hushgram/extension/instagram/direct/HiddenChats;->inbox(Ljava/lang/Object;Ljava/util/List;)Ljava/util/List; in instance (Ljava/lang/Object;)V calling static LX/*;->A01(LX/*;Ljava/lang/String;Lkotlin/jvm/functions/Function0;)V holding LX/*;->A05:Ljava/util/List; LX/*;->A06:Ljava/util/List; LX/*;->A0R:Z LX/*;->*(Lcom/instagram/common/session/UserSession;Ljava/util/List;)Ljava/util/List;
 once-call Lapp/hushgram/extension/instagram/direct/HiddenChats;->inbox(Ljava/lang/Object;Ljava/util/List;)Ljava/util/List; in instance (LX/*;)V calling static LX/*;->A01(LX/*;Ljava/lang/String;Lkotlin/jvm/functions/Function0;)V holding LX/*;->A05:Ljava/util/List; LX/*;->A06:Ljava/util/List; LX/*;->A0R:Z LX/*;->*(Lcom/instagram/common/session/UserSession;Ljava/util/List;)Ljava/util/List;
 first-call Lapp/hushgram/extension/instagram/direct/HiddenChats;->redraw(Ljava/lang/Object;Ljava/util/List;)V outside Lapp/hushgram/extension/
-# Hidden chats a double tap shows page in the rest (#661): the inbox's load-more (01Lo on 456.1's
-# 386215122), which its list's scroll asks for the next page of chats, hands itself to HiddenChats.pager
-# right before its constructor returns. It holds no string, so the rule takes its class by the
-# MobileConfig param its should-load check reads, which only that class loads. Left out, shown hidden
-# chats stay the ones on the inbox's first page after a fresh start.
-once-call Lapp/hushgram/extension/instagram/direct/HiddenChats;->pager(Ljava/lang/Object;)V in instance (LX/*;)V class-holding const:0x810d9b00194cf3
+# Hidden chats a double tap shows page in the rest (#661): the inbox's load-more (01c0 on 457's
+# 386314341, 01Lo on 456.1), which its list's scroll asks for the next page of chats, hands itself to
+# HiddenChats.pager right before its constructor returns. It holds no string, so the rule takes its
+# class by the MobileConfig param its should-load check reads, which only that class loads
+# (0x810d9b00194cf3 on 456.1). Left out, shown hidden chats stay the ones on the inbox's first page
+# after a fresh start.
+once-call Lapp/hushgram/extension/instagram/direct/HiddenChats;->pager(Ljava/lang/Object;)V in instance (LX/*;)V class-holding const:0x810d8400194c64
 # They also filter the Messages search in three places: the row builder, the See all reader and the
 # message match builder. No rule here either: HiddenChatHookTest proves those hooks the same way.
 # The recent searches the search lists before you type go through the same filter in the recent
