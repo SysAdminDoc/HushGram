@@ -37,6 +37,10 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * sound too (#718). With Start feed videos muted on, the patch asks {@link #keepsMuted()} each time
  * the flag comes out true, and a yes makes it false: the video starts muted while the account's state,
  * and with it Reels, keeps its sound. It wins over Start feed videos with sound.
+ *
+ * <p>A photo post with a song plays it only while the account's audio state is on, so a song that
+ * came before any video stayed silent (#762). The patch asks {@link #startSongWithSound(Object)} when
+ * such a post comes into view with the state still unset, never over a state you turned off.
  */
 public final class FeedSound {
     /** What {@link HookStatus} counts: a feed video started with the sound turned on. */
@@ -45,8 +49,14 @@ public final class FeedSound {
     /** What {@link HookStatus} counts: a feed video started muted by Start feed videos muted. */
     static final String KEPT_MUTED = "feed videos started muted";
 
+    /** What {@link HookStatus} counts: a photo post's song started with the sound on (#762). */
+    static final String SONG_STARTED = "feed songs started with sound";
+
     /** The hook's name in a failure report. */
     static final String VIDEO = "feed video start";
+
+    /** The song hook's name in a failure report. */
+    static final String SONG = "feed song start";
 
     /**
      * Every controller that already had its turn, held weakly so a closed feed is not kept alive.
@@ -96,6 +106,32 @@ public final class FeedSound {
             return 1;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.FEED_SOUND, VIDEO, failure);
+            return 0;
+        }
+    }
+
+    /**
+     * Asked with the feed's music controller when a photo post with a song comes into view while the
+     * account's audio state is still unset: nobody turned it on or off yet, or Instagram reset it after
+     * a while in the background. Instagram plays a photo post's song only once that state is on, so
+     * with nothing chosen the song stays silent until a video turned it on first (#762). True means
+     * play it, and Instagram's own play turns the state on, so the videos after it start with sound
+     * too. A state you set off yourself never reaches here. False while the switch is off, Start feed
+     * videos muted is on, HushGram is paused, the settings aren't ready, the phone's ringer or volume
+     * holds sound back the way {@link #startWithSound} reads them, or anything throws. Never throws.
+     */
+    public static int startSongWithSound(Object controller) {
+        try {
+            HookStatus.invoked(FamilyNames.FEED_SOUND);
+            if (controller == null || !Utils.settingsReady() || !Settings.START_FEED_VIDEOS_WITH_SOUND.get()) return 0;
+            if (Settings.START_FEED_VIDEOS_MUTED.get()) return 0;
+            boolean allowed = Settings.START_FEED_VIDEOS_ON_SILENT.get() ? StorySound.mediaVolumeUp() : StorySound.phoneAllowsSound();
+            if (!allowed) return 0;
+            HookStatus.counted(FamilyNames.FEED_SOUND, SONG_STARTED);
+            Logger.printDebug(() -> "Feed song: starting with sound");
+            return 1;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.FEED_SOUND, SONG, failure);
             return 0;
         }
     }

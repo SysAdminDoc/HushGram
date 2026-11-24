@@ -146,6 +146,39 @@ public class FeedSoundTest {
         assertTrue(report(), report().contains(FeedSound.STARTED + " 2"));
     }
 
+    /**
+     * A photo post's song (#762) follows the same switch: off, Start feed videos muted, a silent ringer or a
+     * zero volume answer no, Even on silent leaves only the volume, and every song asks again, since the
+     * patch asks only while Instagram's audio state is unset and Instagram's own play turns it on.
+     */
+    @Test
+    public void aPhotoPostsSongFollowsTheSwitch() {
+        Object music = new Object();
+        assertEquals("off to start", 0, FeedSound.startSongWithSound(music));
+        Settings.START_FEED_VIDEOS_WITH_SOUND.save(true);
+        assertEquals(1, FeedSound.startSongWithSound(music));
+        assertEquals("no turn to use up", 1, FeedSound.startSongWithSound(music));
+        assertEquals("no controller", 0, FeedSound.startSongWithSound(null));
+        audio.setRingerMode(AudioManager.RINGER_MODE_SILENT);
+        assertEquals("silent", 0, FeedSound.startSongWithSound(music));
+        Settings.START_FEED_VIDEOS_ON_SILENT.save(true);
+        assertEquals("silent, Even on silent", 1, FeedSound.startSongWithSound(music));
+        audio.setStreamVolume(AudioManager.STREAM_MUSIC, 0, 0);
+        assertEquals("volume down", 0, FeedSound.startSongWithSound(music));
+        audio.setStreamVolume(AudioManager.STREAM_MUSIC, 4, 0);
+        Settings.START_FEED_VIDEOS_MUTED.save(true);
+        assertEquals("Start feed videos muted wins", 0, FeedSound.startSongWithSound(music));
+        Settings.START_FEED_VIDEOS_MUTED.save(false);
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertEquals("paused", 0, FeedSound.startSongWithSound(music));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        SettingsContextRule.withoutContext(() -> assertEquals("not ready", 0, FeedSound.startSongWithSound(new Object())));
+        assertTrue(report(), report().contains(FeedSound.SONG_STARTED + " 3"));
+        assertFalse("a song isn't a video", report().contains(FeedSound.STARTED + " "));
+    }
+
     /** Paused, a saved switch answers Instagram's own and counts nothing. */
     @Test
     public void pausedHushGramLeavesTheSoundAlone() {

@@ -6674,7 +6674,7 @@
     },
     {
       "name": "Start feed videos with sound",
-      "description": "Starts videos on Home with their sound on, the same as tapping a video's speaker, or keeps them muted while reels play with sound. Your phone's ringer and volume still count, unless `Even on silent` under it is on. Starts off. Turn it on in HushGram settings > Feed.",
+      "description": "Starts videos on Home with their sound on, the same as tapping a video's speaker, and a photo post's song too, or keeps videos muted while reels play with sound. Your phone's ringer and volume still count, unless `Even on silent` under it is on. Starts off. Turn it on in HushGram settings > Feed.",
       "category": "Playback",
       "use": true,
       "dependencies": [

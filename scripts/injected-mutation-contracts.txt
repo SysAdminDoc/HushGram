@@ -4076,6 +4076,11 @@ once-call Lapp/hushgram/extension/instagram/feed/FeedSound;->startWithSound(Ljav
 # flag came out true, and a yes clears the flag before the same setter. Left out, a reel you unmuted makes the
 # feed play with sound whatever the switch says; twice or elsewhere, it isn't the branch the patch wrote.
 once-call Lapp/hushgram/extension/instagram/feed/FeedSound;->keepsMuted()I in instance (Lcom/instagram/feed/media/Media;L*;L*;L*;IIIZZZ)V class-holding feed_video_crash_when_adjusting_volume
+# Its photo song hook (#762) asks FeedSound.startSongWithSound() once, in the feed music controller's
+# static (Media, x, controller, float) void method, the one that plays a post's song as it comes into
+# view, where the account's audio state answered false and was never set. Left out, a song before any
+# video stays silent; twice or elsewhere, it isn't the test the patch wrote.
+once-call Lapp/hushgram/extension/instagram/feed/FeedSound;->startSongWithSound(Ljava/lang/Object;)I in static (Lcom/instagram/feed/media/Media;L*;L*;F)V class-holding FeedMusicController
 # Long press to zoom (#63): the feed media touch helper hands every touch on a post's frame to the
 # extension first, in its one instance (MotionEvent) boolean method, the one of that shape reading
 # the helper's GestureDetector field. Left out, the zoom never learns where the finger went down;

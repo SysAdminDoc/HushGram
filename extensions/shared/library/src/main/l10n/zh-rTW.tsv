@@ -1223,7 +1223,7 @@ Never. Pick a time and the tab bar slides away once a reel has played that long 
 # context: summary of the Hide the tab bar on Reels row; %1$d is the seconds picked, 2, 3, 5 or 8
 On Reels, the tab bar slides away after %1$d seconds without a touch. Tap the bottom edge of the screen, change tab or press Back to bring it back. Restart Instagram after changing it.	在 Reels 中，未觸碰畫面 %1$d 秒後分頁列會滑出畫面。點擊螢幕底部邊緣、切換分頁或按返回即可重新顯示。變更後請重新啟動 Instagram。
 Start feed videos with sound	動態首頁影片預設開啟聲音
-Videos on Home play with their sound on, the same as tapping a video's speaker. Mute one and the ones after it stay muted. Your phone's ringer and volume still count, so on silent or with the volume down, they stay quiet.	首頁影片會開啟聲音播放，等同點擊影片的喇叭按鈕。將其中一部靜音後，之後的影片也會保持靜音。仍受手機鈴聲與音量設定影響，因此靜音或音量調低時仍不會出聲。
+Videos on Home play with their sound on, the same as tapping a video's speaker, and so do songs on photo posts. Mute one and the ones after it stay muted. Your phone's ringer and volume still count, so on silent or with the volume down, they stay quiet.	首頁影片會開啟聲音播放，等同點擊影片的喇叭按鈕，相片貼文的歌曲也一樣。將其中一部靜音後，之後的影片也會保持靜音。仍受手機鈴聲與音量設定影響，因此靜音或音量調低時仍不會出聲。
 Start feed videos muted	動態首頁影片預設靜音
 Videos on Home start silent, even after you turn the sound on in Reels, so reels keep their sound. Tap a video's speaker to hear that one. Wins over Start feed videos with sound.	首頁影片會以靜音開始播放，即使你在 Reels 中開啟了聲音也一樣，因此 Reels 仍會保留聲音。點擊影片的喇叭按鈕即可聽該影片。優先於「動態首頁影片預設開啟聲音」。
 Tap a feed video to pause it	點擊動態首頁影片以暫停

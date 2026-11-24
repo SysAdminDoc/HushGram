@@ -73,15 +73,19 @@ private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $det
  * state a reel turned on, the patch asks the extension again, and a yes sets it to false. The video
  * starts muted and the account's state, the one Reels play by, is left on.
  *
+ * A photo post with a song plays it through the feed's music controller, and only while that same
+ * account state is on, so a song that came before any video stayed silent (#762). A second hook
+ * ([applyFeedSong]) asks the extension when such a post comes into view with the state never set.
+ *
  * Found and checked before anything changes: a build that differs stops the patch naming what it
  * couldn't find.
  */
 @Suppress("unused")
 val startFeedVideosWithSoundPatch = bytecodePatch(
     name = "Start feed videos with sound",
-    description = "Starts videos on Home with their sound on, the same as tapping a video's speaker, or keeps them " +
-        "muted while reels play with sound. Your phone's ringer and volume still count, unless `Even on silent` " +
-        "under it is on. Starts off. Turn it on in " +
+    description = "Starts videos on Home with their sound on, the same as tapping a video's speaker, and a photo " +
+        "post's song too, or keeps videos muted while reels play with sound. Your phone's ringer and volume still " +
+        "count, unless `Even on silent` under it is on. Starts off. Turn it on in " +
         "HushGram settings > Feed.",
 ) {
     category("Playback")
@@ -90,7 +94,11 @@ val startFeedVideosWithSoundPatch = bytecodePatch(
 
     execute {
         requireStatusMethod("feedSound")
-        applyFeedSound(findFeedSoundSite())
+        // Both sites are found before either changes, so a build missing one is left as it was.
+        val video = findFeedSoundSite()
+        val song = findFeedSongSite(video.factory)
+        applyFeedSound(video)
+        applyFeedSong(song)
         enableStatus("feedSound")
     }
 }
