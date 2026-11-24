@@ -4,6 +4,7 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
+* With `Hold the Friends tab to pick friends` on, the Friends tab no longer stops on a gray loading screen when a page has none of your picks. It asks Instagram for the next page instead. Reported in #503.
 * A saved profile's menu now names its folders under `Your saved profiles`, and tapping that row opens the folder picker with them ticked. Rows in the saved list show their folders too. Asked for in #629.
 * Holding a row in the viewing history now also offers `Open`, `Copy username`, `Show all from this account` and `Remove all from this account`. Asked for in #228.
 * `Hide AI labels on comments` is new under `Hide comments` in Comments. It takes AI-generated profile and similar AI labels off the line with a commenter's name. Starts off. Asked for in #787.

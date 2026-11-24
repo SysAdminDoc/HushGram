@@ -15,8 +15,10 @@ import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
@@ -29,8 +31,9 @@ import app.hushgram.extension.shared.settings.HushgramPause;
 
 /**
  * Hold the Friends tab on Reels to pick friends, and the tab keeps the reels they're on (#503).
- * Nothing new is asked of Instagram: the list holds the friends named on the pages the tab has
- * already loaded this run, and the filter works over those same pages.
+ * The list holds the friends named on the pages the tab has already loaded this run, and the filter
+ * works over those same pages. The one thing it asks of Instagram is the Friends tab's own next page,
+ * when a page leaves the tab nothing new to show.
  *
  * A friend is on a reel when the reel's social context names them, either among its faces or as its
  * source, or when its top likers do. That's the same data the bubble on a Friends tab reel is drawn
@@ -64,6 +67,21 @@ public final class FriendLanePicks {
 
     /** The kind counted for a page left whole because no reel on it names anyone. */
     static final String PAGE_KEPT = "page kept whole";
+
+    /** The kind counted for a list that left the viewer no reel, so its next page was asked for. */
+    static final String ASKED = "next page asked for";
+
+    /**
+     * How many lists in a row may leave the viewer no reel, each asking for the next page, before one
+     * keeps a reel to stand on. That one shows, and scrolling to it has Instagram load on as it does.
+     */
+    static final int MOST_ASKS = 8;
+
+    /** How long after a list that left nothing the viewer is asked, so the load it came from is done. */
+    static final long ASK_AFTER_MS = 300;
+
+    /** The lists in a row that left the viewer no reel. */
+    private static final AtomicInteger ASKS = new AtomicInteger();
 
     /** Status count for each reel taken out. */
     static final String REMOVED = "Friends tab reels left out";
@@ -120,6 +138,18 @@ public final class FriendLanePicks {
             String name = username(user);
             if (name != null) names.add(name);
         }
+    };
+
+    /** Asks the Friends tab's viewer for its next page; the patch-filled stubs below outside tests. */
+    interface Pager {
+        /** Has the viewer asked for its next page a moment from now. False when this build can't. */
+        boolean ask();
+    }
+
+    static final Pager PAGER = () -> {
+        if (!(viewerRegistries() instanceof Map)) return false;
+        Utils.runOnMainThreadDelayed(FriendLanePicks::nextPage, ASK_AFTER_MS);
+        return true;
     };
 
     private FriendLanePicks() {
@@ -225,15 +255,21 @@ public final class FriendLanePicks {
      * viewer, before that, when nothing's been picked, when no reel in the list names anyone, when
      * nothing goes, when the switch is off or paused, or when anything goes wrong. Never throws.
      *
+     * <p>A list that leaves the viewer no reel adds nothing it can scroll to, so Instagram, which loads
+     * on as you near the end, never asked again and the tab stood on its loading placeholder (#503).
+     * Such a list has the viewer asked for its next page instead, up to {@link #MOST_ASKS} in a row,
+     * and the one after that keeps its first reel, so there's always something to scroll on to. A
+     * build where the viewer can't be asked keeps that reel every time.
+     *
      * <p>Whatever it answers, the friends a Friends tab list names go on the list the hold opens. A
      * tab Instagram brings back from its own store never passes through {@link #page}, and that left
      * the hold with nobody to offer (#503).
      */
     public static List<?> added(List<?> items, String module, int held) {
-        return added(items, module, held, PATCHED);
+        return added(items, module, held, PATCHED, PAGER);
     }
 
-    static List<?> added(List<?> items, String module, int held, Reader reader) {
+    static List<?> added(List<?> items, String module, int held, Reader reader, Pager pager) {
         if (items == null) return null;
         try {
             if (!FRIENDS_LANE.equals(module) || !on()) return items;
@@ -251,14 +287,18 @@ public final class FriendLanePicks {
             }
 
             boolean[] goes = new boolean[size];
+            int reels = 0;
             int named = 0;
             int going = 0;
+            int firstReel = -1;
             int at = 0;
             boolean learned = false;
             for (Object item : items) {
                 if (at >= size) return items;
                 Object media = item == null ? null : reader.media(item);
                 if (media != null) {
+                    if (firstReel < 0) firstReel = at;
+                    reels++;
                     boolean picked = false;
                     boolean anyone = false;
                     Collection<String> friends = reader.friends(media);
@@ -281,10 +321,24 @@ public final class FriendLanePicks {
             }
             if (learned) keepSeen();
             // A list that changed size while it was read isn't one this can rebuild.
-            if (at != size || going == 0) return items;
-            if (named == 0) {
-                FeedFilterCounters.sawKind(ADDED_ROUTE, PAGE_KEPT);
+            if (at != size) return items;
+            if (going == 0 || named == 0) {
+                if (reels > 0) ASKS.set(0);
+                if (going > 0) FeedFilterCounters.sawKind(ADDED_ROUTE, PAGE_KEPT);
                 return items;
+            }
+            if (going < reels) {
+                ASKS.set(0);
+            } else if (ASKS.get() < MOST_ASKS && pager.ask()) {
+                int asked = ASKS.incrementAndGet();
+                FeedFilterCounters.sawKind(ADDED_ROUTE, ASKED);
+                Logger.printDebug(() -> "Friends tab picks: nothing left to show, asking for the next page (" + asked + " in a row)");
+            } else {
+                ASKS.set(0);
+                goes[firstReel] = false;
+                going--;
+                FeedFilterCounters.sawKind(ADDED_ROUTE, ONE_KEPT);
+                if (going == 0) return items;
             }
 
             List<Object> kept = new ArrayList<>(size - going);
@@ -415,6 +469,42 @@ public final class FriendLanePicks {
         return String.join("\n", names);
     }
 
+    /** Forgets how many lists in a row left the viewer nothing, as a restart does, for tests. */
+    static void forgetAsks() {
+        ASKS.set(0);
+    }
+
+    /**
+     * Has the viewer showing the Friends tab load its next page, the way it does as you near the end.
+     * Instagram keeps, for each account, the one Reels viewer on screen, and this asks it only when the
+     * data source behind it is the Friends tab's. True once it's been asked. Runs on the main thread,
+     * where the viewer keeps its own state. Never throws.
+     */
+    static boolean nextPage() {
+        try {
+            Object registries = viewerRegistries();
+            Object lock = viewerRegistriesLock();
+            if (!(registries instanceof Map) || lock == null) return false;
+            List<Object> found;
+            synchronized (lock) {
+                found = new ArrayList<>(((Map<?, ?>) registries).values());
+            }
+            for (Object registry : found) {
+                Object context = registry == null ? null : viewerContext(registry);
+                if (context == null || !FRIENDS_LANE.equals(viewerModule(context))) continue;
+                if (loadNextPage(context)) {
+                    Logger.printDebug(() -> "Friends tab picks: asked the Friends tab for its next page");
+                    return true;
+                }
+            }
+            Logger.printDebug(() -> "Friends tab picks: no Friends tab on screen to ask for its next page");
+            return false;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.REEL_DECLUTTER, "Friends tab next page", failure);
+            return false;
+        }
+    }
+
     /** Forgets the friends named in this run, as a restart does, for tests. The kept ones stay kept. */
     static void forgetSeen() {
         synchronized (SEEN) {
@@ -499,5 +589,30 @@ public final class FriendLanePicks {
     /** Filled in by the patch: the user's username, or null. */
     public static String username(Object user) {
         return null;
+    }
+
+    /** Filled in by the patch: Instagram's map of each account's Reels viewer registry, or null. */
+    public static Object viewerRegistries() {
+        return null;
+    }
+
+    /** Filled in by the patch: the lock Instagram holds around that map, or null. */
+    public static Object viewerRegistriesLock() {
+        return null;
+    }
+
+    /** Filled in by the patch: the viewer a registry holds as the one on screen, or null. */
+    public static Object viewerContext(Object registry) {
+        return null;
+    }
+
+    /** Filled in by the patch: the module name of the data source behind a viewer, or null for any other. */
+    public static String viewerModule(Object context) {
+        return null;
+    }
+
+    /** Filled in by the patch: runs the viewer's own load of its next page. False when it has none. */
+    public static boolean loadNextPage(Object context) {
+        return false;
     }
 }

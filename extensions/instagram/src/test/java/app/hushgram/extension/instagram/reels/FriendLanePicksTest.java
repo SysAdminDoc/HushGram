@@ -86,6 +86,7 @@ public class FriendLanePicksTest {
         HookStatus.clear();
         FeedFilterCounters.clear();
         FriendLanePicks.forgetSeen();
+        FriendLanePicks.forgetAsks();
         ShadowAlertDialog.reset();
         controller = Robolectric.buildActivity(Activity.class).setup();
     }
@@ -100,6 +101,7 @@ public class FriendLanePicksTest {
         HookStatus.clear();
         FeedFilterCounters.clear();
         FriendLanePicks.forgetSeen();
+        FriendLanePicks.forgetAsks();
         Settings.FRIENDS_TAB_SEEN.resetToDefault();
     }
 
@@ -155,8 +157,76 @@ public class FriendLanePicksTest {
         assertSame(items, page(items, LANE));
     }
 
-    private static List<?> added(List<?> items, String module, int held) {
-        return FriendLanePicks.added(items, module, held, READER);
+    /** How many times the viewer was asked for its next page. */
+    private int asks;
+
+    /** Whether the viewer can be asked on this build. */
+    private boolean canAsk = true;
+
+    private final FriendLanePicks.Pager pager = () -> {
+        if (!canAsk) return false;
+        asks++;
+        return true;
+    };
+
+    private List<?> added(List<?> items, String module, int held) {
+        return FriendLanePicks.added(items, module, held, READER, pager);
+    }
+
+    /** #503: a list leaving the viewer no reel stood the tab on its placeholder, since nothing asked for more. */
+    @Test
+    public void aListLeavingTheViewerNoReelAsksForTheNextPageAndAfterEnoughKeepsOne() {
+        Clip zed = new Clip("zed");
+        Clip yan = new Clip("yan");
+        for (int ask = 1; ask <= FriendLanePicks.MOST_ASKS; ask++) {
+            assertEquals("list " + ask + " leaves nothing", Collections.emptyList(), added(Arrays.asList(zed, yan), LANE, 5));
+            assertEquals("list " + ask + " asks", ask, asks);
+        }
+        assertEquals("the next keeps its first reel to stand on", Collections.singletonList(zed), added(Arrays.asList(zed, yan), LANE, 5));
+        assertEquals("and asks for nothing", FriendLanePicks.MOST_ASKS, asks);
+        assertEquals("then it asks again", Collections.emptyList(), added(Arrays.asList(zed, yan), LANE, 5));
+        assertEquals(FriendLanePicks.MOST_ASKS + 1, asks);
+        String counted = FeedFilterCounters.report().toString();
+        assertTrue(counted, counted.contains(FriendLanePicks.ASKED) && counted.contains(FriendLanePicks.ONE_KEPT));
+    }
+
+    @Test
+    public void aListShowingAPickStartsTheCountOver() {
+        for (int ask = 1; ask < FriendLanePicks.MOST_ASKS; ask++) added(Collections.singletonList(new Clip("zed")), LANE, 5);
+        Clip ana = new Clip("ana");
+        assertEquals(Collections.singletonList(ana), added(Arrays.asList(new Clip("zed"), ana), LANE, 5));
+        asks = 0;
+        for (int ask = 1; ask <= FriendLanePicks.MOST_ASKS; ask++) {
+            assertEquals(Collections.emptyList(), added(Collections.singletonList(new Clip("zed")), LANE, 5));
+        }
+        assertEquals("a full run of asks after the pick", FriendLanePicks.MOST_ASKS, asks);
+    }
+
+    @Test
+    public void aListWithoutReelsOrNamesAsksForNothing() {
+        Clip card = new Clip((String[]) null);
+        List<Clip> cards = Collections.singletonList(card);
+        assertSame(cards, added(cards, LANE, 5));
+        List<Clip> nobody = Arrays.asList(new Clip(), new Clip());
+        assertSame(nobody, added(nobody, LANE, 5));
+        assertEquals(0, asks);
+    }
+
+    @Test
+    public void aBuildWhereTheViewerCantBeAskedKeepsTheFirstReelEveryTime() {
+        canAsk = false;
+        Clip zed = new Clip("zed");
+        for (int list = 0; list < 3; list++) {
+            assertEquals(Collections.singletonList(zed), added(Arrays.asList(zed, new Clip("yan")), LANE, 5));
+        }
+        assertEquals(0, asks);
+    }
+
+    @Test
+    public void anUnpatchedViewerIsNeverAskedAndNothingThrows() {
+        assertFalse("nothing to ask on a build the patch didn't fill", FriendLanePicks.PAGER.ask());
+        assertFalse(FriendLanePicks.nextPage());
+        assertTrue(HookStatus.report().toString(), !HookStatus.report().toString().contains("Friends tab next page"));
     }
 
     /** #503: the reel a pick-less page kept showed between the picked ones, so the tab never looked filtered. */
@@ -211,8 +281,12 @@ public class FriendLanePicksTest {
             public Collection<String> friends(Object media) {
                 return null;
             }
-        });
+        }, pager);
         assertSame(items, answer);
+        List<Clip> unpicked = Arrays.asList(new Clip("zed"), new Clip("yan"));
+        assertSame("a pager that throws leaves the list as it came", unpicked, FriendLanePicks.added(unpicked, LANE, 5, READER, () -> {
+            throw new IllegalStateException("no");
+        }));
     }
 
     @Test
