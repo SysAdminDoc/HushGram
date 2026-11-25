@@ -1935,6 +1935,15 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting HIDE_META_AI_BLEND =
             new BooleanSetting("hushgram_hide_meta_ai_blend", FALSE);
 
+    /**
+     * Meta AI's tool credit at the top of a story (Restyled with Meta AI and its Try it link, and the
+     * like), one of the lines the story's header cycles through. Music, effects, the AI info label
+     * and its other lines stay. Off to start, like every part added to Hide Meta AI after its first
+     * two.
+     */
+    public static final BooleanSetting HIDE_META_AI_STORY_CREDIT =
+            new BooleanSetting("hushgram_hide_meta_ai_story_credit", FALSE);
+
     /** The grid of posts and reels under the Search tab's bar. Search and its results stay. Off to start. */
     public static final BooleanSetting HIDE_EXPLORE_GRID =
             new BooleanSetting("hushgram_hide_explore_grid", FALSE);

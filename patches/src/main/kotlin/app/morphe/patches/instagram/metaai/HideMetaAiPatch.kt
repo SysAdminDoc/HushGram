@@ -101,8 +101,8 @@ internal val META_AI_UNITS = listOf("VIBES_IN_FEED_UNIT", "HATCH_IMMERSIVE_IN_FE
 @Suppress("unused")
 val hideMetaAiPatch = bytecodePatch(
     name = "Hide Meta AI",
-    description = "Removes Meta AI from Instagram's search bars, messages, home top bar, reels menus, share sheet " +
-        "and feed. Each part has its own switch. The search one and the Meta AI posts one start on, the rest " +
+    description = "Removes Meta AI from Instagram's search bars, messages, home top bar, reels menus, share sheet, " +
+        "stories and feed. Each part has its own switch. The search one and the Meta AI posts one start on, the rest " +
         "start off. Change them in HushGram settings > Meta AI.",
 ) {
     category("Interface")
@@ -127,6 +127,7 @@ val hideMetaAiPatch = bytecodePatch(
         val museCard = findQuickPromotionBuilder()
         val museButton = findMuseButtonTest()
         val blend = findBlendVisibilityCheck()
+        val storyCredit = findStoryCreditCheck()
         filterParsedFeedItems(PATCH, META_AI_FILTER, META_AI_UNITS)
         answerSearchFlagReads(reads)
         // 453's 64-bit builds check the bar's own stub, so the check is the stub and gets one hook.
@@ -144,6 +145,7 @@ val hideMetaAiPatch = bytecodePatch(
         holdQuickPromotion(museCard)
         holdMuseButton(museButton)
         holdBlendButton(blend)
+        holdStoryCredit(storyCredit)
         enableStatus("metaAi")
     }
 }

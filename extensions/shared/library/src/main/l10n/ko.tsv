@@ -385,6 +385,9 @@ Hide the Muse button on your profile	내 프로필에서 Muse 버튼 숨기기
 Removes the Muse button from the top bar of your profile. Your username and the menu stay.	내 프로필 상단 바에서 Muse 버튼을 없앱니다. 사용자 이름과 메뉴는 그대로 남습니다.
 Hide Blend on reels	릴스에서 Blend 숨기기
 Removes the Blend invite button from reels. Everything else on a reel stays.	릴스에서 Blend 초대 버튼을 없앱니다. 릴스의 다른 부분은 그대로 둡니다.
+# context: Meta AI: a Hide Meta AI switch (#866) that removes the line Instagram shows at the top of a story made with a Meta AI tool, such as Restyled with Meta AI followed by a Try it link. Restyled with Meta AI and Try it are Instagram's own labels, so use this language's Instagram wording for them where it's known.
+Hide Meta AI credits on stories	스토리에서 Meta AI 표시 숨기기
+Removes lines like Restyled with Meta AI and its Try it link from the top of stories. Music and effect credits stay.	스토리 상단에서 'Meta AI로 스타일 변경됨' 같은 줄과 '사용해 보기' 링크를 없앱니다. 음악과 효과 표시는 그대로 둡니다.
 Explore	탐색
 Hide the Explore grid	탐색 그리드 숨기기
 Hides the grid of posts and reels under the Search tab's bar. Search, recent searches and results stay.	검색 탭 검색창 아래의 게시물과 릴스 격자를 숨깁니다. 검색, 최근 검색, 검색 결과는 그대로입니다.

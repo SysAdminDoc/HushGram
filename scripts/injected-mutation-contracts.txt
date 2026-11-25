@@ -1524,6 +1524,14 @@ once-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->dropsPromotion(Ljava
 # parameters sits on every build, and it loads no 0x45.
 start-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->blendButton()Z in static (LX/*;Lcom/instagram/common/session/UserSession;Ljava/lang/String;ZZZ)LX/*; holding const:0x45
 once-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->blendButton()Z in static (LX/*;Lcom/instagram/common/session/UserSession;Ljava/lang/String;ZZZ)LX/*; holding const:0x45
+# Hide Meta AI credits on stories asks MetaAi.storyCredit(kind) first in the one instance method
+# taking (Context, session, ReelHeaderAttributionType, ReelItem, two more) that decides whether a
+# story's header shows a line of that kind (03U8.A0H on 386314341), switching on the kind's
+# ordinal. A yes answers false, only for Meta AI's tool credit (Restyled with Meta AI and its Try it
+# link). Left out, the credit stays with the switch on; twice or elsewhere, it isn't the guard the
+# patch wrote. It holds no string, so the rules name its ordinal call.
+start-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->storyCredit(Ljava/lang/Object;)Z in instance (Landroid/content/Context;Lcom/instagram/common/session/UserSession;Lcom/instagram/model/reels/ReelHeaderAttributionType;Lcom/instagram/model/reels/ReelItem;LX/*;LX/*;)Z holding Ljava/lang/Enum;->ordinal()I
+once-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->storyCredit(Ljava/lang/Object;)Z in instance (Landroid/content/Context;Lcom/instagram/common/session/UserSession;Lcom/instagram/model/reels/ReelHeaderAttributionType;Lcom/instagram/model/reels/ReelItem;LX/*;LX/*;)Z holding Ljava/lang/Enum;->ordinal()I
 # Hide the Muse button on your profile asks MetaAi.museButton() just inside the Muse item's branch
 # of the static method ProfileActionBar fills its top bar with (09O4.A03 on 385611438), and a yes
 # goes back to the head of its walk of the items. Its only strings are ", " and an empty one,

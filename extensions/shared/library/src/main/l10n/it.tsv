@@ -384,6 +384,9 @@ Hide the Muse button on your profile	Nascondi il pulsante Muse sul tuo profilo
 Removes the Muse button from the top bar of your profile. Your username and the menu stay.	Rimuove il pulsante Muse dalla barra in alto del tuo profilo. Il tuo nome utente e il menu restano.
 Hide Blend on reels	Nascondi Blend sui reel
 Removes the Blend invite button from reels. Everything else on a reel stays.	Rimuove il pulsante di invito a Blend dai reel. Tutto il resto di un reel resta.
+# context: Meta AI: a Hide Meta AI switch (#866) that removes the line Instagram shows at the top of a story made with a Meta AI tool, such as Restyled with Meta AI followed by a Try it link. Restyled with Meta AI and Try it are Instagram's own labels, so use this language's Instagram wording for them where it's known.
+Hide Meta AI credits on stories	Nascondi i crediti di Meta AI nelle storie
+Removes lines like Restyled with Meta AI and its Try it link from the top of stories. Music and effect credits stay.	Rimuove dalla parte alta delle storie righe come Restyling con Meta AI e il link Prova. I crediti di musica ed effetti restano.
 Explore	Esplora
 Hide the Explore grid	Nascondi la griglia di Esplora
 Hides the grid of posts and reels under the Search tab's bar. Search, recent searches and results stay.	Nasconde la griglia di post e reel sotto la barra della scheda Cerca. La ricerca, le ricerche recenti e i risultati restano.

@@ -108,7 +108,7 @@ public class AboutThisReelSettingsTest {
         assertEquals(Arrays.asList(Settings.HIDE_META_AI_SEARCH.key, Settings.HIDE_META_AI_POSTS.key,
                 Settings.HIDE_ABOUT_THIS_REEL.key, Settings.HIDE_ASK_META_AI.key, Settings.HIDE_META_AI_SHARE_TARGET.key,
                 Settings.HIDE_META_AI_PROFILE_BANNER.key, Settings.HIDE_META_AI_PROFILE_BUTTON.key,
-                Settings.HIDE_META_AI_BLEND.key),
+                Settings.HIDE_META_AI_BLEND.key, Settings.HIDE_META_AI_STORY_CREDIT.key),
                 Arrays.asList(keys));
         SwitchPreference share = (SwitchPreference) page.findPreference(Settings.HIDE_META_AI_SHARE_TARGET.key);
         assertEquals("Hide Meta AI in the share sheet", String.valueOf(share.getTitle()));
@@ -130,6 +130,11 @@ public class AboutThisReelSettingsTest {
         assertEquals("Removes the Blend invite button from reels. Everything else on a reel stays.",
                 String.valueOf(blend.getSummary()));
         assertFalse("the Blend switch starts off", blend.isChecked());
+        SwitchPreference credit = (SwitchPreference) page.findPreference(Settings.HIDE_META_AI_STORY_CREDIT.key);
+        assertEquals("Hide Meta AI credits on stories", String.valueOf(credit.getTitle()));
+        assertEquals("Removes lines like Restyled with Meta AI and its Try it link from the top of stories. Music "
+                + "and effect credits stay.", String.valueOf(credit.getSummary()));
+        assertFalse("the story credit switch starts off", credit.isChecked());
     }
 
     /** Each switch reaches only its own setting. */

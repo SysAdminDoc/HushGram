@@ -384,6 +384,9 @@ Hide the Muse button on your profile	Sembunyikan tombol Muse di profilmu
 Removes the Muse button from the top bar of your profile. Your username and the menu stay.	Menghapus tombol Muse dari bilah atas profilmu. Nama pengguna dan menu tetap ada.
 Hide Blend on reels	Sembunyikan Blend di reel
 Removes the Blend invite button from reels. Everything else on a reel stays.	Menghapus tombol undangan Blend dari reel. Semua yang lain di reel tetap ada.
+# context: Meta AI: a Hide Meta AI switch (#866) that removes the line Instagram shows at the top of a story made with a Meta AI tool, such as Restyled with Meta AI followed by a Try it link. Restyled with Meta AI and Try it are Instagram's own labels, so use this language's Instagram wording for them where it's known.
+Hide Meta AI credits on stories	Sembunyikan kredit Meta AI di cerita
+Removes lines like Restyled with Meta AI and its Try it link from the top of stories. Music and effect credits stay.	Menghapus baris seperti Diubah gayanya dengan Meta AI dan tautan Coba dari bagian atas cerita. Kredit musik dan efek tetap ada.
 Explore	Jelajahi
 Hide the Explore grid	Sembunyikan kisi Jelajahi
 Hides the grid of posts and reels under the Search tab's bar. Search, recent searches and results stay.	Menyembunyikan kisi postingan dan reel di bawah kolom tab Pencarian. Pencarian, pencarian terbaru, dan hasilnya tetap ada.
