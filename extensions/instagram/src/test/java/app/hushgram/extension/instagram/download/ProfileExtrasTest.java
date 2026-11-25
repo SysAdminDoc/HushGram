@@ -97,6 +97,7 @@ public class ProfileExtrasTest {
 
     @After public void restore() {
         activity.close();
+        ProfileExtras.resetForTests();
         ProfileExtras.source = ProfilePicture::entries;
         ProfileExtras.account = ProfileExtras::accountOf;
         Settings.PROFILE_EXTRAS_BUTTON.resetToDefault();
@@ -455,6 +456,123 @@ public class ProfileExtrasTest {
             PauseForTests.resume();
             BaseSettings.PAUSED.save(false);
             aboutOff();
+        }
+    }
+
+    /**
+     * Your own profile's bar (#850): Create on the left, the username, then the calendar, this button,
+     * About this account and Instagram's menu. With all three the username was cut to "i...". The bar
+     * folds the calendar and About this account into this button's menu, the name gets its room, the
+     * menu runs both, and the next bind keeps the bar folded.
+     */
+    @Test public void aBarThatCutsTheUsernameFoldsTheCalendarAndAboutIntoTheMenu() {
+        aboutOn();
+        Settings.PROFILE_GRID_JUMP.save(true);
+        try {
+            Bar own = new Bar();
+            own.bind();
+            assertEquals("unfolded first: calendar, extras, About, menu", 4, own.right.getChildCount());
+            assertNotNull(app.hushgram.extension.instagram.profile.GridJump.calendarIn(own.right));
+            // Wide enough for the name only once two buttons have left.
+            own.layOut(own.nameWidth() + own.left.getLayoutParams().width + own.oneButton() + own.dotsWidth() + 4);
+            assertTrue("the name is cut at first", ProfileExtras.cut(own.bar));
+            ShadowLooper.idleMainLooper();
+            own.layOut(own.width);
+
+            assertNull(app.hushgram.extension.instagram.profile.GridJump.calendarIn(own.right));
+            assertNull(ProfileExtras.findAbout(own.right));
+            assertNotNull(ProfileExtras.find(own.right));
+            assertEquals(2, own.right.getChildCount());
+            assertFalse("the name has its room", ProfileExtras.cut(own.bar));
+            assertTrue(ProfileExtras.folded(own.right));
+
+            ProfileExtras.find(own.right).performClick();
+            PopupMenu menu = ShadowPopupMenu.getLatestPopupMenu();
+            assertEquals(Arrays.asList("Save profile picture", "Copy bio", "Jump to a date", "About this account"), titles(menu.getMenu()));
+            Shadows.shadowOf(menu).getOnMenuItemClickListener().onMenuItemClick(menu.getMenu().getItem(3));
+            assertEquals(Collections.singletonList("about 1234 session from ProfileMore"), ran);
+
+            own.bind();
+            own.layOut(own.width);
+            assertEquals("still folded after Instagram binds the bar again", 2, own.right.getChildCount());
+            assertNull(app.hushgram.extension.instagram.profile.GridJump.calendarIn(own.right));
+
+            // With nothing else on for it, the button still shows for what it holds.
+            Settings.PROFILE_EXTRAS_BUTTON.save(false);
+            own.bind();
+            assertNotNull(ProfileExtras.find(own.right));
+            ProfileExtras.find(own.right).performClick();
+            assertEquals(Arrays.asList("Jump to a date", "About this account"), titles(ShadowPopupMenu.getLatestPopupMenu().getMenu()));
+
+            // A bar with room for everything keeps its buttons where they were.
+            Settings.PROFILE_EXTRAS_BUTTON.save(true);
+            Bar roomy = new Bar();
+            roomy.bind();
+            roomy.layOut(roomy.nameWidth() + roomy.left.getLayoutParams().width + 3 * roomy.oneButton() + roomy.dotsWidth() + 40);
+            ShadowLooper.idleMainLooper();
+            assertFalse(ProfileExtras.folded(roomy.right));
+            assertEquals(4, roomy.right.getChildCount());
+        } finally {
+            Settings.PROFILE_GRID_JUMP.resetToDefault();
+            aboutOff();
+        }
+    }
+
+    /** A profile bar laid out as Instagram's: Create, the username taking what's left, then the right row. */
+    private final class Bar {
+        final LinearLayout bar = new LinearLayout(activity.get());
+        final View left = new View(activity.get());
+        final android.widget.TextView name = new android.widget.TextView(activity.get());
+        final LinearLayout right = new LinearLayout(activity.get());
+        final ImageView menu = new ImageView(activity.get());
+        int width;
+
+        Bar() {
+            int titleId = View.generateViewId();
+            ProfileExtras.putIdForTests(context, ProfileExtras.TITLE, titleId);
+            name.setId(titleId);
+            name.setText("instagram_username");
+            name.setSingleLine(true);
+            name.setEllipsize(android.text.TextUtils.TruncateAt.END);
+            menu.setPaddingRelative(7, 9, 7, 9);
+            bar.addView(left, new LinearLayout.LayoutParams(24, 24));
+            bar.addView(name, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+            bar.addView(right, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+            // A fixed width inside the window, so a window pass lays the bar out as layOut does.
+            FrameLayout holder = new FrameLayout(activity.get());
+            holder.addView(bar, new FrameLayout.LayoutParams(1000, 56));
+            activity.get().setContentView(holder);
+        }
+
+        void bind() {
+            right.removeAllViews();
+            right.addView(menu);
+            ProfileExtras.bound(bar, right, session);
+            ProfileExtras.screen(bar, screen);
+            app.hushgram.extension.instagram.profile.GridJump.bound(right);
+            ShadowLooper.idleMainLooper();
+        }
+
+        void layOut(int wide) {
+            width = wide;
+            bar.getLayoutParams().width = wide;
+            bar.measure(View.MeasureSpec.makeMeasureSpec(wide, View.MeasureSpec.EXACTLY),
+                    View.MeasureSpec.makeMeasureSpec(56, View.MeasureSpec.EXACTLY));
+            bar.layout(0, 0, wide, 56);
+        }
+
+        int nameWidth() {
+            return (int) Math.ceil(name.getPaint().measureText(name.getText().toString()))
+                    + name.getTotalPaddingLeft() + name.getTotalPaddingRight();
+        }
+
+        /** One of HushGram's buttons as the row lays it out: its icon and the menu's padding. */
+        int oneButton() {
+            return Math.round(24 * context.getResources().getDisplayMetrics().density) + 14;
+        }
+
+        int dotsWidth() {
+            return 14;
         }
     }
 

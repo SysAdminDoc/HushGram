@@ -184,11 +184,14 @@ public final class GridJump {
         }
     }
 
-    /** Puts the button first in the row, leaves the one there where it is, or takes it out. */
+    /**
+     * Puts the button first in the row, leaves the one there where it is, or takes it out. A bar
+     * whose username had too little room keeps it in Profile extras' menu instead (#850).
+     */
     static void place(ViewGroup row) {
         try {
             JumpButton existing = find(row);
-            if (!on()) {
+            if (!on() || ProfileExtras.folded(row)) {
                 if (existing != null) row.removeView(existing);
                 return;
             }
@@ -215,6 +218,17 @@ public final class GridJump {
             if (row.getChildAt(i) instanceof JumpButton) return (JumpButton) row.getChildAt(i);
         }
         return null;
+    }
+
+    /** The calendar in a profile bar's [row], or null, for Profile extras to fold into its menu (#850). */
+    @Nullable
+    public static View calendarIn(ViewGroup row) {
+        return find(row);
+    }
+
+    /** Whether the calendar is wanted: the switch on, read off while paused or before the settings are read. */
+    public static boolean wanted() {
+        return on();
     }
 
     private static JumpButton create(Context context, @Nullable View neighbor) {
@@ -246,8 +260,11 @@ public final class GridJump {
         return new ViewGroup.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
     }
 
-    /** The tap: asks for a day, as far back as ids count. Older posts follow by scrolling from there. Never throws. */
-    static void press(View button) {
+    /**
+     * The tap, on the calendar or on Jump to a date in Profile extras' menu: asks for a day, as far
+     * back as ids count. Older posts follow by scrolling from there. Never throws.
+     */
+    public static void press(View button) {
         try {
             if (!on()) return;
             Context context = ProfileExtras.activityOf(button);

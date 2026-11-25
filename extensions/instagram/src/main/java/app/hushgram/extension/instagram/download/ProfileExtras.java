@@ -20,19 +20,23 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.PopupMenu;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import java.lang.ref.WeakReference;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.WeakHashMap;
 
+import app.hushgram.extension.instagram.profile.GridJump;
 import app.hushgram.extension.instagram.reels.HomeHeader;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.Logger;
+import app.hushgram.extension.shared.ResourceIdCache;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 import app.hushgram.extension.shared.settings.HushgramPause;
@@ -48,6 +52,12 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * binds, so the button is put in again after each, posted behind the bind. With the switch off,
  * HushGram paused, no account yet or nothing switched on to list, no button is added and one left
  * from before is taken out. Everything fails open to Instagram's own layout.
+ *
+ * <p>HushGram's buttons take their room from the username beside them (#850: with the calendar, this
+ * button and About this account on your own profile, the name read "i..."). Once a layout leaves the
+ * username narrower than its text with two or more of them in the bar, that bar folds: the calendar
+ * and About this account leave it and become rows at the end of this button's menu, and this button
+ * shows for them even when nothing else is switched on for it. A folded bar stays folded.
  */
 public final class ProfileExtras {
     private ProfileExtras() {
@@ -57,6 +67,12 @@ public final class ProfileExtras {
     static final String PLACED = "profile extras button placed";
     static final String NOT_PLACED = "profile extras button not placed, no row to put it in";
     static final String EMPTY = "profile extras menu empty";
+    static final String FOLDED = "profile bar buttons folded into the menu";
+
+    /** The profile bar's username, by name. */
+    static final String TITLE = "action_bar_title";
+
+    private static final ResourceIdCache IDS = new ResourceIdCache();
 
     /** What the bar is known by: its right row, held weakly since the row holds the bar, and the account it shows. */
     private static final class State {
@@ -64,6 +80,10 @@ public final class ProfileExtras {
         Object user;
         /** The signed-in session the bar was bound with, which Instagram's About this account is opened through. */
         Object session;
+        /** Set once a layout left the username cut short: the calendar and About this account live in the menu (#850). */
+        boolean folded;
+        /** The row the layout watch is on, so it's added once per row. */
+        WeakReference<ViewGroup> watched = new WeakReference<>(null);
     }
 
     static final String ABOUT_PLACED = "about this account button placed";
@@ -320,8 +340,13 @@ public final class ProfileExtras {
                 if (wanted()) HookStatus.counted(ROUTE, NOT_PLACED);
                 return;
             }
+            boolean folding = state.folded && (GridJump.wanted() || aboutWanted());
+            if (state.folded) {
+                View calendar = GridJump.calendarIn(row);
+                if (calendar != null) row.removeView(calendar);
+            }
             View existing = find(row);
-            if (!wanted() || state.user == null) {
+            if (!(wanted() || folding) || state.user == null) {
                 if (existing != null) row.removeView(existing);
                 existing = null;
             } else if (existing != null) {
@@ -336,16 +361,95 @@ public final class ProfileExtras {
                 HookStatus.counted(ROUTE, PLACED);
             }
             placeAbout(row, bar, state, existing != null ? 1 : 0);
+            watch(bar, row, state);
         } catch (Throwable failure) {
             HookStatus.threw(ROUTE, "profile extras button", failure);
             Logger.printException(() -> "Profile extras: could not put the button on the profile's top bar", failure);
         }
     }
 
+    /**
+     * #850: whether the profile bar holding [row] folded its calendar and About this account into this
+     * button's menu. Never throws.
+     */
+    public static boolean folded(ViewGroup row) {
+        try {
+            synchronized (BARS) {
+                for (State state : BARS.values()) {
+                    if (state.row.get() == row) return state.folded;
+                }
+            }
+        } catch (Throwable failure) {
+            HookStatus.threw(ROUTE, "profile bar fold", failure);
+        }
+        return false;
+    }
+
+    /** Looks at [bar] after each layout of its right [row], once per row, until the bar folds. */
+    private static void watch(View bar, ViewGroup row, State state) {
+        if (state.watched.get() == row) return;
+        state.watched = new WeakReference<>(row);
+        final WeakReference<View> owner = new WeakReference<>(bar);
+        row.addOnLayoutChangeListener((view, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
+            View at = owner.get();
+            // After the whole bar's pass, when the username has its width for this layout.
+            if (at != null && !stateOf(at).folded) view.post(() -> fold(at));
+        });
+    }
+
+    /**
+     * Folds [bar] when its username is narrower than its text and two or more of HushGram's buttons
+     * share the row: the calendar and About this account go into this button's menu. Never throws.
+     */
+    static void fold(View bar) {
+        try {
+            State state = stateOf(bar);
+            ViewGroup row = state.row.get();
+            if (state.folded || row == null || ours(row) < 2 || !cut(bar)) return;
+            state.folded = true;
+            HookStatus.counted(ROUTE, FOLDED);
+            place(bar);
+        } catch (Throwable failure) {
+            HookStatus.threw(ROUTE, "profile bar fold", failure);
+        }
+    }
+
+    /** How many of HushGram's buttons show in [row]: the calendar, this one and About this account. */
+    private static int ours(ViewGroup row) {
+        int count = 0;
+        for (View button : new View[] {GridJump.calendarIn(row), find(row), findAbout(row)}) {
+            if (button != null && button.getVisibility() == View.VISIBLE) count++;
+        }
+        return count;
+    }
+
+    /** Whether [bar]'s username is laid out narrower than its text, so it's cut short. */
+    static boolean cut(View bar) {
+        int id = IDS.resolve(bar.getResources(), Utils.resourcePackage(bar.getContext()), TITLE, false);
+        View found = id == 0 ? null : bar.findViewById(id);
+        if (!(found instanceof TextView) || !found.isLaidOut() || found.getVisibility() != View.VISIBLE) return false;
+        TextView name = (TextView) found;
+        CharSequence text = name.getText();
+        if (text == null || text.length() == 0) return false;
+        float wide = name.getPaint().measureText(text.toString()) + name.getTotalPaddingLeft() + name.getTotalPaddingRight();
+        return name.getWidth() + 1 < wide;
+    }
+
+    static void putIdForTests(Context context, String name, int id) {
+        IDS.putForTests(Utils.resourcePackage(context), name, id);
+    }
+
+    static void resetForTests() {
+        IDS.clear();
+        synchronized (BARS) {
+            BARS.clear();
+        }
+    }
+
     /** Puts the About this account button at [index] of the row, leaves it there, or takes it out. */
     private static void placeAbout(ViewGroup row, View bar, State state, int index) {
         AboutButton existing = findAbout(row);
-        if (!aboutWanted() || state.user == null || state.session == null) {
+        if (!aboutWanted() || state.user == null || state.session == null || state.folded) {
             if (existing != null) row.removeView(existing);
             return;
         }
@@ -410,14 +514,25 @@ public final class ProfileExtras {
         return button;
     }
 
-    /** The tap: lists the enabled actions for the account the bar shows. Never throws. */
+    /**
+     * The tap: lists the enabled actions for the account the bar shows, then in a folded bar Jump to a
+     * date and About this account (#850). Never throws.
+     */
     static void press(View button, @Nullable View bar) {
         try {
-            if (!wanted() || bar == null) return;
-            Object user = stateOf(bar).user;
+            if (bar == null) return;
+            State state = stateOf(bar);
+            boolean listing = wanted();
+            if (!listing && !state.folded) return;
+            Object user = state.user;
             if (user == null) return;
             Context context = activityOf(button);
-            List<ProfilePicture.Entry> entries = source.entries(user, context);
+            List<ProfilePicture.Entry> entries = new ArrayList<>();
+            if (listing) entries.addAll(source.entries(user, context));
+            if (state.folded) {
+                if (GridJump.wanted()) entries.add(new ProfilePicture.Entry(L10n.t(context, "Jump to a date"), view -> GridJump.press(button)));
+                if (aboutWanted()) entries.add(new ProfilePicture.Entry(L10n.t(context, "About this account"), view -> pressAbout(button, bar)));
+            }
             if (entries.isEmpty()) {
                 HookStatus.counted(ROUTE, EMPTY);
                 Utils.showToastShort(L10n.t(context, "Nothing to do for this profile"));
