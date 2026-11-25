@@ -16,6 +16,7 @@ import app.morphe.patches.instagram.direct.history.MessageFields
 import app.morphe.patches.instagram.direct.history.findMessageFields
 import app.morphe.patches.instagram.download.mediaIdCall
 import app.morphe.patches.instagram.download.mediaIdGetter
+import app.morphe.patches.instagram.misc.comment.writes
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesAccessing
 import app.morphe.patches.instagram.misc.extension.classesCalling
@@ -1504,9 +1505,11 @@ internal fun BytecodePatchContext.giveSwipedReelsTheirReplies(collector: ReelCol
  * What the extension builds a reel's reply info from when nothing it remembered and nothing Instagram
  * kept answers it (#804): the [item] class's fields holding the reel's own message in the chat
  * ([message], its direct_item_id), who sent it ([senders], users) and when ([sent], a Long), and how
- * Instagram's Reels data source builds the info from them, in [builder]: a [sender] made with
- * [senderInit] and given the [user] and the [time], then the [info] made with [init] from the sender,
- * the message, a second String and a list.
+ * Instagram's Reels data source builds the info from them, in [builder]: a [sender] holding a [userType]
+ * and a long time, then the [info] made with [init] from the sender, the message, a second String and a
+ * list. 456.1 makes the sender empty with [senderInit] and gives it the [user] and the [time]; 457's
+ * sender is final, so [senderInit] takes the user and the time itself (`LX/026f;-><init>(User;J)V` on
+ * 386314341) and [user] and [time] are null.
  */
 internal class ReelMessage(
     val builder: String,
@@ -1516,8 +1519,9 @@ internal class ReelMessage(
     val sent: FieldReference,
     val sender: String,
     val senderInit: MethodReference,
-    val user: FieldReference,
-    val time: FieldReference,
+    val userType: String,
+    val user: FieldReference?,
+    val time: FieldReference?,
     val info: String,
     val init: String,
 )
@@ -1546,8 +1550,10 @@ private fun fieldOf(instruction: Instruction, opcode: Opcode, owner: String, typ
 /**
  * Reads how [method] builds a reply info from a reel item, or null when it doesn't: at its one
  * [init] call, the message String comes from one [item] String field read into that register, the
- * sender is a new [senderType] made with a no-argument constructor and given one User and one long,
- * and the reel's one List field and one Long field are read just before.
+ * sender is a new [senderType] given one User and one long, and the reel's one List field and one Long
+ * field are read just before. 456.1 makes the sender with a no-argument constructor and then sets its
+ * two fields; 457 hands both to the sender's own `(User, long)` constructor, the user just cast to the
+ * type it takes.
  */
 private fun readReelMessage(method: Method, item: String, info: String, init: String, senderType: String): ReelMessage? {
     val code = method.implementation?.instructions?.toList() ?: return null
@@ -1571,29 +1577,48 @@ private fun readReelMessage(method: Method, item: String, info: String, init: St
     } ?: return null
     val construct = code.getOrNull(made + 1)?.takeIf { it.opcode == Opcode.INVOKE_DIRECT } ?: return null
     val senderInit = (construct as ReferenceInstruction).reference as? MethodReference ?: return null
-    if (senderInit.name != "<init>" || senderInit.parameterTypes.isNotEmpty() || callRegisters(construct) != listOf(senderRegister)) return null
-    val users = (made + 2 until call).mapNotNull { at ->
-        fieldOf(code[at], Opcode.IPUT_OBJECT, senderType)?.takeIf { (code[at] as TwoRegisterInstruction).registerB == senderRegister }
-    }.distinctBy { "$it" }
-    val times = (made + 2 until call).mapNotNull { at ->
-        fieldOf(code[at], Opcode.IPUT_WIDE, senderType, "J")?.takeIf { (code[at] as TwoRegisterInstruction).registerB == senderRegister }
-    }.distinctBy { "$it" }
-    val user = users.singleOrNull() ?: return null
-    val time = times.singleOrNull() ?: return null
+    val constructed = callRegisters(construct)
+    if (senderInit.name != "<init>" || constructed.firstOrNull() != senderRegister) return null
+    val takes = senderInit.parameterTypes.map { it.toString() }
+    var user: FieldReference? = null
+    var time: FieldReference? = null
+    val userType: String
+    if (takes.isEmpty()) {
+        if (constructed.size != 1) return null
+        val users = (made + 2 until call).mapNotNull { at ->
+            fieldOf(code[at], Opcode.IPUT_OBJECT, senderType)?.takeIf { (code[at] as TwoRegisterInstruction).registerB == senderRegister }
+        }.distinctBy { "$it" }
+        val times = (made + 2 until call).mapNotNull { at ->
+            fieldOf(code[at], Opcode.IPUT_WIDE, senderType, "J")?.takeIf { (code[at] as TwoRegisterInstruction).registerB == senderRegister }
+        }.distinctBy { "$it" }
+        user = users.singleOrNull() ?: return null
+        time = times.singleOrNull() ?: return null
+        userType = user.type
+    } else {
+        if (senderInit.definingClass != senderType || takes.size != 2 || !takes[0].startsWith("L") || takes[1] != "J") return null
+        if (constructed.size != 4) return null
+        val userRegister = constructed[1]
+        val cast = (made downTo 0).firstOrNull { at ->
+            code[at].opcode == Opcode.CHECK_CAST && (code[at] as OneRegisterInstruction).registerA == userRegister || code[at].writes(userRegister)
+        } ?: return null
+        if (code[cast].opcode != Opcode.CHECK_CAST || "${(code[cast] as ReferenceInstruction).reference}" != takes[0]) return null
+        userType = takes[0]
+    }
     val before = (made - BUILD_WINDOW).coerceAtLeast(0) until call
     val senders = before.mapNotNull { fieldOf(code[it], Opcode.IGET_OBJECT, item, "Ljava/util/List;") }.distinctBy { "$it" }
     val sent = before.mapNotNull { fieldOf(code[it], Opcode.IGET_OBJECT, item, "Ljava/lang/Long;") }.distinctBy { "$it" }
     if (senders.size != 1 || sent.size != 1) return null
     return ReelMessage(
         "${method.definingClass}->${method.name}", item, message, senders.single(), sent.single(),
-        senderType, senderInit, user, time, info, init,
+        senderType, senderInit, userType, user, time, info, init,
     )
 }
 
 /**
  * Finds how Instagram's Reels data source builds the reply info for a reel it pages in from a chat,
- * out of the reel's own message id, sender and time (`LX/07NS;->A1Z` on 456.1's 386215122), before
- * anything changes. The info is the reply bar's, whose one constructor takes a sender, the message, a
+ * out of the reel's own message id, sender and time (`LX/07NS;->A1Z` on 456.1's 386215122,
+ * `LX/0AY1;->A1j` on 457's 386314341), before anything changes. The info is the reply bar's, whose one
+ * constructor takes a sender, the message, a
  * second String and a list, and exactly one method building one reads them off a reel item, the
  * [collector]'s. Fails when any of it isn't so.
  */
@@ -1607,7 +1632,7 @@ internal fun BytecodePatchContext.findReelMessage(collector: ReelCollector, repl
     val builders = classesCalling(replies.info, "<init>").flatMap { it.methods }
         .mapNotNull { readReelMessage(it, item, replies.info, replies.init, senderType) }
     // Builders that read the same fields the same way agree; any other mix is a build this hasn't seen.
-    val ways = builders.distinctBy { listOf(it.message, it.senders, it.sent, it.user, it.time, it.senderInit).joinToString(" ") }
+    val ways = builders.distinctBy { listOf(it.message, it.senders, it.sent, it.user, it.time, it.senderInit, it.userType).joinToString(" ") }
     val found = ways.singleOrNull()
         ?: refuse("expected one way to build a ${replies.info} from a $item's own message, found ${ways.size}")
     fun declared(field: FieldReference) = classDefByOrNull(field.definingClass)?.fields
@@ -1618,10 +1643,17 @@ internal fun BytecodePatchContext.findReelMessage(collector: ReelCollector, repl
             refuse("$field, a reel's own message, isn't a public instance field the extension can read")
         }
     }
-    for (field in listOf(found.user, found.time)) {
+    for (field in listOfNotNull(found.user, found.time)) {
         val flags = declared(field)?.accessFlags
         if (flags == null || !AccessFlags.PUBLIC.isSet(flags) || AccessFlags.STATIC.isSet(flags) || AccessFlags.FINAL.isSet(flags)) {
             refuse("$field, the sender of a reel's message, isn't a public field the extension can set")
+        }
+    }
+    if (found.user == null) {
+        val takes = found.senderInit.parameterTypes.map { it.toString() }
+        val made = classDefByOrNull(found.sender)?.methods?.singleOrNull { it.name == "<init>" && it.parameterTypes.map(Any::toString) == takes }
+        if (made == null || !AccessFlags.PUBLIC.isSet(made.accessFlags)) {
+            refuse("${found.senderInit}, the sender of a reel's message, isn't a public constructor the extension can call")
         }
     }
     return found
@@ -1643,6 +1675,16 @@ internal fun BytecodePatchContext.findReelMessageOrWarn(collector: ReelCollector
  * they answer.
  */
 internal fun BytecodePatchContext.buildRepliesFromReels(found: ReelMessage) {
+    // 456.1's sender is made empty and given the user and the time, 457's takes both in its constructor.
+    val sender = if (found.user != null && found.time != null) {
+        """
+            invoke-direct { v4 }, ${found.senderInit}
+            iput-object v1, v4, ${found.user}
+            iput-wide v2, v4, ${found.time}
+        """
+    } else {
+        "invoke-direct { v4, v1, v2, v3 }, ${found.senderInit}"
+    }
     fillStub(
         CHAT_REELS, "ownMessage", "Ljava/lang/Object;", 9,
         """
@@ -1660,17 +1702,15 @@ internal fun BytecodePatchContext.buildRepliesFromReels(found: ReelMessage) {
             const/4 v2, 0x0
             invoke-interface { v1, v2 }, Ljava/util/List;->get(I)Ljava/lang/Object;
             move-result-object v1
-            instance-of v2, v1, ${found.user.type}
+            instance-of v2, v1, ${found.userType}
             if-eqz v2, :none
-            check-cast v1, ${found.user.type}
+            check-cast v1, ${found.userType}
             iget-object v2, p0, ${found.sent}
             if-eqz v2, :none
             invoke-virtual { v2 }, Ljava/lang/Long;->longValue()J
             move-result-wide v2
             new-instance v4, ${found.sender}
-            invoke-direct { v4 }, ${found.senderInit}
-            iput-object v1, v4, ${found.user}
-            iput-wide v2, v4, ${found.time}
+            $sender
             new-instance v5, ${found.info}
             const-string v6, ""
             invoke-static { }, Ljava/util/Collections;->emptyList()Ljava/util/List;

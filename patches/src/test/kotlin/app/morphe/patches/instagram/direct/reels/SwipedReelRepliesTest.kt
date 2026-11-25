@@ -51,6 +51,7 @@ class SwipedReelRepliesTest {
     private val source = "Lfixture/Source;"
     private val sender = "Lfixture/Sender;"
     private val user = "Lcom/instagram/user/model/User;"
+    private val senderMade = "$sender-><init>(${user}J)V"
     private val store = "Lfixture/Store;"
     private val final = AccessFlags.PUBLIC.value or AccessFlags.FINAL.value
     private val static = AccessFlags.PUBLIC.value or AccessFlags.STATIC.value or AccessFlags.FINAL.value
@@ -285,6 +286,47 @@ class SwipedReelRepliesTest {
         })
     }
 
+    /**
+     * 457 made the reply info's sender final: its data source (0AY1.A1j on 386314341) hands the user
+     * and the time to the sender's own constructor, so the finder found no way to build an info and a
+     * reel past the chat's loaded messages kept Instagram's dead quick reactions (#804). The bridge
+     * makes the sender the same way.
+     */
+    @Test
+    fun aReelsOwnMessageIsBuiltWhenTheSenderTakesItsUserAndTime() {
+        val context = context(finalSender = true)
+        val collector = collector()
+        val replies = context.findReplyBar(collector)
+        val found = context.findReelMessage(collector, replies)
+        assertEquals("$source->build", found.builder)
+        assertEquals("$item->message:Ljava/lang/String;", "${found.message}")
+        assertEquals("$item->senders:Ljava/util/List;", "${found.senders}")
+        assertEquals("$item->sent:Ljava/lang/Long;", "${found.sent}")
+        assertEquals(sender, found.sender)
+        assertEquals(senderMade, "${found.senderInit}")
+        assertEquals(user, found.userType)
+        assertEquals("nothing to set on a final sender", null, found.user)
+        assertEquals("nothing to set on a final sender", null, found.time)
+
+        context.buildRepliesFromReels(found)
+
+        val bridge = context.mutableClassDefBy(CHAT_REELS).methods.single { it.name == "ownMessage" }
+        val code = bridge.visualCode()
+        assertEquals(listOf(item, "$item->message:Ljava/lang/String;"), code.take(2).map { it.text() })
+        val made = code.indexOfFirst { it.opcode == Opcode.NEW_INSTANCE && it.text() == sender }
+        val construct = code[made + 1]
+        assertEquals(senderMade, construct.text())
+        val (senderRegister, userRegister, low, high) = construct.registers()
+        assertEquals("the sender is the one just made", (code[made] as OneRegisterInstruction).registerA, senderRegister)
+        val cast = code.last { it.opcode == Opcode.CHECK_CAST && it.text() == user }
+        assertEquals("the user is the first sender, cast", (cast as OneRegisterInstruction).registerA, userRegister)
+        val time = code.last { it.opcode == Opcode.MOVE_RESULT_WIDE }
+        assertEquals("the time is the reel's", listOf((time as OneRegisterInstruction).registerA, time.registerA + 1), listOf(low, high))
+        assertFalse("nothing is set on the sender", code.any { it.opcode == Opcode.IPUT_OBJECT || it.opcode == Opcode.IPUT_WIDE })
+        assertTrue("the info is built", initCall in code.mapNotNull { it.text() })
+        assertEquals("the info, or null", 2, code.count { it.opcode == Opcode.RETURN_OBJECT })
+    }
+
     @Test
     fun aReelsOwnMessageItCantReadKeepsInstagramsReplyBar() {
         val collector = collector()
@@ -294,6 +336,9 @@ class SwipedReelRepliesTest {
             context(builders = listOf("message", "other")) to "$way 2",
             context(itemFlags = 0) to "$item->",
             context(senderFlags = AccessFlags.PUBLIC.value or AccessFlags.FINAL.value) to "$sender->",
+            context(finalSender = true, castsUser = false) to "$way 0",
+            context(finalSender = true, builders = listOf("message", "other")) to "$way 2",
+            context(finalSender = true, senderInitFlags = 0) to "$senderMade, the sender",
         )
         for ((context, expected) in cases) {
             val replies = context.findReplyBar(collector)
@@ -555,7 +600,9 @@ class SwipedReelRepliesTest {
      * Shaped like 453's 0T5D: the hint update for a page reads the info one way and jumps to its test
      * from the other, the reply info does the same, and the reel on screen comes from the adapter
      * field's item at its count. The info's constructor stores its first String as the message. The
-     * adapter and the viewer state each hold a public [VIEWER_CONFIG] unless not [viewerConfig].
+     * adapter and the viewer state each hold a public [VIEWER_CONFIG] unless not [viewerConfig]. The
+     * data source builds a reel's info the way 456.1 does, or 457's way with [finalSender], the sender's
+     * own constructor taking the user (cast first unless not [castsUser]) and the time.
      */
     private fun context(
         hints: Int = 1,
@@ -580,6 +627,9 @@ class SwipedReelRepliesTest {
         senderFlags: Int = AccessFlags.PUBLIC.value,
         itemFlags: Int = AccessFlags.PUBLIC.value,
         getter: String? = null,
+        finalSender: Boolean = false,
+        castsUser: Boolean = true,
+        senderInitFlags: Int = AccessFlags.PUBLIC.value,
     ): BytecodePatchContext {
         val pageOwner = if (pageApart) "Lfixture/Pages;" else if (hoisted != null) base else bar
         val handed = if (handsPage) "p1" else "p2"
@@ -741,13 +791,57 @@ class SwipedReelRepliesTest {
                 """,
             )
         }
+        // Shaped like 457's 0AY1.A1j on 386314341: the sender is final, made with the user and the time.
+        val builtFinal = builders.mapIndexed { index, field ->
+            method(
+                source, if (index == 0) "build" else "build$index", listOf(item), info, 7, static,
+                """
+                    iget-object v0, p0, $item->senders:Ljava/util/List;
+                    if-eqz v0, :none
+                    const/4 v1, 0x0
+                    invoke-interface {v0, v1}, Ljava/util/List;->get(I)Ljava/lang/Object;
+                    move-result-object v0
+                    ${if (castsUser) "check-cast v0, $user" else ""}
+                    iget-object v1, p0, $item->sent:Ljava/lang/Long;
+                    if-eqz v1, :none
+                    invoke-virtual {v1}, Ljava/lang/Number;->longValue()J
+                    move-result-wide v1
+                    new-instance v3, $sender
+                    invoke-direct {v3, v0, v1, v2}, $senderMade
+                    iget-object v4, p0, $item->$field:Ljava/lang/String;
+                    const-string v5, ""
+                    if-nez v4, :kept
+                    move-object v4, v5
+                    :kept
+                    const/4 v6, 0x0
+                    new-instance v0, $info
+                    invoke-direct {v0, v3, v4, v5, v6}, $initCall
+                    return-object v0
+                    :none
+                    const/4 v0, 0x0
+                    return-object v0
+                """,
+            )
+        }
         val itemFields = listOf("message" to "Ljava/lang/String;", "other" to "Ljava/lang/String;", "senders" to "Ljava/util/List;", "sent" to "Ljava/lang/Long;")
             .map { (name, type) -> ImmutableField(item, name, type, itemFlags, null, null, null) }
-        val senderFields = listOf(ImmutableField(sender, "user", user, senderFlags, null, null, null), ImmutableField(sender, "time", "J", senderFlags, null, null, null))
+        val senderFieldFlags = if (finalSender) senderFlags or AccessFlags.FINAL.value else senderFlags
+        val senderFields = listOf(ImmutableField(sender, "user", user, senderFieldFlags, null, null, null), ImmutableField(sender, "time", "J", senderFieldFlags, null, null, null))
+        val senderMethods = if (!finalSender) emptyList() else listOf(
+            method(
+                sender, "<init>", listOf(user, "J"), "V", 0, senderInitFlags or AccessFlags.CONSTRUCTOR.value,
+                """
+                    invoke-direct {p0}, Ljava/lang/Object;-><init>()V
+                    iput-object p1, p0, $sender->user:$user
+                    iput-wide p2, p0, $sender->time:J
+                    return-void
+                """,
+            ),
+        )
         val barSuper = if (hoisted != null) base else "Ljava/lang/Object;"
         val classes: List<ClassDef> = listOf(classDef(bar, barMethods, barFields, barSuper), classDef(info, constructors)) +
-            classDef(item, emptyList(), itemFields) + classDef(sender, emptyList(), senderFields) +
-            classDef(source, built) +
+            classDef(item, emptyList(), itemFields) + classDef(sender, senderMethods, senderFields) +
+            classDef(source, if (finalSender) builtFinal else built) +
             (if (apart) listOf(classDef(itemOwner, listOf(currentItem))) else emptyList()) +
             (if (pageOwner != bar) listOf(classDef(pageOwner, select)) else emptyList()) +
             classDef(state, emptyList(), listOf(stateAdapter) + configs(state)) + classDef(adapter, emptyList(), configs(adapter)) +
