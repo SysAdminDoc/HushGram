@@ -86,6 +86,8 @@ function Get-ApkTargetCoverage {
     } finally { $ErrorActionPreference = $preference }
     if ($code -ne 0) { throw "Could not read target coverage from the patched APK: $($lines -join ' ')" }
     foreach ($line in $lines) {
+        # The JVM prints this to stderr whenever one of these variables is set.
+        if ([string]$line -match '^Picked up (JAVA_TOOL_OPTIONS|_JAVA_OPTIONS|JDK_JAVA_OPTIONS):') { continue }
         $match = [regex]::Match([string]$line, '^(sanitizeSharingLinks|translatedStart)=(.+)$')
         if (-not $match.Success) { throw 'Unexpected output from the target coverage reader.' }
         $parts = $match.Groups[2].Value.Split('|')
