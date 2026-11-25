@@ -1365,6 +1365,18 @@ public final class AccentTheme {
         return iconForText(tabs.getContext(), color, "tab indicator");
     }
 
+    /**
+     * Injected in place of each ImageView.setColorFilter(int) in the method laying out the rows of
+     * Instagram's menus, a reel's three-dot menu among them, for a row's icon, [view] (#187). The rows
+     * color their icons with Instagram's text and icon color, so they stayed white or black. Gives
+     * [view] {@link #textIcon}'s answer for [color] in its context. A missing view throws as the call
+     * it stands in for did.
+     */
+    public static void menuIcon(ImageView view, int color) {
+        int icon = view == null ? color : iconForText(view.getContext(), color, "menu icon");
+        view.setColorFilter(icon);
+    }
+
     /** Counted each time a prism chip's fill, outline or label takes the picked color (#187). */
     static final String PRISM_CHIPS = "Chips given the accent color";
 

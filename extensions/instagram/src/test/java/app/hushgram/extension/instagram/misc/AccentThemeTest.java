@@ -1313,6 +1313,43 @@ public class AccentThemeTest {
     }
 
     /**
+     * A menu row's icon, a reel's three-dot menu among them, is given the icon color its theme holds in
+     * place of Instagram's text color with Icons in the accent color on, and any other color, a red
+     * row's included, as it was told (#187). Off, it's given the color it was told. A missing icon
+     * throws as Instagram's own call would.
+     */
+    @Test
+    public void menuIconsInTheTextColorTakeTheThemesIconColor() {
+        Context light = new ContextThemeWrapper(themed(THEMED + ".menuicons", (name, type) -> {
+            if (!type.equals("attr")) return 0;
+            if (name.equals(AccentTheme.ICON_ATTRIBUTE)) return android.R.attr.colorForeground;
+            return name.equals(AccentTheme.TEXT_ICON_ATTRIBUTE) ? android.R.attr.colorAccent : 0;
+        }), android.R.style.Theme_Material_Light);
+        TypedValue icon = new TypedValue();
+        assertTrue(light.getTheme().resolveAttribute(android.R.attr.colorForeground, icon, true));
+        TypedValue text = new TypedValue();
+        assertTrue(light.getTheme().resolveAttribute(android.R.attr.colorAccent, text, true));
+        int textColor = text.data;
+        int iconColor = 0xff000000 | icon.data;
+        assertTrue("two colors to tell apart", (textColor & 0xffffff) != (iconColor & 0xffffff));
+        int red = 0xffed4956;
+        android.widget.ImageView row = new android.widget.ImageView(light);
+        AccentTheme.menuIcon(row, textColor);
+        assertTrue("off", atop(textColor, row.getColorFilter()));
+
+        Settings.ACCENT_COLOR.save(true);
+        Settings.ACCENT_HUE.save(AccentHue.TEAL);
+        Settings.ACCENT_ICONS.save(true);
+        AccentTheme.menuIcon(row, textColor);
+        assertTrue("the icon color", atop(iconColor, row.getColorFilter()));
+        AccentTheme.menuIcon(row, red);
+        assertTrue("a red row stays red", atop(red, row.getColorFilter()));
+        org.junit.Assert.assertThrows(NullPointerException.class, () -> AccentTheme.menuIcon(null, textColor));
+        String report = HookStatus.report().toString();
+        assertTrue(report, report.contains(AccentTheme.TEXT_ICONS));
+    }
+
+    /**
      * Instagram's prism chips, the filters under a search among them (#187): with Filters in the accent
      * color on, the fill their background reads comes back as Saved's filters' look, the one you're on
      * filled with the picked color, a pressed one keeping Instagram's color and the others clear, their

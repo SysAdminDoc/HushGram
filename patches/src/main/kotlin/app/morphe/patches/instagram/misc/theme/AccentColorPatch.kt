@@ -158,6 +158,7 @@ val accentColorPatch = bytecodePatch(
         tintReelButtons()
         tintBarIcons()
         tintTextIcons()
+        tintMenuIcons()
         tintSavedFilters()
         tintPrismChips()
         tintLithoIcons()
