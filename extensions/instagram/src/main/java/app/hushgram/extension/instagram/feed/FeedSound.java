@@ -41,6 +41,11 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * <p>A photo post with a song plays it only while the account's audio state is on, so a song that
  * came before any video stayed silent (#762). The patch asks {@link #startSongWithSound(Object)} when
  * such a post comes into view with the state still unset, never over a state you turned off.
+ *
+ * <p>Instagram forgets the account's audio state after ten minutes in the background, and each
+ * controller had already used its turn, so Home came back muted (#762). The patch tells
+ * {@link #audioStateChanging(Object)} what the state's setter is about to store, and a null gives
+ * every feed its turn again.
  */
 public final class FeedSound {
     /** What {@link HookStatus} counts: a feed video started with the sound turned on. */
@@ -57,6 +62,12 @@ public final class FeedSound {
 
     /** The song hook's name in a failure report. */
     static final String SONG = "feed song start";
+
+    /** What {@link HookStatus} counts: Instagram reset the account's audio state (#762). */
+    static final String RESET = "feed sound resets heard";
+
+    /** The reset hook's name in a failure report. */
+    static final String RESET_HOOK = "feed sound reset";
 
     /**
      * Every controller that already had its turn, held weakly so a closed feed is not kept alive.
@@ -133,6 +144,26 @@ public final class FeedSound {
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.FEED_SOUND, SONG, failure);
             return 0;
+        }
+    }
+
+    /**
+     * Told with the value Instagram is about to store as the account's audio state. A null is Instagram
+     * forgetting the state, after ten minutes in the background or on a foreground its server asked for,
+     * and every video after it would start muted again by the old flag (#762). So a null forgets which
+     * controller had its turn, and each feed starts its next video with sound once more. True or false
+     * is a speaker tap or a play, which the turns already follow. Never throws.
+     */
+    public static void audioStateChanging(Object value) {
+        try {
+            if (value != null) return;
+            synchronized (FeedSound.class) {
+                served.clear();
+            }
+            HookStatus.counted(FamilyNames.FEED_SOUND, RESET);
+            Logger.printDebug(() -> "Feed video: Instagram reset the sound, each feed gets its turn again");
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.FEED_SOUND, RESET_HOOK, failure);
         }
     }
 

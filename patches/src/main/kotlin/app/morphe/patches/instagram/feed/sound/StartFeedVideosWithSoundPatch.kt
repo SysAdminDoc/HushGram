@@ -77,6 +77,11 @@ private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $det
  * account state is on, so a song that came before any video stayed silent (#762). A second hook
  * ([applyFeedSong]) asks the extension when such a post comes into view with the state never set.
  *
+ * Instagram forgets the account state after ten minutes in the background, or on a foreground its server
+ * asks for, by handing the state's own setter a null. Home's controller is the same object afterwards and
+ * had its turn, so its next video started muted (#762). A third hook ([applyAudioStateReset]) tells the
+ * extension what the setter is handed, and a null gives every feed its turn again, as a cold start does.
+ *
  * Found and checked before anything changes: a build that differs stops the patch naming what it
  * couldn't find.
  */
@@ -94,11 +99,13 @@ val startFeedVideosWithSoundPatch = bytecodePatch(
 
     execute {
         requireStatusMethod("feedSound")
-        // Both sites are found before either changes, so a build missing one is left as it was.
+        // Every site is found before any changes, so a build missing one is left as it was.
         val video = findFeedSoundSite()
         val song = findFeedSongSite(video.factory)
+        val reset = findAudioStateReset(video.factory)
         applyFeedSound(video)
         applyFeedSong(song)
+        applyAudioStateReset(reset)
         enableStatus("feedSound")
     }
 }

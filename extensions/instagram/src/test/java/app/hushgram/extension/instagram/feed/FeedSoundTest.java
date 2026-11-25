@@ -100,6 +100,39 @@ public class FeedSoundTest {
         assertTrue(report(), report().contains(FeedSound.STARTED + " 2"));
     }
 
+    /**
+     * Instagram forgets the account's audio state after a while in the background, writing null (#762). Home's
+     * controller is the same object afterwards, and its next video gets a turn again, as after a cold start. A
+     * true or false written to the state, a tap on the speaker or the hook's own turn, leaves the turns alone.
+     */
+    @Test
+    public void afterInstagramResetsTheSoundTheSameControllerGetsItsTurnAgain() {
+        Settings.START_FEED_VIDEOS_WITH_SOUND.save(true);
+        Object home = new Object();
+        assertEquals("first video", 1, FeedSound.startWithSound(home));
+        FeedSound.audioStateChanging(Boolean.TRUE);
+        FeedSound.audioStateChanging(Boolean.FALSE);
+        assertEquals("a true or false keeps the turn used", 0, FeedSound.startWithSound(home));
+        FeedSound.audioStateChanging(null);
+        assertEquals("after the reset", 1, FeedSound.startWithSound(home));
+        assertEquals("and then one turn again", 0, FeedSound.startWithSound(home));
+        String report = report();
+        assertTrue(report, report.contains(FeedSound.STARTED + " 2"));
+        assertTrue(report, report.contains(FeedSound.RESET + " 1"));
+    }
+
+    /** A reset with the switch off or paused still forgets the turns, and never throws. */
+    @Test
+    public void aResetWhileOffStillForgetsTheTurns() {
+        Settings.START_FEED_VIDEOS_WITH_SOUND.save(true);
+        Object home = new Object();
+        assertEquals(1, FeedSound.startWithSound(home));
+        Settings.START_FEED_VIDEOS_WITH_SOUND.save(false);
+        FeedSound.audioStateChanging(null);
+        Settings.START_FEED_VIDEOS_WITH_SOUND.save(true);
+        assertEquals(1, FeedSound.startWithSound(home));
+    }
+
     /** Going back to a feed that already had its turn, after another one, doesn't give it a second one. */
     @Test
     public void goingBackToAFeedAfterAnotherDoesntTurnItsSoundBackOn() {

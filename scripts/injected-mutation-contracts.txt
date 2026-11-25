@@ -4094,6 +4094,13 @@ once-call Lapp/hushgram/extension/instagram/feed/FeedSound;->keepsMuted()I in in
 # view, where the account's audio state answered false and was never set. Left out, a song before any
 # video stays silent; twice or elsewhere, it isn't the test the patch wrote.
 once-call Lapp/hushgram/extension/instagram/feed/FeedSound;->startSongWithSound(Ljava/lang/Object;)I in static (Lcom/instagram/feed/media/Media;L*;L*;F)V class-holding FeedMusicController
+# Its reset hook (#762) tells FeedSound.audioStateChanging() first thing in the account audio state's own
+# setter, the static (state, Boolean) void method that stores the Boolean in the state and walks its
+# listener set, with the value about to be stored. Instagram hands it a null when it forgets the state
+# after ten minutes in the background. Left out, Home comes back muted after that reset; twice, later or
+# elsewhere, it isn't the call the patch wrote.
+start-call Lapp/hushgram/extension/instagram/feed/FeedSound;->audioStateChanging(Ljava/lang/Object;)V in static (LX/*;Ljava/lang/Boolean;)V holding LX/*;->*:Ljava/lang/Boolean; LX/*;->*:Ljava/util/concurrent/CopyOnWriteArraySet; Ljava/util/AbstractCollection;->iterator()Ljava/util/Iterator;
+once-call Lapp/hushgram/extension/instagram/feed/FeedSound;->audioStateChanging(Ljava/lang/Object;)V in static (LX/*;Ljava/lang/Boolean;)V holding LX/*;->*:Ljava/lang/Boolean; LX/*;->*:Ljava/util/concurrent/CopyOnWriteArraySet; Ljava/util/AbstractCollection;->iterator()Ljava/util/Iterator;
 # Long press to zoom (#63): the feed media touch helper hands every touch on a post's frame to the
 # extension first, in its one instance (MotionEvent) boolean method, the one of that shape reading
 # the helper's GestureDetector field. Left out, the zoom never learns where the finger went down;
