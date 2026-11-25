@@ -27,7 +27,7 @@ final class PlaybackCategory {
     private PlaybackCategory() { }
 
     static void add(HushgramPreferenceFragment page, PreferenceScreen screen, Context context, Set<PatchFamily> build) {
-        if (build.contains(PatchFamily.HDR_BOOST) || build.contains(PatchFamily.TAP_TO_PLAY)
+        if (build.contains(PatchFamily.HDR_BOOST) || build.contains(PatchFamily.HDR_PHOTOS) || build.contains(PatchFamily.TAP_TO_PLAY)
                 || build.contains(PatchFamily.RESUME_LONG_VIDEOS) || build.contains(PatchFamily.REEL_TAP_AND_VOLUME)
                 || build.contains(PatchFamily.REEL_SOUND)
                 || build.contains(PatchFamily.PLAYBACK_QUALITY) || build.contains(PatchFamily.DATA_SAVER)
@@ -111,6 +111,11 @@ final class PlaybackCategory {
                 playback.addPreference(toggle(context, Settings.TURN_OFF_HDR_BOOSTS, L10n.t("Turn off HDR brightness boosts"),
                         L10n.t("HDR photos and reels stop brightening the screen above everything else. They show "
                                 + "at the same brightness as the rest of Instagram.")));
+            }
+            if (build.contains(PatchFamily.HDR_PHOTOS)) {
+                playback.addPreference(toggle(context, Settings.KEEP_HDR_ON_PHOTO_UPLOADS, L10n.t("Keep HDR on photo uploads"),
+                        L10n.t("Experimental. An Ultra HDR photo you post keeps its gain map on Android 14 and newer, "
+                                + "so it can still show in HDR. Turn it off if a photo you post looks wrong.")));
             }
         }
     }

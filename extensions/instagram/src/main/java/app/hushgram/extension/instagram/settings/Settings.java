@@ -5168,6 +5168,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_turn_off_hdr_boosts", FALSE);
 
     /**
+     * An Ultra HDR photo you post keeps its gain map: Instagram's check for keeping HDR on photos,
+     * which the server answers for each account, answers yes on Android 14 and newer
+     * ({@link app.hushgram.extension.instagram.media.HdrPhotos}, #532). Read as each photo is
+     * opened in the editor and rendered. Off to start: experimental.
+     */
+    public static final BooleanSetting KEEP_HDR_ON_PHOTO_UPLOADS =
+            new BooleanSetting("hushgram_keep_hdr_on_photo_uploads", FALSE);
+
+    /**
      * Feed videos and reels stop on their last frame instead of playing again
      * ({@link app.hushgram.extension.instagram.media.StopLooping}). A reel in the Reels viewer still
      * loops while auto scroll or Move on when a reel ends is moving Reels on. Read each time a video

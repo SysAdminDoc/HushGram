@@ -768,6 +768,8 @@ That isn't a place. Type latitude, longitude.	올바른 장소가 아닙니다. 
 %1$d reels. Swipe again after %2$d minutes away.	릴스 %1$d개. %2$d분 동안 나가 있으면 다시 넘길 수 있습니다.
 The latitude and the longitude in degrees, with a comma between them, like 40.758, -73.9855. North and east are positive, south and west negative. A map app shows both when you press and hold a spot.	위도와 경도를 도 단위로, 쉼표로 구분해 입력합니다. 예: 40.758, -73.9855. 북쪽과 동쪽은 양수, 남쪽과 서쪽은 음수입니다. 지도 앱에서 한 지점을 길게 누르면 둘 다 표시됩니다.
 Turn off HDR brightness boosts	HDR 밝기 강조 끄기
+Keep HDR on photo uploads	사진 업로드 시 HDR 유지
+Experimental. An Ultra HDR photo you post keeps its gain map on Android 14 and newer, so it can still show in HDR. Turn it off if a photo you post looks wrong.	실험적 기능입니다. Android 14 이상에서 게시하는 Ultra HDR 사진의 게인 맵이 유지되어 계속 HDR로 표시될 수 있습니다. 게시한 사진이 이상하게 보이면 끄세요.
 What you open from search stays out of Recent, in the app and on Instagram's side. Searches already there stay until you clear them.	검색에서 연 항목은 앱에서도 Instagram 쪽에서도 최근 항목에 남지 않습니다. 이미 있는 검색은 지울 때까지 남아 있습니다.
 Wi-Fi stays as it is. Turn this off to save data on every network.	Wi-Fi는 그대로입니다. 모든 네트워크에서 데이터를 아끼려면 이 스위치를 끄세요.
 Hide comments	댓글 숨기기

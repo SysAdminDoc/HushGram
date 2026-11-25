@@ -925,6 +925,16 @@ no-call Landroid/view/SurfaceControl$Transaction;->setExtendedRangeBrightness(La
 # elsewhere, it isn't the hook the patch wrote.
 start-call Lapp/hushgram/extension/instagram/media/HdrBoost;->optionOff(JJ)Z in instance (L*;JZ)Z class-holding __fbt_null__
 once-call Lapp/hushgram/extension/instagram/media/HdrBoost;->optionOff(JJ)Z in instance (L*;JZ)Z class-holding __fbt_null__
+# Keep HDR on photo uploads (#532) hands HdrPhotos.ultraHdr Instagram's answer to whether photos keep
+# Ultra HDR right before the one return of the check, the static (UserSession)Z reading the two server
+# flags below, which ThumbnailPreviewFragment.onResume asks too. The final renderer's flag for gain
+# maps in color goes through HdrPhotos.colorGainmap before its branch, in the one method holding
+# ImageFinalRenderer that calls setGainmap, and HdrPhotos.saved hears of each JPEG the photo save step
+# holding UltraHDR writes with Android's encoder. Left out, an Ultra HDR photo goes up as SDR unless the
+# server turns HDR on for the account; twice or elsewhere, it isn't the hook the patch wrote.
+once-call Lapp/hushgram/extension/instagram/media/HdrPhotos;->ultraHdr(I)I in static (Lcom/instagram/common/session/UserSession;)Z holding const:0x810442000311d9 const:0x8107d700012aba
+once-call Lapp/hushgram/extension/instagram/media/HdrPhotos;->colorGainmap(I)I in instance (L*;)V calling Landroid/graphics/Bitmap;->setGainmap(Landroid/graphics/Gainmap;)V pooled holding ImageFinalRenderer
+once-call Lapp/hushgram/extension/instagram/media/HdrPhotos;->saved(Landroid/graphics/Bitmap;Ljava/lang/String;I)V in instance ()Z pooled holding UltraHDR Landroid/graphics/Bitmap$CompressFormat;->JPEG:Landroid/graphics/Bitmap$CompressFormat;
 # And it hands the AV1 decoder settings' enhancement mode to HdrBoost.enhancementMode right before
 # their constructor writes it, so the synthetic HDR modes read as none (#85). The constructor is the
 # one method of its shape touching the field. Left out, software-decoded reels keep their synthetic
