@@ -288,6 +288,27 @@ public class ProfileHistoryTest {
         assertTrue(picture.isFile());
     }
 
+    @Test public void pastTheSizeCapTheCopiesOfProfilesSeenLongestAgoGoAndComeBackOnAVisit() {
+        ProfileHistory.record(context, "21", "uma", null, "https://cdn.example/u.jpg", 1_000L);
+        File first = kept("21");
+        assertTrue(first.isFile());
+        ProfileHistory.pictureCap = 2 * first.length();
+
+        ProfileHistory.record(context, "22", "val", null, "https://cdn.example/v.jpg", 2_000L);
+        assertTrue("within the cap every copy stays", first.isFile());
+        ProfileHistory.record(context, "23", "wes", null, "https://cdn.example/w.jpg", 3_000L);
+        assertFalse("past it, the profile seen longest ago loses its copy", first.isFile());
+        assertTrue(kept("22").isFile());
+        assertTrue(kept("23").isFile());
+        assertEquals("its entry stays listed", 1, ProfileHistory.account(context, "21").entries.stream()
+                .filter(entry -> entry.field == Field.PICTURE).count());
+
+        ProfileHistory.record(context, "21", "uma", null, "https://cdn.example/u.jpg", 4_000L);
+        assertTrue("opened again, its picture is copied anew", first.isFile());
+        assertFalse("and the next one seen longest ago goes", kept("22").isFile());
+        assertTrue(kept("23").isFile());
+    }
+
     @Test public void thePictureIsCopiedOnceAndAFailedCopyIsTriedAgainNextVisit() {
         swap(false);
         ProfileHistory.record(context, "7", "gus", null, "https://cdn.example/g.jpg", 1_000L);

@@ -202,6 +202,10 @@ public final class ProfileHistory {
     private static boolean readCleanly;
     /** How old a fetch's work file is before the sweep takes it for one a crash left behind. */
     static final long STALE_PART_MS = 60 * 60 * 1000L;
+    /** How much the kept pictures may take up before the copies of profiles seen longest ago go (#683). */
+    static final long MAX_PICTURE_BYTES = 100L * 1024 * 1024;
+    /** {@link #MAX_PICTURE_BYTES}; tests lower it. */
+    static long pictureCap = MAX_PICTURE_BYTES;
 
     private ProfileHistory() {
     }
@@ -416,6 +420,7 @@ public final class ProfileHistory {
                 Account account = ACCOUNTS.get(id);
                 if (account == null || !account.entries.contains(entry)) return false;
                 Files.move(part.toPath(), kept.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                capPictures(application, id);
                 return true;
             }
         } catch (IOException | RuntimeException failure) {
@@ -455,6 +460,37 @@ public final class ProfileHistory {
             File kept = pictureFile(application, account.id, entry);
             if (!shared && kept.exists() && !kept.delete()) Logger.printDebug(() -> "A profile history picture stayed: " + kept);
         }
+    }
+
+    /**
+     * Deletes kept copies, the profile seen longest ago first and its oldest picture first, until the
+     * pictures folder is within {@link #pictureCap} (#683). Every entry stays listed, and a profile
+     * opened again has the picture it shows now copied anew. [keep]'s copies stay. Call it under the
+     * lock; it reads the accounts in order without touching that order.
+     */
+    private static void capPictures(Context application, String keep) {
+        File[] files = pictures(application).listFiles();
+        if (files == null) return;
+        long total = 0;
+        for (File file : files) total += file.length();
+        if (total <= pictureCap) return;
+        int deleted = 0;
+        for (Account account : ACCOUNTS.values()) {
+            if (total <= pictureCap) break;
+            if (account.id.equals(keep)) continue;
+            for (Entry entry : account.entries) {
+                if (total <= pictureCap) break;
+                if (entry.field != Field.PICTURE) continue;
+                File kept = pictureFile(application, account.id, entry);
+                long size = kept.length();
+                if (size > 0 && kept.delete()) {
+                    total -= size;
+                    deleted++;
+                }
+            }
+        }
+        int count = deleted;
+        Logger.printDebug(() -> "Profile history: deleted " + count + " pictures to stay within the size cap");
     }
 
     /**
@@ -751,6 +787,7 @@ public final class ProfileHistory {
             ACCOUNTS.clear();
             loadedFrom = null;
             swept = false;
+            pictureCap = MAX_PICTURE_BYTES;
         }
         UPGRADES.clear();
         reads = PATCHED;
