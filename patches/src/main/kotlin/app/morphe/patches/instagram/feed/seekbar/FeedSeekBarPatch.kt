@@ -117,7 +117,8 @@ val feedSeekBarPatch = bytecodePatch(
         "while the middle still likes the post, and the arrows it flashes can be turned off. Two more choose a " +
         "shape for every seek bar, story progress segments " +
         "and videos in chats included, and show a preview above your finger while you drag one. Feed videos can " +
-        "also get a shape of their own, and the time over the bar, which a tap flips to the time left.",
+        "also get a shape of their own, and the time over the bar, which a tap flips to the time left. The time " +
+        "can sit in the video's top corner instead, under Instagram's countdown.",
 ) {
     category("Playback")
     dependsOn(settingsPatch, instagramExtensionPatch, stopTabSwipingPatch)
