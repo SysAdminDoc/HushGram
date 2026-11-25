@@ -4,6 +4,11 @@
  */
 package app.hushgram.extension.instagram.direct;
 
+import static app.hushgram.extension.instagram.direct.ViewerConfigs.BLEND;
+import static app.hushgram.extension.instagram.direct.ViewerConfigs.CHAT;
+import static app.hushgram.extension.instagram.direct.ViewerConfigs.CHATS_BLEND;
+import static app.hushgram.extension.instagram.direct.ViewerConfigs.CLIPS_TAB;
+import static app.hushgram.extension.instagram.direct.ViewerConfigs.NO_CHAT;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
@@ -60,9 +65,6 @@ public class ChatReelsExitTest {
         }
     }
 
-    /** Stand-ins for Instagram's viewer sources, named as its enum names them. */
-    private enum Source { DIRECT, CLIPS_TAB }
-
     private ActivityController<Viewer> controller;
     private Viewer activity;
     private FrameLayout root;
@@ -79,6 +81,7 @@ public class ChatReelsExitTest {
         Settings.STOP_AFTER_CHAT_REELS.save(true);
         HookStatus.clear();
         ChatReelsExit.resetForTests();
+        ViewerConfigs.install();
         controller = Robolectric.buildActivity(Viewer.class).setup();
         activity = controller.get();
         root = new FrameLayout(activity);
@@ -97,6 +100,7 @@ public class ChatReelsExitTest {
         PauseForTests.resume();
         HookStatus.clear();
         ChatReelsExit.resetForTests();
+        ViewerConfigs.reset();
         controller.close();
     }
 
@@ -131,7 +135,7 @@ public class ChatReelsExitTest {
     @Test
     public void aSwipeUpPastAChatsLastReelGoesBack() {
         show();
-        ChatReelsExit.viewer(pager, Source.DIRECT);
+        ChatReelsExit.viewer(pager, CHAT);
         swipe(1600, 1000, 0);
         assertEquals("Back", 1, activity.backs);
         assertEquals("Instagram had every touch first", 3, activity.touches);
@@ -143,7 +147,7 @@ public class ChatReelsExitTest {
     @Test
     public void aPagerSetUpBeforeItShowsIsWatchedOnceItDoes() {
         Window.Callback before = activity.getWindow().getCallback();
-        ChatReelsExit.viewer(pager, Source.DIRECT);
+        ChatReelsExit.viewer(pager, CHAT);
         assertSame("not wrapped before it shows", before, activity.getWindow().getCallback());
         show();
         swipe(1600, 1000, 0);
@@ -162,7 +166,7 @@ public class ChatReelsExitTest {
         list.scrollState = ChatReelsExit.DRAGGING;
         pager.addView(list, new FrameLayout.LayoutParams(1080, 1920));
         root.addView(pager, new FrameLayout.LayoutParams(1080, 1920));
-        ChatReelsExit.viewer(pager, Source.DIRECT);
+        ChatReelsExit.viewer(pager, CHAT);
         show();
         swipe(1600, 1000, 0);
         assertEquals("Back", 1, activity.backs);
@@ -174,11 +178,11 @@ public class ChatReelsExitTest {
         show();
         Window window = activity.getWindow();
         Window.Callback before = window.getCallback();
-        ChatReelsExit.viewer(pager, Source.DIRECT);
+        ChatReelsExit.viewer(pager, CHAT);
         Window.Callback wrapped = window.getCallback();
         FrameLayout second = new FrameLayout(activity);
         root.addView(second);
-        ChatReelsExit.viewer(second, Source.DIRECT);
+        ChatReelsExit.viewer(second, CHAT);
         assertSame("wrapped once", wrapped, window.getCallback());
         assertSame(before, ChatReelsExit.innerOf(wrapped));
         assertSame(before, ChatReelsExit.innerOf(before));
@@ -190,7 +194,7 @@ public class ChatReelsExitTest {
     public void moreReelsBelowStayInstagrams() {
         list.slack = 100;
         show();
-        ChatReelsExit.viewer(pager, Source.DIRECT);
+        ChatReelsExit.viewer(pager, CHAT);
         swipe(1600, 1000, 0);
         assertEquals(0, activity.backs);
     }
@@ -199,7 +203,7 @@ public class ChatReelsExitTest {
     @Test
     public void shortSidewaysUndraggedAndTwoFingerSwipesStay() {
         show();
-        ChatReelsExit.viewer(pager, Source.DIRECT);
+        ChatReelsExit.viewer(pager, CHAT);
         swipe(1600, 1600 - ChatReelsExit.EXIT_SHARE * 1920 + 20, 0);
         assertEquals("short", 0, activity.backs);
         swipe(1600, 1000, 400);
@@ -226,7 +230,7 @@ public class ChatReelsExitTest {
     @Test
     public void offPausedAndOtherViewersStay() {
         show();
-        ChatReelsExit.viewer(pager, Source.DIRECT);
+        ChatReelsExit.viewer(pager, CHAT);
         Settings.STOP_AFTER_CHAT_REELS.save(false);
         swipe(1600, 1000, 0);
         assertEquals("off", 0, activity.backs);
@@ -239,9 +243,26 @@ public class ChatReelsExitTest {
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
 
-        ChatReelsExit.viewer(pager, Source.CLIPS_TAB);
+        ChatReelsExit.viewer(pager, CLIPS_TAB);
         swipe(1600, 1000, 0);
         assertEquals("the same pager reused for the Reels tab", 0, activity.backs);
+    }
+
+    /**
+     * Once Instagram has loaded a chat's Blend, a reel tapped in that chat opens as the Blend's, still
+     * holding the chat, and a swipe past its last reel goes back to the chat too (#804). The same pager
+     * set up again for a Blend opened outside a chat, which holds none, keeps Instagram's swipe.
+     */
+    @Test
+    public void aChatsViewerOpenedAsItsBlendGoesBackAndABlendOutsideAChatStays() {
+        show();
+        ChatReelsExit.viewer(pager, CHATS_BLEND);
+        ChatReelsExit.viewer(pager, BLEND);
+        swipe(1600, 1000, 0);
+        assertEquals("a Blend opened outside a chat", 0, activity.backs);
+        ChatReelsExit.viewer(pager, CHATS_BLEND);
+        swipe(1600, 1000, 0);
+        assertEquals("the chat's Blend's viewer", 1, activity.backs);
     }
 
     /** A viewer that isn't a chat's leaves the window as it was. */
@@ -249,9 +270,11 @@ public class ChatReelsExitTest {
     public void anotherViewerIsntWatched() {
         show();
         Window.Callback before = activity.getWindow().getCallback();
-        ChatReelsExit.viewer(pager, Source.CLIPS_TAB);
+        ChatReelsExit.viewer(pager, CLIPS_TAB);
+        ChatReelsExit.viewer(pager, BLEND);
+        ChatReelsExit.viewer(pager, NO_CHAT);
         ChatReelsExit.viewer(pager, null);
-        ChatReelsExit.viewer("not a view", Source.DIRECT);
+        ChatReelsExit.viewer("not a view", CHAT);
         assertSame(before, activity.getWindow().getCallback());
         assertFalse(HookStatus.report().toString(), HookStatus.report().toString().contains("threw"));
     }

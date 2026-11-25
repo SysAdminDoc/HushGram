@@ -7,6 +7,7 @@ package app.morphe.patches.instagram.direct.reels
 import app.morphe.ExtensionDex
 import app.morphe.Fixtures
 import app.morphe.PatchContexts
+import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
@@ -15,10 +16,13 @@ import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.WideLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
+import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -36,6 +40,9 @@ class BlendAfterChatReelsTest {
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
         assertTrue("$BLEND_AFTER_CHAT is not in the extension: $declared", BLEND_AFTER_CHAT.substringAfter("->") in declared)
+        for (bridge in listOf("viewerSource(Ljava/lang/Object;)Ljava/lang/Object;", "chatThread(Ljava/lang/Object;)Ljava/lang/String;")) {
+            assertTrue("$bridge is not in the extension: $declared", bridge in declared)
+        }
     }
 
     @Test
@@ -66,12 +73,14 @@ class BlendAfterChatReelsTest {
             method.code().any { it.opcode == Opcode.NEW_INSTANCE && it.text() == blend }
         }.map { it.definingClass }.toSet()
         val extra = FixtureDex.classes(bundle, pickers + setOf(VIEWER_CONFIG)).values
-        val context = PatchContexts.of((pooled + extra).distinctBy { it.type })
+        val context = PatchContexts.of((pooled + extra).distinctBy { it.type } + ImmutableClassDef.of(ExtensionDex.classDef(CHAT_REELS)))
 
         val end = context.findChatReelsEnd()
         val found = context.findBlendAfterChat(end.chat)
         val before = found.picker.code()
         context.keepChatReelsBeforeBlend(found)
+        context.readChatViewers(found)
+        readsViewers(context, found, label)
 
         val picker = context.mutableClassDefBy(found.picker.definingClass).methods.single { method ->
             method.name == found.picker.name && method.parameterTypes.map(Any::toString) == found.picker.parameterTypes.map(Any::toString)
@@ -102,6 +111,34 @@ class BlendAfterChatReelsTest {
         assertEquals("$label: Instagram's own code follows", before[found.after].opcode, code[made + 8].opcode)
         assertEquals("$label: only the hook was added", before.size + 25, code.size)
         assertTrue("$label: scratch registers fit a 4-bit form", found.scratch.all { it <= 15 } && found.blend !in found.scratch)
+    }
+
+    /**
+     * The bridges the chat reels hooks read a viewer's config through (#804): where it opened, and the
+     * chat it holds, null for a config holding no chat's data, so a Blend opened outside a chat is no
+     * chat's viewer.
+     */
+    private fun readsViewers(context: BytecodePatchContext, found: BlendSites, label: String) {
+        val bridges = context.mutableClassDefBy(CHAT_REELS).methods.groupBy { it.name }
+        val source = bridges.getValue("viewerSource").single().code()
+        assertEquals("$label: where the viewer opened", listOf(VIEWER_CONFIG, found.configSource), source.take(2).map { it.text() })
+        assertEquals("$label: in the config's register", listOf(0, 0), (source[1] as TwoRegisterInstruction).let { listOf(it.registerA, it.registerB) })
+        assertEquals("$label: answered", Opcode.RETURN_OBJECT, source[2].opcode)
+
+        val thread = bridges.getValue("chatThread").single().code()
+        assertEquals(
+            "$label: the chat's data, then its id",
+            listOf(VIEWER_CONFIG, found.direct, null, null, null, found.thread, null), thread.take(7).map { it.text() },
+        )
+        assertEquals(
+            "$label: a config holding no chat's data answers null",
+            listOf(Opcode.IF_NEZ, Opcode.CONST_4, Opcode.RETURN_OBJECT), thread.subList(2, 5).map { it.opcode },
+        )
+        assertEquals("$label: null", 0L, (thread[3] as WideLiteralInstruction).wideLiteral)
+        val address = IntArray(thread.size + 1)
+        thread.forEachIndexed { index, instruction -> address[index + 1] = address[index] + instruction.codeUnits }
+        assertEquals("$label: the chat's data goes on to its id", 5, address.indexOf(address[2] + (thread[2] as OffsetInstruction).codeOffset))
+        assertEquals("$label: answered", Opcode.RETURN_OBJECT, thread[6].opcode)
     }
 
     /** Classes asking a static method of [pooled] that loads [CHAT_REELS_PATH], the chat's and the Blend's sources on 456. */

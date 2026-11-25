@@ -505,7 +505,10 @@ class SwipeChatReelsHookTest {
         return listOf(classDef(viewer, asks + open), classDef(VIEWER_CONFIG, emptyList(), fields = fields)) + pagingClasses(sourceFields = held)
     }
 
-    /** Every read of the viewer's permission to refresh outside the config asks the extension, handed the source (#390). */
+    /**
+     * Every read of the viewer's permission to refresh outside the config asks the extension, handed
+     * the config the permission came from (#390), whose chat the extension reads (#804).
+     */
     @Test
     fun eachReadOfThePermissionToRefreshAsks() {
         val context = PatchContexts.of(refreshClasses())
@@ -514,7 +517,6 @@ class SwipeChatReelsHookTest {
         context.refreshFromChats(found)
 
         assertEquals("$VIEWER_CONFIG->refresh:Z", found.flag)
-        assertEquals("$VIEWER_CONFIG->source:$VIEWER_SOURCE", found.source)
         assertEquals(setOf("$refresher->handle", "$puller->enable"), found.readers.map { "${it.definingClass}->${it.name}" }.toSet())
         assertAsksBeforeRefreshing("the refresh", context.mutableClassDefBy(refresher).methods.single { it.name == "handle" }, found, 1)
         assertAsksBeforeRefreshing("the pull", context.mutableClassDefBy(puller).methods.single { it.name == "enable" }, found, 2)
@@ -531,8 +533,6 @@ class SwipeChatReelsHookTest {
             refreshClasses(refreshes = 2) to "expected one method loading \"$REFRESH_NOT_ALLOWED\", found 2",
             refreshClasses(test = "if-nez") to "$refresh doesn't test a $VIEWER_CONFIG boolean first, its permission to refresh",
             refreshClasses(own = true) to "$refresh reads $VIEWER_CONFIG->refresh:Z into the config's own register",
-            refreshClasses(sources = 0) to "$VIEWER_CONFIG holds 0 $VIEWER_SOURCE fields, not one",
-            refreshClasses(sources = 2) to "$VIEWER_CONFIG holds 2 $VIEWER_SOURCE fields, not one",
         )
         for ((classes, expected) in cases) {
             val context = PatchContexts.of(classes)
@@ -595,8 +595,8 @@ class SwipeChatReelsHookTest {
 
     /**
      * Right after each of the [reads] reads of the permission: a no goes on to Instagram as it was, a
-     * yes reads the source from the same config into the answer's register, hands it to the hook, and
-     * the hook's answer takes the read's place.
+     * yes hands the hook the config the permission came from, and the hook's answer takes the read's
+     * place.
      */
     private fun assertAsksBeforeRefreshing(what: String, method: Method, found: RefreshReads, reads: Int) {
         val code = method.code()
@@ -606,19 +606,17 @@ class SwipeChatReelsHookTest {
         assertEquals("$what: asks", reads, asks.size)
         assertEquals("$what: reads", reads, code.count { it.opcode == Opcode.IGET_BOOLEAN && it.referenceText() == found.flag })
         for (ask in asks) {
-            val read = code[ask - 3]
+            val read = code[ask - 2]
             assertEquals("$what: the read before $ask", Opcode.IGET_BOOLEAN, read.opcode)
             assertEquals("$what: the permission before $ask", found.flag, read.referenceText())
             val answer = (read as TwoRegisterInstruction).registerA
-            val test = code[ask - 2]
+            val test = code[ask - 1]
             assertEquals("$what: the test before $ask", Opcode.IF_EQZ, test.opcode)
             assertEquals("$what: the test's register before $ask", answer, (test as OneRegisterInstruction).registerA)
-            assertEquals("$what: a no goes on to Instagram before $ask", ask + 2, address.indexOf(address[ask - 2] + (test as OffsetInstruction).codeOffset))
-            val source = code[ask - 1] as TwoRegisterInstruction
-            assertEquals("$what: the source before $ask", found.source, code[ask - 1].referenceText())
-            assertEquals("$what: the source's register before $ask", answer, source.registerA)
-            assertEquals("$what: from the same config before $ask", read.registerB, source.registerB)
-            assertEquals("$what: the hook's argument at $ask", answer, (code[ask] as FiveRegisterInstruction).registerC)
+            assertEquals("$what: a no goes on to Instagram before $ask", ask + 2, address.indexOf(address[ask - 1] + (test as OffsetInstruction).codeOffset))
+            val call = code[ask] as FiveRegisterInstruction
+            assertEquals("$what: the hook handed the config the permission came from at $ask", read.registerB, call.registerC)
+            assertEquals("$what: one argument at $ask", 1, call.registerCount)
             assertEquals("$what: the answer at $ask", Opcode.MOVE_RESULT, code[ask + 1].opcode)
             assertEquals("$what: the answer's register at $ask", answer, (code[ask + 1] as OneRegisterInstruction).registerA)
         }
@@ -627,14 +625,12 @@ class SwipeChatReelsHookTest {
     /**
      * A refresh shaped like Instagram 453's 02HQ.A1T: it reads the config's permission first and
      * tests it, loading [REFRESH_NOT_ALLOWED] when it's no. A pull shaped like 01WS.A0j, reading the
-     * permission twice and another flag between. A config with a source of [VIEWER_SOURCE] next to a
-     * static one, whose own method reads the permission too.
+     * permission twice and another flag between. A config whose own method reads the permission too.
      */
     private fun refreshClasses(
         refreshes: Int = 1,
         test: String = "if-eqz",
         own: Boolean = false,
-        sources: Int = 1,
     ): List<ClassDef> {
         val final = AccessFlags.PUBLIC.value or AccessFlags.FINAL.value
         val answer = if (own) "v1" else "v0"
@@ -660,14 +656,14 @@ class SwipeChatReelsHookTest {
             return-void
         """)
         val same = method(VIEWER_CONFIG, "same", emptyList(), "Z", 1, final, "iget-boolean v0, p0, $VIEWER_CONFIG->refresh:Z\nreturn v0")
-        val fields = List(sources) { ImmutableField(VIEWER_CONFIG, if (it == 0) "source" else "source$it", VIEWER_SOURCE, final, null, null, null) } +
-            ImmutableField(VIEWER_CONFIG, "NONE", VIEWER_SOURCE, final or AccessFlags.STATIC.value, null, null, null) +
-            ImmutableField(VIEWER_CONFIG, "refresh", "Z", final, null, null, null) +
-            ImmutableField(VIEWER_CONFIG, "other", "Z", final, null, null, null)
+        val fields = listOf(
+            ImmutableField(VIEWER_CONFIG, "refresh", "Z", final, null, null, null),
+            ImmutableField(VIEWER_CONFIG, "other", "Z", final, null, null, null),
+        )
         return listOf(classDef(refresher, handles), classDef(puller, listOf(enable)), classDef(VIEWER_CONFIG, listOf(same), fields = fields))
     }
 
-    /** The Reels pager setup hands the extension a viewer's pager and its source right before storing the pager (#390). */
+    /** The Reels pager setup hands the extension a viewer's pager and its config right before storing the pager (#390, #804). */
     @Test
     fun theSetupHandsOverEachViewersPager() {
         val context = PatchContexts.of(pagerClasses())
@@ -677,7 +673,6 @@ class SwipeChatReelsHookTest {
 
         assertEquals("$holder->pager:$VIEW_PAGER", found.field)
         assertEquals("$holder->config:$VIEWER_CONFIG", found.config)
-        assertEquals("$VIEWER_CONFIG->source:$VIEWER_SOURCE", found.source)
         assertEquals(1, found.pager)
         assertEquals(3, found.holder)
         assertEquals(0, found.free)
@@ -756,7 +751,7 @@ class SwipeChatReelsHookTest {
 
     /**
      * Right before the pager's store: the holder's config read into the free local, no config going
-     * on to the store, the config's source, and the hook handed the pager and the source.
+     * on to the store, and the hook handed the pager and the config.
      */
     private fun assertWatches(what: String, setup: Method, found: ChatViewers) {
         val code = setup.code()
@@ -765,18 +760,17 @@ class SwipeChatReelsHookTest {
         val ask = asks.single()
         assertEquals("$what: the store after", found.field, code[ask + 1].referenceText())
         assertEquals("$what: the store after", Opcode.IPUT_OBJECT, code[ask + 1].opcode)
-        val config = code[ask - 3] as TwoRegisterInstruction
-        assertEquals("$what: the config", found.config, code[ask - 3].referenceText())
+        val config = code[ask - 2] as TwoRegisterInstruction
+        assertEquals("$what: the config", found.config, code[ask - 2].referenceText())
         assertEquals("$what: into the free local", found.free, config.registerA)
         assertEquals("$what: from the holder", found.holder, config.registerB)
-        assertEquals("$what: the config test", Opcode.IF_EQZ, code[ask - 2].opcode)
+        assertEquals("$what: the config test", Opcode.IF_EQZ, code[ask - 1].opcode)
+        assertEquals("$what: the config test's register", found.free, (code[ask - 1] as OneRegisterInstruction).registerA)
         val address = IntArray(code.size + 1)
         code.forEachIndexed { index, instruction -> address[index + 1] = address[index] + instruction.codeUnits }
-        assertEquals("$what: no config goes on to the store", ask + 1, address.indexOf(address[ask - 2] + (code[ask - 2] as OffsetInstruction).codeOffset))
-        assertEquals("$what: the source", found.source, code[ask - 1].referenceText())
-        assertEquals("$what: the source's register", found.free, (code[ask - 1] as TwoRegisterInstruction).registerA)
+        assertEquals("$what: no config goes on to the store", ask + 1, address.indexOf(address[ask - 1] + (code[ask - 1] as OffsetInstruction).codeOffset))
         val call = code[ask] as FiveRegisterInstruction
-        assertEquals("$what: handed the pager and the source", listOf(found.pager, found.free), listOf(call.registerC, call.registerD))
+        assertEquals("$what: handed the pager and the config", listOf(found.pager, found.free), listOf(call.registerC, call.registerD))
         assertEquals("$what: two arguments", 2, call.registerCount)
         assertTrue("$what: the free local isn't the pager or its holder", found.free != found.pager && found.free != found.holder)
         assertTrue("$what: the free local fits", found.free <= 15)
@@ -786,7 +780,7 @@ class SwipeChatReelsHookTest {
      * A pager setup shaped like Instagram 456's static one: it casts the View it's handed to a
      * [VIEW_PAGER] and stores it in the holder it's handed (048e), next to a store of something else.
      * A holder with the viewer's [VIEWER_CONFIG] next to a static one, a method loading
-     * [PAGER_VIEW_LOOKUP] and a static switch turning the pager's input on, and a config with its source.
+     * [PAGER_VIEW_LOOKUP] and a static switch turning the pager's input on.
      */
     private fun pagerClasses(
         lookups: Int = 1,
@@ -826,14 +820,13 @@ class SwipeChatReelsHookTest {
             ImmutableField(holder, "DEFAULT", VIEWER_CONFIG, final or AccessFlags.STATIC.value, null, null, null) +
             ImmutableField(holder, "pager", VIEW_PAGER, final, null, null, null) +
             ImmutableField(holder, "kept", "Ljava/lang/Object;", final, null, null, null)
-        val configFields = listOf(
-            ImmutableField(VIEWER_CONFIG, "source", VIEWER_SOURCE, final, null, null, null),
-            ImmutableField(VIEWER_CONFIG, "NONE", VIEWER_SOURCE, final or AccessFlags.STATIC.value, null, null, null),
-        )
-        return listOf(classDef(setupOwner, setUps), classDef(holder, holderMethods, fields = held), classDef(VIEWER_CONFIG, emptyList(), fields = configFields))
+        return listOf(classDef(setupOwner, setUps), classDef(holder, holderMethods, fields = held))
     }
 
-    /** The insert of a cached reel asks the extension first, handing it the viewer's source (#390). */
+    /**
+     * The insert of a cached reel asks the extension first (#390), handing it the viewer's config
+     * through the controller's adapter, whose chat the extension reads (#804).
+     */
     @Test
     fun aCachedReelAsksFirst() {
         val context = PatchContexts.of(cachedClasses())
@@ -843,7 +836,7 @@ class SwipeChatReelsHookTest {
         context.stopCachedReels(found)
 
         assertEquals(1, found.controller)
-        assertEquals("$controller->source:$VIEWER_SOURCE", found.source)
+        assertEquals(listOf("$controller->viewer:$adapter", "$adapter->config:$VIEWER_CONFIG"), found.config)
         val methods = context.mutableClassDefBy(controller).methods
         assertAsksForCached("stand-in", methods.single { it.name == "insert" }, found, before)
         assertTrue("the controller's run was touched", methods.single { it.name == "execute" }.code().none { it.referenceText() == STOP_CACHED })
@@ -863,8 +856,9 @@ class SwipeChatReelsHookTest {
             cachedClasses(takes = listOf(controller, controller, "Z")) to "$insert($controller${controller}Z)V $shape",
             cachedClasses(locals = 0) to "$insert has no local for the answer",
             cachedClasses(entered = true) to "a jump or exception handler enters $insert at its first instruction",
-            cachedClasses(sources = 0) to "$controller holds 0 $VIEWER_SOURCE fields, not one",
-            cachedClasses(sources = 2) to "$controller holds 2 $VIEWER_SOURCE fields, not one",
+            cachedClasses(adapters = emptyList()) to "$insert reads 0 fields of its controller leading to a $VIEWER_CONFIG, not one",
+            cachedClasses(adapters = listOf("viewer", "viewer2")) to "$insert reads 2 fields of its controller leading to a $VIEWER_CONFIG, not one",
+            cachedClasses(hidden = true) to "$insert reads 0 fields of its controller leading to a $VIEWER_CONFIG, not one",
         )
         for ((classes, expected) in cases) {
             val context = PatchContexts.of(classes)
@@ -896,7 +890,8 @@ class SwipeChatReelsHookTest {
     }
 
     private fun asksForCached(bundle: File, label: String) {
-        val loading = FixtureDex.classesLoading(bundle, CACHED_REEL)
+        // The controller reaches the viewer's config through its adapter, the class loading ADD_REELS.
+        val loading = (FixtureDex.classesLoading(bundle, CACHED_REEL) + FixtureDex.classesLoading(bundle, ADD_REELS)).distinctBy { it.type }
         val context = PatchContexts.of(FixtureDex.withStringPools(bundle, loading))
 
         val found = context.findCachedReels()
@@ -913,32 +908,48 @@ class SwipeChatReelsHookTest {
     }
 
     /**
-     * First thing: the controller's viewer source read and handed to the hook, and a yes returning.
-     * A no lands on Instagram's own first instruction.
+     * First thing: the controller's fields walked to the viewer's config, a holder that isn't there
+     * going to Instagram, the config handed to the hook, and a yes returning. A no lands on
+     * Instagram's own first instruction.
      */
     private fun assertAsksForCached(what: String, method: Method, found: CachedReels, before: Int) {
         val code = method.code()
         val words = method.parameterTypes.size + method.parameterTypes.count { it.toString() == "J" || it.toString() == "D" }
         val first = method.implementation!!.registerCount - words
+        val walk = 2 * found.config.size - 1
+        val instagram = walk + 5
         assertEquals("$what: hooks", 1, code.count { it.referenceText() == STOP_CACHED })
-        assertEquals("$what: added", before + 6, code.size)
+        assertEquals("$what: added", before + instagram, code.size)
         assertEquals("$what: the controller's copy", Opcode.MOVE_OBJECT_FROM16, code[0].opcode)
+        val held = (code[0] as TwoRegisterInstruction).registerA
         assertEquals("$what: the controller", first + found.controller, (code[0] as TwoRegisterInstruction).registerB)
-        assertEquals("$what: the source read", Opcode.IGET_OBJECT, code[1].opcode)
-        assertEquals("$what: the source", found.source, code[1].referenceText())
-        assertEquals("$what: the hook", STOP_CACHED, code[2].referenceText())
-        assertEquals("$what: its answer", Opcode.MOVE_RESULT, code[3].opcode)
-        assertEquals("$what: the stop", Opcode.RETURN_VOID, code[5].opcode)
         val address = IntArray(code.size + 1)
         code.forEachIndexed { index, instruction -> address[index + 1] = address[index] + instruction.codeUnits }
-        assertEquals("$what: the test", Opcode.IF_EQZ, code[4].opcode)
-        assertEquals("$what: a no goes to Instagram", 6, address.indexOf(address[4] + (code[4] as OffsetInstruction).codeOffset))
+        found.config.forEachIndexed { step, field ->
+            val read = code[1 + 2 * step]
+            assertEquals("$what: step $step", Opcode.IGET_OBJECT, read.opcode)
+            assertEquals("$what: step $step", field, read.referenceText())
+            assertEquals("$what: step $step in place", listOf(held, held), listOf((read as TwoRegisterInstruction).registerA, read.registerB))
+            if (step == found.config.lastIndex) return@forEachIndexed
+            val test = code[2 + 2 * step]
+            assertEquals("$what: the holder test after step $step", Opcode.IF_EQZ, test.opcode)
+            assertEquals("$what: no holder goes to Instagram after step $step", instagram, address.indexOf(address[2 + 2 * step] + (test as OffsetInstruction).codeOffset))
+        }
+        val call = code[walk + 1] as FiveRegisterInstruction
+        assertEquals("$what: the hook", STOP_CACHED, code[walk + 1].referenceText())
+        assertEquals("$what: one argument", 1, call.registerCount)
+        assertEquals("$what: handed the config", held, call.registerC)
+        assertEquals("$what: its answer", Opcode.MOVE_RESULT, code[walk + 2].opcode)
+        assertEquals("$what: the stop", Opcode.RETURN_VOID, code[walk + 4].opcode)
+        assertEquals("$what: the test", Opcode.IF_EQZ, code[walk + 3].opcode)
+        assertEquals("$what: a no goes to Instagram", instagram, address.indexOf(address[walk + 3] + (code[walk + 3] as OffsetInstruction).codeOffset))
     }
 
     /**
-     * A controller shaped like Instagram 453's 04HZ: its static insert loads [CACHED_REEL] and is
-     * handed a reel, the controller and a flag. The controller holds the viewer's [VIEWER_SOURCE],
-     * next to a static one and a string.
+     * A controller shaped like Instagram 457's 0Cgu: its static insert loads [CACHED_REEL] and is
+     * handed a reel, the controller and a flag, and reads the controller's [adapters] and a string.
+     * The controller holds them next to a static one, and the adapter holds the viewer's
+     * [VIEWER_CONFIG], public unless [hidden], next to a static one.
      */
     private fun cachedClasses(
         inserts: Int = 1,
@@ -947,24 +958,32 @@ class SwipeChatReelsHookTest {
         takes: List<String> = listOf(item, controller, "Z"),
         locals: Int = 2,
         entered: Boolean = false,
-        sources: Int = 1,
+        adapters: List<String> = listOf("viewer"),
+        hidden: Boolean = false,
     ): List<ClassDef> {
         val scratch = if (locals == 0) "p0" else "v${locals - 1}"
         val name = if (inserts == 0) "ClipsViewerFlashMediaController.insertForColdStart" else CACHED_REEL
         val end = if (returns == "V") "return-void" else "const/4 $scratch, 0x0\nreturn $scratch"
+        val held = "p${takes.indexOf(controller).coerceAtLeast(0) + if (static) 0 else 1}"
         val body = """
             ${if (entered) ":top" else ""}
             const-string $scratch, "$name"
+            ${adapters.joinToString("\n") { "iget-object $scratch, $held, $controller->$it:$adapter" }}
+            iget-object $scratch, $held, $controller->module:Ljava/lang/String;
             ${if (entered) "goto :top" else end}
         """
         val final = AccessFlags.PUBLIC.value or AccessFlags.FINAL.value
         val flags = final or (if (static) AccessFlags.STATIC.value else 0)
         val puts = List(maxOf(inserts, 1)) { method(controller, if (it == 0) "insert" else "insert$it", takes, returns, locals, flags, body) }
-        val execute = method(controller, "execute", emptyList(), "V", 1, final, "iget-object v0, p0, $controller->source:$VIEWER_SOURCE\nreturn-void")
-        val fields = List(sources) { ImmutableField(controller, if (it == 0) "source" else "source$it", VIEWER_SOURCE, final, null, null, null) } +
-            ImmutableField(controller, "DEFAULT", VIEWER_SOURCE, final or AccessFlags.STATIC.value, null, null, null) +
+        val execute = method(controller, "execute", emptyList(), "V", 1, final, "iget-object v0, p0, $controller->viewer:$adapter\nreturn-void")
+        val fields = adapters.distinct().map { ImmutableField(controller, it, adapter, final, null, null, null) } +
+            ImmutableField(controller, "DEFAULT", adapter, final or AccessFlags.STATIC.value, null, null, null) +
             ImmutableField(controller, "module", "Ljava/lang/String;", final, null, null, null)
-        return listOf(classDef(controller, puts + execute, fields = fields))
+        val configs = listOf(
+            ImmutableField(adapter, "config", VIEWER_CONFIG, if (hidden) AccessFlags.FINAL.value else final, null, null, null),
+            ImmutableField(adapter, "NONE", VIEWER_CONFIG, final or AccessFlags.STATIC.value, null, null, null),
+        )
+        return listOf(classDef(controller, puts + execute, fields = fields), classDef(adapter, emptyList(), fields = configs))
     }
 
     /** The adapter's add asks the extension for its placeholder flag, and its placeholder at a position asks first (#390). */
@@ -978,7 +997,6 @@ class SwipeChatReelsHookTest {
         context.skipPlaceholders(found)
 
         assertEquals("$adapter->config:$VIEWER_CONFIG", found.config)
-        assertEquals("$VIEWER_CONFIG->source:$VIEWER_SOURCE", found.source)
         val methods = context.mutableClassDefBy(adapter).methods
         assertAsksForPlaceholders("stand-in", methods.single { it.name == "add" }, methods.single { it.name == "shimmer" }, found, add, shimmer)
         for (name in listOf("update", "scroll")) {
@@ -1002,8 +1020,6 @@ class SwipeChatReelsHookTest {
             adapterClasses(entered = true) to "a jump or exception handler enters $add at its first instruction",
             adapterClasses(configs = emptyList()) to "$add reads 0 $VIEWER_CONFIG fields of its adapter, not one",
             adapterClasses(configs = listOf("config", "config2")) to "$add reads 2 $VIEWER_CONFIG fields of its adapter, not one",
-            adapterClasses(sources = emptyList()) to "$add reads 0 $VIEWER_SOURCE fields of its config, not one",
-            adapterClasses(sources = listOf("source", "source2")) to "$add reads 2 $VIEWER_SOURCE fields of its config, not one",
             adapterClasses(shimmers = 0) to "expected one method of $adapter handed a position that calls add, found 0",
             adapterClasses(shimmers = 2) to "expected one method of $adapter handed a position that calls add, found 2",
             adapterClasses(shimmerLocals = 0) to "$shimmer has no local for the answer",
@@ -1064,8 +1080,9 @@ class SwipeChatReelsHookTest {
 
     /**
      * The adapter's add, its update and its insert at a position each hand their reels and the
-     * viewer's source to the extension first and take what comes back (#460). A page from the
-     * server merges in through the update, which never calls the hooked add for the new list.
+     * viewer's config to the extension first and take what comes back (#460), the extension reading
+     * the config's chat (#804). A page from the server merges in through the update, which never calls
+     * the hooked add for the new list.
      */
     @Test
     fun theAddLeavesOutSentReelsFirst() {
@@ -1086,12 +1103,12 @@ class SwipeChatReelsHookTest {
         // The placeholder's ask goes in front, and with no config it lands on the page's.
         context.skipPlaceholders(found)
         val code = add.code()
-        assertEquals("both added", before + 16, code.size)
-        assertEquals("the placeholder's ask first", PLACEHOLDER, code[5].referenceText())
-        assertEquals("then the page's", LEAVE_OUT_SENT, code[13].referenceText())
+        assertEquals("both added", before + 14, code.size)
+        assertEquals("the placeholder's ask first", PLACEHOLDER, code[4].referenceText())
+        assertEquals("then the page's", LEAVE_OUT_SENT, code[11].referenceText())
         val address = IntArray(code.size + 1)
         code.forEachIndexed { index, instruction -> address[index + 1] = address[index] + instruction.codeUnits }
-        assertEquals("no config goes on to the page's ask", 8, address.indexOf(address[2] + (code[2] as OffsetInstruction).codeOffset))
+        assertEquals("no config goes on to the page's ask", 7, address.indexOf(address[2] + (code[2] as OffsetInstruction).codeOffset))
     }
 
     /** In each declared build the adapter's add hands its reels to the extension first. */
@@ -1126,86 +1143,85 @@ class SwipeChatReelsHookTest {
     }
 
     /**
-     * First thing in the add: the adapter's config read, then its source, which the hook is handed
-     * with the reels, and the answer in place of the reels. A config that isn't there lands on
-     * Instagram's own first instruction with the reels untouched.
+     * First thing in the add: the adapter's config read, which the hook is handed with the reels, and
+     * the answer in place of the reels. A config that isn't there lands on Instagram's own first
+     * instruction with the reels untouched.
      */
     private fun assertLeavesOutSent(what: String, add: Method, found: Placeholders, before: Int) {
         val code = add.code()
         val reels = add.implementation!!.registerCount - 2
         assertEquals("$what: hooks", 1, code.count { it.referenceText() == LEAVE_OUT_SENT })
-        assertEquals("$what: added", before + 8, code.count { it.opcode != Opcode.NOP })
+        assertEquals("$what: added", before + 7, code.count { it.opcode != Opcode.NOP })
         assertEquals("$what: the adapter's copy", Opcode.MOVE_OBJECT_FROM16, code[0].opcode)
         assertEquals("$what: the adapter", reels - 1, (code[0] as TwoRegisterInstruction).registerB)
         assertEquals("$what: the config", found.config, code[1].referenceText())
         assertEquals("$what: the config test", Opcode.IF_EQZ, code[2].opcode)
         val address = IntArray(code.size + 1)
         code.forEachIndexed { index, instruction -> address[index + 1] = address[index] + instruction.codeUnits }
-        assertEquals("$what: no config goes to Instagram", 8, address.indexOf(address[2] + (code[2] as OffsetInstruction).codeOffset))
-        assertEquals("$what: the source", found.source, code[3].referenceText())
-        assertEquals("$what: the reels' copy", Opcode.MOVE_OBJECT_FROM16, code[4].opcode)
-        assertEquals("$what: the reels", reels, (code[4] as TwoRegisterInstruction).registerB)
-        assertEquals("$what: the hook", LEAVE_OUT_SENT, code[5].referenceText())
-        val hook = code[5] as FiveRegisterInstruction
-        val handed = listOf((code[4] as TwoRegisterInstruction).registerA, (code[3] as TwoRegisterInstruction).registerA)
-        assertEquals("$what: handed the reels and the source", handed, listOf(hook.registerC, hook.registerD))
-        assertEquals("$what: its answer", Opcode.MOVE_RESULT_OBJECT, code[6].opcode)
-        assertEquals("$what: the answer's copy", Opcode.MOVE_OBJECT_FROM16, code[7].opcode)
-        assertEquals("$what: in place of the reels", reels, (code[7] as TwoRegisterInstruction).registerA)
-        assertEquals("$what: from the answer", (code[6] as OneRegisterInstruction).registerA, (code[7] as TwoRegisterInstruction).registerB)
+        assertEquals("$what: no config goes to Instagram", 7, address.indexOf(address[2] + (code[2] as OffsetInstruction).codeOffset))
+        assertEquals("$what: the reels' copy", Opcode.MOVE_OBJECT_FROM16, code[3].opcode)
+        assertEquals("$what: the reels", reels, (code[3] as TwoRegisterInstruction).registerB)
+        assertEquals("$what: the hook", LEAVE_OUT_SENT, code[4].referenceText())
+        val hook = code[4] as FiveRegisterInstruction
+        val handed = listOf((code[3] as TwoRegisterInstruction).registerA, (code[1] as TwoRegisterInstruction).registerA)
+        assertEquals("$what: handed the reels and the config", handed, listOf(hook.registerC, hook.registerD))
+        assertEquals("$what: its answer", Opcode.MOVE_RESULT_OBJECT, code[5].opcode)
+        assertEquals("$what: the answer's copy", Opcode.MOVE_OBJECT_FROM16, code[6].opcode)
+        assertEquals("$what: in place of the reels", reels, (code[6] as TwoRegisterInstruction).registerA)
+        assertEquals("$what: from the answer", (code[5] as OneRegisterInstruction).registerA, (code[6] as TwoRegisterInstruction).registerB)
     }
 
     /**
-     * First thing in the add: the adapter's config read, then its source, which the hook is handed
-     * with the flag, and the answer back in the flag. A config that isn't there lands on Instagram's
-     * own first instruction with the flag untouched, as does the answer. First thing in the
-     * placeholder: no position goes to Instagram, else the source is handed to the hook and a yes
-     * returns.
+     * First thing in the add: the adapter's config read, which the hook is handed with the flag, and
+     * the answer back in the flag. A config that isn't there lands on Instagram's own first
+     * instruction with the flag untouched, as does the answer. First thing in the placeholder: no
+     * position goes to Instagram, else the config is handed to the hook and a yes returns.
      */
     private fun assertAsksForPlaceholders(what: String, add: Method, shimmer: Method, found: Placeholders, addBefore: Int, shimmerBefore: Int) {
         val code = add.code()
         val flag = add.implementation!!.registerCount - 1
         assertEquals("$what: add hooks", 1, code.count { it.referenceText() == PLACEHOLDER })
-        assertEquals("$what: add added", addBefore + 8, code.size)
+        assertEquals("$what: add added", addBefore + 7, code.size)
         assertEquals("$what: the adapter's copy", Opcode.MOVE_OBJECT_FROM16, code[0].opcode)
         assertEquals("$what: the adapter", flag - 2, (code[0] as TwoRegisterInstruction).registerB)
         assertEquals("$what: the config", found.config, code[1].referenceText())
         assertEquals("$what: the config test", Opcode.IF_EQZ, code[2].opcode)
         val address = IntArray(code.size + 1)
         code.forEachIndexed { index, instruction -> address[index + 1] = address[index] + instruction.codeUnits }
-        assertEquals("$what: no config goes to Instagram", 8, address.indexOf(address[2] + (code[2] as OffsetInstruction).codeOffset))
-        assertEquals("$what: the source", found.source, code[3].referenceText())
-        assertEquals("$what: the flag's copy", Opcode.MOVE_FROM16, code[4].opcode)
-        assertEquals("$what: the flag", flag, (code[4] as TwoRegisterInstruction).registerB)
-        assertEquals("$what: the hook", PLACEHOLDER, code[5].referenceText())
-        assertEquals("$what: its answer", Opcode.MOVE_RESULT, code[6].opcode)
-        assertEquals("$what: the answer's copy", Opcode.MOVE_FROM16, code[7].opcode)
-        assertEquals("$what: back in the flag", flag, (code[7] as TwoRegisterInstruction).registerA)
-        assertEquals("$what: from the answer", (code[6] as OneRegisterInstruction).registerA, (code[7] as TwoRegisterInstruction).registerB)
+        assertEquals("$what: no config goes to Instagram", 7, address.indexOf(address[2] + (code[2] as OffsetInstruction).codeOffset))
+        assertEquals("$what: the flag's copy", Opcode.MOVE_FROM16, code[3].opcode)
+        assertEquals("$what: the flag", flag, (code[3] as TwoRegisterInstruction).registerB)
+        assertEquals("$what: the hook", PLACEHOLDER, code[4].referenceText())
+        val hook = code[4] as FiveRegisterInstruction
+        val handed = listOf((code[1] as TwoRegisterInstruction).registerA, (code[3] as TwoRegisterInstruction).registerA)
+        assertEquals("$what: handed the config and the flag", handed, listOf(hook.registerC, hook.registerD))
+        assertEquals("$what: its answer", Opcode.MOVE_RESULT, code[5].opcode)
+        assertEquals("$what: the answer's copy", Opcode.MOVE_FROM16, code[6].opcode)
+        assertEquals("$what: back in the flag", flag, (code[6] as TwoRegisterInstruction).registerA)
+        assertEquals("$what: from the answer", (code[5] as OneRegisterInstruction).registerA, (code[6] as TwoRegisterInstruction).registerB)
 
         val asks = shimmer.code()
         val position = shimmer.implementation!!.registerCount - 1
         assertEquals("$what: placeholder hooks", 1, asks.count { it.referenceText() == STOP_CACHED })
-        assertEquals("$what: placeholder added", shimmerBefore + 9, asks.size)
+        assertEquals("$what: placeholder added", shimmerBefore + 8, asks.size)
         assertEquals("$what: the position", position, (asks[0] as OneRegisterInstruction).registerA)
         assertEquals("$what: the placeholder's adapter", position - 1, (asks[1] as TwoRegisterInstruction).registerB)
         assertEquals("$what: the placeholder's config", found.config, asks[2].referenceText())
-        assertEquals("$what: the placeholder's source", found.source, asks[4].referenceText())
-        assertEquals("$what: the placeholder's hook", STOP_CACHED, asks[5].referenceText())
-        assertEquals("$what: the placeholder's answer", Opcode.MOVE_RESULT, asks[6].opcode)
-        assertEquals("$what: the skip", Opcode.RETURN_VOID, asks[8].opcode)
+        assertEquals("$what: the placeholder's hook", STOP_CACHED, asks[4].referenceText())
+        assertEquals("$what: the placeholder's hook handed the config", (asks[2] as TwoRegisterInstruction).registerA, (asks[4] as FiveRegisterInstruction).registerC)
+        assertEquals("$what: the placeholder's answer", Opcode.MOVE_RESULT, asks[5].opcode)
+        assertEquals("$what: the skip", Opcode.RETURN_VOID, asks[7].opcode)
         val at = IntArray(asks.size + 1)
         asks.forEachIndexed { index, instruction -> at[index + 1] = at[index] + instruction.codeUnits }
-        for (branch in listOf(0, 3, 7)) {
+        for (branch in listOf(0, 3, 6)) {
             assertEquals("$what: placeholder branch $branch", Opcode.IF_EQZ, asks[branch].opcode)
-            assertEquals("$what: placeholder branch $branch goes to Instagram", 9, at.indexOf(at[branch] + (asks[branch] as OffsetInstruction).codeOffset))
+            assertEquals("$what: placeholder branch $branch goes to Instagram", 8, at.indexOf(at[branch] + (asks[branch] as OffsetInstruction).codeOffset))
         }
     }
 
     /**
      * An adapter shaped like Instagram 453's 045b: its add loads [ADD_REELS] and reads the viewer's
-     * [VIEWER_CONFIG] (twice, as 045b does) and the config's [VIEWER_SOURCE], next to another class's
-     * config and source. Its placeholder is handed a position and calls the add, next to an update
+     * [VIEWER_CONFIG] (twice, as 045b does), next to another class's config. Its placeholder is handed a position and calls the add, next to an update
      * that hands its reels to the adapter's list and calls the add too, an insert reading that list,
      * an insert listener that doesn't, and a scroll handed a position that calls nothing.
      */
@@ -1217,7 +1233,6 @@ class SwipeChatReelsHookTest {
         locals: Int = 3,
         entered: Boolean = false,
         configs: List<String> = listOf("config", "config"),
-        sources: List<String> = listOf("source"),
         shimmers: Int = 1,
         shimmerLocals: Int = 1,
         shimmerEntered: Boolean = false,
@@ -1232,9 +1247,7 @@ class SwipeChatReelsHookTest {
             ${if (entered) ":top" else ""}
             const-string $scratch, "$name"
             ${configs.joinToString("\n") { "iget-object $scratch, p0, $adapter->$it:$VIEWER_CONFIG" }}
-            ${sources.joinToString("\n") { "iget-object $scratch, $scratch, $VIEWER_CONFIG->$it:$VIEWER_SOURCE" }}
             iget-object $scratch, p0, Lfixture/Other;->config:$VIEWER_CONFIG
-            iget-object $scratch, $scratch, Lfixture/OtherConfig;->source:$VIEWER_SOURCE
             ${if (entered) "goto :top" else end}
         """
         val final = AccessFlags.PUBLIC.value or AccessFlags.FINAL.value

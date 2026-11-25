@@ -127,7 +127,6 @@ class OnlyReceivedReelsTest {
             MutableMethod(method("Lfixture/Adapter;", "add", listOf("Ljava/util/List;", "Z"), "V", 1, final, "const/4 v0, 0x0\ncheck-cast v0, $casts\nreturn-void")),
             MutableMethod(method("Lfixture/Adapter;", "shimmer", listOf("Ljava/lang/Integer;"), "V", 1, final, "return-void")),
             "Lfixture/Adapter;->config:Lfixture/Config;",
-            "Lfixture/Config;->source:Lfixture/Source;",
             MutableMethod(method("Lfixture/Adapter;", "update", listOf("Ljava/util/List;", "Z"), "V", 2, final, "return-void")),
             MutableMethod(method("Lfixture/Adapter;", "insert", listOf("Ljava/util/List;", "I"), "V", 2, final, "return-void")),
         )

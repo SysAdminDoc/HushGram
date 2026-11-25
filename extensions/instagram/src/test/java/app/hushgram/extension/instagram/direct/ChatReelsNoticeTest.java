@@ -4,6 +4,9 @@
  */
 package app.hushgram.extension.instagram.direct;
 
+import static app.hushgram.extension.instagram.direct.ViewerConfigs.BLEND;
+import static app.hushgram.extension.instagram.direct.ViewerConfigs.CHAT;
+import static app.hushgram.extension.instagram.direct.ViewerConfigs.CHATS_BLEND;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -57,9 +60,6 @@ public class ChatReelsNoticeTest {
         }
     }
 
-    /** Stand-ins for Instagram's viewer sources, named as its enum names them. */
-    private enum Source { DIRECT }
-
     private ActivityController<Viewer> controller;
     private Viewer activity;
     private FrameLayout root;
@@ -79,6 +79,7 @@ public class ChatReelsNoticeTest {
         ChatReelsExit.resetForTests();
         ChatReelsNotice.resetForTests();
         ChatReels.forgetReplies();
+        ViewerConfigs.install();
         controller = Robolectric.buildActivity(Viewer.class).setup();
         activity = controller.get();
         root = new FrameLayout(activity);
@@ -92,6 +93,7 @@ public class ChatReelsNoticeTest {
         ChatReelsNotice.resetForTests();
         ChatReels.forgetReplies();
         ChatReelsExit.resetForTests();
+        ViewerConfigs.reset();
         Settings.SWIPE_CHAT_REELS.resetToDefault();
         Settings.MESSAGES_AFTER_CHAT_REELS.resetToDefault();
         Settings.ONLY_RECEIVED_CHAT_REELS.resetToDefault();
@@ -230,7 +232,7 @@ public class ChatReelsNoticeTest {
     @Test
     public void aPageWithNothingToReadPutsUpNoBanner() {
         show();
-        ChatReelsExit.viewer(pager, Source.DIRECT);
+        ChatReelsExit.viewer(pager, CHAT);
         ChatReelsNotice.page(null, 0);
         ChatReelsNotice.page(new Object(), -1);
         ChatReelsNotice.page(new Object(), 0);
@@ -246,7 +248,7 @@ public class ChatReelsNoticeTest {
     @Test
     public void theBannerShowsOverTheChatsViewerAndATapGoesBack() {
         show();
-        ChatReelsExit.viewer(pager, Source.DIRECT);
+        ChatReelsExit.viewer(pager, CHAT);
         ChatReelsNotice.point(new ChatReelsNotice.Note("m1", 2000, false, false, null));
         idle();
         TextView banner = ChatReelsNotice.shownBanner();
@@ -273,6 +275,24 @@ public class ChatReelsNoticeTest {
         shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(ChatReelsNotice.TRY_MS * (ChatReelsNotice.BACK_TRIES + 1)));
         assertTrue("the viewer's own list isn't the chat's: " + HookStatus.report(),
                 HookStatus.report().toString().contains(ChatReelsNotice.NO_LIST));
+    }
+
+    /**
+     * The banner goes over a chat's viewer opened as its Blend's too, which still holds the chat (#804),
+     * and never over a Blend opened outside a chat.
+     */
+    @Test
+    public void theBannerShowsOverAChatsBlendViewerButNoOtherBlend() {
+        show();
+        ChatReelsExit.viewer(pager, BLEND);
+        ChatReelsNotice.point(new ChatReelsNotice.Note("m1", 2000, false, false, null));
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(ChatReelsNotice.TRY_MS * (ChatReelsNotice.SHOW_TRIES + 1)));
+        assertNull("a Blend opened outside a chat", ChatReelsNotice.shownBanner());
+
+        ChatReelsExit.viewer(pager, CHATS_BLEND);
+        ChatReelsNotice.point(new ChatReelsNotice.Note("m1", 2000, false, false, null));
+        idle();
+        assertNotNull("the chat's Blend's viewer", ChatReelsNotice.shownBanner());
     }
 
     @Test
@@ -304,7 +324,7 @@ public class ChatReelsNoticeTest {
         chat.addView(bubble);
         root.addView(chat, 0, new FrameLayout.LayoutParams(1080, 1920));
         show();
-        ChatReelsExit.viewer(pager, Source.DIRECT);
+        ChatReelsExit.viewer(pager, CHAT);
         assertSame("the biggest list outside the viewer", chat, ChatReelsNotice.chatList(activity));
         ChatReelsNotice.opened(bubble);
         assertSame(chat, ChatReelsNotice.chatList(activity));

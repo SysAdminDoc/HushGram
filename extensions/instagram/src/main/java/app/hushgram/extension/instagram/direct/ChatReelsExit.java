@@ -35,7 +35,7 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * (#390). With nothing after that reel the viewer only bounces, and Back was the one way out.
  *
  * <p>The patch hands {@link #viewer(Object, Object)} each Reels viewer's pager as the viewer sets it
- * up, with the viewer's ClipsViewerSource. For a chat's viewer this wraps its window's callback, as
+ * up, with the viewer's ClipsViewerConfig. For a chat's viewer this wraps its window's callback, as
  * Hold to download does, to see touches. A finger that goes down on the pager, travels up at least
  * {@link #EXIT_SHARE} of its height, mostly straight, while the pager's list is being dragged and
  * can't scroll any further down, goes on to Instagram first, then Back.
@@ -57,16 +57,16 @@ public final class ChatReelsExit {
     }
 
     /**
-     * A Reels viewer set up [pager], its ViewPager2, for [source], its ClipsViewerSource: a chat's
+     * A Reels viewer set up [pager], its ViewPager2, for [config], its ClipsViewerConfig: a chat's
      * pager gets watched once its window shows. Never throws.
      */
-    public static void viewer(Object pager, Object source) {
+    public static void viewer(Object pager, Object config) {
         try {
             if (!(pager instanceof View)) return;
             View view = (View) pager;
-            if (!ChatReels.fromChat(source)) {
+            if (!ChatReels.viewsChat(config)) {
                 if (PAGERS.remove(view) != null) {
-                    Logger.printDebug(() -> "Chat reels: a chat's pager set up again for " + source + ", no longer watched");
+                    Logger.printDebug(() -> "Chat reels: a chat's pager set up again for another viewer, no longer watched");
                 }
                 return;
             }

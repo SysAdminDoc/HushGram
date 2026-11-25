@@ -4,6 +4,13 @@
  */
 package app.hushgram.extension.instagram.direct;
 
+import static app.hushgram.extension.instagram.direct.ViewerConfigs.BLEND;
+import static app.hushgram.extension.instagram.direct.ViewerConfigs.CHAT;
+import static app.hushgram.extension.instagram.direct.ViewerConfigs.CHATS_BLEND;
+import static app.hushgram.extension.instagram.direct.ViewerConfigs.CLIPS_TAB;
+import static app.hushgram.extension.instagram.direct.ViewerConfigs.NO_CHAT;
+import static app.hushgram.extension.instagram.direct.ViewerConfigs.SEARCH;
+import static app.hushgram.extension.instagram.direct.ViewerConfigs.THREAD;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
@@ -35,6 +42,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import app.hushgram.extension.instagram.direct.ViewerConfigs.Source;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.SettingsContextRule;
@@ -56,6 +64,7 @@ public class ChatReelsTest {
         Settings.SWIPE_CHAT_REELS.save(true);
         HookStatus.clear();
         ChatReels.forgetComment();
+        ViewerConfigs.install();
     }
 
     @After
@@ -70,6 +79,7 @@ public class ChatReelsTest {
         ChatReels.covered();
         ChatReels.forgetSent();
         ChatReels.forgetComment();
+        ViewerConfigs.reset();
     }
 
     /** The patch is in Manager's default selection, so its switch starts off. */
@@ -205,7 +215,7 @@ public class ChatReelsTest {
         Settings.ONLY_RECEIVED_CHAT_REELS.save(true);
         assertFalse("yours, no flag", ChatReels.received(new Message("a1", "7", false), new Wrapper("7", "m1"), new Object()));
         assertTrue("its reel is left out of the server's pages", ChatReels.isSent("m1"));
-        assertEquals("the next page leaves it out", Collections.singletonList("m0"), page(Source.DIRECT, "m0", "m1"));
+        assertEquals("the next page leaves it out", Collections.singletonList("m0"), page(CHAT, "m0", "m1"));
 
         assertTrue("theirs", ChatReels.received(new Message("b2", "8", false), new Wrapper("7", "m2"), new Object()));
         assertFalse("their reel isn't remembered", ChatReels.isSent("m2"));
@@ -293,20 +303,20 @@ public class ChatReelsTest {
     public void aServerPageLeavesOutTheReelsYouSentOnlyFromAChatWithTheSwitchOn() {
         ChatReels.rememberSent("m1", "a1");
         List<String> items = Arrays.asList("m0", "m1", "m2");
-        assertSame("off, the page stands", items, ChatReels.leaveOutSent(items, Source.DIRECT, String::valueOf));
+        assertSame("off, the page stands", items, ChatReels.leaveOutSent(items, CHAT, String::valueOf));
 
         Settings.ONLY_RECEIVED_CHAT_REELS.save(true);
-        assertEquals(Arrays.asList("m0", "m2"), page(Source.DIRECT, "m0", "m1", "m2"));
-        assertEquals("a page of only sent reels", Collections.emptyList(), page(Source.DIRECT, "m1"));
-        assertEquals("a sent reel first", Collections.singletonList("m2"), page(Source.DIRECT, "m1", "m2"));
-        assertSame("the Reels tab", items, ChatReels.leaveOutSent(items, Source.CLIPS_TAB, String::valueOf));
-        assertSame("no source", items, ChatReels.leaveOutSent(items, null, String::valueOf));
+        assertEquals(Arrays.asList("m0", "m2"), page(CHAT, "m0", "m1", "m2"));
+        assertEquals("a page of only sent reels", Collections.emptyList(), page(CHAT, "m1"));
+        assertEquals("a sent reel first", Collections.singletonList("m2"), page(CHAT, "m1", "m2"));
+        assertSame("the Reels tab", items, ChatReels.leaveOutSent(items, CLIPS_TAB, String::valueOf));
+        assertSame("no config", items, ChatReels.leaveOutSent(items, null, String::valueOf));
         List<String> received = Arrays.asList("m0", "m2");
-        assertSame("nothing you sent", received, ChatReels.leaveOutSent(received, Source.DIRECT, String::valueOf));
-        assertSame("no page", null, ChatReels.leaveOutSent(null, Source.DIRECT, String::valueOf));
+        assertSame("nothing you sent", received, ChatReels.leaveOutSent(received, CHAT, String::valueOf));
+        assertSame("no page", null, ChatReels.leaveOutSent(null, CHAT, String::valueOf));
         assertEquals("a null item stays", Arrays.asList(null, "m2"),
-            ChatReels.leaveOutSent(Arrays.asList(null, "m1", "m2"), Source.DIRECT, String::valueOf));
-        assertSame("items with no media", items, ChatReels.leaveOutSent(items, Source.DIRECT, item -> null));
+            ChatReels.leaveOutSent(Arrays.asList(null, "m1", "m2"), CHAT, String::valueOf));
+        assertSame("items with no media", items, ChatReels.leaveOutSent(items, CHAT, item -> null));
         assertTrue(HookStatus.missing(FamilyNames.CHAT_REELS).toString(), HookStatus.missing(FamilyNames.CHAT_REELS).isEmpty());
     }
 
@@ -324,7 +334,7 @@ public class ChatReelsTest {
         assertTrue(ChatReels.open(tapped, null));
         ChatReels.rememberSent("m1", "a1");
         ChatReels.covered();
-        assertEquals(Arrays.asList("m0", "m1"), page(Source.DIRECT, "m0", "m1", "m2"));
+        assertEquals(Arrays.asList("m0", "m1"), page(CHAT, "m0", "m1", "m2"));
     }
 
     /** Paused, before the settings are read or on a failure, the page stands. */
@@ -335,14 +345,14 @@ public class ChatReelsTest {
         List<String> items = Arrays.asList("m0", "m1");
         BaseSettings.PAUSED.save(true);
         PauseForTests.pause(HushgramPause.Reason.SWITCH);
-        assertSame("paused", items, ChatReels.leaveOutSent(items, Source.DIRECT, String::valueOf));
+        assertSame("paused", items, ChatReels.leaveOutSent(items, CHAT, String::valueOf));
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
-        SettingsContextRule.withoutContext(() -> assertSame("no context", items, ChatReels.leaveOutSent(items, Source.DIRECT, String::valueOf)));
-        assertSame("a failing read", items, ChatReels.leaveOutSent(items, Source.DIRECT, item -> {
+        SettingsContextRule.withoutContext(() -> assertSame("no context", items, ChatReels.leaveOutSent(items, CHAT, String::valueOf)));
+        assertSame("a failing read", items, ChatReels.leaveOutSent(items, CHAT, item -> {
             throw new IllegalStateException("no media");
         }));
-        assertTrue("the stub's page stands", ChatReels.leaveOutSent(items, Source.DIRECT) == items);
+        assertTrue("the stub's page stands", ChatReels.leaveOutSent(items, CHAT) == items);
     }
 
     /** Only the latest sent reels are remembered. */
@@ -354,69 +364,66 @@ public class ChatReelsTest {
         assertTrue("the newest", ChatReels.isSent("m" + ChatReels.SENT_KEPT));
     }
 
-    /** Stand-ins for Instagram's viewer sources, named as its enum names them. */
-    private enum Source { DIRECT, DIRECT_SEARCH, CLIPS_TAB, BLEND }
-
     /** A cached reel is skipped only in a viewer opened from a chat, and only with the stop on (#390). */
     @Test
     public void aCachedReelIsSkippedOnlyAfterAChatsReels() {
-        assertFalse("off to start, the cached reel goes in", ChatReels.stopCached(Source.DIRECT));
+        assertFalse("off to start, the cached reel goes in", ChatReels.stopCached(CHAT));
         Settings.STOP_AFTER_CHAT_REELS.save(true);
-        assertTrue("a chat's viewer", ChatReels.stopCached(Source.DIRECT));
-        assertFalse("the Reels tab", ChatReels.stopCached(Source.CLIPS_TAB));
-        assertFalse("search in chats", ChatReels.stopCached(Source.DIRECT_SEARCH));
-        assertFalse("no source", ChatReels.stopCached(null));
-        assertFalse("not a source", ChatReels.stopCached("DIRECT"));
+        assertTrue("a chat's viewer", ChatReels.stopCached(CHAT));
+        assertFalse("the Reels tab", ChatReels.stopCached(CLIPS_TAB));
+        assertFalse("search in chats", ChatReels.stopCached(SEARCH));
+        assertFalse("no config", ChatReels.stopCached(null));
+        assertFalse("not a config", ChatReels.stopCached(Source.DIRECT));
 
         BaseSettings.PAUSED.save(true);
         PauseForTests.pause(HushgramPause.Reason.SWITCH);
-        assertFalse("paused", ChatReels.stopCached(Source.DIRECT));
+        assertFalse("paused", ChatReels.stopCached(CHAT));
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
-        assertTrue("back on", ChatReels.stopCached(Source.DIRECT));
+        assertTrue("back on", ChatReels.stopCached(CHAT));
         assertTrue(HookStatus.missing(FamilyNames.CHAT_REELS).toString(), HookStatus.missing(FamilyNames.CHAT_REELS).isEmpty());
     }
 
     /** A pull down refreshes everywhere but a chat's viewer with the stop on, where it would bring suggestions (#390). */
     @Test
     public void aPullDownRefreshesEverywhereButAChatsViewer() {
-        assertTrue("off to start, Instagram refreshes", ChatReels.refresh(Source.DIRECT));
+        assertTrue("off to start, Instagram refreshes", ChatReels.refresh(CHAT));
         Settings.STOP_AFTER_CHAT_REELS.save(true);
-        assertFalse("a chat's viewer", ChatReels.refresh(Source.DIRECT));
-        assertTrue("the Reels tab", ChatReels.refresh(Source.CLIPS_TAB));
-        assertTrue("search in chats", ChatReels.refresh(Source.DIRECT_SEARCH));
-        assertTrue("no source", ChatReels.refresh(null));
+        assertFalse("a chat's viewer", ChatReels.refresh(CHAT));
+        assertTrue("the Reels tab", ChatReels.refresh(CLIPS_TAB));
+        assertTrue("search in chats", ChatReels.refresh(SEARCH));
+        assertTrue("no config", ChatReels.refresh(null));
 
         BaseSettings.PAUSED.save(true);
         PauseForTests.pause(HushgramPause.Reason.SWITCH);
-        assertTrue("paused", ChatReels.refresh(Source.DIRECT));
+        assertTrue("paused", ChatReels.refresh(CHAT));
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
-        SettingsContextRule.withoutContext(() -> assertTrue("no context", ChatReels.refresh(Source.DIRECT)));
-        assertFalse("back on", ChatReels.refresh(Source.DIRECT));
+        SettingsContextRule.withoutContext(() -> assertTrue("no context", ChatReels.refresh(CHAT)));
+        assertFalse("back on", ChatReels.refresh(CHAT));
         assertTrue(HookStatus.missing(FamilyNames.CHAT_REELS).toString(), HookStatus.missing(FamilyNames.CHAT_REELS).isEmpty());
     }
 
     /** The loading placeholder is left out only after a chat's reels with the stop on, never added (#390). */
     @Test
     public void thePlaceholderIsLeftOutOnlyAfterAChatsReels() {
-        assertTrue("off to start, Instagram's placeholder stays", ChatReels.placeholder(Source.DIRECT, 1));
+        assertTrue("off to start, Instagram's placeholder stays", ChatReels.placeholder(CHAT, 1));
         Settings.STOP_AFTER_CHAT_REELS.save(true);
-        assertFalse("a chat's viewer", ChatReels.placeholder(Source.DIRECT, 1));
-        assertTrue("the Reels tab", ChatReels.placeholder(Source.CLIPS_TAB, 1));
-        assertTrue("search in chats", ChatReels.placeholder(Source.DIRECT_SEARCH, 1));
-        assertTrue("no source", ChatReels.placeholder(null, 1));
-        for (Object source : new Object[] {Source.DIRECT, Source.CLIPS_TAB, null}) {
-            assertFalse("Instagram asked for none: " + source, ChatReels.placeholder(source, 0));
+        assertFalse("a chat's viewer", ChatReels.placeholder(CHAT, 1));
+        assertTrue("the Reels tab", ChatReels.placeholder(CLIPS_TAB, 1));
+        assertTrue("search in chats", ChatReels.placeholder(SEARCH, 1));
+        assertTrue("no config", ChatReels.placeholder(null, 1));
+        for (Object config : new Object[] {CHAT, CLIPS_TAB, null}) {
+            assertFalse("Instagram asked for none: " + config, ChatReels.placeholder(config, 0));
         }
 
         BaseSettings.PAUSED.save(true);
         PauseForTests.pause(HushgramPause.Reason.SWITCH);
-        assertTrue("paused", ChatReels.placeholder(Source.DIRECT, 1));
+        assertTrue("paused", ChatReels.placeholder(CHAT, 1));
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
-        SettingsContextRule.withoutContext(() -> assertTrue("no context", ChatReels.placeholder(Source.DIRECT, 1)));
-        assertFalse("back on", ChatReels.placeholder(Source.DIRECT, 1));
+        SettingsContextRule.withoutContext(() -> assertTrue("no context", ChatReels.placeholder(CHAT, 1)));
+        assertFalse("back on", ChatReels.placeholder(CHAT, 1));
     }
 
     /** A message as Instagram hands it: equal to another tap's, never the same object. */
@@ -553,47 +560,89 @@ public class ChatReelsTest {
      */
     @Test
     public void aChatWithABlendGoesThroughItsOwnReelsFirst() {
-        assertTrue("a chat with an id", ChatReels.blendAfterChat(Source.DIRECT, "340282366841710300949128"));
-        assertFalse("a search's viewer", ChatReels.blendAfterChat(Source.DIRECT_SEARCH, "340282366841710300949128"));
-        assertFalse("the Reels tab", ChatReels.blendAfterChat(Source.CLIPS_TAB, "340282366841710300949128"));
-        assertFalse("no source", ChatReels.blendAfterChat(null, "340282366841710300949128"));
-        assertFalse("not an enum", ChatReels.blendAfterChat("DIRECT", "340282366841710300949128"));
+        assertTrue("a chat with an id", ChatReels.blendAfterChat(Source.DIRECT, THREAD));
+        assertFalse("a search's viewer", ChatReels.blendAfterChat(Source.DIRECT_SEARCH, THREAD));
+        assertFalse("the Reels tab", ChatReels.blendAfterChat(Source.CLIPS_TAB, THREAD));
+        assertFalse("no source", ChatReels.blendAfterChat(null, THREAD));
+        assertFalse("not an enum", ChatReels.blendAfterChat("DIRECT", THREAD));
         assertFalse("no id", ChatReels.blendAfterChat(Source.DIRECT, null));
         assertFalse("an empty id", ChatReels.blendAfterChat(Source.DIRECT, ""));
         assertTrue(HookStatus.missing(FamilyNames.CHAT_REELS).toString(), HookStatus.missing(FamilyNames.CHAT_REELS).isEmpty());
 
         Settings.SWIPE_CHAT_REELS.save(false);
-        assertFalse("off", ChatReels.blendAfterChat(Source.DIRECT, "340282366841710300949128"));
+        assertFalse("off", ChatReels.blendAfterChat(Source.DIRECT, THREAD));
         Settings.SWIPE_CHAT_REELS.save(true);
 
         BaseSettings.PAUSED.save(true);
         PauseForTests.pause(HushgramPause.Reason.SWITCH);
-        assertFalse("paused", ChatReels.blendAfterChat(Source.DIRECT, "340282366841710300949128"));
+        assertFalse("paused", ChatReels.blendAfterChat(Source.DIRECT, THREAD));
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
 
         SettingsContextRule.withoutContext(() ->
-                assertFalse("no context", ChatReels.blendAfterChat(Source.DIRECT, "340282366841710300949128")));
-        assertTrue("back on", ChatReels.blendAfterChat(Source.DIRECT, "340282366841710300949128"));
+                assertFalse("no context", ChatReels.blendAfterChat(Source.DIRECT, THREAD)));
+        assertTrue("back on", ChatReels.blendAfterChat(Source.DIRECT, THREAD));
     }
 
     /**
      * Once Instagram has loaded a chat's Blend, a reel tapped in that chat opens as the Blend's, still
      * holding the chat (#804). It goes through the chat's own reels first too: yes for the Blend's
      * viewer with the chat's id, no without one or with the switch off, so a Blend opened anywhere else
-     * stays Instagram's. Everything else keyed on a chat's viewer still reads it as a Blend's.
+     * stays Instagram's.
      */
     @Test
     public void aReelTappedInAChatWhoseBlendLoadedStillGoesThroughTheChatsReelsFirst() {
-        assertTrue("a Blend's viewer holding the chat", ChatReels.blendAfterChat(Source.BLEND, "340282366841710300949128"));
+        assertTrue("a Blend's viewer holding the chat", ChatReels.blendAfterChat(Source.BLEND, THREAD));
         assertFalse("a Blend's viewer without a chat", ChatReels.blendAfterChat(Source.BLEND, null));
         assertFalse("an empty id", ChatReels.blendAfterChat(Source.BLEND, ""));
-        assertFalse("not an enum", ChatReels.blendAfterChat("BLEND", "340282366841710300949128"));
-        assertFalse("still not a chat's viewer", ChatReels.fromChat(Source.BLEND));
+        assertFalse("not an enum", ChatReels.blendAfterChat("BLEND", THREAD));
 
         Settings.SWIPE_CHAT_REELS.save(false);
-        assertFalse("off", ChatReels.blendAfterChat(Source.BLEND, "340282366841710300949128"));
+        assertFalse("off", ChatReels.blendAfterChat(Source.BLEND, THREAD));
         Settings.SWIPE_CHAT_REELS.save(true);
+    }
+
+    /**
+     * Once Instagram has loaded a chat's Blend, a reel tapped in that chat opens as the Blend's, still
+     * holding the chat, and everything keyed on a chat's viewer reads it as the chat's (#804): its
+     * cached reels, pull down and loading placeholder stop after the chat's reels with the stop on, and
+     * its pages leave out the reels you sent. A Blend opened anywhere else holds no chat and stays
+     * Instagram's, as does a chat's viewer holding none.
+     */
+    @Test
+    public void aReelTappedInAChatThatOpenedAsItsBlendIsStillTheChatsViewer() {
+        Settings.STOP_AFTER_CHAT_REELS.save(true);
+        Settings.ONLY_RECEIVED_CHAT_REELS.save(true);
+        ChatReels.rememberSent("m1", "a1");
+        List<String> items = Arrays.asList("m0", "m1", "m2");
+
+        assertTrue("a chat's viewer, as before", ChatReels.stopCached(CHAT));
+        assertTrue("the chat's Blend's viewer skips the cached reel", ChatReels.stopCached(CHATS_BLEND));
+        assertFalse("and doesn't refresh", ChatReels.refresh(CHATS_BLEND));
+        assertFalse("and puts no placeholder after its reels", ChatReels.placeholder(CHATS_BLEND, 1));
+        assertEquals("and leaves out the reel you sent", Arrays.asList("m0", "m2"), page(CHATS_BLEND, "m0", "m1", "m2"));
+
+        assertFalse("a Blend opened outside a chat keeps its cached reel", ChatReels.stopCached(BLEND));
+        assertTrue("and refreshes", ChatReels.refresh(BLEND));
+        assertTrue("and keeps its placeholder", ChatReels.placeholder(BLEND, 1));
+        assertSame("and its pages", items, ChatReels.leaveOutSent(items, BLEND, String::valueOf));
+
+        assertFalse("a chat's source holding no chat", ChatReels.stopCached(NO_CHAT));
+        assertSame(items, ChatReels.leaveOutSent(items, NO_CHAT, String::valueOf));
+        assertTrue(HookStatus.missing(FamilyNames.CHAT_REELS).toString(), HookStatus.missing(FamilyNames.CHAT_REELS).isEmpty());
+    }
+
+    /** A config the patch's bridges can't read is no chat's viewer, and the page and cached reel stand. */
+    @Test
+    public void aConfigThatCantBeReadIsNoChatsViewer() {
+        Settings.STOP_AFTER_CHAT_REELS.save(true);
+        ChatReels.readConfigsWith(config -> {
+            throw new ClassCastException("not a config");
+        }, config -> THREAD);
+        assertFalse(ChatReels.stopCached(CHAT));
+        assertTrue(ChatReels.refresh(CHAT));
+        ViewerConfigs.reset();
+        assertFalse("the stubs answer nothing", ChatReels.stopCached(CHAT));
     }
 
     /** The viewer a shared comment's tap opens keeps Instagram's Blend, as it keeps Instagram's chain answer (#662). */
@@ -601,7 +650,7 @@ public class ChatReelsTest {
     public void aSharedCommentsViewerKeepsInstagramsBlend() {
         Robolectric.buildActivity(Activity.class).setup();
         ChatReels.commentTapped();
-        assertFalse(ChatReels.blendAfterChat(Source.DIRECT, "340282366841710300949128"));
+        assertFalse(ChatReels.blendAfterChat(Source.DIRECT, THREAD));
     }
 
     /** A comment's tap that opens nothing within the wait lets go, and the next viewer chains as before. */

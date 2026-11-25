@@ -4,6 +4,11 @@
  */
 package app.hushgram.extension.instagram.direct;
 
+import static app.hushgram.extension.instagram.direct.ViewerConfigs.BLEND;
+import static app.hushgram.extension.instagram.direct.ViewerConfigs.CHAT;
+import static app.hushgram.extension.instagram.direct.ViewerConfigs.CHATS_BLEND;
+import static app.hushgram.extension.instagram.direct.ViewerConfigs.CLIPS_TAB;
+import static app.hushgram.extension.instagram.direct.ViewerConfigs.NO_CHAT;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
@@ -55,6 +60,7 @@ public class ChatReelRepliesTest {
         HookStatus.clear();
         ChatReels.forgetReplies();
         ChatReels.tapped();
+        ViewerConfigs.install();
     }
 
     @After
@@ -65,6 +71,7 @@ public class ChatReelRepliesTest {
         ChatReels.chain(0);
         HookStatus.clear();
         ChatReels.forgetReplies();
+        ViewerConfigs.reset();
     }
 
     /**
@@ -212,29 +219,44 @@ public class ChatReelRepliesTest {
     public void everythingElseKeepsInstagramsInfo() {
         Object instagram = new Object();
         ChatReels.rememberReply(here, "m2", "b2", second);
-        assertSame("the stub's empty adapter", instagram, ChatReels.replyTo(instagram, Source.DIRECT, new Object(), 0));
-        assertSame("no adapter", instagram, ChatReels.replyTo(instagram, Source.DIRECT, null, 0));
-        assertSame("no page", instagram, ChatReels.replyTo(instagram, Source.DIRECT, new Object(), -1));
-        assertSame("the Reels tab", instagram, ChatReels.replyTo(instagram, Source.CLIPS_TAB, new Object(), 0));
-        assertSame("the stub's reel has no media", instagram, ChatReels.replyInfo(instagram, Source.DIRECT, new Object()));
-        assertSame("no reel", instagram, ChatReels.replyInfo(instagram, Source.DIRECT, null));
-        assertSame("the Reels tab", instagram, ChatReels.replyInfo(instagram, Source.CLIPS_TAB, new Object()));
-        assertNull("nothing from Instagram", ChatReels.replyInfo(null, Source.CLIPS_TAB, new Object()));
+        assertSame("the stub's empty adapter", instagram, ChatReels.replyTo(instagram, CHAT, new Object(), 0));
+        assertSame("no adapter", instagram, ChatReels.replyTo(instagram, CHAT, null, 0));
+        assertSame("no page", instagram, ChatReels.replyTo(instagram, CHAT, new Object(), -1));
+        assertSame("the Reels tab", instagram, ChatReels.replyTo(instagram, CLIPS_TAB, new Object(), 0));
+        assertSame("the stub's reel has no media", instagram, ChatReels.replyInfo(instagram, CHAT, new Object()));
+        assertSame("no reel", instagram, ChatReels.replyInfo(instagram, CHAT, null));
+        assertSame("the Reels tab", instagram, ChatReels.replyInfo(instagram, CLIPS_TAB, new Object()));
+        assertNull("nothing from Instagram", ChatReels.replyInfo(null, CLIPS_TAB, new Object()));
 
         Settings.SWIPE_CHAT_REELS.save(false);
-        assertSame("off", instagram, ChatReels.replyInfo(instagram, Source.DIRECT, new Object()));
+        assertSame("off", instagram, ChatReels.replyInfo(instagram, CHAT, new Object()));
         Settings.SWIPE_CHAT_REELS.save(true);
         BaseSettings.PAUSED.save(true);
         PauseForTests.pause(HushgramPause.Reason.SWITCH);
-        assertSame("paused", instagram, ChatReels.replyTo(instagram, Source.DIRECT, new Object(), 0));
+        assertSame("paused", instagram, ChatReels.replyTo(instagram, CHAT, new Object(), 0));
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
-        SettingsContextRule.withoutContext(() -> assertSame("no context", instagram, ChatReels.replyInfo(instagram, Source.DIRECT, new Object())));
+        SettingsContextRule.withoutContext(() -> assertSame("no context", instagram, ChatReels.replyInfo(instagram, CHAT, new Object())));
 
         ChatReels.collected(new Object(), new Object(), new Object());
         ChatReels.collected(null, null, null);
         assertTrue(HookStatus.missing(FamilyNames.CHAT_REELS).toString(), HookStatus.missing(FamilyNames.CHAT_REELS).isEmpty());
     }
 
-    private enum Source { DIRECT, CLIPS_TAB }
+    /**
+     * Once Instagram has loaded a chat's Blend, a reel tapped in that chat opens as the Blend's, still
+     * holding the chat, and its reply bar gets the swiped reels' own messages too (#804). A Blend opened
+     * outside a chat holds none and keeps Instagram's, as does a chat's viewer holding none.
+     */
+    @Test
+    public void aChatsViewerOpenedAsItsBlendGetsTheReelsOwnMessages() {
+        assertTrue("a chat's viewer", ChatReels.replies(CHAT));
+        assertTrue("the chat's Blend's viewer", ChatReels.replies(CHATS_BLEND));
+        assertFalse("a Blend opened outside a chat", ChatReels.replies(BLEND));
+        assertFalse("a chat's source holding no chat", ChatReels.replies(NO_CHAT));
+        assertFalse("the Reels tab", ChatReels.replies(CLIPS_TAB));
+        assertFalse("no config", ChatReels.replies(null));
+        Settings.SWIPE_CHAT_REELS.save(false);
+        assertFalse("the chat's Blend's viewer, unchained", ChatReels.replies(CHATS_BLEND));
+    }
 }

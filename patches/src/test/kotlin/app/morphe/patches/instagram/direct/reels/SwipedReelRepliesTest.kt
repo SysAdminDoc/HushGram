@@ -68,14 +68,14 @@ class SwipedReelRepliesTest {
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
         val bridges = listOf(NOTICE_PAGE.substringAfter("->"), "timeOf(Ljava/lang/Object;)Ljava/lang/String;", "isMessage(Ljava/lang/Object;)Z",
-            "sourceOf(Ljava/lang/Object;)Ljava/lang/Object;", "adapterOf(Ljava/lang/Object;)Ljava/lang/Object;")
+            "configOf(Ljava/lang/Object;)Ljava/lang/Object;", "adapterOf(Ljava/lang/Object;)Ljava/lang/Object;")
         for (hook in bridges) assertTrue("$hook is not in the extension: $notice", hook in notice)
     }
 
     /**
      * Messages after a reel (#489): the bar's page select hands the controller and its page to the
      * extension right after its hint update, in that call's own form, and the bridges read a message's
-     * time, whether an object is a message, and the controller's source and adapter.
+     * time, whether an object is a message, and the controller's viewer config (#804) and adapter.
      */
     @Test
     fun thePageSelectHandsItsPageToTheNoticeAfterTheHint() {
@@ -107,8 +107,8 @@ class SwipedReelRepliesTest {
         assertEquals(Opcode.RETURN_OBJECT, bridge("timeOf")[2].opcode)
         assertEquals(listOf(Opcode.INSTANCE_OF, Opcode.RETURN), bridge("isMessage").take(2).map { it.opcode })
         assertEquals("Lfixture/Message;", bridge("isMessage")[0].text())
-        assertEquals(listOf(bar, "$bar->source:$VIEWER_SOURCE"), bridge("sourceOf").take(2).map { it.text() })
-        assertEquals(Opcode.RETURN_OBJECT, bridge("sourceOf")[2].opcode)
+        assertEquals(listOf(bar, "$bar->adapter:$adapter", "$adapter->config:$VIEWER_CONFIG"), bridge("configOf").take(3).map { it.text() })
+        assertEquals(Opcode.RETURN_OBJECT, bridge("configOf")[3].opcode)
         assertEquals(listOf(bar, "$bar->adapter:$adapter"), bridge("adapterOf").take(2).map { it.text() })
         assertEquals(Opcode.RETURN_OBJECT, bridge("adapterOf")[2].opcode)
     }
@@ -183,7 +183,7 @@ class SwipedReelRepliesTest {
         assertEquals(listOf("$bar->adapter:$adapter"), found.adapter.map { "$it" })
         assertEquals("$adapter->count()I", "${found.count}")
         assertEquals("$adapter->at(I)$item", "${found.item}")
-        assertEquals("$bar->source:$VIEWER_SOURCE", found.source)
+        assertEquals(listOf("$bar->adapter:$adapter", "$adapter->config:$VIEWER_CONFIG"), found.config)
         assertEquals("$bar->currentItem($bar)$item", found.currentItem)
         assertEquals("the info built", 1, found.built)
         assertEquals("the collector's free locals", listOf(2, 3), listOf(found.wrapper, found.chat))
@@ -215,20 +215,24 @@ class SwipedReelRepliesTest {
         assertEquals("a message with no id still jumps past the hook", setOf(10), skipping.collect.jumpTargets())
 
         val hint = found.hint.visualCode()
-        assertEquals(REPLY_TO, hint[8].text())
-        assertEquals("handed Instagram's info, the source, the adapter and the page", listOf(1, 3, 2, 0), hint[8].arguments())
-        assertEquals(listOf(Opcode.MOVE_OBJECT_FROM16, Opcode.IGET_OBJECT, Opcode.IGET_OBJECT, Opcode.MOVE_FROM16), hint.subList(4, 8).map { it.opcode })
+        assertEquals(REPLY_TO, hint[9].text())
+        assertEquals("handed Instagram's info, the config, the adapter and the page", listOf(1, 3, 2, 0), hint[9].arguments())
+        assertEquals(
+            listOf(Opcode.MOVE_OBJECT_FROM16, Opcode.IGET_OBJECT, Opcode.IGET_OBJECT, Opcode.IGET_OBJECT, Opcode.MOVE_FROM16),
+            hint.subList(4, 9).map { it.opcode },
+        )
         assertEquals("$bar->adapter:$adapter", hint[5].text())
-        assertEquals("$bar->source:$VIEWER_SOURCE", hint[6].text())
-        assertTaken("hint", hint, found.hint, 4)
+        assertEquals("the config read through the adapter", listOf("$bar->adapter:$adapter", "$adapter->config:$VIEWER_CONFIG"), hint.subList(6, 8).map { it.text() })
+        assertEquals("in the config's register", listOf(3, 3, 3, 3), hint.subList(6, 8).flatMap { listOf((it as TwoRegisterInstruction).registerA, it.registerB) })
+        assertTaken("hint", hint, found.hint, 4, 8)
 
         val current = found.current.visualCode()
         assertEquals(Opcode.MOVE_OBJECT_FROM16, current[6].opcode)
         assertEquals("$bar->currentItem($bar)$item", current[7].text())
-        assertEquals("$bar->source:$VIEWER_SOURCE", current[9].text())
-        assertEquals(REPLY_INFO, current[10].text())
-        assertEquals("handed Instagram's info, the source and the reel", listOf(1, 0, 2), current[10].arguments())
-        assertTaken("current", current, found.current, 6)
+        assertEquals(listOf("$bar->adapter:$adapter", "$adapter->config:$VIEWER_CONFIG"), current.subList(9, 11).map { it.text() })
+        assertEquals(REPLY_INFO, current[11].text())
+        assertEquals("handed Instagram's info, the config and the reel", listOf(1, 0, 2), current[11].arguments())
+        assertTaken("current", current, found.current, 6, 8)
 
         val bridges = context.mutableClassDefBy(CHAT_REELS).methods.groupBy { it.name }
         fun bridge(name: String) = bridges.getValue(name).single().visualCode()
@@ -363,28 +367,31 @@ class SwipedReelRepliesTest {
         val code = found.current.visualCode()
         val asks = code.indices.filter { code[it].text() == REPLY_INFO }
         assertEquals("asked once, where the ways meet", 1, asks.size)
-        val at = asks.single() - 4
+        val at = asks.single() - 5
         val (viewer, reel) = found.currentFree
-        assertEquals("handed Instagram's info, the source and the reel", listOf(3, viewer, reel), code[asks.single()].arguments())
+        assertEquals("handed Instagram's info, the config and the reel", listOf(3, viewer, reel), code[asks.single()].arguments())
         assertEquals("$bar->currentItem($bar)$item", code[at + 1].text())
-        assertEquals("$bar->source:$VIEWER_SOURCE", code[at + 3].text())
-        assertEquals("the answer cast", info, code[at + 6].text())
-        val test = code[at + 7]
+        assertEquals(listOf("$bar->adapter:$adapter", "$adapter->config:$VIEWER_CONFIG"), code.subList(at + 3, at + 5).map { it.text() })
+        assertEquals("the answer cast", info, code[at + 7].text())
+        val test = code[at + 8]
         assertEquals("then Instagram's test", Opcode.IF_NEZ, test.opcode)
         assertEquals(3, (test as OneRegisterInstruction).registerA)
         val targets = found.current.jumpTargets()
         assertTrue("every chat way lands on the hook: $targets", at in targets)
-        assertFalse("none jumps past it: $targets", at + 7 in targets)
+        assertFalse("none jumps past it: $targets", at + 8 in targets)
 
         val blend = code.indices.first { code[it].opcode == Opcode.RETURN_OBJECT && (code[it] as OneRegisterInstruction).registerA == 0 }
         assertEquals("the Blend's way returns the store's lookup as it was", "$store->lookup($item)$info", code[blend - 2].text())
         assertTrue("before the hook", blend < at)
-        assertEquals("nothing else changed", stock, code.subList(0, at).map { it.opcode } + code.subList(at + 7, code.size).map { it.opcode })
+        assertEquals("nothing else changed", stock, code.subList(0, at).map { it.opcode } + code.subList(at + 8, code.size).map { it.opcode })
     }
 
-    /** The hook sits at [at], takes the answer back into the info's register and casts it before Instagram's test, and the jump lands on it. */
-    private fun assertTaken(what: String, code: List<Instruction>, method: Method, at: Int) {
-        val test = at + 7
+    /**
+     * The hook sits at [at], [added] long, takes the answer back into the info's register and casts it
+     * before Instagram's test, and the jump lands on it.
+     */
+    private fun assertTaken(what: String, code: List<Instruction>, method: Method, at: Int, added: Int) {
+        val test = at + added
         assertEquals("$what: the answer", Opcode.MOVE_RESULT_OBJECT, code[test - 2].opcode)
         assertEquals("$what: into the info's register", 1, (code[test - 2] as OneRegisterInstruction).registerA)
         assertEquals("$what: cast", info, code[test - 1].text())
@@ -398,6 +405,8 @@ class SwipedReelRepliesTest {
     /**
      * On 456 the reel on screen reads the adapter off the controller's viewer state (`LX/0I4a;->A11`,
      * then `LX/08YO;->A0d` on 386214574), so the hint update's hook and the adapter's bridge read both.
+     * The viewer state holds the viewer's config too (457's ClipsViewerAdapter `LX/0BwL;->A0a`), which
+     * the hooks and the config's bridge read through it (#804).
      */
     @Test
     fun anAdapterBehindTheViewerStateIsReadThroughIt() {
@@ -410,14 +419,21 @@ class SwipedReelRepliesTest {
         context.pointOutMessagesAfterReels(collector, found, context.findReplyPage(collector, found))
 
         val hint = found.hint.visualCode()
-        assertEquals(listOf("$bar->state:$state", "$state->adapter:$adapter", "$bar->source:$VIEWER_SOURCE"), hint.subList(5, 8).map { it.text() })
+        assertEquals(listOf("$bar->state:$state", "$state->config:$VIEWER_CONFIG"), found.config)
+        assertEquals(
+            listOf("$bar->state:$state", "$state->adapter:$adapter", "$bar->state:$state", "$state->config:$VIEWER_CONFIG"),
+            hint.subList(5, 9).map { it.text() },
+        )
         val adapterAt = hint[6] as TwoRegisterInstruction
         assertEquals("the state read into the adapter's register", adapterAt.registerA, adapterAt.registerB)
-        assertEquals(REPLY_TO, hint[9].text())
-        assertEquals("handed Instagram's info, the source, the adapter and the page", listOf(1, 3, 2, 0), hint[9].arguments())
+        assertEquals(REPLY_TO, hint[10].text())
+        assertEquals("handed Instagram's info, the config, the adapter and the page", listOf(1, 3, 2, 0), hint[10].arguments())
         val bridge = context.mutableClassDefBy(CHAT_REELS_NOTICE).methods.single { it.name == "adapterOf" }.visualCode()
         assertEquals(listOf(bar, "$bar->state:$state", "$state->adapter:$adapter"), bridge.take(3).map { it.text() })
         assertEquals(Opcode.RETURN_OBJECT, bridge[3].opcode)
+        val config = context.mutableClassDefBy(CHAT_REELS_NOTICE).methods.single { it.name == "configOf" }.visualCode()
+        assertEquals(listOf(bar, "$bar->state:$state", "$state->config:$VIEWER_CONFIG"), config.take(3).map { it.text() })
+        assertEquals(Opcode.RETURN_OBJECT, config[3].opcode)
 
         assertRefused("$state->adapter:$adapter, on the way to the reply bar's adapter, isn't a public instance field the extension can read") {
             context(throughState = true, statePublic = false).findReplyBar(collector())
@@ -436,7 +452,7 @@ class SwipedReelRepliesTest {
             context(page = "Z") to "$hints 0",
             context(apart = true) to "expected $bar to have one static method taking it and answering a $item, its reel on screen, found 0",
             context(adapterSpoiled = true) to "$bar->currentItem doesn't reach its $adapter through fields of $bar",
-            context(sources = 2) to "$bar holds 2 $VIEWER_SOURCE fields, not one",
+            context(viewerConfig = false) to "nothing on $bar's way to its adapter holds the viewer's $VIEWER_CONFIG",
             context(inits = 2) to "$info has 2 constructors, not one",
             context(joined = false) to "$bar->hint has no one place its ways to a $info meet",
         )
@@ -538,13 +554,14 @@ class SwipedReelRepliesTest {
     /**
      * Shaped like 453's 0T5D: the hint update for a page reads the info one way and jumps to its test
      * from the other, the reply info does the same, and the reel on screen comes from the adapter
-     * field's item at its count. The info's constructor stores its first String as the message.
+     * field's item at its count. The info's constructor stores its first String as the message. The
+     * adapter and the viewer state each hold a public [VIEWER_CONFIG] unless not [viewerConfig].
      */
     private fun context(
         hints: Int = 1,
         apart: Boolean = false,
         page: String = "I",
-        sources: Int = 1,
+        viewerConfig: Boolean = true,
         inits: Int = 1,
         joined: Boolean = true,
         pages: Int = 1,
@@ -665,11 +682,15 @@ class SwipedReelRepliesTest {
             """,
         )
         val show = method(bar, "show", emptyList(), "V", 0, final, "return-void")
-        val barFields = List(sources) { ImmutableField(bar, if (it == 0) "source" else "source$it", VIEWER_SOURCE, final, null, null, null) } +
+        val barFields = listOf(ImmutableField(bar, "source", VIEWER_SOURCE, final, null, null, null)) +
             ImmutableField(bar, "adapter", adapter, final, null, null, null) +
             ImmutableField(bar, "state", state, final, null, null, null) +
             ImmutableField(bar, "first", "Ljava/lang/Object;", final, null, null, null)
         val stateAdapter = ImmutableField(state, "adapter", adapter, if (statePublic) final else AccessFlags.FINAL.value, null, null, null)
+        fun configs(owner: String) = if (!viewerConfig) emptyList() else listOf(
+            ImmutableField(owner, "config", VIEWER_CONFIG, final, null, null, null),
+            ImmutableField(owner, "NONE", VIEWER_CONFIG, static, null, null, null),
+        )
         // A static (int)String pool of shared strings holds the report too, and isn't the reply info.
         val pool = method("Lfixture/Pool;", "A00", listOf("I"), "Ljava/lang/String;", 1, static, "const-string v0, \"$REPLY_INFO_MISSING\"\nreturn-object v0")
         val report = method("Lfixture/Report;", "report", emptyList(), "V", 1, final, "const-string v0, \"$REPLY_INFO_MISSING\"\nreturn-void")
@@ -729,7 +750,8 @@ class SwipedReelRepliesTest {
             classDef(source, built) +
             (if (apart) listOf(classDef(itemOwner, listOf(currentItem))) else emptyList()) +
             (if (pageOwner != bar) listOf(classDef(pageOwner, select)) else emptyList()) +
-            classDef(state, emptyList(), listOf(stateAdapter)) + classDef("Lfixture/Pool;", listOf(pool)) +
+            classDef(state, emptyList(), listOf(stateAdapter) + configs(state)) + classDef(adapter, emptyList(), configs(adapter)) +
+            classDef("Lfixture/Pool;", listOf(pool)) +
             (if (loaders > 1) listOf(classDef("Lfixture/Report;", listOf(report))) else emptyList()) +
             ImmutableClassDef.of(ExtensionDex.classDef(CHAT_REELS)) + ImmutableClassDef.of(ExtensionDex.classDef(CHAT_REELS_NOTICE))
         return PatchContexts.of(classes)

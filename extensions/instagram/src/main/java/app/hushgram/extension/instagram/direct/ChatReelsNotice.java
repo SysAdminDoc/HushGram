@@ -273,7 +273,7 @@ public final class ChatReelsNotice {
     /** The message after the reel at [position] of [controller]'s viewer, when that viewer is a chat's. */
     @Nullable
     private static Note target(Object controller, int position) {
-        if (!ChatReels.fromChat(sourceOf(controller))) return null;
+        if (!ChatReels.viewsChat(configOf(controller))) return null;
         Object adapter = adapterOf(controller);
         if (adapter == null || position >= ChatReels.count(adapter)) return null;
         Object item = ChatReels.item(adapter, position);
@@ -448,9 +448,9 @@ public final class ChatReelsNotice {
         return false;
     }
 
-    /** Stub: the patch writes this, answering the ClipsViewerSource of [controller], a viewer's reply bar. */
+    /** Stub: the patch writes this, answering the ClipsViewerConfig of [controller], a viewer's reply bar. */
     @Nullable
-    public static Object sourceOf(Object controller) {
+    public static Object configOf(Object controller) {
         return null;
     }
 
