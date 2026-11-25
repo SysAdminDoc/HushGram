@@ -53,6 +53,7 @@ public class StoryDownloadButtonTest {
     private int menuId;
     private int footerId;
     private int likeId;
+    private int shareId;
     private final AtomicBoolean thumb = new AtomicBoolean(false);
 
     /** A story's view holder: its header root, with the row of buttons and the three-dot menu in it. */
@@ -85,6 +86,7 @@ public class StoryDownloadButtonTest {
         Footed() {
             row.setId(footerId);
             like.setId(likeId);
+            share.setId(shareId);
             row.addView(like);
             row.addView(share);
             toolbar.addView(new View(activity));
@@ -147,8 +149,10 @@ public class StoryDownloadButtonTest {
         StoryButtonRows.resetForTests();
         footerId = View.generateViewId();
         likeId = View.generateViewId();
+        shareId = View.generateViewId();
         StoryButtonRows.putIdForTests(activity, StoryButtonRows.FOOTER, footerId);
         StoryButtonRows.putIdForTests(activity, StoryButtonRows.LIKE, likeId);
+        StoryButtonRows.putIdForTests(activity, StoryButtonRows.SHARE, shareId);
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -360,6 +364,33 @@ public class StoryDownloadButtonTest {
         afterTheBind();
         assertSame(button, StoryDownloadButton.find(story.header.row));
         assertEquals(2, story.row.getChildCount());
+    }
+
+    /**
+     * Your own highlight (#850): Instagram leaves the bottom row showing with Like and Share hidden in
+     * it, over your own toolbar, and a button put there sat on Send and More. It stays at the top, also
+     * after the look that follows Instagram's bind, and comes back down on a story showing Like.
+     */
+    @Test
+    public void aBottomRowWithLikeAndShareHiddenKeepsItAtTheTop() {
+        Footed story = new Footed();
+        thumb.set(true);
+        story.like.setVisibility(View.GONE);
+        story.share.setVisibility(View.GONE);
+        activity.setContentView(story.header.root);
+        bind(new Item(new Object()), story);
+        ImageView button = StoryDownloadButton.find(story.header.row);
+        assertNotNull("kept at the top", button);
+        assertEquals(1, story.header.row.indexOfChild(button));
+        assertEquals(2, story.row.getChildCount());
+        afterTheBind();
+        assertSame(button, StoryDownloadButton.find(story.header.row));
+        assertEquals(2, story.row.getChildCount());
+
+        story.like.setVisibility(View.VISIBLE);
+        bind(new Item(new Object()), story);
+        assertSame(button, StoryDownloadButton.find(story.row));
+        assertEquals(0, story.row.indexOfChild(button));
     }
 
     /** A story with no bottom row in its layout, as your own, keeps the button at the top. */

@@ -47,8 +47,11 @@ import app.hushgram.extension.shared.settings.PauseForTests;
 public class StorySeenButtonTest {
     @Rule public final SettingsContextRule settings = new SettingsContextRule();
 
-    private static final String STORY = "111_900";
-    private static final String OTHER = "222_900";
+    /** Stories of someone else's, account 905: the account signed in is {@link StoryMarksTest#ME}. */
+    private static final String STORY = "111_905";
+    private static final String OTHER = "222_905";
+    /** A story of the account signed in, as on your own story or highlight. */
+    private static final String MINE = "333_" + StoryMarksTest.ME;
     private static final BooleanSupplier THROWS = () -> {
         throw new IllegalStateException("settings went away");
     };
@@ -241,6 +244,64 @@ public class StorySeenButtonTest {
         assertEquals(StoryMarks.State.MARKED, drawn(button));
     }
 
+    /**
+     * Your own story or highlight (#850), whose id names the account signed in as its owner, gets no
+     * eye, and a recycled header that held one for someone else's story hides it and forgets it.
+     */
+    @Test
+    public void yourOwnStoryOrHighlightGetsNoEye() {
+        Header header = new Header();
+        bind(header, MINE);
+        assertNull(header.button());
+        assertEquals(2, header.row.getChildCount());
+
+        bind(header, STORY);
+        ImageView button = header.button();
+        assertEquals(View.VISIBLE, button.getVisibility());
+        bind(header, MINE);
+        assertEquals(View.GONE, button.getVisibility());
+        assertNull("it forgot the last story", button.getTag());
+        StorySeenButton.tapped(button, switches, marks, sender);
+        assertEquals(StoryMarks.State.UNMARKED, marks.state(StoryMarksTest.ME, "333"));
+        assertTrue(sends.isEmpty());
+    }
+
+    /**
+     * By the thumb, a bottom row that shows with Like and Share hidden in it, as Instagram leaves it over
+     * your own toolbar (#850), isn't a place for the eye: it stays before the menu at the top.
+     */
+    @Test
+    public void byTheThumbABottomRowWithoutLikeOrShareLeavesTheEyeAtTheTop() {
+        int footerId = View.generateViewId();
+        int likeId = View.generateViewId();
+        int shareId = View.generateViewId();
+        StoryButtonRows.putIdForTests(context, StoryButtonRows.FOOTER, footerId);
+        StoryButtonRows.putIdForTests(context, StoryButtonRows.LIKE, likeId);
+        StoryButtonRows.putIdForTests(context, StoryButtonRows.SHARE, shareId);
+        Header header = new Header();
+        LinearLayout bottom = new LinearLayout(context);
+        bottom.setId(footerId);
+        View like = new View(context);
+        like.setId(likeId);
+        like.setVisibility(View.GONE);
+        View share = new View(context);
+        share.setId(shareId);
+        share.setVisibility(View.GONE);
+        bottom.addView(like);
+        bottom.addView(share);
+        header.root.addView(bottom);
+        StorySeenButton.bind(session, new Object(), header, reader(STORY), switches, () -> true, marks, sender);
+        ImageView button = header.button();
+        assertNotNull(button);
+        assertEquals(1, header.row.indexOfChild(button));
+        assertEquals(2, bottom.getChildCount());
+
+        share.setVisibility(View.VISIBLE);
+        StorySeenButton.bind(session, new Object(), header, reader(STORY), switches, () -> true, marks, sender);
+        assertNull("Share showing, it goes down", header.button());
+        assertSame(button, bottom.getChildAt(0));
+    }
+
     /** A tap marks the story and the eye turns solid; a second takes the mark back. Nothing is sent from the tap. */
     @Test
     public void aTapMarksTheStoryAndASecondTapUndoesIt() {
@@ -264,7 +325,7 @@ public class StorySeenButtonTest {
     /** A story whose batch was held back before the tap goes straight away, through Instagram's send, and alone. */
     @Test
     public void aTapOnAStoryAlreadyHeldBackSendsItRightAway() {
-        assertNull(StorySeen.toSend(StoryMarksTest.ME, new StoryMarksTest.Batch().with("111_900_900", "222_900_900"), batches, () -> true, () -> true, marks, StorySeen.COUNTED));
+        assertNull(StorySeen.toSend(StoryMarksTest.ME, new StoryMarksTest.Batch().with("111_905_905", "222_905_905"), batches, () -> true, () -> true, marks, StorySeen.COUNTED));
         Header header = new Header();
         bind(header, STORY);
         ImageView button = header.button();
@@ -275,7 +336,7 @@ public class StorySeenButtonTest {
         StoryMarksTest.Batch sent = (StoryMarksTest.Batch) sentBatches.get(0);
         assertNotNull(sent);
         assertEquals(1, sent.stories.size());
-        assertTrue(sent.stories.containsKey("111_900_900"));
+        assertTrue(sent.stories.containsKey("111_905_905"));
         assertEquals(StoryMarks.State.SENT, drawn(button));
         assertEquals("Marked as seen and sent", button.getContentDescription().toString());
         assertFalse("a sent story can't be taken back", button.isEnabled());
@@ -417,16 +478,16 @@ public class StorySeenButtonTest {
         assertEquals(StoryMarks.State.MARKED, marks.state(StoryMarksTest.ME, "111"));
         assertEquals(StoryMarks.State.UNMARKED, marks.state(StoryMarksTest.OTHER, "111"));
 
-        StoryMarksTest.Batch theirs = new StoryMarksTest.Batch().with("111_900_900");
+        StoryMarksTest.Batch theirs = new StoryMarksTest.Batch().with("111_905_905");
         assertNull("the other account's views are held back, the marked story too",
                 StorySeen.toSend(StoryMarksTest.OTHER, theirs, batches, () -> true, () -> true, marks, StorySeen.COUNTED));
         StorySeenButton.bind(StoryMarksTest.OTHER, new Object(), header, reader(STORY), switches, marks, sender);
         assertEquals("the other account's button shows the story unmarked", StoryMarks.State.UNMARKED, drawn(header.button()));
 
-        StoryMarksTest.Batch mine = new StoryMarksTest.Batch().with("111_900_900");
+        StoryMarksTest.Batch mine = new StoryMarksTest.Batch().with("111_905_905");
         StoryMarksTest.Batch sent = (StoryMarksTest.Batch) StorySeen.toSend(StoryMarksTest.ME, mine, batches, () -> true, () -> true, marks, StorySeen.COUNTED);
         assertNotNull("this account's send carries it", sent);
-        assertTrue(sent.stories.containsKey("111_900_900"));
+        assertTrue(sent.stories.containsKey("111_905_905"));
     }
 
     /** Without the account's user ID a story can't be marked, so it has no button. */

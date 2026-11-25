@@ -198,6 +198,17 @@ final class StoryMarks {
         return media;
     }
 
+    /**
+     * The owner's user ID in Instagram's id for a story, the part after the media ID ("123_456"), or
+     * null for an id without one or of another shape.
+     */
+    @Nullable
+    static String ownerOf(@Nullable String id) {
+        if (storyOf(id) == null) return null;
+        int split = id.indexOf('_');
+        return split < 0 ? null : id.substring(split + 1);
+    }
+
     /** The story ID a batch's key is for, the first of its media, owner and reel parts, or null. */
     @Nullable
     static String storyOfKey(@Nullable Object key) {

@@ -54,7 +54,8 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * button forgets its story, so it can't mark one later.
  *
  * <p>A mark belongs to the account signed in when it was made ({@link StoryMarks}), so a story
- * marked on one account is never sent for another.
+ * marked on one account is never sent for another. Your own story or highlight, whose id names the
+ * account signed in as its owner, has no view to mark and gets no button (#850).
  */
 public final class StorySeenButton {
     /** Instagram's row of buttons at the top end of the story header, and its three-dot menu in it. */
@@ -152,9 +153,11 @@ public final class StorySeenButton {
             LinearLayout footer = StoryButtonRows.footer(root, FamilyNames.STORY_SEEN, low);
             ImageView button = row == null ? null : find(row);
             if (button == null && footer != null) button = find(footer);
-            String story = showing && item != null ? StoryMarks.storyOf(reader.storyId(item)) : null;
+            String id = showing && item != null ? reader.storyId(item) : null;
+            String story = StoryMarks.storyOf(id);
             String account = story != null && session != null ? reader.account(session) : null;
-            if (story == null || account == null) {
+            // Your own story or highlight sends no view to mark (#850), so it gets no button.
+            if (story == null || account == null || account.equals(StoryMarks.ownerOf(id))) {
                 if (button != null) hide(button);
                 return;
             }

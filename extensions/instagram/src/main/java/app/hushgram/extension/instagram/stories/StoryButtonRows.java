@@ -30,11 +30,16 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * a bind puts the button where the rows stand then, and posts a look on the button that runs once
  * Instagram's bind is done and moves it if the bottom row was shown or hidden since. A story whose
  * bottom row isn't showing (your own, or one with replies off) keeps the button in the header.
+ *
+ * <p>On your own story or highlight Instagram can leave that row showing with Like and Share hidden in
+ * it, over your own toolbar (Activity to More), so a button put there sat on Send and More (#850). The
+ * row counts only while it shows Like or Share.
  */
 final class StoryButtonRows {
-    /** Instagram's row of buttons at the bottom right of a story, and the Like button's box in it. */
+    /** Instagram's row of buttons at the bottom right of a story, and the Like button's box and Share in it. */
     static final String FOOTER = "toolbar_buttons_container";
     static final String LIKE = "toolbar_like_container";
+    static final String SHARE = "toolbar_reshare_button";
 
     private static final ResourceIdCache IDS = new ResourceIdCache();
 
@@ -74,14 +79,33 @@ final class StoryButtonRows {
     }
 
     /**
+     * Whether [footer] shows within [root] with neither Like nor Share showing in it, as on your own
+     * story (#850). False when this build names neither, so the row is taken as it shows.
+     */
+    static boolean bare(LinearLayout footer, View root) {
+        if (!shownWithin(footer, root)) return false;
+        int like = id(footer, LIKE);
+        int share = id(footer, SHARE);
+        if (like == 0 && share == 0) return false;
+        return !shows(footer, like, root) && !shows(footer, share, root);
+    }
+
+    private static boolean shows(LinearLayout row, int id, View root) {
+        if (id == 0) return false;
+        View found = row.findViewById(id);
+        return found != null && shownWithin(found, root);
+    }
+
+    /**
      * Puts [button] in the row it belongs in on this story: the bottom row while [byThumb] is on and
-     * that row shows (or the header has no row), the header's row otherwise, moving it out of the
-     * other row when it's there. [intoHeader] adds a button to the header's row where that button
-     * goes. With [recheck], posts the same look on the button for after Instagram's bind.
+     * that row shows Like or Share (or the header has no row and the bottom row is hidden), the
+     * header's row otherwise, moving it out of the other row when it's there. [intoHeader] adds a
+     * button to the header's row where that button goes. With [recheck], posts the same look on the
+     * button for after Instagram's bind.
      */
     static void place(View button, View root, @Nullable LinearLayout header, @Nullable LinearLayout footer,
                       boolean byThumb, BiConsumer<LinearLayout, View> intoHeader, boolean recheck) {
-        boolean low = byThumb && footer != null && (header == null || shownWithin(footer, root));
+        boolean low = byThumb && footer != null && (header == null || shownWithin(footer, root)) && !bare(footer, root);
         LinearLayout target = low ? footer : header;
         if (target == null) return;
         if (button.getParent() != target) {
