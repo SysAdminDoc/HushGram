@@ -41,8 +41,9 @@ private const val VIEW_STUB = "(Ljava/lang/Object;)$VIEW"
 
 /**
  * Keeps the Send message box off other people's stories (#486), and on switches of their own the
- * Like, Comment and Share buttons (#618) and the comments floating over stories (#826). See
- * StoryReplyBox in the extension. In the default selection with its switches off.
+ * Like, Comment and Share buttons (#618) and the comments floating over stories (#826), and lifts
+ * the line for writing a comment on a choice (#826). See StoryReplyBox in the extension. In the
+ * default selection with its switches off.
  *
  * The patch fills the extension's one stub with the story viewer's (ReelViewerFragment's) own view
  * and, right after the viewer's onResume hands on to its superclass, tells the extension the viewer
@@ -56,8 +57,8 @@ val hideStoryReplyBoxPatch = bytecodePatch(
     name = "Hide the reply box on stories",
     description = "Takes the Send message box off the bottom of other people's stories. The like and share " +
         "buttons next to it stay where they are. Switches of their own take the Like, Comment and Share " +
-        "buttons off too, with no empty space left behind, and the comments floating over stories. All start off. " +
-        "Turn them on in HushGram settings > Stories.",
+        "buttons off too, with no empty space left behind, and the comments floating over stories. A choice lifts " +
+        "the line for writing a comment. All start off. Set them in HushGram settings > Stories.",
 ) {
     category("Stories")
     dependsOn(settingsPatch, instagramExtensionPatch)

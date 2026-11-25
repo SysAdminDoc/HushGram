@@ -3028,3 +3028,17 @@ Shows a handle at the right edge of a chat while it scrolls. Drag it up to your 
 Hide comments on stories	隱藏限時動態上的留言
 # context: Stories > summary of Hide comments on stories; the faces are the small round profile pictures of the commenters; the Comment button is the story's own Comment button, translated as in Hide the Comment button on stories (#826)
 Takes the comments floating over stories off them, along with the faces of the people who wrote them. The Comment button still opens them.	移除漂浮在限時動態上的留言，以及留言者的大頭貼。「留言」按鈕仍可開啟留言。
+# context: Stories > title of the choice of how high the line you tap to write a comment sits on a story, under Hide comments on stories (#826)
+Comment line height on stories	限時動態上的留言列高度
+# context: Stories > Comment line height on stories > choice that leaves the line where Instagram puts it; 'it' is the comment line (#826)
+Where Instagram puts it	Instagram 預設的位置
+# context: Stories > Comment line height on stories > choice that lifts the comment line a little (#826)
+A little higher	稍高一點
+# context: Stories > Comment line height on stories > choice that lifts the comment line more than A little higher (#826)
+Higher	更高
+# context: Stories > summary of Comment line height on stories while Where Instagram puts it is chosen; the line is the one you tap on a story to write a comment (#826)
+The line for writing a comment sits where Instagram puts it, at the bottom of the story.	撰寫留言的那一列維持在 Instagram 預設的位置，也就是限時動態的最下方。
+# context: Stories > summary of Comment line height on stories while A little higher is chosen (#826)
+The line for writing a comment sits a little higher on the story.	撰寫留言的那一列在限時動態上的位置稍高一點。
+# context: Stories > summary of Comment line height on stories while Higher is chosen; the bottom edge is the bottom of the screen (#826)
+The line for writing a comment sits higher on the story, well clear of the bottom edge.	撰寫留言的那一列在限時動態上的位置更高，離底部邊緣有一段距離。

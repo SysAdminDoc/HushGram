@@ -127,6 +127,7 @@ import app.hushgram.extension.instagram.share.ShareSheetActions;
 import app.hushgram.extension.instagram.share.SharingDomain;
 import app.hushgram.extension.instagram.stories.StoryBarThickness;
 import app.hushgram.extension.instagram.stories.StorySeekBarPosition;
+import app.hushgram.extension.instagram.stories.StoryCommentLine;
 import app.hushgram.extension.instagram.stories.StoryPriority;
 import app.hushgram.extension.instagram.stories.StoryEmoji;
 import app.hushgram.extension.instagram.stories.StoryFonts;
@@ -892,6 +893,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                             || Settings.REEL_POST_TIME_AGO.key.equals(key));
                     belongs |= family == PatchFamily.FRIENDSHIP_STATUS && Settings.FOLLOW_LABEL_PLACE.key.equals(key);
                     belongs |= family == PatchFamily.FULL_SCREEN_BARS && Settings.FULL_SCREEN_HIDES.key.equals(key);
+                    belongs |= family == PatchFamily.STORY_REPLY_BOX && Settings.STORY_COMMENT_LINE.key.equals(key);
                     belongs |= family == PatchFamily.GLASS_TAB_BAR && (Settings.GLASS_TAB_BAR_HAPTIC_STYLE.key.equals(key)
                             || Settings.GLASS_TAB_BAR_HAPTIC_STRENGTH.key.equals(key)
                             || Settings.GLASS_TAB_BAR_TAP_SOUND_VOLUME.key.equals(key));
@@ -4535,9 +4537,9 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     /**
      * Hands [changed] the activity under HushGram settings each time [row] is flipped. Settings are a
      * dialog over Instagram's screen, which never resumes when they close, so a helper that decides as
-     * an activity resumes hears of the change here.
+     * an activity resumes hears of the change here. A list row's new choice counts as a flip.
      */
-    static SwitchPreference onFlip(SwitchPreference row, java.util.function.Consumer<Activity> changed) {
+    static <P extends Preference> P onFlip(P row, java.util.function.Consumer<Activity> changed) {
         row.setOnPreferenceChangeListener((preference, value) -> {
             changed.accept(activityOf(preference.getContext()));
             return true;
@@ -7278,6 +7280,22 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 L10n.t("Above the Send message box"),
                 L10n.t("Below the Send message box"),
         }, L10n.t("Seek bar position"));
+        return row;
+    }
+
+    /** How high the line for writing a comment sits on stories (#826). Its values are the heights' own names. */
+    static ChoiceRow<StoryCommentLine> storyCommentLineRow(Context context) {
+        ChoiceRow<StoryCommentLine> row = new ChoiceRow<>(context, Settings.STORY_COMMENT_LINE,
+                StoryCommentLine.values(), new String[] {
+                        L10n.t("The line for writing a comment sits where Instagram puts it, at the bottom of the story."),
+                        L10n.t("The line for writing a comment sits a little higher on the story."),
+                        L10n.t("The line for writing a comment sits higher on the story, well clear of the bottom edge."),
+                }, null);
+        fill(row, Settings.STORY_COMMENT_LINE, StoryCommentLine.values(), new String[] {
+                L10n.t("Where Instagram puts it"),
+                L10n.t("A little higher"),
+                L10n.t("Higher"),
+        }, L10n.t("Comment line height on stories"));
         return row;
     }
 

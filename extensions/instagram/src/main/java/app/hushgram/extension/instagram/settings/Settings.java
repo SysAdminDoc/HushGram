@@ -449,6 +449,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_story_comments", FALSE);
 
     /**
+     * How high the line a story shows for writing a comment sits (#826,
+     * {@link app.hushgram.extension.instagram.stories.StoryCommentLine}). Starts where Instagram puts
+     * it. Read before each frame.
+     */
+    public static final EnumSetting<app.hushgram.extension.instagram.stories.StoryCommentLine> STORY_COMMENT_LINE =
+            new EnumSetting<>("hushgram_story_comment_line",
+                    app.hushgram.extension.instagram.stories.StoryCommentLine.INSTAGRAM);
+
+    /**
      * The row along a story's bottom moves down off the story when a large font or display size makes
      * it cover the story ({@link app.hushgram.extension.instagram.stories.StoryButtonsRoom}). Read before
      * each frame, and the row goes back the frame after it turns off. On to start.

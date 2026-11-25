@@ -3025,3 +3025,17 @@ Shows a handle at the right edge of a chat while it scrolls. Drag it up to your 
 Hide comments on stories	Nascondi i commenti nelle storie
 # context: Stories > summary of Hide comments on stories; the faces are the small round profile pictures of the commenters; the Comment button is the story's own Comment button, translated as in Hide the Comment button on stories (#826)
 Takes the comments floating over stories off them, along with the faces of the people who wrote them. The Comment button still opens them.	Toglie i commenti che fluttuano sulle storie, insieme ai volti di chi li ha scritti. Il pulsante Commenta li apre ancora.
+# context: Stories > title of the choice of how high the line you tap to write a comment sits on a story, under Hide comments on stories (#826)
+Comment line height on stories	Altezza della riga dei commenti nelle storie
+# context: Stories > Comment line height on stories > choice that leaves the line where Instagram puts it; 'it' is the comment line (#826)
+Where Instagram puts it	Dove la mette Instagram
+# context: Stories > Comment line height on stories > choice that lifts the comment line a little (#826)
+A little higher	Un po' più in alto
+# context: Stories > Comment line height on stories > choice that lifts the comment line more than A little higher (#826)
+Higher	Più in alto
+# context: Stories > summary of Comment line height on stories while Where Instagram puts it is chosen; the line is the one you tap on a story to write a comment (#826)
+The line for writing a comment sits where Instagram puts it, at the bottom of the story.	La riga per scrivere un commento resta dove la mette Instagram, in fondo alla storia.
+# context: Stories > summary of Comment line height on stories while A little higher is chosen (#826)
+The line for writing a comment sits a little higher on the story.	La riga per scrivere un commento sta un po' più in alto nella storia.
+# context: Stories > summary of Comment line height on stories while Higher is chosen; the bottom edge is the bottom of the screen (#826)
+The line for writing a comment sits higher on the story, well clear of the bottom edge.	La riga per scrivere un commento sta più in alto nella storia, ben lontana dal bordo inferiore.

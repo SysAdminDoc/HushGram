@@ -71,6 +71,7 @@ public class StoryReplyBoxTest {
     private int shareStubId;
     /** The ids of {@link StoryReplyBox#COMMENTS}, in its order. */
     private final int[] commentsIds = new int[StoryReplyBox.COMMENTS.length];
+    private int commentLineId;
     private int likeClicks;
     private final Object viewer = new Object();
 
@@ -97,6 +98,8 @@ public class StoryReplyBoxTest {
             commentsIds[i] = View.generateViewId();
             StoryReplyBox.putIdForTests(activity, StoryReplyBox.COMMENTS[i], commentsIds[i]);
         }
+        commentLineId = View.generateViewId();
+        StoryReplyBox.putIdForTests(activity, StoryReplyBox.COMMENT_LINE, commentLineId);
         viewerView = new FrameLayout(activity);
         footer = footer();
         viewerView.addView(footer, new FrameLayout.LayoutParams(720, 120, Gravity.BOTTOM));
@@ -140,6 +143,7 @@ public class StoryReplyBoxTest {
         Settings.HIDE_STORY_COMMENT_BUTTON.resetToDefault();
         Settings.HIDE_STORY_SHARE_BUTTON.resetToDefault();
         Settings.HIDE_STORY_COMMENTS.resetToDefault();
+        Settings.STORY_COMMENT_LINE.resetToDefault();
     }
 
     /** A footer the way 454 lays one out: the box holding its text field, then like, comment and share. */
@@ -681,6 +685,117 @@ public class StoryReplyBoxTest {
     @Test
     public void theCommentsSwitchAloneWatchesForCopies() {
         Settings.HIDE_STORY_COMMENTS.save(true);
+        StoryReplyBox.watch(activity);
+        assertTrue(ViewWatcher.joined(activity, StoryReplyBox.OPENINGS));
+    }
+
+    /** The line 457 shows for writing a comment (#826), on the story's page under the viewer, not in its footer. */
+    private View commentLine() {
+        FrameLayout page = new FrameLayout(activity);
+        View line = new View(activity);
+        line.setId(commentLineId);
+        page.addView(line, new FrameLayout.LayoutParams(600, 80, Gravity.BOTTOM));
+        viewerView.addView(page, 0, new FrameLayout.LayoutParams(720, 1000));
+        idle();
+        return line;
+    }
+
+    private float up(StoryCommentLine height) {
+        return -height.px(activity.getResources().getDisplayMetrics().density);
+    }
+
+    @Test
+    public void theCommentLineGoesUpByTheHeightChosenAndBackOnInstagramsPlace() {
+        View line = commentLine();
+        int top = line.getTop();
+        StoryReplyBox.resumed(viewer);
+        frame();
+        assertEquals("Instagram's place to start", 0f, line.getTranslationY(), 0f);
+        assertFalse("no keeper for Instagram's place", StoryReplyBox.keptForTests());
+        Settings.STORY_COMMENT_LINE.save(StoryCommentLine.HIGHER);
+        StoryReplyBox.resumed(viewer);
+        assertFalse("nothing is laid out again, so the frame draws", frame());
+        assertTrue(up(StoryCommentLine.HIGHER) < 0f);
+        assertEquals(up(StoryCommentLine.HIGHER), line.getTranslationY(), 0f);
+        assertEquals("its place in the layout is Instagram's", top, line.getTop());
+        Settings.STORY_COMMENT_LINE.save(StoryCommentLine.HIGHEST);
+        frame();
+        assertEquals("a new height moves it on", up(StoryCommentLine.HIGHEST), line.getTranslationY(), 0f);
+        Settings.HIDE_STORY_SHARE_BUTTON.save(true);
+        Settings.STORY_COMMENT_LINE.save(StoryCommentLine.INSTAGRAM);
+        frame();
+        assertEquals("Instagram's place puts it back while another switch keeps the keeper", 0f, line.getTranslationY(), 0f);
+        assertEquals(View.VISIBLE, box.getVisibility());
+        assertEquals(View.VISIBLE, line.getVisibility());
+    }
+
+    @Test
+    public void aMoveOfInstagramsOwnWinsAndTheLineGoesUpAgainOnceItRests() {
+        View line = commentLine();
+        Settings.STORY_COMMENT_LINE.save(StoryCommentLine.HIGHER);
+        StoryReplyBox.resumed(viewer);
+        frame();
+        line.setTranslationY(-300f);
+        frame();
+        assertEquals("Instagram moved it itself", -300f, line.getTranslationY(), 0f);
+        Settings.STORY_COMMENT_LINE.save(StoryCommentLine.INSTAGRAM);
+        frame();
+        assertEquals("putting it back leaves Instagram's move alone", -300f, line.getTranslationY(), 0f);
+        Settings.STORY_COMMENT_LINE.save(StoryCommentLine.HIGHER);
+        StoryReplyBox.resumed(viewer);
+        line.setTranslationY(0f);
+        frame();
+        assertEquals("at rest again, so up it goes", up(StoryCommentLine.HIGHER), line.getTranslationY(), 0f);
+    }
+
+    @Test
+    public void aPausePutsTheLineBackAndKeepsTheChoice() {
+        View line = commentLine();
+        Settings.STORY_COMMENT_LINE.save(StoryCommentLine.HIGHEST);
+        StoryReplyBox.resumed(viewer);
+        frame();
+        assertEquals(up(StoryCommentLine.HIGHEST), line.getTranslationY(), 0f);
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        frame();
+        assertEquals("a pause puts it back", 0f, line.getTranslationY(), 0f);
+        assertEquals(StoryCommentLine.HIGHEST, Settings.STORY_COMMENT_LINE.savedValue());
+    }
+
+    @Test
+    public void aCommentLineStillAStubIsFollowedToTheViewItInflates() {
+        FrameLayout page = new FrameLayout(activity);
+        ViewStub stub = new ViewStub(activity, android.R.layout.simple_list_item_1);
+        stub.setId(commentLineId);
+        page.addView(stub, new FrameLayout.LayoutParams(600, 80, Gravity.BOTTOM));
+        viewerView.addView(page, 0, new FrameLayout.LayoutParams(720, 1000));
+        idle();
+        Settings.STORY_COMMENT_LINE.save(StoryCommentLine.HIGHER);
+        StoryReplyBox.resumed(viewer);
+        frame();
+        View line = stub.inflate();
+        assertTrue("the inflated view carries another id", line.getId() != commentLineId);
+        frame();
+        assertEquals(up(StoryCommentLine.HIGHER), line.getTranslationY(), 0f);
+    }
+
+    @Test
+    public void aBuildWithoutTheLineIsReportedOnlyWhileAHeightIsChosen() {
+        StoryReplyBox.putIdForTests(activity, StoryReplyBox.COMMENT_LINE, 0);
+        Settings.HIDE_STORY_SHARE_BUTTON.save(true);
+        StoryReplyBox.resumed(viewer);
+        frame();
+        assertFalse(HookStatus.missing(FamilyNames.STORY_REPLY_BOX).toString(),
+                HookStatus.missing(FamilyNames.STORY_REPLY_BOX).toString().contains(StoryReplyBox.COMMENT_LINE));
+        Settings.STORY_COMMENT_LINE.save(StoryCommentLine.HIGHER);
+        frame();
+        assertTrue(HookStatus.missing(FamilyNames.STORY_REPLY_BOX).toString(),
+                HookStatus.missing(FamilyNames.STORY_REPLY_BOX).toString().contains(StoryReplyBox.COMMENT_LINE));
+    }
+
+    @Test
+    public void aHeightAloneWatchesForCopies() {
+        Settings.STORY_COMMENT_LINE.save(StoryCommentLine.HIGHER);
         StoryReplyBox.watch(activity);
         assertTrue(ViewWatcher.joined(activity, StoryReplyBox.OPENINGS));
     }

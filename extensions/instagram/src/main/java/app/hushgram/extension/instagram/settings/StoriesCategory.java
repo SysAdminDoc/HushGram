@@ -14,6 +14,7 @@ import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragme
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.onFlip;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.priorityAccountsRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.storyBarRow;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.storyCommentLineRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.storyMentionsLookRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.storyRingColorRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.storyRingCustomEndRow;
@@ -210,6 +211,7 @@ final class StoriesCategory {
             stories.add(onFlip(toggle(context, Settings.HIDE_STORY_COMMENTS, L10n.t("Hide comments on stories"),
                     L10n.t("Takes the comments floating over stories off them, along with the faces of the people "
                             + "who wrote them. The Comment button still opens them.")), StoryReplyBox::switchChanged));
+            stories.add(onFlip(storyCommentLineRow(context), StoryReplyBox::switchChanged));
         }
         if (build.contains(PatchFamily.GLASS_CHAT)) {
             stories.add(toggle(context, Settings.GLASS_STORY_REPLY_BOX, L10n.t("Glass reply box on stories"),

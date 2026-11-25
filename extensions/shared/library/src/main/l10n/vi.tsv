@@ -2940,3 +2940,17 @@ Shows a handle at the right edge of a chat while it scrolls. Drag it up to your 
 Hide comments on stories	Ẩn bình luận trên tin
 # context: Stories > summary of Hide comments on stories; the faces are the small round profile pictures of the commenters; the Comment button is the story's own Comment button, translated as in Hide the Comment button on stories (#826)
 Takes the comments floating over stories off them, along with the faces of the people who wrote them. The Comment button still opens them.	Bỏ các bình luận trôi trên tin, cùng với khuôn mặt của những người đã viết. Nút Bình luận vẫn mở được chúng.
+# context: Stories > title of the choice of how high the line you tap to write a comment sits on a story, under Hide comments on stories (#826)
+Comment line height on stories	Độ cao dòng bình luận trên tin
+# context: Stories > Comment line height on stories > choice that leaves the line where Instagram puts it; 'it' is the comment line (#826)
+Where Instagram puts it	Vị trí Instagram đặt
+# context: Stories > Comment line height on stories > choice that lifts the comment line a little (#826)
+A little higher	Cao hơn một chút
+# context: Stories > Comment line height on stories > choice that lifts the comment line more than A little higher (#826)
+Higher	Cao hơn
+# context: Stories > summary of Comment line height on stories while Where Instagram puts it is chosen; the line is the one you tap on a story to write a comment (#826)
+The line for writing a comment sits where Instagram puts it, at the bottom of the story.	Dòng để viết bình luận nằm ở vị trí Instagram đặt, ở cuối tin.
+# context: Stories > summary of Comment line height on stories while A little higher is chosen (#826)
+The line for writing a comment sits a little higher on the story.	Dòng để viết bình luận nằm cao hơn một chút trên tin.
+# context: Stories > summary of Comment line height on stories while Higher is chosen; the bottom edge is the bottom of the screen (#826)
+The line for writing a comment sits higher on the story, well clear of the bottom edge.	Dòng để viết bình luận nằm cao hơn trên tin, cách xa mép dưới.

@@ -3024,3 +3024,17 @@ Shows a handle at the right edge of a chat while it scrolls. Drag it up to your 
 Hide comments on stories	스토리에서 댓글 숨기기
 # context: Stories > summary of Hide comments on stories; the faces are the small round profile pictures of the commenters; the Comment button is the story's own Comment button, translated as in Hide the Comment button on stories (#826)
 Takes the comments floating over stories off them, along with the faces of the people who wrote them. The Comment button still opens them.	스토리 위에 떠 있는 댓글과 댓글을 쓴 사람들의 얼굴을 없앱니다. 댓글 버튼으로는 계속 볼 수 있습니다.
+# context: Stories > title of the choice of how high the line you tap to write a comment sits on a story, under Hide comments on stories (#826)
+Comment line height on stories	스토리의 댓글 입력줄 높이
+# context: Stories > Comment line height on stories > choice that leaves the line where Instagram puts it; 'it' is the comment line (#826)
+Where Instagram puts it	Instagram 기본 위치
+# context: Stories > Comment line height on stories > choice that lifts the comment line a little (#826)
+A little higher	조금 더 높게
+# context: Stories > Comment line height on stories > choice that lifts the comment line more than A little higher (#826)
+Higher	더 높게
+# context: Stories > summary of Comment line height on stories while Where Instagram puts it is chosen; the line is the one you tap on a story to write a comment (#826)
+The line for writing a comment sits where Instagram puts it, at the bottom of the story.	댓글을 쓰는 입력줄이 Instagram이 둔 자리, 스토리 맨 아래에 있습니다.
+# context: Stories > summary of Comment line height on stories while A little higher is chosen (#826)
+The line for writing a comment sits a little higher on the story.	댓글을 쓰는 입력줄이 스토리에서 조금 더 높은 곳에 있습니다.
+# context: Stories > summary of Comment line height on stories while Higher is chosen; the bottom edge is the bottom of the screen (#826)
+The line for writing a comment sits higher on the story, well clear of the bottom edge.	댓글을 쓰는 입력줄이 스토리에서 더 높은 곳, 아래쪽 가장자리에서 충분히 떨어진 곳에 있습니다.

@@ -21,6 +21,8 @@ import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
 import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.Config;
+import org.robolectric.shadows.ShadowLooper;
+import app.hushgram.extension.instagram.stories.StoryCommentLine;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.settings.BaseSettings;
@@ -63,6 +65,7 @@ public class StoryReplyBoxSettingsTest {
         Settings.HIDE_STORY_COMMENT_BUTTON.resetToDefault();
         Settings.HIDE_STORY_SHARE_BUTTON.resetToDefault();
         Settings.HIDE_STORY_COMMENTS.resetToDefault();
+        Settings.STORY_COMMENT_LINE.resetToDefault();
     }
     private void open(EnumSet<PatchFamily> build) throws Exception {
         PatchFamily.inBuildForTests = build;
@@ -90,7 +93,8 @@ public class StoryReplyBoxSettingsTest {
         assertEquals(Arrays.toString(keys), Settings.HIDE_STORY_COMMENT_BUTTON.key, keys[at + 2]);
         assertEquals(Arrays.toString(keys), Settings.HIDE_STORY_SHARE_BUTTON.key, keys[at + 3]);
         assertEquals(Arrays.toString(keys), Settings.HIDE_STORY_COMMENTS.key, keys[at + 4]);
-        assertEquals(Arrays.toString(keys), Settings.SHOW_STORY_TIME.key, keys[at + 5]);
+        assertEquals(Arrays.toString(keys), Settings.STORY_COMMENT_LINE.key, keys[at + 5]);
+        assertEquals(Arrays.toString(keys), Settings.SHOW_STORY_TIME.key, keys[at + 6]);
         assertEquals("Hide the reply box on stories", PatchFamily.STORY_REPLY_BOX.patchName);
         assertEquals(Arrays.asList(Settings.HIDE_STORY_REPLY_BOX, Settings.HIDE_STORY_LIKE_BUTTON,
                 Settings.HIDE_STORY_COMMENT_BUTTON, Settings.HIDE_STORY_SHARE_BUTTON, Settings.HIDE_STORY_COMMENTS),
@@ -135,6 +139,39 @@ public class StoryReplyBoxSettingsTest {
         assertFalse("each switch is its own", Settings.HIDE_STORY_LIKE_BUTTON.get());
         assertFalse(Settings.HIDE_STORY_REPLY_BOX.get());
     }
+    /** #826: the comment line's height is a choice under Hide comments on stories, Instagram's place to start. */
+    @Test public void theCommentLineHeightIsAChoiceThatStartsWhereInstagramPutsIt() throws Exception {
+        open(EnumSet.of(PatchFamily.STORY_REPLY_BOX));
+        Preference found = page.getPreferenceScreen().findPreference(Settings.STORY_COMMENT_LINE.key);
+        assertTrue(String.valueOf(found), found instanceof HushgramPreferenceFragment.ChoiceRow);
+        HushgramPreferenceFragment.ChoiceRow<?> row = (HushgramPreferenceFragment.ChoiceRow<?>) found;
+        assertEquals("Comment line height on stories", row.getTitle().toString());
+        assertEquals("Stories", ((PreferenceGroup) row.getParent()).getTitle().toString());
+        assertEquals(Arrays.asList("Where Instagram puts it", "A little higher", "Higher"),
+                Arrays.asList(Arrays.stream(row.getEntries()).map(CharSequence::toString).toArray()));
+        assertEquals(Arrays.asList("INSTAGRAM", "HIGHER", "HIGHEST"),
+                Arrays.asList(Arrays.stream(row.getEntryValues()).map(CharSequence::toString).toArray()));
+        assertEquals("INSTAGRAM", row.getValue());
+        assertEquals("The line for writing a comment sits where Instagram puts it, at the bottom of the story.",
+                row.getSummary().toString());
+        assertEquals(StoryCommentLine.INSTAGRAM, Settings.STORY_COMMENT_LINE.get());
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.STORY_COMMENT_LINE.key));
+
+        assertTrue(row.getOnPreferenceChangeListener().onPreferenceChange(row, "HIGHEST"));
+        row.setValue("HIGHEST");
+        ShadowLooper.idleMainLooper();
+        assertEquals(StoryCommentLine.HIGHEST, Settings.STORY_COMMENT_LINE.get());
+        assertEquals("The line for writing a comment sits higher on the story, well clear of the bottom edge.",
+                row.getSummary().toString());
+        assertEquals(0, StoryCommentLine.INSTAGRAM.px(2f));
+        assertEquals(48, StoryCommentLine.HIGHER.px(2f));
+        assertEquals(96, StoryCommentLine.HIGHEST.px(2f));
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertEquals("Instagram's place while paused", StoryCommentLine.INSTAGRAM, Settings.STORY_COMMENT_LINE.get());
+        assertEquals(StoryCommentLine.HIGHEST, Settings.STORY_COMMENT_LINE.savedValue());
+    }
     @Test public void aSavedSwitchAnswersOffWhilePaused() throws Exception {
         open(EnumSet.of(PatchFamily.STORY_REPLY_BOX));
         Settings.HIDE_STORY_REPLY_BOX.save(true);
@@ -152,5 +189,7 @@ public class StoryReplyBoxSettingsTest {
         assertFalse(ConfigurationBackup.eligible().containsKey(Settings.HIDE_STORY_SHARE_BUTTON.key));
         assertNull(page.getPreferenceScreen().findPreference(Settings.HIDE_STORY_COMMENTS.key));
         assertFalse(ConfigurationBackup.eligible().containsKey(Settings.HIDE_STORY_COMMENTS.key));
+        assertNull(page.getPreferenceScreen().findPreference(Settings.STORY_COMMENT_LINE.key));
+        assertFalse(ConfigurationBackup.eligible().containsKey(Settings.STORY_COMMENT_LINE.key));
     }
 }
