@@ -248,6 +248,8 @@ public final class AmbientLight {
     private static final RectF mapped = new RectF(), picture = new RectF();
     private static final int[] where = new int[2];
     private static boolean ticking;
+    /** How many times the tick has run, for tests. */
+    private static int ticks;
     private static volatile boolean registered;
     private static volatile boolean logged;
 
@@ -1145,9 +1147,14 @@ public final class AmbientLight {
 
     /** Has each light on screen take a copy of its picture, and comes back after the speed chosen. */
     static void tick() {
+        ticks++;
         ticking = false;
         try {
             if (!wanted() || lights.isEmpty()) return;
+            // With Instagram in the background or every light behind another screen there is nothing to
+            // copy, and a tick that kept coming back woke the phone for nothing (#341). The next frame
+            // that shows a light starts it again (wakeTick).
+            if (!anyInFront()) return;
             for (Light light : new ArrayList<>(lights.values())) sample(light);
             ticking = true;
             main.postDelayed(TICK, Settings.AMBIENT_LIGHT_SPEED.get().sampleMillis);
@@ -1156,10 +1163,32 @@ public final class AmbientLight {
         }
     }
 
+    /** Starts the tick again after it rested, once a frame shows a light. Main thread only. */
+    static void wakeTick() {
+        if (ticking || lights.isEmpty() || !anyInFront()) return;
+        ticking = true;
+        main.post(TICK);
+    }
+
+    private static boolean anyInFront() {
+        for (View media : lights.keySet()) {
+            if (media != null && inFront(media)) return true;
+        }
+        return false;
+    }
+
+    /**
+     * Whether [media] can be seen: it and every parent show, in a window that shows. isShown() alone
+     * misses a window the system hid while its views still say they show.
+     */
+    private static boolean inFront(View media) {
+        return media.isShown() && media.getWindowVisibility() == View.VISIBLE;
+    }
+
     private static void sample(Light light) {
         View media = light.media.get();
         Activity owner = light.owner.get();
-        if (media == null || owner == null || light.asking || !media.isShown() || !media.getGlobalVisibleRect(scratch)) return;
+        if (media == null || owner == null || light.asking || !inFront(media) || !media.getGlobalVisibleRect(scratch)) return;
         media.getLocationInWindow(where);
         boolean moved = where[0] != light.atX || where[1] != light.atY;
         light.atX = where[0];
@@ -1351,6 +1380,11 @@ public final class AmbientLight {
         return lights.size();
     }
 
+    /** How many times the tick has run since the last reset. For tests. */
+    static int ticksForTests() {
+        return ticks;
+    }
+
     @Nullable
     static Rect litRectForTests(View media) {
         Light light = lights.get(media);
@@ -1397,6 +1431,7 @@ public final class AmbientLight {
         drawing.clear();
         sampler = SCREEN;
         logged = false;
+        ticks = 0;
         blurInBuildForTests = null;
         barRef = null;
         wearsGlass = GlassTabBar::wearsGlass;
@@ -2253,6 +2288,7 @@ public final class AmbientLight {
                     return false;
                 }
                 follow();
+                wakeTick();
                 if (laidOut) {
                     boolean feed = feedWanted(), stories = storiesWanted();
                     int frame = 0, storyFrame = 0;

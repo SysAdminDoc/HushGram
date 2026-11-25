@@ -12,6 +12,7 @@ import android.graphics.PorterDuff;
 import android.graphics.Shader;
 import android.text.Layout;
 import android.view.View;
+import android.view.ViewTreeObserver;
 import android.view.animation.AnimationUtils;
 import android.widget.TextView;
 
@@ -28,7 +29,7 @@ import java.util.WeakHashMap;
  * Android's animation scale says (Matt, 2026-10-26: the S22 runs with animations off and the title
  * sat still there).
  */
-public final class ShimmerTitle implements Runnable, View.OnAttachStateChangeListener {
+public final class ShimmerTitle implements Runnable, View.OnAttachStateChangeListener, ViewTreeObserver.OnPreDrawListener {
     /** One sheen sweep and the wait after it. */
     static final long PERIOD_MS = 6000;
     /** How long a sheen sweep runs. */
@@ -41,8 +42,6 @@ public final class ShimmerTitle implements Runnable, View.OnAttachStateChangeLis
      * test's paused looper, which then never goes idle.
      */
     private static final long FRAME_MS = 10;
-    /** How often a title that isn't showing checks whether it is again. */
-    private static final long HIDDEN_CHECK_MS = 500;
     /**
      * Instagram's gradient, yellow through orange, pink and purple to blue, each stop lightened
      * where needed so it reads at 7:1 or better on the black bar.
@@ -79,6 +78,10 @@ public final class ShimmerTitle implements Runnable, View.OnAttachStateChangeLis
     /** When the first sweep started, so it plays as the title opens. */
     private long startedAt = -1L;
     private boolean running;
+    /** The window observer waiting for the title to show again while the loop rests, or null. */
+    @Nullable private ViewTreeObserver waiting;
+    /** How many times the loop has run, for tests. */
+    private int looks;
 
     private ShimmerTitle(TextView title) {
         this.title = title;
@@ -109,28 +112,78 @@ public final class ShimmerTitle implements Runnable, View.OnAttachStateChangeLis
     @Override
     public void onViewAttachedToWindow(View view) {
         startedAt = -1L;
-        if (!running) {
-            running = true;
-            title.postOnAnimationDelayed(this, FRAME_MS);
-        }
+        start();
     }
 
     @Override
     public void onViewDetachedFromWindow(View view) {
         running = false;
         title.removeCallbacks(this);
+        stopWaiting();
+    }
+
+    /**
+     * A frame of the title's window while the loop rests: the window draws as it comes back to the front
+     * and as a page opens over the title or closes, so the first frame that shows the title starts it again.
+     */
+    @Override
+    public boolean onPreDraw() {
+        if (!running && title.isAttachedToWindow() && inFront()) {
+            stopWaiting();
+            startedAt = -1L;
+            start();
+        }
+        return true;
+    }
+
+    private void start() {
+        if (running) return;
+        running = true;
+        title.postOnAnimationDelayed(this, FRAME_MS);
+    }
+
+    /**
+     * Whether the title can be seen: it and every parent show, in a window that shows. isShown() alone
+     * misses a window the system hid while its views still say they show.
+     */
+    private boolean inFront() {
+        return title.isShown() && title.getWindowVisibility() == View.VISIBLE;
+    }
+
+    /** Rests the loop until a frame of the window shows the title again. */
+    private void rest() {
+        running = false;
+        startedAt = -1L;
+        if (waiting != null) return;
+        ViewTreeObserver observer = title.getViewTreeObserver();
+        if (!observer.isAlive()) return;
+        observer.addOnPreDrawListener(this);
+        waiting = observer;
+    }
+
+    private void stopWaiting() {
+        ViewTreeObserver observer = waiting;
+        waiting = null;
+        if (observer != null && observer.isAlive()) observer.removeOnPreDrawListener(this);
+    }
+
+    /** How many times the loop of [title], which wears the gradient, has run. For tests. */
+    static int looksForTests(TextView title) {
+        ShimmerTitle shimmer = wornBy(title);
+        return shimmer == null ? 0 : shimmer.looks;
     }
 
     @Override
     public void run() {
+        looks++;
         if (!running || !title.isAttachedToWindow()) {
             running = false;
             return;
         }
-        if (!title.isShown()) {
-            // Nothing to draw behind a closed page: look again in a while instead of every frame.
-            startedAt = -1L;
-            title.postDelayed(this, HIDDEN_CHECK_MS);
+        if (!inFront()) {
+            // Nothing to draw behind a closed page or with Instagram in the background, where a loop
+            // that kept looking woke the phone for nothing (#341).
+            rest();
             return;
         }
         long now = AnimationUtils.currentAnimationTimeMillis();

@@ -4,6 +4,7 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
+* Two HushGram loops kept running with Instagram in the background. A settings page left open kept animating its title, and `Ambient light` kept checking the post it lit a few times a second. Both now wait until Instagram is on screen again. Reported in #341.
 * HushGram now patches Instagram 457.0.0.55.73 instead of 456.0.0.53.78. Get APKMirror's (arm64-v8a) (480-640dpi) (Android 9.0+) bundle, build 386314341. Its 480dpi build, 386314297, works too. 32-bit phones take build 386314340 (armeabi-v7a) and x86_64 emulators build 386314286.
 * `Follow without the review sheet` is new under Profiles, beside `Ask before a follow`. When Instagram would open its "Review this account before following" sheet, the follow goes through right away, as the sheet's Follow button would, so one tap follows. Starts off. Asked for in #867.
 * `Seek bar on stories` and its time now show the moment a story's video starts. On a reel shared to a story they popped in a quarter of a second late, which looked like the story jumping. Reported in #618.

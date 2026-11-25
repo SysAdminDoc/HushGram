@@ -32,6 +32,7 @@ import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.Config;
 import org.robolectric.annotation.GraphicsMode;
 import org.robolectric.shadows.ShadowLooper;
+import org.robolectric.util.ReflectionHelpers;
 
 import java.lang.reflect.Method;
 
@@ -129,6 +130,68 @@ public class ShimmerTitleTest {
         } finally {
             scale.invoke(null, 1f);
         }
+    }
+
+    /** Left open with Instagram in the background, the title still woke the app twice a second (#341). */
+    @Test
+    public void aTitleInAStoppedActivityRestsUntilItsWindowShowsAgain() {
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup().visible()) {
+            TextView title = shownIn(controller.get());
+            View decor = controller.get().getWindow().getDecorView();
+            // As Android leaves a stopped activity: its window's decor turned invisible.
+            decor.setVisibility(View.INVISIBLE);
+            assertRests(title);
+            decor.setVisibility(View.VISIBLE);
+            assertMovesAgain(title);
+        }
+    }
+
+    /** A window the system hid while every view in it still says it shows. */
+    @Test
+    public void aTitleInAHiddenWindowRestsUntilItShowsAgain() {
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup().visible()) {
+            TextView title = shownIn(controller.get());
+            Object window = ReflectionHelpers.callInstanceMethod(controller.get().getWindow().getDecorView(), "getViewRootImpl");
+            ReflectionHelpers.callInstanceMethod(window, "dispatchAppVisibility", ReflectionHelpers.ClassParameter.from(boolean.class, false));
+            ShadowLooper.idleMainLooper();
+            assertEquals("the window is hidden", View.GONE, title.getWindowVisibility());
+            assertTrue("while the title still says it shows", title.isShown());
+            assertRests(title);
+            ReflectionHelpers.callInstanceMethod(window, "dispatchAppVisibility", ReflectionHelpers.ClassParameter.from(boolean.class, true));
+            ShadowLooper.idleMainLooper();
+            assertMovesAgain(title);
+        }
+    }
+
+    private static TextView shownIn(Activity activity) {
+        TextView title = title("HushGram");
+        FrameLayout root = new FrameLayout(activity);
+        root.addView(title);
+        activity.setContentView(root);
+        ShimmerTitle.wear(title);
+        assertNotNull("the gradient is on", shift(title, 200));
+        return title;
+    }
+
+    private static void assertRests(TextView title) {
+        // The loop's next look finds the window hidden.
+        shift(title, 600);
+        int looks = ShimmerTitle.looksForTests(title);
+        shift(title, 5000);
+        assertEquals("the loop rested while the window was hidden", looks, ShimmerTitle.looksForTests(title));
+    }
+
+    private static void assertMovesAgain(TextView title) {
+        // The frame the window draws as it shows again.
+        title.getViewTreeObserver().dispatchOnPreDraw();
+        int looks = ShimmerTitle.looksForTests(title);
+        // It starts over with the sweep, as it opens; past it the paint holds the drifting gradient alone.
+        Float first = shift(title, ShimmerTitle.SWEEP_MS + 200);
+        Float later = shift(title, 500);
+        assertTrue("the loop runs again", ShimmerTitle.looksForTests(title) > looks + 10);
+        assertNotNull(first);
+        assertNotNull(later);
+        assertTrue("the colours drift again: " + first + " then " + later, !first.equals(later));
     }
 
     @Test

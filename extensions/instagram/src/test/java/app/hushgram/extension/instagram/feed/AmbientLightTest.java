@@ -46,6 +46,7 @@ import org.robolectric.RobolectricTestRunner;
 import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.Config;
 import org.robolectric.annotation.GraphicsMode;
+import org.robolectric.util.ReflectionHelpers;
 
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.SettingsContextRule;
@@ -291,6 +292,55 @@ public class AmbientLightTest {
             advance(AmbientSpeed.MEDIUM.sampleMillis);
             assertEquals("no rest for a video", first + i, asked);
         }
+    }
+
+    /** With Instagram in the background nothing was copied, but the tick still woke the app every few hundred ms (#341). */
+    @Test
+    public void theTickRestsWhileTheActivityIsStoppedAndComesBackWithIt() {
+        View decor = activity.getWindow().getDecorView();
+        // As Android leaves a stopped activity: its window's decor turned invisible.
+        assertTickRestsWhileHidden(() -> decor.setVisibility(View.INVISIBLE), () -> decor.setVisibility(View.VISIBLE));
+    }
+
+    /** A window the system hid while every view in it still says it shows. */
+    @Test
+    public void theTickRestsWhileTheWindowIsHiddenAndComesBackWithIt() {
+        Object window = ReflectionHelpers.callInstanceMethod(activity.getWindow().getDecorView(), "getViewRootImpl");
+        assertTickRestsWhileHidden(() -> appVisibility(window, false), () -> appVisibility(window, true));
+    }
+
+    /** What the system tells a window as it hides or shows it. SDK 37's call takes a second, int argument. */
+    static void appVisibility(Object window, boolean visible) {
+        for (java.lang.reflect.Method method : window.getClass().getMethods()) {
+            if (method.getName().equals("dispatchAppVisibility") && method.getParameterCount() == 2) {
+                ReflectionHelpers.callInstanceMethod(window, "dispatchAppVisibility",
+                        ReflectionHelpers.ClassParameter.from(boolean.class, visible), ReflectionHelpers.ClassParameter.from(int.class, 0));
+                return;
+            }
+        }
+        ReflectionHelpers.callInstanceMethod(window, "dispatchAppVisibility", ReflectionHelpers.ClassParameter.from(boolean.class, visible));
+    }
+
+    private void assertTickRestsWhileHidden(Runnable hide, Runnable show) {
+        long sample = AmbientSpeed.MEDIUM.sampleMillis;
+        media.addView(new TextureView(activity), match());
+        shadowOf(Looper.getMainLooper()).idle();
+        on();
+        advance(sample);
+        hide.run();
+        advance(sample);
+        assertTrue("the window is hidden", !media.isShown() || media.getWindowVisibility() != View.VISIBLE);
+        int ticks = AmbientLight.ticksForTests(), copies = asked;
+
+        advance(sample * 20);
+        assertEquals("nothing copied", copies, asked);
+        assertEquals("and nothing woke the app", ticks, AmbientLight.ticksForTests());
+        assertEquals("the light stays for when it shows again", 1, AmbientLight.litForTests());
+
+        show.run();
+        settle();
+        advance(sample * 3);
+        assertTrue("copies again once it shows: " + copies + " then " + asked, asked >= copies + 2);
     }
 
     /** Photos and stickers in a chat aren't posts, and they glowed like posts (#510). */
