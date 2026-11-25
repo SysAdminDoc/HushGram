@@ -36,8 +36,9 @@ import app.hushgram.extension.shared.ui.Dim;
 /**
  * One row of the viewing history at a time, big, over the history page (#865). Swiping sideways,
  * or the left and right arrow keys, goes to the next or the previous row as the page lists them,
- * with its tab and search. Open and Open profile go to Instagram as a long press's do. Back closes
- * just this, so the page is still there, scrolled to the row seen last.
+ * with its tab and search. Open and Open profile go to Instagram as a long press's do, and Back
+ * there shows this again (#865). Back closes just this, so the page is still there, scrolled to the
+ * row seen last.
  */
 final class ViewingHistoryViewer {
     /** The widest the picture is read at, Instagram's own widest. */
@@ -107,8 +108,8 @@ final class ViewingHistoryViewer {
 
         LinearLayout buttons = new LinearLayout(context);
         buttons.setPaddingRelative(Dim.dp(8), Dim.dp(4), Dim.dp(8), Dim.dp(8));
-        open = button(context, L10n.t(context, "Open"), v -> go(ViewingHistoryPage.link(shown())));
-        profile = button(context, L10n.t(context, "Open profile"), v -> go(ViewingHistoryPage.profileLink(shown())));
+        open = button(context, L10n.t(context, "Open"), v -> go(ViewingHistoryPage.link(shown()), shown()));
+        profile = button(context, L10n.t(context, "Open profile"), v -> go(ViewingHistoryPage.profileLink(shown()), shown()));
         buttons.addView(open);
         buttons.addView(profile);
         root.addView(buttons);
@@ -189,8 +190,8 @@ final class ViewingHistoryViewer {
         return surface.getLayoutDirection() == View.LAYOUT_DIRECTION_RTL;
     }
 
-    private void go(@Nullable Uri link) {
-        if (page.go(dialog.getContext(), link)) dialog.dismiss();
+    private void go(@Nullable Uri link, ViewingHistory.Row row) {
+        if (page.go(dialog.getContext(), link, row)) dialog.dismiss();
     }
 
     private void bind() {

@@ -2120,6 +2120,16 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         return reference == null ? null : reference.get();
     }
 
+    /**
+     * The page of the settings showing [row], as a restart comes back to it: a category's key, or
+     * "" for the top of the list. Null when [row] isn't on settings that are open.
+     */
+    @Nullable
+    static String pageHolding(@Nullable Preference row) {
+        HushgramPreferenceFragment owner = row == null ? null : mutationOwner(row);
+        return owner == null || !owner.isAdded() ? null : owner.currentPage();
+    }
+
     /** Native Save may already be posted when its page closes. An approval received later may not. */
     private static boolean allowMutation(Preference row, boolean needsLivePage) {
         HushgramPreferenceFragment owner = mutationOwner(row);

@@ -670,6 +670,8 @@ public final class SettingsEntry {
             closedByUser = false;
             SettingsDialog.onPage(page).show(fragments, DIALOG_TAG);
             host = new WeakReference<>(activity);
+            // Opened another way since the viewing history's Open, so Back is Instagram's again.
+            ViewingHistoryReturn.disarm();
             Logger.printInfo(() -> "Settings opened over " + name);
             return true;
         } catch (Exception ex) {
@@ -794,6 +796,20 @@ public final class SettingsEntry {
         openPending = true;
         themeRetryPending = false;
         Logger.printInfo(() -> "Settings requested again after Restart now");
+    }
+
+    /**
+     * Back from the viewing history that came back after its Open (#865): the screen on [page]
+     * over [activity] again, as it was under the history. "" is the top of the list.
+     */
+    static void openOn(Activity activity, String page) {
+        requestedPage = page;
+        closedByUser = false;
+        requestedAt = SystemClock.elapsedRealtime();
+        openPending = true;
+        themeRetryPending = false;
+        Logger.printInfo(() -> "Settings requested again by Back from the viewing history");
+        OpenWhenResumed.openWhenSettled(activity);
     }
 
     /** Queues a gesture through the shortcut's same resume/account handoff, without starting a tab. */

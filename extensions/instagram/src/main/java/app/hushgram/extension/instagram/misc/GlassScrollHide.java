@@ -29,6 +29,7 @@ import app.hushgram.extension.instagram.direct.ChatReelsExit;
 import app.hushgram.extension.instagram.download.HoldDownload;
 import app.hushgram.extension.instagram.reels.BurnInGuard;
 import app.hushgram.extension.instagram.settings.FamilyNames;
+import app.hushgram.extension.instagram.settings.ViewingHistoryReturn;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 
 /**
@@ -307,8 +308,8 @@ final class GlassScrollHide {
     static void install(Window window, GlassScrollHide hide) {
         Window.Callback inner = window.getCallback();
         if (inner == null) return;
-        // Hold to download's, Burn-in guard's, the tab slide's and a chat's reels' watchers may have
-        // wrapped this one since, in any order, so they're looked through.
+        // Hold to download's, Burn-in guard's, the tab slide's, a chat's reels' and the viewing
+        // history's Back watchers may have wrapped this one since, in any order, so they're looked through.
         for (Window.Callback seen = inner; seen != null; ) {
             if (Proxy.isProxyClass(seen.getClass()) && Proxy.getInvocationHandler(seen) instanceof Watcher) {
                 Watcher watcher = (Watcher) Proxy.getInvocationHandler(seen);
@@ -321,8 +322,8 @@ final class GlassScrollHide {
                 hide.arm();
                 return;
             }
-            Window.Callback next = ChatReelsExit.innerOf(
-                    GlassTabSlide.innerOf(BurnInGuard.innerOf(HoldDownload.innerOf(seen))));
+            Window.Callback next = ViewingHistoryReturn.innerOf(ChatReelsExit.innerOf(
+                    GlassTabSlide.innerOf(BurnInGuard.innerOf(HoldDownload.innerOf(seen)))));
             if (next == seen) break;
             seen = next;
         }
