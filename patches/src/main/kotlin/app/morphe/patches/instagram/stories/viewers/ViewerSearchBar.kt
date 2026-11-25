@@ -8,6 +8,7 @@ import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
+import app.morphe.patches.instagram.feed.confirm.publicStatic
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesLoading
 import app.morphe.patches.instagram.misc.extension.jumpTargets
@@ -53,10 +54,7 @@ internal fun BytecodePatchContext.findViewerRowBinders(): List<MutableMethod> {
         patchLog.warning("$STORY_VIEWERS_PATCH: nothing makes a viewer list's rows, so the list gets no Search viewers bar")
         return emptyList()
     }
-    val hook = classDefByOrNull(STORY_VIEWER_SEARCH)?.methods?.any {
-        it.name == "row" && it.returnType == "V" && it.takes(VIEW) &&
-            AccessFlags.STATIC.isSet(it.accessFlags) && AccessFlags.PUBLIC.isSet(it.accessFlags)
-    } == true
+    val hook = classDefByOrNull(STORY_VIEWER_SEARCH)?.publicStatic(STORY_VIEWER_ROW) != null
     if (!hook) throw PatchException("$STORY_VIEWERS_PATCH: the extension has no public static $STORY_VIEWER_ROW")
     return makers.map { maker ->
         val binds = maker.methods.filter {
