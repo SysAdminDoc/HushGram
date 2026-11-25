@@ -2680,6 +2680,9 @@ Use template	Usar modelo
 Get Edits	Obter o Edits
 # context: Title of the row under Feed that lists the items to keep in the menus behind the three dots on posts, reels and stories (#697, #707)
 Items in the three-dot menus	Itens dos menus de três pontos
+# context: Feed: a switch right under Items in the three-dot menus (#815). It adds Instagram's Interested row (the same word as the Interested item in that list) to the three-dot menus that leave it out, like the menu of a reel from an account you follow.
+Interested on every post and reel	Tenho interesse em todos os posts e reels
+Adds Interested to the three-dot menu of posts and reels that leave it out, like reels from accounts you follow.	Adiciona Tenho interesse ao menu de três pontos de posts e reels que não têm essa opção, como reels de contas que você segue.
 # context: Summary of Items in the three-dot menus under Feed while every item is ticked (#697, #707)
 Every item shows. Untick the ones you don't want in the menus behind the three dots on posts, reels and stories.	Todos os itens aparecem. Desmarque os que você não quer nos menus de três pontos de publicações, reels e stories.
 # context: Summary of Items in the three-dot menus under Feed naming the unticked items, which are joined with a comma (#697, #707)

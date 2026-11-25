@@ -3776,6 +3776,14 @@ public class Settings extends BaseSettings {
             new StringSetting("hushgram_hidden_menu_items", "");
 
     /**
+     * Interested shows in the three-dot menu of reels from accounts you follow and of posts Instagram
+     * leaves it off (#815, {@link app.hushgram.extension.instagram.feed.InterestedEverywhere}). Read as
+     * each menu opens, so it needs no restart. Off to start.
+     */
+    public static final BooleanSetting INTERESTED_EVERYWHERE =
+            new BooleanSetting("hushgram_interested_everywhere", FALSE);
+
+    /**
      * "Watch again" on a feed reel's end card replays the reel in the feed instead of opening Reels
      * (#568, {@link app.hushgram.extension.instagram.feed.WatchAgain}). Read as each end card is set
      * up, so it needs no restart. Off to start.

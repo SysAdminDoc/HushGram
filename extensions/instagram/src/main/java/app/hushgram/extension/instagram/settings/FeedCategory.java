@@ -438,6 +438,10 @@ final class FeedCategory {
                     L10n.t("Takes the \"Liked by\" line off posts in your feed.")));
         }
         if (menuItems) feed.addPreference(page.menuItemsRow(context));
+        if (menuItems && PatchFamily.interestedEverywhereInBuild()) {
+            feed.addPreference(toggle(context, Settings.INTERESTED_EVERYWHERE, L10n.t("Interested on every post and reel"),
+                    L10n.t("Adds Interested to the three-dot menu of posts and reels that leave it out, like reels from accounts you follow.")));
+        }
         if (activityBubbles) {
             feed.addPreference(toggle(context, Settings.HIDE_ACTIVITY_BUBBLES, L10n.t("Hide activity bubbles"),
                     L10n.t("Takes the little round pictures off posts and reels that show a friend liked, commented on "

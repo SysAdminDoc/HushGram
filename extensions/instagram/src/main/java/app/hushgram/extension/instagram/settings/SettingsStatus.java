@@ -570,6 +570,11 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Rewritten by Three-dot menu items when both menus' Interested decisions were found too. */
+    public static boolean interestedEverywhere() {
+        return false;
+    }
+
     public static boolean watchAgain() {
         return false;
     }

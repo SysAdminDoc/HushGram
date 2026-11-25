@@ -1063,6 +1063,9 @@ Instagram's text uses your phone's font. Restart Instagram to see a change.	يس
 Instagram's thickness	سماكة Instagram
 Interested	مهتم
 Items in the three-dot menus	العناصر في قوائم النقاط الثلاث
+# context: Feed: a switch right under Items in the three-dot menus (#815). It adds Instagram's Interested row (the same word as the Interested item in that list) to the three-dot menus that leave it out, like the menu of a reel from an account you follow.
+Interested on every post and reel	«مهتم» في كل منشور وReel
+Adds Interested to the three-dot menu of posts and reels that leave it out, like reels from accounts you follow.	يضيف «مهتم» إلى قائمة النقاط الثلاث في المنشورات وReels التي لا تعرضه، مثل Reels الحسابات التي تتابعها.
 Joined-up handwriting.	كتابة متصلة.
 Joining the picture and sound	دمج الصورة والصوت
 Jump a profile's posts to a date	القفز من منشورات ملف شخصي إلى تاريخ

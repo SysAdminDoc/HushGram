@@ -2019,6 +2019,17 @@ start-call Lapp/hushgram/extension/instagram/feed/MenuItems;->editsRows(Ljava/ut
 once-call Lapp/hushgram/extension/instagram/feed/MenuItems;->editsRows(Ljava/util/List;)Ljava/util/List; in instance (LX/*;Ljava/lang/CharSequence;Ljava/lang/Integer;Ljava/util/List;Ljava/util/List;Lkotlin/jvm/functions/Function1;Z)V pooled class-holding audio_page MUSIC
 once-call Lapp/hushgram/extension/instagram/feed/MenuItems;->editsTitle(Ljava/lang/CharSequence;Ljava/util/List;Ljava/util/List;)Ljava/lang/CharSequence; in instance (LX/*;Ljava/lang/CharSequence;Ljava/lang/Integer;Ljava/util/List;Ljava/util/List;Lkotlin/jvm/functions/Function1;Z)V pooled class-holding audio_page MUSIC
 once-call Lapp/hushgram/extension/instagram/feed/FeedSaveRow;->allow(Ljava/util/List;)Ljava/util/List; in static (Z)Ljava/util/List; holding Lcom/instagram/feed/media/mediaoption/MediaOption$Option;->WHY_AM_I_SEEING_THIS:Lcom/instagram/feed/media/mediaoption/MediaOption$Option; Lcom/instagram/feed/media/mediaoption/MediaOption$Option;->REPORT:Lcom/instagram/feed/media/mediaoption/MediaOption$Option;
+# Its Interested switch (#815) hands each reel menu's follow test to reelFollowing right before the
+# test picks Interested or Not interested: the reduced three-dot list (0Ckr.A06 on 457, the one
+# static list of that shape reading both) and the sheet a press on a reel opens (0Ckr.A0B, the one
+# static method taking the press's PointF reading both). The post menu's opener hands the menu flags
+# maker's Interested flag to postOffered right before the maker (01Cy.FLn on 457, the one method
+# taking a View and a Media that names SimplifiedMediaOverflowBottomSheet). Left out, a followed
+# account's reel and the posts Instagram leaves it out of offer no Interested; twice or elsewhere,
+# it isn't the hook the patch wrote.
+once-call Lapp/hushgram/extension/instagram/feed/InterestedEverywhere;->reelFollowing(I)Z in static (LX/*;LX/*;LX/*;)Ljava/util/ArrayList; holding Lcom/instagram/feed/media/mediaoption/MediaOption$Option;->INTERESTED:Lcom/instagram/feed/media/mediaoption/MediaOption$Option; Lcom/instagram/feed/media/mediaoption/MediaOption$Option;->NOT_INTERESTED:Lcom/instagram/feed/media/mediaoption/MediaOption$Option;
+once-call Lapp/hushgram/extension/instagram/feed/InterestedEverywhere;->reelFollowing(I)Z in static (Landroid/graphics/PointF;*)V holding Lcom/instagram/feed/media/mediaoption/MediaOption$Option;->INTERESTED:Lcom/instagram/feed/media/mediaoption/MediaOption$Option; Lcom/instagram/feed/media/mediaoption/MediaOption$Option;->NOT_INTERESTED:Lcom/instagram/feed/media/mediaoption/MediaOption$Option;
+once-call Lapp/hushgram/extension/instagram/feed/InterestedEverywhere;->postOffered(I)Z in instance (Landroid/view/View;Lcom/instagram/feed/media/Media;*)V pooled holding SimplifiedMediaOverflowBottomSheet
 # Hide Made with Edits (#570) hands the label kinds list to EditsLabel.labels in the constructor of
 # the feed header's label state, right before it's stored (the one constructor of that 22-value
 # shape storing a List, 01Zp on 454's 386014758). Left out, the Edits label keeps its turn under

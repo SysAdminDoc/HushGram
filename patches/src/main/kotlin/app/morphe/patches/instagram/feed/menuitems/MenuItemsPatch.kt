@@ -410,12 +410,17 @@ internal fun BytecodePatchContext.findMenuItems(): List<MenuPart> {
  * reel's menu, with the part's title once none is left. HushGram's own Loop this video row reads
  * the same choice through Stop looping. In the default selection with nothing left out, so every
  * menu shows as Instagram builds it until the user picks.
+ *
+ * Its Interested switch (#815, InterestedEverywhere.kt) hands the reel menus' follow tests and the
+ * post menu's Interested flag to the extension, so with it on these menus offer Interested where
+ * Instagram leaves it out. Off to start; when any of them moved, the rest goes in without it.
  */
 @Suppress("unused")
 val menuItemsPatch = bytecodePatch(
     name = "Three-dot menu items",
     description = "Lets you leave Report, Mute and other items out of the menus behind the three dots on posts, reels " +
-        "and stories. Every item shows until you untick it in HushGram settings > Feed.",
+        "and stories. Every item shows until you untick it in HushGram settings > Feed. A switch there also adds " +
+        "Interested to the menus that leave it out, like reels from accounts you follow. It starts off.",
 ) {
     category("Fixes")
     dependsOn(settingsPatch, instagramExtensionPatch)
@@ -423,7 +428,12 @@ val menuItemsPatch = bytecodePatch(
 
     execute {
         requireStatusMethod(MENU_ITEMS_STATUS)
+        requireStatusMethod(INTERESTED_STATUS)
         findMenuItems().forEach { it.write() }
+        findInterestedOrWarn()?.let {
+            offerInterested(it)
+            enableStatus(INTERESTED_STATUS)
+        }
         enableStatus(MENU_ITEMS_STATUS)
     }
 }

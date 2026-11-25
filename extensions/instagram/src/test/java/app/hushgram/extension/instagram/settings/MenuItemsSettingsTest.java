@@ -10,11 +10,13 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.preference.Preference;
 import android.preference.PreferenceGroup;
+import android.preference.SwitchPreference;
 import android.widget.ListView;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.List;
 
 import org.junit.After;
 import org.junit.Before;
@@ -52,6 +54,7 @@ public class MenuItemsSettingsTest {
     @Before public void prepare() {
         RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
         Settings.HIDDEN_MENU_ITEMS.resetToDefault();
+        Settings.INTERESTED_EVERYWHERE.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         BaseSettings.SAFE_MODE.save(false);
@@ -62,7 +65,9 @@ public class MenuItemsSettingsTest {
         if (controller != null) controller.close();
         Utils.awaitBackgroundTasksForTests();
         PatchFamily.inBuildForTests = null;
+        PatchFamily.interestedEverywhereForTests = null;
         Settings.HIDDEN_MENU_ITEMS.resetToDefault();
+        Settings.INTERESTED_EVERYWHERE.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
@@ -92,9 +97,46 @@ public class MenuItemsSettingsTest {
         return ShadowAlertDialog.getLatestAlertDialog().getListView();
     }
 
+    private Preference interested() {
+        return page.getPreferenceScreen().findPreference(Settings.INTERESTED_EVERYWHERE.key);
+    }
+
     @Test public void missingPatchHasNoRow() throws Exception {
         open(EnumSet.of(PatchFamily.FEED_SAVE));
         assertNull(row());
+        assertNull(interested());
+    }
+
+    /** Interested on every post and reel (#815) sits right under the items row, starts off, saves at once and a backup keeps it. */
+    @Test public void interestedSitsUnderTheItemsAndStartsOff() throws Exception {
+        open(EnumSet.of(PatchFamily.MENU_ITEMS));
+        SwitchPreference row = (SwitchPreference) interested();
+        assertNotNull(row);
+        assertEquals("Interested on every post and reel", row.getTitle().toString());
+        assertEquals("Adds Interested to the three-dot menu of posts and reels that leave it out, like reels from "
+                + "accounts you follow.", row.getSummary().toString());
+        PreferenceGroup feed = row.getParent();
+        int at = -1;
+        for (int i = 0; i < feed.getPreferenceCount(); i++) if (feed.getPreference(i) == row) at = i;
+        assertEquals(Settings.HIDDEN_MENU_ITEMS.key, feed.getPreference(at - 1).getKey());
+        assertFalse(row.isChecked());
+        assertEquals(Collections.singletonList(Settings.INTERESTED_EVERYWHERE), PatchFamily.MENU_ITEMS.switches);
+        assertFalse("each menu reads it as it opens", Settings.INTERESTED_EVERYWHERE.rebootApp);
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.INTERESTED_EVERYWHERE.key));
+        row.setChecked(true);
+        assertTrue(Settings.INTERESTED_EVERYWHERE.get());
+        assertEquals("the items stay as they were", "", Settings.HIDDEN_MENU_ITEMS.get());
+    }
+
+    /** A build whose menus moved keeps the items row, leaves out the Interested switch and says why. */
+    @Test public void aBuildWithoutInterestedKeepsTheItemsRow() throws Exception {
+        PatchFamily.interestedEverywhereForTests = false;
+        open(EnumSet.of(PatchFamily.MENU_ITEMS));
+        assertNull(interested());
+        assertNotNull(row());
+        List<String> report = PatchFamily.reportLines(EnumSet.of(PatchFamily.MENU_ITEMS), false);
+        assertTrue(report.toString(), report.contains("  Interested on every post and reel: not in this build (the reel "
+                + "menu's follow test or the post menu's flags didn't match)"));
     }
 
     /** The row alone makes the Feed section, comes after Save in the post menu, and lists every item ticked. */

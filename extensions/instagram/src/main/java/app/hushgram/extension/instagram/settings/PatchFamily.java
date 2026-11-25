@@ -260,7 +260,7 @@ public enum PatchFamily {
     HOME_REELS_BELOW_NAME(FamilyNames.HOME_REELS_BELOW_NAME, "homeReelsBelowName", null, Settings.HOME_REELS_BELOW_NAME),
     FEED_SAVE(FamilyNames.FEED_SAVE, "feedSave", null, Settings.SAVE_IN_POST_MENU, Settings.HIDE_FEED_SAVE_BUTTON,
             Settings.HIDE_FEED_LIKE_BUTTON, Settings.HIDE_FEED_COUNTS, Settings.HIDE_LIKED_BY),
-    MENU_ITEMS(FamilyNames.MENU_ITEMS, "menuItems", null),
+    MENU_ITEMS(FamilyNames.MENU_ITEMS, "menuItems", null, Settings.INTERESTED_EVERYWHERE),
     WATCH_AGAIN(FamilyNames.WATCH_AGAIN, "watchAgain", null, Settings.WATCH_AGAIN_IN_FEED, Settings.HIDE_WATCH_MORE_REELS),
     ACTIVITY_BUBBLES(FamilyNames.ACTIVITY_BUBBLES, "activityBubbles", null, Settings.HIDE_ACTIVITY_BUBBLES),
     HIDE_CAPTIONS(FamilyNames.HIDE_CAPTIONS, "hideCaptions", null, Settings.HIDE_CAPTIONS),
@@ -586,6 +586,22 @@ public enum PatchFamily {
         return HIDE_COMMENTS.inBuild() && SettingsStatus.commentAboutButton();
     }
 
+    /** Whether a test says this build can offer Interested everywhere, instead of asking {@link SettingsStatus}. */
+    @Nullable
+    static volatile Boolean interestedEverywhereForTests;
+
+    /**
+     * Whether this build can put Interested in every post's and reel's menu. Three-dot menu items goes
+     * in without it when either menu's decision has moved, so that switch isn't offered then.
+     */
+    public static boolean interestedEverywhereInBuild() {
+        Boolean forced = interestedEverywhereForTests;
+        if (forced != null) return forced;
+        Set<PatchFamily> families = inBuildForTests;
+        if (families != null) return families.contains(MENU_ITEMS);
+        return MENU_ITEMS.inBuild() && SettingsStatus.interestedEverywhere();
+    }
+
     /** Whether a test says this build filters Home by a post's type, instead of asking {@link SettingsStatus}. */
     @Nullable
     static volatile Boolean feedTypesForTests;
@@ -794,6 +810,9 @@ public enum PatchFamily {
                 }
                 if (family == HIDE_COMMENTS && !commentAboutButtonInBuild()) {
                     lines.add("  Hide the (i) button in comments: not in this build (the row above a sheet's comments didn't match)");
+                }
+                if (family == MENU_ITEMS && !interestedEverywhereInBuild()) {
+                    lines.add("  Interested on every post and reel: not in this build (the reel menu's follow test or the post menu's flags didn't match)");
                 }
                 if (family == FOLLOWING_FEED && !followingMixInBuild()) {
                     lines.add("  Mix in Following: not in this build (Home's paging didn't match)");

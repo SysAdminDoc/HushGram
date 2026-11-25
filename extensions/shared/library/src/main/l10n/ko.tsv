@@ -2679,6 +2679,9 @@ Use template	템플릿 사용
 Get Edits	Edits 다운로드
 # context: Title of the row under Feed that lists the items to keep in the menus behind the three dots on posts, reels and stories (#697, #707)
 Items in the three-dot menus	점 세 개 메뉴의 항목
+# context: Feed: a switch right under Items in the three-dot menus (#815). It adds Instagram's Interested row (the same word as the Interested item in that list) to the three-dot menus that leave it out, like the menu of a reel from an account you follow.
+Interested on every post and reel	모든 게시물과 릴스에 관심 있음
+Adds Interested to the three-dot menu of posts and reels that leave it out, like reels from accounts you follow.	관심 있음이 없는 게시물과 릴스의 점 세 개 메뉴에 관심 있음을 넣습니다. 팔로우하는 계정의 릴스도 마찬가지입니다.
 # context: Summary of Items in the three-dot menus under Feed while every item is ticked (#697, #707)
 Every item shows. Untick the ones you don't want in the menus behind the three dots on posts, reels and stories.	모든 항목이 표시됩니다. 게시물, 릴스, 스토리의 점 세 개 메뉴에서 원하지 않는 항목의 선택을 해제하세요.
 # context: Summary of Items in the three-dot menus under Feed naming the unticked items, which are joined with a comma (#697, #707)

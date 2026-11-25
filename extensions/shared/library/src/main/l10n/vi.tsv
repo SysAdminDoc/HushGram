@@ -2595,6 +2595,9 @@ Use template	Dùng mẫu
 Get Edits	Tải Edits
 # context: Title of the row under Feed that lists the items to keep in the menus behind the three dots on posts, reels and stories (#697, #707)
 Items in the three-dot menus	Mục trong menu ba chấm
+# context: Feed: a switch right under Items in the three-dot menus (#815). It adds Instagram's Interested row (the same word as the Interested item in that list) to the three-dot menus that leave it out, like the menu of a reel from an account you follow.
+Interested on every post and reel	Quan tâm trên mọi bài viết và reel
+Adds Interested to the three-dot menu of posts and reels that leave it out, like reels from accounts you follow.	Thêm Quan tâm vào menu ba chấm của bài viết và reel không có mục này, như reel của tài khoản bạn theo dõi.
 # context: Summary of Items in the three-dot menus under Feed while every item is ticked (#697, #707)
 Every item shows. Untick the ones you don't want in the menus behind the three dots on posts, reels and stories.	Mọi mục đều hiện. Bỏ chọn những mục bạn không muốn có trong menu ba chấm của bài viết, reels và tin.
 # context: Summary of Items in the three-dot menus under Feed naming the unticked items, which are joined with a comma (#697, #707)

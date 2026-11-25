@@ -7532,7 +7532,7 @@
     },
     {
       "name": "Three-dot menu items",
-      "description": "Lets you leave Report, Mute and other items out of the menus behind the three dots on posts, reels and stories. Every item shows until you untick it in HushGram settings > Feed.",
+      "description": "Lets you leave Report, Mute and other items out of the menus behind the three dots on posts, reels and stories. Every item shows until you untick it in HushGram settings > Feed. A switch there also adds Interested to the menus that leave it out, like reels from accounts you follow. It starts off.",
       "category": "Fixes",
       "use": true,
       "dependencies": [

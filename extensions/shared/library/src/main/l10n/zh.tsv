@@ -2683,6 +2683,9 @@ Use template	使用模板
 Get Edits	获取 Edits
 # context: Title of the row under Feed that lists the items to keep in the menus behind the three dots on posts, reels and stories (#697, #707)
 Items in the three-dot menus	三点菜单中的项目
+# context: Feed: a switch right under Items in the three-dot menus (#815). It adds Instagram's Interested row (the same word as the Interested item in that list) to the three-dot menus that leave it out, like the menu of a reel from an account you follow.
+Interested on every post and reel	每个帖子和 Reels 都有“感兴趣”
+Adds Interested to the three-dot menu of posts and reels that leave it out, like reels from accounts you follow.	在没有“感兴趣”的帖子和 Reels 的三点菜单中加入它，例如你关注的账号的 Reels。
 # context: Summary of Items in the three-dot menus under Feed while every item is ticked (#697, #707)
 Every item shows. Untick the ones you don't want in the menus behind the three dots on posts, reels and stories.	所有项目都会显示。取消勾选你不想在帖子、Reels 和快拍的三点菜单中看到的项目.
 # context: Summary of Items in the three-dot menus under Feed naming the unticked items, which are joined with a comma (#697, #707)

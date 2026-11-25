@@ -4,6 +4,7 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
+* `Interested on every post and reel` is new under Feed, below `Items in the three-dot menus`. It adds Interested to the three-dot menus that leave it out, like the menu of a reel from an account you follow. Starts off. Asked for in #815.
 * `Match the video's frame rate` is new under Layout, below `Use the highest refresh rate`, on Android 15 and up. While a reel, feed video or story plays, it tells Android how many frames a second the video has, so a screen that picks its own refresh rate can choose one the video fits evenly instead of hopping between rates. Starts off. Asked for in #868.
 * Two HushGram loops kept running with Instagram in the background. A settings page left open kept animating its title, and `Ambient light` kept checking the post it lit a few times a second. Both now wait until Instagram is on screen again. Reported in #341.
 * HushGram now patches Instagram 457.0.0.55.73 instead of 456.0.0.53.78. Get APKMirror's (arm64-v8a) (480-640dpi) (Android 9.0+) bundle, build 386314341. Its 480dpi build, 386314297, works too. 32-bit phones take build 386314340 (armeabi-v7a) and x86_64 emulators build 386314286.
