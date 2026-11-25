@@ -71,6 +71,7 @@ Every HushGram release, newest first.
 * `Hide posts when you block someone` is new at the end of Feed. Block someone and their posts leave Home right away, without a refresh. Starts off. Asked for in #861.
 * With `Download button on feed posts` on, a post's Share and Save icons no longer stretch to fill their space now and then. Every icon in the row keeps its own size. Reported in #840.
 * In Morphe Manager, `Full resolution photos` now sits under Downloads, so the Feed group stays short. Its switches are still on the Feed settings page.
+* `Keep profile history` no longer piles up old pictures. Once a picture falls out of the newest twenty a profile keeps, its saved copy goes too. Copies left over from before are cleared the first time you open a profile after Instagram starts. Reported in #683.
 
 ## 0.0.22 (2026-11-22)
 

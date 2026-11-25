@@ -31,6 +31,7 @@ import org.robolectric.shadows.ShadowToast;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -226,6 +227,65 @@ public class ProfileHistoryTest {
         assertEquals(ProfileHistory.MAX_PER_FIELD, usernames);
         assertEquals("fay" + (ProfileHistory.MAX_PER_FIELD + 4), account.username());
         assertEquals(ProfileHistory.MAX_PER_FIELD - 1, ProfileHistory.past(context).size());
+    }
+
+    @Test public void aPictureThatFallsPastTheNewestTwentyIsDeletedUnlessANewerEntryIsTheSamePicture() {
+        // The first picture comes back as the newest, so its file is still in use when its old entry drops.
+        ProfileHistory.record(context, "16", "pia", null, "https://cdn.example/back.jpg", 1_000L);
+        for (int i = 1; i < ProfileHistory.MAX_PER_FIELD; i++) {
+            ProfileHistory.record(context, "16", "pia", null, "https://cdn.example/p" + i + ".jpg", 1_000L * (i + 1));
+        }
+        ProfileHistory.record(context, "16", "pia", null, "https://cdn.example/back.jpg", 50_000L);
+        File[] pictures = ProfileHistory.pictures(context).listFiles();
+        assertEquals(ProfileHistory.MAX_PER_FIELD, pictures == null ? 0 : pictures.length);
+        assertTrue("the newest entry's copy stays", kept("16").isFile());
+
+        ProfileHistory.record(context, "16", "pia", null, "https://cdn.example/p20.jpg", 60_000L);
+        ProfileHistory.Account account = ProfileHistory.account(context, "16");
+        File p1 = ProfileHistory.pictureFile(context, "16", new ProfileHistory.Entry(0L, Field.PICTURE, "p1.jpg", ""));
+        assertFalse("the entry past the newest twenty takes its copy with it", p1.exists());
+        int listed = 0;
+        for (ProfileHistory.Entry entry : account.entries) if (entry.field == Field.PICTURE) listed++;
+        pictures = ProfileHistory.pictures(context).listFiles();
+        assertEquals(listed, pictures == null ? 0 : pictures.length);
+    }
+
+    @Test public void picturesNoEntryKeepsAndOldWorkFilesAreSweptOnceAProcess() throws Exception {
+        ProfileHistory.record(context, "17", "quin", null, "https://cdn.example/q.jpg", 1_000L);
+        File folder = ProfileHistory.pictures(context);
+        File stray = new File(folder, "17-left_behind.jpg");
+        File oldPart = new File(folder, "17-q.jpg123.part");
+        File newPart = new File(folder, "17-q.jpg456.part");
+        for (File file : new File[] {stray, oldPart, newPart}) Files.write(file.toPath(), new byte[] {1, 2, 3});
+        assertTrue(oldPart.setLastModified(System.currentTimeMillis() - 2 * 60 * 60 * 1000L));
+
+        ProfileHistory.forgetForTests();
+        swap(true);
+        ProfileHistory.record(context, "18", "ray", null, "https://cdn.example/r.jpg", 2_000L);
+        assertFalse("a picture no entry keeps is deleted", stray.exists());
+        assertFalse("a work file a crash left is deleted", oldPart.exists());
+        assertTrue("a fetch still writing keeps its work file", newPart.exists());
+        assertTrue(kept("17").isFile());
+        assertTrue(kept("18").isFile());
+
+        Files.write(stray.toPath(), new byte[] {1, 2, 3});
+        ProfileHistory.record(context, "18", "ray", null, "https://cdn.example/r2.jpg", 3_000L);
+        assertTrue("the sweep runs once a process", stray.exists());
+    }
+
+    @Test public void aListThatDoesNotReadSweepsNothing() throws Exception {
+        ProfileHistory.record(context, "19", "sid", null, "https://cdn.example/s.jpg", 1_000L);
+        File picture = kept("19");
+        File stray = new File(ProfileHistory.pictures(context), "19-left_behind.jpg");
+        Files.write(stray.toPath(), new byte[] {1, 2, 3});
+        File file = new File(new File(context.getFilesDir(), "hushgram-profiles"), "history.json");
+        Files.write(file.toPath(), "not a list".getBytes(StandardCharsets.UTF_8));
+
+        ProfileHistory.forgetForTests();
+        swap(true);
+        ProfileHistory.record(context, "20", "tia", null, "https://cdn.example/t.jpg", 2_000L);
+        assertTrue("nothing is deleted on a list that failed to read", stray.exists());
+        assertTrue(picture.isFile());
     }
 
     @Test public void thePictureIsCopiedOnceAndAFailedCopyIsTriedAgainNextVisit() {
