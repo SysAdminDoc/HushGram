@@ -2512,6 +2512,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_highest_refresh_rate", FALSE);
 
     /**
+     * A playing video's view asks Android for the video's own frame rate, Android 15 and up (#868,
+     * {@link app.hushgram.extension.instagram.misc.VideoFrameRate}). Read before each frame, so no
+     * restart. Off to start.
+     */
+    public static final BooleanSetting MATCH_VIDEO_FRAME_RATE =
+            new BooleanSetting("hushgram_match_video_frame_rate", FALSE);
+
+    /**
      * Every emoji draws in Google's style: EmojiCompat is asked to replace every emoji it knows
      * from the font it loads from Google Play services, not only the ones the phone lacks
      * ({@link app.hushgram.extension.instagram.misc.EmojiStyle}). Read for each piece of text, but

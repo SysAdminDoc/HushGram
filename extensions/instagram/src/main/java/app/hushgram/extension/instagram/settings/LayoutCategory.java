@@ -19,6 +19,7 @@ import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragme
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.toggle;
 
 import android.content.Context;
+import android.os.Build;
 import android.preference.PreferenceCategory;
 import android.preference.PreferenceScreen;
 
@@ -133,6 +134,12 @@ final class LayoutCategory {
                         L10n.t("Asks Android to run Instagram at your screen's fastest refresh rate, at the same "
                                 + "resolution. Some phones keep their own limit for apps, and battery saver can "
                                 + "still lower it.")), RefreshRate::switchChanged), SettingsIcons.PHONE));
+                // Only Android 15 and up let a view ask for a frame rate.
+                if (Build.VERSION.SDK_INT >= 35) {
+                    layout.addPreference(mark(toggle(context, Settings.MATCH_VIDEO_FRAME_RATE, L10n.t("Match the video's frame rate"),
+                            L10n.t("While a video plays, tells Android how many frames a second it has, so a screen that "
+                                    + "picks its own refresh rate can choose one the video fits evenly.")), SettingsIcons.PHONE));
+                }
             }
             if (build.contains(PatchFamily.APP_ICON)) {
                 layout.addPreference(mark(appIconRow(context), SettingsIcons.PHONE));

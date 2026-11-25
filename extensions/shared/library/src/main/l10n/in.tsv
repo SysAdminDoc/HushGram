@@ -15,6 +15,9 @@ Adds Copy text to the menu a story's three dots open. It copies the words Instag
 Ads and privacy	Iklan dan privasi
 Also in comments	Juga di komentar
 Asks Android to run Instagram at your screen's fastest refresh rate, at the same resolution. Some phones keep their own limit for apps, and battery saver can still lower it.	Meminta Android menjalankan Instagram pada refresh rate tertinggi layarmu, dengan resolusi yang sama. Beberapa ponsel punya batas sendiri untuk aplikasi, dan penghemat baterai tetap bisa menurunkannya.
+# context: Layout: a switch under Use the highest refresh rate (#868). While a video plays it tells Android the video's frames per second, so a phone that changes its screen's refresh rate on its own picks one the video divides into evenly (60 or 120 Hz for a 30 fps video) instead of hopping.
+Match the video's frame rate	Sesuaikan dengan frame rate video
+While a video plays, tells Android how many frames a second it has, so a screen that picks its own refresh rate can choose one the video fits evenly.	Saat video diputar, memberi tahu Android berapa frame per detik video itu, agar layar yang memilih refresh rate sendiri bisa memilih yang pas dengan video.
 Back	Kembali
 Before you sign in	Sebelum Anda masuk
 Cancel	Batal

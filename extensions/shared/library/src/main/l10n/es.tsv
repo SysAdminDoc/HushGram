@@ -15,6 +15,9 @@ Adds Copy text to the menu a story's three dots open. It copies the words Instag
 Ads and privacy	Anuncios y privacidad
 Also in comments	También en los comentarios
 Asks Android to run Instagram at your screen's fastest refresh rate, at the same resolution. Some phones keep their own limit for apps, and battery saver can still lower it.	Pide a Android que ejecute Instagram a la tasa de refresco más alta de tu pantalla, con la misma resolución. Algunos teléfonos ponen su propio límite a las apps, y el ahorro de batería aún puede bajarla.
+# context: Layout: a switch under Use the highest refresh rate (#868). While a video plays it tells Android the video's frames per second, so a phone that changes its screen's refresh rate on its own picks one the video divides into evenly (60 or 120 Hz for a 30 fps video) instead of hopping.
+Match the video's frame rate	Igualar la velocidad de fotogramas del video
+While a video plays, tells Android how many frames a second it has, so a screen that picks its own refresh rate can choose one the video fits evenly.	Mientras se reproduce un video, le dice a Android cuántos fotogramas por segundo tiene, para que una pantalla que elige su propia frecuencia de actualización use una que encaje con el video.
 Back	Atrás
 Before you sign in	Antes de iniciar sesión
 Cancel	Cancelar

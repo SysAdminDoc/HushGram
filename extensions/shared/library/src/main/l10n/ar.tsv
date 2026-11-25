@@ -303,6 +303,9 @@ Ask to unlock	السؤال قبل الفتح
 Ask what to save	السؤال عما تريد حفظه
 Asked to follow you	طلب متابعتك
 Asks Android to run Instagram at your screen's fastest refresh rate, at the same resolution. Some phones keep their own limit for apps, and battery saver can still lower it.	يطلب من Android تشغيل Instagram بأعلى معدل تحديث لشاشتك، وبنفس الدقة. بعض الهواتف تفرض حدًا خاصًا للتطبيقات، وقد يخفضه موفر البطارية أيضًا.
+# context: Layout: a switch under Use the highest refresh rate (#868). While a video plays it tells Android the video's frames per second, so a phone that changes its screen's refresh rate on its own picks one the video divides into evenly (60 or 120 Hz for a 30 fps video) instead of hopping.
+Match the video's frame rate	مطابقة معدل إطارات الفيديو
+While a video plays, tells Android how many frames a second it has, so a screen that picks its own refresh rate can choose one the video fits evenly.	أثناء تشغيل فيديو، يخبر Android بعدد إطاراته في الثانية، لتختار الشاشة التي تحدد معدل تحديثها بنفسها معدلًا يناسب الفيديو بالتساوي.
 Asks before a Follow or Follow back button follows someone or sends them a request, so a stray tap on a profile or in a Followers or Following list doesn't do it for you.	يسأل قبل أن يتابع زر Follow أو Follow back شخصًا أو يرسل إليه طلبًا، حتى لا تؤدي نقرة عابرة على ملف أو في قائمة Followers أو Following ذلك نيابة عنك.
 # context: Profiles > title of the switch that skips Instagram's "Review this account before following" sheet, so one tap on Follow follows (#867)
 Follow without the review sheet	المتابعة بدون نافذة المراجعة

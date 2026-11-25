@@ -58,6 +58,7 @@ import app.hushgram.extension.instagram.media.BackgroundPlay;
 import app.hushgram.extension.instagram.metaai.MuseCard;
 import app.hushgram.extension.instagram.misc.MediaCache;
 import app.hushgram.extension.instagram.misc.RefreshRate;
+import app.hushgram.extension.instagram.misc.VideoFrameRate;
 import app.hushgram.extension.instagram.misc.GlassTabBar;
 import app.hushgram.extension.instagram.misc.PureBlackNav;
 import app.hushgram.extension.instagram.misc.StoryBands;
@@ -172,6 +173,7 @@ public final class SettingsEntry {
         CallRecorder.install(context);
         FullScreenBars.install(context);
         RefreshRate.install(context);
+        VideoFrameRate.install(context);
         ReelsTopBar.install(context);
         BurnInGuard.install(context);
         ReelColumnFit.install(context);
