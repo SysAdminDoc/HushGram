@@ -16,9 +16,9 @@ Adds Copy text to the menu a story's three dots open. It copies the words Instag
 Ads and privacy	광고 및 개인정보 보호
 Also in comments	댓글에도 적용
 Asks Android to run Instagram at your screen's fastest refresh rate, at the same resolution. Some phones keep their own limit for apps, and battery saver can still lower it.	화면의 가장 높은 주사율, 같은 해상도로 Instagram을 실행하도록 Android에 요청합니다. 일부 휴대전화는 앱에 자체 제한을 두며, 절전 모드가 주사율을 낮출 수도 있습니다.
-# context: Layout: a switch under Use the highest refresh rate (#868). While a video plays it tells Android the video's frames per second, so a phone that changes its screen's refresh rate on its own picks one the video divides into evenly (60 or 120 Hz for a 30 fps video) instead of hopping.
+# context: Layout: a switch under Use the highest refresh rate (#868). While a video plays it tells Android the video's frames per second and asks Instagram's window for a refresh rate that frame rate divides into (60 Hz for a 30 fps video, 120 Hz for 24 fps). Use the highest refresh rate is the other switch's name, as on its own row.
 Match the video's frame rate	동영상 프레임 속도에 맞추기
-While a video plays, tells Android how many frames a second it has, so a screen that picks its own refresh rate can choose one the video fits evenly.	동영상이 재생되는 동안 초당 프레임 수를 Android에 알려, 주사율을 스스로 정하는 화면이 동영상에 딱 맞는 주사율을 고르게 합니다.
+While a video plays, tells Android its frame rate and asks for a refresh rate that frame rate divides into, like 60 Hz for a 30 fps reel. Use the highest refresh rate comes first while it's on.	동영상이 재생되는 동안 프레임 속도를 Android에 알리고 그 배수인 주사율을 요청합니다. 예를 들어 30fps 릴스에는 60Hz입니다. 가장 높은 주사율 사용이 켜져 있으면 그쪽이 우선합니다.
 Back	뒤로
 Before you sign in	로그인 전에 읽어보세요
 Cancel	취소

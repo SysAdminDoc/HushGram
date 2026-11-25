@@ -118,7 +118,12 @@ public final class RefreshRate {
     /** What [activity]'s display can run, or null when it can't be read. */
     @Nullable
     static Mode[] modesOf(Activity activity, int[] currentId) {
-        Display display = activity.getWindowManager().getDefaultDisplay();
+        return displayModes(activity.getWindowManager().getDefaultDisplay(), currentId);
+    }
+
+    /** What [display] can run, its current mode's id in currentId[0], or null when it can't be read. */
+    @Nullable
+    static Mode[] displayModes(@Nullable Display display, int[] currentId) {
         if (display == null) return null;
         Display.Mode[] supported = display.getSupportedModes();
         Display.Mode now = display.getMode();

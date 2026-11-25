@@ -15,9 +15,9 @@ Adds Copy text to the menu a story's three dots open. It copies the words Instag
 Ads and privacy	Anúncios e privacidade
 Also in comments	Também nos comentários
 Asks Android to run Instagram at your screen's fastest refresh rate, at the same resolution. Some phones keep their own limit for apps, and battery saver can still lower it.	Pede ao Android que execute o Instagram na maior taxa de atualização da tela, na mesma resolução. Alguns celulares mantêm um limite próprio para apps, e a economia de bateria ainda pode reduzi-la.
-# context: Layout: a switch under Use the highest refresh rate (#868). While a video plays it tells Android the video's frames per second, so a phone that changes its screen's refresh rate on its own picks one the video divides into evenly (60 or 120 Hz for a 30 fps video) instead of hopping.
+# context: Layout: a switch under Use the highest refresh rate (#868). While a video plays it tells Android the video's frames per second and asks Instagram's window for a refresh rate that frame rate divides into (60 Hz for a 30 fps video, 120 Hz for 24 fps). Use the highest refresh rate is the other switch's name, as on its own row.
 Match the video's frame rate	Acompanhar a taxa de quadros do vídeo
-While a video plays, tells Android how many frames a second it has, so a screen that picks its own refresh rate can choose one the video fits evenly.	Enquanto um vídeo toca, informa ao Android quantos quadros por segundo ele tem, para que uma tela que escolhe a própria taxa de atualização use uma que combine com o vídeo.
+While a video plays, tells Android its frame rate and asks for a refresh rate that frame rate divides into, like 60 Hz for a 30 fps reel. Use the highest refresh rate comes first while it's on.	Enquanto um vídeo toca, informa ao Android a taxa de quadros dele e pede uma taxa de atualização que seja múltipla dela, como 60 Hz para um reel de 30 fps. Com Usar a maior taxa de atualização ligado, ele vem primeiro.
 Back	Voltar
 Before you sign in	Antes de entrar
 Cancel	Cancelar

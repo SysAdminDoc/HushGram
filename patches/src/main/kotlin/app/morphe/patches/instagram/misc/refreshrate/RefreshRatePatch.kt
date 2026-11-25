@@ -17,7 +17,8 @@ import app.morphe.patches.shared.compat.AppCompatibilities
  *
  * Writes no hook of its own: the application-start hook the settings patch already writes starts a
  * watcher that sets the window's preferred display mode as each activity resumes, and VideoFrameRate,
- * which votes a playing video's frame rate on its TextureView (#868). This patch switches the status
+ * which votes a playing video's frame rate on its TextureView and asks the window for a display mode
+ * that rate divides into (#868). This patch switches the status
  * method on, so the settings screen offers both switches and the extension acts.
  */
 @Suppress("unused")
@@ -25,8 +26,8 @@ val refreshRatePatch = bytecodePatch(
     name = "Use the highest refresh rate",
     description = "Asks Android to run Instagram at your screen's fastest refresh rate, at the same resolution, " +
         "so scrolling looks smoother on a 90 or 120 Hz phone. Some phones keep their own limit for apps. " +
-        "On Android 15 and up, a second switch tells Android a playing video's frame rate, so a screen that " +
-        "picks its own refresh rate can choose one the video fits evenly. Both start off. Turn them on in " +
+        "On Android 15 and up, a second switch tells Android a playing video's frame rate and asks for a " +
+        "refresh rate that frame rate divides into, like 60 Hz for a 30 fps reel. Both start off. Turn them on in " +
         "HushGram settings > Layout.",
 ) {
     category("Fixes")

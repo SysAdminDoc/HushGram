@@ -89,8 +89,9 @@ public class VideoFrameRateSettingsTest {
         SwitchPreference row = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.MATCH_VIDEO_FRAME_RATE.key);
         assertNotNull(row);
         assertEquals("Match the video's frame rate", row.getTitle().toString());
-        assertEquals("While a video plays, tells Android how many frames a second it has, so a screen that picks its "
-                + "own refresh rate can choose one the video fits evenly.", row.getSummary().toString());
+        assertEquals("While a video plays, tells Android its frame rate and asks for a refresh rate that frame rate "
+                + "divides into, like 60 Hz for a 30 fps reel. Use the highest refresh rate comes first while it's on.",
+                row.getSummary().toString());
         PreferenceCategory section = categoryHolding(page.getPreferenceScreen(), row);
         assertNotNull(section);
         assertEquals(Settings.HIGHEST_REFRESH_RATE.key, section.getPreference(indexOf(section, row) - 1).getKey());

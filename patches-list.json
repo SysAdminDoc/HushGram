@@ -7688,7 +7688,7 @@
     },
     {
       "name": "Use the highest refresh rate",
-      "description": "Asks Android to run Instagram at your screen's fastest refresh rate, at the same resolution, so scrolling looks smoother on a 90 or 120 Hz phone. Some phones keep their own limit for apps. On Android 15 and up, a second switch tells Android a playing video's frame rate, so a screen that picks its own refresh rate can choose one the video fits evenly. Both start off. Turn them on in HushGram settings > Layout.",
+      "description": "Asks Android to run Instagram at your screen's fastest refresh rate, at the same resolution, so scrolling looks smoother on a 90 or 120 Hz phone. Some phones keep their own limit for apps. On Android 15 and up, a second switch tells Android a playing video's frame rate and asks for a refresh rate that frame rate divides into, like 60 Hz for a 30 fps reel. Both start off. Turn them on in HushGram settings > Layout.",
       "category": "Fixes",
       "use": true,
       "dependencies": [

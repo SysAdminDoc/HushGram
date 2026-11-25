@@ -15,9 +15,9 @@ Adds Copy text to the menu a story's three dots open. It copies the words Instag
 Ads and privacy	Quảng cáo và quyền riêng tư
 Also in comments	Cả trong bình luận
 Asks Android to run Instagram at your screen's fastest refresh rate, at the same resolution. Some phones keep their own limit for apps, and battery saver can still lower it.	Yêu cầu Android chạy Instagram ở tốc độ làm mới cao nhất của màn hình, với cùng độ phân giải. Một số điện thoại vẫn giữ giới hạn riêng cho ứng dụng và chế độ tiết kiệm pin có thể hạ tốc độ này xuống.
-# context: Layout: a switch under Use the highest refresh rate (#868). While a video plays it tells Android the video's frames per second, so a phone that changes its screen's refresh rate on its own picks one the video divides into evenly (60 or 120 Hz for a 30 fps video) instead of hopping.
+# context: Layout: a switch under Use the highest refresh rate (#868). While a video plays it tells Android the video's frames per second and asks Instagram's window for a refresh rate that frame rate divides into (60 Hz for a 30 fps video, 120 Hz for 24 fps). Use the highest refresh rate is the other switch's name, as on its own row.
 Match the video's frame rate	Khớp tốc độ khung hình của video
-While a video plays, tells Android how many frames a second it has, so a screen that picks its own refresh rate can choose one the video fits evenly.	Khi video đang phát, báo cho Android biết video có bao nhiêu khung hình mỗi giây, để màn hình tự chọn tần số quét có thể chọn mức vừa khớp với video.
+While a video plays, tells Android its frame rate and asks for a refresh rate that frame rate divides into, like 60 Hz for a 30 fps reel. Use the highest refresh rate comes first while it's on.	Khi video đang phát, báo cho Android tốc độ khung hình của video và yêu cầu một tốc độ làm mới là bội số của nó, như 60 Hz cho reel 30 fps. Khi Dùng tốc độ làm mới cao nhất đang bật, tùy chọn đó được ưu tiên.
 Back	Quay lại
 Before you sign in	Trước khi đăng nhập
 Cancel	Hủy

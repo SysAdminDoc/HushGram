@@ -11,11 +11,13 @@ import android.graphics.SurfaceTexture;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.SystemClock;
+import android.view.Display;
 import android.view.TextureView;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.view.Window;
+import android.view.WindowManager;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -35,8 +37,9 @@ import app.hushgram.extension.shared.settings.HushgramPause;
 
 /**
  * Match the video's frame rate (#868), a switch of Use the highest refresh rate: tells Android how
- * many frames a second the video playing in a reel, a story or the feed has, so a screen that picks
- * its own refresh rate can settle on one the video fits into evenly.
+ * many frames a second the video playing in a reel, a story or the feed has, and asks Instagram's
+ * window for a refresh rate that frame rate divides into, so a screen that picks its own refresh
+ * rate has one the video fits into evenly to settle on.
  *
  * <p>Instagram's player draws a video on a TextureView, which Android composes into the app's own
  * window, so the screen only sees the window redrawn and has to guess the video's rate. Some phones
@@ -44,17 +47,32 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * show 30 frames evenly, so the reel judders. A video on a SurfaceView has a layer of its own that the
  * screen measures, so it isn't asked about here.
  *
- * <p>From Android 15 a view can ask for a frame rate ({@code View.setRequestedFrameRate}), which its
- * window passes on as the rate of a fixed-rate source. Before each frame of a resumed activity this
- * reads the timestamp of the newest frame on each video it found, works out how many frames a second
- * come from the last {@link #WINDOW}, rounds that to the nearest usual video rate and asks for it on
- * that video's view. Once a video's frames stop (paused, scrolled away), the view goes, the switch is
- * turned off or HushGram is paused, the view's request goes back to the default. Below Android 15 it
- * does nothing. Main thread only.
+ * <p>Before each frame of a resumed activity this reads the timestamp of the newest frame on each
+ * video it found, works out how many frames a second come from the last {@link #WINDOW}, rounds that
+ * to the nearest usual video rate and asks for it two ways:
+ *
+ * <ul>
+ *   <li>On the video's view ({@code View.setRequestedFrameRate}, Android 15), which the window passes
+ *       on as the rate of a fixed-rate source where the phone's Android does (a Galaxy S25 on One UI
+ *       keeps it and never hands it to the screen).
+ *   <li>On the window ({@code preferredDisplayModeId}), the way Use the highest refresh rate asks: the
+ *       slowest display mode at the current resolution whose rate is a whole multiple of the video's
+ *       and at least {@link #LOWEST_REFRESH} Hz, so 60 Hz for a 30 fps reel and 120 Hz for a 24 fps
+ *       film where the screen has it. With no such mode it asks for that multiple by rate
+ *       ({@code preferredRefreshRate}) and leaves the phone to pick. It stands aside while Use the
+ *       highest refresh rate is on, which asks the same window for the fastest mode.
+ * </ul>
+ *
+ * <p>Once a video's frames stop (paused, scrolled away), the view goes, the activity pauses or
+ * closes, the switch is turned off or HushGram is paused, the view's request goes back to the
+ * default and the window gets back what it held before. Below Android 15 it does nothing. Main
+ * thread only.
  */
 public final class VideoFrameRate {
     /** How each rate asked for on a video is counted in Hook status. */
     static final String ASKED = "Video frame rates asked for";
+    /** How each refresh rate asked of a video's window is counted in Hook status. */
+    static final String WINDOW_ASKED = "Video refresh rates asked of the window";
     /** How often a watched window is searched for videos. */
     static final long SCAN_EVERY_MS = 500;
     /** A video with no new frame for this long has stopped, and its request is taken back. */
@@ -74,6 +92,10 @@ public final class VideoFrameRate {
     static final int VIDEO_LIMIT = 8;
     /** What a view asks for when it asks for nothing: Android's default, {@code REQUESTED_FRAME_RATE_CATEGORY_DEFAULT}. */
     static final float DEFAULT = Float.NaN;
+    /** The slowest refresh rate a window is asked for, in Hz: below it, scrolling would stutter. */
+    static final float LOWEST_REFRESH = 60f;
+    /** How far apart, in Hz, two rates may be and still count as the same (displays report 60.000004). */
+    static final float HERTZ_SLACK = 0.5f;
 
     /** Asks a view for a frame rate. Tests stand in. */
     interface Voter {
@@ -85,8 +107,14 @@ public final class VideoFrameRate {
         long newest(TextureView view);
     }
 
+    /** What the screen showing [decor] can run, the current mode's id in currentId[0], or null when it can't be read. Tests stand in. */
+    interface Modes {
+        @Nullable RefreshRate.Mode[] of(View decor, int[] currentId);
+    }
+
     static volatile Voter voter = VideoFrameRate::request;
     static volatile Stamps stamps = VideoFrameRate::stampOf;
+    static volatile Modes modes = VideoFrameRate::modesOf;
 
     /** The watched windows. Main thread only. */
     private static final Map<View, Watched> WATCHED = new WeakHashMap<>();
@@ -112,6 +140,11 @@ public final class VideoFrameRate {
         return Utils.settingsReady() && !HushgramPause.isPaused() && Settings.MATCH_VIDEO_FRAME_RATE.get();
     }
 
+    /** Whether Use the highest refresh rate asks for the window itself right now, so the window is left to it. */
+    static boolean highestAsks() {
+        return Settings.HIGHEST_REFRESH_RATE.get();
+    }
+
     /**
      * The usual video rate [count] frame timestamps (nanoseconds, oldest first) come at, or 0 when
      * there are too few or they don't come near one. The rate is read over the whole span, so frames
@@ -134,10 +167,44 @@ public final class VideoFrameRate {
         return off <= TOLERANCE ? best : 0;
     }
 
-    /** Starts following [decor]'s videos before each frame, once. */
-    static void track(@Nullable View decor) {
+    /** Whether [hertz] is a whole multiple of [rate], within {@link #HERTZ_SLACK}. */
+    static boolean multipleOf(float hertz, float rate) {
+        if (rate <= 0) return false;
+        long times = Math.round(hertz / rate);
+        return times >= 1 && Math.abs(hertz - times * rate) <= HERTZ_SLACK;
+    }
+
+    /**
+     * The id of the slowest mode with [current]'s pixel size whose rate is a whole multiple of [rate]
+     * and at least {@link #LOWEST_REFRESH}, or 0 when there's none or [current] isn't in [modes]
+     * (Android numbers display modes from 1). The first of equal rates wins, so the answer doesn't
+     * move between calls.
+     */
+    static int modeFor(float rate, int current, @Nullable RefreshRate.Mode[] modes) {
+        if (modes == null || rate <= 0) return 0;
+        RefreshRate.Mode now = null;
+        for (RefreshRate.Mode mode : modes) if (mode != null && mode.id == current) now = mode;
+        if (now == null) return 0;
+        RefreshRate.Mode best = null;
+        for (RefreshRate.Mode mode : modes) {
+            if (mode == null || mode.width != now.width || mode.height != now.height) continue;
+            if (mode.hertz < LOWEST_REFRESH - HERTZ_SLACK || !multipleOf(mode.hertz, rate)) continue;
+            if (best == null || mode.hertz < best.hertz - HERTZ_SLACK) best = mode;
+        }
+        return best == null ? 0 : best.id;
+    }
+
+    /** The smallest whole multiple of [rate] that is at least {@link #LOWEST_REFRESH}: what's asked by rate when no mode has it. */
+    static float refreshFor(float rate) {
+        long times = Math.max(1, (long) Math.ceil((LOWEST_REFRESH - HERTZ_SLACK) / rate));
+        return times * rate;
+    }
+
+    /** Starts following [window]'s videos before each frame, once. */
+    static void track(@Nullable Window window) {
+        View decor = window == null ? null : window.getDecorView();
         if (decor == null || WATCHED.containsKey(decor)) return;
-        Watched watched = new Watched(decor);
+        Watched watched = new Watched(decor, window);
         WATCHED.put(decor, watched);
         decor.getViewTreeObserver().addOnPreDrawListener(watched);
     }
@@ -165,6 +232,7 @@ public final class VideoFrameRate {
         WATCHED.clear();
         voter = VideoFrameRate::request;
         stamps = VideoFrameRate::stampOf;
+        modes = VideoFrameRate::modesOf;
     }
 
     private static void request(View view, float rate) {
@@ -176,14 +244,110 @@ public final class VideoFrameRate {
         return texture == null || !view.isAvailable() ? 0 : texture.getTimestamp();
     }
 
+    @Nullable
+    private static RefreshRate.Mode[] modesOf(View decor, int[] currentId) {
+        Display display = decor.getDisplay();
+        return display == null ? null : RefreshRate.displayModes(display, currentId);
+    }
+
+    /**
+     * What one window was asked for and what it held before, so it gets that back. Main thread only.
+     * Every call is its own try: a failure leaves the window as it was and is reported, never thrown.
+     */
+    static final class WindowAsk {
+        private final WeakReference<Window> window;
+        /** Whether the window holds this class's request now. */
+        private boolean holding;
+        private int earlierMode;
+        private float earlierRefresh;
+        private int askedMode;
+        private float askedRefresh;
+        /** The video rate the window was asked about, or 0 when it holds nothing of this class's. */
+        float rate;
+        /** Set once a request threw: from then on this window is left as Instagram has it. */
+        private boolean broken;
+
+        WindowAsk(@Nullable Window window) {
+            this.window = new WeakReference<>(window);
+        }
+
+        /** Asks the window for [video]'s refresh rate, or gives it back with 0 or while Use the highest refresh rate asks. */
+        void ask(View decor, float video) {
+            if (broken) return;
+            try {
+                Window target = window.get();
+                if (target == null) return;
+                if (video <= 0 || highestAsks()) {
+                    giveBack();
+                    return;
+                }
+                WindowManager.LayoutParams params = target.getAttributes();
+                // Something else asked the window since: what it asked is what comes back later.
+                if (holding && !holds(params)) holding = false;
+                if (holding && video == rate) return;
+                int[] current = new int[1];
+                RefreshRate.Mode[] found = modes.of(decor, current);
+                int id = modeFor(video, current[0], found);
+                if (!holding) {
+                    earlierMode = params.preferredDisplayModeId;
+                    earlierRefresh = params.preferredRefreshRate;
+                }
+                if (id != 0) {
+                    params.preferredDisplayModeId = id;
+                    params.preferredRefreshRate = earlierRefresh;
+                } else {
+                    params.preferredDisplayModeId = earlierMode;
+                    params.preferredRefreshRate = refreshFor(video);
+                }
+                askedMode = params.preferredDisplayModeId;
+                askedRefresh = params.preferredRefreshRate;
+                holding = true;
+                rate = video;
+                target.setAttributes(params);
+                HookStatus.counted(FamilyNames.REFRESH_RATE, WINDOW_ASKED);
+            } catch (Throwable failure) {
+                broken = true;
+                HookStatus.threw(FamilyNames.REFRESH_RATE, "video refresh rate", failure);
+                giveBack();
+            }
+        }
+
+        private boolean holds(WindowManager.LayoutParams params) {
+            return params.preferredDisplayModeId == askedMode && Float.compare(params.preferredRefreshRate, askedRefresh) == 0;
+        }
+
+        /**
+         * Puts back what the window held before this class asked, while it still holds this class's
+         * request: a window something else asked since (Use the highest refresh rate) keeps that.
+         */
+        void giveBack() {
+            if (!holding) return;
+            holding = false;
+            rate = 0;
+            try {
+                Window target = window.get();
+                if (target == null) return;
+                WindowManager.LayoutParams params = target.getAttributes();
+                if (!holds(params)) return;
+                params.preferredDisplayModeId = earlierMode;
+                params.preferredRefreshRate = earlierRefresh;
+                target.setAttributes(params);
+            } catch (Throwable failure) {
+                HookStatus.threw(FamilyNames.REFRESH_RATE, "video refresh rate give back", failure);
+            }
+        }
+    }
+
     /** One window's videos, looked at before each of its frames. */
     static final class Watched implements ViewTreeObserver.OnPreDrawListener {
         private final WeakReference<View> decor;
         final List<Video> videos = new ArrayList<>();
+        final WindowAsk window;
         private long scanned = Long.MIN_VALUE;
 
-        Watched(View decor) {
+        Watched(View decor, @Nullable Window window) {
             this.decor = new WeakReference<>(decor);
+            this.window = new WindowAsk(window);
         }
 
         @Override
@@ -192,6 +356,7 @@ public final class VideoFrameRate {
                 frame(SystemClock.uptimeMillis());
             } catch (Throwable failure) {
                 HookStatus.threw(FamilyNames.REFRESH_RATE, "video frame rate", failure);
+                window.giveBack();
             }
             return true;
         }
@@ -208,15 +373,24 @@ public final class VideoFrameRate {
                 scanned = now;
                 find(root, new int[]{SCAN_LIMIT});
             }
+            // The window follows the first video found that has a rate: one window has one refresh rate.
+            float playing = 0;
             for (int i = videos.size() - 1; i >= 0; i--) {
-                if (!videos.get(i).frame(now)) videos.remove(i);
+                Video video = videos.get(i);
+                if (!video.frame(now)) {
+                    videos.remove(i);
+                } else if (video.asked > 0) {
+                    playing = video.asked;
+                }
             }
+            window.ask(root, playing);
         }
 
         void stopAll() {
             for (Video video : videos) video.stop();
             videos.clear();
             scanned = Long.MIN_VALUE;
+            window.giveBack();
         }
 
         private void find(View view, int[] budget) {
@@ -236,7 +410,7 @@ public final class VideoFrameRate {
         }
     }
 
-    /** One video's newest frames and the rate asked for on its view. */
+    /** One video and the timestamps of its newest frames. */
     static final class Video {
         final WeakReference<TextureView> view;
         /** The newest frames' timestamps, a ring of {@link #WINDOW}. */
@@ -298,8 +472,7 @@ public final class VideoFrameRate {
     private static final class Watcher implements Application.ActivityLifecycleCallbacks {
         @Override public void onActivityResumed(@NonNull Activity activity) {
             try {
-                Window window = activity.getWindow();
-                if (window != null) track(window.getDecorView());
+                track(activity.getWindow());
             } catch (Throwable failure) {
                 HookStatus.threw(FamilyNames.REFRESH_RATE, "video frame rate watch", failure);
             }

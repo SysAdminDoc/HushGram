@@ -15,9 +15,9 @@ Adds Copy text to the menu a story's three dots open. It copies the words Instag
 Ads and privacy	Annunci e privacy
 Also in comments	Anche nei commenti
 Asks Android to run Instagram at your screen's fastest refresh rate, at the same resolution. Some phones keep their own limit for apps, and battery saver can still lower it.	Chiede ad Android di eseguire Instagram alla massima frequenza di aggiornamento dello schermo, con la stessa risoluzione. Alcuni telefoni pongono un limite proprio alle app e il risparmio energetico può comunque abbassarla.
-# context: Layout: a switch under Use the highest refresh rate (#868). While a video plays it tells Android the video's frames per second, so a phone that changes its screen's refresh rate on its own picks one the video divides into evenly (60 or 120 Hz for a 30 fps video) instead of hopping.
+# context: Layout: a switch under Use the highest refresh rate (#868). While a video plays it tells Android the video's frames per second and asks Instagram's window for a refresh rate that frame rate divides into (60 Hz for a 30 fps video, 120 Hz for 24 fps). Use the highest refresh rate is the other switch's name, as on its own row.
 Match the video's frame rate	Adatta alla frequenza dei fotogrammi del video
-While a video plays, tells Android how many frames a second it has, so a screen that picks its own refresh rate can choose one the video fits evenly.	Mentre un video è in riproduzione, dice ad Android quanti fotogrammi al secondo ha, così uno schermo che sceglie da solo la frequenza di aggiornamento ne usa una adatta al video.
+While a video plays, tells Android its frame rate and asks for a refresh rate that frame rate divides into, like 60 Hz for a 30 fps reel. Use the highest refresh rate comes first while it's on.	Mentre un video è in riproduzione, dice ad Android la sua frequenza dei fotogrammi e chiede una frequenza di aggiornamento che ne sia un multiplo, come 60 Hz per un reel a 30 fps. Se Usa la frequenza di aggiornamento più alta è attivo, vale quello.
 Back	Indietro
 Before you sign in	Prima di accedere
 Cancel	Annulla
