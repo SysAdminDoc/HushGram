@@ -62,6 +62,7 @@ public class StoryReplyBoxSettingsTest {
         Settings.HIDE_STORY_LIKE_BUTTON.resetToDefault();
         Settings.HIDE_STORY_COMMENT_BUTTON.resetToDefault();
         Settings.HIDE_STORY_SHARE_BUTTON.resetToDefault();
+        Settings.HIDE_STORY_COMMENTS.resetToDefault();
     }
     private void open(EnumSet<PatchFamily> build) throws Exception {
         PatchFamily.inBuildForTests = build;
@@ -88,10 +89,12 @@ public class StoryReplyBoxSettingsTest {
         assertEquals(Arrays.toString(keys), Settings.HIDE_STORY_LIKE_BUTTON.key, keys[at + 1]);
         assertEquals(Arrays.toString(keys), Settings.HIDE_STORY_COMMENT_BUTTON.key, keys[at + 2]);
         assertEquals(Arrays.toString(keys), Settings.HIDE_STORY_SHARE_BUTTON.key, keys[at + 3]);
-        assertEquals(Arrays.toString(keys), Settings.SHOW_STORY_TIME.key, keys[at + 4]);
+        assertEquals(Arrays.toString(keys), Settings.HIDE_STORY_COMMENTS.key, keys[at + 4]);
+        assertEquals(Arrays.toString(keys), Settings.SHOW_STORY_TIME.key, keys[at + 5]);
         assertEquals("Hide the reply box on stories", PatchFamily.STORY_REPLY_BOX.patchName);
         assertEquals(Arrays.asList(Settings.HIDE_STORY_REPLY_BOX, Settings.HIDE_STORY_LIKE_BUTTON,
-                Settings.HIDE_STORY_COMMENT_BUTTON, Settings.HIDE_STORY_SHARE_BUTTON), PatchFamily.STORY_REPLY_BOX.switches);
+                Settings.HIDE_STORY_COMMENT_BUTTON, Settings.HIDE_STORY_SHARE_BUTTON, Settings.HIDE_STORY_COMMENTS),
+                PatchFamily.STORY_REPLY_BOX.switches);
 
         ((SwitchPreference) row).setChecked(true);
         assertTrue(Settings.HIDE_STORY_REPLY_BOX.get());
@@ -109,7 +112,10 @@ public class StoryReplyBoxSettingsTest {
                         "Takes the Comment button off the bottom of other people's stories that have one. "
                                 + "No empty space is left behind."},
                 {Settings.HIDE_STORY_SHARE_BUTTON.key, "Hide the Share button on stories",
-                        "Takes the paper plane off the bottom of other people's stories. No empty space is left behind."}};
+                        "Takes the paper plane off the bottom of other people's stories. No empty space is left behind."},
+                {Settings.HIDE_STORY_COMMENTS.key, "Hide comments on stories",
+                        "Takes the comments floating over stories off them, along with the faces of the people who "
+                                + "wrote them. The Comment button still opens them."}};
         for (String[] expected : rows) {
             Preference row = page.getPreferenceScreen().findPreference(expected[0]);
             assertNotNull(expected[0], row);
@@ -122,6 +128,7 @@ public class StoryReplyBoxSettingsTest {
         assertFalse(Settings.HIDE_STORY_LIKE_BUTTON.get());
         assertFalse(Settings.HIDE_STORY_COMMENT_BUTTON.get());
         assertFalse(Settings.HIDE_STORY_SHARE_BUTTON.get());
+        assertFalse(Settings.HIDE_STORY_COMMENTS.get());
 
         ((SwitchPreference) page.getPreferenceScreen().findPreference(Settings.HIDE_STORY_SHARE_BUTTON.key)).setChecked(true);
         assertTrue(Settings.HIDE_STORY_SHARE_BUTTON.get());
@@ -143,5 +150,7 @@ public class StoryReplyBoxSettingsTest {
         assertFalse(ConfigurationBackup.eligible().containsKey(Settings.HIDE_STORY_REPLY_BOX.key));
         assertNull(page.getPreferenceScreen().findPreference(Settings.HIDE_STORY_LIKE_BUTTON.key));
         assertFalse(ConfigurationBackup.eligible().containsKey(Settings.HIDE_STORY_SHARE_BUTTON.key));
+        assertNull(page.getPreferenceScreen().findPreference(Settings.HIDE_STORY_COMMENTS.key));
+        assertFalse(ConfigurationBackup.eligible().containsKey(Settings.HIDE_STORY_COMMENTS.key));
     }
 }

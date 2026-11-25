@@ -3020,3 +3020,7 @@ Shows a handle at the right edge of Home while it scrolls. Drag it to jump down 
 Fast scroll in chats	채팅 빠른 스크롤
 # context: Messages > summary of Fast scroll in chats; the newest messages are at the bottom of a chat (#826)
 Shows a handle at the right edge of a chat while it scrolls. Drag it up to your older messages and back down to the newest.	채팅을 스크롤하는 동안 오른쪽 가장자리에 핸들을 표시합니다. 핸들을 위로 끌면 이전 메시지로, 아래로 끌면 최신 메시지로 이동합니다.
+# context: Stories > title of the switch that hides the comments Instagram floats over a story while you watch it, next to Hide the Comment button on stories (#826)
+Hide comments on stories	스토리에서 댓글 숨기기
+# context: Stories > summary of Hide comments on stories; the faces are the small round profile pictures of the commenters; the Comment button is the story's own Comment button, translated as in Hide the Comment button on stories (#826)
+Takes the comments floating over stories off them, along with the faces of the people who wrote them. The Comment button still opens them.	스토리 위에 떠 있는 댓글과 댓글을 쓴 사람들의 얼굴을 없앱니다. 댓글 버튼으로는 계속 볼 수 있습니다.

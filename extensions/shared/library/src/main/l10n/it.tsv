@@ -3021,3 +3021,7 @@ Shows a handle at the right edge of Home while it scrolls. Drag it to jump down 
 Fast scroll in chats	Scorrimento rapido nelle chat
 # context: Messages > summary of Fast scroll in chats; the newest messages are at the bottom of a chat (#826)
 Shows a handle at the right edge of a chat while it scrolls. Drag it up to your older messages and back down to the newest.	Mostra una maniglia sul bordo destro di una chat mentre scorre. Trascinala in alto fino ai messaggi meno recenti e in basso fino ai più nuovi.
+# context: Stories > title of the switch that hides the comments Instagram floats over a story while you watch it, next to Hide the Comment button on stories (#826)
+Hide comments on stories	Nascondi i commenti nelle storie
+# context: Stories > summary of Hide comments on stories; the faces are the small round profile pictures of the commenters; the Comment button is the story's own Comment button, translated as in Hide the Comment button on stories (#826)
+Takes the comments floating over stories off them, along with the faces of the people who wrote them. The Comment button still opens them.	Toglie i commenti che fluttuano sulle storie, insieme ai volti di chi li ha scritti. Il pulsante Commenta li apre ancora.

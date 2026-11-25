@@ -69,6 +69,8 @@ public class StoryReplyBoxTest {
     private int commentId;
     private int shareId;
     private int shareStubId;
+    /** The ids of {@link StoryReplyBox#COMMENTS}, in its order. */
+    private final int[] commentsIds = new int[StoryReplyBox.COMMENTS.length];
     private int likeClicks;
     private final Object viewer = new Object();
 
@@ -91,6 +93,10 @@ public class StoryReplyBoxTest {
         StoryReplyBox.putIdForTests(activity, "toolbar_comment_button", commentId);
         StoryReplyBox.putIdForTests(activity, "toolbar_reshare_button", shareId);
         StoryReplyBox.putIdForTests(activity, "toolbar_reshare_button_stub", shareStubId);
+        for (int i = 0; i < commentsIds.length; i++) {
+            commentsIds[i] = View.generateViewId();
+            StoryReplyBox.putIdForTests(activity, StoryReplyBox.COMMENTS[i], commentsIds[i]);
+        }
         viewerView = new FrameLayout(activity);
         footer = footer();
         viewerView.addView(footer, new FrameLayout.LayoutParams(720, 120, Gravity.BOTTOM));
@@ -133,6 +139,7 @@ public class StoryReplyBoxTest {
         Settings.HIDE_STORY_LIKE_BUTTON.resetToDefault();
         Settings.HIDE_STORY_COMMENT_BUTTON.resetToDefault();
         Settings.HIDE_STORY_SHARE_BUTTON.resetToDefault();
+        Settings.HIDE_STORY_COMMENTS.resetToDefault();
     }
 
     /** A footer the way 454 lays one out: the box holding its text field, then like, comment and share. */
@@ -563,5 +570,118 @@ public class StoryReplyBoxTest {
         Settings.HIDE_STORY_LIKE_BUTTON.save(false);
         assertFalse(StoryReplyBox.OPENINGS.preDraw(activity, true));
         assertFalse("it leaves once every switch is off", ViewWatcher.joined(activity, StoryReplyBox.OPENINGS));
+    }
+
+    /**
+     * The comments 457 floats over a story (#826): the bubbles, the faces of who wrote them and the
+     * newest one's preview, on the story's page under the viewer rather than in its footer.
+     */
+    private FrameLayout floatingComments() {
+        FrameLayout page = new FrameLayout(activity);
+        FrameLayout bubbles = new FrameLayout(activity);
+        bubbles.setId(commentsIds[0]);
+        bubbles.addView(new View(activity));
+        page.addView(bubbles, new FrameLayout.LayoutParams(600, 300));
+        View faces = new View(activity);
+        faces.setId(commentsIds[1]);
+        page.addView(faces, new FrameLayout.LayoutParams(200, 60));
+        View preview = new View(activity);
+        preview.setId(commentsIds[2]);
+        page.addView(preview, new FrameLayout.LayoutParams(600, 80));
+        viewerView.addView(page, 0, new FrameLayout.LayoutParams(720, 1000));
+        idle();
+        return page;
+    }
+
+    private static void assertComments(String why, int visibility, ViewGroup page) {
+        for (int i = 0; i < page.getChildCount(); i++) {
+            assertEquals(why + ": " + StoryReplyBox.COMMENTS[i], visibility, page.getChildAt(i).getVisibility());
+        }
+    }
+
+    @Test
+    public void hidingCommentsTakesTheFloatingCommentsOffAndLeavesTheFooter() {
+        FrameLayout page = floatingComments();
+        StoryReplyBox.resumed(viewer);
+        frame();
+        assertComments("off to start", View.VISIBLE, page);
+        Settings.HIDE_STORY_COMMENTS.save(true);
+        StoryReplyBox.resumed(viewer);
+        assertFalse("nothing moves, so the frame draws", frame());
+        assertComments("hidden in their place", View.INVISIBLE, page);
+        assertEquals(View.VISIBLE, box.getVisibility());
+        assertEquals(View.VISIBLE, like.getVisibility());
+        assertEquals("the Comment button has its own switch", View.VISIBLE, comment.getVisibility());
+        assertEquals(View.VISIBLE, share.getVisibility());
+        assertTrue(HookStatus.missing(FamilyNames.STORY_REPLY_BOX).toString(), HookStatus.missing(FamilyNames.STORY_REPLY_BOX).isEmpty());
+    }
+
+    @Test
+    public void commentsShownAgainAreHiddenAgainUntilTheSwitchGoesOff() {
+        FrameLayout page = floatingComments();
+        Settings.HIDE_STORY_COMMENTS.save(true);
+        StoryReplyBox.resumed(viewer);
+        frame();
+        View bubbles = page.getChildAt(0);
+        bubbles.setVisibility(View.VISIBLE);
+        assertFalse(frame());
+        assertEquals("Instagram showing them again doesn't last a frame", View.INVISIBLE, bubbles.getVisibility());
+        Settings.HIDE_STORY_COMMENTS.save(false);
+        frame();
+        assertComments("the switch off puts them back", View.VISIBLE, page);
+    }
+
+    @Test
+    public void theReplyBoxSwitchLeavesTheCommentsAndAPausePutsThemBack() {
+        FrameLayout page = floatingComments();
+        hidden();
+        assertComments("the reply box switch leaves them", View.VISIBLE, page);
+        Settings.HIDE_STORY_COMMENTS.save(true);
+        frame();
+        assertComments("hidden on their own switch", View.INVISIBLE, page);
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        frame();
+        assertComments("a pause puts them back", View.VISIBLE, page);
+        assertEquals(View.VISIBLE, box.getVisibility());
+        assertTrue("the saved choice is kept", Settings.HIDE_STORY_COMMENTS.savedValue());
+    }
+
+    @Test
+    public void commentsStillAStubAreFollowedToTheViewTheyInflate() {
+        FrameLayout page = new FrameLayout(activity);
+        ViewStub stub = new ViewStub(activity, android.R.layout.simple_list_item_1);
+        stub.setId(commentsIds[0]);
+        page.addView(stub, new FrameLayout.LayoutParams(600, 300));
+        viewerView.addView(page, 0, new FrameLayout.LayoutParams(720, 1000));
+        idle();
+        Settings.HIDE_STORY_COMMENTS.save(true);
+        StoryReplyBox.resumed(viewer);
+        frame();
+        View bubbles = stub.inflate();
+        assertTrue("the inflated view carries another id", bubbles.getId() != commentsIds[0]);
+        frame();
+        assertEquals(View.INVISIBLE, bubbles.getVisibility());
+    }
+
+    @Test
+    public void aBuildWithoutTheBubblesIsReportedOnlyWhileTheCommentsSwitchIsOn() {
+        StoryReplyBox.putIdForTests(activity, StoryReplyBox.COMMENTS[0], 0);
+        Settings.HIDE_STORY_SHARE_BUTTON.save(true);
+        StoryReplyBox.resumed(viewer);
+        frame();
+        assertFalse(HookStatus.missing(FamilyNames.STORY_REPLY_BOX).toString(),
+                HookStatus.missing(FamilyNames.STORY_REPLY_BOX).toString().contains(StoryReplyBox.COMMENTS[0]));
+        Settings.HIDE_STORY_COMMENTS.save(true);
+        frame();
+        assertTrue(HookStatus.missing(FamilyNames.STORY_REPLY_BOX).toString(),
+                HookStatus.missing(FamilyNames.STORY_REPLY_BOX).toString().contains(StoryReplyBox.COMMENTS[0]));
+    }
+
+    @Test
+    public void theCommentsSwitchAloneWatchesForCopies() {
+        Settings.HIDE_STORY_COMMENTS.save(true);
+        StoryReplyBox.watch(activity);
+        assertTrue(ViewWatcher.joined(activity, StoryReplyBox.OPENINGS));
     }
 }

@@ -3024,3 +3024,7 @@ Shows a handle at the right edge of Home while it scrolls. Drag it to jump down 
 Fast scroll in chats	聊天快速卷动
 # context: Messages > summary of Fast scroll in chats; the newest messages are at the bottom of a chat (#826)
 Shows a handle at the right edge of a chat while it scrolls. Drag it up to your older messages and back down to the newest.	卷动聊天时，在右侧边缘显示拉杆。往上拖动可查看较早的消息，往下拖动可回到最新消息。
+# context: Stories > title of the switch that hides the comments Instagram floats over a story while you watch it, next to Hide the Comment button on stories (#826)
+Hide comments on stories	隐藏快拍上的评论
+# context: Stories > summary of Hide comments on stories; the faces are the small round profile pictures of the commenters; the Comment button is the story's own Comment button, translated as in Hide the Comment button on stories (#826)
+Takes the comments floating over stories off them, along with the faces of the people who wrote them. The Comment button still opens them.	移除漂浮在快拍上的评论，以及评论者的头像。“评论”按钮仍可打开评论。

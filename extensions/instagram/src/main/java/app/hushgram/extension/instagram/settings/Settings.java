@@ -441,6 +441,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_story_share_button", FALSE);
 
     /**
+     * The comments that float over a story, the faces of the people who wrote them and the preview
+     * of the newest stay off it (#826, {@link app.hushgram.extension.instagram.stories.StoryReplyBox}).
+     * Read before each frame. Off to start.
+     */
+    public static final BooleanSetting HIDE_STORY_COMMENTS =
+            new BooleanSetting("hushgram_hide_story_comments", FALSE);
+
+    /**
      * The row along a story's bottom moves down off the story when a large font or display size makes
      * it cover the story ({@link app.hushgram.extension.instagram.stories.StoryButtonsRoom}). Read before
      * each frame, and the row goes back the frame after it turns off. On to start.

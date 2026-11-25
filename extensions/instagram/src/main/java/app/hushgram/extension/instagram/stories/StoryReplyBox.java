@@ -41,7 +41,7 @@ import app.hushgram.extension.shared.settings.BooleanSetting;
  * <p>On 453 the box is {@link #BOX}, in the story's footer ({@link #FOOTER}) beside the like and
  * share buttons. Older layouts inflate it from a stub as {@link #OLD_BOX}. The patch calls
  * {@link #resumed} right after the story viewer, ReelViewerFragment, hands its onResume on to its
- * superclass. While any of the four switches is on, the viewer's window gets a pre-draw listener.
+ * superclass. While any of the five switches is on, the viewer's window gets a pre-draw listener.
  * With the reply box switch on it sets each box it finds INVISIBLE before the frame draws. An
  * invisible box keeps its place, so the buttons beside it don't move, and it takes no taps. A box
  * holding the focus, where typed text goes, shows again until it lets go, so a reply Instagram
@@ -63,6 +63,12 @@ import app.hushgram.extension.shared.settings.BooleanSetting;
  * while a switch is on each resumed activity also has {@link #OPENINGS} in its frames: after a
  * layout it looks a few levels into each of the content's children for {@link #OPENING}, and gives
  * a copy it finds a keeper of its own, run once right there so that very frame draws it hidden.
+ *
+ * <p>Hide comments on stories (#826) uses the same keeper. On 457 a story's page holds the comments
+ * that float over it ({@link #COMMENTS}: the bubbles, the faces of who wrote them and the newest
+ * one's preview) as views or stubs anywhere under the viewer, not in the footer. Each goes INVISIBLE
+ * like the box, so nothing around it moves, and a stub is followed to the view it inflates by its
+ * LayoutParams, as the buttons are.
  */
 public final class StoryReplyBox {
     /** The story's footer on 453, and the Send message box in it. */
@@ -70,6 +76,8 @@ public final class StoryReplyBox {
     static final String BOX = "message_composer_container";
     /** The box as older layouts inflate it, anywhere in the viewer. */
     static final String OLD_BOX = "reel_viewer_message_composer_container";
+    /** The comments floating over a story on 457, the faces beside them and the newest one's preview. */
+    static final String[] COMMENTS = {"story_comments_bubbles", "story_comments_face_swarm", "story_comments_preview"};
 
     static final String HOOK = "story reply box";
 
@@ -169,7 +177,7 @@ public final class StoryReplyBox {
     }
 
     /**
-     * One of the four switches was flipped in HushGram settings. They open as a dialog over
+     * One of the five switches was flipped in HushGram settings. They open as a dialog over
      * [activity], which stays resumed, so it decides again now. Posted, so it reads the value this
      * change saves.
      */
@@ -285,13 +293,18 @@ public final class StoryReplyBox {
         return Utils.settingsReady() && Settings.HIDE_STORY_REPLY_BOX.get();
     }
 
+    /** Whether the comments floating over stories are kept off them. Reads off while paused. */
+    static boolean commentsOn() {
+        return Utils.settingsReady() && Settings.HIDE_STORY_COMMENTS.get();
+    }
+
     /**
-     * Whether the reply box or any footer button is kept off stories. Asked as any activity resumes
-     * too, so it reads no switch before the settings are, which would break them for good.
+     * Whether the reply box, the comments or any footer button is kept off stories. Asked as any
+     * activity resumes too, so it reads no switch before the settings are, which would break them for good.
      */
     static boolean anyOn() {
         if (!Utils.settingsReady()) return false;
-        if (switchedOn()) return true;
+        if (switchedOn() || commentsOn()) return true;
         for (Button button : Button.ALL) {
             if (button.on()) return true;
         }
@@ -328,6 +341,12 @@ public final class StoryReplyBox {
         private final Map<View, Integer> gone = new WeakHashMap<>();
         /** Each button stub's LayoutParams, which the view it inflates takes over. */
         private final Map<ViewGroup.LayoutParams, Button> stubs = new WeakHashMap<>();
+        /** The floating comments found at the last look, while their switch is on. */
+        private final List<WeakReference<View>> comments = new ArrayList<>();
+        /** The comments this keeper made invisible and hasn't put back. */
+        private final Set<View> quiet = Collections.newSetFromMap(new WeakHashMap<>());
+        /** Each comments stub's LayoutParams, which the view it inflates takes over. */
+        private final Set<ViewGroup.LayoutParams> commentStubs = Collections.newSetFromMap(new WeakHashMap<>());
         @Nullable
         private ViewTreeObserver observer;
         private boolean stale = true;
@@ -376,6 +395,7 @@ public final class StoryReplyBox {
          */
         boolean restore() {
             showBoxes();
+            showComments();
             boolean moved = false;
             for (Map.Entry<View, Integer> entry : new ArrayList<>(gone.entrySet())) {
                 View button = entry.getKey();
@@ -393,6 +413,24 @@ public final class StoryReplyBox {
                 if (box.getVisibility() == View.INVISIBLE) box.setVisibility(View.VISIBLE);
             }
             hidden.clear();
+        }
+
+        private void showComments() {
+            for (View comment : new ArrayList<>(quiet)) {
+                if (comment.getVisibility() == View.INVISIBLE) comment.setVisibility(View.VISIBLE);
+            }
+            quiet.clear();
+        }
+
+        /** Makes each shown comments view invisible before the frame draws it. */
+        private void hideComments() {
+            for (WeakReference<View> held : comments) {
+                View comment = held.get();
+                if (comment != null && comment.getVisibility() == View.VISIBLE) {
+                    quiet.add(comment);
+                    comment.setVisibility(View.INVISIBLE);
+                }
+            }
         }
 
         @Override
@@ -422,14 +460,17 @@ public final class StoryReplyBox {
                 boolean boxOn = switchedOn();
                 View view = root.get();
                 if (!boxOn && !anyOn()) {
-                    if (!hidden.isEmpty() || !gone.isEmpty()) moved = restore();
+                    if (!hidden.isEmpty() || !gone.isEmpty() || !quiet.isEmpty()) moved = restore();
                 } else if (view != null) {
+                    boolean commentsOn = commentsOn();
                     if (stale) {
                         stale = false;
-                        collect(view);
+                        collect(view, commentsOn);
                     }
                     if (boxOn) hideBoxes();
                     else if (!hidden.isEmpty()) showBoxes();
+                    if (commentsOn) hideComments();
+                    else if (!quiet.isEmpty()) showComments();
                     moved = keepButtons();
                 }
             } catch (Throwable failure) {
@@ -479,9 +520,16 @@ public final class StoryReplyBox {
             return moved;
         }
 
-        private void collect(View view) {
+        /** Looks for the boxes, buttons and comments under [view]; a missing comments id is reported only while [commentsOn]. */
+        private void collect(View view, boolean commentsOn) {
             boxes.clear();
             buttons.clear();
+            comments.clear();
+            int[] talk = new int[COMMENTS.length];
+            for (int i = 0; i < COMMENTS.length; i++) {
+                talk[i] = id(view, COMMENTS[i]);
+                if (commentsOn) report(talk[i], COMMENTS[i]);
+            }
             int footer = id(view, FOOTER);
             int box = id(view, BOX);
             int old = id(view, OLD_BOX);
@@ -500,10 +548,11 @@ public final class StoryReplyBox {
                     owners[owners.length - 1] = button;
                 }
             }
-            walk(view, footer, box, old, ids, owners);
+            walk(view, footer, box, old, ids, owners, talk);
         }
 
-        private void walk(View view, int footer, int box, int old, int[] ids, Button[] owners) {
+        private void walk(View view, int footer, int box, int old, int[] ids, Button[] owners, int[] talk) {
+            if (comment(view, talk)) return;
             int id = view.getId();
             if (old != 0 && id == old) {
                 boxes.add(new WeakReference<>(view));
@@ -512,12 +561,44 @@ public final class StoryReplyBox {
             if (footer != 0 && id == footer) {
                 View found = box == 0 ? null : view.findViewById(box);
                 if (found != null) boxes.add(new WeakReference<>(found));
-                if (view instanceof ViewGroup) findButtons((ViewGroup) view, ids, owners);
+                if (view instanceof ViewGroup) {
+                    findButtons((ViewGroup) view, ids, owners);
+                    findComments((ViewGroup) view, talk);
+                }
                 return;
             }
             if (!(view instanceof ViewGroup)) return;
             ViewGroup group = (ViewGroup) view;
-            for (int i = 0; i < group.getChildCount(); i++) walk(group.getChildAt(i), footer, box, old, ids, owners);
+            for (int i = 0; i < group.getChildCount(); i++) walk(group.getChildAt(i), footer, box, old, ids, owners, talk);
+        }
+
+        /**
+         * Holds [view] when it is one of the comments views, or its stub's LayoutParams while it is
+         * still a stub. Answers whether it was either, so nothing under it is looked at.
+         */
+        private boolean comment(View view, int[] talk) {
+            int id = view.getId();
+            boolean named = false;
+            for (int at = 0; at < talk.length && !named && id != View.NO_ID; at++) {
+                named = talk[at] != 0 && talk[at] == id;
+            }
+            ViewGroup.LayoutParams params = view.getLayoutParams();
+            if (view instanceof ViewStub) {
+                if (named && params != null) commentStubs.add(params);
+                return named;
+            }
+            if (named || (params != null && commentStubs.contains(params))) {
+                comments.add(new WeakReference<>(view));
+                return true;
+            }
+            return false;
+        }
+
+        private void findComments(ViewGroup group, int[] talk) {
+            for (int i = 0; i < group.getChildCount(); i++) {
+                View child = group.getChildAt(i);
+                if (!comment(child, talk) && child instanceof ViewGroup) findComments((ViewGroup) child, talk);
+            }
         }
 
         /** Holds each button under the footer, or its stub's LayoutParams while it is still a stub. */

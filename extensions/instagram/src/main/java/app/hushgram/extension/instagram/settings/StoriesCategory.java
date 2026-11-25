@@ -207,6 +207,9 @@ final class StoriesCategory {
             stories.add(onFlip(toggle(context, Settings.HIDE_STORY_SHARE_BUTTON, L10n.t("Hide the Share button on stories"),
                     L10n.t("Takes the paper plane off the bottom of other people's stories. No empty space is "
                             + "left behind.")), StoryReplyBox::switchChanged));
+            stories.add(onFlip(toggle(context, Settings.HIDE_STORY_COMMENTS, L10n.t("Hide comments on stories"),
+                    L10n.t("Takes the comments floating over stories off them, along with the faces of the people "
+                            + "who wrote them. The Comment button still opens them.")), StoryReplyBox::switchChanged));
         }
         if (build.contains(PatchFamily.GLASS_CHAT)) {
             stories.add(toggle(context, Settings.GLASS_STORY_REPLY_BOX, L10n.t("Glass reply box on stories"),

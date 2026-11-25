@@ -79,7 +79,8 @@ public class StoryButtonsRoomSettingsTest {
         String[] keys = new String[stories.getPreferenceCount()];
         for (int i = 0; i < keys.length; i++) keys[i] = stories.getPreference(i).getKey();
         int at = Arrays.asList(keys).indexOf(Settings.KEEP_STORY_BUTTONS_BELOW.key);
-        assertEquals(Arrays.toString(keys), Settings.HIDE_STORY_SHARE_BUTTON.key, keys[at - 1]);
+        assertEquals(Arrays.toString(keys), Settings.HIDE_STORY_COMMENTS.key, keys[at - 1]);
+        assertEquals(Arrays.toString(keys), Settings.HIDE_STORY_SHARE_BUTTON.key, keys[at - 2]);
         assertEquals(Arrays.toString(keys), Settings.SHOW_STORY_TIME.key, keys[at + 1]);
         assertEquals("Keep story buttons below the story", PatchFamily.STORY_BUTTONS_ROOM.patchName);
         assertEquals(Collections.singletonList(Settings.KEEP_STORY_BUTTONS_BELOW), PatchFamily.STORY_BUTTONS_ROOM.switches);
