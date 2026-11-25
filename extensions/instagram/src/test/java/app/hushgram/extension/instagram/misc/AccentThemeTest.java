@@ -557,10 +557,11 @@ public class AccentThemeTest {
     }
 
     /**
-     * Instagram builds its Compose palettes on a thread of its own as it starts, before the first
-     * screen's theme is styled, so with Classic colors on the grays come straight from the classic
-     * style for the kind of screen Instagram's Dark mode choice will show, and the other kind's stay
-     * (#528).
+     * Instagram builds its Compose palettes once, on a thread of its own as it starts and before the
+     * first screen's theme is styled, so with Classic colors on the grays come straight from the
+     * classic styles (#528). Both kinds do, whatever Instagram's Dark mode shows then: it switches
+     * without a restart, and palettes built on a light screen kept the dark one's Messages rows,
+     * Settings' header and its loading page black (#683).
      */
     @Test
     public void composeReadsTheClassicStyleBeforeAnyScreenIsStyled() {
@@ -583,17 +584,20 @@ public class AccentThemeTest {
 
             prefs.edit().putInt(AccentTheme.DARK_MODE_KEY, AccentTheme.DARK_MODE_ON).commit();
             assertEquals("Dark mode on", darkPage, AccentTheme.composeSurface(black, app));
-            assertEquals("a light screen's white with Dark mode on", white, AccentTheme.composeSurface(white, app));
+            assertEquals("a light screen's white with Dark mode on", lightPage, AccentTheme.composeSurface(white, app));
             AccentTheme.darkSurfacesForTests(null);
+            AccentTheme.lightSurfacesForTests(null);
 
             prefs.edit().putInt(AccentTheme.DARK_MODE_KEY, AccentTheme.DARK_MODE_OFF).commit();
-            assertEquals("a light screen's black text with Dark mode off", black, AccentTheme.composeSurface(black, app));
+            assertEquals("a dark screen's black with Dark mode off", darkPage, AccentTheme.composeSurface(black, app));
             assertEquals("Dark mode off", lightPage, AccentTheme.composeSurface(white, app));
+            AccentTheme.darkSurfacesForTests(null);
             AccentTheme.lightSurfacesForTests(null);
 
             prefs.edit().clear().commit();
-            assertEquals("the system's light mode", black, AccentTheme.composeSurface(black, app));
+            assertEquals("the system's light mode", darkPage, AccentTheme.composeSurface(black, app));
             assertEquals("the system's light mode", lightPage, AccentTheme.composeSurface(white, app));
+            AccentTheme.darkSurfacesForTests(null);
             AccentTheme.lightSurfacesForTests(null);
 
             Settings.CLASSIC_COLORS.save(false);

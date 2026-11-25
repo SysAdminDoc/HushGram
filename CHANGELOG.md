@@ -62,6 +62,7 @@ Every HushGram release, newest first.
 * With `Hide the tab bar as you scroll` on, a reel keeps playing after you close its comments or description. The tab bar moved while the sheet was up, and the reel froze on one frame. Reported in #854.
 * On your own story or highlight, `Story buttons at the bottom` keeps HushGram's buttons up by the name instead of on top of Instagram's, and `Mark as seen button` no longer shows there. Reported in #850.
 * Your own profile's username keeps its room when `Jump a profile's posts to a date` and `About this account button` crowd it. They move into the `Profile extras button` menu as `Jump to a date` and `About this account`. Reported in #850.
+* With `Classic colors` on, the Messages inbox, its suggested accounts and Settings keep their classic colors when Instagram switches between light and dark without restarting, as a dark mode schedule does. They turned black until the next start. Reported in #683.
 * With `Watch again in the feed` on, Watch again replays a reel right there in Saved and other lists of posts too. It opened the reel in another viewer there. Reported in #568.
 * With `Swipe through a chat's reels` on, the reply bar and quick reactions keep working on reels you swipe to past the chat's loaded messages. They went dead there, so nothing went out. Reported in #804 and #844.
 * With `Swipe through a chat's reels` on, a chat where you have a Blend keeps putting its shared reels first every time. After the first couple, Instagram used to jump straight to the Blend's. Reported in #804.

@@ -169,8 +169,8 @@ public class ComposeSurfaceTest {
 
     /**
      * Classic colors on a light theme paints Compose's white page and both palettes' search field gray
-     * in the theme's own shades, keeping the alpha, and leaves the light screens' dark text and the dark
-     * screens' light text alone (#639).
+     * in the theme's own shades, keeping the alpha, and leaves the dark screens' light text alone, and
+     * a dark gray too while no dark shades are at hand (#639).
      */
     @Test public void classicColorsPaintALightThemesFills() {
         Settings.ACCENT_COLOR.save(false);
@@ -184,7 +184,7 @@ public class ComposeSurfaceTest {
         assertEquals(compose(LIGHT_TOP), AccentTheme.composeSurface(compose(0xfff3f5f7)));
         assertEquals(compose(LIGHT_TOP), AccentTheme.composeSurface(compose(0xfff0f2f5)));
         assertEquals("alpha", compose(0x80fafafa), AccentTheme.composeSurface(compose(0x80ffffff)));
-        assertEquals("a light screen's text", compose(0xff0c1014), AccentTheme.composeSurface(compose(0xff0c1014)));
+        assertEquals("a dark gray with no dark shades at hand", compose(0xff0c1014), AccentTheme.composeSurface(compose(0xff0c1014)));
         assertEquals("a dark screen's text", compose(0xfff8f9f9), AccentTheme.composeSurface(compose(0xfff8f9f9)));
         assertEquals("an already painted page", compose(LIGHT_BASE), AccentTheme.composeSurface(compose(LIGHT_BASE)));
         long wideGamut = compose(WHITE) | 5;

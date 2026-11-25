@@ -529,13 +529,13 @@ public final class AccentTheme {
      * screen paints itself with (#577) and each white or gray fill a light one does (#639). Compose
      * screens such as the message list take those from the code, not the theme, so {@link #apply}
      * alone leaves their rows and search field near-black under a colored page, or white beside an
-     * off-white one. With Classic colors or Backgrounds in the accent color on and a dark theme seen,
-     * answers a dark gray as the same shade the theme's own backgrounds hold, keeping the alpha. With
-     * Classic colors on and a light theme seen, does the same for the white page and the search
-     * field's gray. The white labels and icons Compose draws over colored fills and media share that
-     * field, so they take the page shade too (#fafafa against #ffffff, too slight to see). The light
-     * grays a dark screen writes its text with, and the dark ones a light screen does, aren't among
-     * either. Answers [value] itself for any other color. Never throws.
+     * off-white one. With Classic colors on, or Backgrounds in the accent color on and a dark theme
+     * seen, answers a dark gray as the same shade the theme's own backgrounds hold, keeping the
+     * alpha. With Classic colors on, does the same for the white page and the search field's gray,
+     * whichever kind of screen shows (see {@link #styledSurfaces}). The white labels and icons
+     * Compose draws over colored fills and media share that field, so they take the page shade too
+     * (#fafafa against #ffffff, too slight to see). The light grays a dark screen writes its text
+     * with aren't among either. Answers [value] itself for any other color. Never throws.
      */
     public static long composeSurface(long value) {
         return composeSurface(value, null);
@@ -571,20 +571,25 @@ public final class AccentTheme {
      * {@link #rememberSurfaces} keeps a styled theme's. Instagram builds its Compose palettes on a thread
      * of its own as it starts, while the first screen's theme is still being styled, so the first grays
      * they asked for were answered as Instagram's own and the Messages rows stayed black all session
-     * (#528). Only for the kind of screen the app will show, since a light screen writes its text in
-     * the dark grays, and not for Material You's or a typed color, whose shades load with the first
-     * screen. Null when none of that holds or the style can't be read.
+     * (#528). Classic colors' shades come for both kinds of screen, whichever shows then: Instagram
+     * switches between dark and light without a restart (a dark mode schedule, the quick settings
+     * tile), and palettes built on a light screen kept the dark one's Messages rows, Settings' header
+     * and its loading page black until the next start (#683). A light screen writing its text in the
+     * dark grays takes Classic's navy then, as it already did after a start in dark mode. The picked
+     * color's backgrounds come only for the kind of screen the app will show, since their tints would
+     * color a light screen's text, and not for Material You's or a typed color, whose shades load with
+     * the first screen. Null when none of that holds or the style can't be read.
      */
     @Nullable
     static int[] styledSurfaces(@Nullable Context context, boolean dark) {
         if (!Utils.settingsReady()) return null;
         Context app = context != null ? context : Utils.getContext();
-        if (app == null || showsDark(app) != dark) return null;
+        if (app == null) return null;
         Resources resources = app.getResources();
         String style = null;
         if (Settings.CLASSIC_COLORS.get()) {
             style = classicStyle(dark);
-        } else if (dark && Settings.ACCENT_BACKGROUNDS.get()) {
+        } else if (dark && Settings.ACCENT_BACKGROUNDS.get() && showsDark(app)) {
             AccentHue hue = AccentColor.picked();
             if (hue != null && hue != AccentHue.WALLPAPER && hue != AccentHue.CUSTOM) style = backgroundStyle(hue, true);
         }
