@@ -11,6 +11,7 @@ import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.util.smali.ExternalLabel
+import app.morphe.patches.instagram.direct.reels.viewerChatPatch
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesAccessing
 import app.morphe.patches.instagram.misc.extension.classesLoadingString
@@ -22,9 +23,11 @@ import app.morphe.patches.instagram.misc.extension.liveAcrossInjection
 import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
 import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
+import app.morphe.patches.instagram.misc.extension.patchLog
 import app.morphe.patches.instagram.misc.extension.requireParameterIntact
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.settings.settingsPatch
+import app.morphe.patches.instagram.reels.partnership.fillStub
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -38,7 +41,11 @@ import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 
 private const val PATCH = "Stop Reels scrolling"
 internal const val REEL_SCROLLING = "$EXTENSION_PACKAGE/reels/ReelScrolling;"
-internal const val PAGER_HOOK = "$REEL_SCROLLING->pager(Ljava/lang/Object;Ljava/lang/Object;)I"
+internal const val PAGER_HOOK = "$REEL_SCROLLING->pager(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)I"
+
+/** The extension's bridges reading a viewer's config off the object its pager goes into and off its auto scroller (#804). */
+internal const val PAGER_CONFIG = "pagerConfig"
+internal const val SCROLLER_CONFIG = "scrollerConfig"
 internal const val USER_INPUT_HOOK = "$REEL_SCROLLING->userInput(Ljava/lang/Object;I)I"
 internal const val PULL_HOOK = "$REEL_SCROLLING->pull(Ljava/lang/Object;)I"
 
@@ -85,7 +92,7 @@ val stopReelsScrollingPatch = bytecodePatch(
     default = true,
 ) {
     category("Reels")
-    dependsOn(settingsPatch, instagramExtensionPatch)
+    dependsOn(settingsPatch, instagramExtensionPatch, viewerChatPatch)
     compatibleWith(*AppCompatibilities.instagram())
 
     execute {
@@ -152,7 +159,9 @@ internal fun BytecodePatchContext.reelsPagerSetup(pager: ReelsPager, refuse: (St
  * Where the three hooks go: after the viewer's store of its pager, with the pager's register, the
  * register of the object it's stored in, that object's viewer config field, the config's source
  * field and a free local there; in front of the pager's setter, with the register of its `this`; and
- * at the start of each of the pull-down layout's touch handlers, with a free local in each.
+ * at the start of each of the pull-down layout's touch handlers, with a free local in each. The
+ * extension reads the viewer's config off the object the pager went into when that object's class
+ * and its config field are public ([bridged]), so a chat's reel opened as its Blend's is told (#804).
  */
 internal class ReelsScrollingSite(
     val viewer: String,
@@ -167,6 +176,7 @@ internal class ReelsScrollingSite(
     val setterSelf: Int,
     val touches: Map<String, Int>,
     val field: String,
+    val bridged: Boolean,
 )
 
 /**
@@ -196,11 +206,15 @@ internal fun BytecodePatchContext.findReelsScrolling(): ReelsScrollingSite {
     val configClass = classDefByOrNull(VIEWER_CONFIG) ?: refuse("$VIEWER_CONFIG isn't in this build")
     val sources = configClass.fields.filter { it.type == VIEWER_SOURCE && !AccessFlags.STATIC.isSet(it.accessFlags) }
     val source = sources.singleOrNull() ?: refuse("$VIEWER_CONFIG holds ${sources.size} $VIEWER_SOURCE fields, not one")
-    // Not the pager's own register, which the hook reads after writing the answer.
+    // Not the pager's own register or the object it went into, which the hook reads after writing the answer.
     val live = viewer.liveAcrossInjection(store + 1)
-    val free = (0 until minOf(viewer.localRegisterCount(), 16)).filter { it !in live && it != pager }
+    val free = (0 until minOf(viewer.localRegisterCount(), 16)).filter { it !in live && it != pager && it != holder }
     val answer = free.firstOrNull()
         ?: refuse("$where has no local register up to v15 that nothing reads after storing its pager, and the hook needs 1")
+    val bridged = classDefByOrNull(owner)?.let { AccessFlags.PUBLIC.isSet(it.accessFlags) } == true && AccessFlags.PUBLIC.isSet(config.accessFlags)
+    if (!bridged) {
+        patchLog.warning("$PATCH: $owner or its ${config.name}, the viewer's config, isn't public. A chat's reel opened as its Blend's goes by its source.")
+    }
 
     val pagerClass = classDefByOrNull(VIEW_PAGER) ?: refuse("$VIEW_PAGER isn't in this build")
     val setterSelf = findSetter(pagerClass)
@@ -219,6 +233,7 @@ internal fun BytecodePatchContext.findReelsScrolling(): ReelsScrollingSite {
     return ReelsScrollingSite(
         viewer.definingClass, viewer.name, viewer.parameterTypes.map(CharSequence::toString), store, pager, holder,
         "$owner->${config.name}:$VIEWER_CONFIG", "$VIEWER_CONFIG->${source.name}:$VIEWER_SOURCE", answer, setterSelf, touches, field,
+        bridged,
     )
 }
 
@@ -252,8 +267,9 @@ private fun findSetter(pagerClass: ClassDef): Int {
 /**
  * Writes the three hooks, everything having been found first.
  *
- * After the viewer stores its pager, [PAGER_HOOK] gets the pager and where the viewer was opened
- * from, and on a 0 the pager's input is turned off. In front of everything in [SET_USER_INPUT],
+ * After the viewer stores its pager, [PAGER_HOOK] gets the pager, where the viewer was opened
+ * from and the object the pager went into, whose viewer config the [PAGER_CONFIG] bridge reads, and
+ * on a 0 the pager's input is turned off. In front of everything in [SET_USER_INPUT],
  * [USER_INPUT_HOOK] gets the pager and the value as an int and hands back the value the setter stores.
  * At the start of each touch handler of the pull-down layout, [PULL_HOOK] gets the layout and answers
  * 0 to have it return false and let the touch go by, and 1 to run it as before.
@@ -267,6 +283,17 @@ internal fun BytecodePatchContext.stopReelsScrolling(site: ReelsScrollingSite) {
     // Found again, since another patch may have put code ahead of the store in this method since.
     val store = viewer.instructions().indexOfFirst { it.opcode == Opcode.IPUT_OBJECT && it.fieldReference()?.toString() == site.field }
     if (store < 0) refuse("${site.viewer}->${site.name} no longer stores ${site.field}")
+    if (site.bridged) {
+        val owner = site.config.substringBefore("->")
+        fillStub(
+            REEL_SCROLLING, PAGER_CONFIG, "Ljava/lang/Object;", 1,
+            """
+                check-cast p0, $owner
+                iget-object p0, p0, ${site.config}
+                return-object p0
+            """,
+        )
+    }
     viewer.addInstructionsWithLabels(
         store + 1,
         """
@@ -274,7 +301,7 @@ internal fun BytecodePatchContext.stopReelsScrolling(site: ReelsScrollingSite) {
             if-eqz v$answer, :source
             iget-object v$answer, v$answer, ${site.source}
             :source
-            invoke-static { v$pager, v$answer }, $PAGER_HOOK
+            invoke-static { v$pager, v$answer, v${site.holder} }, $PAGER_HOOK
             move-result v$answer
             if-nez v$answer, :keep
             const/4 v$answer, 0x0

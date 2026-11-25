@@ -23,9 +23,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.WeakHashMap;
 import java.util.function.BooleanSupplier;
+import java.util.function.Function;
 import java.util.function.LongSupplier;
 import java.util.function.Predicate;
 
+import app.hushgram.extension.instagram.direct.ViewerChat;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.L10n;
@@ -58,10 +60,13 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * a suggested reels unit on Home ({@link #FROM_SUGGESTED}) is held the same way, its pager's input
  * off and its pull-down layout out of the way, whether or not Stop Reels scrolling is on, while the
  * Reels tab and every other viewer scroll as Instagram has them. A chat's viewer is left out while
- * Swipe through a chat's reels is on, since that switch is there to swipe through them. Instagram's
+ * Swipe through a chat's reels is on, since that switch is there to swipe through them. A reel tapped
+ * in a chat that has a Blend opens as the Blend's once Instagram has loaded it, so a viewer whose
+ * config holds the chat counts as the chat's too (#804), read off what the viewer keeps through the
+ * patch's bridges, {@link #pagerConfig(Object)} and {@link #scrollerConfig(Object)}. Instagram's
  * auto scroll moves the pager itself, so its check of whether to move on from a reel asks
- * {@link #autoScroll} first with the viewer's source, and a 0 keeps it on the reel, which then
- * loops. That check is the one every move on runs through, Move on when a reel ends included.
+ * {@link #autoScroll} first with the viewer's source and the scroller, and a 0 keeps it on the reel,
+ * which then loops. That check is the one every move on runs through, Move on when a reel ends included.
  *
  * <p>Stop after a set number of reels: each store of a Reels pager's current page reaches
  * {@link #page}. The first page a pager stores this session is where it starts, and each page past
@@ -86,6 +91,7 @@ public final class ReelScrolling {
     static final String PULL = "pull to refresh";
     static final String PAGE = "page change";
     static final String AUTO_SCROLL = "auto scroll";
+    static final String VIEWER_CONFIG = "viewer config";
 
     /** What's counted each time a session reaches the cap. */
     static final String CAPPED = "stopped after the cap";
@@ -161,24 +167,28 @@ public final class ReelScrolling {
             "CLIPS_MUSIC_DROPS_NETEGO", "CLIPS_QUICK_PROMOTION_IN_FEED_UNIT", "CLIPS_BASEL_NETEGO",
             "QUEST_AQP_NETEGO", "RBM_AQP_NETEGO", "WEARABLES_RETENTION_RIFU_NETEGO"));
 
+    /** How a viewer's config is read off the object its pager goes into and off its auto scroller: the patch's bridges, or a test's. */
+    private static volatile Function<Object, Object> pagerConfigs = ReelScrolling::pagerConfig;
+    private static volatile Function<Object, Object> scrollerConfigs = ReelScrolling::scrollerConfig;
+
     private ReelScrolling() {
     }
 
     /**
-     * Injected right after the Reels viewer keeps its pager, with the viewer's source. Remembers the
-     * pager and answers 0, turn its input off now, while the switch is on and that source isn't let
-     * through or Play only the reel you opened covers it, and 1, leave it, otherwise or when anything
-     * goes wrong. Never throws.
+     * Injected right after the Reels viewer keeps its pager, with the viewer's source and [holder], the
+     * object the pager went into, which keeps the viewer's config. Remembers the pager and answers 0,
+     * turn its input off now, while the switch is on and that source isn't let through or Play only the
+     * reel you opened covers it, and 1, leave it, otherwise or when anything goes wrong. Never throws.
      */
-    public static int pager(Object pager, Object source) {
-        return pager(pager, source, () -> switchedOn(pager));
+    public static int pager(Object pager, Object source, Object holder) {
+        return pager(pager, source, holder, () -> switchedOn(pager));
     }
 
-    static int pager(Object pager, Object source, BooleanSupplier on) {
+    static int pager(Object pager, Object source, Object holder, BooleanSupplier on) {
         try {
             HookStatus.invoked(FamilyNames.REEL_SCROLLING);
             if (pager == null) return 1;
-            PAGERS.put(pager, nameOf(source));
+            PAGERS.put(pager, kindOf(source, pagerConfigs, holder));
             settle(ReelScrolling::capOn);
             if (!on.getAsBoolean()) return 1;
             Logger.printDebug(() -> "Reels scrolling: a Reels pager's swipes are off");
@@ -233,15 +243,16 @@ public final class ReelScrolling {
 
     /**
      * Injected first thing in the Reels auto scroller's check of whether to move on from the reel on
-     * screen, with the source of the viewer it scrolls. Answers 0, stay on this reel, while Play only
-     * the reel you opened covers that viewer, and 1, let Instagram decide, otherwise or when anything
-     * goes wrong. Never throws.
+     * screen, with the source of the viewer it scrolls and the scroller, which keeps the viewer's
+     * config. Answers 0, stay on this reel, while Play only the reel you opened covers that viewer, and
+     * 1, let Instagram decide, otherwise or when anything goes wrong. Never throws.
      */
-    public static int autoScroll(Object source) {
-        return autoScroll(source, () -> Utils.settingsReady() && single(nameOf(source)));
+    public static int autoScroll(Object source, Object scroller) {
+        return autoScroll(source, scroller, () -> Utils.settingsReady()
+                && single(kindOf(source, scrollerConfigs, scroller)));
     }
 
-    static int autoScroll(Object source, BooleanSupplier held) {
+    static int autoScroll(Object source, Object scroller, BooleanSupplier held) {
         try {
             HookStatus.invoked(FamilyNames.REEL_SCROLLING);
             return held.getAsBoolean() ? 0 : 1;
@@ -478,6 +489,44 @@ public final class ReelScrolling {
     /** The name of a viewer's source, whose constants keep their names through the build, or null. */
     private static String nameOf(Object source) {
         return source instanceof Enum ? ((Enum<?>) source).name() : null;
+    }
+
+    /**
+     * What a viewer opened from [source] counts as, its ClipsViewerConfig read off [keeper], or null,
+     * with [configs]: {@link #FROM_CHAT} for a chat's, opened as the chat's or as its Blend's (#804),
+     * and the source's name otherwise. A config that can't be read is counted, and the source decides.
+     */
+    private static String kindOf(Object source, Function<Object, Object> configs, Object keeper) {
+        if (keeper != null) {
+            try {
+                if (ViewerChat.holdsChat(configs.apply(keeper), FamilyNames.REEL_SCROLLING)) return FROM_CHAT;
+            } catch (Throwable failure) {
+                HookStatus.threw(FamilyNames.REEL_SCROLLING, VIEWER_CONFIG, failure);
+            }
+        }
+        return nameOf(source);
+    }
+
+    /**
+     * Stub: the patch writes this, answering the ClipsViewerConfig the object a Reels viewer stores
+     * its pager in keeps. A build the patch can't read keeps the stub, and the viewer goes by its source.
+     */
+    public static Object pagerConfig(Object holder) {
+        return null;
+    }
+
+    /**
+     * Stub: the patch writes this, answering the ClipsViewerConfig the Reels auto scroller keeps one
+     * object away, or null when that object isn't there. A build the patch can't read keeps the stub.
+     */
+    public static Object scrollerConfig(Object scroller) {
+        return null;
+    }
+
+    /** Reads viewer configs with [pagers] and [scrollers] in place of the patch's bridges, for tests; nulls put the bridges back. */
+    static void readConfigsWith(Function<Object, Object> pagers, Function<Object, Object> scrollers) {
+        pagerConfigs = pagers == null ? ReelScrolling::pagerConfig : pagers;
+        scrollerConfigs = scrollers == null ? ReelScrolling::scrollerConfig : scrollers;
     }
 
     private static boolean letThrough(String source) {

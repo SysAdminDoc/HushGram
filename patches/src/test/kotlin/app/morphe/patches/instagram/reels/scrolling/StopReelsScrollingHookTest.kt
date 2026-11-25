@@ -82,6 +82,23 @@ class StopReelsScrollingHookTest {
             }
         }
         assertEquals("one call for each place", 4, calls)
+        assertPagerBridge("the stand-in", context, "$pagerImpl->config0:$VIEWER_CONFIG")
+    }
+
+    /**
+     * An object holding the pager whose class or config field isn't public keeps the bridge's stub,
+     * which answers no config, so the viewer goes by its source (#804). The hook still gets the object.
+     */
+    @Test
+    fun aPagerHolderTheExtensionCantReadKeepsTheStub() {
+        for (bridge in listOf("private class", "private config")) {
+            val context = PatchContexts.of(classes(bridge = bridge))
+
+            context.stop()
+
+            assertPagerHeld(bridge, context.viewer(viewerType), pager = 2, answer = 0, after = Opcode.GOTO)
+            assertPagerBridge(bridge, context, null)
+        }
     }
 
     /**
@@ -204,11 +221,14 @@ class StopReelsScrollingHookTest {
             val what = "${label} ($read)"
             val classes = classesOf(bundle, types).values
             assertEquals("$what: the viewer, the pager, AndroidX's pager and the layout", types, classes.map { it.type }.toSet())
-            val context = PatchContexts.of(classes)
+            val context = PatchContexts.of(classes + ImmutableClassDef.of(ExtensionDex.classDef(REEL_SCROLLING)))
             val originals = classes.flatMap { context.mutableClassDefBy(it.type).methods }
                 .filter { it.implementation != null }.associateWith(::NeutralNativePath)
 
-            context.stop()
+            val site = context.findReelsScrolling()
+            context.stopReelsScrolling(site)
+            assertTrue("$what: the object the pager goes into and its config are public", site.bridged)
+            assertPagerBridge(what, context, site.config)
 
             val asking = holders.flatMap { type ->
                 context.mutableClassDefBy(type).methods.filter { method -> method.code().any { it.referenceText() == PAGER_HOOK } }
@@ -243,8 +263,24 @@ class StopReelsScrollingHookTest {
     }
 
     /**
+     * The bridge the extension reads a viewer's config through (#804), off the object its pager went
+     * into: that object cast, then its [config] field. With [config] null, the stub stays as shipped.
+     */
+    private fun assertPagerBridge(what: String, context: BytecodePatchContext, config: String?) {
+        val code = context.mutableClassDefBy(REEL_SCROLLING).methods.single { it.name == PAGER_CONFIG }.code()
+        if (config == null) {
+            val stub = ExtensionDex.classDef(REEL_SCROLLING).methods.single { it.name == PAGER_CONFIG }.code()
+            assertEquals("$what: the stub stays", stub.map { it.opcode }, code.map { it.opcode })
+            return
+        }
+        assertEquals("$what: the bridge", listOf(Opcode.CHECK_CAST, Opcode.IGET_OBJECT, Opcode.RETURN_OBJECT), code.map { it.opcode })
+        assertEquals("$what: the object, then its config", listOf(config.substringBefore("->"), config, null), code.map { it.referenceText() })
+        assertEquals("$what: in the parameter's register", listOf(0, 0), (code[1] as TwoRegisterInstruction).let { listOf(it.registerA, it.registerB) })
+    }
+
+    /**
      * After the store: the viewer's source read from the object the pager went into, the hook on the
-     * pager and the source, its answer, a skip on 1, and the pager's input turned off with a 0.
+     * pager, the source and that object, its answer, a skip on 1, and the pager's input turned off with a 0.
      */
     private fun assertPagerHeld(what: String, viewer: MutableMethod, pager: Int, answer: Int, after: Opcode) {
         val code = viewer.code()
@@ -264,7 +300,7 @@ class StopReelsScrollingHookTest {
         assertEquals("$what: reads the source", Opcode.IGET_OBJECT, code[ask - 1].opcode)
         assertEquals("$what: the source's type", VIEWER_SOURCE, (code[ask - 1].reference() as FieldReference).type)
         assertEquals("$what: of the config", listOf(answer, answer), listOf(source.registerA, source.registerB))
-        assertEquals("$what: on the stored pager and the source", listOf(pager, answer), code[ask].arguments())
+        assertEquals("$what: on the stored pager, the source and what it went into", listOf(pager, answer, store.registerB), code[ask].arguments())
         assertEquals("$what: the answer", Opcode.MOVE_RESULT, code[ask + 1].opcode)
         assertEquals("$what: the answer's register", answer, (code[ask + 1] as OneRegisterInstruction).registerA)
         assertNotEquals("$what: the answer isn't the pager", pager, answer)
@@ -349,8 +385,10 @@ class StopReelsScrollingHookTest {
         touches: List<String> = PULL_TOUCHES,
         touchStatic: Boolean = false,
         touchLocals: Int = 1,
+        bridge: String = "public",
     ): List<ClassDef> {
-        val classes = mutableListOf<ClassDef>()
+        // The extension, whose bridge the patch writes.
+        val classes = mutableListOf<ClassDef>(ImmutableClassDef.of(ExtensionDex.classDef(REEL_SCROLLING)))
 
         val lookup = method(pagerImpl, "getViewAtIndex", listOf("I"), "V", 1, body = """
             const-string v0, "$PAGER_VIEW_LOOKUP"
@@ -368,7 +406,11 @@ class StopReelsScrollingHookTest {
         """)
         val enables = (0 until switches).map { if (it == 0) enable else ImmutableMethod.of(renamed(enable, "enableAgain")) }
         val pagers = (0 until pagerFields).map { if (it == 0) "pager" to VIEW_PAGER else "pager$it" to VIEW_PAGER }
-        classes += classDef(pagerImpl, lookupMethods + enables, fields = pagers + (0 until pagerConfigs).map { "config$it" to VIEWER_CONFIG })
+        classes += classDef(
+            pagerImpl, lookupMethods + enables, fields = pagers + (0 until pagerConfigs).map { "config$it" to VIEWER_CONFIG },
+            flags = if (bridge == "private class") AccessFlags.FINAL.value else AccessFlags.PUBLIC.value or AccessFlags.FINAL.value,
+            privateFields = if (bridge == "private config") setOf("config0") else emptySet(),
+        )
         if (configClass) classes += classDef(VIEWER_CONFIG, emptyList(), fields = (0 until configSources).map { "source$it" to VIEWER_SOURCE })
 
         // v2 holds the pager and is read after the store; v0 and v1 are free there, unless the
@@ -459,10 +501,18 @@ class StopReelsScrollingHookTest {
         return ImmutableMethod.of(mutable)
     }
 
-    private fun classDef(type: String, methods: List<Method>, fields: List<Pair<String, String>> = emptyList()): ClassDef =
+    private fun classDef(
+        type: String,
+        methods: List<Method>,
+        fields: List<Pair<String, String>> = emptyList(),
+        flags: Int = AccessFlags.PUBLIC.value or AccessFlags.FINAL.value,
+        privateFields: Set<String> = emptySet(),
+    ): ClassDef =
         ImmutableClassDef(
-            type, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, "Ljava/lang/Object;", null, null, null,
-            fields.map { (name, fieldType) -> ImmutableField(type, name, fieldType, AccessFlags.PUBLIC.value, null, null, null) },
+            type, flags, "Ljava/lang/Object;", null, null, null,
+            fields.map { (name, fieldType) ->
+                ImmutableField(type, name, fieldType, if (name in privateFields) AccessFlags.PRIVATE.value else AccessFlags.PUBLIC.value, null, null, null)
+            },
             methods,
         )
 

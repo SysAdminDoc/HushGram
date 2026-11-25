@@ -3463,8 +3463,10 @@ once-call Lapp/hushgram/extension/instagram/reels/ReelAutoScroll;->install(I)Z i
 # On 456 the pager setup holds its viewPagerSetup trace in place of the marker (06ZV.A0R on
 # 386214574), and the handlers' markers are gone: each is the layout's one (MotionEvent) method
 # calling its superclass's handler of the same name, in the class whose constructor keeps its marker.
-# 456 renamed the pager's input field to A0A, the same in all its builds, and 457 to A09.
-once-call Lapp/hushgram/extension/instagram/reels/ReelScrolling;->pager(Ljava/lang/Object;Ljava/lang/Object;)I in static (Landroid/os/BaseBundle;Landroid/view/View;*)V holding ClipsViewerFragment.onViewCreated:viewPagerSetup
+# 456 renamed the pager's input field to A0A, the same in all its builds, and 457 to A09. The pager
+# hook also gets the object the pager went into, whose viewer config the extension reads so a chat's
+# reel opened as its Blend's is told (#804).
+once-call Lapp/hushgram/extension/instagram/reels/ReelScrolling;->pager(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)I in static (Landroid/os/BaseBundle;Landroid/view/View;*)V holding ClipsViewerFragment.onViewCreated:viewPagerSetup
 start-call Lapp/hushgram/extension/instagram/reels/ReelScrolling;->userInput(Ljava/lang/Object;I)I in instance (Z)V holding Landroidx/viewpager2/widget/ViewPager2;->A09:Z
 once-call Lapp/hushgram/extension/instagram/reels/ReelScrolling;->userInput(Ljava/lang/Object;I)I in instance (Z)V holding Landroidx/viewpager2/widget/ViewPager2;->A09:Z
 start-call Lapp/hushgram/extension/instagram/reels/ReelScrolling;->pull(Ljava/lang/Object;)I in instance (Landroid/view/MotionEvent;)Z calling instance LX/*;->onInterceptTouchEvent(Landroid/view/MotionEvent;)Z class-holding android_purge_26_q3_ClipsSwipeRefreshLayout_init
@@ -3473,13 +3475,14 @@ start-call Lapp/hushgram/extension/instagram/reels/ReelScrolling;->pull(Ljava/la
 shared-call Lapp/hushgram/extension/instagram/reels/ReelScrolling;->pull(Ljava/lang/Object;)I in instance (Landroid/view/MotionEvent;)Z calling instance LX/*;->onTouchEvent(Landroid/view/MotionEvent;)Z class-holding android_purge_26_q3_ClipsSwipeRefreshLayout_init
 # Play only the reel you opened (#656) puts ReelScrolling.autoScroll first in the Reels auto scroller's
 # check of whether to move on (0AMZ.A07 on 456's 386214574, the one method loading the flag below),
-# with the viewer's source read from the scroller. Every move the scroller makes on its own,
+# with the viewer's source read from the scroller and the scroller, whose viewer config the extension
+# reads off the state it keeps (#804). Every move the scroller makes on its own,
 # Instagram's auto scroll and Move on when a reel ends alike, asks that check first; on a 0 it answers
-# false. Ahead of the call sit only a move and a field read. Left out, those viewers auto scroll as
+# false. Ahead of the call sit only moves and a field read. Left out, those viewers auto scroll as
 # before; twice or elsewhere, it isn't the hook the patch wrote. AutoScrollCheckHookTest checks on the
 # 456 fixtures where it lands.
-start-call Lapp/hushgram/extension/instagram/reels/ReelScrolling;->autoScroll(Ljava/lang/Object;)I in static (L*;)Z holding const:0x810d7500a24c26
-once-call Lapp/hushgram/extension/instagram/reels/ReelScrolling;->autoScroll(Ljava/lang/Object;)I in static (L*;)Z holding const:0x810d7500a24c26
+start-call Lapp/hushgram/extension/instagram/reels/ReelScrolling;->autoScroll(Ljava/lang/Object;Ljava/lang/Object;)I in static (L*;)Z holding const:0x810d7500a24c26
+once-call Lapp/hushgram/extension/instagram/reels/ReelScrolling;->autoScroll(Ljava/lang/Object;Ljava/lang/Object;)I in static (L*;)Z holding const:0x810d7500a24c26
 # Swipe left to open the profile hands the answer of the Reels viewer's last swipe gate to
 # SwipeToProfile.allow right after it is read, in the one instance ()Z method loading the megaphone
 # name below (0A4B.A00 on 456, which dropped the check's purge marker). Left out, the switch does

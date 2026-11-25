@@ -43,6 +43,7 @@ import java.io.File
  */
 class AutoScrollCheckHookTest {
     private val scroller = "Lfixture/Scroller;"
+    private val state = "Lfixture/ViewerState;"
     private val flag = "0x${SCROLLER_SHOULD_SCROLL_FLAG.toString(16)}"
 
     /** The hook the patch writes is in the ReelScrolling the bundle ships, public and static. */
@@ -67,6 +68,62 @@ class AutoScrollCheckHookTest {
         context.holdAutoScroll(found)
 
         assertHeld(context.check(found), found, stock, "fixture")
+    }
+
+    /**
+     * A scroller keeping the viewer's state, whose config is final, hands the extension the way to it
+     * (#804), and the bridge reads it off the scroller, answering none while the state isn't there.
+     */
+    @Test
+    fun aScrollerKeepingTheViewersStateGetsTheConfigBridge() {
+        val context = PatchContexts.of(listOf(scrollerClass(state = "kept"), stateClass(fixed = true), extension()))
+        val found = context.findAutoScrollCheck()
+        assertEquals("$scroller->state:$state", found.config?.holder)
+        assertEquals("$state->config:$VIEWER_CONFIG", found.config?.config)
+        val stock = context.check(found).code()
+
+        context.holdAutoScroll(found)
+
+        assertHeld(context.check(found), found, stock, "fixture")
+        assertScrollerBridge("fixture", context, found)
+    }
+
+    /**
+     * A scroller without one public way to a final config, or one that isn't public, keeps the
+     * bridge's stub, so the extension goes by the source. The check still asks with the scroller.
+     */
+    @Test
+    fun aScrollerWithoutOneWayToTheConfigKeepsTheStub() {
+        val cases = listOf(
+            "no state" to listOf(scrollerClass(), extension()),
+            "config set later" to listOf(scrollerClass(state = "kept"), stateClass(fixed = false), extension()),
+            "private scroller" to listOf(scrollerClass(state = "kept", publicClass = false), stateClass(fixed = true), extension()),
+        )
+        for ((case, classes) in cases) {
+            val context = PatchContexts.of(classes)
+            val found = context.findAutoScrollCheck()
+            assertEquals("$case: no way to the config", null, found.config)
+            val stock = context.check(found).code()
+
+            context.holdAutoScroll(found)
+
+            assertHeld(context.check(found), found, stock, case)
+            assertScrollerBridge(case, context, found)
+        }
+    }
+
+    /** A check whose scroller sits past v15 copies it into a second local for the call. */
+    @Test
+    fun aScrollerPastV15IsCopiedForTheCall() {
+        val context = PatchContexts.of(listOf(scrollerClass(locals = 17)))
+        val found = context.findAutoScrollCheck()
+        val stock = context.check(found).code()
+
+        context.holdAutoScroll(found)
+
+        val method = context.check(found)
+        assertEquals("the scroller's register", 17, method.implementation!!.registerCount - 1)
+        assertHeld(method, found, stock, "past v15")
     }
 
     /** Anything off about the scroller stops the patch before it writes, saying what. */
@@ -124,44 +181,111 @@ class AutoScrollCheckHookTest {
             }
         }
         assertEquals("$label: the classes loading $flag", 1, found.size)
-        val context = PatchContexts.of(found.values.toList())
+        // And the classes of the scroller's fields, one of them the viewer's state holding its config (#804).
+        val held = found.values.single().fields
+            .filter { !AccessFlags.STATIC.isSet(it.accessFlags) && it.type.startsWith("L") }.map { it.type }.toSet() - found.keys
+        val context = PatchContexts.of(
+            found.values.toList() + FixtureDex.classes(bundle, held).values.map { ImmutableClassDef.of(it) } + extension(),
+        )
         val check = context.findAutoScrollCheck()
         assertEquals("$label: the scroller", found.keys.single(), check.scroller)
         assertTrue("$label: ${check.source}", check.source.startsWith("${check.scroller}->") && check.source.endsWith(":$VIEWER_SOURCE"))
+        val config = check.config
+        assertTrue("$label: the scroller keeps one public way to the viewer's config", config != null)
+        assertTrue("$label: ${config!!.holder}", config.holder.startsWith("${check.scroller}->"))
+        assertTrue("$label: ${config.config}", config.config.endsWith(":$VIEWER_CONFIG"))
         val stock = context.check(check).code()
 
         context.holdAutoScroll(check)
 
         assertHeld(context.check(check), check, stock, label)
+        assertScrollerBridge(label, context, check)
     }
 
     /**
-     * The seven instructions of the hook come first: the scroller from its parameter into v0, its
-     * source, the call, its answer, a jump on non-zero to Instagram's own first instruction, and a
-     * false return. Instagram's code follows unchanged.
+     * The bridge the extension reads the viewer's config through, off the scroller: the scroller
+     * cast, its state, none while the state isn't there, else the state's config. Without a way to
+     * the config the stub stays as shipped.
+     */
+    private fun assertScrollerBridge(label: String, context: BytecodePatchContext, check: AutoScrollCheck) {
+        val code = context.mutableClassDefBy(REEL_SCROLLING).methods.single { it.name == SCROLLER_CONFIG }.code()
+        val path = check.config
+        if (path == null) {
+            val stub = ExtensionDex.classDef(REEL_SCROLLING).methods.single { it.name == SCROLLER_CONFIG }.code()
+            assertEquals("$label: the stub stays", stub.map { it.opcode }, code.map { it.opcode })
+            return
+        }
+        assertEquals(
+            "$label: the bridge",
+            listOf(Opcode.CHECK_CAST, Opcode.IGET_OBJECT, Opcode.IF_NEZ, Opcode.CONST_4, Opcode.RETURN_OBJECT, Opcode.IGET_OBJECT, Opcode.RETURN_OBJECT),
+            code.map { it.opcode },
+        )
+        assertEquals(
+            "$label: the scroller, its state, then the state's config",
+            listOf(check.scroller, path.holder, null, null, null, path.config, null), code.map { it.referenceText() },
+        )
+        val bridge = context.mutableClassDefBy(REEL_SCROLLING).methods.single { it.name == SCROLLER_CONFIG }
+        assertEquals("$label: a state goes on to its config", 5, (bridge.implementation!!.instructions[2] as BuilderOffsetInstruction).target.location.index)
+        assertTrue("$label: all in the parameter's register", code.all { instruction ->
+            when (instruction) {
+                is TwoRegisterInstruction -> instruction.registerA == 0 && instruction.registerB == 0
+                is OneRegisterInstruction -> instruction.registerA == 0
+                else -> true
+            }
+        })
+    }
+
+    private fun extension(): ClassDef = ImmutableClassDef.of(ExtensionDex.classDef(REEL_SCROLLING))
+
+    /** The viewer's state a scroller keeps, holding its config, [fixed] final as on 457's LX/0BwL;->A0a. */
+    private fun stateClass(fixed: Boolean): ClassDef = ImmutableClassDef(
+        state, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, "Ljava/lang/Object;", null, null, null,
+        listOf(
+            ImmutableField(
+                state, "config", VIEWER_CONFIG, AccessFlags.PUBLIC.value or (if (fixed) AccessFlags.FINAL.value else 0), null, null, null,
+            ),
+        ),
+        null,
+    )
+
+    /**
+     * The hook comes first: the scroller from its parameter into v0, a copy of it in v1 when its
+     * register is past v15, its source, the call on the source and the scroller, its answer, a jump
+     * on non-zero to Instagram's own first instruction, and a false return. Instagram's code follows
+     * unchanged.
      */
     private fun assertHeld(method: MutableMethod, check: AutoScrollCheck, stock: List<Instruction>, label: String) {
         val code = method.code()
         val self = method.implementation!!.registerCount - 1
+        val copied = if (self > 15) 1 else 0
+        val passed = if (copied == 1) 1 else self
         assertEquals("$label: the scroller's register", Opcode.MOVE_OBJECT_FROM16, code[0].opcode)
         assertEquals(listOf(0, self), (code[0] as TwoRegisterInstruction).let { listOf(it.registerA, it.registerB) })
-        assertEquals("$label: its source", Opcode.IGET_OBJECT, code[1].opcode)
-        assertEquals(check.source, code[1].referenceText())
-        assertEquals(listOf(0, 0), (code[1] as TwoRegisterInstruction).let { listOf(it.registerA, it.registerB) })
-        assertEquals("$label: the call", Opcode.INVOKE_STATIC, code[2].opcode)
-        assertEquals(AUTO_SCROLL_CHECK_HOOK, code[2].referenceText())
-        assertEquals(listOf(0), (code[2] as FiveRegisterInstruction).let { listOf(it.registerC).take(it.registerCount) })
-        assertEquals("$label: its answer", Opcode.MOVE_RESULT, code[3].opcode)
-        assertEquals(0, (code[3] as OneRegisterInstruction).registerA)
-        assertEquals("$label: on non-zero, Instagram's check", Opcode.IF_NEZ, code[4].opcode)
-        assertEquals(0, (code[4] as OneRegisterInstruction).registerA)
-        assertEquals(7, (method.implementation!!.instructions[4] as BuilderOffsetInstruction).target.location.index)
-        assertEquals("$label: on 0, false", Opcode.CONST_4, code[5].opcode)
-        assertEquals(listOf(0, 0), listOf((code[5] as OneRegisterInstruction).registerA, (code[5] as NarrowLiteralInstruction).narrowLiteral))
-        assertEquals(Opcode.RETURN, code[6].opcode)
-        assertEquals(0, (code[6] as OneRegisterInstruction).registerA)
-        assertEquals("$label: Instagram's check after the hook", stock.kinds(), code.drop(7).kinds())
-        assertEquals("$label: the first of Instagram's own", stock.first().string(), code[7].string())
+        if (copied == 1) {
+            assertEquals("$label: the scroller's copy", Opcode.MOVE_OBJECT_FROM16, code[1].opcode)
+            assertEquals(listOf(1, self), (code[1] as TwoRegisterInstruction).let { listOf(it.registerA, it.registerB) })
+        }
+        val at = copied
+        assertEquals("$label: its source", Opcode.IGET_OBJECT, code[at + 1].opcode)
+        assertEquals(check.source, code[at + 1].referenceText())
+        assertEquals(listOf(0, 0), (code[at + 1] as TwoRegisterInstruction).let { listOf(it.registerA, it.registerB) })
+        assertEquals("$label: the call", Opcode.INVOKE_STATIC, code[at + 2].opcode)
+        assertEquals(AUTO_SCROLL_CHECK_HOOK, code[at + 2].referenceText())
+        assertEquals(
+            "$label: on the source and the scroller", listOf(0, passed),
+            (code[at + 2] as FiveRegisterInstruction).let { listOf(it.registerC, it.registerD).take(it.registerCount) },
+        )
+        assertEquals("$label: its answer", Opcode.MOVE_RESULT, code[at + 3].opcode)
+        assertEquals(0, (code[at + 3] as OneRegisterInstruction).registerA)
+        assertEquals("$label: on non-zero, Instagram's check", Opcode.IF_NEZ, code[at + 4].opcode)
+        assertEquals(0, (code[at + 4] as OneRegisterInstruction).registerA)
+        assertEquals(at + 7, (method.implementation!!.instructions[at + 4] as BuilderOffsetInstruction).target.location.index)
+        assertEquals("$label: on 0, false", Opcode.CONST_4, code[at + 5].opcode)
+        assertEquals(listOf(0, 0), listOf((code[at + 5] as OneRegisterInstruction).registerA, (code[at + 5] as NarrowLiteralInstruction).narrowLiteral))
+        assertEquals(Opcode.RETURN, code[at + 6].opcode)
+        assertEquals(0, (code[at + 6] as OneRegisterInstruction).registerA)
+        assertEquals("$label: Instagram's check after the hook", stock.kinds(), code.drop(at + 7).kinds())
+        assertEquals("$label: the first of Instagram's own", stock.first().string(), code[at + 7].string())
         assertEquals("$label: nothing else calls the hook", 1, code.count { it.referenceText() == AUTO_SCROLL_CHECK_HOOK })
     }
 
@@ -189,6 +313,9 @@ class AutoScrollCheckHookTest {
         staticSource: Boolean = false,
         stored: Boolean = true,
         namesake: Boolean = false,
+        state: String = "none",
+        publicClass: Boolean = true,
+        locals: Int = 2,
     ): ClassDef {
         val methods = mutableListOf<Method>()
         val body = when {
@@ -199,6 +326,13 @@ class AutoScrollCheckHookTest {
                 if-eqz v1, :start
                 return v1
             """
+            // A scroller past v15 is read through a copy, as a field read names only v0 to v15.
+            locals > 15 -> """
+                const-wide v0, ${flag}L
+                move-object/from16 v2, p0
+                iget-boolean v1, v2, $scroller->moving:Z
+                return v1
+            """
             else -> """
                 const-wide v0, ${flag}L
                 iget-boolean v1, p0, $scroller->moving:Z
@@ -206,7 +340,7 @@ class AutoScrollCheckHookTest {
             """
         }
         val markedBody = if (marked == 0) body.replace("${flag}L", "0x810d8c00a24cbaL") else body
-        methods += method("shouldScroll", takes, returns, 2, static, markedBody)
+        methods += method("shouldScroll", takes, returns, locals, static, markedBody)
         if (marked == 2) methods += method("shouldScrollToo", listOf(scroller), "Z", 2, true, body)
         if (namesake) methods += method("shouldScroll", listOf(scroller), "V", 0, true, "return-void")
         methods += method("<init>", listOf(VIEWER_SOURCE), "V", 0, false, """
@@ -218,7 +352,9 @@ class AutoScrollCheckHookTest {
         val sourceFlags = AccessFlags.PUBLIC.value or (if (staticSource) AccessFlags.STATIC.value else 0)
         if (sources >= 1) fields += ImmutableField(scroller, "source", VIEWER_SOURCE, sourceFlags, null, null, null)
         if (sources >= 2) fields += ImmutableField(scroller, "other", VIEWER_SOURCE, sourceFlags, null, null, null)
-        return ImmutableClassDef(scroller, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, "Ljava/lang/Object;", null, null, null, fields, methods)
+        if (state == "kept") fields += ImmutableField(scroller, "state", this.state, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, null, null, null)
+        val flags = if (publicClass) AccessFlags.PUBLIC.value or AccessFlags.FINAL.value else AccessFlags.FINAL.value
+        return ImmutableClassDef(scroller, flags, "Ljava/lang/Object;", null, null, null, fields, methods)
     }
 
     private fun method(name: String, parameters: List<String>, returns: String, registers: Int, static: Boolean, body: String): Method {

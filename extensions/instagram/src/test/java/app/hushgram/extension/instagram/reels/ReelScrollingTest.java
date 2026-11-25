@@ -21,6 +21,7 @@ import org.robolectric.annotation.Config;
 
 import java.util.function.BooleanSupplier;
 
+import app.hushgram.extension.instagram.direct.ViewerConfigs;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.SettingsContextRule;
@@ -75,7 +76,7 @@ public class ReelScrollingTest {
     /** On, a Reels pager's swipes go off as the viewer sets it up and stay off, and a pull lets the touch by. */
     @Test
     public void withTheSwitchOnAReelsPagerStaysPut() {
-        assertEquals("turned off at setup", 0, ReelScrolling.pager(reels, Source.CLIPS_TAB));
+        assertEquals("turned off at setup", 0, ReelScrolling.pager(reels, Source.CLIPS_TAB, null));
         assertEquals("Instagram turning it back on", 0, ReelScrolling.userInput(reels, 1));
         assertEquals("Instagram turning it off", 0, ReelScrolling.userInput(reels, 0));
         assertEquals("a pull", 0, ReelScrolling.pull(null));
@@ -85,18 +86,18 @@ public class ReelScrollingTest {
     /** Every other pager in Instagram takes what it's given, and a missing pager is left to Instagram. */
     @Test
     public void otherPagersAreLeftAlone() {
-        ReelScrolling.pager(reels, Source.CLIPS_TAB);
+        ReelScrolling.pager(reels, Source.CLIPS_TAB, null);
         assertEquals("another pager", 1, ReelScrolling.userInput(other, 1));
         assertEquals("another pager", 0, ReelScrolling.userInput(other, 0));
         assertEquals("no pager", 1, ReelScrolling.userInput(null, 1));
-        assertEquals("no pager to turn off", 1, ReelScrolling.pager(null, Source.CLIPS_TAB));
+        assertEquals("no pager to turn off", 1, ReelScrolling.pager(null, Source.CLIPS_TAB, null));
     }
 
     /** A pager set up while the switch was off is held once it's on. */
     @Test
     public void aPagerSetUpWhileOffIsHeldOnceOn() {
         Settings.STOP_REELS_SCROLLING.save(false);
-        assertEquals(1, ReelScrolling.pager(reels, Source.CLIPS_TAB));
+        assertEquals(1, ReelScrolling.pager(reels, Source.CLIPS_TAB, null));
         assertEquals(1, ReelScrolling.userInput(reels, 1));
 
         Settings.STOP_REELS_SCROLLING.save(true);
@@ -119,7 +120,7 @@ public class ReelScrollingTest {
 
         SettingsContextRule.withoutContext(() -> assertStock("unready"));
 
-        assertEquals(0, ReelScrolling.pager(reels, Source.CLIPS_TAB));
+        assertEquals(0, ReelScrolling.pager(reels, Source.CLIPS_TAB, null));
         assertEquals(0, ReelScrolling.pull(null));
     }
 
@@ -128,11 +129,11 @@ public class ReelScrollingTest {
     public void withNoSourcePickedEveryViewerIsStopped() {
         for (Source source : Source.values()) {
             Object pager = new Object();
-            assertEquals(source + " at setup", 0, ReelScrolling.pager(pager, source));
+            assertEquals(source + " at setup", 0, ReelScrolling.pager(pager, source, null));
             assertEquals(source + " turned back on", 0, ReelScrolling.userInput(pager, 1));
         }
-        assertEquals("a source that couldn't be read", 0, ReelScrolling.pager(new Object(), null));
-        assertEquals("a source that isn't one", 0, ReelScrolling.pager(new Object(), "PROFILE"));
+        assertEquals("a source that couldn't be read", 0, ReelScrolling.pager(new Object(), null, null));
+        assertEquals("a source that isn't one", 0, ReelScrolling.pager(new Object(), "PROFILE", null));
     }
 
     /** Each switch lets its own viewers scroll and leaves the Reels tab and the other two stopped. */
@@ -152,7 +153,7 @@ public class ReelScrollingTest {
             for (Source source : Source.values()) {
                 Object pager = new Object();
                 int expected = own.contains(source) ? 1 : 0;
-                assertEquals(setting.key + " " + source + " at setup", expected, ReelScrolling.pager(pager, source));
+                assertEquals(setting.key + " " + source + " at setup", expected, ReelScrolling.pager(pager, source, null));
                 assertEquals(setting.key + " " + source + " turned back on", expected, ReelScrolling.userInput(pager, 1));
                 assertEquals(setting.key + " " + source + " turned off stays off", 0, ReelScrolling.userInput(pager, 0));
             }
@@ -168,8 +169,8 @@ public class ReelScrollingTest {
         try {
             FrameLayout tab = new FrameLayout(RuntimeEnvironment.getApplication());
             FrameLayout search = new FrameLayout(RuntimeEnvironment.getApplication());
-            ReelScrolling.pager(inside(tab), Source.CLIPS_TAB);
-            ReelScrolling.pager(inside(search), Source.HASHTAG);
+            ReelScrolling.pager(inside(tab), Source.CLIPS_TAB, null);
+            ReelScrolling.pager(inside(search), Source.HASHTAG, null);
             assertEquals("the Reels tab's layout", 0, ReelScrolling.pull(tab));
             assertEquals("the hashtag viewer's layout", 1, ReelScrolling.pull(search));
 
@@ -195,8 +196,8 @@ public class ReelScrollingTest {
         Settings.STOP_REELS_SCROLLING.save(false);
         Settings.REEL_SCROLL_FROM_PROFILE.save(true);
         try {
-            assertEquals(1, ReelScrolling.pager(reels, Source.CLIPS_TAB));
-            assertEquals(1, ReelScrolling.pager(other, Source.PROFILE));
+            assertEquals(1, ReelScrolling.pager(reels, Source.CLIPS_TAB, null));
+            assertEquals(1, ReelScrolling.pager(other, Source.PROFILE, null));
             assertEquals(1, ReelScrolling.userInput(reels, 1));
             assertEquals(1, ReelScrolling.pull(null));
         } finally {
@@ -207,7 +208,7 @@ public class ReelScrollingTest {
     /** A switch that throws leaves the pager and the layout to Instagram and says which hook threw. */
     @Test
     public void aThrowingSwitchKeepsReelsScrollingAndIsReported() {
-        assertEquals(1, ReelScrolling.pager(reels, Source.CLIPS_TAB, THROWS));
+        assertEquals(1, ReelScrolling.pager(reels, Source.CLIPS_TAB, null, THROWS));
         assertEquals(1, ReelScrolling.userInput(reels, 1, THROWS));
         assertEquals(0, ReelScrolling.userInput(reels, 0, THROWS));
         assertEquals(1, ReelScrolling.pull(null, THROWS));
@@ -233,15 +234,15 @@ public class ReelScrollingTest {
         for (Source source : Source.values()) {
             Object pager = new Object();
             int expected = playedAlone().contains(source) ? 0 : 1;
-            assertEquals(source + " at setup", expected, ReelScrolling.pager(pager, source));
+            assertEquals(source + " at setup", expected, ReelScrolling.pager(pager, source, null));
             assertEquals(source + " turned back on", expected, ReelScrolling.userInput(pager, 1));
             assertEquals(source + " turned off stays off", 0, ReelScrolling.userInput(pager, 0));
-            assertEquals(source + " auto scroll", expected, ReelScrolling.autoScroll(source));
+            assertEquals(source + " auto scroll", expected, ReelScrolling.autoScroll(source, null));
         }
-        assertEquals("a source that couldn't be read", 1, ReelScrolling.pager(new Object(), null));
-        assertEquals("a source that isn't one", 1, ReelScrolling.pager(new Object(), "FEED_TIMELINE"));
-        assertEquals("auto scroll with no source", 1, ReelScrolling.autoScroll(null));
-        assertEquals("auto scroll with a source that isn't one", 1, ReelScrolling.autoScroll("DIRECT"));
+        assertEquals("a source that couldn't be read", 1, ReelScrolling.pager(new Object(), null, null));
+        assertEquals("a source that isn't one", 1, ReelScrolling.pager(new Object(), "FEED_TIMELINE", null));
+        assertEquals("auto scroll with no source", 1, ReelScrolling.autoScroll(null, null));
+        assertEquals("auto scroll with a source that isn't one", 1, ReelScrolling.autoScroll("DIRECT", null));
         assertTrue(String.join("\n", HookStatus.report()), HookStatus.report().toString().contains(FamilyNames.REEL_SCROLLING));
     }
 
@@ -251,13 +252,13 @@ public class ReelScrollingTest {
         Settings.PLAY_ONE_REEL.save(true);
         Settings.REEL_SCROLL_FROM_PROFILE.save(true);
         try {
-            assertEquals("the Reels tab, stopped as before", 0, ReelScrolling.pager(new Object(), Source.CLIPS_TAB));
-            assertEquals("a profile, let through", 1, ReelScrolling.pager(new Object(), Source.PROFILE));
-            assertEquals("a post on Home", 0, ReelScrolling.pager(new Object(), Source.FEED_TIMELINE));
+            assertEquals("the Reels tab, stopped as before", 0, ReelScrolling.pager(new Object(), Source.CLIPS_TAB, null));
+            assertEquals("a profile, let through", 1, ReelScrolling.pager(new Object(), Source.PROFILE, null));
+            assertEquals("a post on Home", 0, ReelScrolling.pager(new Object(), Source.FEED_TIMELINE, null));
 
             Settings.STOP_REELS_SCROLLING.save(false);
-            assertEquals("the Reels tab, the stop off", 1, ReelScrolling.pager(new Object(), Source.CLIPS_TAB));
-            assertEquals("a post on Home, the stop off", 0, ReelScrolling.pager(new Object(), Source.FEED_TIMELINE));
+            assertEquals("the Reels tab, the stop off", 1, ReelScrolling.pager(new Object(), Source.CLIPS_TAB, null));
+            assertEquals("a post on Home, the stop off", 0, ReelScrolling.pager(new Object(), Source.FEED_TIMELINE, null));
         } finally {
             Settings.REEL_SCROLL_FROM_PROFILE.resetToDefault();
         }
@@ -268,11 +269,11 @@ public class ReelScrollingTest {
     public void theReelsTabsAutoScrollIsLeftAlone() {
         Settings.PLAY_ONE_REEL.save(true);
         for (Source source : new Source[] {Source.CLIPS_TAB, Source.CLIPS_TAB_HOMECOMING, Source.PROFILE, Source.HASHTAG, Source.SONG}) {
-            assertEquals(source + " with the stop on", 1, ReelScrolling.autoScroll(source));
+            assertEquals(source + " with the stop on", 1, ReelScrolling.autoScroll(source, null));
         }
         Settings.PLAY_ONE_REEL.save(false);
         for (Source source : playedAlone()) {
-            assertEquals(source + " with Play only the reel you opened off", 1, ReelScrolling.autoScroll(source));
+            assertEquals(source + " with Play only the reel you opened off", 1, ReelScrolling.autoScroll(source, null));
         }
     }
 
@@ -283,15 +284,70 @@ public class ReelScrollingTest {
         Settings.PLAY_ONE_REEL.save(true);
         Settings.SWIPE_CHAT_REELS.save(true);
         Object chat = new Object();
-        assertEquals("a chat's viewer at setup", 1, ReelScrolling.pager(chat, Source.DIRECT));
+        assertEquals("a chat's viewer at setup", 1, ReelScrolling.pager(chat, Source.DIRECT, null));
         assertEquals("a chat's viewer turned back on", 1, ReelScrolling.userInput(chat, 1));
-        assertEquals("a chat's auto scroll", 1, ReelScrolling.autoScroll(Source.DIRECT));
-        assertEquals("a post on Home", 0, ReelScrolling.pager(new Object(), Source.FEED_TIMELINE));
-        assertEquals("a suggested unit's auto scroll", 0, ReelScrolling.autoScroll(Source.CLIPS_NETEGO));
+        assertEquals("a chat's auto scroll", 1, ReelScrolling.autoScroll(Source.DIRECT, null));
+        assertEquals("a post on Home", 0, ReelScrolling.pager(new Object(), Source.FEED_TIMELINE, null));
+        assertEquals("a suggested unit's auto scroll", 0, ReelScrolling.autoScroll(Source.CLIPS_NETEGO, null));
 
         Settings.SWIPE_CHAT_REELS.save(false);
         assertEquals("switched off, the chat's viewer is held", 0, ReelScrolling.userInput(chat, 1));
-        assertEquals("switched off, a chat's auto scroll is held", 0, ReelScrolling.autoScroll(Source.DIRECT));
+        assertEquals("switched off, a chat's auto scroll is held", 0, ReelScrolling.autoScroll(Source.DIRECT, null));
+    }
+
+    /**
+     * A reel tapped in a chat that has a Blend opens as the Blend's (#804). Its config still holds the
+     * chat, read off what the pager went into and off the auto scroller, so it's the chat's viewer for
+     * Play only the reel you opened, while a Blend opened from the inbox holds no chat and isn't.
+     */
+    @Test
+    public void aChatsReelOpenedAsItsBlendsIsTheChats() {
+        ViewerConfigs.install();
+        ReelScrolling.readConfigsWith(holder -> holder, scroller -> scroller);
+        try {
+            Settings.STOP_REELS_SCROLLING.save(false);
+            Settings.PLAY_ONE_REEL.save(true);
+            Object chats = new Object();
+            Object inbox = new Object();
+            assertEquals("the chat's Blend at setup", 0, ReelScrolling.pager(chats, ViewerConfigs.Source.BLEND, ViewerConfigs.CHATS_BLEND));
+            assertEquals("the chat's Blend's auto scroll", 0, ReelScrolling.autoScroll(ViewerConfigs.Source.BLEND, ViewerConfigs.CHATS_BLEND));
+            assertEquals("a Blend from the inbox", 1, ReelScrolling.pager(inbox, ViewerConfigs.Source.BLEND, ViewerConfigs.BLEND));
+            assertEquals("a Blend from the inbox auto scrolls", 1, ReelScrolling.autoScroll(ViewerConfigs.Source.BLEND, ViewerConfigs.BLEND));
+            assertEquals("a reel found searching the chat", 1, ReelScrolling.autoScroll(ViewerConfigs.Source.DIRECT_SEARCH, ViewerConfigs.SEARCH));
+            assertEquals("the Reels tab", 1, ReelScrolling.autoScroll(ViewerConfigs.Source.CLIPS_TAB, ViewerConfigs.CLIPS_TAB));
+
+            Settings.SWIPE_CHAT_REELS.save(true);
+            assertEquals("swiping a chat's reels, its Blend turned back on", 1, ReelScrolling.userInput(chats, 1));
+            assertEquals("swiping a chat's reels, its Blend auto scrolls", 1, ReelScrolling.autoScroll(ViewerConfigs.Source.BLEND, ViewerConfigs.CHATS_BLEND));
+            assertEquals("no problem counted", "[]", HookStatus.missing(FamilyNames.REEL_SCROLLING).toString());
+        } finally {
+            ReelScrolling.readConfigsWith(null, null);
+            ViewerConfigs.reset();
+        }
+    }
+
+    /** A config that can't be read is counted, and the viewer goes by its source, a chat's still the chat's. */
+    @Test
+    public void aConfigThatCantBeReadLeavesItToTheSource() {
+        ViewerConfigs.install();
+        ReelScrolling.readConfigsWith(holder -> {
+            throw new ClassCastException("not the viewer's state");
+        }, scroller -> {
+            throw new ClassCastException("not the auto scroller");
+        });
+        try {
+            Settings.STOP_REELS_SCROLLING.save(false);
+            Settings.PLAY_ONE_REEL.save(true);
+            assertEquals("a chat's viewer by its source", 0, ReelScrolling.pager(new Object(), Source.DIRECT, new Object()));
+            assertEquals("the chat's Blend by its source", 1, ReelScrolling.pager(new Object(), ViewerConfigs.Source.BLEND, new Object()));
+            assertEquals("a chat's auto scroll by its source", 0, ReelScrolling.autoScroll(Source.DIRECT, new Object()));
+            String missing = HookStatus.missing(FamilyNames.REEL_SCROLLING).toString();
+            assertTrue(missing, missing.contains("'" + ReelScrolling.VIEWER_CONFIG + "'"));
+            assertTrue(missing, missing.contains(ClassCastException.class.getName()));
+        } finally {
+            ReelScrolling.readConfigsWith(null, null);
+            ViewerConfigs.reset();
+        }
     }
 
     /** The pull-down layout around a viewer Play only the reel you opened holds lets touches by, and the Reels tab's pulls. */
@@ -301,8 +357,8 @@ public class ReelScrollingTest {
         Settings.PLAY_ONE_REEL.save(true);
         FrameLayout tab = new FrameLayout(RuntimeEnvironment.getApplication());
         FrameLayout home = new FrameLayout(RuntimeEnvironment.getApplication());
-        ReelScrolling.pager(inside(tab), Source.CLIPS_TAB);
-        ReelScrolling.pager(inside(home), Source.FEED_TIMELINE_POST_TAP);
+        ReelScrolling.pager(inside(tab), Source.CLIPS_TAB, null);
+        ReelScrolling.pager(inside(home), Source.FEED_TIMELINE_POST_TAP, null);
         assertEquals("the Reels tab's layout", 1, ReelScrolling.pull(tab));
         assertEquals("the layout around a post on Home's viewer", 0, ReelScrolling.pull(home));
         assertEquals("no layout", 1, ReelScrolling.pull(null));
@@ -327,29 +383,29 @@ public class ReelScrollingTest {
 
         SettingsContextRule.withoutContext(() -> assertPlayedAloneFree("unready"));
 
-        assertEquals("on again", 0, ReelScrolling.autoScroll(Source.FEED_TIMELINE));
+        assertEquals("on again", 0, ReelScrolling.autoScroll(Source.FEED_TIMELINE, null));
     }
 
     private void assertPlayedAloneFree(String what) {
         for (Source source : playedAlone()) {
             Object pager = new Object();
-            assertEquals(what + ": " + source + " at setup", 1, ReelScrolling.pager(pager, source));
+            assertEquals(what + ": " + source + " at setup", 1, ReelScrolling.pager(pager, source, null));
             assertEquals(what + ": " + source + " turned back on", 1, ReelScrolling.userInput(pager, 1));
-            assertEquals(what + ": " + source + " auto scroll", 1, ReelScrolling.autoScroll(source));
+            assertEquals(what + ": " + source + " auto scroll", 1, ReelScrolling.autoScroll(source, null));
         }
     }
 
     /** An auto scroll check that throws lets Instagram decide and says which hook threw. */
     @Test
     public void aThrowingAutoScrollCheckLetsInstagramDecideAndIsReported() {
-        assertEquals(1, ReelScrolling.autoScroll(Source.FEED_TIMELINE, THROWS));
+        assertEquals(1, ReelScrolling.autoScroll(Source.FEED_TIMELINE, null, THROWS));
         String missing = HookStatus.missing(FamilyNames.REEL_SCROLLING).toString();
         assertTrue(missing, missing.contains("'" + ReelScrolling.AUTO_SCROLL + "'"));
         assertTrue(missing, missing.contains(IllegalStateException.class.getName()));
     }
 
     private void assertStock(String what) {
-        assertEquals(what + ": the pager at setup", 1, ReelScrolling.pager(reels, Source.CLIPS_TAB));
+        assertEquals(what + ": the pager at setup", 1, ReelScrolling.pager(reels, Source.CLIPS_TAB, null));
         assertEquals(what + ": Instagram turning it on", 1, ReelScrolling.userInput(reels, 1));
         assertEquals(what + ": Instagram turning it off", 0, ReelScrolling.userInput(reels, 0));
         assertEquals(what + ": a pull", 1, ReelScrolling.pull(null));
