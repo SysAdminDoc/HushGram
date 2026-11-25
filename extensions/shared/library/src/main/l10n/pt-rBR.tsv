@@ -384,9 +384,9 @@ Hide the Muse button on your profile	Ocultar o botão do Muse no seu perfil
 Removes the Muse button from the top bar of your profile. Your username and the menu stay.	Tira o botão do Muse da barra de cima do seu perfil. Seu nome de usuário e o menu continuam.
 Hide Blend on reels	Ocultar o Blend nos reels
 Removes the Blend invite button from reels. Everything else on a reel stays.	Tira dos reels o botão de convite do Blend. O resto do reel continua.
-# context: Meta AI: a Hide Meta AI switch (#866) that removes the line Instagram shows at the top of a story made with a Meta AI tool, such as Restyled with Meta AI followed by a Try it link. Restyled with Meta AI and Try it are Instagram's own labels, so use this language's Instagram wording for them where it's known.
-Hide Meta AI credits on stories	Ocultar créditos da Meta AI nos Stories
-Removes lines like Restyled with Meta AI and its Try it link from the top of stories. Music and effect credits stay.	Tira do topo dos Stories linhas como Reestilizado com a Meta AI e o link Experimente. Os créditos de música e efeitos continuam.
+# context: Meta AI: a Hide Meta AI switch (#866) that removes the line Instagram shows at the top of a story made with a Meta AI tool, such as Restyled with Meta AI followed by a Try it link, and the same restyle credit on reels. Restyled with Meta AI and Try it are Instagram's own labels, so use this language's Instagram wording for them where it's known.
+Hide Meta AI restyle credits	Ocultar créditos de reestilização da Meta AI
+Removes lines like Restyled with Meta AI and its Try it link from the top of stories, and the same credit from reels. Music and effect credits stay.	Tira do topo dos Stories linhas como Reestilizado com a Meta AI e o link Experimente, e o mesmo crédito dos reels. Os créditos de música e efeitos continuam.
 Explore	Explorar
 Hide the Explore grid	Ocultar a grade do Explorar
 Hides the grid of posts and reels under the Search tab's bar. Search, recent searches and results stay.	Esconde a grade de posts e reels abaixo da barra da aba Pesquisa. A pesquisa, as pesquisas recentes e os resultados continuam.

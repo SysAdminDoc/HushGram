@@ -47,9 +47,9 @@ final class MetaAiCategory {
                             + "stay.")));
             metaAi.addPreference(toggle(context, Settings.HIDE_META_AI_BLEND, L10n.t("Hide Blend on reels"),
                     L10n.t("Removes the Blend invite button from reels. Everything else on a reel stays.")));
-            metaAi.addPreference(toggle(context, Settings.HIDE_META_AI_STORY_CREDIT, L10n.t("Hide Meta AI credits on stories"),
-                    L10n.t("Removes lines like Restyled with Meta AI and its Try it link from the top of stories. "
-                            + "Music and effect credits stay.")));
+            metaAi.addPreference(toggle(context, Settings.HIDE_META_AI_STORY_CREDIT, L10n.t("Hide Meta AI restyle credits"),
+                    L10n.t("Removes lines like Restyled with Meta AI and its Try it link from the top of stories, "
+                            + "and the same credit from reels. Music and effect credits stay.")));
         }
     }
 }

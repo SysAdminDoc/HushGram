@@ -70,7 +70,7 @@ internal fun Method.isStoryCreditCheck(): Boolean {
 
 /**
  * Makes the check answer false from its first instruction for Meta AI's tool credit while Hide
- * Meta AI credits on stories is on: the answer a story with no such credit gets, so no list holds
+ * Meta AI restyle credits is on: the answer a story with no such credit gets, so no list holds
  * the line. The extension answers no for every other kind, and with the switch off or paused, so
  * those take Instagram's own path, and the early answer depends only on the kind handed in. The
  * kind is read at the method's entry, before anything can reuse its register, and the method's

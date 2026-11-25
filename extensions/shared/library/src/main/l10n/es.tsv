@@ -384,9 +384,9 @@ Hide the Muse button on your profile	Ocultar el botón de Muse en tu perfil
 Removes the Muse button from the top bar of your profile. Your username and the menu stay.	Quita el botón de Muse de la barra superior de tu perfil. Tu nombre de usuario y el menú se quedan.
 Hide Blend on reels	Ocultar Blend en los reels
 Removes the Blend invite button from reels. Everything else on a reel stays.	Quita el botón de invitación a Blend de los reels. Todo lo demás de un reel se queda.
-# context: Meta AI: a Hide Meta AI switch (#866) that removes the line Instagram shows at the top of a story made with a Meta AI tool, such as Restyled with Meta AI followed by a Try it link. Restyled with Meta AI and Try it are Instagram's own labels, so use this language's Instagram wording for them where it's known.
-Hide Meta AI credits on stories	Ocultar créditos de Meta AI en las historias
-Removes lines like Restyled with Meta AI and its Try it link from the top of stories. Music and effect credits stay.	Quita de la parte superior de las historias líneas como «Reestilizado con Meta AI» y su enlace «Pruébalo». Los créditos de música y efectos se quedan.
+# context: Meta AI: a Hide Meta AI switch (#866) that removes the line Instagram shows at the top of a story made with a Meta AI tool, such as Restyled with Meta AI followed by a Try it link, and the same restyle credit on reels. Restyled with Meta AI and Try it are Instagram's own labels, so use this language's Instagram wording for them where it's known.
+Hide Meta AI restyle credits	Ocultar créditos de reestilizado de Meta AI
+Removes lines like Restyled with Meta AI and its Try it link from the top of stories, and the same credit from reels. Music and effect credits stay.	Quita de la parte superior de las historias líneas como «Reestilizado con Meta AI» y su enlace «Pruébalo», y el mismo crédito de los reels. Los créditos de música y efectos se quedan.
 Explore	Explorar
 Hide the Explore grid	Ocultar la cuadrícula de Explorar
 Hides the grid of posts and reels under the Search tab's bar. Search, recent searches and results stay.	Oculta la cuadrícula de publicaciones y reels bajo la barra de la pestaña Buscar. La búsqueda, las búsquedas recientes y los resultados se quedan.

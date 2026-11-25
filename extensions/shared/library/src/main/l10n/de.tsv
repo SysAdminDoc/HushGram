@@ -384,9 +384,9 @@ Hide the Muse button on your profile	Muse-Schaltfläche auf deinem Profil ausble
 Removes the Muse button from the top bar of your profile. Your username and the menu stay.	Entfernt die Muse-Schaltfläche aus der oberen Leiste deines Profils. Dein Benutzername und das Menü bleiben.
 Hide Blend on reels	Blend auf Reels ausblenden
 Removes the Blend invite button from reels. Everything else on a reel stays.	Entfernt die Blend-Einladungsschaltfläche von Reels. Alles andere an einem Reel bleibt.
-# context: Meta AI: a Hide Meta AI switch (#866) that removes the line Instagram shows at the top of a story made with a Meta AI tool, such as Restyled with Meta AI followed by a Try it link. Restyled with Meta AI and Try it are Instagram's own labels, so use this language's Instagram wording for them where it's known.
-Hide Meta AI credits on stories	Meta-AI-Hinweise in Stories ausblenden
-Removes lines like Restyled with Meta AI and its Try it link from the top of stories. Music and effect credits stay.	Entfernt Zeilen wie „Mit Meta AI umgestaltet“ und den Link „Ausprobieren“ oben aus Stories. Hinweise zu Musik und Effekten bleiben.
+# context: Meta AI: a Hide Meta AI switch (#866) that removes the line Instagram shows at the top of a story made with a Meta AI tool, such as Restyled with Meta AI followed by a Try it link, and the same restyle credit on reels. Restyled with Meta AI and Try it are Instagram's own labels, so use this language's Instagram wording for them where it's known.
+Hide Meta AI restyle credits	Meta-AI-Umgestaltungshinweise ausblenden
+Removes lines like Restyled with Meta AI and its Try it link from the top of stories, and the same credit from reels. Music and effect credits stay.	Entfernt Zeilen wie „Mit Meta AI umgestaltet“ und den Link „Ausprobieren“ oben aus Stories und denselben Hinweis aus Reels. Hinweise zu Musik und Effekten bleiben.
 Explore	Entdecken
 Hide the Explore grid	Entdecken-Raster ausblenden
 Hides the grid of posts and reels under the Search tab's bar. Search, recent searches and results stay.	Blendet das Raster mit Beiträgen und Reels unter der Leiste des Suchtabs aus. Suche, letzte Suchen und Ergebnisse bleiben.

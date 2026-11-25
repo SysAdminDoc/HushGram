@@ -384,9 +384,9 @@ Hide the Muse button on your profile	Profilinde Muse düğmesini gizle
 Removes the Muse button from the top bar of your profile. Your username and the menu stay.	Muse düğmesini profilinin üst çubuğundan kaldırır. Kullanıcı adın ve menü kalır.
 Hide Blend on reels	Reels'te Derleme'yi gizle
 Removes the Blend invite button from reels. Everything else on a reel stays.	Derleme davet düğmesini Reels'ten kaldırır. Reels'in geri kalanı olduğu gibi kalır.
-# context: Meta AI: a Hide Meta AI switch (#866) that removes the line Instagram shows at the top of a story made with a Meta AI tool, such as Restyled with Meta AI followed by a Try it link. Restyled with Meta AI and Try it are Instagram's own labels, so use this language's Instagram wording for them where it's known.
-Hide Meta AI credits on stories	Hikayelerde Meta AI ibarelerini gizle
-Removes lines like Restyled with Meta AI and its Try it link from the top of stories. Music and effect credits stay.	Hikayelerin üstünden Meta AI ile yeniden tasarlandı gibi satırları ve Dene bağlantısını kaldırır. Müzik ve efekt ibareleri kalır.
+# context: Meta AI: a Hide Meta AI switch (#866) that removes the line Instagram shows at the top of a story made with a Meta AI tool, such as Restyled with Meta AI followed by a Try it link, and the same restyle credit on reels. Restyled with Meta AI and Try it are Instagram's own labels, so use this language's Instagram wording for them where it's known.
+Hide Meta AI restyle credits	Meta AI yeniden tasarım ibarelerini gizle
+Removes lines like Restyled with Meta AI and its Try it link from the top of stories, and the same credit from reels. Music and effect credits stay.	Hikayelerin üstünden Meta AI ile yeniden tasarlandı gibi satırları ve Dene bağlantısını, Reels'ten de aynı ibareyi kaldırır. Müzik ve efekt ibareleri kalır.
 Explore	Keşfet
 Hide the Explore grid	Keşfet ızgarasını gizle
 Hides the grid of posts and reels under the Search tab's bar. Search, recent searches and results stay.	Arama sekmesindeki çubuğun altındaki gönderi ve reels ızgarasını gizler. Arama, son aramalar ve sonuçlar kalır.

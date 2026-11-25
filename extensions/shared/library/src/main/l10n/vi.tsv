@@ -382,9 +382,9 @@ Hide the Muse button on your profile	Ẩn nút Muse trên trang cá nhân
 Removes the Muse button from the top bar of your profile. Your username and the menu stay.	Gỡ nút Muse khỏi thanh trên cùng của trang cá nhân. Tên người dùng và menu vẫn giữ.
 Hide Blend on reels	Ẩn Blend trên reel
 Removes the Blend invite button from reels. Everything else on a reel stays.	Gỡ nút mời Blend khỏi reel. Mọi thứ khác trên reel vẫn giữ.
-# context: Meta AI: a Hide Meta AI switch (#866) that removes the line Instagram shows at the top of a story made with a Meta AI tool, such as Restyled with Meta AI followed by a Try it link. Restyled with Meta AI and Try it are Instagram's own labels, so use this language's Instagram wording for them where it's known.
-Hide Meta AI credits on stories	Ẩn ghi công Meta AI trên tin
-Removes lines like Restyled with Meta AI and its Try it link from the top of stories. Music and effect credits stay.	Gỡ các dòng như Đã đổi phong cách bằng Meta AI và liên kết Dùng thử khỏi đầu tin. Ghi công nhạc và hiệu ứng vẫn giữ.
+# context: Meta AI: a Hide Meta AI switch (#866) that removes the line Instagram shows at the top of a story made with a Meta AI tool, such as Restyled with Meta AI followed by a Try it link, and the same restyle credit on reels. Restyled with Meta AI and Try it are Instagram's own labels, so use this language's Instagram wording for them where it's known.
+Hide Meta AI restyle credits	Ẩn ghi công đổi phong cách của Meta AI
+Removes lines like Restyled with Meta AI and its Try it link from the top of stories, and the same credit from reels. Music and effect credits stay.	Gỡ các dòng như Đã đổi phong cách bằng Meta AI và liên kết Dùng thử khỏi đầu tin, và cả ghi công đó khỏi reel. Ghi công nhạc và hiệu ứng vẫn giữ.
 # context: the name of Instagram's Explore tab. Instagram's Vietnamese for it is Khám phá (not found in the fixture's strings, taken from the app's usual wording).
 Explore	Khám phá
 Hide the Explore grid	Ẩn lưới Khám phá

@@ -1718,14 +1718,14 @@ public final class L10nTranslations {
                 "\u0625\u062e\u0641\u0627\u0621 \u00ab\u0635\u064f\u0646\u0639 \u0628\u0648\u0627\u0633\u0637\u0629 Edits\u00bb");
         table.put("Hide Messages on Home's header",
                 "\u0625\u062e\u0641\u0627\u0621 \u0627\u0644\u0631\u0633\u0627\u0626\u0644 \u0641\u064a \u062a\u0631\u0648\u064a\u0633\u0629 Home");
-        table.put("Hide Meta AI credits on stories",
-                "\u0625\u062e\u0641\u0627\u0621 \u0625\u0634\u0627\u0631\u0627\u062a Meta AI \u0641\u064a \u0627\u0644\u0642\u0635\u0635");
         table.put("Hide Meta AI in search and Home's bar",
                 "\u0625\u062e\u0641\u0627\u0621 Meta AI \u0641\u064a \u0627\u0644\u0628\u062d\u062b \u0648\u0634\u0631\u064a\u0637 Home");
         table.put("Hide Meta AI in the share sheet",
                 "\u0625\u062e\u0641\u0627\u0621 Meta AI \u0641\u064a \u0644\u0648\u062d\u0629 \u0627\u0644\u0645\u0634\u0627\u0631\u0643\u0629");
         table.put("Hide Meta AI posts",
                 "\u0625\u062e\u0641\u0627\u0621 \u0645\u0646\u0634\u0648\u0631\u0627\u062a Meta AI");
+        table.put("Hide Meta AI restyle credits",
+                "\u0625\u062e\u0641\u0627\u0621 \u0625\u0634\u0627\u0631\u0627\u062a \u0625\u0639\u0627\u062f\u0629 \u0627\u0644\u062a\u0646\u0633\u064a\u0642 \u0645\u0646 Meta AI");
         table.put("Hide Not interested and Interested",
                 "\u0625\u062e\u0641\u0627\u0621 \u00ab\u063a\u064a\u0631 \u0645\u0647\u062a\u0645\u00bb \u0648\u00ab\u0645\u0647\u062a\u0645\u00bb");
         table.put("Hide Notes on profile pictures",
@@ -3516,8 +3516,8 @@ public final class L10nTranslations {
                 "\u064a\u0632\u064a\u0644 \u0645\u0646 \u0627\u0644\u0631\u0626\u064a\u0633\u064a\u0629 \u0643\u0644 \u0645\u0646\u0634\u0648\u0631 \u0628\u0635\u0648\u0631\u0629 \u0648\u0627\u062d\u062f\u0629\u060c \u062d\u062a\u0649 \u0645\u0646 \u0627\u0644\u062d\u0633\u0627\u0628\u0627\u062a \u0627\u0644\u062a\u064a \u062a\u062a\u0627\u0628\u0639\u0647\u0627. \u0627\u0633\u062d\u0628 \u0644\u0644\u0623\u0633\u0641\u0644 \u0641\u064a \u0627\u0644\u0631\u0626\u064a\u0633\u064a\u0629 \u0644\u0644\u062a\u062d\u062f\u064a\u062b \u0628\u0639\u062f \u062a\u063a\u064a\u064a\u0631\u0647.");
         table.put("Removes every single-video post and reel from Home, even from accounts you follow. Pull down on Home to refresh after changing it.",
                 "\u064a\u0632\u064a\u0644 \u0645\u0646 \u0627\u0644\u0631\u0626\u064a\u0633\u064a\u0629 \u0643\u0644 \u0645\u0646\u0634\u0648\u0631 \u0628\u0641\u064a\u062f\u064a\u0648 \u0648\u0627\u062d\u062f \u0648\u0643\u0644 reel\u060c \u062d\u062a\u0649 \u0645\u0646 \u0627\u0644\u062d\u0633\u0627\u0628\u0627\u062a \u0627\u0644\u062a\u064a \u062a\u062a\u0627\u0628\u0639\u0647\u0627. \u0627\u0633\u062d\u0628 \u0644\u0644\u0623\u0633\u0641\u0644 \u0641\u064a \u0627\u0644\u0631\u0626\u064a\u0633\u064a\u0629 \u0644\u0644\u062a\u062d\u062f\u064a\u062b \u0628\u0639\u062f \u062a\u063a\u064a\u064a\u0631\u0647.");
-        table.put("Removes lines like Restyled with Meta AI and its Try it link from the top of stories. Music and effect credits stay.",
-                "\u064a\u0632\u064a\u0644 \u0623\u0633\u0637\u0631\u064b\u0627 \u0645\u062b\u0644 \u00ab\u0623\u064f\u0639\u064a\u062f \u062a\u0646\u0633\u064a\u0642\u0647 \u0628\u0627\u0633\u062a\u062e\u062f\u0627\u0645 Meta AI\u00bb \u0648\u0631\u0627\u0628\u0637 \u00ab\u062c\u0631\u0651\u0628\u0647\u00bb \u0645\u0646 \u0623\u0639\u0644\u0649 \u0627\u0644\u0642\u0635\u0635. \u062a\u0628\u0642\u0649 \u0625\u0634\u0627\u0631\u0627\u062a \u0627\u0644\u0645\u0648\u0633\u064a\u0642\u0649 \u0648\u0627\u0644\u0645\u0624\u062b\u0631\u0627\u062a.");
+        table.put("Removes lines like Restyled with Meta AI and its Try it link from the top of stories, and the same credit from reels. Music and effect credits stay.",
+                "\u064a\u0632\u064a\u0644 \u0623\u0633\u0637\u0631\u064b\u0627 \u0645\u062b\u0644 \u00ab\u0623\u064f\u0639\u064a\u062f \u062a\u0646\u0633\u064a\u0642\u0647 \u0628\u0627\u0633\u062a\u062e\u062f\u0627\u0645 Meta AI\u00bb \u0648\u0631\u0627\u0628\u0637 \u00ab\u062c\u0631\u0651\u0628\u0647\u00bb \u0645\u0646 \u0623\u0639\u0644\u0649 \u0627\u0644\u0642\u0635\u0635\u060c \u0648\u0627\u0644\u0625\u0634\u0627\u0631\u0629 \u0646\u0641\u0633\u0647\u0627 \u0645\u0646 \u0627\u0644\u0640reels. \u062a\u0628\u0642\u0649 \u0625\u0634\u0627\u0631\u0627\u062a \u0627\u0644\u0645\u0648\u0633\u064a\u0642\u0649 \u0648\u0627\u0644\u0645\u0624\u062b\u0631\u0627\u062a.");
         table.put("Removes posts by business and creator accounts from Home and Following, friends who use one included. Pull down on Home to refresh after changing it.",
                 "\u064a\u0632\u064a\u0644 \u0645\u0646 \u0627\u0644\u0631\u0626\u064a\u0633\u064a\u0629 \u0648Following \u0645\u0646\u0634\u0648\u0631\u0627\u062a \u0627\u0644\u062d\u0633\u0627\u0628\u0627\u062a \u0627\u0644\u062a\u062c\u0627\u0631\u064a\u0629 \u0648\u062d\u0633\u0627\u0628\u0627\u062a \u0635\u0646\u0627\u0639 \u0627\u0644\u0645\u062d\u062a\u0648\u0649\u060c \u0628\u0645\u0627 \u0641\u064a\u0647\u0627 \u0627\u0644\u0623\u0635\u062f\u0642\u0627\u0621 \u0627\u0644\u0630\u064a\u0646 \u064a\u0633\u062a\u062e\u062f\u0645\u0648\u0646\u0647\u0627. \u0627\u0633\u062d\u0628 \u0644\u0644\u0623\u0633\u0641\u0644 \u0641\u064a \u0627\u0644\u0631\u0626\u064a\u0633\u064a\u0629 \u0644\u0644\u062a\u062d\u062f\u064a\u062b \u0628\u0639\u062f \u062a\u063a\u064a\u064a\u0631\u0647.");
         table.put("Removes posts you've already liked from Home and Following. A post you like now stays until you pull down on Home to refresh.",
@@ -6871,14 +6871,14 @@ public final class L10nTranslations {
                 "\u201eMade with Edits\u201c ausblenden");
         table.put("Hide Messages on Home's header",
                 "Nachrichten oben auf der Startseite ausblenden");
-        table.put("Hide Meta AI credits on stories",
-                "Meta-AI-Hinweise in Stories ausblenden");
         table.put("Hide Meta AI in search and Home's bar",
                 "Meta AI in der Suche und oben auf der Startseite ausblenden");
         table.put("Hide Meta AI in the share sheet",
                 "Meta AI im Teilen-Men\u00fc ausblenden");
         table.put("Hide Meta AI posts",
                 "Meta-AI-Beitr\u00e4ge ausblenden");
+        table.put("Hide Meta AI restyle credits",
+                "Meta-AI-Umgestaltungshinweise ausblenden");
         table.put("Hide Not interested and Interested",
                 "\u201eKein Interesse\u201c und \u201eInteressiert\u201c ausblenden");
         table.put("Hide Notes on profile pictures",
@@ -8669,8 +8669,8 @@ public final class L10nTranslations {
                 "Entfernt jeden Beitrag mit einem einzelnen Foto von der Startseite, auch von Konten, denen du folgst. Ziehe die Startseite nach dem \u00c4ndern nach unten, um sie zu aktualisieren.");
         table.put("Removes every single-video post and reel from Home, even from accounts you follow. Pull down on Home to refresh after changing it.",
                 "Entfernt jeden Beitrag mit einem einzelnen Video und jedes Reel von der Startseite, auch von Konten, denen du folgst. Ziehe die Startseite nach dem \u00c4ndern nach unten, um sie zu aktualisieren.");
-        table.put("Removes lines like Restyled with Meta AI and its Try it link from the top of stories. Music and effect credits stay.",
-                "Entfernt Zeilen wie \u201eMit Meta AI umgestaltet\u201c und den Link \u201eAusprobieren\u201c oben aus Stories. Hinweise zu Musik und Effekten bleiben.");
+        table.put("Removes lines like Restyled with Meta AI and its Try it link from the top of stories, and the same credit from reels. Music and effect credits stay.",
+                "Entfernt Zeilen wie \u201eMit Meta AI umgestaltet\u201c und den Link \u201eAusprobieren\u201c oben aus Stories und denselben Hinweis aus Reels. Hinweise zu Musik und Effekten bleiben.");
         table.put("Removes posts by business and creator accounts from Home and Following, friends who use one included. Pull down on Home to refresh after changing it.",
                 "Entfernt Beitr\u00e4ge von Unternehmens- und Creator-Konten von der Startseite und aus \u201eGefolgt\u201c, auch von Freunden, die so ein Konto nutzen. Ziehe die Startseite nach dem \u00c4ndern nach unten, um sie zu aktualisieren.");
         table.put("Removes posts you've already liked from Home and Following. A post you like now stays until you pull down on Home to refresh.",
@@ -12024,14 +12024,14 @@ public final class L10nTranslations {
                 "Ocultar \"Made with Edits\"");
         table.put("Hide Messages on Home's header",
                 "Ocultar Mensajes en el encabezado de Inicio");
-        table.put("Hide Meta AI credits on stories",
-                "Ocultar cr\u00e9ditos de Meta AI en las historias");
         table.put("Hide Meta AI in search and Home's bar",
                 "Ocultar Meta AI en la b\u00fasqueda y en la barra de Inicio");
         table.put("Hide Meta AI in the share sheet",
                 "Ocultar Meta AI en el men\u00fa para compartir");
         table.put("Hide Meta AI posts",
                 "Ocultar publicaciones de Meta AI");
+        table.put("Hide Meta AI restyle credits",
+                "Ocultar cr\u00e9ditos de reestilizado de Meta AI");
         table.put("Hide Not interested and Interested",
                 "Ocultar No me interesa y Me interesa");
         table.put("Hide Notes on profile pictures",
@@ -13822,8 +13822,8 @@ public final class L10nTranslations {
                 "Quita de Inicio todas las publicaciones de una sola foto, incluso de cuentas que sigues. Desliza Inicio hacia abajo para actualizar despu\u00e9s de cambiarlo.");
         table.put("Removes every single-video post and reel from Home, even from accounts you follow. Pull down on Home to refresh after changing it.",
                 "Quita de Inicio todas las publicaciones de un solo video y los reels, incluso de cuentas que sigues. Desliza Inicio hacia abajo para actualizar despu\u00e9s de cambiarlo.");
-        table.put("Removes lines like Restyled with Meta AI and its Try it link from the top of stories. Music and effect credits stay.",
-                "Quita de la parte superior de las historias l\u00edneas como \u00abReestilizado con Meta AI\u00bb y su enlace \u00abPru\u00e9balo\u00bb. Los cr\u00e9ditos de m\u00fasica y efectos se quedan.");
+        table.put("Removes lines like Restyled with Meta AI and its Try it link from the top of stories, and the same credit from reels. Music and effect credits stay.",
+                "Quita de la parte superior de las historias l\u00edneas como \u00abReestilizado con Meta AI\u00bb y su enlace \u00abPru\u00e9balo\u00bb, y el mismo cr\u00e9dito de los reels. Los cr\u00e9ditos de m\u00fasica y efectos se quedan.");
         table.put("Removes posts by business and creator accounts from Home and Following, friends who use one included. Pull down on Home to refresh after changing it.",
                 "Quita de Inicio y de Seguidos las publicaciones de cuentas de empresa y de creador, incluidas las de amigos que usan una. Desliza Inicio hacia abajo para actualizar despu\u00e9s de cambiarlo.");
         table.put("Removes posts you've already liked from Home and Following. A post you like now stays until you pull down on Home to refresh.",
@@ -17177,14 +17177,14 @@ public final class L10nTranslations {
                 "Sembunyikan \"Made with Edits\"");
         table.put("Hide Messages on Home's header",
                 "Sembunyikan Pesan di header Beranda");
-        table.put("Hide Meta AI credits on stories",
-                "Sembunyikan kredit Meta AI di cerita");
         table.put("Hide Meta AI in search and Home's bar",
                 "Sembunyikan Meta AI di pencarian dan bilah Beranda");
         table.put("Hide Meta AI in the share sheet",
                 "Sembunyikan Meta AI di lembar berbagi");
         table.put("Hide Meta AI posts",
                 "Sembunyikan postingan Meta AI");
+        table.put("Hide Meta AI restyle credits",
+                "Sembunyikan kredit ubah gaya Meta AI");
         table.put("Hide Not interested and Interested",
                 "Sembunyikan Tidak tertarik dan Tertarik");
         table.put("Hide Notes on profile pictures",
@@ -18975,8 +18975,8 @@ public final class L10nTranslations {
                 "Menghapus setiap postingan satu foto dari Beranda, bahkan dari akun yang kamu ikuti. Tarik Beranda ke bawah untuk menyegarkan setelah mengubahnya.");
         table.put("Removes every single-video post and reel from Home, even from accounts you follow. Pull down on Home to refresh after changing it.",
                 "Menghapus setiap postingan satu video dan reel dari Beranda, bahkan dari akun yang kamu ikuti. Tarik Beranda ke bawah untuk menyegarkan setelah mengubahnya.");
-        table.put("Removes lines like Restyled with Meta AI and its Try it link from the top of stories. Music and effect credits stay.",
-                "Menghapus baris seperti Diubah gayanya dengan Meta AI dan tautan Coba dari bagian atas cerita. Kredit musik dan efek tetap ada.");
+        table.put("Removes lines like Restyled with Meta AI and its Try it link from the top of stories, and the same credit from reels. Music and effect credits stay.",
+                "Menghapus baris seperti Diubah gayanya dengan Meta AI dan tautan Coba dari bagian atas cerita, juga kredit yang sama dari reel. Kredit musik dan efek tetap ada.");
         table.put("Removes posts by business and creator accounts from Home and Following, friends who use one included. Pull down on Home to refresh after changing it.",
                 "Menghapus postingan dari akun bisnis dan kreator dari Beranda dan Mengikuti, termasuk teman yang memakainya. Tarik Beranda ke bawah untuk menyegarkan setelah mengubahnya.");
         table.put("Removes posts you've already liked from Home and Following. A post you like now stays until you pull down on Home to refresh.",
@@ -22330,14 +22330,14 @@ public final class L10nTranslations {
                 "Nascondi \"Made with Edits\"");
         table.put("Hide Messages on Home's header",
                 "Nascondi Messaggi nell'intestazione della Home");
-        table.put("Hide Meta AI credits on stories",
-                "Nascondi i crediti di Meta AI nelle storie");
         table.put("Hide Meta AI in search and Home's bar",
                 "Nascondi Meta AI nella ricerca e nella barra della Home");
         table.put("Hide Meta AI in the share sheet",
                 "Nascondi Meta AI nel foglio di condivisione");
         table.put("Hide Meta AI posts",
                 "Nascondi i post di Meta AI");
+        table.put("Hide Meta AI restyle credits",
+                "Nascondi i crediti di restyling di Meta AI");
         table.put("Hide Not interested and Interested",
                 "Nascondi Non mi interessa e Mi interessa");
         table.put("Hide Notes on profile pictures",
@@ -24128,8 +24128,8 @@ public final class L10nTranslations {
                 "Rimuove dalla Home ogni post con una sola foto, anche degli account che segui. Tira verso il basso nella Home per aggiornare dopo averlo cambiato.");
         table.put("Removes every single-video post and reel from Home, even from accounts you follow. Pull down on Home to refresh after changing it.",
                 "Rimuove dalla Home ogni post con un solo video e ogni reel, anche degli account che segui. Tira verso il basso nella Home per aggiornare dopo averlo cambiato.");
-        table.put("Removes lines like Restyled with Meta AI and its Try it link from the top of stories. Music and effect credits stay.",
-                "Rimuove dalla parte alta delle storie righe come Restyling con Meta AI e il link Prova. I crediti di musica ed effetti restano.");
+        table.put("Removes lines like Restyled with Meta AI and its Try it link from the top of stories, and the same credit from reels. Music and effect credits stay.",
+                "Rimuove dalla parte alta delle storie righe come Restyling con Meta AI e il link Prova, e lo stesso credito dai reel. I crediti di musica ed effetti restano.");
         table.put("Removes posts by business and creator accounts from Home and Following, friends who use one included. Pull down on Home to refresh after changing it.",
                 "Rimuove dalla Home e da Seguiti i post degli account business e creator, compresi gli amici che ne usano uno. Tira verso il basso nella Home per aggiornare dopo averlo cambiato.");
         table.put("Removes posts you've already liked from Home and Following. A post you like now stays until you pull down on Home to refresh.",
@@ -27483,14 +27483,14 @@ public final class L10nTranslations {
                 "\"Made with Edits\" \uc228\uae30\uae30");
         table.put("Hide Messages on Home's header",
                 "\ud648 \uc0c1\ub2e8\uc758 \uba54\uc2dc\uc9c0 \uc228\uae30\uae30");
-        table.put("Hide Meta AI credits on stories",
-                "\uc2a4\ud1a0\ub9ac\uc5d0\uc11c Meta AI \ud45c\uc2dc \uc228\uae30\uae30");
         table.put("Hide Meta AI in search and Home's bar",
                 "\uac80\uc0c9 \ubc0f \ud648 \ubc14\uc5d0\uc11c Meta AI \uc228\uae30\uae30");
         table.put("Hide Meta AI in the share sheet",
                 "\uacf5\uc720 \uc2dc\ud2b8\uc5d0\uc11c Meta AI \uc228\uae30\uae30");
         table.put("Hide Meta AI posts",
                 "Meta AI \uac8c\uc2dc\ubb3c \uc228\uae30\uae30");
+        table.put("Hide Meta AI restyle credits",
+                "Meta AI \uc2a4\ud0c0\uc77c \ubcc0\uacbd \ud45c\uc2dc \uc228\uae30\uae30");
         table.put("Hide Not interested and Interested",
                 "\uad00\uc2ec \uc5c6\uc74c \ubc0f \uad00\uc2ec \uc788\uc74c \uc228\uae30\uae30");
         table.put("Hide Notes on profile pictures",
@@ -29281,8 +29281,8 @@ public final class L10nTranslations {
                 "\ud314\ub85c\uc6b0\ud558\ub294 \uacc4\uc815\uc758 \uac83\uc744 \ud3ec\ud568\ud574 \uc0ac\uc9c4 \ud55c \uc7a5\uc9dc\ub9ac \uac8c\uc2dc\ubb3c\uc744 \ud648\uc5d0\uc11c \ubaa8\ub450 \uc5c6\uc571\ub2c8\ub2e4. \ubc14\uafbc \ub4a4\uc5d0\ub294 \ud648\uc744 \uc544\ub798\ub85c \ub2f9\uaca8 \uc0c8\ub85c\uace0\uce68\ud558\uc138\uc694.");
         table.put("Removes every single-video post and reel from Home, even from accounts you follow. Pull down on Home to refresh after changing it.",
                 "\ud314\ub85c\uc6b0\ud558\ub294 \uacc4\uc815\uc758 \uac83\uc744 \ud3ec\ud568\ud574 \ub3d9\uc601\uc0c1 \ud558\ub098\uc9dc\ub9ac \uac8c\uc2dc\ubb3c\uacfc \ub9b4\uc2a4\ub97c \ud648\uc5d0\uc11c \ubaa8\ub450 \uc5c6\uc571\ub2c8\ub2e4. \ubc14\uafbc \ub4a4\uc5d0\ub294 \ud648\uc744 \uc544\ub798\ub85c \ub2f9\uaca8 \uc0c8\ub85c\uace0\uce68\ud558\uc138\uc694.");
-        table.put("Removes lines like Restyled with Meta AI and its Try it link from the top of stories. Music and effect credits stay.",
-                "\uc2a4\ud1a0\ub9ac \uc0c1\ub2e8\uc5d0\uc11c 'Meta AI\ub85c \uc2a4\ud0c0\uc77c \ubcc0\uacbd\ub428' \uac19\uc740 \uc904\uacfc '\uc0ac\uc6a9\ud574 \ubcf4\uae30' \ub9c1\ud06c\ub97c \uc5c6\uc571\ub2c8\ub2e4. \uc74c\uc545\uacfc \ud6a8\uacfc \ud45c\uc2dc\ub294 \uadf8\ub300\ub85c \ub461\ub2c8\ub2e4.");
+        table.put("Removes lines like Restyled with Meta AI and its Try it link from the top of stories, and the same credit from reels. Music and effect credits stay.",
+                "\uc2a4\ud1a0\ub9ac \uc0c1\ub2e8\uc5d0\uc11c 'Meta AI\ub85c \uc2a4\ud0c0\uc77c \ubcc0\uacbd\ub428' \uac19\uc740 \uc904\uacfc '\uc0ac\uc6a9\ud574 \ubcf4\uae30' \ub9c1\ud06c\ub97c \uc5c6\uc560\uace0, \ub9b4\uc2a4\uc5d0\uc11c\ub3c4 \uac19\uc740 \ud45c\uc2dc\ub97c \uc5c6\uc571\ub2c8\ub2e4. \uc74c\uc545\uacfc \ud6a8\uacfc \ud45c\uc2dc\ub294 \uadf8\ub300\ub85c \ub461\ub2c8\ub2e4.");
         table.put("Removes posts by business and creator accounts from Home and Following, friends who use one included. Pull down on Home to refresh after changing it.",
                 "\ube44\uc988\ub2c8\uc2a4 \ubc0f \ud06c\ub9ac\uc5d0\uc774\ud130 \uacc4\uc815\uc758 \uac8c\uc2dc\ubb3c\uc744 \ud648\uacfc \ud314\ub85c\uc789\uc5d0\uc11c \uc5c6\uc571\ub2c8\ub2e4. \uc774\ub7f0 \uacc4\uc815\uc744 \uc4f0\ub294 \uce5c\uad6c\ub3c4 \ud3ec\ud568\ub429\ub2c8\ub2e4. \ubc14\uafbc \ub4a4\uc5d0\ub294 \ud648\uc744 \uc544\ub798\ub85c \ub2f9\uaca8 \uc0c8\ub85c\uace0\uce68\ud558\uc138\uc694.");
         table.put("Removes posts you've already liked from Home and Following. A post you like now stays until you pull down on Home to refresh.",
@@ -32636,14 +32636,14 @@ public final class L10nTranslations {
                 "Ocultar \"Made with Edits\"");
         table.put("Hide Messages on Home's header",
                 "Ocultar Mensagens no cabe\u00e7alho da P\u00e1gina inicial");
-        table.put("Hide Meta AI credits on stories",
-                "Ocultar cr\u00e9ditos da Meta AI nos Stories");
         table.put("Hide Meta AI in search and Home's bar",
                 "Ocultar a Meta AI na pesquisa e na barra do In\u00edcio");
         table.put("Hide Meta AI in the share sheet",
                 "Ocultar a Meta AI no menu de compartilhamento");
         table.put("Hide Meta AI posts",
                 "Ocultar posts da Meta AI");
+        table.put("Hide Meta AI restyle credits",
+                "Ocultar cr\u00e9ditos de reestiliza\u00e7\u00e3o da Meta AI");
         table.put("Hide Not interested and Interested",
                 "Ocultar N\u00e3o tenho interesse e Tenho interesse");
         table.put("Hide Notes on profile pictures",
@@ -34434,8 +34434,8 @@ public final class L10nTranslations {
                 "Tira do In\u00edcio todo post de uma \u00fanica foto, at\u00e9 de contas que voc\u00ea segue. Puxe o In\u00edcio para baixo para atualizar depois de mudar.");
         table.put("Removes every single-video post and reel from Home, even from accounts you follow. Pull down on Home to refresh after changing it.",
                 "Tira do In\u00edcio todo post de um \u00fanico v\u00eddeo e os reels, at\u00e9 de contas que voc\u00ea segue. Puxe o In\u00edcio para baixo para atualizar depois de mudar.");
-        table.put("Removes lines like Restyled with Meta AI and its Try it link from the top of stories. Music and effect credits stay.",
-                "Tira do topo dos Stories linhas como Reestilizado com a Meta AI e o link Experimente. Os cr\u00e9ditos de m\u00fasica e efeitos continuam.");
+        table.put("Removes lines like Restyled with Meta AI and its Try it link from the top of stories, and the same credit from reels. Music and effect credits stay.",
+                "Tira do topo dos Stories linhas como Reestilizado com a Meta AI e o link Experimente, e o mesmo cr\u00e9dito dos reels. Os cr\u00e9ditos de m\u00fasica e efeitos continuam.");
         table.put("Removes posts by business and creator accounts from Home and Following, friends who use one included. Pull down on Home to refresh after changing it.",
                 "Tira do In\u00edcio e de Seguindo os posts de contas comerciais e de criador, inclusive de amigos que usam uma. Puxe o In\u00edcio para baixo para atualizar depois de mudar.");
         table.put("Removes posts you've already liked from Home and Following. A post you like now stays until you pull down on Home to refresh.",
@@ -37789,14 +37789,14 @@ public final class L10nTranslations {
                 "\u0e0b\u0e48\u0e2d\u0e19 \"Made with Edits\"");
         table.put("Hide Messages on Home's header",
                 "\u0e0b\u0e48\u0e2d\u0e19\u0e02\u0e49\u0e2d\u0e04\u0e27\u0e32\u0e21\u0e1a\u0e19\u0e2a\u0e48\u0e27\u0e19\u0e2b\u0e31\u0e27\u0e02\u0e2d\u0e07\u0e2b\u0e19\u0e49\u0e32\u0e2b\u0e25\u0e31\u0e01");
-        table.put("Hide Meta AI credits on stories",
-                "\u0e0b\u0e48\u0e2d\u0e19\u0e40\u0e04\u0e23\u0e14\u0e34\u0e15 Meta AI \u0e43\u0e19\u0e2a\u0e15\u0e2d\u0e23\u0e35\u0e48");
         table.put("Hide Meta AI in search and Home's bar",
                 "\u0e0b\u0e48\u0e2d\u0e19 Meta AI \u0e43\u0e19\u0e01\u0e32\u0e23\u0e04\u0e49\u0e19\u0e2b\u0e32\u0e41\u0e25\u0e30\u0e41\u0e16\u0e1a\u0e2b\u0e19\u0e49\u0e32\u0e2b\u0e25\u0e31\u0e01");
         table.put("Hide Meta AI in the share sheet",
                 "\u0e0b\u0e48\u0e2d\u0e19 Meta AI \u0e43\u0e19\u0e2b\u0e19\u0e49\u0e32\u0e15\u0e48\u0e32\u0e07\u0e01\u0e32\u0e23\u0e41\u0e0a\u0e23\u0e4c");
         table.put("Hide Meta AI posts",
                 "\u0e0b\u0e48\u0e2d\u0e19\u0e42\u0e1e\u0e2a\u0e15\u0e4c\u0e02\u0e2d\u0e07 Meta AI");
+        table.put("Hide Meta AI restyle credits",
+                "\u0e0b\u0e48\u0e2d\u0e19\u0e40\u0e04\u0e23\u0e14\u0e34\u0e15\u0e01\u0e32\u0e23\u0e1b\u0e23\u0e31\u0e1a\u0e2a\u0e44\u0e15\u0e25\u0e4c\u0e02\u0e2d\u0e07 Meta AI");
         table.put("Hide Not interested and Interested",
                 "\u0e0b\u0e48\u0e2d\u0e19\u0e44\u0e21\u0e48\u0e2a\u0e19\u0e43\u0e08\u0e41\u0e25\u0e30\u0e2a\u0e19\u0e43\u0e08");
         table.put("Hide Notes on profile pictures",
@@ -39587,8 +39587,8 @@ public final class L10nTranslations {
                 "\u0e25\u0e1a\u0e42\u0e1e\u0e2a\u0e15\u0e4c\u0e17\u0e35\u0e48\u0e21\u0e35\u0e23\u0e39\u0e1b\u0e20\u0e32\u0e1e\u0e40\u0e14\u0e35\u0e48\u0e22\u0e27\u0e17\u0e31\u0e49\u0e07\u0e2b\u0e21\u0e14\u0e2d\u0e2d\u0e01\u0e08\u0e32\u0e01\u0e2b\u0e19\u0e49\u0e32\u0e2b\u0e25\u0e31\u0e01 \u0e41\u0e21\u0e49\u0e08\u0e30\u0e21\u0e32\u0e08\u0e32\u0e01\u0e1a\u0e31\u0e0d\u0e0a\u0e35\u0e17\u0e35\u0e48\u0e04\u0e38\u0e13\u0e01\u0e33\u0e25\u0e31\u0e07\u0e15\u0e34\u0e14\u0e15\u0e32\u0e21\u0e2d\u0e22\u0e39\u0e48\u0e01\u0e47\u0e15\u0e32\u0e21 \u0e43\u0e2b\u0e49\u0e14\u0e36\u0e07\u0e2b\u0e19\u0e49\u0e32\u0e2b\u0e25\u0e31\u0e01\u0e25\u0e07\u0e40\u0e1e\u0e37\u0e48\u0e2d\u0e23\u0e35\u0e40\u0e1f\u0e23\u0e0a\u0e2b\u0e25\u0e31\u0e07\u0e08\u0e32\u0e01\u0e40\u0e1b\u0e25\u0e35\u0e48\u0e22\u0e19\u0e01\u0e32\u0e23\u0e15\u0e31\u0e49\u0e07\u0e04\u0e48\u0e32\u0e19\u0e35\u0e49");
         table.put("Removes every single-video post and reel from Home, even from accounts you follow. Pull down on Home to refresh after changing it.",
                 "\u0e25\u0e1a\u0e42\u0e1e\u0e2a\u0e15\u0e4c\u0e17\u0e35\u0e48\u0e21\u0e35\u0e27\u0e34\u0e14\u0e35\u0e42\u0e2d\u0e40\u0e14\u0e35\u0e48\u0e22\u0e27\u0e41\u0e25\u0e30\u0e23\u0e35\u0e25\u0e2a\u0e4c\u0e17\u0e31\u0e49\u0e07\u0e2b\u0e21\u0e14\u0e2d\u0e2d\u0e01\u0e08\u0e32\u0e01\u0e2b\u0e19\u0e49\u0e32\u0e2b\u0e25\u0e31\u0e01 \u0e41\u0e21\u0e49\u0e08\u0e30\u0e21\u0e32\u0e08\u0e32\u0e01\u0e1a\u0e31\u0e0d\u0e0a\u0e35\u0e17\u0e35\u0e48\u0e04\u0e38\u0e13\u0e01\u0e33\u0e25\u0e31\u0e07\u0e15\u0e34\u0e14\u0e15\u0e32\u0e21\u0e2d\u0e22\u0e39\u0e48\u0e01\u0e47\u0e15\u0e32\u0e21 \u0e43\u0e2b\u0e49\u0e14\u0e36\u0e07\u0e2b\u0e19\u0e49\u0e32\u0e2b\u0e25\u0e31\u0e01\u0e25\u0e07\u0e40\u0e1e\u0e37\u0e48\u0e2d\u0e23\u0e35\u0e40\u0e1f\u0e23\u0e0a\u0e2b\u0e25\u0e31\u0e07\u0e08\u0e32\u0e01\u0e40\u0e1b\u0e25\u0e35\u0e48\u0e22\u0e19\u0e01\u0e32\u0e23\u0e15\u0e31\u0e49\u0e07\u0e04\u0e48\u0e32\u0e19\u0e35\u0e49");
-        table.put("Removes lines like Restyled with Meta AI and its Try it link from the top of stories. Music and effect credits stay.",
-                "\u0e25\u0e1a\u0e1a\u0e23\u0e23\u0e17\u0e31\u0e14\u0e2d\u0e22\u0e48\u0e32\u0e07 \u0e1b\u0e23\u0e31\u0e1a\u0e2a\u0e44\u0e15\u0e25\u0e4c\u0e14\u0e49\u0e27\u0e22 Meta AI \u0e41\u0e25\u0e30\u0e25\u0e34\u0e07\u0e01\u0e4c \u0e25\u0e2d\u0e07\u0e40\u0e25\u0e22 \u0e2d\u0e2d\u0e01\u0e08\u0e32\u0e01\u0e14\u0e49\u0e32\u0e19\u0e1a\u0e19\u0e02\u0e2d\u0e07\u0e2a\u0e15\u0e2d\u0e23\u0e35\u0e48 \u0e40\u0e04\u0e23\u0e14\u0e34\u0e15\u0e40\u0e1e\u0e25\u0e07\u0e41\u0e25\u0e30\u0e40\u0e2d\u0e1f\u0e40\u0e1f\u0e01\u0e15\u0e4c\u0e08\u0e30\u0e22\u0e31\u0e07\u0e04\u0e07\u0e2d\u0e22\u0e39\u0e48");
+        table.put("Removes lines like Restyled with Meta AI and its Try it link from the top of stories, and the same credit from reels. Music and effect credits stay.",
+                "\u0e25\u0e1a\u0e1a\u0e23\u0e23\u0e17\u0e31\u0e14\u0e2d\u0e22\u0e48\u0e32\u0e07 \u0e1b\u0e23\u0e31\u0e1a\u0e2a\u0e44\u0e15\u0e25\u0e4c\u0e14\u0e49\u0e27\u0e22 Meta AI \u0e41\u0e25\u0e30\u0e25\u0e34\u0e07\u0e01\u0e4c \u0e25\u0e2d\u0e07\u0e40\u0e25\u0e22 \u0e2d\u0e2d\u0e01\u0e08\u0e32\u0e01\u0e14\u0e49\u0e32\u0e19\u0e1a\u0e19\u0e02\u0e2d\u0e07\u0e2a\u0e15\u0e2d\u0e23\u0e35\u0e48 \u0e41\u0e25\u0e30\u0e25\u0e1a\u0e40\u0e04\u0e23\u0e14\u0e34\u0e15\u0e40\u0e14\u0e35\u0e22\u0e27\u0e01\u0e31\u0e19\u0e2d\u0e2d\u0e01\u0e08\u0e32\u0e01\u0e23\u0e35\u0e25\u0e2a\u0e4c \u0e40\u0e04\u0e23\u0e14\u0e34\u0e15\u0e40\u0e1e\u0e25\u0e07\u0e41\u0e25\u0e30\u0e40\u0e2d\u0e1f\u0e40\u0e1f\u0e01\u0e15\u0e4c\u0e08\u0e30\u0e22\u0e31\u0e07\u0e04\u0e07\u0e2d\u0e22\u0e39\u0e48");
         table.put("Removes posts by business and creator accounts from Home and Following, friends who use one included. Pull down on Home to refresh after changing it.",
                 "\u0e25\u0e1a\u0e42\u0e1e\u0e2a\u0e15\u0e4c\u0e08\u0e32\u0e01\u0e1a\u0e31\u0e0d\u0e0a\u0e35\u0e18\u0e38\u0e23\u0e01\u0e34\u0e08\u0e41\u0e25\u0e30\u0e1a\u0e31\u0e0d\u0e0a\u0e35\u0e04\u0e23\u0e35\u0e40\u0e2d\u0e40\u0e15\u0e2d\u0e23\u0e4c\u0e2d\u0e2d\u0e01\u0e08\u0e32\u0e01\u0e2b\u0e19\u0e49\u0e32\u0e2b\u0e25\u0e31\u0e01\u0e41\u0e25\u0e30 \"\u0e01\u0e33\u0e25\u0e31\u0e07\u0e15\u0e34\u0e14\u0e15\u0e32\u0e21\" \u0e23\u0e27\u0e21\u0e16\u0e36\u0e07\u0e40\u0e1e\u0e37\u0e48\u0e2d\u0e19\u0e17\u0e35\u0e48\u0e43\u0e0a\u0e49\u0e1a\u0e31\u0e0d\u0e0a\u0e35\u0e1b\u0e23\u0e30\u0e40\u0e20\u0e17\u0e19\u0e35\u0e49 \u0e43\u0e2b\u0e49\u0e14\u0e36\u0e07\u0e2b\u0e19\u0e49\u0e32\u0e2b\u0e25\u0e31\u0e01\u0e25\u0e07\u0e40\u0e1e\u0e37\u0e48\u0e2d\u0e23\u0e35\u0e40\u0e1f\u0e23\u0e0a\u0e2b\u0e25\u0e31\u0e07\u0e08\u0e32\u0e01\u0e40\u0e1b\u0e25\u0e35\u0e48\u0e22\u0e19\u0e01\u0e32\u0e23\u0e15\u0e31\u0e49\u0e07\u0e04\u0e48\u0e32\u0e19\u0e35\u0e49");
         table.put("Removes posts you've already liked from Home and Following. A post you like now stays until you pull down on Home to refresh.",
@@ -42942,14 +42942,14 @@ public final class L10nTranslations {
                 "\"Made with Edits\" etiketini gizle");
         table.put("Hide Messages on Home's header",
                 "Ana sayfa \u00fcst\u00fcndeki Mesajlar'\u0131 gizle");
-        table.put("Hide Meta AI credits on stories",
-                "Hikayelerde Meta AI ibarelerini gizle");
         table.put("Hide Meta AI in search and Home's bar",
                 "Aramada ve Ana Sayfa \u00e7ubu\u011funda Meta AI'\u0131 gizle");
         table.put("Hide Meta AI in the share sheet",
                 "Payla\u015f\u0131m sayfas\u0131nda Meta AI'\u0131 gizle");
         table.put("Hide Meta AI posts",
                 "Meta AI g\u00f6nderilerini gizle");
+        table.put("Hide Meta AI restyle credits",
+                "Meta AI yeniden tasar\u0131m ibarelerini gizle");
         table.put("Hide Not interested and Interested",
                 "\u0130lgilenmiyorum ve \u0130lgileniyorum'u gizle");
         table.put("Hide Notes on profile pictures",
@@ -44740,8 +44740,8 @@ public final class L10nTranslations {
                 "Ana Sayfa'dan tek foto\u011frafl\u0131 t\u00fcm g\u00f6nderileri, takip etti\u011fin hesaplardan gelenler dahil kald\u0131r\u0131r. De\u011fi\u015ftirdikten sonra yenilemek i\u00e7in Ana Sayfa'y\u0131 a\u015fa\u011f\u0131 \u00e7ek.");
         table.put("Removes every single-video post and reel from Home, even from accounts you follow. Pull down on Home to refresh after changing it.",
                 "Ana Sayfa'dan tek videolu t\u00fcm g\u00f6nderileri ve reels'leri, takip etti\u011fin hesaplardan gelenler dahil kald\u0131r\u0131r. De\u011fi\u015ftirdikten sonra yenilemek i\u00e7in Ana Sayfa'y\u0131 a\u015fa\u011f\u0131 \u00e7ek.");
-        table.put("Removes lines like Restyled with Meta AI and its Try it link from the top of stories. Music and effect credits stay.",
-                "Hikayelerin \u00fcst\u00fcnden Meta AI ile yeniden tasarland\u0131 gibi sat\u0131rlar\u0131 ve Dene ba\u011flant\u0131s\u0131n\u0131 kald\u0131r\u0131r. M\u00fczik ve efekt ibareleri kal\u0131r.");
+        table.put("Removes lines like Restyled with Meta AI and its Try it link from the top of stories, and the same credit from reels. Music and effect credits stay.",
+                "Hikayelerin \u00fcst\u00fcnden Meta AI ile yeniden tasarland\u0131 gibi sat\u0131rlar\u0131 ve Dene ba\u011flant\u0131s\u0131n\u0131, Reels'ten de ayn\u0131 ibareyi kald\u0131r\u0131r. M\u00fczik ve efekt ibareleri kal\u0131r.");
         table.put("Removes posts by business and creator accounts from Home and Following, friends who use one included. Pull down on Home to refresh after changing it.",
                 "\u0130\u015fletme ve i\u00e7erik \u00fcreticisi hesaplar\u0131n\u0131n g\u00f6nderilerini, bu hesaplardan birini kullanan arkada\u015flar\u0131n dahil, Ana Sayfa'dan ve Takip Edilenler'den kald\u0131r\u0131r. De\u011fi\u015ftirdikten sonra yenilemek i\u00e7in Ana Sayfa'y\u0131 a\u015fa\u011f\u0131 \u00e7ek.");
         table.put("Removes posts you've already liked from Home and Following. A post you like now stays until you pull down on Home to refresh.",
@@ -48095,14 +48095,14 @@ public final class L10nTranslations {
                 "\u1ea8n \"Made with Edits\"");
         table.put("Hide Messages on Home's header",
                 "\u1ea8n Tin nh\u1eafn \u1edf \u0111\u1ea7u trang ch\u1ee7");
-        table.put("Hide Meta AI credits on stories",
-                "\u1ea8n ghi c\u00f4ng Meta AI tr\u00ean tin");
         table.put("Hide Meta AI in search and Home's bar",
                 "\u1ea8n Meta AI trong t\u00ecm ki\u1ebfm v\u00e0 thanh c\u1ee7a trang ch\u1ee7");
         table.put("Hide Meta AI in the share sheet",
                 "\u1ea8n Meta AI trong b\u1ea3ng chia s\u1ebb");
         table.put("Hide Meta AI posts",
                 "\u1ea8n b\u00e0i vi\u1ebft Meta AI");
+        table.put("Hide Meta AI restyle credits",
+                "\u1ea8n ghi c\u00f4ng \u0111\u1ed5i phong c\u00e1ch c\u1ee7a Meta AI");
         table.put("Hide Not interested and Interested",
                 "\u1ea8n Kh\u00f4ng quan t\u00e2m v\u00e0 Quan t\u00e2m");
         table.put("Hide Notes on profile pictures",
@@ -49893,8 +49893,8 @@ public final class L10nTranslations {
                 "G\u1ee1 m\u1ecdi b\u00e0i vi\u1ebft m\u1ed9t \u1ea3nh kh\u1ecfi trang ch\u1ee7, k\u1ec3 c\u1ea3 t\u1eeb t\u00e0i kho\u1ea3n b\u1ea1n theo d\u00f5i. H\u00e3y k\u00e9o xu\u1ed1ng tr\u00ean trang ch\u1ee7 \u0111\u1ec3 l\u00e0m m\u1edbi sau khi thay \u0111\u1ed5i.");
         table.put("Removes every single-video post and reel from Home, even from accounts you follow. Pull down on Home to refresh after changing it.",
                 "G\u1ee1 m\u1ecdi b\u00e0i vi\u1ebft m\u1ed9t video v\u00e0 reel kh\u1ecfi trang ch\u1ee7, k\u1ec3 c\u1ea3 t\u1eeb t\u00e0i kho\u1ea3n b\u1ea1n theo d\u00f5i. H\u00e3y k\u00e9o xu\u1ed1ng tr\u00ean trang ch\u1ee7 \u0111\u1ec3 l\u00e0m m\u1edbi sau khi thay \u0111\u1ed5i.");
-        table.put("Removes lines like Restyled with Meta AI and its Try it link from the top of stories. Music and effect credits stay.",
-                "G\u1ee1 c\u00e1c d\u00f2ng nh\u01b0 \u0110\u00e3 \u0111\u1ed5i phong c\u00e1ch b\u1eb1ng Meta AI v\u00e0 li\u00ean k\u1ebft D\u00f9ng th\u1eed kh\u1ecfi \u0111\u1ea7u tin. Ghi c\u00f4ng nh\u1ea1c v\u00e0 hi\u1ec7u \u1ee9ng v\u1eabn gi\u1eef.");
+        table.put("Removes lines like Restyled with Meta AI and its Try it link from the top of stories, and the same credit from reels. Music and effect credits stay.",
+                "G\u1ee1 c\u00e1c d\u00f2ng nh\u01b0 \u0110\u00e3 \u0111\u1ed5i phong c\u00e1ch b\u1eb1ng Meta AI v\u00e0 li\u00ean k\u1ebft D\u00f9ng th\u1eed kh\u1ecfi \u0111\u1ea7u tin, v\u00e0 c\u1ea3 ghi c\u00f4ng \u0111\u00f3 kh\u1ecfi reel. Ghi c\u00f4ng nh\u1ea1c v\u00e0 hi\u1ec7u \u1ee9ng v\u1eabn gi\u1eef.");
         table.put("Removes posts by business and creator accounts from Home and Following, friends who use one included. Pull down on Home to refresh after changing it.",
                 "G\u1ee1 b\u00e0i vi\u1ebft c\u1ee7a t\u00e0i kho\u1ea3n doanh nghi\u1ec7p v\u00e0 nh\u00e0 s\u00e1ng t\u1ea1o kh\u1ecfi trang ch\u1ee7 v\u00e0 \u0110ang theo d\u00f5i, k\u1ec3 c\u1ea3 b\u1ea1n b\u00e8 d\u00f9ng lo\u1ea1i t\u00e0i kho\u1ea3n n\u00e0y. H\u00e3y k\u00e9o xu\u1ed1ng tr\u00ean trang ch\u1ee7 \u0111\u1ec3 l\u00e0m m\u1edbi sau khi thay \u0111\u1ed5i.");
         table.put("Removes posts you've already liked from Home and Following. A post you like now stays until you pull down on Home to refresh.",
@@ -53248,14 +53248,14 @@ public final class L10nTranslations {
                 "\u9690\u85cf\u201cMade with Edits\u201d");
         table.put("Hide Messages on Home's header",
                 "\u9690\u85cf\u9996\u9875\u9876\u7aef\u7684\u6d88\u606f");
-        table.put("Hide Meta AI credits on stories",
-                "\u9690\u85cf\u5feb\u62cd\u4e0a\u7684 Meta AI \u6807\u6ce8");
         table.put("Hide Meta AI in search and Home's bar",
                 "\u9690\u85cf\u641c\u7d22\u4e0e\u9996\u9875\u680f\u4e2d\u7684 Meta AI");
         table.put("Hide Meta AI in the share sheet",
                 "\u9690\u85cf\u5206\u4eab\u8868\u5355\u4e2d\u7684 Meta AI");
         table.put("Hide Meta AI posts",
                 "\u9690\u85cf Meta AI \u5e16\u5b50");
+        table.put("Hide Meta AI restyle credits",
+                "\u9690\u85cf Meta AI \u6539\u53d8\u98ce\u683c\u6807\u6ce8");
         table.put("Hide Not interested and Interested",
                 "\u9690\u85cf\u201c\u4e0d\u611f\u5174\u8da3\u201d\u548c\u201c\u611f\u5174\u8da3\u201d");
         table.put("Hide Notes on profile pictures",
@@ -55046,8 +55046,8 @@ public final class L10nTranslations {
                 "\u79fb\u9664\u9996\u9875\u6240\u6709\u5355\u5f20\u7167\u7247\u5e16\u5b50\uff0c\u5305\u62ec\u5df2\u5173\u6ce8\u8d26\u6237\u7684\u5e16\u5b50\u3002\u53d8\u66f4\u540e\u8bf7\u4e0b\u62c9\u5237\u65b0\u9996\u9875\u3002");
         table.put("Removes every single-video post and reel from Home, even from accounts you follow. Pull down on Home to refresh after changing it.",
                 "\u79fb\u9664\u9996\u9875\u6240\u6709\u5355\u90e8\u89c6\u9891\u5e16\u5b50\u4e0e Reels\uff0c\u5305\u62ec\u5df2\u5173\u6ce8\u8d26\u6237\u7684\u5185\u5bb9\u3002\u53d8\u66f4\u540e\u8bf7\u4e0b\u62c9\u5237\u65b0\u9996\u9875\u3002");
-        table.put("Removes lines like Restyled with Meta AI and its Try it link from the top of stories. Music and effect credits stay.",
-                "\u79fb\u9664\u5feb\u62cd\u9876\u90e8\u7684\u201c\u5df2\u4f7f\u7528 Meta AI \u6539\u53d8\u98ce\u683c\u201d\u7b49\u6807\u6ce8\u53ca\u5176\u201c\u8bd5\u8bd5\u201d\u94fe\u63a5\u3002\u97f3\u4e50\u548c\u7279\u6548\u6807\u6ce8\u4f1a\u4fdd\u7559\u3002");
+        table.put("Removes lines like Restyled with Meta AI and its Try it link from the top of stories, and the same credit from reels. Music and effect credits stay.",
+                "\u79fb\u9664\u5feb\u62cd\u9876\u90e8\u7684\u201c\u5df2\u4f7f\u7528 Meta AI \u6539\u53d8\u98ce\u683c\u201d\u7b49\u6807\u6ce8\u53ca\u5176\u201c\u8bd5\u8bd5\u201d\u94fe\u63a5\uff0c\u4e5f\u79fb\u9664 Reels \u4e0a\u7684\u540c\u4e00\u6807\u6ce8\u3002\u97f3\u4e50\u548c\u7279\u6548\u6807\u6ce8\u4f1a\u4fdd\u7559\u3002");
         table.put("Removes posts by business and creator accounts from Home and Following, friends who use one included. Pull down on Home to refresh after changing it.",
                 "\u4ece\u9996\u9875\u4e0e\u5df2\u5173\u6ce8\u79fb\u9664\u5546\u4e1a\u548c\u521b\u4f5c\u8005\u8d26\u6237\u7684\u5e16\u5b50\uff0c\u5305\u62ec\u4f7f\u7528\u8fd9\u7c7b\u8d26\u6237\u7684\u670b\u53cb\u3002\u53d8\u66f4\u540e\u8bf7\u4e0b\u62c9\u5237\u65b0\u9996\u9875\u3002");
         table.put("Removes posts you've already liked from Home and Following. A post you like now stays until you pull down on Home to refresh.",
@@ -58401,14 +58401,14 @@ public final class L10nTranslations {
                 "\u96b1\u85cf\u300cMade with Edits\u300d");
         table.put("Hide Messages on Home's header",
                 "\u96b1\u85cf\u9996\u9801\u9802\u7aef\u7684\u79c1\u8a0a");
-        table.put("Hide Meta AI credits on stories",
-                "\u96b1\u85cf\u9650\u6642\u52d5\u614b\u4e0a\u7684 Meta AI \u6a19\u793a");
         table.put("Hide Meta AI in search and Home's bar",
                 "\u96b1\u85cf\u641c\u5c0b\u8207\u9996\u9801\u5217\u4e2d\u7684 Meta AI");
         table.put("Hide Meta AI in the share sheet",
                 "\u96b1\u85cf\u5206\u4eab\u8868\u55ae\u4e2d\u7684 Meta AI");
         table.put("Hide Meta AI posts",
                 "\u96b1\u85cf Meta AI \u8cbc\u6587");
+        table.put("Hide Meta AI restyle credits",
+                "\u96b1\u85cf Meta AI \u6539\u8b8a\u98a8\u683c\u6a19\u793a");
         table.put("Hide Not interested and Interested",
                 "\u96b1\u85cf\u300c\u4e0d\u611f\u8208\u8da3\u300d\u548c\u300c\u611f\u8208\u8da3\u300d");
         table.put("Hide Notes on profile pictures",
@@ -60199,8 +60199,8 @@ public final class L10nTranslations {
                 "\u79fb\u9664\u9996\u9801\u6240\u6709\u55ae\u5f35\u7167\u7247\u8cbc\u6587\uff0c\u5305\u62ec\u5df2\u8ffd\u8e64\u5e33\u865f\u7684\u8cbc\u6587\u3002\u8b8a\u66f4\u5f8c\u8acb\u4e0b\u62c9\u91cd\u65b0\u6574\u7406\u9996\u9801\u3002");
         table.put("Removes every single-video post and reel from Home, even from accounts you follow. Pull down on Home to refresh after changing it.",
                 "\u79fb\u9664\u9996\u9801\u6240\u6709\u55ae\u90e8\u5f71\u7247\u8cbc\u6587\u8207 Reels\uff0c\u5305\u62ec\u5df2\u8ffd\u8e64\u5e33\u865f\u7684\u5167\u5bb9\u3002\u8b8a\u66f4\u5f8c\u8acb\u4e0b\u62c9\u91cd\u65b0\u6574\u7406\u9996\u9801\u3002");
-        table.put("Removes lines like Restyled with Meta AI and its Try it link from the top of stories. Music and effect credits stay.",
-                "\u79fb\u9664\u9650\u6642\u52d5\u614b\u9802\u7aef\u7684\u300c\u5df2\u4f7f\u7528 Meta AI \u6539\u8b8a\u98a8\u683c\u300d\u7b49\u6a19\u793a\u53ca\u5176\u300c\u8a66\u8a66\u770b\u300d\u9023\u7d50\u3002\u97f3\u6a02\u548c\u6548\u679c\u6a19\u793a\u6703\u4fdd\u7559\u3002");
+        table.put("Removes lines like Restyled with Meta AI and its Try it link from the top of stories, and the same credit from reels. Music and effect credits stay.",
+                "\u79fb\u9664\u9650\u6642\u52d5\u614b\u9802\u7aef\u7684\u300c\u5df2\u4f7f\u7528 Meta AI \u6539\u8b8a\u98a8\u683c\u300d\u7b49\u6a19\u793a\u53ca\u5176\u300c\u8a66\u8a66\u770b\u300d\u9023\u7d50\uff0c\u4e5f\u79fb\u9664 Reels \u4e0a\u7684\u540c\u4e00\u6a19\u793a\u3002\u97f3\u6a02\u548c\u6548\u679c\u6a19\u793a\u6703\u4fdd\u7559\u3002");
         table.put("Removes posts by business and creator accounts from Home and Following, friends who use one included. Pull down on Home to refresh after changing it.",
                 "\u5f9e\u9996\u9801\u8207\u8ffd\u8e64\u4e2d\u79fb\u9664\u5546\u696d\u548c\u5275\u4f5c\u8005\u5e33\u865f\u7684\u8cbc\u6587\uff0c\u5305\u62ec\u4f7f\u7528\u9019\u985e\u5e33\u865f\u7684\u670b\u53cb\u3002\u8b8a\u66f4\u5f8c\u8acb\u4e0b\u62c9\u91cd\u65b0\u6574\u7406\u9996\u9801\u3002");
         table.put("Removes posts you've already liked from Home and Following. A post you like now stays until you pull down on Home to refresh.",

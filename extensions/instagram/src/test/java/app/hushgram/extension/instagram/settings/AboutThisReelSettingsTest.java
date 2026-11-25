@@ -131,9 +131,9 @@ public class AboutThisReelSettingsTest {
                 String.valueOf(blend.getSummary()));
         assertFalse("the Blend switch starts off", blend.isChecked());
         SwitchPreference credit = (SwitchPreference) page.findPreference(Settings.HIDE_META_AI_STORY_CREDIT.key);
-        assertEquals("Hide Meta AI credits on stories", String.valueOf(credit.getTitle()));
-        assertEquals("Removes lines like Restyled with Meta AI and its Try it link from the top of stories. Music "
-                + "and effect credits stay.", String.valueOf(credit.getSummary()));
+        assertEquals("Hide Meta AI restyle credits", String.valueOf(credit.getTitle()));
+        assertEquals("Removes lines like Restyled with Meta AI and its Try it link from the top of stories, and the "
+                + "same credit from reels. Music and effect credits stay.", String.valueOf(credit.getSummary()));
         assertFalse("the story credit switch starts off", credit.isChecked());
     }
 

@@ -128,6 +128,8 @@ val hideMetaAiPatch = bytecodePatch(
         val museButton = findMuseButtonTest()
         val blend = findBlendVisibilityCheck()
         val storyCredit = findStoryCreditCheck()
+        val restyleByline = findRestyleBylineGate()
+        val restylePill = findRestylePillCheck()
         filterParsedFeedItems(PATCH, META_AI_FILTER, META_AI_UNITS)
         answerSearchFlagReads(reads)
         // 453's 64-bit builds check the bar's own stub, so the check is the stub and gets one hook.
@@ -146,6 +148,8 @@ val hideMetaAiPatch = bytecodePatch(
         holdMuseButton(museButton)
         holdBlendButton(blend)
         holdStoryCredit(storyCredit)
+        holdRestyleByline(restyleByline)
+        holdRestylePill(restylePill)
         enableStatus("metaAi")
     }
 }

@@ -249,6 +249,34 @@ public class MetaAiTest {
         }
     }
 
+    /**
+     * A reel's restyle credit follows the same switch: the byline's gate says leave it out only for
+     * the restyle credit's name, and the pill's check says no, both only with the switch on and
+     * never while paused.
+     */
+    @Test
+    public void theReelRestyleCreditsFollowTheSameSwitch() {
+        assertFalse("off to start", MetaAi.restyleByline("EDITS_AI_RESTYLE"));
+        assertFalse("off to start", MetaAi.restylePill());
+        Settings.HIDE_META_AI_STORY_CREDIT.save(true);
+        try {
+            assertTrue(MetaAi.restyleByline("EDITS_AI_RESTYLE"));
+            assertTrue(MetaAi.restylePill());
+            assertFalse("another Edits credit stays", MetaAi.restyleByline("EDITS_TEMPLATE"));
+            assertFalse("a name in another case isn't it", MetaAi.restyleByline("edits_ai_restyle"));
+            assertFalse(MetaAi.restyleByline(null));
+            Settings.HIDE_META_AI_SEARCH.save(false);
+            assertTrue("the search switch doesn't matter", MetaAi.restyleByline("EDITS_AI_RESTYLE"));
+            PauseForTests.pause(HushgramPause.Reason.SWITCH);
+            assertFalse("paused, Instagram decides", MetaAi.restyleByline("EDITS_AI_RESTYLE"));
+            assertFalse("paused, Instagram decides", MetaAi.restylePill());
+        } finally {
+            PauseForTests.resume();
+            Settings.HIDE_META_AI_SEARCH.save(true);
+            Settings.HIDE_META_AI_STORY_CREDIT.resetToDefault();
+        }
+    }
+
     /** The search switch also leaves the results page's Ask a follow-up bar out, and only that switch. */
     @Test
     public void theFollowUpBarFollowsTheSearchSwitch() {

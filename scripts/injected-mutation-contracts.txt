@@ -1536,7 +1536,7 @@ once-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->dropsPromotion(Ljava
 # parameters sits on every build, and it loads no 0x45.
 start-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->blendButton()Z in static (LX/*;Lcom/instagram/common/session/UserSession;Ljava/lang/String;ZZZ)LX/*; holding const:0x45
 once-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->blendButton()Z in static (LX/*;Lcom/instagram/common/session/UserSession;Ljava/lang/String;ZZZ)LX/*; holding const:0x45
-# Hide Meta AI credits on stories asks MetaAi.storyCredit(kind) first in the one instance method
+# Hide Meta AI restyle credits on stories asks MetaAi.storyCredit(kind) first in the one instance method
 # taking (Context, session, ReelHeaderAttributionType, ReelItem, two more) that decides whether a
 # story's header shows a line of that kind (03U8.A0H on 386314341), switching on the kind's
 # ordinal. A yes answers false, only for Meta AI's tool credit (Restyled with Meta AI and its Try it
@@ -1544,6 +1544,21 @@ once-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->blendButton()Z in st
 # patch wrote. It holds no string, so the rules name its ordinal call.
 start-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->storyCredit(Ljava/lang/Object;)Z in instance (Landroid/content/Context;Lcom/instagram/common/session/UserSession;Lcom/instagram/model/reels/ReelHeaderAttributionType;Lcom/instagram/model/reels/ReelItem;LX/*;LX/*;)Z holding Ljava/lang/Enum;->ordinal()I
 once-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->storyCredit(Ljava/lang/Object;)Z in instance (Landroid/content/Context;Lcom/instagram/common/session/UserSession;Lcom/instagram/model/reels/ReelHeaderAttributionType;Lcom/instagram/model/reels/ReelItem;LX/*;LX/*;)Z holding Ljava/lang/Enum;->ordinal()I
+# The same switch on reels asks MetaAi.restyleByline(name) first in the instance gate a reel's byline
+# asks, with the name EDITS_AI_RESTYLE, whether to leave Meta AI's restyle credit out (0JqL.A00 on
+# 386314341), and a yes answers true, the way Instagram's own flag holds the credit back. Its class's
+# second gate of the same shape (A01) tests the EDITS_ prefix too but compares no name, so the rules
+# name the equals call. Left out, the byline keeps the credit; twice or elsewhere, it isn't the guard
+# the patch wrote.
+start-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->restyleByline(Ljava/lang/Object;)Z in instance (Lcom/instagram/common/session/UserSession;Ljava/lang/String;)Z pooled holding EDITS_ Ljava/lang/String;->equals(Ljava/lang/Object;)Z
+once-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->restyleByline(Ljava/lang/Object;)Z in instance (Lcom/instagram/common/session/UserSession;Ljava/lang/String;)Z pooled holding EDITS_ Ljava/lang/String;->equals(Ljava/lang/Object;)Z
+# It asks MetaAi.restylePill() first in the static check a reel's pill row puts the restyle credit
+# pill in by (01Zx.A0D on 386314341, taking the media and the session), which looks for the restyle
+# tool among the tools the reel was made with and then reads server flag 0x810ad400063dca. A yes
+# answers false, so the row picks as it would for a reel made without it. Left out, the pill stays;
+# twice or elsewhere, it isn't the guard the patch wrote.
+start-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->restylePill()Z in static (LX/*;Lcom/instagram/common/session/UserSession;)Z holding const:0x810ad400063dca
+once-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->restylePill()Z in static (LX/*;Lcom/instagram/common/session/UserSession;)Z holding const:0x810ad400063dca
 # Hide the Muse button on your profile asks MetaAi.museButton() just inside the Muse item's branch
 # of the static method ProfileActionBar fills its top bar with (09O4.A03 on 385611438), and a yes
 # goes back to the head of its walk of the items. Its only strings are ", " and an empty one,

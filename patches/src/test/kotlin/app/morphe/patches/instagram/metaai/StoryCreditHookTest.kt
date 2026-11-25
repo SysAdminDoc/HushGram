@@ -28,7 +28,7 @@ import org.junit.Test
 import java.io.File
 
 /**
- * Hide Meta AI credits on stories, on each declared build and on every other build of the same
+ * Hide Meta AI restyle credits on stories, on each declared build and on every other build of the same
  * Instagram version: one instance method decides whether a story's header shows a line of a given
  * kind, and the ask goes in ahead of its first instruction, handed that kind.
  */

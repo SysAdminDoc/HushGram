@@ -389,9 +389,9 @@ Hide the Muse button on your profile	隱藏個人檔案上的 Muse 按鈕
 Removes the Muse button from the top bar of your profile. Your username and the menu stay.	從個人檔案頂端列移除 Muse 按鈕。使用者名稱與選單仍會保留。
 Hide Blend on reels	隱藏 Reels 上的 Blend
 Removes the Blend invite button from reels. Everything else on a reel stays.	移除 Reels 上的 Blend 邀請按鈕。Reel 上的其他內容仍會保留。
-# context: Meta AI: a Hide Meta AI switch (#866) that removes the line Instagram shows at the top of a story made with a Meta AI tool, such as Restyled with Meta AI followed by a Try it link. Restyled with Meta AI and Try it are Instagram's own labels, so use this language's Instagram wording for them where it's known.
-Hide Meta AI credits on stories	隱藏限時動態上的 Meta AI 標示
-Removes lines like Restyled with Meta AI and its Try it link from the top of stories. Music and effect credits stay.	移除限時動態頂端的「已使用 Meta AI 改變風格」等標示及其「試試看」連結。音樂和效果標示會保留。
+# context: Meta AI: a Hide Meta AI switch (#866) that removes the line Instagram shows at the top of a story made with a Meta AI tool, such as Restyled with Meta AI followed by a Try it link, and the same restyle credit on reels. Restyled with Meta AI and Try it are Instagram's own labels, so use this language's Instagram wording for them where it's known.
+Hide Meta AI restyle credits	隱藏 Meta AI 改變風格標示
+Removes lines like Restyled with Meta AI and its Try it link from the top of stories, and the same credit from reels. Music and effect credits stay.	移除限時動態頂端的「已使用 Meta AI 改變風格」等標示及其「試試看」連結，也移除 Reels 上的同一標示。音樂和效果標示會保留。
 Explore	探索
 Hide the Explore grid	隱藏探索網格
 Hides the grid of posts and reels under the Search tab's bar. Search, recent searches and results stay.	隱藏搜尋分頁搜尋列下方的貼文與 Reels 網格。搜尋、最近搜尋與搜尋結果仍會保留。

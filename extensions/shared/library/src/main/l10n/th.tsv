@@ -381,9 +381,9 @@ Hide the Muse button on your profile	ซ่อนปุ่ม Muse บนโป�
 Removes the Muse button from the top bar of your profile. Your username and the menu stay.	ลบปุ่ม Muse ออกจากแถบด้านบนของโปรไฟล์ ชื่อผู้ใช้และเมนูของคุณจะยังคงอยู่
 Hide Blend on reels	ซ่อน Blend บนรีลส์
 Removes the Blend invite button from reels. Everything else on a reel stays.	ลบปุ่มเชิญ Blend ออกจากรีลส์ ส่วนประกอบอื่นๆ ทั้งหมดบนรีลส์จะยังคงอยู่
-# context: Meta AI: a Hide Meta AI switch (#866) that removes the line Instagram shows at the top of a story made with a Meta AI tool, such as Restyled with Meta AI followed by a Try it link. Restyled with Meta AI and Try it are Instagram's own labels, so use this language's Instagram wording for them where it's known.
-Hide Meta AI credits on stories	ซ่อนเครดิต Meta AI ในสตอรี่
-Removes lines like Restyled with Meta AI and its Try it link from the top of stories. Music and effect credits stay.	ลบบรรทัดอย่าง ปรับสไตล์ด้วย Meta AI และลิงก์ ลองเลย ออกจากด้านบนของสตอรี่ เครดิตเพลงและเอฟเฟกต์จะยังคงอยู่
+# context: Meta AI: a Hide Meta AI switch (#866) that removes the line Instagram shows at the top of a story made with a Meta AI tool, such as Restyled with Meta AI followed by a Try it link, and the same restyle credit on reels. Restyled with Meta AI and Try it are Instagram's own labels, so use this language's Instagram wording for them where it's known.
+Hide Meta AI restyle credits	ซ่อนเครดิตการปรับสไตล์ของ Meta AI
+Removes lines like Restyled with Meta AI and its Try it link from the top of stories, and the same credit from reels. Music and effect credits stay.	ลบบรรทัดอย่าง ปรับสไตล์ด้วย Meta AI และลิงก์ ลองเลย ออกจากด้านบนของสตอรี่ และลบเครดิตเดียวกันออกจากรีลส์ เครดิตเพลงและเอฟเฟกต์จะยังคงอยู่
 Explore	สำรวจ
 Hide the Explore grid	ซ่อนตารางหน้าสำรวจ
 Hides the grid of posts and reels under the Search tab's bar. Search, recent searches and results stay.	ซ่อนตารางโพสต์และรีลส์ใต้แถบแท็บค้นหา โดยฟังก์ชันค้นหา, การค้นหาล่าสุด และผลการค้นหาจะยังคงอยู่
