@@ -340,7 +340,7 @@ public class NeutralDefaultsSettingsTest {
         Object feedItem = new Object();
         assertSame(feedItem, HomeFeed.filter(feedItem));
         assertFalse(ReelDeclutter.hideCommentBar(StockSource.REPOSTS_GRID));
-        assertFalse(ReelDeclutter.hideDirectReplyBar(StockSource.DIRECT));
+        assertFalse(ReelDeclutter.hideDirectReplyBar(StockSource.DIRECT, null));
         assertEquals(270f, StoryRing.size(270f), 0f);
         int[] storyRing = {0xFFFFD600, 0xFFFF7A00, 0xFFFF0069, 0xFFD300C5};
         assertSame(storyRing, StoryRing.colors(storyRing, new float[]{0.1435f, 0.3779f, 0.6071f, 0.831f}));

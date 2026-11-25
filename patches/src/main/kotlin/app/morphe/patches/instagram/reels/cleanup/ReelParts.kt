@@ -6,7 +6,10 @@ package app.morphe.patches.instagram.reels.cleanup
 
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 
-private const val DECLUTTER = "$EXTENSION_PACKAGE/reels/ReelDeclutter;"
+internal const val DECLUTTER = "$EXTENSION_PACKAGE/reels/ReelDeclutter;"
+
+/** The bridge reading the viewer's config off the reply bar's controller, a static (Object)Object of [DECLUTTER]. */
+internal const val REPLY_BAR_CONFIG = "replyBarConfig"
 internal const val HIDE_FOLLOW_BUTTON = "$DECLUTTER->hideFollowButton()Z"
 internal const val HIDE_CHIPS = "$DECLUTTER->hideChips()Z"
 internal const val HIDE_SEARCH_PILL = "$DECLUTTER->hideSearchPill()Z"
@@ -25,7 +28,7 @@ internal const val HIDE_MORE_BUTTON = "$DECLUTTER->hideMoreButton()Z"
 internal const val SHARE_COUNT = "$DECLUTTER->shareCount(Ljava/lang/Object;)Ljava/lang/Object;"
 internal const val HIDE_COMMENT_BAR = "$DECLUTTER->hideCommentBar(Ljava/lang/Object;)Z"
 internal const val KEEP_COMMENT_BAR_SPACE = "$DECLUTTER->keepCommentBarSpace(Landroid/view/View;Ljava/lang/Object;)V"
-internal const val HIDE_DIRECT_REPLY_BAR = "$DECLUTTER->hideDirectReplyBar(Ljava/lang/Object;)Z"
+internal const val HIDE_DIRECT_REPLY_BAR = "$DECLUTTER->hideDirectReplyBar(Ljava/lang/Object;Ljava/lang/Object;)Z"
 internal const val HIDE_PAUSE_ICON = "$DECLUTTER->hidePauseIcon()Z"
 internal const val HIDE_PAUSE_SOUND_BUTTON = "$DECLUTTER->hidePauseSoundButton()Z"
 

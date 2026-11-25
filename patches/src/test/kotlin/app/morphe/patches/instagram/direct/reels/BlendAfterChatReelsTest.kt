@@ -40,8 +40,11 @@ class BlendAfterChatReelsTest {
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
         assertTrue("$BLEND_AFTER_CHAT is not in the extension: $declared", BLEND_AFTER_CHAT.substringAfter("->") in declared)
+        val bridges = ExtensionDex.classDef(VIEWER_CHAT).methods
+            .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
+            .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
         for (bridge in listOf("viewerSource(Ljava/lang/Object;)Ljava/lang/Object;", "chatThread(Ljava/lang/Object;)Ljava/lang/String;")) {
-            assertTrue("$bridge is not in the extension: $declared", bridge in declared)
+            assertTrue("$bridge is not in the extension: $bridges", bridge in bridges)
         }
     }
 
@@ -72,15 +75,23 @@ class BlendAfterChatReelsTest {
         val pickers = FixtureDex.methodsWhere(bundle, { dex -> dex.typeSection.any { it == blend } }) { method ->
             method.code().any { it.opcode == Opcode.NEW_INSTANCE && it.text() == blend }
         }.map { it.definingClass }.toSet()
-        val extra = FixtureDex.classes(bundle, pickers + setOf(VIEWER_CONFIG)).values
-        val context = PatchContexts.of((pooled + extra).distinctBy { it.type } + ImmutableClassDef.of(ExtensionDex.classDef(CHAT_REELS)))
+        // With the string pools they ask: 386314286 pools the chat data's ", threadId=" label.
+        val extra = FixtureDex.withStringPools(bundle, FixtureDex.classes(bundle, pickers + setOf(VIEWER_CONFIG, DIRECT_DATA)).values)
+        val context = PatchContexts.of(
+            (pooled + extra).distinctBy { it.type } + ImmutableClassDef.of(ExtensionDex.classDef(CHAT_REELS)) +
+                ImmutableClassDef.of(ExtensionDex.classDef(VIEWER_CHAT)),
+        )
 
         val end = context.findChatReelsEnd()
         val found = context.findBlendAfterChat(end.chat)
         val before = found.picker.code()
         context.keepChatReelsBeforeBlend(found)
-        context.readChatViewers(found)
-        readsViewers(context, found, label)
+        val chat = context.findViewerChat()
+        assertEquals("$label: the viewer's source, as the picker reads it", found.configSource, chat.source)
+        assertEquals("$label: the viewer's chat, as the picker reads it", found.direct, chat.direct)
+        assertEquals("$label: the chat's id, as the picker reads it", found.thread, chat.thread)
+        context.readViewerChats(chat)
+        readsViewers(context, chat, label)
 
         val picker = context.mutableClassDefBy(found.picker.definingClass).methods.single { method ->
             method.name == found.picker.name && method.parameterTypes.map(Any::toString) == found.picker.parameterTypes.map(Any::toString)
@@ -118,10 +129,10 @@ class BlendAfterChatReelsTest {
      * chat it holds, null for a config holding no chat's data, so a Blend opened outside a chat is no
      * chat's viewer.
      */
-    private fun readsViewers(context: BytecodePatchContext, found: BlendSites, label: String) {
-        val bridges = context.mutableClassDefBy(CHAT_REELS).methods.groupBy { it.name }
+    private fun readsViewers(context: BytecodePatchContext, found: ViewerChatFields, label: String) {
+        val bridges = context.mutableClassDefBy(VIEWER_CHAT).methods.groupBy { it.name }
         val source = bridges.getValue("viewerSource").single().code()
-        assertEquals("$label: where the viewer opened", listOf(VIEWER_CONFIG, found.configSource), source.take(2).map { it.text() })
+        assertEquals("$label: where the viewer opened", listOf(VIEWER_CONFIG, found.source), source.take(2).map { it.text() })
         assertEquals("$label: in the config's register", listOf(0, 0), (source[1] as TwoRegisterInstruction).let { listOf(it.registerA, it.registerB) })
         assertEquals("$label: answered", Opcode.RETURN_OBJECT, source[2].opcode)
 

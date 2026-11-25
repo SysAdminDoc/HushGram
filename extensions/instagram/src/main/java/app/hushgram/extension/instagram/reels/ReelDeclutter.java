@@ -10,7 +10,9 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.function.Function;
 
+import app.hushgram.extension.instagram.direct.ViewerChat;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.Logger;
@@ -53,8 +55,9 @@ import app.hushgram.extension.shared.settings.BooleanSetting;
  *       component, the bar Instagram 450 draws under reels in the Reels tab.
  *   <li>{@link #hideDirectReplyBar} right where the controller of the reply bar under a reel opened
  *       with something to reply to reads its own hidden flag, in its show and once it inflates the
- *       bar, with where the viewer was opened from. A flag Instagram already set stays set. A clear
- *       one becomes this answer, which is yes for a chat, {@link #CHATS}, and Instagram's own code
+ *       bar, with where the viewer was opened from and the controller. A flag Instagram already set stays
+ *       set. A clear one becomes this answer, which is yes for a chat, {@link #CHATS}, or a chat's
+ *       viewer opened as its Blend's (#804), and Instagram's own code
  *       then sets the bar gone the way it does for a bar it hides itself. Nothing writes the flag,
  *       so off, paused or any other source is Instagram's own bar (#177).
  *   <li>{@link #hideSaveButton} and {@link #hideSaveCount} first thing in the two methods of the
@@ -133,6 +136,9 @@ public final class ReelDeclutter {
 
     /** The line types the debug log has named, each once a run. */
     private static final Set<String> LOGGED = Collections.synchronizedSet(new HashSet<>());
+
+    /** How the reply bar's controller hands over its viewer's config: the patch's bridge, or a test's. */
+    private static volatile Function<Object, Object> replyBarConfigs = ReelDeclutter::replyBarConfig;
 
     private ReelDeclutter() {
     }
@@ -298,19 +304,37 @@ public final class ReelDeclutter {
 
     /**
      * True keeps the reply bar under a reel opened from a chat hidden: [source] is the viewer's
-     * ClipsViewerSource, and only {@link #CHATS} answer yes. Asked each time the controller would
+     * ClipsViewerSource, and {@link #CHATS} answer yes, and so does the viewer's ClipsViewerConfig,
+     * read off [controller], the bar's controller ({@link #replyBarConfig(Object)}), when it holds the
+     * chat it was opened from as the chat's or its Blend's: a reel tapped in a chat that has a Blend
+     * opens as the Blend's once Instagram has loaded it (#804). Asked each time the controller would
      * show the bar, so the count is of answers, not of reels. Never throws.
      */
-    public static boolean hideDirectReplyBar(Object source) {
+    public static boolean hideDirectReplyBar(Object source, Object controller) {
         if (!hide(Settings.HIDE_REEL_REPLY_BAR, "reply bar")) return false;
         try {
-            boolean chat = source instanceof Enum && CHATS.contains(((Enum<?>) source).name());
+            boolean chat = (source instanceof Enum && CHATS.contains(((Enum<?>) source).name()))
+                    || (controller != null && ViewerChat.holdsChat(replyBarConfigs.apply(controller), FamilyNames.REEL_DECLUTTER));
             if (chat) HookStatus.counted(FamilyNames.REEL_DECLUTTER, COUNT_REPLY_BAR_HIDDEN);
             return chat;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.REEL_DECLUTTER, "reply bar source", failure);
             return false;
         }
+    }
+
+    /**
+     * Stub: the patch writes this, answering the ClipsViewerConfig the reply bar's [controller] keeps
+     * one object away, or null when that object isn't there. A build the patch can't read keeps the
+     * stub, and the bar goes by its source alone.
+     */
+    public static Object replyBarConfig(Object controller) {
+        return null;
+    }
+
+    /** Reads the reply bar controller's viewer config with [configs] in place of the patch's bridge, for tests; null puts it back. */
+    static void readReplyBarConfigsWith(Function<Object, Object> configs) {
+        replyBarConfigs = configs == null ? ReelDeclutter::replyBarConfig : configs;
     }
 
     /**

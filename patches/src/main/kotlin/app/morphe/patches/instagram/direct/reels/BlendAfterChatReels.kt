@@ -4,7 +4,6 @@
  */
 package app.morphe.patches.instagram.direct.reels
 
-import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
@@ -220,42 +219,6 @@ internal fun BytecodePatchContext.keepChatReelsBeforeBlend(found: BlendSites) {
             move-object/from16 v${found.blend}, v$b
             :instagram
             nop
-        """,
-    )
-}
-
-/**
- * Writes the extension's bridges reading a viewer's config the way the picker reads it: where the
- * viewer was opened, [BlendSites.configSource], and the id of the chat it holds, [BlendSites.thread]
- * of its [BlendSites.direct], or null when it holds none. The hooks keyed on a chat's viewer hand the
- * extension the config rather than where it was opened, since a reel tapped in a chat opens as its
- * Blend's once Instagram has loaded the Blend (#804), and the extension asks these.
- */
-internal fun BytecodePatchContext.readChatViewers(found: BlendSites) {
-    val stubs = mutableClassDefBy(CHAT_REELS).methods
-    fun bridge(name: String, returns: String) = stubs.singleOrNull {
-        it.name == name && it.parameterTypes.map(Any::toString) == listOf("Ljava/lang/Object;") && it.returnType == returns &&
-            AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags)
-    } ?: refuseBlend("the extension has no public static $name bridge reading a viewer's config")
-    bridge("viewerSource", "Ljava/lang/Object;").addInstructions(
-        0,
-        """
-            check-cast p0, $VIEWER_CONFIG
-            iget-object p0, p0, ${found.configSource}
-            return-object p0
-        """,
-    )
-    bridge("chatThread", "Ljava/lang/String;").addInstructionsWithLabels(
-        0,
-        """
-            check-cast p0, $VIEWER_CONFIG
-            iget-object p0, p0, ${found.direct}
-            if-nez p0, :read
-            const/4 p0, 0x0
-            return-object p0
-            :read
-            iget-object p0, p0, ${found.thread}
-            return-object p0
         """,
     )
 }

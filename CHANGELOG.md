@@ -67,6 +67,7 @@ Every HushGram release, newest first.
 * With `Swipe through a chat's reels` on, the reply bar and quick reactions keep working on reels you swipe to past the chat's loaded messages. They went dead there, so nothing went out. Reported in #804 and #844.
 * With `Swipe through a chat's reels` on, a chat where you have a Blend keeps putting its shared reels first every time. After the first couple, Instagram used to jump straight to the Blend's. Reported in #804.
 * In a chat where you have a Blend, `Stop after the chat's reels`, `Only received reels`, `Messages after a reel`, the swipe back and the reply bar's quote now cover every reel you open there. Reported in #804.
+* `Hide the reply bar on reels from chats` now hides it on every reel you open in a chat where you have a Blend. Instagram opens some of them as the Blend's, and those kept their reply bar. Reported in #804.
 * With `Blur the chat behind a held message` on, a message the menu would cover now slides into view, or shrinks to fit, so you can see which one you're reacting to. Asked for in #828 and #684.
 * `Loop this video` is back in the three-dot menu in the Reels tab, and reels stop at their end again once auto scroll is off. An auto scroll choice remembered from earlier kept both away. Reported in #829.
 * `Pure black dark mode` now covers the share sheet and other pop up sheets on installs where Instagram uses its older dark colors, like a clone. They stayed dark grey there. Reported in #835.

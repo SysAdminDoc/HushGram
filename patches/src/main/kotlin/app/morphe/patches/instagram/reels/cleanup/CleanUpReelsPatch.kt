@@ -11,6 +11,9 @@ import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.util.smali.ExternalLabel
+import app.morphe.patches.instagram.direct.reels.ViewerConfigPath
+import app.morphe.patches.instagram.direct.reels.viewerChatPatch
+import app.morphe.patches.instagram.direct.reels.viewerConfigPath
 import app.morphe.patches.instagram.misc.extension.PURGE_MARKER
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.freeLocalsAt
@@ -19,11 +22,13 @@ import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
 import app.morphe.patches.instagram.misc.extension.markers
+import app.morphe.patches.instagram.misc.extension.patchLog
 import app.morphe.patches.instagram.misc.extension.requireLocals
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.extension.requireThisIntact
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.instagram.reels.live.findReelsItemInserts
+import app.morphe.patches.instagram.reels.partnership.fillStub
 import app.morphe.patches.instagram.reels.partnership.findReelsPage
 import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.util.ControlFlow
@@ -106,6 +111,7 @@ val cleanUpReelsPatch = bytecodePatch(
     dependsOn(settingsPatch)
     compatibleWith(*AppCompatibilities.instagram())
     dependsOn(instagramExtensionPatch)
+    dependsOn(viewerChatPatch)
 
     execute {
         requireStatusMethod("reelDeclutter")
@@ -469,9 +475,17 @@ private fun BytecodePatchContext.hideCommentBar(bar: CommentBar) {
 /**
  * The reply bar's controller under a reel opened from a chat: [show], its showReplyBar, and
  * [created], its onViewCreated, each read the controller's hidden flag once, at [shown] and [made].
- * The viewer's source is in [source].
+ * The viewer's source is in [source], and its config is at [config], or null on a build where the
+ * controller holds no one way to it, which hides the bar by the source alone.
  */
-internal class DirectReplyBar(val show: Method, val shown: FlagRead, val created: Method, val made: FlagRead, val source: String)
+internal class DirectReplyBar(
+    val show: Method,
+    val shown: FlagRead,
+    val created: Method,
+    val made: FlagRead,
+    val source: String,
+    val config: ViewerConfigPath?,
+)
 
 /**
  * A read of the reply bar's hidden flag: instruction [at], into v[flag], off the controller in
@@ -490,7 +504,10 @@ internal class FlagRead(val at: Int, val flag: Int, val controller: Int, val kep
  * flag once and, when it's set, calls the hide on the controller it read it off, which is what
  * makes it the hidden flag. A hook right after either read only adds to the flag. It reads the
  * source off the register the flag came off, which the read itself proves is the controller, so
- * the two registers have to differ, and nothing may jump to just past the read.
+ * the two registers have to differ, and nothing may jump to just past the read. The viewer's config
+ * is one object away ([viewerConfigPath]), for a chat's reel that opens as its Blend's (#804), and
+ * the extension reads it off the controller, so the controller's class has to be public too; a build
+ * without that one way gets a warning, and the bar goes by the source alone.
  */
 private fun BytecodePatchContext.directReplyBar(show: Method, hide: Method, created: Method): DirectReplyBar {
     val type = created.definingClass
@@ -543,10 +560,18 @@ private fun BytecodePatchContext.directReplyBar(show: Method, hide: Method, crea
     if (!hides) {
         throw PatchException("$what: onViewCreated doesn't call the hide on the controller right after finding the hidden flag $flag set")
     }
+    val config = try {
+        if (!AccessFlags.PUBLIC.isSet(controller.accessFlags)) throw PatchException("$what: the controller isn't public")
+        viewerConfigPath(what, type)
+    } catch (refusal: PatchException) {
+        patchLog.warning("${refusal.message}. A chat's reel opened as its Blend's keeps the reply bar.")
+        null
+    }
     return DirectReplyBar(
         show, flagRead(show, shownAt, "$what: its show"),
         created, flagRead(created, madeAt, "$what: onViewCreated"),
         "${source.definingClass}->${source.name}:${source.type}",
+        config,
     )
 }
 
@@ -586,9 +611,28 @@ private fun flagRead(method: Method, at: Int, what: String): FlagRead {
  * source, by adding to Instagram's own hidden flag right where the show and onViewCreated read it:
  * a flag already set stays set, and a clear one becomes the hook's answer. The show then sets the
  * bar gone through its own visibility call, and onViewCreated takes its own branch to Instagram's
- * hide. The flag's field is never written, so a no from the hook is Instagram's own behavior.
+ * hide. The flag's field is never written, so a no from the hook is Instagram's own behavior. The
+ * hook also gets the controller, and the extension's [REPLY_BAR_CONFIG] bridge, written here, reads
+ * the viewer's config off it, so nothing in Instagram's code branches on the config or holds it. A
+ * build without one way to the config keeps the stub, which answers none.
  */
 private fun BytecodePatchContext.hideDirectReplyBar(bar: DirectReplyBar) {
+    bar.config?.let { path ->
+        // A controller without its state answers no config. No register reaches a label holding two types.
+        fillStub(
+            DECLUTTER, REPLY_BAR_CONFIG, "Ljava/lang/Object;", 1,
+            """
+                check-cast p0, ${bar.created.definingClass}
+                iget-object p0, p0, ${path.holder}
+                if-nez p0, :read
+                const/4 p0, 0x0
+                return-object p0
+                :read
+                iget-object p0, p0, ${path.config}
+                return-object p0
+            """,
+        )
+    }
     for ((found, read) in listOf(bar.show to bar.shown, bar.created to bar.made)) {
         val method = mutable(found)
         val after = read.at + 1
@@ -597,7 +641,7 @@ private fun BytecodePatchContext.hideDirectReplyBar(bar: DirectReplyBar) {
             """
                 if-nez v${read.flag}, :hidden
                 iget-object v${read.flag}, v${read.controller}, ${bar.source}
-                invoke-static { v${read.flag} }, $HIDE_DIRECT_REPLY_BAR
+                invoke-static { v${read.flag}, v${read.controller} }, $HIDE_DIRECT_REPLY_BAR
                 move-result v${read.flag}
             """,
             ExternalLabel("hidden", method.getInstruction(after)),

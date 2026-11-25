@@ -188,7 +188,7 @@ val swipeChatReelsPatch = bytecodePatch(
         "stay closed when tapped. All start off. Turn them on in HushGram settings > Messages.",
 ) {
     category("Messages")
-    dependsOn(settingsPatch, instagramExtensionPatch)
+    dependsOn(settingsPatch, instagramExtensionPatch, viewerChatPatch)
     compatibleWith(*AppCompatibilities.instagram())
 
     execute {
@@ -217,7 +217,6 @@ val swipeChatReelsPatch = bytecodePatch(
         leaveOutSentReels(placeholders)
         stopAfterChatReels(end)
         keepChatReelsBeforeBlend(blend)
-        readChatViewers(blend)
         stopMoreReels(more)
         stopCachedReels(cached)
         skipPlaceholders(placeholders)

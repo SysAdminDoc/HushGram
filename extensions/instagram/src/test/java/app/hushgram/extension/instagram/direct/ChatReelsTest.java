@@ -636,7 +636,7 @@ public class ChatReelsTest {
     @Test
     public void aConfigThatCantBeReadIsNoChatsViewer() {
         Settings.STOP_AFTER_CHAT_REELS.save(true);
-        ChatReels.readConfigsWith(config -> {
+        ViewerChat.readConfigsWith(config -> {
             throw new ClassCastException("not a config");
         }, config -> THREAD);
         assertFalse(ChatReels.stopCached(CHAT));

@@ -590,8 +590,10 @@ once-call Lapp/hushgram/extension/instagram/reels/ReelsTopBarScroll;->keepInPlac
 # The bind is the one (holder, message) method loading both reply keys. Left out, the border and
 # icon never show on a one-time photo or video.
 once-call Lapp/hushgram/extension/instagram/direct/ViewOnceMark;->mark(Landroid/view/View;I)V in instance (L*;L*;)V pooled holding story_camera_reply story_remix_reply
-# Hide the reply bar on reels from chats asks hideDirectReplyBar(Object) with the viewer's source
-# right after each read of the direct reply bar controller's hidden flag, when the flag is clear:
+# Hide the reply bar on reels from chats asks hideDirectReplyBar(Object, Object) with the viewer's
+# source and the controller, whose viewer config the extension reads off the state it keeps
+# (LX/0RL1;->A11, an LX/0BwL;, on 457's 386314341) so a chat's reel opened as its Blend's is told
+# (#804), right after each read of the direct reply bar controller's hidden flag, when the flag is clear:
 # once in the showReplyBar that turns the flag into visible or gone (merged into the controller's
 # superclass with the Spotlight reply bar's on 450, so the marker picks the method), and once in the
 # controller's onViewCreated, which calls Instagram's hide when the flag is set. Neither comes first
@@ -600,8 +602,8 @@ once-call Lapp/hushgram/extension/instagram/direct/ViewOnceMark;->mark(Landroid/
 # instance-of on 456.1's arm64 and x86 builds (0URS.A19 on 386215122), but 386215121 (armeabi-v7a)
 # keeps the controller's own override (0F8a.A1A) beside the Spotlight bar's, which holds the marker
 # alone, so the rule picks the show by the view id it hands the visibility setter, which only it loads.
-shared-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideDirectReplyBar(Ljava/lang/Object;)Z in instance ()V holding const:0x9fecd20e
-shared-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideDirectReplyBar(Ljava/lang/Object;)Z in instance (Landroid/view/View;Landroid/os/Bundle;)V pooled holding ReelsDirectReplyBar
+shared-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideDirectReplyBar(Ljava/lang/Object;Ljava/lang/Object;)Z in instance ()V holding const:0x9fecd20e
+shared-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideDirectReplyBar(Ljava/lang/Object;Ljava/lang/Object;)Z in instance (Landroid/view/View;Landroid/os/Bundle;)V pooled holding ReelsDirectReplyBar
 # Hide the Save button on reels asks hideSaveButton() first thing in the clips UFI method that builds
 # the reel Save button, and hideSaveCount() first thing in the one that builds the save count under
 # it. Both are private instance methods of the one clips UFI class taking the component scope and two

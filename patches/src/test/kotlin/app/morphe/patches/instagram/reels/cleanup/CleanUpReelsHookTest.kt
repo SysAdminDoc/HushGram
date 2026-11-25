@@ -8,9 +8,12 @@ import app.morphe.ExtensionDex
 import app.morphe.Fixtures
 import app.morphe.PatchContexts
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
+import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.FixtureDex
+import app.morphe.patches.instagram.direct.reels.VIEWER_CONFIG
+import app.morphe.patches.instagram.direct.reels.ViewerConfigPath
 import app.morphe.patches.instagram.misc.extension.PURGE_MARKER
 import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.markers
@@ -117,6 +120,7 @@ class CleanUpReelsHookTest {
         assertEquals("onViewCreated grows by the guard", before.single { DIRECT_REPLY_BAR_CREATED in it.markers() }.instructions().size + 4,
             created.instructions().size)
         assertReplyBarGuarded("stand-in", show, created, "$REPLY->hidden:Z", "$REPLY->source:$CLIPS_VIEWER_SOURCE", "A0t")
+        assertReplyBarBridge("stand-in", context, REPLY, STAND_IN_CONFIG)
         // The flag's registers, as the stand-in wrote them: v0 off the controller in v1, and v0 off v4.
         val shown = show.instructions().first { it.opcode == Opcode.IGET_BOOLEAN } as TwoRegisterInstruction
         assertEquals(0 to 1, shown.registerA to shown.registerB)
@@ -160,6 +164,30 @@ class CleanUpReelsHookTest {
         val before = classes(replyBar = "kept over the controller").flatMap { it.methods }
             .single { DIRECT_REPLY_BAR_SHOW in it.markers() }.instructions().size
         assertEquals("the show grows by the copy and the guard", before + 5, code.size)
+    }
+
+    /**
+     * A reel tapped in a chat that has a Blend opens as the Blend's (#804), so the extension reads the
+     * viewer's config off the controller the hook hands it, through a bridge written here. A controller
+     * with no one public way to it keeps the stub, which answers none, and hides the bar by the source
+     * alone, its guard the same. A config set later, like the audio player's, is no way to it.
+     */
+    @Test
+    fun aControllerWithoutOneWayToItsConfigHidesByTheSourceAlone() {
+        for (case in listOf(
+            "no state", "two states", "private config", "config set later", "private state", "private state class", "private controller",
+        )) {
+            val context = PatchContexts.of(classes(replyBar = case))
+
+            context.hideReelParts()
+
+            val show = context.mutableClassDefBy(REPLY_BASE).methods.single { it.name == "A0u" }
+            val created = context.mutableClassDefBy(REPLY).methods.single { it.name == "onViewCreated" }
+            assertReplyBarGuarded(case, show, created, "$REPLY->hidden:Z", "$REPLY->source:$CLIPS_VIEWER_SOURCE", "A0t")
+            assertReplyBarBridge(case, context, REPLY, null)
+            val before = classes(replyBar = case).flatMap { it.methods }.single { DIRECT_REPLY_BAR_SHOW in it.markers() }.instructions().size
+            assertEquals("$case: the show grows by the guard alone", before + 4, show.instructions().size)
+        }
     }
 
     /**
@@ -403,9 +431,16 @@ class CleanUpReelsHookTest {
         more += classesLoading(INFO_OVERLAY).flatMap { it.methods }.flatMap { it.instructions() }
             .filter { it.opcode == Opcode.INVOKE_STATIC || it.opcode == Opcode.INVOKE_STATIC_RANGE }
             .map { ((it as ReferenceInstruction).reference as MethodReference).definingClass }
-        val classes = FixtureDex.withStringPools(
-            bundle, sliced + FixtureDex.classes(bundle, more - slicedTypes.keys).values.map { ImmutableClassDef.of(it) },
+        val first = FixtureDex.withStringPools(
+            bundle, sliced + FixtureDex.classes(bundle, more - slicedTypes.keys).values.map { ImmutableClassDef.of(it) } +
+                ImmutableClassDef.of(ExtensionDex.classDef(DECLUTTER)),
         ).distinctBy { it.type }
+        // And the classes of the reply bar controller's fields, one of them the viewer's state holding its
+        // config (#804). The controller's marker is gone from 456 on, so a first look finds it.
+        val replyController = PatchContexts.of(first).findReelParts().replyBar.created.definingClass
+        val stateTypes = first.single { it.type == replyController }.fields
+            .filter { !AccessFlags.STATIC.isSet(it.accessFlags) && it.type.startsWith("L") }.map { it.type }.toSet() - first.map { it.type }.toSet()
+        val classes = first + FixtureDex.classes(bundle, stateTypes).values.map { ImmutableClassDef.of(it) }
         val byType = classes.associateBy { it.type }
         val context = PatchContexts.of(classes)
 
@@ -643,6 +678,18 @@ class CleanUpReelsHookTest {
         assertEquals("$label: the reply bar's onViewCreated size", replyCreated.instructions().size + kept(sites.replyBar.made), after(replyCreated).instructions().size)
         assertReplyBarGuarded("$label: reply bar", after(replyShow), after(replyCreated), hidden.toString(),
             "${replySource.definingClass}->${replySource.name}:${replySource.type}", replyHide.name)
+        // The viewer's config (#804), in the viewer's state the controller's constructor stores, the one
+        // field of the controller whose class holds a ClipsViewerConfig (457's LX/0RL1;->A11, an LX/0BwL;).
+        val path = sites.replyBar.config
+        assertTrue("$label: the reply bar finds the viewer's config", path != null)
+        val holder = controller.fields.single { "${it.definingClass}->${it.name}:${it.type}" == path!!.holder }
+        val stored = controller.methods.filter { it.name == "<init>" }.flatMap { it.instructions() }.any {
+            it.opcode == Opcode.IPUT_OBJECT && (it as ReferenceInstruction).reference.toString() == path!!.holder
+        }
+        assertTrue("$label: the controller's constructor stores ${path!!.holder}", stored)
+        val config = classes.single { it.type == holder.type }.fields.single { "${it.definingClass}->${it.name}:${it.type}" == path.config }
+        assertEquals("$label: the state's config", VIEWER_CONFIG, config.type)
+        assertReplyBarBridge("$label: reply bar", context, controller.type, path)
         val askers = classes.flatMap { classDef -> context.mutableClassDefBy(classDef.type).methods.map { classDef.type to it } }
             .filter { (_, method) -> method.instructions().any { (it as? ReferenceInstruction)?.reference?.toString() == HIDE_DIRECT_REPLY_BAR } }
         assertEquals("$label: who asks $HIDE_DIRECT_REPLY_BAR",
@@ -674,8 +721,9 @@ class CleanUpReelsHookTest {
 
     /**
      * Right after each read of the hidden flag, a flag that's clear becomes the hook's answer for
-     * the source read off the same controller, and a flag that's set skips the hook. The show goes
-     * on to its own next instruction, and onViewCreated to its own check and Instagram's [hide].
+     * the source read off the same controller and the controller itself, and a flag that's set skips
+     * the hook. The show goes on to its own next instruction, and onViewCreated to its own check and
+     * Instagram's [hide].
      */
     private fun assertReplyBarGuarded(what: String, show: Method, created: Method, flag: String, source: String, hide: String) {
         fun Method.flagRead() = instructions().indexOfFirst {
@@ -706,7 +754,9 @@ class CleanUpReelsHookTest {
             assertEquals("$what: the $where reads the source over the flag", registers.registerA, (guard[1] as TwoRegisterInstruction).registerA)
             assertEquals("$what: the $where's source", source, (guard[1] as ReferenceInstruction).reference.toString())
             assertEquals("$what: the $where's hook", HIDE_DIRECT_REPLY_BAR, (guard[2] as ReferenceInstruction).reference.toString())
-            assertEquals("$what: the $where hands the source over", registers.registerA, (guard[2] as FiveRegisterInstruction).registerC)
+            val asked = guard[2] as FiveRegisterInstruction
+            assertEquals("$what: the $where hands the source and the controller over", listOf(registers.registerA, controller),
+                listOf(asked.registerC, asked.registerD).take(asked.registerCount))
             assertEquals("$what: the $where's answer is the flag", registers.registerA, (guard[3] as OneRegisterInstruction).registerA)
             assertEquals("$what: a set flag skips the hook in the $where", guard.sumOf { it.codeUnits }, (guard[0] as OffsetInstruction).codeOffset)
             assertEquals("$what: the $where asks once", 1, code.count { (it as? ReferenceInstruction)?.reference?.toString() == HIDE_DIRECT_REPLY_BAR })
@@ -724,6 +774,38 @@ class CleanUpReelsHookTest {
         assertEquals("$what: Instagram's hide follows the check", Opcode.INVOKE_VIRTUAL, call.opcode)
         assertEquals("$what: Instagram's hide", hide, ((call as ReferenceInstruction).reference as MethodReference).name)
         assertEquals("$what: the hide on the controller", registers.registerB, (call as FiveRegisterInstruction).registerC)
+    }
+
+    /**
+     * The extension's reply bar config bridge: along [config], the controller of type [controller]'s
+     * state and that state's config, a missing state answering null, or, without [config], the stub
+     * as the extension has it.
+     */
+    private fun assertReplyBarBridge(what: String, context: BytecodePatchContext, controller: String, config: ViewerConfigPath?) {
+        fun Method.isBridge() = name == REPLY_BAR_CONFIG && parameterTypes.map(Any::toString) == listOf("Ljava/lang/Object;") &&
+            returnType == "Ljava/lang/Object;" && AccessFlags.STATIC.isSet(accessFlags)
+        val bridge = context.mutableClassDefBy(DECLUTTER).methods.single { it.isBridge() }.instructions()
+        val stub = ExtensionDex.classDef(DECLUTTER).methods.single { it.isBridge() }.instructions()
+        if (config == null) {
+            assertEquals("$what: the stub stays", stub.map { it.opcode }, bridge.map { it.opcode })
+            return
+        }
+        assertEquals(
+            "$what: the bridge",
+            listOf(
+                Opcode.CHECK_CAST, Opcode.IGET_OBJECT, Opcode.IF_NEZ, Opcode.CONST_4, Opcode.RETURN_OBJECT, Opcode.IGET_OBJECT,
+                Opcode.RETURN_OBJECT,
+            ),
+            bridge.map { it.opcode },
+        )
+        assertEquals(
+            "$what: what the bridge reads",
+            listOf(controller, config.holder, null, null, null, config.config, null),
+            bridge.map { (it as? ReferenceInstruction)?.reference?.toString() },
+        )
+        val address = IntArray(bridge.size + 1)
+        bridge.forEachIndexed { index, instruction -> address[index + 1] = address[index] + instruction.codeUnits }
+        assertEquals("$what: a state goes on to its config", 5, address.indexOf(address[2] + (bridge[2] as OffsetInstruction).codeOffset))
     }
 
     /** The no-bubbles state answered first, when the hook says to hide, before the use case's own code. */
@@ -1005,7 +1087,8 @@ class CleanUpReelsHookTest {
             ),
         )
         return renders + saves + checks + productCta + pauseComponent(pauseShape, leaveOut) + bubbles + lineCheck + lineType + line +
-            commentBar(barSource, barStores, barThisReused, barHide) + unVanish(unVanish) + replyBar(replyBar)
+            commentBar(barSource, barStores, barThisReused, barHide) + unVanish(unVanish) + replyBar(replyBar) +
+            ImmutableClassDef.of(ExtensionDex.classDef(DECLUTTER))
     }
 
     /**
@@ -1032,15 +1115,37 @@ class CleanUpReelsHookTest {
      * A direct reply bar controller shaped like Instagram 450's: its show and hide merged into its
      * superclass, the show reaching its code through an instance check and turning the controller's
      * hidden flag into the bar's visibility, and its onViewCreated calling the hide when the flag is
-     * already set, with the viewer's source in a field of its own, an enum naming DIRECT. [shape]
-     * breaks one part of that.
+     * already set, with the viewer's source in a field of its own, an enum naming DIRECT, and its
+     * config in the viewer's state, as 457's LX/0RL1;->A11 holds LX/0BwL;, whose A0a is the config.
+     * It also holds the audio player, whose config field is set later, as LX/0RL1;->A0k holds
+     * LX/0ASt;, whose A0E isn't final. [shape] breaks one part of that.
      */
     private fun replyBar(shape: String): List<ClassDef> {
+        val publicFinal = AccessFlags.PUBLIC.value or AccessFlags.FINAL.value
+        val privateFinal = AccessFlags.PRIVATE.value or AccessFlags.FINAL.value
         val fields = listOfNotNull(
             ImmutableField(REPLY, "bar", VIEW, AccessFlags.PUBLIC.value, null, null, null),
             ImmutableField(REPLY, "hidden", "Z", AccessFlags.PUBLIC.value, null, null, null),
             ImmutableField(REPLY, "typing", "Z", AccessFlags.PUBLIC.value, null, null, null),
-            if (shape == "no source") null else ImmutableField(REPLY, "source", CLIPS_VIEWER_SOURCE, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, null, null, null),
+            if (shape == "no source") null else ImmutableField(REPLY, "source", CLIPS_VIEWER_SOURCE, publicFinal, null, null, null),
+            if (shape == "no state") null else ImmutableField(REPLY, "state", REPLY_STATE, if (shape == "private state") privateFinal else publicFinal, null, null, null),
+            if (shape == "two states") ImmutableField(REPLY, "other", REPLY_STATE, publicFinal, null, null, null) else null,
+            ImmutableField(REPLY, "player", REPLY_PLAYER, publicFinal, null, null, null),
+        )
+        val configFlags = when (shape) {
+            "private config" -> privateFinal
+            "config set later" -> AccessFlags.PUBLIC.value
+            else -> publicFinal
+        }
+        val state = ImmutableClassDef(
+            REPLY_STATE, if (shape == "private state class") AccessFlags.FINAL.value else publicFinal, "Ljava/lang/Object;", null, null, null,
+            listOf(ImmutableField(REPLY_STATE, "config", VIEWER_CONFIG, configFlags, null, null, null)),
+            null,
+        )
+        val player = ImmutableClassDef(
+            REPLY_PLAYER, publicFinal, "Ljava/lang/Object;", null, null, null,
+            listOf(ImmutableField(REPLY_PLAYER, "config", VIEWER_CONFIG, AccessFlags.PUBLIC.value, null, null, null)),
+            null,
         )
         val jump = if (shape == "jumped") "if-eqz v0, :visibility" else ""
         val landing = if (shape == "jumped") ":visibility" else ""
@@ -1109,7 +1214,8 @@ class CleanUpReelsHookTest {
             return-void
         """, static = false)
         val controller = ImmutableClassDef(
-            REPLY, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, if (shape == "show elsewhere") "Ljava/lang/Object;" else REPLY_BASE,
+            REPLY, if (shape == "private controller") AccessFlags.FINAL.value else publicFinal,
+            if (shape == "show elsewhere") "Ljava/lang/Object;" else REPLY_BASE,
             null, null, null, fields, listOfNotNull(created, own),
         )
         val name = if (shape == "no chat source") "DIRECT_SEARCH" else CHAT_SOURCE
@@ -1117,7 +1223,7 @@ class CleanUpReelsHookTest {
             CLIPS_VIEWER_SOURCE, "Ljava/lang/Enum;",
             method(CLIPS_VIEWER_SOURCE, "<clinit>", emptyList(), "V", 1, "const-string v0, \"direct\"\nconst-string v0, \"$name\"\nreturn-void", constructor = true),
         )
-        return listOf(classOf(REPLY_BASE, "Ljava/lang/Object;", show, hide), controller, source)
+        return listOf(classOf(REPLY_BASE, "Ljava/lang/Object;", show, hide), controller, source, state, player)
     }
 
     /**
@@ -1366,6 +1472,11 @@ class CleanUpReelsHookTest {
         const val UNVANISH = "Lfixture/CommentBarLambda;"
         const val REPLY_BASE = "Lfixture/ClipsViewerReplyBarController;"
         const val REPLY = "Lfixture/ClipsViewerDirectReplyBarController;"
+        const val REPLY_STATE = "Lfixture/ClipsViewerState;"
+        const val REPLY_PLAYER = "Lfixture/ClipsAudioPlayer;"
+
+        /** The stand-in reply bar's way to its viewer's config: the controller's state, then the state's config. */
+        val STAND_IN_CONFIG = ViewerConfigPath("$REPLY->state:$REPLY_STATE", "$REPLY_STATE->config:$VIEWER_CONFIG")
         const val REPLY_BAR_DATA = "Lcom/instagram/clips/model/ClipsReplyBarData;"
         const val VIEW = "Landroid/view/View;"
     }

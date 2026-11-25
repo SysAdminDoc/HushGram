@@ -66,15 +66,6 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * chat, whose banner says when the other person wrote after the reel on screen (#489).
  */
 public final class ChatReels {
-    /** The name of Instagram's viewer source for a reel opened from a chat. */
-    private static final String CHAT_SOURCE = "DIRECT";
-
-    /**
-     * The name of Instagram's viewer source for a Blend. A reel tapped in a chat that has a Blend opens
-     * with it once Instagram has loaded the chat's Blend, and as a chat's before that (#804).
-     */
-    private static final String BLEND_SOURCE = "BLEND";
-
     /** The product type name Instagram gives a reel's media. */
     private static final String REEL_PRODUCT = "clips";
 
@@ -87,9 +78,6 @@ public final class ChatReels {
     /** The message whose viewer is on its way, or null, and when it was tapped. */
     @Nullable private static volatile Object opening;
     private static volatile long openedAt;
-    /** How a viewer's config is read, its ClipsViewerSource and its chat's id: the patch's bridges, or a test's. */
-    private static volatile Function<Object, Object> sources = ChatReels::viewerSource;
-    private static volatile Function<Object, String> threads = ChatReels::chatThread;
     /** The media ids of reels the viewer sent in chats, oldest first. */
     private static final Map<String, Boolean> SENT = new LinkedHashMap<String, Boolean>() {
         @Override protected boolean removeEldestEntry(Map.Entry<String, Boolean> eldest) {
@@ -711,52 +699,14 @@ public final class ChatReels {
         }
     }
 
-    /**
-     * Whether [config], a Reels viewer's ClipsViewerConfig, is a chat's: it holds a chat with an id and
-     * was opened as the chat's or as its Blend's ({@link #isChat(Object, String)}). Only a tap on a reel
-     * in a chat hands the viewer the chat. Once Instagram has loaded a chat's Blend, that tap opens the
-     * viewer as the Blend's, still holding the chat, so its source alone took it for a Blend's (#804).
-     * A Blend opened anywhere else holds no chat. No for a null config and on a failed read. Never throws.
-     */
+    /** Whether [config], a Reels viewer's ClipsViewerConfig, is a chat's ({@link ViewerChat#holdsChat(Object, String)}). Never throws. */
     static boolean viewsChat(@Nullable Object config) {
-        if (config == null) return false;
-        try {
-            return isChat(sources.apply(config), threads.apply(config));
-        } catch (Throwable failure) {
-            HookStatus.threw(FamilyNames.CHAT_REELS, "chat reels viewer", failure);
-            return false;
-        }
+        return ViewerChat.holdsChat(config, FamilyNames.CHAT_REELS);
     }
 
-    /**
-     * Whether a viewer opened from [source], its ClipsViewerSource, holding the chat with the id
-     * [thread] is that chat's: the id is there and the source is a chat's or a Blend's.
-     */
+    /** Whether a viewer opened from [source] holding the chat with the id [thread] is that chat's ({@link ViewerChat#isChat(Object, String)}). */
     static boolean isChat(@Nullable Object source, @Nullable String thread) {
-        return thread != null && !thread.isEmpty() && (named(source, CHAT_SOURCE) || named(source, BLEND_SOURCE));
-    }
-
-    /** Whether [source], a viewer's ClipsViewerSource, is the one Instagram names [name]. */
-    private static boolean named(@Nullable Object source, String name) {
-        return source instanceof Enum && name.equals(((Enum<?>) source).name());
-    }
-
-    /** Stub: the patch writes this, answering the ClipsViewerSource of [config], a viewer's ClipsViewerConfig. */
-    @Nullable
-    public static Object viewerSource(Object config) {
-        return null;
-    }
-
-    /** Stub: the patch writes this, answering the id of the chat [config], a viewer's ClipsViewerConfig, holds, or null. */
-    @Nullable
-    public static String chatThread(Object config) {
-        return null;
-    }
-
-    /** Reads viewer configs with [sources] and [threads] in place of the patch's bridges, for tests; nulls put the bridges back. */
-    static void readConfigsWith(@Nullable Function<Object, Object> sources, @Nullable Function<Object, String> threads) {
-        ChatReels.sources = sources == null ? ChatReels::viewerSource : sources;
-        ChatReels.threads = threads == null ? ChatReels::chatThread : threads;
+        return ViewerChat.isChat(source, thread);
     }
 
     /**
