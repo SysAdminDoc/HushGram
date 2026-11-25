@@ -12,6 +12,7 @@ import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patcher.util.smali.ExternalLabel
+import app.morphe.patches.instagram.direct.reels.viewerChatPatch
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesLoading
 import app.morphe.patches.instagram.misc.extension.classesLoadingString
@@ -41,7 +42,7 @@ import com.android.tools.smali.dexlib2.immutable.reference.ImmutableFieldReferen
 
 private const val PATCH = "Open reel links on that reel"
 internal const val REEL_LINKS = "$EXTENSION_PACKAGE/reels/ReelLinks;"
-internal const val REEL_LINKS_SKIP = "$REEL_LINKS->skipsCachedReels(Ljava/lang/Object;)I"
+internal const val REEL_LINKS_SKIP = "$REEL_LINKS->skipsCachedReels(Ljava/lang/Object;Ljava/lang/Object;)I"
 internal const val REEL_LINKS_HOLD =
     "$REEL_LINKS->holdsReels(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;IIIII)I"
 internal const val REEL_LINKS_IN = "$REEL_LINKS->linkedReelIn(Ljava/lang/Object;)V"
@@ -109,7 +110,9 @@ private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $det
  * A comment shared in a chat is a link too (#662): tapping one on a reel opens a viewer from the chat
  * with only the reel's id, built with the kept reels in front like a link's, and the same chunk can
  * land first. The patch tells the extension as the tap reads what the comment was on, and the next
- * chat viewer skips the kept reels and holds its chunks like a link's.
+ * chat viewer skips the kept reels and holds its chunks like a link's. In a chat with a Blend that
+ * viewer can open as the Blend's, still holding the chat (#804), so the check also hands over the
+ * config, which the extension reads through [viewerChatPatch]'s bridges.
  *
  * Found and checked before anything changes: a build that differs stops the patch naming what it
  * couldn't find.
@@ -122,7 +125,7 @@ val openReelLinksPatch = bytecodePatch(
     default = true,
 ) {
     category("Fixes")
-    dependsOn(settingsPatch, instagramExtensionPatch)
+    dependsOn(settingsPatch, instagramExtensionPatch, viewerChatPatch)
     compatibleWith(*AppCompatibilities.instagram())
 
     execute {
@@ -191,7 +194,8 @@ internal fun BytecodePatchContext.findReelLinksSite(): ReelLinksSite {
 
 /**
  * In front of the config's check: read the viewer's source and OR [REEL_LINKS_SKIP]'s answer for it
- * into the flag, so a yes takes the branch Instagram takes when the config turns the controller off.
+ * and the config into the flag, so a yes takes the branch Instagram takes when the config turns the
+ * controller off.
  */
 internal fun BytecodePatchContext.applyReelLinks(site: ReelLinksSite) {
     val s = site.scratch
@@ -199,7 +203,7 @@ internal fun BytecodePatchContext.applyReelLinks(site: ReelLinksSite) {
         site.index,
         """
             iget-object v$s, v${site.config}, ${site.source}
-            invoke-static { v$s }, $REEL_LINKS_SKIP
+            invoke-static { v$s, v${site.config} }, $REEL_LINKS_SKIP
             move-result v$s
             or-int/2addr v${site.flag}, v$s
         """,

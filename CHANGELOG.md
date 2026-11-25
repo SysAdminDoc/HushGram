@@ -69,6 +69,7 @@ Every HushGram release, newest first.
 * In a chat where you have a Blend, `Stop after the chat's reels`, `Only received reels`, `Messages after a reel`, the swipe back and the reply bar's quote now cover every reel you open there. Reported in #804.
 * `Hide the reply bar on reels from chats` now hides it on every reel you open in a chat where you have a Blend. Instagram opens some of them as the Blend's, and those kept their reply bar. Reported in #804.
 * With `Play only the reel you opened` on, a reel you open in a chat where you have a Blend stays put too. Instagram opens some of them as the Blend's, and those swiped and auto scrolled on. Reported in #804.
+* With `Open reel links on that reel` on, a comment shared in a chat where you have a Blend opens on its own reel too. Instagram opens some of them as the Blend's, and those played another reel first. Reported in #804.
 * With `Blur the chat behind a held message` on, a message the menu would cover now slides into view, or shrinks to fit, so you can see which one you're reacting to. Asked for in #828 and #684.
 * `Loop this video` is back in the three-dot menu in the Reels tab, and reels stop at their end again once auto scroll is off. An auto scroll choice remembered from earlier kept both away. Reported in #829.
 * `Pure black dark mode` now covers the share sheet and other pop up sheets on installs where Instagram uses its older dark colors, like a clone. They stayed dark grey there. Reported in #835.

@@ -17,8 +17,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
+import java.util.function.Function;
 
 import app.hushgram.extension.instagram.direct.ChatReels;
+import app.hushgram.extension.instagram.direct.ViewerChat;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.Logger;
@@ -57,6 +59,8 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * (a report showed neither hook below it running). The patch tells
  * {@link #sharedCommentOpened(String)} as the tap reads what the comment was on, and the next chat
  * viewer within {@link #COMMENT_MILLIS} skips the cached reels and holds its chunks like a link's.
+ * In a chat that has a Blend, Instagram can open that viewer as the Blend's, still holding the chat
+ * (#804), so a viewer whose config {@link ViewerChat} calls a chat's counts as one too.
  */
 public final class ReelLinks {
     /** What {@link HookStatus} counts: a viewer opened from a link that skipped the cached reels. */
@@ -76,6 +80,10 @@ public final class ReelLinks {
     static final String CHUNK = "reels added to a link's viewer";
     static final String LINKED = "linked reel added";
     static final String COMMENT = "shared comment opened";
+    static final String CONFIG = "reels viewer config";
+
+    /** Instagram's Reels viewer config, whose class name its build keeps, as the adapter holds it. */
+    static final String CONFIG_CLASS = "com.instagram.clips.intf.ClipsViewerConfig";
 
     /** The source of a viewer opened from a link, as Instagram 454 names it. */
     static final String FROM_LINK = "THIRD_PARTY_URL";
@@ -122,23 +130,31 @@ public final class ReelLinks {
     /** Each adapter class's method adding a chunk, or null when it has no single one. */
     private static final Map<Class<?>, Method> FILLS = new HashMap<>();
 
+    /** Each adapter class's fields holding its viewer's config ({@link #CONFIG_CLASS}). */
+    private static final Map<Class<?>, Field[]> CONFIG_FIELDS = new HashMap<>();
+
+    /** How an adapter's viewer config is read: {@link #configOf(Object)}, or a test's. */
+    private static volatile Function<Object, Object> configs = ReelLinks::configOf;
+
     private ReelLinks() {
     }
 
     /**
      * Asked as a Reels viewer decides whether to put Instagram's cached reels in front, with where
-     * it was opened from. 1 skips them: the viewer was opened from a link, or from a chat within
-     * {@link #COMMENT_MILLIS} of a shared comment's tap (#662), the switch is on, HushGram isn't paused
-     * and the settings are ready. The tap stays for {@link #holdsReels}. 0 for every other source, a
-     * source that isn't an enum, and anything that throws. Never throws.
+     * it was opened from and its config. 1 skips them: the viewer was opened from a link, or from a
+     * chat (as the chat's, or as its Blend's holding the chat, #804) within {@link #COMMENT_MILLIS} of
+     * a shared comment's tap (#662), the switch is on, HushGram isn't paused and the settings are
+     * ready. The tap stays for {@link #holdsReels}. 0 for every other source, a source that isn't an
+     * enum, and anything that throws. Never throws.
      */
-    public static int skipsCachedReels(Object source) {
+    public static int skipsCachedReels(Object source, Object config) {
         try {
             HookStatus.invoked(FamilyNames.REEL_LINKS);
             if (!(source instanceof Enum)) return 0;
             String name = ((Enum<?>) source).name();
             boolean link = name.equals(FROM_LINK) || name.equals(FROM_LINK_PRIME);
-            boolean comment = !link && name.equals(FROM_CHAT) && commentTapRecent();
+            boolean comment = !link && commentTapRecent()
+                    && (name.equals(FROM_CHAT) || ViewerChat.holdsChat(config, FamilyNames.REEL_LINKS));
             if (!link && !comment) return 0;
             if (!Utils.settingsReady() || !Settings.OPEN_REEL_LINKS_FIRST.get()) return 0;
             HookStatus.counted(FamilyNames.REEL_LINKS, SKIPPED);
@@ -178,7 +194,7 @@ public final class ReelLinks {
                 if (viewer == null) {
                     String source = sourceOf(adapter);
                     if (FROM_LINK.equals(source)) opened = "a link";
-                    else if (FROM_CHAT.equals(source) && takeCommentTap()) opened = "a shared comment";
+                    else if (fromChat(adapter, source) && takeCommentTap()) opened = "a shared comment";
                     else return 0;
                     Method fill = fillOf(adapter.getClass());
                     Looper looper = Looper.myLooper();
@@ -219,7 +235,7 @@ public final class ReelLinks {
                 if (viewer == null) {
                     VIEWERS.put(adapter, new Viewer(null, null, true));
                     // A chat viewer whose reel went in before any chunk is the comment's, and needed no hold.
-                    if (commentTapped != NO_COMMENT && FROM_CHAT.equals(sourceOf(adapter))) commentTapped = NO_COMMENT;
+                    if (commentTapped != NO_COMMENT && fromChat(adapter, sourceOf(adapter))) commentTapped = NO_COMMENT;
                     return;
                 }
                 if (viewer.linked) return;
@@ -315,6 +331,66 @@ public final class ReelLinks {
     }
 
     /**
+     * Whether [adapter]'s viewer, opened from [source] ({@link #sourceOf(Object)}), is a chat's: opened
+     * as the chat's, or with a config {@link ViewerChat} calls a chat's, which is how a reel in a chat
+     * with a Blend can open (#804). A config that can't be read is counted and leaves it to the source.
+     */
+    private static boolean fromChat(Object adapter, String source) {
+        if (FROM_CHAT.equals(source)) return true;
+        Object config;
+        try {
+            config = configs.apply(adapter);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.REEL_LINKS, CONFIG, failure);
+            return false;
+        }
+        return ViewerChat.holdsChat(config, FamilyNames.REEL_LINKS);
+    }
+
+    /**
+     * The viewer config [adapter] keeps in a field of its own, the first that's set, or null. Throws
+     * an IllegalStateException when a field can't be read, for {@link #fromChat} to count.
+     */
+    static Object configOf(Object adapter) {
+        for (Field field : configFieldsOf(adapter.getClass())) {
+            Object config;
+            try {
+                config = field.get(adapter);
+            } catch (IllegalAccessException unreadable) {
+                throw new IllegalStateException("can't read " + field, unreadable);
+            }
+            if (config != null) return config;
+        }
+        return null;
+    }
+
+    /** [type]'s instance fields of {@link #CONFIG_CLASS}, its superclasses' included. Looked up once per class. */
+    static Field[] configFieldsOf(Class<?> type) {
+        synchronized (CONFIG_FIELDS) {
+            Field[] cached = CONFIG_FIELDS.get(type);
+            if (cached != null) return cached;
+        }
+        List<Field> found = new ArrayList<>();
+        for (Class<?> at = type; at != null && at != Object.class; at = at.getSuperclass()) {
+            for (Field field : at.getDeclaredFields()) {
+                if (Modifier.isStatic(field.getModifiers()) || !CONFIG_CLASS.equals(field.getType().getName())) continue;
+                field.setAccessible(true);
+                found.add(field);
+            }
+        }
+        Field[] fields = found.toArray(new Field[0]);
+        synchronized (CONFIG_FIELDS) {
+            CONFIG_FIELDS.put(type, fields);
+        }
+        return fields;
+    }
+
+    /** Reads adapters' viewer configs with [read] in place of {@link #configOf(Object)}, for tests; null puts it back. */
+    static void readConfigsWith(Function<Object, Object> read) {
+        configs = read == null ? ReelLinks::configOf : read;
+    }
+
+    /**
      * [type]'s method adding a chunk of reels, found by its shape: an instance method taking an item,
      * a List and five booleans and returning nothing. Null unless there's exactly one, so the chunk
      * is never held when it couldn't be added later. Looked up once per class.
@@ -343,11 +419,12 @@ public final class ReelLinks {
         return fill;
     }
 
-    /** Forgets every viewer and any shared comment tap, for tests. */
+    /** Forgets every viewer and any shared comment tap, and reads configs with {@link #configOf(Object)} again, for tests. */
     static void forgetForTests() {
         synchronized (VIEWERS) {
             VIEWERS.clear();
         }
+        configs = ReelLinks::configOf;
         commentTapped = NO_COMMENT;
         ChatReels.forgetComment();
     }

@@ -6,10 +6,13 @@ package app.hushgram.extension.instagram.reels;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import android.os.Looper;
 
+import com.instagram.clips.intf.ClipsViewerConfig;
 import com.instagram.clips.intf.ClipsViewerSource;
 
 import org.junit.After;
@@ -28,6 +31,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import app.hushgram.extension.instagram.direct.ChatReels;
+import app.hushgram.extension.instagram.direct.ViewerConfigs;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.SettingsContextRule;
@@ -58,19 +62,47 @@ public class ReelLinksTest {
         }
     }
 
-    /** Stands in for Instagram's Reels viewer adapter: its config and its one method adding a chunk. */
+    /**
+     * Stands in for Instagram's Reels viewer adapter: its config and its one method adding a chunk,
+     * and the config a test reads as its viewer's ({@link ViewerConfigs}).
+     */
     static final class Adapter {
         final ViewerConfig config;
+        final Object viewer;
         final List<String> added = new ArrayList<>();
 
         Adapter(ClipsViewerSource source) {
+            this(source, null);
+        }
+
+        Adapter(ClipsViewerSource source, Object viewer) {
             config = new ViewerConfig(source);
+            this.viewer = viewer;
         }
 
         public void fill(Object head, List<?> items, boolean firstPage, boolean refreshing,
                          boolean loading, boolean more, boolean forward) {
             added.add(head + " " + items + " first=" + firstPage + " refreshing=" + refreshing
                     + " loading=" + loading + " more=" + more + " forward=" + forward);
+        }
+    }
+
+    /** An adapter keeping Instagram's config class in two fields, and one shared by every adapter. */
+    static class ConfigAdapter {
+        static final ClipsViewerConfig SHARED = new ClipsViewerConfig();
+        final ClipsViewerConfig first;
+        final ClipsViewerConfig second;
+
+        ConfigAdapter(ClipsViewerConfig first, ClipsViewerConfig second) {
+            this.first = first;
+            this.second = second;
+        }
+    }
+
+    /** An adapter whose config is in its superclass's field. */
+    static final class LaterAdapter extends ConfigAdapter {
+        LaterAdapter(ClipsViewerConfig config) {
+            super(config, null);
         }
     }
 
@@ -127,8 +159,8 @@ public class ReelLinksTest {
     @Test
     public void aLinksViewerSkipsTheCachedReels() {
         assertTrue("the switch starts on", Settings.OPEN_REEL_LINKS_FIRST.get());
-        assertEquals("a link", 1, ReelLinks.skipsCachedReels(Source.THIRD_PARTY_URL));
-        assertEquals("a link Instagram opened itself", 1, ReelLinks.skipsCachedReels(Source.PRIME_THIRD_PARTY_URL));
+        assertEquals("a link", 1, ReelLinks.skipsCachedReels(Source.THIRD_PARTY_URL, null));
+        assertEquals("a link Instagram opened itself", 1, ReelLinks.skipsCachedReels(Source.PRIME_THIRD_PARTY_URL, null));
         String report = report();
         assertTrue(report, report.contains(FamilyNames.REEL_LINKS + ": invoked 2"));
         assertTrue(report, report.contains(ReelLinks.SKIPPED + " 2"));
@@ -137,12 +169,12 @@ public class ReelLinksTest {
     /** Any other viewer keeps Instagram's own, names that only start like a link's included. */
     @Test
     public void everyOtherViewerKeepsInstagramsOwn() {
-        assertEquals("the Reels tab", 0, ReelLinks.skipsCachedReels(Source.CLIPS_TAB));
-        assertEquals("Home", 0, ReelLinks.skipsCachedReels(Source.FEED_TIMELINE));
-        assertEquals("a chat", 0, ReelLinks.skipsCachedReels(Source.DIRECT_THREAD));
-        assertEquals("a longer name", 0, ReelLinks.skipsCachedReels(Source.THIRD_PARTY_URL_NOTIFICATION));
-        assertEquals("not a source", 0, ReelLinks.skipsCachedReels("THIRD_PARTY_URL"));
-        assertEquals("no source", 0, ReelLinks.skipsCachedReels(null));
+        assertEquals("the Reels tab", 0, ReelLinks.skipsCachedReels(Source.CLIPS_TAB, null));
+        assertEquals("Home", 0, ReelLinks.skipsCachedReels(Source.FEED_TIMELINE, null));
+        assertEquals("a chat", 0, ReelLinks.skipsCachedReels(Source.DIRECT_THREAD, null));
+        assertEquals("a longer name", 0, ReelLinks.skipsCachedReels(Source.THIRD_PARTY_URL_NOTIFICATION, null));
+        assertEquals("not a source", 0, ReelLinks.skipsCachedReels("THIRD_PARTY_URL", null));
+        assertEquals("no source", 0, ReelLinks.skipsCachedReels(null, null));
         assertFalse(report(), report().contains(ReelLinks.SKIPPED));
     }
 
@@ -150,16 +182,16 @@ public class ReelLinksTest {
     @Test
     public void offPausedOrNotReadyKeepInstagramsOwn() {
         Settings.OPEN_REEL_LINKS_FIRST.save(false);
-        assertEquals("off", 0, ReelLinks.skipsCachedReels(Source.THIRD_PARTY_URL));
+        assertEquals("off", 0, ReelLinks.skipsCachedReels(Source.THIRD_PARTY_URL, null));
         Settings.OPEN_REEL_LINKS_FIRST.save(true);
         BaseSettings.PAUSED.save(true);
         PauseForTests.pause(HushgramPause.Reason.SWITCH);
-        assertEquals("paused", 0, ReelLinks.skipsCachedReels(Source.THIRD_PARTY_URL));
+        assertEquals("paused", 0, ReelLinks.skipsCachedReels(Source.THIRD_PARTY_URL, null));
         assertTrue("the saved choice is kept", Settings.OPEN_REEL_LINKS_FIRST.savedValue());
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
-        assertEquals(1, ReelLinks.skipsCachedReels(Source.THIRD_PARTY_URL));
-        SettingsContextRule.withoutContext(() -> assertEquals("not ready", 0, ReelLinks.skipsCachedReels(Source.THIRD_PARTY_URL)));
+        assertEquals(1, ReelLinks.skipsCachedReels(Source.THIRD_PARTY_URL, null));
+        SettingsContextRule.withoutContext(() -> assertEquals("not ready", 0, ReelLinks.skipsCachedReels(Source.THIRD_PARTY_URL, null)));
     }
 
     /**
@@ -295,24 +327,24 @@ public class ReelLinksTest {
      */
     @Test
     public void aSharedCommentsViewerSkipsTheCachedReels() {
-        assertEquals("a chat with no comment tapped", 0, ReelLinks.skipsCachedReels(ClipsViewerSource.DIRECT));
+        assertEquals("a chat with no comment tapped", 0, ReelLinks.skipsCachedReels(ClipsViewerSource.DIRECT, null));
         ReelLinks.sharedCommentOpened("photo");
-        assertEquals("a comment on a post", 0, ReelLinks.skipsCachedReels(ClipsViewerSource.DIRECT));
+        assertEquals("a comment on a post", 0, ReelLinks.skipsCachedReels(ClipsViewerSource.DIRECT, null));
 
         ReelLinks.sharedCommentOpened(ReelLinks.ON_REEL);
-        assertEquals("the Reels tab right after the tap", 0, ReelLinks.skipsCachedReels(ClipsViewerSource.CLIPS_TAB));
-        assertEquals("the comment's chat viewer", 1, ReelLinks.skipsCachedReels(ClipsViewerSource.DIRECT));
+        assertEquals("the Reels tab right after the tap", 0, ReelLinks.skipsCachedReels(ClipsViewerSource.CLIPS_TAB, null));
+        assertEquals("the comment's chat viewer", 1, ReelLinks.skipsCachedReels(ClipsViewerSource.DIRECT, null));
         Adapter viewer = new Adapter(ClipsViewerSource.DIRECT);
         assertEquals("its chunk still waits for the reel", 1, chunk(viewer, "a"));
-        assertEquals("the chunk spent the tap", 0, ReelLinks.skipsCachedReels(ClipsViewerSource.DIRECT));
+        assertEquals("the chunk spent the tap", 0, ReelLinks.skipsCachedReels(ClipsViewerSource.DIRECT, null));
 
         ReelLinks.sharedCommentOpened(ReelLinks.ON_GLIMMER);
         Shadows.shadowOf(Looper.getMainLooper()).idleFor(ReelLinks.COMMENT_MILLIS + 1, TimeUnit.MILLISECONDS);
-        assertEquals("too long after the tap", 0, ReelLinks.skipsCachedReels(ClipsViewerSource.DIRECT));
+        assertEquals("too long after the tap", 0, ReelLinks.skipsCachedReels(ClipsViewerSource.DIRECT, null));
 
         Settings.OPEN_REEL_LINKS_FIRST.save(false);
         ReelLinks.sharedCommentOpened(ReelLinks.ON_REEL);
-        assertEquals("off", 0, ReelLinks.skipsCachedReels(ClipsViewerSource.DIRECT));
+        assertEquals("off", 0, ReelLinks.skipsCachedReels(ClipsViewerSource.DIRECT, null));
         String report = report();
         assertTrue(report, report.contains(ReelLinks.SKIPPED + " 1"));
     }
@@ -345,6 +377,73 @@ public class ReelLinksTest {
         ReelLinks.sharedCommentOpened(ReelLinks.ON_REEL);
         assertEquals("off", 0, chunk(new Adapter(ClipsViewerSource.DIRECT), "a"));
         assertFalse(report(), report().contains(ReelLinks.HELD));
+    }
+
+    /**
+     * In a chat that has a Blend, Instagram can open a shared comment's viewer as the Blend's, still
+     * holding the chat (#804). That viewer skips the cached reels and holds its chunks like the chat's
+     * own. A Blend opened from the inbox holds no chat and doesn't, even right after a tap.
+     */
+    @Test
+    public void aSharedCommentsViewerOpenedAsTheChatsBlendWaitsForItsReel() {
+        ViewerConfigs.install();
+        ReelLinks.readConfigsWith(adapter -> adapter instanceof Adapter ? ((Adapter) adapter).viewer : null);
+        try {
+            ReelLinks.sharedCommentOpened(ReelLinks.ON_REEL);
+            assertEquals("the inbox's Blend", 0, ReelLinks.skipsCachedReels(ClipsViewerSource.BLEND, ViewerConfigs.BLEND));
+            assertEquals("a Blend whose config isn't there", 0, ReelLinks.skipsCachedReels(ClipsViewerSource.BLEND, null));
+            assertEquals("the inbox's Blend's chunk", 0, chunk(new Adapter(ClipsViewerSource.BLEND, ViewerConfigs.BLEND), "a"));
+            assertEquals("the chat's Blend", 1, ReelLinks.skipsCachedReels(ClipsViewerSource.BLEND, ViewerConfigs.CHATS_BLEND));
+            Adapter viewer = new Adapter(ClipsViewerSource.BLEND, ViewerConfigs.CHATS_BLEND);
+            assertEquals("its chunk waits", 1, chunk(viewer, "a"));
+            idle();
+            assertTrue("nothing added before the reel", viewer.added.isEmpty());
+            ReelLinks.linkedReelIn(viewer);
+            idle();
+            assertEquals(Collections.singletonList(added("a")), viewer.added);
+            assertEquals("the chunk spent the tap", 0, chunk(new Adapter(ClipsViewerSource.DIRECT), "b"));
+
+            ReelLinks.sharedCommentOpened(ReelLinks.ON_REEL);
+            ReelLinks.linkedReelIn(new Adapter(ClipsViewerSource.BLEND, ViewerConfigs.CHATS_BLEND));
+            assertEquals("a chat's Blend whose reel went in first spent the tap", 0, chunk(new Adapter(ClipsViewerSource.DIRECT), "c"));
+            assertEquals("[]", HookStatus.missing(FamilyNames.REEL_LINKS).toString());
+        } finally {
+            ViewerConfigs.reset();
+        }
+    }
+
+    /** A viewer config that can't be read is counted, and the viewer goes by where it was opened from. */
+    @Test
+    public void aConfigThatCantBeReadLeavesItToTheSource() {
+        ViewerConfigs.install();
+        ReelLinks.readConfigsWith(adapter -> {
+            throw new ClassCastException("not the reels adapter");
+        });
+        try {
+            ReelLinks.sharedCommentOpened(ReelLinks.ON_REEL);
+            assertEquals("the chat's Blend", 0, chunk(new Adapter(ClipsViewerSource.BLEND, ViewerConfigs.CHATS_BLEND), "a"));
+            assertEquals("a chat's viewer by its source", 1, chunk(new Adapter(ClipsViewerSource.DIRECT), "a"));
+            String missing = HookStatus.missing(FamilyNames.REEL_LINKS).toString();
+            assertTrue(missing, missing.contains("'" + ReelLinks.CONFIG + "'"));
+            assertTrue(missing, missing.contains(ClassCastException.class.getName()));
+        } finally {
+            ViewerConfigs.reset();
+        }
+    }
+
+    /**
+     * The adapter's config is read from its own field of Instagram's config class, the first one set,
+     * its superclass's included, and a class with none has none.
+     */
+    @Test
+    public void theConfigIsReadFromTheAdaptersOwnField() {
+        ClipsViewerConfig config = new ClipsViewerConfig();
+        assertSame(config, ReelLinks.configOf(new ConfigAdapter(null, config)));
+        assertSame(config, ReelLinks.configOf(new ConfigAdapter(config, null)));
+        assertSame("a subclass", config, ReelLinks.configOf(new LaterAdapter(config)));
+        assertNull("none set", ReelLinks.configOf(new ConfigAdapter(null, null)));
+        assertNull("no field of the class", ReelLinks.configOf(new Adapter(ClipsViewerSource.DIRECT)));
+        assertEquals(2, ReelLinks.configFieldsOf(ConfigAdapter.class).length);
     }
 
     /** A chunk is never held when it couldn't be added again: the adapter has two methods shaped like it. */

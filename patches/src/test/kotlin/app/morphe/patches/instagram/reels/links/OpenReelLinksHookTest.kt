@@ -58,9 +58,9 @@ class OpenReelLinksHookTest {
     /**
      * In each build of the version the method building the viewer's kept-reels controller is found by
      * its flag name, and the hook goes in once, right in front of the config's check: it reads the
-     * viewer's source from the config the check read, asks with it, and ORs the answer into the
-     * flag the check branches on. Every other instruction keeps its place, and the check still goes
-     * where it went. Read as the patcher reads an APK, and copied.
+     * viewer's source from the config the check read, asks with it and the config, and ORs the
+     * answer into the flag the check branches on. Every other instruction keeps its place, and the
+     * check still goes where it went. Read as the patcher reads an APK, and copied.
      */
     @Test
     fun eachDeclaredBuildHoldsTheConfigCheck() {
@@ -114,9 +114,8 @@ class OpenReelLinksHookTest {
                 assertEquals("$what: right after the flag is read", Opcode.IGET_BOOLEAN, code[at - 1].opcode)
                 assertEquals("$what: its source", site.source.toString(), code[at].referenceText())
                 assertEquals("$what: the source is read from the config", site.config, (code[at] as TwoRegisterInstruction).registerB)
-                assertEquals("$what: asked with the source", listOf(site.scratch), (code[at + 1] as FiveRegisterInstruction).let {
-                    listOf(it.registerC).take(it.registerCount)
-                })
+                assertEquals("$what: asked with the source and the config", listOf(site.scratch, site.config),
+                    (code[at + 1] as FiveRegisterInstruction).let { listOf(it.registerC, it.registerD).take(it.registerCount) })
                 val or = code[at + 3] as TwoRegisterInstruction
                 assertEquals("$what: the answer goes into the flag", listOf(site.flag, site.scratch), listOf(or.registerA, or.registerB))
                 assertEquals("$what: the check still reads the flag", site.flag, (code[at + hookLength] as OneRegisterInstruction).registerA)
