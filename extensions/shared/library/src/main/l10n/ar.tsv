@@ -1723,6 +1723,13 @@ Saved @%s	تم حفظ @%s
 Saved and everything in it stay covered until your fingerprint, face or screen lock says it's you.	تبقى المحفوظات وكل ما بداخلها مخفية حتى تؤكد بصمة إصبعك أو وجهك أو قفل الشاشة أنك أنت.
 Saved is locked	المحفوظات مقفلة
 Saved photos and videos take up %1$s now.	تشغل الصور ومقاطع الفيديو المحفوظة %1$s الآن.
+# context: Storage: a row that adds up how much space Instagram's data takes up outside its cache (#683), names its biggest folders (folder names like files/mqtt stay as they are) and HushGram's own files. Adding it up shows while it reads.
+Space used	المساحة المستخدمة
+Adding it up…	جارٍ الحساب…
+Couldn't add up the space used.	تعذّر حساب المساحة المستخدمة.
+Instagram's data takes up %1$s, its cache aside.	تشغل بيانات Instagram %1$s، دون ذاكرة التخزين المؤقت.
+Biggest: %1$s.	الأكبر: %1$s.
+HushGram's own files take up %1$s.	تشغل ملفات HushGram الخاصة %1$s.
 Saved profiles	الملفات الشخصية المحفوظة
 Saved profiles added: %d.	الملفات الشخصية المحفوظة المضافة: %d.
 Saved profiles is full.	الملفات الشخصية المحفوظة ممتلئة.

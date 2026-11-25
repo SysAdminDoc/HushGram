@@ -2746,6 +2746,13 @@ Cache size limit	Limite di dimensione della cache
 %1$d MB	%1$d MB
 # context: Storage: second line under Clear saved copies now; %1$s is a size such as 312 MB
 Saved photos and videos take up %1$s now.	Le foto e i video salvati occupano ora %1$s.
+# context: Storage: a row that adds up how much space Instagram's data takes up outside its cache (#683), names its biggest folders (folder names like files/mqtt stay as they are) and HushGram's own files. Adding it up shows while it reads.
+Space used	Spazio usato
+Adding it up…	Calcolo in corso…
+Couldn't add up the space used.	Impossibile calcolare lo spazio usato.
+Instagram's data takes up %1$s, its cache aside.	I dati di Instagram occupano %1$s, cache esclusa.
+Biggest: %1$s.	I più grandi: %1$s.
+HushGram's own files take up %1$s.	I file di HushGram occupano %1$s.
 # context: Tab bar: switch under Keep the pill full size, for the liquid look's bubble under a held finger (#705)
 Glass lens under your finger	Lente di vetro sotto il dito
 Hold a finger on the liquid pill's bubble, or slide it across the tabs, and the bubble swells and bends what's behind it harder, like glass under a fingertip. It eases back when you let go. The bend needs Blur behind the tab bar and Android 13 or newer. Restart Instagram after changing it.	Tieni un dito sulla bolla della pillola liquid glass, o falla scorrere sulle schede, e la bolla si gonfia e piega di più ciò che c'è dietro, come il vetro sotto un polpastrello. Torna com'era quando lasci. La piega richiede Sfocatura dietro la barra delle schede e Android 13 o versioni successive. Riavvia Instagram dopo averlo cambiato.

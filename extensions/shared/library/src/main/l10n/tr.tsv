@@ -2746,6 +2746,13 @@ Cache size limit	Önbellek boyutu sınırı
 %1$d MB	%1$d MB
 # context: Storage: second line under Clear saved copies now; %1$s is a size such as 312 MB
 Saved photos and videos take up %1$s now.	Kayıtlı fotoğraf ve videolar şu anda %1$s yer kaplıyor.
+# context: Storage: a row that adds up how much space Instagram's data takes up outside its cache (#683), names its biggest folders (folder names like files/mqtt stay as they are) and HushGram's own files. Adding it up shows while it reads.
+Space used	Kullanılan alan
+Adding it up…	Hesaplanıyor…
+Couldn't add up the space used.	Kullanılan alan hesaplanamadı.
+Instagram's data takes up %1$s, its cache aside.	Instagram verileri, önbellek hariç %1$s yer kaplıyor.
+Biggest: %1$s.	En büyükler: %1$s.
+HushGram's own files take up %1$s.	HushGram'ın kendi dosyaları %1$s yer kaplıyor.
 # context: Tab bar: switch under Keep the pill full size, for the liquid look's bubble under a held finger (#705)
 Glass lens under your finger	Parmağının altında cam mercek
 Hold a finger on the liquid pill's bubble, or slide it across the tabs, and the bubble swells and bends what's behind it harder, like glass under a fingertip. It eases back when you let go. The bend needs Blur behind the tab bar and Android 13 or newer. Restart Instagram after changing it.	Sıvı cam hapın kabarcığına parmağını basılı tut ya da sekmeler boyunca kaydır, kabarcık büyür ve arkasındakini parmak ucunun altındaki cam gibi daha güçlü kırar. Bıraktığında eski haline döner. Kırılma için Sekme çubuğunun arkasında bulanıklık ve Android 13 ya da daha yenisi gerekir. Değiştirdikten sonra Instagram'ı yeniden başlat.

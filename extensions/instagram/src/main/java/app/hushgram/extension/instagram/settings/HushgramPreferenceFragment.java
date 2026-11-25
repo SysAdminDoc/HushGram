@@ -884,7 +884,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     belongs |= family == PatchFamily.FEED_AUTO_SCROLL && Settings.FEED_AUTO_SCROLL_SECONDS.key.equals(key);
                     belongs |= family == PatchFamily.EXPAND_CAPTIONS && Settings.CAPTION_LINES.key.equals(key);
                     belongs |= family == PatchFamily.MEDIA_CACHE && (Settings.MEDIA_CACHE_LIMIT_MB.key.equals(key)
-                            || CLEAR_MEDIA_CACHE_NOW.equals(key));
+                            || CLEAR_MEDIA_CACHE_NOW.equals(key) || StorageCategory.SPACE_USED.equals(key));
                     belongs |= family == PatchFamily.STORY_SEEK_BAR && (Settings.STORY_SEEK_BAR_LOOK.key.equals(key)
                             || Settings.STORY_SEEK_BAR_POSITION.key.equals(key)
                             || Settings.STORY_SEEK_TIME.key.equals(key) || Settings.STORY_SEEK_TIME_LEFT.key.equals(key));

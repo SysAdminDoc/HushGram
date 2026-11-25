@@ -2745,6 +2745,13 @@ Cache size limit	캐시 크기 한도
 %1$d MB	%1$dMB
 # context: Storage: second line under Clear saved copies now; %1$s is a size such as 312 MB
 Saved photos and videos take up %1$s now.	현재 저장된 사진과 동영상 용량: %1$s
+# context: Storage: a row that adds up how much space Instagram's data takes up outside its cache (#683), names its biggest folders (folder names like files/mqtt stay as they are) and HushGram's own files. Adding it up shows while it reads.
+Space used	사용 중인 공간
+Adding it up…	계산 중…
+Couldn't add up the space used.	사용 중인 공간을 계산할 수 없습니다.
+Instagram's data takes up %1$s, its cache aside.	Instagram 데이터 용량(캐시 제외): %1$s
+Biggest: %1$s.	가장 큰 항목: %1$s
+HushGram's own files take up %1$s.	HushGram 자체 파일 용량: %1$s
 # context: Tab bar: switch under Keep the pill full size, for the liquid look's bubble under a held finger (#705)
 Glass lens under your finger	손가락 아래 유리 렌즈
 Hold a finger on the liquid pill's bubble, or slide it across the tabs, and the bubble swells and bends what's behind it harder, like glass under a fingertip. It eases back when you let go. The bend needs Blur behind the tab bar and Android 13 or newer. Restart Instagram after changing it.	리퀴드 글래스 알약의 버블을 손가락으로 누르고 있거나 탭 위로 밀면 버블이 커지고 뒤에 있는 화면을 더 강하게 굴절시킵니다. 손끝 아래의 유리처럼요. 손을 떼면 원래대로 돌아갑니다. 굴절에는 탭 바 뒤 흐림 효과와 Android 13 이상이 필요합니다. 변경한 뒤에는 Instagram을 다시 시작하세요.

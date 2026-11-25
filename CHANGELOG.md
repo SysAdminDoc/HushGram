@@ -74,6 +74,7 @@ Every HushGram release, newest first.
 * In Morphe Manager, `Full resolution photos` now sits under Downloads, so the Feed group stays short. Its switches are still on the Feed settings page.
 * `Keep profile history` no longer piles up old pictures. Once a picture falls out of the newest twenty a profile keeps, its saved copy goes too. Copies left over from before are cleared the first time you open a profile after Instagram starts. Reported in #683.
 * `Keep profile history` keeps its saved pictures under 100 MB. Past that, the copies of the profiles you opened longest ago go first. Their old usernames and bios stay listed, and opening one saves its current picture again. Reported in #683.
+* `Space used` is new under Storage, below `Clear saved copies now`. It adds up how much room Instagram's data takes outside its cache, names the three biggest folders and says how much of it is HushGram's own files. Asked for in #683.
 
 ## 0.0.22 (2026-11-22)
 

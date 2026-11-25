@@ -76,7 +76,7 @@ public class MediaCacheSettingsTest {
         PreferenceCategory storage = categoryHolding(page.getPreferenceScreen(), row);
         assertNotNull(storage);
         assertEquals("Storage", storage.getTitle().toString());
-        assertEquals(3, storage.getPreferenceCount());
+        assertEquals(4, storage.getPreferenceCount());
         assertFalse(row.isChecked());
         assertFalse(Settings.CLEAR_MEDIA_CACHE.get());
         assertEquals(java.util.Collections.singletonList(Settings.CLEAR_MEDIA_CACHE), PatchFamily.MEDIA_CACHE.switches);
@@ -144,6 +144,42 @@ public class MediaCacheSettingsTest {
         assertEquals(HushgramPreferenceFragment.clearMediaCacheSummary(), lines[0]);
         assertEquals("Saved photos and videos take up " + size + " now.", lines[1].replaceAll("[\\u2066-\\u2069]", ""));
     }
+    /**
+     * #683: Space used, last under Storage, adds up Instagram's data off the main thread and says its
+     * total, its biggest folders and HushGram's share, one line each.
+     */
+    @Test public void spaceUsedSaysWhatTakesUpInstagramsData() throws Exception {
+        File big = new File(RuntimeEnvironment.getApplication().getDataDir(), "files/hushgram-test/big.bin");
+        assertTrue(big.getParentFile().isDirectory() || big.getParentFile().mkdirs());
+        try (RandomAccessFile out = new RandomAccessFile(big, "rw")) {
+            out.setLength(8L * 1024 * 1024);
+        }
+        try {
+            open(true);
+            ShadowLooper.idleMainLooper();
+            Preference row = page.getPreferenceScreen().findPreference(StorageCategory.SPACE_USED);
+            assertNotNull(row);
+            assertEquals("Space used", row.getTitle().toString());
+            PreferenceCategory storage = categoryHolding(page.getPreferenceScreen(), row);
+            assertSame("last under Storage", row, storage.getPreference(storage.getPreferenceCount() - 1));
+            assertFalse(row.isSelectable());
+
+            String[] lines = plain(row.getSummary().toString()).split("\n");
+            assertEquals(row.getSummary().toString(), 3, lines.length);
+            assertTrue(lines[0], lines[0].startsWith("Instagram's data takes up ") && lines[0].endsWith(", its cache aside."));
+            assertTrue("the biggest folder comes first: " + lines[1], lines[1].startsWith("Biggest: files/hushgram-test "));
+            assertTrue(lines[2], lines[2].startsWith("HushGram's own files take up "));
+            assertEquals("Couldn't add up the space used.", StorageCategory.spaceUsedSummary(RuntimeEnvironment.getApplication(), null));
+        } finally {
+            assertTrue(big.delete());
+        }
+    }
+
+    /** [text] without the direction marks L10n.isolate puts around sizes and names. */
+    private static String plain(String text) {
+        return text.replaceAll("[" + (char) 0x2066 + "-" + (char) 0x2069 + "]", "");
+    }
+
     private static PreferenceCategory categoryHolding(PreferenceGroup group, Preference row) {
         for (int i = 0; i < group.getPreferenceCount(); i++) {
             Preference child = group.getPreference(i);

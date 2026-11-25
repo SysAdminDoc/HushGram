@@ -2661,6 +2661,13 @@ Cache size limit	Giới hạn dung lượng bộ nhớ đệm
 %1$d MB	%1$d MB
 # context: Storage: second line under Clear saved copies now; %1$s is a size such as 312 MB
 Saved photos and videos take up %1$s now.	Ảnh và video đã lưu hiện chiếm %1$s.
+# context: Storage: a row that adds up how much space Instagram's data takes up outside its cache (#683), names its biggest folders (folder names like files/mqtt stay as they are) and HushGram's own files. Adding it up shows while it reads.
+Space used	Dung lượng đã dùng
+Adding it up…	Đang tính…
+Couldn't add up the space used.	Không tính được dung lượng đã dùng.
+Instagram's data takes up %1$s, its cache aside.	Dữ liệu của Instagram chiếm %1$s, không tính bộ nhớ đệm.
+Biggest: %1$s.	Lớn nhất: %1$s.
+HushGram's own files take up %1$s.	Tệp riêng của HushGram chiếm %1$s.
 # context: Tab bar: switch under Keep the pill full size, for the liquid look's bubble under a held finger (#705)
 Glass lens under your finger	Thấu kính kính dưới ngón tay
 Hold a finger on the liquid pill's bubble, or slide it across the tabs, and the bubble swells and bends what's behind it harder, like glass under a fingertip. It eases back when you let go. The bend needs Blur behind the tab bar and Android 13 or newer. Restart Instagram after changing it.	Giữ ngón tay trên bong bóng của viên kính lỏng, hoặc trượt nó qua các tab, bong bóng sẽ phồng lên và bẻ cong mạnh hơn những gì phía sau, như kính dưới đầu ngón tay. Bong bóng trở lại như cũ khi bạn thả tay. Hiệu ứng bẻ cong cần Làm mờ phía sau thanh tab và Android 13 trở lên. Hãy khởi động lại Instagram sau khi thay đổi.
