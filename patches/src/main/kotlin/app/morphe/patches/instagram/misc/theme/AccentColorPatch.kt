@@ -110,6 +110,12 @@ private val GET_COLOR = listOf(listOf("I"), listOf("I", THEME))
  * tab's Saved bookmark as its bar keeps it ([tintBarIcons]), which answers the picked color with Icons
  * in the accent color on (#187).
  *
+ * Many icons take Instagram's text and icon color, which the text shares, rather than the icon color
+ * the icon style points: the tint a layout gives an image view, the tint Instagram's tab icon view
+ * builds, the badged icons on a profile's top bar and the line under a selected tab. Each goes through
+ * the extension as the view lays its tint on or the color is read ([tintTextIcons]), which answers the
+ * theme's icon color for that one color with Icons in the accent color on (#187).
+ *
  * Saved's filters are tabs whose pill background reads Instagram's stroke and secondary button colors,
  * which other borders and buttons share. Each tab's background goes through the extension between its
  * load and the tab ([tintSavedFilters]), which answers pills in the picked color with Filters in the
@@ -151,6 +157,7 @@ val accentColorPatch = bytecodePatch(
         tintTabIcons()
         tintReelButtons()
         tintBarIcons()
+        tintTextIcons()
         tintSavedFilters()
         tintLithoIcons()
         tintRepostAnimation()
@@ -299,13 +306,14 @@ internal fun BytecodePatchContext.swapTextViewColors() {
 }
 
 /**
- * Each constructor of [SIMPLE_IMAGE_VIEW] doing the building tells the extension of its view at each
+ * Each constructor of [IMAGE_VIEWS] doing the building tells the extension of its view at each
  * return, the way [swapTextViewColors] does. A tint the layout names with android:tint is read by the
  * framework's ImageView and never reaches [swapImageTints]' static, so the verified badge on a
- * profile's top bar stayed blue (#187).
+ * profile's top bar stayed blue, and a follow list's sort arrows and the comment composer's GIF and
+ * gift buttons kept Instagram's text color with Icons in the accent color on (#187).
  */
 internal fun BytecodePatchContext.swapImageViewTints() {
-    tellConstructorsEnd(listOf(SIMPLE_IMAGE_VIEW), SWAP_IMAGE)
+    tellConstructorsEnd(IMAGE_VIEWS, SWAP_IMAGE)
 }
 
 private fun BytecodePatchContext.tellConstructorsEnd(types: List<String>, hook: String) {
@@ -328,6 +336,12 @@ private fun BytecodePatchContext.tellConstructorsEnd(types: List<String>, hook: 
 
 /** The image view Instagram's layouts build icons and badges on, tinted with colors its XML names. */
 internal const val SIMPLE_IMAGE_VIEW = "Lcom/instagram/common/ui/base/IgSimpleImageView;"
+
+/** The image view most of Instagram's layouts build pictures and icons on, CircularImageView's base. */
+internal const val IG_IMAGE = "Lcom/instagram/common/ui/widget/imageview/IgImageView;"
+
+/** The image views whose constructors hand their view to [SWAP_IMAGE]. */
+internal val IMAGE_VIEWS = listOf(SIMPLE_IMAGE_VIEW, IG_IMAGE)
 
 private val TINT_BUILDER_PARAMETERS = List(6) { "I" }
 

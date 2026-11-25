@@ -206,7 +206,8 @@ public final class AccentColor {
      * Injected at the end of Instagram's image view constructors. A tint a layout gives an image view
      * in its XML (android:tint) is read by the framework, as the verified badge on a profile's top bar
      * has it, so it stayed blue (#187). Hands the view's tint to {@link #list}, and gives it the answer
-     * when that's a new list. Never throws.
+     * when that's a new list. Then hands the view to {@link AccentTheme#textIcons}, for a tint in
+     * Instagram's text color. Never throws.
      */
     public static void image(ImageView view) {
         try {
@@ -219,6 +220,7 @@ public final class AccentColor {
             if (before == null) return;
             ColorStateList after = list(before);
             if (after != before) view.setImageTintList(after);
+            AccentTheme.textIcons(view);
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.ACCENT_COLOR, "image view", failure);
         }

@@ -85,6 +85,7 @@ Every HushGram release, newest first.
 * With `Download button on feed posts` on, a post's Share and Save icons no longer stretch to fill their space now and then. Every icon in the row keeps its own size. Reported in #840.
 * `Keep profile history` no longer piles up old pictures. A picture that falls out of a profile's newest twenty takes its saved copy with it, and older leftovers are cleared the first time you open a profile. Reported in #683.
 * `Keep profile history` keeps its saved pictures under 100 MB. Past that, the copies of the profiles you opened longest ago go first. Their old usernames and bios stay listed, and opening one saves its current picture again. Reported in #683.
+* With `Icons in the accent color` on, the back, bell and three-dot icons atop a profile, a follow list's sort arrows and the line under its tab take your color. Reported in #187.
 
 ### Improvements
 

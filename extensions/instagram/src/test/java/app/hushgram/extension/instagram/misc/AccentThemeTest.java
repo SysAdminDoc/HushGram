@@ -13,6 +13,7 @@ import static org.junit.Assert.assertTrue;
 import android.content.Context;
 import android.content.ContextWrapper;
 import android.content.SharedPreferences;
+import android.content.res.ColorStateList;
 import android.content.res.Resources;
 import android.graphics.Canvas;
 import android.graphics.ColorFilter;
@@ -1249,6 +1250,66 @@ public class AccentThemeTest {
         AccentTheme.searchSaved(null);
         String report = HookStatus.report().toString();
         assertTrue(report, report.contains(AccentTheme.BAR_ICONS + " 1"));
+    }
+
+    /**
+     * An icon tinted with Instagram's text color, a follow list's sort arrows or the comment composer's
+     * GIF button, takes the icon color its theme holds with Icons in the accent color on, each state
+     * keeping its alpha, and other colors stay (#187). The same goes for one color and for a tab strip's
+     * line, whose 0 stays 0. Off, or a theme holding one color for both, leaves them.
+     */
+    @Test
+    public void iconsInTheTextColorTakeTheThemesIconColor() {
+        Context light = new ContextThemeWrapper(themed(THEMED + ".texticons", (name, type) -> {
+            if (!type.equals("attr")) return 0;
+            if (name.equals(AccentTheme.ICON_ATTRIBUTE)) return android.R.attr.colorForeground;
+            return name.equals(AccentTheme.TEXT_ICON_ATTRIBUTE) ? android.R.attr.colorAccent : 0;
+        }), android.R.style.Theme_Material_Light);
+        TypedValue icon = new TypedValue();
+        assertTrue(light.getTheme().resolveAttribute(android.R.attr.colorForeground, icon, true));
+        TypedValue text = new TypedValue();
+        assertTrue(light.getTheme().resolveAttribute(android.R.attr.colorAccent, text, true));
+        int textColor = text.data;
+        int iconRgb = icon.data & 0xffffff;
+        assertTrue("two colors to tell apart", (textColor & 0xffffff) != iconRgb && textColor >>> 24 == 0xff && icon.data >>> 24 == 0xff);
+        int other = 0xff123456;
+        int[][] states = {{android.R.attr.state_pressed}, {android.R.attr.state_enabled}, {}};
+        int[] pressed = {android.R.attr.state_pressed};
+        int[] enabled = {android.R.attr.state_enabled};
+        android.widget.ImageView arrows = new android.widget.ImageView(light);
+        arrows.setImageTintList(new ColorStateList(states, new int[] {0x80000000 | (textColor & 0xffffff), textColor, other}));
+        AccentColor.image(arrows);
+        assertEquals("off", textColor, arrows.getImageTintList().getColorForState(enabled, 0));
+        assertEquals("off", textColor, AccentTheme.textIcon(light, textColor));
+        Settings.ACCENT_COLOR.save(true);
+        Settings.ACCENT_HUE.save(AccentHue.TEAL);
+        Settings.ACCENT_ICONS.save(true);
+
+        AccentColor.image(arrows);
+
+        ColorStateList tint = arrows.getImageTintList();
+        assertEquals("the pressed state's alpha kept", 0x80000000 | iconRgb, tint.getColorForState(pressed, 0));
+        assertEquals("the icon color", 0xff000000 | iconRgb, tint.getColorForState(enabled, 0));
+        assertEquals("another color stays", other, tint.getColorForState(new int[0], 0));
+        assertEquals("one color", 0xff000000 | iconRgb, AccentTheme.textIcon(light, textColor));
+        assertEquals("one color with its alpha", 0x33000000 | iconRgb, AccentTheme.textIcon(light, 0x33000000 | (textColor & 0xffffff)));
+        assertEquals("another color", other, AccentTheme.textIcon(light, other));
+        View strip = new View(light);
+        assertEquals("a tab strip's line", 0xff000000 | iconRgb, AccentTheme.tabIndicator(strip, textColor));
+        assertEquals("a line with no color of its own", 0, AccentTheme.tabIndicator(strip, 0));
+        android.widget.ImageView plain = new android.widget.ImageView(light);
+        AccentTheme.textIcons(plain);
+        assertNull("no tint", plain.getImageTintList());
+
+        Context same = new ContextThemeWrapper(themed(THEMED + ".texticons.same", (name, type) -> type.equals("attr")
+                && (name.equals(AccentTheme.ICON_ATTRIBUTE) || name.equals(AccentTheme.TEXT_ICON_ATTRIBUTE)) ? android.R.attr.colorForeground : 0),
+                android.R.style.Theme_Material_Light);
+        android.widget.ImageView kept = new android.widget.ImageView(same);
+        kept.setImageTintList(ColorStateList.valueOf(icon.data));
+        AccentTheme.textIcons(kept);
+        assertEquals("one color for both", icon.data, kept.getImageTintList().getDefaultColor());
+        String report = HookStatus.report().toString();
+        assertTrue(report, report.contains(AccentTheme.TEXT_ICONS));
     }
 
     /**

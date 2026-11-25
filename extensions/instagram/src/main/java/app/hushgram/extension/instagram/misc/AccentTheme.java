@@ -82,7 +82,10 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * gray and the liked heart keeps the badge color. The wordmark is tinted with the primary text color, so it stays
  * too. Litho trees, the feed's post buttons among them, read their icon colors from the theme of the
  * context they're built on, which isn't always one the overrides or the theme util reached, so the
- * icon style also goes onto each such theme as Litho takes it up ({@link #lithoIcons}, #724).
+ * icon style also goes onto each such theme as Litho takes it up ({@link #lithoIcons}, #724). Many
+ * icons are tinted with {@code igds_color_text_and_icon_primary}, the color text shares, which the
+ * icon style leaves alone: the patch hands their tints and colors to {@link #textIcons},
+ * {@link #textIcon} and {@link #tabIndicator}, which answer the theme's icon color for that one (#187).
  *
  * <p>With {@link Settings#ACCENT_TEXT} on under it, the picked color's text style goes on after the
  * icon style, wherever that does (#187). It points {@code igds_color_primary_text} and
@@ -166,6 +169,12 @@ public final class AccentTheme {
 
     /** What's counted each time a top bar's icon, a profile tab or the Search tab's Saved bookmark takes the picked color (#187). */
     static final String BAR_ICONS = "Top bar and profile tab icons given the accent color";
+
+    /** What's counted each time an icon in Instagram's text color takes the theme's icon color instead (#187). */
+    static final String TEXT_ICONS = "Icons in the text color given the accent color";
+
+    /** The theme attribute Instagram's text and many of its icons share, the second of the patch's TEXT_ATTRIBUTES. */
+    static final String TEXT_ICON_ATTRIBUTE = "igds_color_text_and_icon_primary";
 
     /** Counted each time the text style goes onto a theme. */
     static final String TEXT = "themes given accent text";
@@ -1295,6 +1304,101 @@ public final class AccentTheme {
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.ACCENT_COLOR, "search saved", failure);
         }
+    }
+
+    /**
+     * Injected after an image view lays the tint it was given on itself: at the end of Instagram's image
+     * view constructors through {@link AccentColor#image}, and where its tab icon view builds its tint
+     * (#187). Instagram tints many icons with {@link #TEXT_ICON_ATTRIBUTE}, the color its text shares,
+     * so the icon style never reached them: a follow list's sort arrows, the comment composer's GIF,
+     * gift and mention buttons, the switches in a reel's menu. With Icons in the accent color on, each
+     * color of [view]'s tint matching what its theme holds for that attribute takes the theme's icon
+     * color instead, keeping its alpha. Leaves [view] as it is with the switch off, HushGram paused, no
+     * tint, a theme holding the same color for both (Text in the accent color on, or a viewer's own) or
+     * anything thrown.
+     */
+    public static void textIcons(ImageView view) {
+        try {
+            HookStatus.invoked(FamilyNames.ACCENT_COLOR);
+            ColorStateList tint = view == null ? null : view.getImageTintList();
+            // A subclass may draw its own way, so only a plain list is rebuilt.
+            if (tint == null || tint.getClass() != ColorStateList.class) return;
+            int[] colors = textAndIconColors(view.getContext());
+            if (colors == null) return;
+            AccentColor.Read read = AccentColor.read(tint);
+            if (read == null) return;
+            boolean changed = false;
+            for (int i = 0; i < read.colors.length; i++) {
+                int icon = textToIcon(read.colors[i], colors);
+                changed |= icon != read.colors[i];
+                read.colors[i] = icon;
+            }
+            if (!changed) return;
+            view.setImageTintList(new ColorStateList(read.states, read.colors));
+            HookStatus.counted(FamilyNames.ACCENT_COLOR, TEXT_ICONS);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.ACCENT_COLOR, "text icons", failure);
+        }
+    }
+
+    /**
+     * Injected where a drawable or view takes the color [context]'s theme holds for
+     * {@link #TEXT_ICON_ATTRIBUTE} for an icon (#187): the badged icons a profile's top bar and other
+     * bars draw, the bell, the Threads icon and the menu among them. Answers the theme's icon color for
+     * [color] the way {@link #textIcons} does for a tint, and [color] itself with the switch off,
+     * HushGram paused, any other color or anything thrown.
+     */
+    public static int textIcon(Context context, int color) {
+        return iconForText(context, color, "text icon");
+    }
+
+    /**
+     * Injected where a tab strip, [tabs], reads the color of the line under its selected tab as it draws
+     * it (#187). The follow lists and other tab strips color that line with Instagram's text and icon
+     * color, so it stayed white or black. Answers {@link #textIcon}'s answer for [color] in [tabs]'
+     * context, and 0, which draws the line's own color, as it is.
+     */
+    public static int tabIndicator(View tabs, int color) {
+        if (color == 0 || tabs == null) return color;
+        return iconForText(tabs.getContext(), color, "tab indicator");
+    }
+
+    /** {@link #textIcon}'s answer, apart from the hooks so each has only the patch calling it. */
+    private static int iconForText(@Nullable Context context, int color, String hook) {
+        try {
+            HookStatus.invoked(FamilyNames.ACCENT_COLOR);
+            int[] colors = textAndIconColors(context);
+            if (colors == null) return color;
+            int icon = textToIcon(color, colors);
+            if (icon != color) HookStatus.counted(FamilyNames.ACCENT_COLOR, TEXT_ICONS);
+            return icon;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.ACCENT_COLOR, hook, failure);
+            return color;
+        }
+    }
+
+    /**
+     * What [context]'s theme holds for {@link #TEXT_ICON_ATTRIBUTE} and for {@link #ICON_ATTRIBUTE},
+     * with Icons in the accent color on, or null with the switch off, HushGram paused, either missing,
+     * a see-through text color or both the same color.
+     */
+    @Nullable
+    private static int[] textAndIconColors(@Nullable Context context) {
+        Integer icon = iconColor(context);
+        if (icon == null) return null;
+        int attr = id(context.getResources(), TEXT_ICON_ATTRIBUTE, "attr", Utils.resourcePackage(context));
+        if (attr == 0) return null;
+        int text = themeColor(context.getTheme(), attr);
+        if (text >>> 24 == 0 || (text & 0xffffff) == (icon & 0xffffff)) return null;
+        return new int[] {text, icon};
+    }
+
+    /** [color] in [colors]' icon color, its alpha kept, when it's [colors]' text color; otherwise [color]. */
+    private static int textToIcon(int color, int[] colors) {
+        if ((color & 0xffffff) != (colors[0] & 0xffffff)) return color;
+        int alpha = (color >>> 24) * (colors[1] >>> 24) / 0xff;
+        return (alpha << 24) | (colors[1] & 0xffffff);
     }
 
     /**
