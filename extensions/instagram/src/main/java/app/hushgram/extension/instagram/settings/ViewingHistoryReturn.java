@@ -36,7 +36,10 @@ import app.hushgram.extension.shared.Utils;
  * Home, and a profile goes back to whatever was under the settings. So the next Back on that
  * screen opens the history again instead, on the tab and search it had, at the row it was on and
  * big again if it was. A link Instagram shows on a screen of its own over that one, as it does a
- * reel, keeps that screen's own Back, and the history comes back as that screen closes.
+ * reel, keeps that screen's own Back, and the history comes back as that screen closes. The
+ * screens a link only passes through show for a moment and close, and Instagram 457 names the
+ * reel's own screen (ClipsUrlHandlerActivity) like them, so which screen is the link's goes by how
+ * long it stayed up, never by its name.
  *
  * <p>It's spent once: the Back after that is Instagram's, and the history or the settings opening
  * some other way spends it too. Below Android 16 Back comes as a key through the screen's window
@@ -46,6 +49,11 @@ import app.hushgram.extension.shared.Utils;
 public final class ViewingHistoryReturn {
     /** How soon after Open a screen of Instagram's that comes up is the link's own. */
     static final long LINK_SCREEN_MS = 10_000;
+    /**
+     * How long a screen stays up before it counts as the link's own. The ones a link only passes
+     * through are up for a few milliseconds; nobody opens a reel and leaves it this quickly.
+     */
+    static final long SHOWN_MS = 800;
 
     /** Where the history was as Open left it. */
     static final class Spot {
@@ -78,8 +86,11 @@ public final class ViewingHistoryReturn {
     @Nullable private static Spot spot;
     /** The screen Open was tapped over, where the link lands or that the link's own screen covers. */
     @Nullable private static WeakReference<Activity> host;
-    /** The link's own screen over [host], once one comes up. */
+    /** The newest screen that came up over [host] since Open, the link's own once it stayed up. */
     @Nullable private static WeakReference<Activity> linkScreen;
+    /** When [linkScreen] last came to the front, and how long it was up before that. */
+    private static long linkUpSince;
+    private static long linkUpFor;
     private static long armedAt;
     /** The callback over Instagram's, from Android 13. */
     @Nullable private static Object callback;
@@ -113,6 +124,7 @@ public final class ViewingHistoryReturn {
         spot = null;
         host = null;
         linkScreen = null;
+        linkUpFor = 0;
         Object registered = callback;
         callback = null;
         if (Build.VERSION.SDK_INT >= 33 && registered instanceof BackCallback) ((BackCallback) registered).unregister();
@@ -148,11 +160,6 @@ public final class ViewingHistoryReturn {
             return ((Watcher) Proxy.getInvocationHandler(callback)).inner;
         }
         return callback;
-    }
-
-    /** A screen of Instagram's that only hands a link on, which closes as it does. */
-    static boolean handsOn(Activity activity) {
-        return activity.getClass().getSimpleName().contains("UrlHandler");
     }
 
     private static void wrap(Window window, Activity activity) {
@@ -225,20 +232,32 @@ public final class ViewingHistoryReturn {
                 WeakReference<Activity> on = host;
                 Activity armedOn = on == null ? null : on.get();
                 if (spot == null || armedOn == null) return;
+                long now = SystemClock.elapsedRealtime();
+                WeakReference<Activity> over = linkScreen;
+                Activity link = over == null ? null : over.get();
                 if (resumed != armedOn) {
-                    if (linkScreen == null && !handsOn(resumed)
-                            && SystemClock.elapsedRealtime() - armedAt <= LINK_SCREEN_MS) {
+                    if (resumed == link) {
+                        linkUpSince = now;
+                    } else if (!resumed.isFinishing() && now - armedAt <= LINK_SCREEN_MS
+                            && (link == null || gone(link) || linkUpFor < SHOWN_MS)) {
+                        // The first screen up since Open, or a newer one over a screen that only passed the link on.
                         linkScreen = new WeakReference<>(resumed);
-                        Logger.printInfo(() -> "Viewing history: Open showed " + resumed.getClass().getSimpleName()
-                                + ", which keeps its own Back");
+                        linkUpSince = now;
+                        linkUpFor = 0;
+                        Logger.printDebug(() -> "Viewing history: " + resumed.getClass().getSimpleName()
+                                + " came up after Open");
                     }
                     return;
                 }
-                WeakReference<Activity> over = linkScreen;
-                if (over == null) return;
-                Activity link = over.get();
-                if (link != null && !link.isFinishing() && !link.isDestroyed()) return;
+                if (over == null || (link != null && !gone(link))) return;
+                linkScreen = null;
+                if (linkUpFor < SHOWN_MS) {
+                    // It only passed the link on, and the link landed here.
+                    Logger.printDebug(() -> "Viewing history: the link passed through a screen and landed under it");
+                    return;
+                }
                 // The link's own screen closed, by its own Back: the history shows once this screen has.
+                Logger.printInfo(() -> "Viewing history: the screen Open showed closed");
                 Utils.runOnMainThread(() -> back(resumed));
             } catch (Throwable failure) {
                 Logger.printException(() -> "Viewing history: couldn't follow the screen Open showed", failure);
@@ -250,9 +269,17 @@ public final class ViewingHistoryReturn {
             if (on != null && on.get() == gone) disarm();
         }
 
+        @Override public void onActivityPaused(Activity paused) {
+            WeakReference<Activity> over = linkScreen;
+            if (over != null && over.get() == paused) linkUpFor += SystemClock.elapsedRealtime() - linkUpSince;
+        }
+
+        private static boolean gone(Activity activity) {
+            return activity.isFinishing() || activity.isDestroyed();
+        }
+
         @Override public void onActivityCreated(Activity activity, Bundle state) { }
         @Override public void onActivityStarted(Activity activity) { }
-        @Override public void onActivityPaused(Activity activity) { }
         @Override public void onActivityStopped(Activity activity) { }
         @Override public void onActivitySaveInstanceState(Activity activity, Bundle state) { }
     }

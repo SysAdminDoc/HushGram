@@ -415,6 +415,7 @@ public class ViewingHistorySettingsTest {
 
             controller.pause();
             try (ActivityController<Activity> link = Robolectric.buildActivity(Activity.class).setup()) {
+                ShadowLooper.idleMainLooper(2, java.util.concurrent.TimeUnit.SECONDS);
                 assertTrue(pressBack(link.get()));
                 assertTrue("Back on the link's own screen is its own", link.get().isFinishing());
                 ShadowLooper.idleMainLooper();
@@ -436,6 +437,102 @@ public class ViewingHistorySettingsTest {
             assertNull("no settings were under it", activity.getFragmentManager().findFragmentByTag(SettingsEntry.DIALOG_TAG));
             pressBack(activity);
             assertTrue("spent once", activity.isFinishing());
+        } finally {
+            SettingsEntry.onClosedByUser();
+        }
+    }
+
+    /**
+     * A reel's link on Instagram 457 goes through two screens that only hand it on and lands on
+     * ClipsUrlHandlerActivity, the reel's own screen, which has UrlHandler in its name too (#865).
+     * Which screen is the link's goes by how long it stayed up, not by its name: Back on the reel's
+     * screen is its own, and the history comes back as it closes, with the reel big again.
+     */
+    @Test public void aReelsScreenNamedLikeAHandOnStillBringsTheHistoryBack() throws Exception {
+        fourRowsAndAReel();
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            Activity activity = controller.get();
+            ViewingHistoryPage page = ViewingHistoryPage.open(activity, new HushgramPreferenceFragment.Row(activity));
+            Utils.awaitBackgroundTasksForTests();
+            ShadowLooper.idleMainLooper();
+            page.tabs[2].performClick();
+            page.list.performItemClick(null, 0, 0);
+            page.viewer.open.performClick();
+            assertTrue(String.valueOf(org.robolectric.Shadows.shadowOf(RuntimeEnvironment.getApplication())
+                    .getNextStartedActivity().getData()).startsWith("https://www.instagram.com/reel/"));
+            assertTrue(showing().isEmpty());
+
+            controller.pause();
+            // The first hands it on as it starts and never shows.
+            ActivityController<UrlHandlerLauncherActivity> launcher =
+                    Robolectric.buildActivity(UrlHandlerLauncherActivity.class).create();
+            launcher.get().finish();
+            launcher.destroy();
+            // The next shows for a moment, hands it on, and closes behind the reel's screen.
+            try (ActivityController<UrlHandlerActivity> handler = Robolectric.buildActivity(UrlHandlerActivity.class).setup()) {
+                ShadowLooper.idleMainLooper(30, java.util.concurrent.TimeUnit.MILLISECONDS);
+                handler.pause();
+                try (ActivityController<ClipsUrlHandlerActivity> reel =
+                             Robolectric.buildActivity(ClipsUrlHandlerActivity.class).setup()) {
+                    handler.get().finish();
+                    handler.stop().destroy();
+                    ShadowLooper.idleMainLooper(3, java.util.concurrent.TimeUnit.SECONDS);
+                    assertTrue("nothing over the reel while it plays", showing().isEmpty());
+
+                    assertTrue(pressBack(reel.get()));
+                    assertTrue("Back on the reel's screen is its own", reel.get().isFinishing());
+                    ShadowLooper.idleMainLooper();
+                    assertTrue(showing().isEmpty());
+                    reel.pause();
+                    controller.resume();
+                    ShadowLooper.idleMainLooper();
+                    reel.stop().destroy();
+                }
+            }
+            Utils.awaitBackgroundTasksForTests();
+            ShadowLooper.idleMainLooper();
+            java.util.List<android.app.Dialog> back = showing();
+            assertEquals("the history is back as the reel's screen closes, the reel big on it", 2, back.size());
+            assertTrue(textsIn(back.get(1)).toString(), textsIn(back.get(1)).contains("@amy"));
+            back.get(1).onBackPressed();
+            ShadowLooper.idleMainLooper();
+            assertTrue("on the Reels tab", selectedIn(showing().get(0)).contains("Reels"));
+        } finally {
+            SettingsEntry.onClosedByUser();
+        }
+    }
+
+    /**
+     * Screens that only hand a link on show nothing of their own, so the history doesn't come back
+     * as they close, even when one is the last screen up before the link lands on the screen Open
+     * was tapped over, as a post's does (#865).
+     */
+    @Test public void aScreenThatOnlyHandsTheLinkOnBringsNothingBackAsItCloses() throws Exception {
+        fourRowsAndAReel();
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            Activity activity = controller.get();
+            ViewingHistoryPage page = ViewingHistoryPage.open(activity, new HushgramPreferenceFragment.Row(activity));
+            Utils.awaitBackgroundTasksForTests();
+            ShadowLooper.idleMainLooper();
+            page.list.performItemClick(null, 0, 0);
+            page.viewer.open.performClick();
+            assertTrue(showing().isEmpty());
+
+            controller.pause();
+            try (ActivityController<Activity> handler = Robolectric.buildActivity(Activity.class).setup()) {
+                ShadowLooper.idleMainLooper(40, java.util.concurrent.TimeUnit.MILLISECONDS);
+                handler.pause();
+                handler.get().finish();
+                controller.resume();
+                handler.stop().destroy();
+            }
+            ShadowLooper.idleMainLooper(3, java.util.concurrent.TimeUnit.SECONDS);
+            assertTrue("the post shows, with nothing over it", showing().isEmpty());
+
+            assertTrue(pressBack(activity));
+            Utils.awaitBackgroundTasksForTests();
+            ShadowLooper.idleMainLooper();
+            assertEquals("Back on the post is still the way back", 2, showing().size());
         } finally {
             SettingsEntry.onClosedByUser();
         }
@@ -478,6 +575,14 @@ public class ViewingHistorySettingsTest {
 
     /** The screen Instagram hands a link through, by the name it has. */
     public static final class UrlHandlerLauncherActivity extends Activity {
+    }
+
+    /** The next one a reel's link goes through on Instagram 457. */
+    public static final class UrlHandlerActivity extends Activity {
+    }
+
+    /** The reel's own screen on Instagram 457, named like the ones that hand the link on. */
+    public static final class ClipsUrlHandlerActivity extends Activity {
     }
 
     /** Four rows of each kind, newest last, and a newer reel from amy. */
