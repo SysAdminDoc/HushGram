@@ -1313,6 +1313,87 @@ public class AccentThemeTest {
     }
 
     /**
+     * Instagram's prism chips, the filters under a search among them (#187): with Filters in the accent
+     * color on, the fill their background reads comes back as Saved's filters' look, the one you're on
+     * filled with the picked color, a pressed one keeping Instagram's color and the others clear, their
+     * outline the link shade for the screen, and the labels follow, the link shade or a color that reads
+     * on the fill once it's the one you're on. The switch off, paused or nothing to give answer
+     * Instagram's own and leave the labels.
+     */
+    @Test
+    public void prismChipsTakeThePickedColorWithTheFiltersSwitch() {
+        Ids ids = (name, type) -> type.equals("attr") && name.equals(AccentTheme.ICON_ATTRIBUTE) ? android.R.attr.colorForeground : 0;
+        Context light = new ContextThemeWrapper(themed(THEMED + ".prism", ids), android.R.style.Theme_Material_Light);
+        int gray = 0xff737373;
+        int[] selected = {android.R.attr.state_selected};
+        int[] pressed = {android.R.attr.state_pressed};
+        ColorStateList stock = new ColorStateList(new int[][] {selected, pressed, {}}, new int[] {0xff111111, 0xff222222, 0xff333333});
+        android.widget.LinearLayout chip = chip(light, gray);
+        android.widget.TextView label = (android.widget.TextView) chip.getChildAt(0);
+        android.widget.TextView inner = (android.widget.TextView) ((android.view.ViewGroup) chip.getChildAt(1)).getChildAt(0);
+        assertSame("off", stock, AccentTheme.prismFill(light, stock));
+        assertEquals("off", gray, AccentTheme.prismStroke(light, gray));
+        AccentTheme.prismChip(chip);
+        assertEquals("off", gray, label.getCurrentTextColor());
+        Settings.ACCENT_COLOR.save(true);
+        Settings.ACCENT_HUE.save(AccentHue.TEAL);
+        assertSame("the filters' switch off", stock, AccentTheme.prismFill(light, stock));
+        assertEquals("the filters' switch off", gray, AccentTheme.prismStroke(light, gray));
+        AccentTheme.prismChip(chip);
+        assertEquals("the filters' switch off", gray, label.getCurrentTextColor());
+        Settings.ACCENT_PILLS.save(true);
+
+        int onLight = 0xff000000 | AccentColor.swap(0xff3143e3, AccentHue.TEAL);
+        int fill = 0xff000000 | AccentColor.swap(0xff4a5df9, AccentHue.TEAL);
+        int onFill = AccentTheme.readsLight(fill) ? 0xff000000 : 0xffffffff;
+        ColorStateList fills = AccentTheme.prismFill(light, stock);
+        assertEquals("the one you're on filled", fill, fills.getColorForState(selected, 1));
+        assertEquals("a pressed one keeps Instagram's", 0xff222222, fills.getColorForState(pressed, 1));
+        assertEquals("the others clear", 0, fills.getColorForState(new int[0], 1));
+        assertEquals("the outline", onLight, AccentTheme.prismStroke(light, gray));
+        AccentTheme.prismChip(chip);
+        assertEquals("the others' label", onLight, label.getCurrentTextColor());
+        assertEquals("a label further in", onLight, inner.getCurrentTextColor());
+        label.setSelected(true);
+        assertEquals("the selected label reads on the fill", onFill, label.getCurrentTextColor());
+
+        Context dark = new ContextThemeWrapper(themed(THEMED + ".prism", ids), android.R.style.Theme_Material);
+        int onDark = 0xff000000 | AccentColor.swap(0xff85a1ff, AccentHue.TEAL);
+        assertEquals("the dark screen's outline", onDark, AccentTheme.prismStroke(dark, gray));
+        android.widget.LinearLayout night = chip(dark, gray);
+        AccentTheme.prismChip(night);
+        assertEquals("the dark screen's label", onDark, ((android.widget.TextView) night.getChildAt(0)).getCurrentTextColor());
+
+        assertSame("no context", stock, AccentTheme.prismFill(null, stock));
+        assertNull("nothing to give", AccentTheme.prismFill(light, null));
+        assertEquals("no context", gray, AccentTheme.prismStroke(null, gray));
+        AccentTheme.prismChip(null);
+        AccentTheme.prismChip(new View(light));
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        android.widget.LinearLayout paused = chip(light, gray);
+        assertSame("paused", stock, AccentTheme.prismFill(light, stock));
+        assertEquals("paused", gray, AccentTheme.prismStroke(light, gray));
+        AccentTheme.prismChip(paused);
+        assertEquals("paused", gray, ((android.widget.TextView) paused.getChildAt(0)).getCurrentTextColor());
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        String report = HookStatus.report().toString();
+        assertTrue(report, report.contains(AccentTheme.PRISM_CHIPS));
+    }
+
+    /** A prism chip as Instagram builds one: a label in [color], and another inside a frame. */
+    private static android.widget.LinearLayout chip(Context context, int color) {
+        android.widget.LinearLayout chip = new android.widget.LinearLayout(context);
+        chip.addView(filter(context, color));
+        android.widget.FrameLayout frame = new android.widget.FrameLayout(context);
+        frame.addView(filter(context, color));
+        chip.addView(frame);
+        return chip;
+    }
+
+    /**
      * Saved's filters (#187): with Filters in the accent color on, their background comes back as two
      * pills in the picked color, the others bordered in its link shade for the screen and the one you're
      * on filled, and the title follows the tab: the link shade, or a color that reads on the fill once

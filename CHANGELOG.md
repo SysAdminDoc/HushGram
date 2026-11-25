@@ -89,6 +89,7 @@ Every HushGram release, newest first.
 * `Keep profile history` no longer piles up old pictures. A picture that falls out of a profile's newest twenty takes its saved copy with it, and older leftovers are cleared the first time you open a profile. Reported in #683.
 * `Keep profile history` keeps its saved pictures under 100 MB. Past that, the copies of the profiles you opened longest ago go first. Their old usernames and bios stay listed, and opening one saves its current picture again. Reported in #683.
 * With `Icons in the accent color` on, the back, bell and three-dot icons atop a profile, a follow list's sort arrows and the line under its tab take your color. Reported in #187.
+* With `Filters in the accent color` on, the filters under a search take your color too. The one you're on is filled with it, like Saved's filters. Reported in #187.
 
 ### Improvements
 

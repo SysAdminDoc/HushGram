@@ -24,6 +24,7 @@ import android.graphics.drawable.ShapeDrawable;
 import android.graphics.drawable.StateListDrawable;
 import android.util.TypedValue;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -94,7 +95,8 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  *
  * <p>With {@link Settings#ACCENT_PILLS} on, Saved's filters take the picked color through
  * {@link #savedFilter} as each gets its background (#187): the outlined ones a border and title in the
- * link shade, the selected one the picked fill.
+ * link shade, the selected one the picked fill. The prism chips under a search take the same look
+ * through {@link #prismFill}, {@link #prismStroke} and {@link #prismChip}.
  *
  * <p>With {@link Settings#ACCENT_REELS} on, the buttons beside a reel and their counts take the picked
  * color (#187). The column reads one color for its counts, white over the video, and builds its buttons
@@ -1361,6 +1363,96 @@ public final class AccentTheme {
     public static int tabIndicator(View tabs, int color) {
         if (color == 0 || tabs == null) return color;
         return iconForText(tabs.getContext(), color, "tab indicator");
+    }
+
+    /** Counted each time a prism chip's fill, outline or label takes the picked color (#187). */
+    static final String PRISM_CHIPS = "Chips given the accent color";
+
+    /**
+     * Injected where the background of Instagram's prism chips reads its fill for each state, [fill],
+     * from [context]'s theme (#187): the filters under a search among them. With
+     * {@link Settings#ACCENT_PILLS} on, answers Saved's filters' look: the chip you're on filled with
+     * the picked color and the others left clear for {@link #prismStroke}'s outline, a pressed one
+     * keeping Instagram's color. Answers [fill] itself with the switch off, HushGram paused or anything
+     * thrown.
+     */
+    public static ColorStateList prismFill(Context context, ColorStateList fill) {
+        try {
+            HookStatus.invoked(FamilyNames.ACCENT_COLOR);
+            AccentHue hue = AccentColor.picked();
+            if (context == null || fill == null || hue == null || !Settings.ACCENT_PILLS.get()) return fill;
+            int picked = 0xff000000 | AccentColor.swap(FILL, hue);
+            int pressed = fill.getColorForState(new int[] {android.R.attr.state_pressed}, fill.getDefaultColor());
+            HookStatus.counted(FamilyNames.ACCENT_COLOR, PRISM_CHIPS);
+            return new ColorStateList(
+                    new int[][] {{android.R.attr.state_selected}, {android.R.attr.state_pressed}, {}},
+                    new int[] {picked, pressed, 0});
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.ACCENT_COLOR, "prism fill", failure);
+            return fill;
+        }
+    }
+
+    /**
+     * Injected where the background of Instagram's prism chips reads the color it outlines a chip
+     * you're not on with, [color], from [context]'s theme (#187). With {@link Settings#ACCENT_PILLS}
+     * on, answers the shade of the picked color Saved's filters are outlined in. Answers [color] itself
+     * with the switch off, HushGram paused or anything thrown.
+     */
+    public static int prismStroke(Context context, int color) {
+        try {
+            HookStatus.invoked(FamilyNames.ACCENT_COLOR);
+            AccentHue hue = AccentColor.picked();
+            if (context == null || hue == null || !Settings.ACCENT_PILLS.get()) return color;
+            HookStatus.counted(FamilyNames.ACCENT_COLOR, PRISM_CHIPS);
+            return pillLink(context, hue);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.ACCENT_COLOR, "prism stroke", failure);
+            return color;
+        }
+    }
+
+    /**
+     * Injected as one of Instagram's prism chips, [chip], is built and each time it's selected or not
+     * (#187). With {@link Settings#ACCENT_PILLS} on, its labels read as Saved's filters' do: black or
+     * white on the picked fill of the chip you're on, whichever reads, and the outline's shade on the
+     * others. Never throws.
+     */
+    public static void prismChip(View chip) {
+        try {
+            HookStatus.invoked(FamilyNames.ACCENT_COLOR);
+            AccentHue hue = AccentColor.picked();
+            if (!(chip instanceof ViewGroup) || hue == null || !Settings.ACCENT_PILLS.get()) return;
+            int fill = 0xff000000 | AccentColor.swap(FILL, hue);
+            ColorStateList labels = new ColorStateList(
+                    new int[][] {{android.R.attr.state_selected}, {}},
+                    new int[] {readsLight(fill) ? 0xff000000 : 0xffffffff, pillLink(chip.getContext(), hue)});
+            if (colorLabels((ViewGroup) chip, labels)) HookStatus.counted(FamilyNames.ACCENT_COLOR, PRISM_CHIPS);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.ACCENT_COLOR, "prism chip", failure);
+        }
+    }
+
+    /** Gives every TextView under [group] [labels], answering whether there was one. */
+    private static boolean colorLabels(ViewGroup group, ColorStateList labels) {
+        boolean any = false;
+        for (int i = 0; i < group.getChildCount(); i++) {
+            View child = group.getChildAt(i);
+            if (child instanceof TextView) {
+                ((TextView) child).setTextColor(labels);
+                any = true;
+            } else if (child instanceof ViewGroup) {
+                any |= colorLabels((ViewGroup) child, labels);
+            }
+        }
+        return any;
+    }
+
+    /** The shade of [hue] Saved's filters are outlined in and label the ones you're not on with, for [context]'s theme. */
+    private static int pillLink(Context context, AccentHue hue) {
+        Resources resources = context.getResources();
+        boolean dark = dark(context, context.getTheme(), id(resources, ICON_ATTRIBUTE, "attr", Utils.resourcePackage(context)));
+        return 0xff000000 | AccentColor.swap(dark ? LINK_ON_DARK : LINK_ON_LIGHT, hue);
     }
 
     /** {@link #textIcon}'s answer, apart from the hooks so each has only the patch calling it. */

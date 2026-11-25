@@ -101,8 +101,8 @@ public class AccentColorSettingsTest {
         assertEquals("under the icons' switch", Settings.ACCENT_ICONS, Settings.ACCENT_TEXT.getParentSettings().get(0));
         SwitchPreference pills = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.ACCENT_PILLS.key);
         assertEquals("Filters in the accent color", pills.getTitle().toString());
-        assertEquals("The filters along the top of Saved take the color you picked, and the one you're on is filled "
-                + "with it. Restart Instagram to see the change.", pills.getSummary().toString());
+        assertEquals("The filters along the top of Saved and under a search take the color you picked, and the one "
+                + "you're on is filled with it. Restart Instagram to see the change.", pills.getSummary().toString());
         assertFalse("filters start off", pills.isChecked());
         assertEquals("under the accent's switch", Settings.ACCENT_COLOR, Settings.ACCENT_PILLS.getParentSettings().get(0));
         SwitchPreference classic = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.CLASSIC_COLORS.key);
