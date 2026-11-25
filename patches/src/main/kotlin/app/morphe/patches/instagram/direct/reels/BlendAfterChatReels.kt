@@ -45,7 +45,9 @@ private fun refuseBlend(detail: String): Nothing = throw PatchException("Swipe t
  * Where the Reels viewer picks the source of a reel opened from a chat that has a Blend (#804). The
  * picker (456's 06CU.A00) builds the chat's own source, which pages the chat's shared reels and then
  * its second side, only when the config holds no Blend. With a Blend it builds the Blend's source
- * instead, which pages the Blend's reels, so the chat's other shared reels never come.
+ * instead, which pages the Blend's reels, so the chat's other shared reels never come. Once Instagram
+ * has loaded the chat's Blend, a reel tapped in the chat opens with the Blend's viewer source instead
+ * of the chat's (457's 0lNl), still holding the chat, and the picker builds the same Blend source for it.
  *
  * [after] is the instruction after the Blend source's constructor, [blend] the register holding the
  * new source and [config] the picker's config parameter. The config's fields: where it was opened

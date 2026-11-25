@@ -355,7 +355,7 @@ public class ChatReelsTest {
     }
 
     /** Stand-ins for Instagram's viewer sources, named as its enum names them. */
-    private enum Source { DIRECT, DIRECT_SEARCH, CLIPS_TAB }
+    private enum Source { DIRECT, DIRECT_SEARCH, CLIPS_TAB, BLEND }
 
     /** A cached reel is skipped only in a viewer opened from a chat, and only with the stop on (#390). */
     @Test
@@ -575,6 +575,25 @@ public class ChatReelsTest {
         SettingsContextRule.withoutContext(() ->
                 assertFalse("no context", ChatReels.blendAfterChat(Source.DIRECT, "340282366841710300949128")));
         assertTrue("back on", ChatReels.blendAfterChat(Source.DIRECT, "340282366841710300949128"));
+    }
+
+    /**
+     * Once Instagram has loaded a chat's Blend, a reel tapped in that chat opens as the Blend's, still
+     * holding the chat (#804). It goes through the chat's own reels first too: yes for the Blend's
+     * viewer with the chat's id, no without one or with the switch off, so a Blend opened anywhere else
+     * stays Instagram's. Everything else keyed on a chat's viewer still reads it as a Blend's.
+     */
+    @Test
+    public void aReelTappedInAChatWhoseBlendLoadedStillGoesThroughTheChatsReelsFirst() {
+        assertTrue("a Blend's viewer holding the chat", ChatReels.blendAfterChat(Source.BLEND, "340282366841710300949128"));
+        assertFalse("a Blend's viewer without a chat", ChatReels.blendAfterChat(Source.BLEND, null));
+        assertFalse("an empty id", ChatReels.blendAfterChat(Source.BLEND, ""));
+        assertFalse("not an enum", ChatReels.blendAfterChat("BLEND", "340282366841710300949128"));
+        assertFalse("still not a chat's viewer", ChatReels.fromChat(Source.BLEND));
+
+        Settings.SWIPE_CHAT_REELS.save(false);
+        assertFalse("off", ChatReels.blendAfterChat(Source.BLEND, "340282366841710300949128"));
+        Settings.SWIPE_CHAT_REELS.save(true);
     }
 
     /** The viewer a shared comment's tap opens keeps Instagram's Blend, as it keeps Instagram's chain answer (#662). */
