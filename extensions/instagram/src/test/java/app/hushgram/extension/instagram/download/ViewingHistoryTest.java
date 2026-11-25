@@ -47,6 +47,7 @@ public class ViewingHistoryTest {
     @After public void tearDown() throws Exception {
         Utils.awaitBackgroundTasksForTests();
         Settings.VIEWING_HISTORY.resetToDefault();
+        Settings.VIEWING_HISTORY_DAYS.resetToDefault();
         ViewingHistory.clear(context);
         ViewingHistory.forgetForTests();
     }
@@ -100,6 +101,81 @@ public class ViewingHistoryTest {
         assertEquals(ViewingHistory.MAX_ENTRIES, rows.size());
         assertEquals((ViewingHistory.MAX_ENTRIES + 24) + "_1", rows.get(0).id);
         assertEquals("25_1", rows.get(rows.size() - 1).id);
+    }
+
+    /**
+     * #228: under Keep history for's days, a row goes once it's older than them, on an add or a read,
+     * the file and its picture with it, and more than 500 stay.
+     */
+    @Test public void aTimeLimitDropsWhatsOlderAndKeepsMoreThanFiveHundred() throws Exception {
+        Settings.VIEWING_HISTORY_DAYS.save(7);
+        long now = 100 * ViewingHistory.DAY;
+        ViewingHistory.add(context, Kind.POST, "old_1", "ann", now - 8 * ViewingHistory.DAY);
+        ViewingHistory.add(context, Kind.STORY, "edge_1", "ann", now - 7 * ViewingHistory.DAY + 5_000L);
+        Utils.awaitBackgroundTasksForTests();
+        File picture = ViewingHistory.pictureFile(context, ViewingHistory.entries(context, now - ViewingHistory.DAY).get(1));
+        assertEquals("old_1", picture.getName().replace("post-", "").replace(".jpg", ""));
+        assertTrue(picture.getParentFile().isDirectory() || picture.getParentFile().mkdirs());
+        java.nio.file.Files.write(picture.toPath(), new byte[]{1});
+        for (int i = 0; i < ViewingHistory.MAX_ENTRIES + 100; i++) {
+            ViewingHistory.add(context, Kind.REEL, i + "_1", "bob", now - 4_000L + i);
+        }
+        List<ViewingHistory.Row> rows = ViewingHistory.entries(context, now);
+        assertEquals("more than 500 stay under a time limit", ViewingHistory.MAX_ENTRIES + 101, rows.size());
+        assertEquals((ViewingHistory.MAX_ENTRIES + 99) + "_1", rows.get(0).id);
+        assertEquals("edge_1", rows.get(rows.size() - 1).id);
+        for (ViewingHistory.Row row : rows) assertFalse("older than 7 days goes", row.id.equals("old_1"));
+        Utils.awaitBackgroundTasksForTests();
+        assertFalse("its picture goes with it", picture.exists());
+
+        List<ViewingHistory.Row> later = ViewingHistory.entries(context, now + 6_000L);
+        assertEquals("a read alone ages the list", ViewingHistory.MAX_ENTRIES + 100, later.size());
+        assertEquals("0_1", later.get(later.size() - 1).id);
+        Utils.awaitBackgroundTasksForTests();
+        ViewingHistory.forgetForTests();
+        assertEquals("the file was written without it", ViewingHistory.MAX_ENTRIES + 100,
+                ViewingHistory.entries(context, now + 6_000L).size());
+
+        Settings.VIEWING_HISTORY_DAYS.save(0);
+        List<ViewingHistory.Row> back = ViewingHistory.entries(context, now + 6_000L);
+        assertEquals("back on the newest 500", ViewingHistory.MAX_ENTRIES, back.size());
+        assertEquals((ViewingHistory.MAX_ENTRIES + 99) + "_1", back.get(0).id);
+    }
+
+    /** #228: under a time limit at most 2000 stay, the oldest going first, and the file reads back that many. */
+    @Test public void aTimeLimitStillKeepsAtMostTheCeiling() throws Exception {
+        Settings.VIEWING_HISTORY_DAYS.save(30);
+        long now = 100 * ViewingHistory.DAY;
+        File file = new File(new File(context.getFilesDir(), "hushgram-viewing"), "history.tsv");
+        assertTrue(file.getParentFile().isDirectory() || file.getParentFile().mkdirs());
+        StringBuilder text = new StringBuilder();
+        for (int i = ViewingHistory.CEILING + 50; i > 0; i--) {
+            text.append(now - 60_000L * (ViewingHistory.CEILING + 60 - i)).append("\tPOST\t").append(i).append("_9\tann\t\n");
+        }
+        java.nio.file.Files.write(file.toPath(), text.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        ViewingHistory.forgetForTests();
+        List<ViewingHistory.Row> read = ViewingHistory.entries(context, now);
+        assertEquals(ViewingHistory.CEILING, read.size());
+        assertEquals((ViewingHistory.CEILING + 50) + "_9", read.get(0).id);
+
+        ViewingHistory.add(context, Kind.REEL, "new_9", "bob", now);
+        List<ViewingHistory.Row> rows = ViewingHistory.entries(context, now);
+        assertEquals(ViewingHistory.CEILING, rows.size());
+        assertEquals("new_9", rows.get(0).id);
+        assertEquals("the oldest went", "52_9", rows.get(rows.size() - 1).id);
+    }
+
+    /** #228: while the settings can't be read, nothing goes for its age and the ceiling still holds. */
+    @Test public void unreadableSettingsDropNothingForAge() {
+        Settings.VIEWING_HISTORY_DAYS.save(3);
+        long now = 100 * ViewingHistory.DAY;
+        ViewingHistory.add(context, Kind.POST, "old_2", "ann", now - 10 * ViewingHistory.DAY);
+        SettingsContextRule.withoutContext(() -> {
+            assertEquals(-1, ViewingHistory.keptDays());
+            assertEquals(1, ViewingHistory.entries(context, now).size());
+        });
+        assertEquals(3, ViewingHistory.keptDays());
+        assertEquals(0, ViewingHistory.entries(context, now).size());
     }
 
     @Test public void theListSurvivesAProcessRestartAndClearWipesItAndTheFile() throws Exception {

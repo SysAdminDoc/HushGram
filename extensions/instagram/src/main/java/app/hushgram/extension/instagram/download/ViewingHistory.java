@@ -33,9 +33,10 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * <p>It reads only what Instagram already loaded for the screen: the media's id, who posted it and
  * the address of a small copy of its picture, or the profile's name and picture. It sends nothing
  * anywhere and reads nothing about other accounts. The history page fetches a row's picture from
- * Meta's media servers, as Instagram does, and keeps a copy in the app's cache. The list holds at
- * most {@link #MAX_ENTRIES} rows in one small file in the app's own storage, and it's left out of
- * the settings backup.
+ * Meta's media servers, as Instagram does, and keeps a copy in the app's cache. The list holds the
+ * newest {@link #MAX_ENTRIES} rows, or the rows of the days Keep history for picks up to
+ * {@link #CEILING} (#228), in one small file in the app's own storage, and it's left out of the
+ * settings backup.
  */
 public final class ViewingHistory {
     /** What an entry is. */
@@ -127,8 +128,16 @@ public final class ViewingHistory {
      */
     private static final java.util.Set<String> FETCHED_BIGGER = java.util.concurrent.ConcurrentHashMap.newKeySet();
 
-    /** The most rows kept. The oldest go first. */
+    /** The most rows kept with no time limit, the start. The oldest go first. */
     static final int MAX_ENTRIES = 500;
+
+    /**
+     * The most rows kept under a time limit (#228), whatever the days, so the file, the page and the
+     * kept pictures stay small. The oldest go first.
+     */
+    static final int CEILING = 2000;
+
+    static final long DAY = 24L * 60 * 60 * 1000;
 
     /** The same thing coming up again within this long isn't a new row. */
     static final long SAME_AGAIN_MS = 60_000L;
@@ -263,8 +272,40 @@ public final class ViewingHistory {
     }
 
     /**
+     * The days Keep history for picks, 0 for the newest {@link #MAX_ENTRIES} whatever their age, or -1
+     * while the settings can't be read, when nothing is dropped for age and only {@link #CEILING} holds.
+     */
+    static int keptDays() {
+        try {
+            return Utils.settingsReady() ? Math.max(0, Settings.VIEWING_HISTORY_DAYS.get()) : -1;
+        } catch (Throwable failure) {
+            return -1;
+        }
+    }
+
+    /**
+     * Drops into [dropped] the rows Keep history for no longer keeps at [now]: those older than its days,
+     * then the oldest past {@link #CEILING}, or past {@link #MAX_ENTRIES} with no time limit (#228). A row
+     * from later than [now], after the phone's clock went back, stays. Hold {@link #LOCK}.
+     */
+    private static void prune(long now, List<Row> dropped) {
+        int days = keptDays();
+        if (days > 0) {
+            long oldest = now - days * DAY;
+            for (java.util.Iterator<Row> rows = ROWS.iterator(); rows.hasNext(); ) {
+                Row row = rows.next();
+                if (row.time >= oldest) continue;
+                dropped.add(row);
+                rows.remove();
+            }
+        }
+        int most = days == 0 ? MAX_ENTRIES : CEILING;
+        while (ROWS.size() > most) dropped.add(ROWS.remove(ROWS.size() - 1));
+    }
+
+    /**
      * Puts a row at the top unless the same thing was put there within {@link #SAME_AGAIN_MS}, drops
-     * the oldest past {@link #MAX_ENTRIES} and writes the file off the calling thread. The same
+     * what Keep history for no longer keeps and writes the file off the calling thread. The same
      * thing seen again later moves up to the top, so it shows once, with the newer picture address
      * when it came with one, since Instagram's addresses stop working after a while.
      */
@@ -284,7 +325,7 @@ public final class ViewingHistory {
                 break;
             }
             ROWS.add(0, new Row(now, kind, id, owner, keptPicture));
-            while (ROWS.size() > MAX_ENTRIES) dropped.add(ROWS.remove(ROWS.size() - 1));
+            prune(now, dropped);
         }
         Utils.runOnBackgroundThread(() -> {
             save(application);
@@ -292,13 +333,31 @@ public final class ViewingHistory {
         });
     }
 
-    /** The rows, newest first. */
+    /** The rows, newest first, without what Keep history for no longer keeps. */
     public static List<Row> entries(Context context) {
+        return entries(context, System.currentTimeMillis());
+    }
+
+    /**
+     * The rows at [now], newest first. Rows Keep history for no longer keeps go first, and the file
+     * and their pictures follow off the calling thread, so a list nobody adds to still ages.
+     */
+    static List<Row> entries(Context context, long now) {
         Context application = context.getApplicationContext() != null ? context.getApplicationContext() : context;
+        List<Row> dropped = new ArrayList<>();
+        List<Row> rows;
         synchronized (LOCK) {
             load(application);
-            return Collections.unmodifiableList(new ArrayList<>(ROWS));
+            prune(now, dropped);
+            rows = Collections.unmodifiableList(new ArrayList<>(ROWS));
         }
+        if (!dropped.isEmpty()) {
+            Utils.runOnBackgroundThread(() -> {
+                save(application);
+                for (Row gone : dropped) forgetPicture(application, gone);
+            });
+        }
+        return rows;
     }
 
     /** How many rows are kept. */
@@ -490,7 +549,8 @@ public final class ViewingHistory {
                 } catch (IllegalArgumentException skip) {
                     // A line that isn't one of ours is left out.
                 }
-                if (ROWS.size() >= MAX_ENTRIES) break;
+                // Up to the most any choice keeps. What the choice drops goes on the next add or read.
+                if (ROWS.size() >= CEILING) break;
             }
         } catch (IOException | RuntimeException failure) {
             HookStatus.threw(FAMILY, "viewing history read", failure);

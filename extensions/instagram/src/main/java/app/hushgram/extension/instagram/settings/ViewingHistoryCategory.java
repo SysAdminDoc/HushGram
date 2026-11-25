@@ -6,6 +6,7 @@ package app.hushgram.extension.instagram.settings;
 
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.category;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.clearViewingHistory;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.historyDaysRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.mark;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.toggle;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.viewingHistoryRow;
@@ -31,6 +32,7 @@ final class ViewingHistoryCategory {
                 L10n.t("Remembers the posts, reels, stories and profiles that come up on screen, and who posted "
                         + "them, newest first, on this phone only. The list shows their pictures, loaded from "
                         + "Instagram's image servers and kept on the phone. Turn it off and it stops at once.")));
+        section.addPreference(historyDaysRow(context));
         Preference history = viewingHistoryRow(context);
         section.addPreference(history);
         HushgramPreferenceFragment.Row clear = new HushgramPreferenceFragment.Row(context);

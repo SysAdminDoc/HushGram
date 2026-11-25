@@ -2971,3 +2971,19 @@ Getting the file ready	Datei wird vorbereitet
 Couldn't get the file	Datei nicht geladen
 # context: Details in a post's menu (#839): a toast when no app on the phone takes the photo or video Open with offers
 No app here can open it	Keine App kann es öffnen
+# context: Keep history for (#228): the title of a list row under Keep a viewing history, and of its dialogs
+Keep history for	Verlauf behalten für
+# context: Keep history for (#228): its first choice, the newest 500 rows whatever their age
+Newest 500	Neueste 500
+# context: Keep history for (#228): a choice of one day, typed under Custom
+1 day	1 Tag
+# context: Keep history for (#228): a choice of days, like 7 days; %1$s is the number
+%1$s days	%1$s Tage
+# context: Keep history for (#228): the message of the dialog Custom opens
+Type how many days to keep, from 1 to 365.	Gib ein, wie viele Tage behalten werden sollen, von 1 bis 365.
+# context: Keep history for (#228): the row's summary with Newest 500 chosen
+The newest 500 stay, however old they are.	Die neuesten 500 bleiben, egal wie alt sie sind.
+# context: Keep history for (#228): the row's summary with one day chosen
+Anything seen more than a day ago goes. At most 2000 stay.	Was vor mehr als einem Tag angesehen wurde, wird entfernt. Höchstens 2000 bleiben.
+# context: Keep history for (#228): the row's summary with some days chosen; %1$s is the number
+Anything seen more than %1$s days ago goes. At most 2000 stay.	Was vor mehr als %1$s Tagen angesehen wurde, wird entfernt. Höchstens 2000 bleiben.

@@ -53,8 +53,57 @@ public class ViewingHistorySettingsTest {
         PatchFamily.inBuildForTests = null;
         Settings.VIEWING_HISTORY.resetToDefault();
         Settings.VIEWING_HISTORY_GRID.resetToDefault();
+        Settings.VIEWING_HISTORY_DAYS.resetToDefault();
         Context context = RuntimeEnvironment.getApplication();
         ViewingHistory.clear(context);
+    }
+
+    /**
+     * Keep history for (#228): under the switch and waiting for it, the newest 500 to start, 3, 7, 15 or
+     * 30 days, or Custom, which asks for a number of days and saves it. It goes in a settings file.
+     */
+    @Test public void keepHistoryForOffersDaysOrANumberAndWaitsForTheSwitch() throws Exception {
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.VIDEO_DOWNLOAD);
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.VIEWING_HISTORY_DAYS.key));
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            HushgramPreferenceFragment page = DownloadSettingsTest.pageIn(controller);
+            HushgramPreferenceFragment.HistoryDaysRow days =
+                    (HushgramPreferenceFragment.HistoryDaysRow) page.findPreference(Settings.VIEWING_HISTORY_DAYS.key);
+            assertNotNull(days);
+            assertEquals("Keep history for", String.valueOf(days.getTitle()));
+            assertEquals("Viewing history",
+                    String.valueOf(StoryTimeSettingsTest.sectionOf(page.getPreferenceScreen(), days).getTitle()));
+            assertFalse("it waits for the switch", days.isEnabled());
+            java.util.List<String> entries = new java.util.ArrayList<>();
+            for (CharSequence entry : days.getEntries()) entries.add(entry.toString());
+            assertEquals(Arrays.asList("Newest 500", "3 days", "7 days", "15 days", "30 days", "Custom"), entries);
+            assertEquals("0", days.getValue());
+            assertEquals("The newest 500 stay, however old they are.", String.valueOf(days.getSummary()));
+
+            ((SwitchPreference) page.findPreference(Settings.VIEWING_HISTORY.key)).setChecked(true);
+            ShadowLooper.idleMainLooper();
+            assertTrue(days.isEnabled());
+            assertTrue("a list entry saves its days", days.getOnPreferenceChangeListener().onPreferenceChange(days, "7"));
+            assertFalse("Custom itself is never saved",
+                    days.getOnPreferenceChangeListener().onPreferenceChange(days, HushgramPreferenceFragment.HistoryDaysRow.CUSTOM));
+            android.app.AlertDialog ask = (android.app.AlertDialog) org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog();
+            assertNotNull("Custom asks for a number", ask);
+            assertTrue(ask.isShowing());
+            ((android.widget.EditText) ask.findViewById(android.R.id.edit)).setText("12");
+            ask.getButton(android.app.AlertDialog.BUTTON_POSITIVE).performClick();
+            ShadowLooper.idleMainLooper();
+            assertEquals(12, (int) Settings.VIEWING_HISTORY_DAYS.get());
+            assertEquals("12", days.getValue());
+            assertEquals("a number the list doesn't have marks Custom", 5, days.findIndexOfValue("12"));
+            assertEquals(2, days.findIndexOfValue("7"));
+            assertEquals("Anything seen more than 12 days ago goes. At most 2000 stay.", String.valueOf(days.getSummary()));
+        }
+        assertEquals(0, HushgramPreferenceFragment.HistoryDaysRow.customDays("0"));
+        assertEquals(0, HushgramPreferenceFragment.HistoryDaysRow.customDays(""));
+        assertEquals(0, HushgramPreferenceFragment.HistoryDaysRow.customDays("abc"));
+        assertEquals(1, HushgramPreferenceFragment.HistoryDaysRow.customDays(" 1 "));
+        assertEquals(365, HushgramPreferenceFragment.HistoryDaysRow.customDays("999"));
+        assertEquals("1 day", HushgramPreferenceFragment.historyDaysLabel(1));
     }
 
     @Test public void theSwitchStartsOffBelongsToTheDownloadPatchAndIsBackedUp() {

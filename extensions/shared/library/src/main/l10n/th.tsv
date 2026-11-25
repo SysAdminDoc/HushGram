@@ -2968,3 +2968,19 @@ Getting the file ready	กำลังเตรียมไฟล์
 Couldn't get the file	ไม่สามารถดึงไฟล์ได้
 # context: Details in a post's menu (#839): a toast when no app on the phone takes the photo or video Open with offers
 No app here can open it	ไม่มีแอปที่เปิดได้
+# context: Keep history for (#228): the title of a list row under Keep a viewing history, and of its dialogs
+Keep history for	เก็บประวัติไว้
+# context: Keep history for (#228): its first choice, the newest 500 rows whatever their age
+Newest 500	ล่าสุด 500 รายการ
+# context: Keep history for (#228): a choice of one day, typed under Custom
+1 day	1 วัน
+# context: Keep history for (#228): a choice of days, like 7 days; %1$s is the number
+%1$s days	%1$s วัน
+# context: Keep history for (#228): the message of the dialog Custom opens
+Type how many days to keep, from 1 to 365.	พิมพ์จำนวนวันที่จะเก็บ ตั้งแต่ 1 ถึง 365
+# context: Keep history for (#228): the row's summary with Newest 500 chosen
+The newest 500 stay, however old they are.	เก็บ 500 รายการล่าสุดไว้ ไม่ว่าจะเก่าแค่ไหน
+# context: Keep history for (#228): the row's summary with one day chosen
+Anything seen more than a day ago goes. At most 2000 stay.	รายการที่ดูไปนานกว่า 1 วันจะถูกลบ เก็บไว้มากสุด 2000 รายการ
+# context: Keep history for (#228): the row's summary with some days chosen; %1$s is the number
+Anything seen more than %1$s days ago goes. At most 2000 stay.	รายการที่ดูไปนานกว่า %1$s วันจะถูกลบ เก็บไว้มากสุด 2000 รายการ

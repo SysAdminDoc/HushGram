@@ -2970,3 +2970,19 @@ Getting the file ready	파일을 준비하는 중
 Couldn't get the file	파일을 가져오지 못했어요
 # context: Details in a post's menu (#839): a toast when no app on the phone takes the photo or video Open with offers
 No app here can open it	열 수 있는 앱이 없어요
+# context: Keep history for (#228): the title of a list row under Keep a viewing history, and of its dialogs
+Keep history for	기록 보관 기간
+# context: Keep history for (#228): its first choice, the newest 500 rows whatever their age
+Newest 500	최근 500개
+# context: Keep history for (#228): a choice of one day, typed under Custom
+1 day	1일
+# context: Keep history for (#228): a choice of days, like 7 days; %1$s is the number
+%1$s days	%1$s일
+# context: Keep history for (#228): the message of the dialog Custom opens
+Type how many days to keep, from 1 to 365.	보관할 일수를 1에서 365 사이로 입력하세요.
+# context: Keep history for (#228): the row's summary with Newest 500 chosen
+The newest 500 stay, however old they are.	기간과 상관없이 최근 500개를 남겨요.
+# context: Keep history for (#228): the row's summary with one day chosen
+Anything seen more than a day ago goes. At most 2000 stay.	본 지 하루가 넘은 항목은 지워져요. 최대 2000개까지 남아요.
+# context: Keep history for (#228): the row's summary with some days chosen; %1$s is the number
+Anything seen more than %1$s days ago goes. At most 2000 stay.	본 지 %1$s일이 넘은 항목은 지워져요. 최대 2000개까지 남아요.

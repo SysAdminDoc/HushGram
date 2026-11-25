@@ -2974,3 +2974,19 @@ Getting the file ready	正在準備檔案
 Couldn't get the file	無法取得檔案
 # context: Details in a post's menu (#839): a toast when no app on the phone takes the photo or video Open with offers
 No app here can open it	沒有可開啟的應用程式
+# context: Keep history for (#228): the title of a list row under Keep a viewing history, and of its dialogs
+Keep history for	紀錄保留時間
+# context: Keep history for (#228): its first choice, the newest 500 rows whatever their age
+Newest 500	最新 500 筆
+# context: Keep history for (#228): a choice of one day, typed under Custom
+1 day	1 天
+# context: Keep history for (#228): a choice of days, like 7 days; %1$s is the number
+%1$s days	%1$s 天
+# context: Keep history for (#228): the message of the dialog Custom opens
+Type how many days to keep, from 1 to 365.	輸入要保留的天數，1 到 365。
+# context: Keep history for (#228): the row's summary with Newest 500 chosen
+The newest 500 stay, however old they are.	保留最新 500 筆，不論多久以前。
+# context: Keep history for (#228): the row's summary with one day chosen
+Anything seen more than a day ago goes. At most 2000 stay.	超過一天前看過的會移除，最多保留 2000 筆。
+# context: Keep history for (#228): the row's summary with some days chosen; %1$s is the number
+Anything seen more than %1$s days ago goes. At most 2000 stay.	超過 %1$s 天前看過的會移除，最多保留 2000 筆。

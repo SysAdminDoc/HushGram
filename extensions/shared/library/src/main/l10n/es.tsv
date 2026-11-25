@@ -2971,3 +2971,19 @@ Getting the file ready	Preparando el archivo
 Couldn't get the file	No se pudo obtener el archivo
 # context: Details in a post's menu (#839): a toast when no app on the phone takes the photo or video Open with offers
 No app here can open it	Ninguna app puede abrirlo
+# context: Keep history for (#228): the title of a list row under Keep a viewing history, and of its dialogs
+Keep history for	Guardar el historial durante
+# context: Keep history for (#228): its first choice, the newest 500 rows whatever their age
+Newest 500	Los 500 más recientes
+# context: Keep history for (#228): a choice of one day, typed under Custom
+1 day	1 día
+# context: Keep history for (#228): a choice of days, like 7 days; %1$s is the number
+%1$s days	%1$s días
+# context: Keep history for (#228): the message of the dialog Custom opens
+Type how many days to keep, from 1 to 365.	Escribe cuántos días guardar, de 1 a 365.
+# context: Keep history for (#228): the row's summary with Newest 500 chosen
+The newest 500 stay, however old they are.	Se quedan los 500 más recientes, sin importar su antigüedad.
+# context: Keep history for (#228): the row's summary with one day chosen
+Anything seen more than a day ago goes. At most 2000 stay.	Lo visto hace más de un día se borra. Se quedan 2000 como máximo.
+# context: Keep history for (#228): the row's summary with some days chosen; %1$s is the number
+Anything seen more than %1$s days ago goes. At most 2000 stay.	Lo visto hace más de %1$s días se borra. Se quedan 2000 como máximo.

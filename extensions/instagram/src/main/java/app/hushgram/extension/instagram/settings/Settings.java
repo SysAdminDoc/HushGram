@@ -5388,13 +5388,22 @@ public class Settings extends BaseSettings {
 
     /**
      * A list, kept only on this phone, of the posts, reels, stories and profiles that came up on
-     * screen, newest first, about 500 rows (#228). It reads what Instagram already loaded, sends
-     * nothing and reads nothing about other accounts. Turning it off stops recording at once, and
-     * Clear history wipes the list. The list stays out of settings backups and the diagnostic
-     * report. Starts off.
+     * screen, newest first, the newest 500 rows or the days {@link #VIEWING_HISTORY_DAYS} picks (#228).
+     * It reads what Instagram already loaded, sends nothing and reads nothing about other accounts.
+     * Turning it off stops recording at once, and Clear history wipes the list. The list stays out
+     * of settings backups and the diagnostic report. Starts off.
      */
     public static final BooleanSetting VIEWING_HISTORY =
             new BooleanSetting("hushgram_viewing_history", FALSE);
+
+    /**
+     * Under {@link #VIEWING_HISTORY}: how many days a row stays in the viewing history (#228). 0, the
+     * start, keeps the newest 500 whatever their age, as the history always did. A number of days drops
+     * each row once it's that old instead and keeps at most 2000, so the list and its pictures stay small.
+     */
+    public static final IntegerSetting VIEWING_HISTORY_DAYS =
+            new IntegerSetting("hushgram_viewing_history_days", 0, false, parent(VIEWING_HISTORY))
+                    .withRange(0, 365);
 
     /**
      * Whether the viewing history page shows its rows as a grid of big pictures, from the button
