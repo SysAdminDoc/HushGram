@@ -5,6 +5,7 @@ Every HushGram release, newest first.
 ## Unreleased
 
 * `Hide Meta AI credits on stories` is new under Meta AI. It takes lines like Restyled with Meta AI and its Try it link off the top of stories, and leaves music and effect credits alone. Starts off. Asked for in #866.
+* With `Blur the chat behind a held message` on, the chat now blurs as one smooth surface. Each message used to blur on its own, so the chat broke into blocks with hard edges between them. Reported in #684.
 * `Interested on every post and reel` is new under Feed, below `Items in the three-dot menus`. It adds Interested to the three-dot menus that leave it out, like the menu of a reel from an account you follow. Starts off. Asked for in #815.
 * `Match the video's frame rate` is new under Layout, below `Use the highest refresh rate`, on Android 15 and up. While a reel, feed video or story plays, it tells Android the video's frame rate and asks for a refresh rate that frame rate divides into, like 60 Hz for a 30 fps reel. Once the video stops, the screen goes back to what it had. It stays out of the way while `Use the highest refresh rate` is on. Starts off. Asked for in #868.
 * Two HushGram loops kept running with Instagram in the background. A settings page left open kept animating its title, and `Ambient light` kept checking the post it lit a few times a second. Both now wait until Instagram is on screen again. Reported in #341.

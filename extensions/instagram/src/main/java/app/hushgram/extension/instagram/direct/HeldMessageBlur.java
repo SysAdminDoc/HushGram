@@ -6,11 +6,16 @@ package app.hushgram.extension.instagram.direct;
 
 import android.app.Activity;
 import android.content.res.Configuration;
+import android.graphics.Canvas;
 import android.graphics.ColorMatrix;
 import android.graphics.ColorMatrixColorFilter;
+import android.graphics.Matrix;
+import android.graphics.PixelFormat;
 import android.graphics.Rect;
 import android.graphics.RenderEffect;
 import android.graphics.Shader;
+import android.graphics.drawable.Drawable;
+import android.graphics.drawable.DrawableWrapper;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.SystemClock;
@@ -26,8 +31,8 @@ import java.lang.ref.WeakReference;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
-import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
@@ -45,10 +50,14 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * Instagram opens the reactions and actions as a screen of their own (MessageActionsFragment) in a frame over the
  * chat, by id {@link #ACTIONS_FRAME}, and the screen's view is {@link #ACTIONS}. The screen's arguments carry its
  * view model, and the view model's one Rect is where the held message's row sits on screen. The row of the list
- * of messages that covers most of that Rect stays sharp. Every other view the chat draws under its root gets a
- * blur and a light dim (a light wash on a light screen) through its render effect: the views beside the path
- * from the root down to the held row, and the other rows. The frame holding the reactions and actions is passed
- * over, so they stay sharp too. The blur fades in and out over {@link #FADE_MS}.
+ * of messages that covers most of that Rect stays sharp. The chat behind it gets a blur and a light dim (a light
+ * wash on a light screen) through render effects. A render effect blurs only inside its own view, and one on each
+ * row showed every row as its own blurred block with hard seams between them, so the effect goes on as few views
+ * as there are: the root's own children, all but the frame holding the reactions and actions, which stay sharp.
+ * Each is clipped to its own edges meanwhile, since the root doesn't clip them and a blur reaches past them. The
+ * held row sits inside what blurs, so it's hidden there and drawn sharp from that frame's background ({@link Lift}),
+ * where it shows on screen, over the blur and under the reactions and actions, as before. The blur fades in and out
+ * over {@link #FADE_MS}.
  *
  * <p>Instagram doesn't move the held message. When it sits low in the chat, the menu of actions (a popup window of
  * its own, found among the app's windows by its rows' id, {@link #MENU_ITEM}) and the reactions above it
@@ -58,7 +67,8 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * translation and scale come back as they were.
  *
  * <p>Off, Android before 12, no Rect or no row under it, paused or anything thrown: nothing blurs, and every
- * render effect written here is taken off again.
+ * render effect and clip written here is taken off again, the held row shows again and the frame gets its own
+ * background back.
  */
 public final class HeldMessageBlur {
     static final String HOOK = "held message blur";
@@ -98,6 +108,9 @@ public final class HeldMessageBlur {
     private static WeakReference<View> held = new WeakReference<>(null);
     /** The views given a render effect here, and the strength each was last given. */
     private static final Map<View, Float> blurred = Collections.synchronizedMap(new WeakHashMap<>());
+    /** The clip each blurred view was given here, or {@link #THEIRS} for one Instagram clips itself. */
+    private static final Map<View, Rect> clipped = Collections.synchronizedMap(new WeakHashMap<>());
+    private static final Rect THEIRS = new Rect();
     /** How far the blur has faded in, 0 to 1, where it was when the fade began, and where it's going. */
     private static float level;
     private static float fadeFrom;
@@ -108,6 +121,8 @@ public final class HeldMessageBlur {
     /** The row moved into view, and its own translation, scale, pivot and elevation from before the move. */
     private static WeakReference<View> moved = new WeakReference<>(null);
     private static final float[] movedFrom = new float[6];
+    /** The held row drawn sharp from the frame's background while the blur shows, or null. */
+    @Nullable private static Lift lifted;
     /** The views of the app's windows, for tests, in place of the platform's list. */
     @Nullable static volatile List<View> windowsForTests;
 
@@ -151,16 +166,22 @@ public final class HeldMessageBlur {
             begin(activity, known, actions, now);
         }
         if (blurred.isEmpty()) return;
+        Lift lift = lifted;
+        if (lift != null && lift.failed) {
+            // Drawing the held row threw, and said so: nothing blurs for this hold.
+            View broken = heldFor.get();
+            clear();
+            missed = new WeakReference<>(broken);
+            return;
+        }
         float was = level;
         level = levelAt(now);
         ViewGroup root = known == null ? null : root(known);
         View row = held.get();
         if (fadeTo > 0f && root != null && row != null) {
             List<View> targets = new ArrayList<>();
-            targets(root, known, row, targets);
-            for (View each : targets) {
-                if (!blurred.containsKey(each)) apply(each, level);
-            }
+            targets(root, known, targets);
+            for (View each : targets) apply(each, level);
         }
         if (level != was) {
             for (View each : new ArrayList<>(blurred.keySet())) apply(each, level);
@@ -170,6 +191,7 @@ public final class HeldMessageBlur {
             clear();
             return;
         }
+        follow();
         if (level != fadeTo) activity.getWindow().getDecorView().postInvalidateOnAnimation();
     }
 
@@ -217,6 +239,7 @@ public final class HeldMessageBlur {
         // at the strength showing now.
         clearEffects();
         forgetMove();
+        drop();
         heldAt = heldRect(activity, actions);
         heldFor = new WeakReference<>(actions);
         held = new WeakReference<>(row);
@@ -225,8 +248,10 @@ public final class HeldMessageBlur {
         ViewGroup root = root(frame);
         if (root == null) return;
         List<View> targets = new ArrayList<>();
-        targets(root, frame, row, targets);
+        targets(root, frame, targets);
+        if (targets.isEmpty()) return;
         for (View each : targets) apply(each, level);
+        lift(frame, row);
         fade(1f, now);
     }
 
@@ -310,38 +335,186 @@ public final class HeldMessageBlur {
     }
 
     /**
-     * Every view [root] draws that the blur goes on: walking down from [root] to [row], each view beside that path
-     * that shows, but never [frame], which holds the reactions and the actions, nor anything on the path itself.
+     * The views the blur goes on: the children of [root] that show, but never [frame], which holds the reactions
+     * and the actions. No more than those, since a render effect blurs only inside its own view: one on each row of
+     * the list blurred every row as a block of its own, with hard seams between them (#684).
      */
-    static void targets(ViewGroup root, View frame, View row, List<View> into) {
-        Map<View, Boolean> path = new IdentityHashMap<>();
-        for (View at = row; at != null && at != root; ) {
-            path.put(at, Boolean.TRUE);
-            ViewParent parent = at.getParent();
-            at = parent instanceof View ? (View) parent : null;
+    static void targets(ViewGroup root, View frame, List<View> into) {
+        for (int i = 0, n = root.getChildCount(); i < n; i++) {
+            View child = root.getChildAt(i);
+            if (child != frame && child.getVisibility() == View.VISIBLE) into.add(child);
         }
-        ViewGroup at = root;
-        while (at != null) {
-            ViewGroup next = null;
-            for (int i = 0, n = at.getChildCount(); i < n; i++) {
-                View child = at.getChildAt(i);
-                if (child == frame || child.getVisibility() != View.VISIBLE) continue;
-                if (path.containsKey(child)) {
-                    if (child != row && child instanceof ViewGroup) next = (ViewGroup) child;
-                    continue;
-                }
-                into.add(child);
+    }
+
+    /** Hides [row] in the chat, which blurs with it, and draws it sharp from [frame]'s background instead. */
+    @RequiresApi(Build.VERSION_CODES.S)
+    private static void lift(View frame, View row) {
+        Lift lift = new Lift(frame, row);
+        Drawable under = frame.getBackground();
+        frame.setBackground(lift);
+        // Taken in once the frame has let go of it, so it calls back to the lift.
+        if (under != null) lift.setDrawable(under);
+        lifted = lift;
+        row.setTransitionAlpha(0f);
+    }
+
+    /** Keeps the sharp held row up to date, or shows the row itself again once the frame doesn't show. */
+    @RequiresApi(Build.VERSION_CODES.S)
+    private static void follow() {
+        Lift lift = lifted;
+        if (lift == null) return;
+        if (!lift.frame.isShown()) {
+            drop();
+            return;
+        }
+        lift.follow();
+    }
+
+    /** Shows the held row in the chat again and gives the frame its own background back. */
+    private static void drop() {
+        Lift lift = lifted;
+        lifted = null;
+        if (lift == null || Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return;
+        View row = lift.row.get();
+        if (row != null && row.getTransitionAlpha() == 0f) row.setTransitionAlpha(lift.rowAlpha);
+        if (lift.frame.getBackground() != lift) return;
+        Drawable under = lift.getDrawable();
+        lift.setDrawable(null);
+        lift.frame.setBackground(under);
+    }
+
+    /**
+     * The held row, drawn sharp from the background of the frame holding the reactions and actions: over the
+     * blurred chat and under the reactions and actions, where the row shows on screen, moved and shrunk with it,
+     * and cut off where the list of messages ends, as the row is. The frame's own background, if it had one, draws
+     * first. The row itself is hidden meanwhile, by its transition alpha, so its blurred self doesn't show round it.
+     */
+    @RequiresApi(Build.VERSION_CODES.S)
+    static final class Lift extends DrawableWrapper {
+        final View frame;
+        final WeakReference<View> row;
+        /** The row's transition alpha before it was hidden. */
+        final float rowAlpha;
+        /** Set when drawing the row threw, so the next look takes the blur off. */
+        volatile boolean failed;
+        /** Where and how the row was when it was last drawn, to know when it has to be drawn again. */
+        private final float[] last = new float[10];
+        private final float[] now = new float[10];
+        private final int[] at = new int[2];
+        private final int[] origin = new int[2];
+
+        Lift(View frame, View row) {
+            super(null);
+            this.frame = frame;
+            this.row = new WeakReference<>(row);
+            this.rowAlpha = row.getTransitionAlpha();
+        }
+
+        @Override
+        public void draw(Canvas canvas) {
+            super.draw(canvas);
+            if (failed) return;
+            int saved = canvas.save();
+            try {
+                drawRow(canvas);
+            } catch (Throwable failure) {
+                failed = true;
+                HookStatus.threw(FamilyNames.GLASS_CHAT, HOOK, failure);
+            } finally {
+                canvas.restoreToCount(saved);
             }
-            at = next;
+        }
+
+        private void drawRow(Canvas canvas) {
+            View view = row.get();
+            if (view == null || !view.isAttachedToWindow() || view.getVisibility() != View.VISIBLE) return;
+            if (!(view.getParent() instanceof View)) return;
+            float alpha = view.getAlpha();
+            if (alpha <= 0f) return;
+            View parent = (View) view.getParent();
+            parent.getLocationInWindow(at);
+            frame.getLocationInWindow(origin);
+            int left = at[0] - origin[0];
+            int top = at[1] - origin[1];
+            canvas.clipRect(left, top, left + parent.getWidth(), top + parent.getHeight());
+            canvas.translate(left + view.getLeft() - parent.getScrollX(), top + view.getTop() - parent.getScrollY());
+            Matrix matrix = view.getMatrix();
+            if (!matrix.isIdentity()) canvas.concat(matrix);
+            // Cut at the row's own edges: a message's time sits past its row's edge, off the screen, until a swipe,
+            // and Instagram's list doesn't clip its rows, so a shrunk row showed the start of it.
+            canvas.clipRect(0, 0, view.getWidth(), view.getHeight());
+            Rect own = view.getClipBounds();
+            if (own != null) canvas.clipRect(own);
+            // draw() leaves out the row's own alpha and layer, which the list draws it through.
+            if (alpha < 1f || view.getLayerType() != View.LAYER_TYPE_NONE) {
+                canvas.saveLayerAlpha(0f, 0f, view.getWidth(), view.getHeight(), Math.round(alpha * 255f));
+            }
+            view.draw(canvas);
+        }
+
+        /** Draws the row again when it changed, moved or shrank since it was last drawn. */
+        void follow() {
+            View view = row.get();
+            if (view == null) return;
+            view.getLocationInWindow(at);
+            frame.getLocationInWindow(origin);
+            ViewParent parent = view.getParent();
+            View list = parent instanceof View ? (View) parent : view;
+            now[0] = at[0] - origin[0];
+            now[1] = at[1] - origin[1];
+            now[2] = view.getScaleX();
+            now[3] = view.getScaleY();
+            now[4] = view.getWidth();
+            now[5] = view.getHeight();
+            now[6] = view.getAlpha();
+            now[7] = view.getVisibility();
+            now[8] = list.getWidth();
+            now[9] = list.getHeight();
+            if (!view.isDirty() && Arrays.equals(now, last)) return;
+            System.arraycopy(now, 0, last, 0, now.length);
+            invalidateSelf();
+        }
+
+        @Override
+        public int getOpacity() {
+            return PixelFormat.TRANSLUCENT;
         }
     }
 
     @RequiresApi(Build.VERSION_CODES.S)
     private static void apply(View view, float strength) {
         Float was = blurred.get(view);
-        if (was != null && was == strength) return;
-        blurred.put(view, strength);
-        view.setRenderEffect(effect(view, strength));
+        if (was == null || was != strength) {
+            blurred.put(view, strength);
+            view.setRenderEffect(effect(view, strength));
+        }
+        clip(view);
+    }
+
+    /**
+     * Keeps [view]'s blur inside its own edges. Instagram's chat frame doesn't clip what's in it, and a blur reaches
+     * past its view's edges, so the list's blur ran up over the top bar and stopped there in a hard line. The clip
+     * follows the view's size; one Instagram set itself stands, and is left as it is.
+     */
+    private static void clip(View view) {
+        Rect mine = clipped.get(view);
+        if (mine == THEIRS) return;
+        int width = view.getWidth();
+        int height = view.getHeight();
+        if (mine == null) {
+            if (view.getClipBounds() != null) {
+                clipped.put(view, THEIRS);
+                return;
+            }
+        } else if (mine.right == width && mine.bottom == height) {
+            return;
+        } else if (!mine.equals(view.getClipBounds())) {
+            clipped.put(view, THEIRS);
+            return;
+        }
+        Rect bounds = new Rect(0, 0, width, height);
+        clipped.put(view, bounds);
+        view.setClipBounds(bounds);
     }
 
     /** The blur and the dim, or the light wash on a light screen, at [strength] of their full look. */
@@ -543,8 +716,9 @@ public final class HeldMessageBlur {
         moveTo[1] = 1f;
     }
 
-    /** Takes every render effect written here off at once, and forgets the held message. */
+    /** Takes every render effect written here off at once, shows the held row again and forgets it. */
     static void clear() {
+        drop();
         clearEffects();
         forgetMove();
         heldAt = null;
@@ -562,6 +736,12 @@ public final class HeldMessageBlur {
             }
         }
         blurred.clear();
+        for (Map.Entry<View, Rect> each : new ArrayList<>(clipped.entrySet())) {
+            View view = each.getKey();
+            Rect mine = each.getValue();
+            if (view != null && mine != THEIRS && mine.equals(view.getClipBounds())) view.setClipBounds(null);
+        }
+        clipped.clear();
     }
 
     /** Forgets the frame too, as the watched activity goes. */

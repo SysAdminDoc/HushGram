@@ -11,7 +11,11 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import android.app.Activity;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Rect;
+import android.graphics.drawable.ColorDrawable;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Parcel;
@@ -188,16 +192,38 @@ public class HeldMessageBlurTest {
         return HeldMessageBlur.blurredForTests(view);
     }
 
+    /** Whether [row] is hidden in the chat and drawn sharp from the actions' frame instead. */
+    private boolean lifted(View row) {
+        return frame.getBackground() instanceof HeldMessageBlur.Lift
+                && ((HeldMessageBlur.Lift) frame.getBackground()).row.get() == row
+                && row.getTransitionAlpha() == 0f;
+    }
+
+    /** What the actions' frame draws, its background included, as a picture of the frame. */
+    private Bitmap frameDrawn() {
+        Bitmap picture = Bitmap.createBitmap(frame.getWidth(), frame.getHeight(), Bitmap.Config.ARGB_8888);
+        frame.draw(new Canvas(picture));
+        return picture;
+    }
+
+    /** The colour the frame draws at the middle of [rect], given in screen pixels. */
+    private int drawnAt(Bitmap picture, Rect rect) {
+        int[] at = new int[2];
+        frame.getLocationOnScreen(at);
+        return picture.getPixel(rect.centerX() - at[0], rect.centerY() - at[1]);
+    }
+
     @Test
     public void theSwitchStartsOff() {
         assertEquals(Boolean.FALSE, Settings.HELD_MESSAGE_BLUR.defaultValue);
         hold(rows[1]);
         HeldMessageBlur.check(activity);
         assertFalse(blurred(background));
-        assertFalse(blurred(rows[0]));
+        assertFalse(blurred(content));
+        assertNull(frame.getBackground());
     }
 
-    /** Everything else in the chat blurs, and the held row, the list holding it and the actions' frame stay sharp. */
+    /** Everything else in the chat blurs, and the held row and the actions' frame stay sharp. */
     @Test
     @Config(sdk = 37)
     public void holdingAMessageBlursTheRestOfTheChat() {
@@ -205,20 +231,158 @@ public class HeldMessageBlurTest {
         hold(rows[1]);
         HeldMessageBlur.step(activity, 1_000L);
 
-        for (View each : new View[] {background, header, composer, rows[0], rows[2]}) assertTrue(blurred(each));
-        for (View each : new View[] {rows[1], list, content, frame, actions}) assertFalse(blurred(each));
-        assertEquals("it starts clear and fades in", 0f, HeldMessageBlur.strengthForTests(rows[0]), 0f);
+        for (View each : new View[] {background, header, content}) assertTrue(blurred(each));
+        for (View each : new View[] {frame, actions}) assertFalse(blurred(each));
+        assertTrue("the held row is drawn sharp over the blur", lifted(rows[1]));
+        assertEquals("it starts clear and fades in", 0f, HeldMessageBlur.strengthForTests(content), 0f);
 
         HeldMessageBlur.step(activity, 1_000L + HeldMessageBlur.FADE_MS / 2);
-        float half = HeldMessageBlur.strengthForTests(rows[0]);
+        float half = HeldMessageBlur.strengthForTests(content);
         assertTrue("part way in: " + half, half > 0.5f && half < 1f);
         assertEquals(half, HeldMessageBlur.strengthForTests(header), 0f);
 
         HeldMessageBlur.step(activity, 1_000L + HeldMessageBlur.FADE_MS);
         assertEquals(1f, HeldMessageBlur.strengthForTests(background), 0f);
-        assertEquals(1f, HeldMessageBlur.strengthForTests(rows[2]), 0f);
-        assertNotNull(HeldMessageBlur.effect(rows[2], 1f));
-        assertNull("no effect at all once faded out", HeldMessageBlur.effect(rows[2], 0f));
+        assertEquals(1f, HeldMessageBlur.strengthForTests(content), 0f);
+        assertNotNull(HeldMessageBlur.effect(content, 1f));
+        assertNull("no effect at all once faded out", HeldMessageBlur.effect(content, 0f));
+    }
+
+    /**
+     * #684's screenshot: each row blurred on its own, so the chat broke into blocks with hard seams at the rows'
+     * edges. The blur goes on the views holding the whole chat, and no row or list has an effect of its own.
+     */
+    @Test
+    @Config(sdk = 37)
+    public void theChatBlursAsOneWithNoSeamsBetweenRows() {
+        Settings.HELD_MESSAGE_BLUR.save(true);
+        hold(rows[1]);
+        HeldMessageBlur.step(activity, 1_000L);
+        HeldMessageBlur.step(activity, 1_000L + HeldMessageBlur.FADE_MS);
+
+        for (View each : new View[] {rows[0], rows[1], rows[2], list, composer}) {
+            assertFalse("no effect of its own on " + each, blurred(each));
+        }
+        assertEquals("one blur over the rows, the list and the message bar", 1f,
+                HeldMessageBlur.strengthForTests(content), 0f);
+    }
+
+    /**
+     * Instagram's chat frame doesn't clip what's in it, and a blur reaches past its view's edges, so on the S22 the
+     * list's blur ran up over the top bar and stopped there in a hard line. Each part that blurs is clipped to its
+     * own edges while it does, following its size; a part Instagram clips itself keeps its clip, and the clips come
+     * off with the blur.
+     */
+    @Test
+    @Config(sdk = 37)
+    public void eachBlurredPartKeepsItsBlurInsideItsOwnEdges() {
+        Settings.HELD_MESSAGE_BLUR.save(true);
+        Rect own = new Rect(0, 0, 10, 10);
+        header.setClipBounds(own);
+        hold(rows[1]);
+        HeldMessageBlur.step(activity, 1_000L);
+        HeldMessageBlur.step(activity, 1_000L + HeldMessageBlur.FADE_MS);
+
+        for (View each : new View[] {background, content}) {
+            assertEquals(new Rect(0, 0, each.getWidth(), each.getHeight()), each.getClipBounds());
+        }
+        assertEquals("Instagram's own clip stands", own, header.getClipBounds());
+        assertNull("the actions' frame isn't clipped", frame.getClipBounds());
+
+        content.layout(content.getLeft(), content.getTop(), content.getRight(), content.getBottom() + 40);
+        HeldMessageBlur.step(activity, 2_000L);
+        assertEquals("the clip follows the part's size", new Rect(0, 0, content.getWidth(), content.getHeight()),
+                content.getClipBounds());
+
+        Settings.HELD_MESSAGE_BLUR.save(false);
+        HeldMessageBlur.check(activity);
+        assertNull(background.getClipBounds());
+        assertNull(content.getClipBounds());
+        assertEquals(own, header.getClipBounds());
+    }
+
+    /**
+     * A message's time sits past its row's edge, off the screen, until you swipe. Instagram's list doesn't clip its
+     * rows, so on the S25 a shrunk held row drew the start of the time at the screen's edge. The held row is cut at
+     * its own edges.
+     */
+    @Test
+    @Config(sdk = 37)
+    public void theHeldRowIsCutAtItsOwnEdges() {
+        Settings.HELD_MESSAGE_BLUR.save(true);
+        list.setClipChildren(false);
+        FrameLayout message = new FrameLayout(activity);
+        message.setBackgroundColor(Color.RED);
+        View time = new View(activity);
+        time.setBackgroundColor(Color.GREEN);
+        message.addView(time, new FrameLayout.LayoutParams(100, ROW));
+        time.setTranslationX(300);
+        FrameLayout.LayoutParams at = new FrameLayout.LayoutParams(300, ROW);
+        at.topMargin = 400 + 3 * (ROW + 20);
+        list.addView(message, at);
+        layout();
+        hold(message);
+        HeldMessageBlur.step(activity, 1_000L);
+        HeldMessageBlur.step(activity, 1_000L + HeldMessageBlur.FADE_MS);
+
+        Bitmap picture = frameDrawn();
+        Rect shown = HeldMessageBlur.shownRect(message);
+        assertEquals(Color.RED, drawnAt(picture, new Rect(shown.left, shown.top, shown.left + 100, shown.bottom)));
+        assertEquals("the time past the row's edge stays cut off", Color.TRANSPARENT,
+                drawnAt(picture, new Rect(shown.right, shown.top, shown.right + 100, shown.bottom)));
+    }
+
+    /**
+     * The held row's container blurs with the rest, so the row is hidden there and the frame draws it sharp, where
+     * it shows, over the blurred chat and under the reactions; the other rows aren't drawn by the frame.
+     */
+    @Test
+    @Config(sdk = 37)
+    public void theHeldRowIsDrawnSharpWhereItShows() {
+        Settings.HELD_MESSAGE_BLUR.save(true);
+        rows[0].setBackgroundColor(Color.BLUE);
+        rows[1].setBackgroundColor(Color.RED);
+        rows[2].setBackgroundColor(Color.GREEN);
+        hold(rows[1]);
+        HeldMessageBlur.step(activity, 1_000L);
+        HeldMessageBlur.step(activity, 1_000L + HeldMessageBlur.FADE_MS);
+
+        Bitmap picture = frameDrawn();
+        assertEquals(Color.RED, drawnAt(picture, HeldMessageBlur.shownRect(rows[1])));
+        assertEquals(Color.TRANSPARENT, drawnAt(picture, HeldMessageBlur.shownRect(rows[0])));
+        assertEquals(Color.TRANSPARENT, drawnAt(picture, HeldMessageBlur.shownRect(rows[2])));
+        assertEquals("hidden in the chat", 0f, rows[1].getTransitionAlpha(), 0f);
+        assertEquals(1f, rows[0].getTransitionAlpha(), 0f);
+    }
+
+    /** Drawing the held row throws: it's reported, and the next look takes everything off rather than trying again. */
+    @Test
+    @Config(sdk = 37)
+    public void aHeldRowThatThrowsWhileDrawnLeavesTheChatAsItWas() {
+        Settings.HELD_MESSAGE_BLUR.save(true);
+        View broken = new View(activity) {
+            @Override
+            public void draw(Canvas canvas) {
+                throw new IllegalStateException("can't draw");
+            }
+        };
+        FrameLayout.LayoutParams at = (FrameLayout.LayoutParams) rows[1].getLayoutParams();
+        list.removeView(rows[1]);
+        list.addView(broken, new FrameLayout.LayoutParams(at));
+        layout();
+        hold(broken);
+        HeldMessageBlur.step(activity, 1_000L);
+        assertTrue(lifted(broken));
+
+        frameDrawn();
+        HeldMessageBlur.step(activity, 1_016L);
+        assertFalse(blurred(content));
+        assertNull("the frame's own background is back", frame.getBackground());
+        assertEquals("the row shows again", 1f, broken.getTransitionAlpha(), 0f);
+        assertTrue(HookStatus.report().toString(), HookStatus.report().toString().contains(HeldMessageBlur.HOOK));
+
+        HeldMessageBlur.step(activity, 2_000L);
+        assertFalse("not tried again for the same hold", blurred(content));
     }
 
     /** Let go: the blur fades out, then every effect comes off, and holding again, even in the same view, blurs again. */
@@ -229,21 +393,24 @@ public class HeldMessageBlurTest {
         hold(rows[1]);
         HeldMessageBlur.step(activity, 1_000L);
         HeldMessageBlur.step(activity, 2_000L);
-        assertEquals(1f, HeldMessageBlur.strengthForTests(rows[0]), 0f);
+        assertEquals(1f, HeldMessageBlur.strengthForTests(content), 0f);
 
         actions.setVisibility(View.GONE);
         HeldMessageBlur.step(activity, 3_000L);
-        assertEquals("the fade out starts from where it was", 1f, HeldMessageBlur.strengthForTests(rows[0]), 0f);
+        assertEquals("the fade out starts from where it was", 1f, HeldMessageBlur.strengthForTests(content), 0f);
         HeldMessageBlur.step(activity, 3_000L + HeldMessageBlur.FADE_MS / 2);
-        float half = HeldMessageBlur.strengthForTests(rows[0]);
+        float half = HeldMessageBlur.strengthForTests(content);
         assertTrue("part way out: " + half, half > 0f && half < 0.5f);
+        assertTrue("still drawn sharp while the blur fades", lifted(rows[1]));
         HeldMessageBlur.step(activity, 3_000L + HeldMessageBlur.FADE_MS);
-        for (View each : new View[] {background, header, composer, rows[0], rows[2]}) assertFalse(blurred(each));
+        for (View each : new View[] {background, header, content}) assertFalse(blurred(each));
+        assertNull("the frame's own background is back", frame.getBackground());
+        assertEquals("the row shows again", 1f, rows[1].getTransitionAlpha(), 0f);
 
         actions.setVisibility(View.VISIBLE);
         HeldMessageBlur.step(activity, 4_000L);
-        assertTrue(blurred(rows[0]));
-        assertFalse(blurred(rows[1]));
+        assertTrue(blurred(content));
+        assertTrue(lifted(rows[1]));
     }
 
     /** Another message held while the chat is blurred: its row comes out of the blur and the last one goes in. */
@@ -254,13 +421,13 @@ public class HeldMessageBlurTest {
         hold(rows[1]);
         HeldMessageBlur.step(activity, 1_000L);
         HeldMessageBlur.step(activity, 2_000L);
-        assertTrue(blurred(rows[0]));
+        assertTrue(lifted(rows[1]));
 
         hold(rows[0]);
         HeldMessageBlur.step(activity, 2_016L);
-        assertFalse(blurred(rows[0]));
-        assertTrue(blurred(rows[1]));
-        assertEquals("no flash to clear and back", 1f, HeldMessageBlur.strengthForTests(rows[1]), 0f);
+        assertTrue(lifted(rows[0]));
+        assertEquals("the last one shows in the chat again", 1f, rows[1].getTransitionAlpha(), 0f);
+        assertEquals("no flash to clear and back", 1f, HeldMessageBlur.strengthForTests(content), 0f);
     }
 
     /** No row under the Rect, or no Rect at all: nothing blurs, rather than blurring the held message too. */
@@ -271,11 +438,13 @@ public class HeldMessageBlurTest {
         holdAt(new Rect(0, 5, WIDE, 60));
         HeldMessageBlur.step(activity, 1_000L);
         assertFalse(blurred(background));
-        assertFalse(blurred(rows[0]));
+        assertFalse(blurred(content));
+        assertNull(frame.getBackground());
 
         holdAt(new Rect());
         HeldMessageBlur.step(activity, 2_000L);
         assertFalse(blurred(header));
+        assertNull(frame.getBackground());
     }
 
     /** The row covering most of the Rect is the held one, and the Rect is read from the first Rect field set. */
@@ -299,12 +468,15 @@ public class HeldMessageBlurTest {
         Settings.HELD_MESSAGE_BLUR.save(true);
         hold(rows[1]);
         HeldMessageBlur.check(activity);
-        assertTrue(blurred(rows[0]));
+        assertTrue(blurred(content));
+        assertTrue(lifted(rows[1]));
 
         Settings.HELD_MESSAGE_BLUR.save(false);
         HeldMessageBlur.check(activity);
-        assertFalse(blurred(rows[0]));
+        assertFalse(blurred(content));
         assertFalse(blurred(background));
+        assertNull(frame.getBackground());
+        assertEquals(1f, rows[1].getTransitionAlpha(), 0f);
     }
 
     /** Nothing over the held message: it stays where it is. */
@@ -404,6 +576,7 @@ public class HeldMessageBlurTest {
         menuAt.topMargin = 640;
         root.addView(menu, menuAt);
         HeldMessageBlur.windowsForTests = Arrays.asList(activity.getWindow().getDecorView(), menu);
+        rows[2].setBackgroundColor(Color.RED);
         hold(rows[2]);
         View reactions = new View(activity);
         reactions.setId(REACTIONS_ID);
@@ -423,6 +596,9 @@ public class HeldMessageBlurTest {
         }
         assertEquals(1f, rows[2].getTranslationZ(), 0f);
         assertEquals("the others stay", 0f, rows[1].getTranslationY(), 0f);
+        Bitmap picture = frameDrawn();
+        assertEquals("drawn sharp where it moved to", Color.RED, drawnAt(picture, after));
+        assertEquals("and no longer where it was", Color.TRANSPARENT, drawnAt(picture, before));
 
         actions.setVisibility(View.GONE);
         HeldMessageBlur.step(activity, 2_000L);
@@ -443,7 +619,8 @@ public class HeldMessageBlurTest {
         Settings.HELD_MESSAGE_BLUR.save(true);
         hold(rows[1]);
         HeldMessageBlur.check(activity);
-        assertFalse(blurred(rows[0]));
+        assertFalse(blurred(content));
         assertFalse(blurred(background));
+        assertNull(frame.getBackground());
     }
 }
