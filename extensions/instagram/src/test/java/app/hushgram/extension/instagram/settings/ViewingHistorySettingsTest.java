@@ -206,14 +206,106 @@ public class ViewingHistorySettingsTest {
             new android.app.DialogFragment().show(fragments, SettingsEntry.DIALOG_TAG);
             fragments.executePendingTransactions();
             page.list.performItemClick(null, 0, 0);
+            assertNull("a tap shows the row big first (#865)",
+                    org.robolectric.Shadows.shadowOf(RuntimeEnvironment.getApplication()).peekNextStartedActivity());
+            ViewingHistoryViewer viewer = page.viewer;
+            assertNotNull(viewer);
+            viewer.open.performClick();
             android.content.Intent opened = org.robolectric.Shadows.shadowOf(RuntimeEnvironment.getApplication()).getNextStartedActivity();
             assertEquals("https://www.instagram.com/p/B/", String.valueOf(opened.getData()));
+            assertFalse("the viewer goes with the page", viewer.dialog.isShowing());
             assertEquals("its own package, so a copy next to Instagram opens itself", context.getPackageName(), opened.getPackage());
             assertFalse("the post opens under the page, so the page gets out of its way", page.dialog.isShowing());
             fragments.executePendingTransactions();
             assertNull("and the settings do too, or they'd follow the post to the front",
                     fragments.findFragmentByTag(SettingsEntry.DIALOG_TAG));
         }
+    }
+
+    /**
+     * The reporter's swipe (#865): a tap shows the row big, a swipe sideways or an arrow key goes to
+     * the next or the one before as the page lists them, the ends stay put, and Back comes back to
+     * the page instead of leaving for Instagram's Home.
+     */
+    @Test public void aTapShowsTheRowBigAndASwipeGoesThroughTheRest() throws Exception {
+        long now = System.currentTimeMillis();
+        Context context = RuntimeEnvironment.getApplication();
+        ViewingHistory.clear(context);
+        ViewingHistoryRows.add(context, Kind.PROFILE, "zed", "zed", now - 4_000L);
+        ViewingHistoryRows.add(context, Kind.STORY, "3_3", "bob", now - 3_000L);
+        ViewingHistoryRows.add(context, Kind.REEL, "2_2", "amy", now - 2_000L);
+        ViewingHistoryRows.add(context, Kind.POST, "1_1", "amy", now - 1_000L);
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.VIDEO_DOWNLOAD);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            HushgramPreferenceFragment settings = DownloadSettingsTest.pageIn(controller);
+            Preference row = settings.findPreference(HushgramPreferenceFragment.VIEWING_HISTORY_ROW);
+            ViewingHistoryPage page = ViewingHistoryPage.open(controller.get(), row);
+            Utils.awaitBackgroundTasksForTests();
+            ShadowLooper.idleMainLooper();
+            page.list.performItemClick(null, 1, 1);
+            ViewingHistoryViewer viewer = page.viewer;
+            assertNotNull("a tap shows the row big", viewer);
+            assertTrue(viewer.dialog.isShowing());
+            assertTrue("over the page, which stays", page.dialog.isShowing());
+            assertEquals("@amy", String.valueOf(viewer.who.getText()));
+            assertEquals("2 of 4", String.valueOf(viewer.place.getText()));
+            assertEquals(android.view.View.VISIBLE, viewer.open.getVisibility());
+            assertEquals(android.view.View.VISIBLE, viewer.profile.getVisibility());
+
+            swipe(viewer, -300, 0);
+            assertEquals("a swipe to the left goes to the next", "3 of 4", String.valueOf(viewer.place.getText()));
+            assertEquals("@bob", String.valueOf(viewer.who.getText()));
+            assertEquals("a story's tap already goes to its person", android.view.View.GONE, viewer.profile.getVisibility());
+            swipe(viewer, 300, 0);
+            assertEquals("and to the right back", "2 of 4", String.valueOf(viewer.place.getText()));
+            swipe(viewer, 4, 2);
+            swipe(viewer, -200, 400);
+            assertEquals("a tap or a drag up or down stays", "2 of 4", String.valueOf(viewer.place.getText()));
+
+            key(viewer, android.view.KeyEvent.KEYCODE_DPAD_RIGHT);
+            key(viewer, android.view.KeyEvent.KEYCODE_DPAD_RIGHT);
+            assertEquals("the arrow keys go too", "4 of 4", String.valueOf(viewer.place.getText()));
+            swipe(viewer, -300, 0);
+            assertEquals("the last stays the last", "4 of 4", String.valueOf(viewer.place.getText()));
+            assertEquals("@zed", String.valueOf(viewer.who.getText()));
+            key(viewer, android.view.KeyEvent.KEYCODE_DPAD_LEFT);
+            assertEquals("3 of 4", String.valueOf(viewer.place.getText()));
+
+            assertEquals("mirrored right to left", -1, ViewingHistoryViewer.stepOf(-300, 0, 600, true));
+            assertEquals(1, ViewingHistoryViewer.stepOf(300, 0, 600, true));
+            assertEquals("a short slide on a wide picture stays", 0, ViewingHistoryViewer.stepOf(-90, 0, 1080, false));
+
+            viewer.dialog.onBackPressed();
+            ShadowLooper.idleMainLooper();
+            assertFalse("Back closes the big row", viewer.dialog.isShowing());
+            assertTrue("and the page is still there", page.dialog.isShowing());
+            assertNull(page.viewer);
+            assertNull("nothing opened in Instagram",
+                    org.robolectric.Shadows.shadowOf(RuntimeEnvironment.getApplication()).peekNextStartedActivity());
+
+            page.tabs[1].performClick();
+            page.list.performItemClick(null, 0, 0);
+            assertEquals("the swipe keeps to the tab", "1 of 1", String.valueOf(page.viewer.place.getText()));
+            page.viewer.profile.performClick();
+            android.content.Intent opened = org.robolectric.Shadows.shadowOf(RuntimeEnvironment.getApplication()).getNextStartedActivity();
+            assertEquals("https://www.instagram.com/amy/", String.valueOf(opened.getData()));
+            assertFalse(page.dialog.isShowing());
+        }
+    }
+
+    private static void swipe(ViewingHistoryViewer viewer, float dx, float dy) {
+        long at = android.os.SystemClock.uptimeMillis();
+        android.view.MotionEvent down = android.view.MotionEvent.obtain(at, at, android.view.MotionEvent.ACTION_DOWN, 400, 400, 0);
+        android.view.MotionEvent up = android.view.MotionEvent.obtain(at, at + 120, android.view.MotionEvent.ACTION_UP, 400 + dx, 400 + dy, 0);
+        viewer.surface.dispatchTouchEvent(down);
+        viewer.surface.dispatchTouchEvent(up);
+        down.recycle();
+        up.recycle();
+    }
+
+    private static void key(ViewingHistoryViewer viewer, int code) {
+        viewer.dialog.dispatchKeyEvent(new android.view.KeyEvent(android.view.KeyEvent.ACTION_DOWN, code));
+        viewer.dialog.dispatchKeyEvent(new android.view.KeyEvent(android.view.KeyEvent.ACTION_UP, code));
     }
 
     /**
@@ -441,6 +533,7 @@ public class ViewingHistorySettingsTest {
 
             again.layout.performClick();
             again.grid.performItemClick(null, 0, 0);
+            again.viewer.open.performClick();
             android.content.Intent opened = org.robolectric.Shadows.shadowOf(RuntimeEnvironment.getApplication()).getNextStartedActivity();
             assertEquals("a tap opens it, as a row's does", "https://www.instagram.com/p/BsOGulcndj-/", String.valueOf(opened.getData()));
         } finally {

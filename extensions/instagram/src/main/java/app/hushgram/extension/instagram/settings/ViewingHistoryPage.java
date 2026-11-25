@@ -65,8 +65,10 @@ import app.hushgram.extension.shared.ui.Dim;
 
 /**
  * The viewing history's own page (#228): a tab for each kind, a search box and every row kept,
- * newest first. Tapping a row opens it again in Instagram: a post or a reel by its id, anything
- * else by the person who posted it, since a story is gone in a day and has no link of its own.
+ * newest first. Tapping a row shows it big in {@link ViewingHistoryViewer}, where a swipe goes on
+ * through the rest and Back comes back here (#865). Its Open, like a long press's, opens the row
+ * again in Instagram: a post or a reel by its id, anything else by the person who posted it, since
+ * a story is gone in a day and has no link of its own.
  * The button by Clear shows the rows as a grid of big pictures instead, and the page opens the way
  * it was left (#773).
  */
@@ -93,6 +95,8 @@ final class ViewingHistoryPage {
     private final Drawable nothingMatches;
     /** The settings row the page opened from, which the settings lock goes by. */
     private final Preference origin;
+    /** The row shown big, while it's open. */
+    @Nullable ViewingHistoryViewer viewer;
     private List<ViewingHistory.Row> all = Collections.emptyList();
     private Kind kind;
 
@@ -175,7 +179,7 @@ final class ViewingHistoryPage {
         list.setClipToPadding(false);
         rows = new Rows(context, palette);
         list.setAdapter(rows);
-        list.setOnItemClickListener((parent, view, position, id) -> open(context, rows.get(position)));
+        list.setOnItemClickListener((parent, view, position, id) -> view(position));
         list.setOnItemLongClickListener((parent, view, position, id) -> {
             options(view, rows.get(position));
             return true;
@@ -192,7 +196,7 @@ final class ViewingHistoryPage {
         grid.setSelector(new ColorDrawable(Color.TRANSPARENT));
         tiles = new Tiles(context, palette, tileSize(context));
         grid.setAdapter(tiles);
-        grid.setOnItemClickListener((parent, view, position, id) -> open(context, tiles.get(position)));
+        grid.setOnItemClickListener((parent, view, position, id) -> view(position));
         grid.setOnItemLongClickListener((parent, view, position, id) -> {
             options(view, tiles.get(position));
             return true;
@@ -437,7 +441,23 @@ final class ViewingHistoryPage {
         go(context, link(row));
     }
 
-    private void go(Context context, @Nullable Uri link) {
+    /** Shows the row at [position] of the list or grid big, with the rest it lists a swipe away (#865). */
+    void view(int position) {
+        List<ViewingHistory.Row> shown = matching(all, kind, String.valueOf(search.getText()));
+        if (position < 0 || position >= shown.size()) return;
+        viewer = ViewingHistoryViewer.show(this, dialog.getContext(), palette, shown, position);
+    }
+
+    /** Puts the row at [position] on screen, the one the viewer showed last as it closed. */
+    void reveal(int position) {
+        viewer = null;
+        if (position < 0 || position >= rows.getCount()) return;
+        list.setSelection(position);
+        grid.setSelection(position);
+    }
+
+    /** Opens [link] in Instagram, closing this page and the settings, and answers whether it did. */
+    boolean go(Context context, @Nullable Uri link) {
         try {
             if (link == null) throw new ActivityNotFoundException();
             // This app's own package, so a copy installed next to Instagram opens itself.
@@ -447,8 +467,10 @@ final class ViewingHistoryPage {
             Activity activity = SettingsScreenRow.activityOf(context);
             if (activity != null) SettingsEntry.closeForLink(activity);
             dialog.dismiss();
+            return true;
         } catch (ActivityNotFoundException | SecurityException failure) {
             Utils.showToastShort(L10n.t("Couldn't open that one."));
+            return false;
         }
     }
 
@@ -489,7 +511,7 @@ final class ViewingHistoryPage {
         return mark;
     }
 
-    private static ImageButton iconButton(Context context, ScreenColors palette, String icon, String label, View.OnClickListener tap) {
+    static ImageButton iconButton(Context context, ScreenColors palette, String icon, String label, View.OnClickListener tap) {
         ImageButton button = new ImageButton(context);
         paintIcon(button, palette, icon, label);
         button.setPadding(Dim.dp(12), Dim.dp(12), Dim.dp(12), Dim.dp(12));
@@ -588,6 +610,35 @@ final class ViewingHistoryPage {
             if (bitmap == null) return;
             Utils.runOnMainThread(() -> {
                 if (key.equals(view.getTag())) fill(view, bitmap);
+            });
+        });
+    }
+
+    /**
+     * Shows [row]'s picture whole in [view], read at [size] pixels, for the viewer (#865): its kind's
+     * icon while it's read or fetched off the main thread, then the picture fitted inside the view.
+     */
+    static void showWhole(Context context, ScreenColors palette, ImageView view, ViewingHistory.Row row, int size) {
+        String key = key(row, size);
+        view.setTag(key);
+        view.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        Bitmap cached = PICTURES.get(key);
+        if (cached != null) {
+            view.setPadding(0, 0, 0, 0);
+            view.setImageBitmap(cached);
+            return;
+        }
+        int inset = Dim.dp(96);
+        view.setPadding(inset, inset, inset, inset);
+        view.setImageDrawable(SettingsIcons.icon(context, kindIcon(row.kind), palette.summary));
+        Context application = context.getApplicationContext() != null ? context.getApplicationContext() : context;
+        Utils.runOnBackgroundThread(() -> {
+            Bitmap bitmap = load(application, row, size);
+            if (bitmap == null) return;
+            Utils.runOnMainThread(() -> {
+                if (!key.equals(view.getTag())) return;
+                view.setPadding(0, 0, 0, 0);
+                view.setImageBitmap(bitmap);
             });
         });
     }
