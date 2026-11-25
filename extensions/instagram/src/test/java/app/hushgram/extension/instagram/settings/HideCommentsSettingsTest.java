@@ -46,6 +46,7 @@ public class HideCommentsSettingsTest {
         Settings.HIDE_COMMENT_BOX.resetToDefault();
         Settings.HIDE_COMMENT_SEARCH_PROMPT.resetToDefault();
         Settings.HIDE_COMMENT_GIFT_BUTTON.resetToDefault();
+        Settings.HIDE_COMMENT_ABOUT_BUTTON.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         BaseSettings.SAFE_MODE.save(false);
@@ -58,6 +59,7 @@ public class HideCommentsSettingsTest {
         PatchFamily.commentReplyForTests = null;
         PatchFamily.commentLikesForTests = null;
         PatchFamily.commentAiLabelForTests = null;
+        PatchFamily.commentAboutButtonForTests = null;
         Settings.HIDE_COMMENTS.resetToDefault();
         Settings.HIDE_COMMENT_REPLY.resetToDefault();
         Settings.HIDE_COMMENT_LIKES.resetToDefault();
@@ -65,6 +67,7 @@ public class HideCommentsSettingsTest {
         Settings.HIDE_COMMENT_BOX.resetToDefault();
         Settings.HIDE_COMMENT_SEARCH_PROMPT.resetToDefault();
         Settings.HIDE_COMMENT_GIFT_BUTTON.resetToDefault();
+        Settings.HIDE_COMMENT_ABOUT_BUTTON.resetToDefault();
         Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
     }
     private void open(boolean installed) throws Exception {
@@ -83,6 +86,7 @@ public class HideCommentsSettingsTest {
         assertNull(page.getPreferenceScreen().findPreference(Settings.HIDE_COMMENT_BOX.key));
         assertNull(page.getPreferenceScreen().findPreference(Settings.HIDE_COMMENT_SEARCH_PROMPT.key));
         assertNull(page.getPreferenceScreen().findPreference(Settings.HIDE_COMMENT_GIFT_BUTTON.key));
+        assertNull(page.getPreferenceScreen().findPreference(Settings.HIDE_COMMENT_ABOUT_BUTTON.key));
     }
     @Test public void theSwitchSitsUnderCommentsAndStartsOff() throws Exception {
         open(true);
@@ -96,7 +100,7 @@ public class HideCommentsSettingsTest {
         assertFalse(Settings.HIDE_COMMENTS.get());
         assertEquals(Arrays.asList(Settings.HIDE_COMMENTS, Settings.HIDE_COMMENT_REPLY, Settings.HIDE_COMMENT_LIKES,
                 Settings.HIDE_COMMENT_AI_LABELS, Settings.HIDE_COMMENT_BOX, Settings.HIDE_COMMENT_SEARCH_PROMPT,
-                Settings.HIDE_COMMENT_GIFT_BUTTON), PatchFamily.HIDE_COMMENTS.switches);
+                Settings.HIDE_COMMENT_GIFT_BUTTON, Settings.HIDE_COMMENT_ABOUT_BUTTON), PatchFamily.HIDE_COMMENTS.switches);
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.HIDE_COMMENTS.key));
         row.setChecked(true);
         assertTrue(Settings.HIDE_COMMENTS.get());
@@ -216,7 +220,7 @@ public class HideCommentsSettingsTest {
         PreferenceCategory section = categoryHolding(page.getPreferenceScreen(), row);
         assertNotNull(section);
         assertEquals("Comments", section.getTitle().toString());
-        assertEquals("right after the search suggestion's switch", Settings.HIDE_COMMENT_SEARCH_PROMPT.key,
+        assertEquals("right after the (i) button's switch", Settings.HIDE_COMMENT_ABOUT_BUTTON.key,
                 section.getPreference(indexOf(section, row) - 1).getKey());
         assertFalse(row.isChecked());
         assertFalse(Settings.HIDE_COMMENT_BOX.get());
@@ -260,6 +264,46 @@ public class HideCommentsSettingsTest {
         assertTrue(Settings.HIDE_COMMENT_GIFT_BUTTON.get());
         assertFalse("each keeps its own value", Settings.HIDE_COMMENT_SEARCH_PROMPT.get());
         assertFalse(Settings.HIDE_COMMENT_BOX.get());
+    }
+    /**
+     * #869: the (i) button's switch sits right after the search suggestion's, the other thing at the
+     * top of the comments, and starts off. The row reads it as it's built, so no restart prompt.
+     */
+    @Test public void theAboutButtonSwitchFollowsTheSuggestionAndStartsOff() throws Exception {
+        open(true);
+        SwitchPreference row = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.HIDE_COMMENT_ABOUT_BUTTON.key);
+        assertNotNull(row);
+        assertEquals("Hide the (i) button in comments", row.getTitle().toString());
+        assertEquals("Takes the (i) button off the top right of a post's or reel's comments, above the first comment. "
+                + "Not every post has it.", row.getSummary().toString());
+        PreferenceCategory section = categoryHolding(page.getPreferenceScreen(), row);
+        assertNotNull(section);
+        assertEquals("Comments", section.getTitle().toString());
+        assertEquals(Settings.HIDE_COMMENT_SEARCH_PROMPT.key, section.getPreference(indexOf(section, row) - 1).getKey());
+        assertFalse(row.isChecked());
+        assertFalse(Settings.HIDE_COMMENT_ABOUT_BUTTON.get());
+        assertFalse(Settings.HIDE_COMMENT_ABOUT_BUTTON.rebootApp);
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.HIDE_COMMENT_ABOUT_BUTTON.key));
+        row.setChecked(true);
+        assertTrue(Settings.HIDE_COMMENT_ABOUT_BUTTON.get());
+        assertFalse("each keeps its own value", Settings.HIDE_COMMENT_SEARCH_PROMPT.get());
+        List<String> report = PatchFamily.reportLines(EnumSet.of(PatchFamily.HIDE_COMMENTS), false);
+        for (String line : report) assertFalse(report.toString(), line.contains("Hide the (i) button in comments: not in this build"));
+    }
+    /** A build whose comment sheet row moved keeps the other switches, leaves out the (i) row and says so. */
+    @Test public void aBuildWithoutTheAboutButtonKeepsTheRest() throws Exception {
+        PatchFamily.commentAboutButtonForTests = false;
+        open(true);
+        assertNull(page.getPreferenceScreen().findPreference(Settings.HIDE_COMMENT_ABOUT_BUTTON.key));
+        SwitchPreference box = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.HIDE_COMMENT_BOX.key);
+        assertNotNull(box);
+        assertNotNull(page.getPreferenceScreen().findPreference(Settings.HIDE_COMMENT_SEARCH_PROMPT.key));
+        assertNotNull(page.getPreferenceScreen().findPreference(Settings.HIDE_COMMENT_GIFT_BUTTON.key));
+        PreferenceCategory section = categoryHolding(page.getPreferenceScreen(), box);
+        assertEquals(Settings.HIDE_COMMENT_SEARCH_PROMPT.key, section.getPreference(indexOf(section, box) - 1).getKey());
+        List<String> report = PatchFamily.reportLines(EnumSet.of(PatchFamily.HIDE_COMMENTS), false);
+        assertTrue(report.toString(), report.contains(
+                "  Hide the (i) button in comments: not in this build (the row above a sheet's comments didn't match)"));
     }
     private static int indexOf(PreferenceGroup group, Preference row) {
         for (int i = 0; i < group.getPreferenceCount(); i++) if (group.getPreference(i) == row) return i;

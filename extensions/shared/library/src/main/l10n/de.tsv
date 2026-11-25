@@ -805,6 +805,9 @@ Hide search suggestions in comments	Suchvorschläge in Kommentaren ausblenden
 Takes the Meta AI search suggestion off the top of a post's or reel's comments. Not every post has one.	Entfernt den Suchvorschlag von Meta AI oben aus den Kommentaren eines Beitrags oder Reels. Nicht jeder Beitrag hat einen.
 Hide the gift button	Geschenk-Button ausblenden
 Takes the gift button off the right end of the comment box. The box itself stays.	Entfernt den Geschenk-Button am rechten Ende des Kommentarfelds. Das Feld selbst bleibt.
+# context: Comments: a Hide comments switch (#869) that hides the round (i) info button some comment sheets draw at the top right, just above the first comment. Write (i) as is.
+Hide the (i) button in comments	(i)-Button in Kommentaren ausblenden
+Takes the (i) button off the top right of a post's or reel's comments, above the first comment. Not every post has it.	Entfernt den (i)-Button oben rechts in den Kommentaren eines Beitrags oder Reels, über dem ersten Kommentar. Nicht jeder Beitrag hat ihn.
 # context: Comments: the switch that hides the row of quick emoji above the comment box (#248). Comment box is the field where you type a comment.
 Hide the emoji row	Emoji-Leiste ausblenden
 Takes the row of quick emoji off above the comment box. The box itself stays.	Entfernt die Reihe mit Schnell-Emojis über dem Kommentarfeld. Das Feld selbst bleibt.

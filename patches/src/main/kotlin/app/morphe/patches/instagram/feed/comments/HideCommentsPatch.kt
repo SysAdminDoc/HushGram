@@ -48,8 +48,8 @@ internal const val COMMENT_COUNT_LABEL = ", shouldShowCommentCountInUfi="
 val hideCommentsPatch = bytecodePatch(
     name = "Hide comments",
     description = "Takes the Comment button and the comment count off posts in your feed. Other switches take " +
-        "Reply, the heart and like count, or AI labels off each comment, and the comment box, its gift button or " +
-        "the Meta AI search suggestion off the comments. " +
+        "Reply, the heart and like count, or AI labels off each comment, and the comment box, its gift button, " +
+        "the Meta AI search suggestion or the (i) button off the comments. " +
         "All start off. Turn them on in HushGram settings > Comments.",
     default = true,
 ) {
@@ -62,19 +62,23 @@ val hideCommentsPatch = bytecodePatch(
         requireStatusMethod(COMMENT_REPLY_STATUS)
         requireStatusMethod(COMMENT_LIKES_STATUS)
         requireStatusMethod(COMMENT_AI_LABEL_STATUS)
+        requireStatusMethod(COMMENT_ABOUT_BUTTON_STATUS)
         val state = findFeedCommentState()
         val reply = findCommentReplyOrWarn()
         val rowReply = findCommentRowReplyOrWarn()
         val rowLikes = findCommentRowLikesOrWarn()
         val aiLabel = findCommentAiLabelOrWarn()
+        val about = findCommentAboutOrWarn()
         prepareFeedComments(state)()
         reply?.let { hideCommentReply(it) }
         rowReply?.let { hideCommentRowReply(it) }
         rowLikes?.let { hideCommentRowLikes(it) }
         aiLabel?.let { hideCommentAiLabel(it) }
+        about?.let { hideCommentAbout(it) }
         if (reply != null || rowReply != null) enableStatus(COMMENT_REPLY_STATUS)
         if (rowLikes != null) enableStatus(COMMENT_LIKES_STATUS)
         if (aiLabel != null) enableStatus(COMMENT_AI_LABEL_STATUS)
+        if (about != null) enableStatus(COMMENT_ABOUT_BUTTON_STATUS)
         enableStatus("hideComments")
     }
 }

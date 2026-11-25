@@ -805,6 +805,9 @@ Hide search suggestions in comments	Sembunyikan saran pencarian di komentar
 Takes the Meta AI search suggestion off the top of a post's or reel's comments. Not every post has one.	Menghapus saran pencarian Meta AI dari bagian atas komentar postingan atau reel. Tidak semua postingan memilikinya.
 Hide the gift button	Sembunyikan tombol hadiah
 Takes the gift button off the right end of the comment box. The box itself stays.	Menghapus tombol hadiah di ujung kanan kotak komentar. Kotaknya tetap ada.
+# context: Comments: a Hide comments switch (#869) that hides the round (i) info button some comment sheets draw at the top right, just above the first comment. Write (i) as is.
+Hide the (i) button in comments	Sembunyikan tombol (i) di komentar
+Takes the (i) button off the top right of a post's or reel's comments, above the first comment. Not every post has it.	Menghapus tombol (i) di kanan atas komentar postingan atau reel, di atas komentar pertama. Tidak semua postingan memilikinya.
 # context: Comments: the switch that hides the row of quick emoji above the comment box (#248). Comment box is the field where you type a comment.
 Hide the emoji row	Sembunyikan baris emoji
 Takes the row of quick emoji off above the comment box. The box itself stays.	Menghapus baris emoji cepat di atas kotak komentar. Kotaknya tetap ada.

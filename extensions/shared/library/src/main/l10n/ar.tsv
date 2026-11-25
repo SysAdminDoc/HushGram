@@ -2075,6 +2075,9 @@ Hide search suggestions in comments	إخفاء اقتراحات البحث في 
 Takes the Meta AI search suggestion off the top of a post's or reel's comments. Not every post has one.	يزيل اقتراح البحث من Meta AI من أعلى تعليقات منشور أو Reel. ليس لكل منشور اقتراح.
 Hide the gift button	إخفاء زر الهدية
 Takes the gift button off the right end of the comment box. The box itself stays.	يزيل زر الهدية من طرف مربع التعليق. يبقى المربع نفسه.
+# context: Comments: a Hide comments switch (#869) that hides the round (i) info button some comment sheets draw at the top right, just above the first comment. Write (i) as is.
+Hide the (i) button in comments	إخفاء زر (i) في التعليقات
+Takes the (i) button off the top right of a post's or reel's comments, above the first comment. Not every post has it.	يزيل زر (i) من أعلى يمين تعليقات منشور أو Reel، فوق أول تعليق. ليس لكل منشور هذا الزر.
 Takes the heart and the like count off each comment in a post's or reel's comments.	يزيل القلب وعدد الإعجابات من كل تعليق في تعليقات منشور أو Reel.
 # context: Comments: a Hide comments switch that takes AI labels like AI-generated profile off the line with a commenter's name and time in a comment sheet (#787). AI-generated profile is a label Instagram shows there, use this language's Instagram words for it if you know them.
 Hide AI labels on comments	إخفاء تصنيفات الذكاء الاصطناعي في التعليقات

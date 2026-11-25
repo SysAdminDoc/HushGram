@@ -79,6 +79,10 @@ final class CommentsCategory {
                 comments.addPreference(onFlip(toggle(context, Settings.HIDE_COMMENT_SEARCH_PROMPT, L10n.t("Hide search suggestions in comments"),
                         L10n.t("Takes the Meta AI search suggestion off the top of a post's or reel's comments. Not every post has one.")),
                         CommentSheetExtras::promptSwitchChanged));
+                if (PatchFamily.commentAboutButtonInBuild()) {
+                    comments.addPreference(toggle(context, Settings.HIDE_COMMENT_ABOUT_BUTTON, L10n.t("Hide the (i) button in comments"),
+                            L10n.t("Takes the (i) button off the top right of a post's or reel's comments, above the first comment. Not every post has it.")));
+                }
                 comments.addPreference(onFlip(toggle(context, Settings.HIDE_COMMENT_BOX, L10n.t("Hide the comment box"),
                         L10n.t("Takes the comment box, with your picture and Post, off the bottom of a post's or reel's comments. Turn it off when you want to comment.")),
                         CommentBox::switchChanged));

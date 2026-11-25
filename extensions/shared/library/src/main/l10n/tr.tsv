@@ -805,6 +805,9 @@ Hide search suggestions in comments	Yorumlardaki arama önerilerini gizle
 Takes the Meta AI search suggestion off the top of a post's or reel's comments. Not every post has one.	Bir gönderinin ya da reels videosunun yorumlarının üstündeki Meta AI arama önerisini kaldırır. Her gönderide olmaz.
 Hide the gift button	Hediye düğmesini gizle
 Takes the gift button off the right end of the comment box. The box itself stays.	Yorum kutusunun sağ ucundaki hediye düğmesini kaldırır. Kutunun kendisi kalır.
+# context: Comments: a Hide comments switch (#869) that hides the round (i) info button some comment sheets draw at the top right, just above the first comment. Write (i) as is.
+Hide the (i) button in comments	Yorumlardaki (i) düğmesini gizle
+Takes the (i) button off the top right of a post's or reel's comments, above the first comment. Not every post has it.	Bir gönderinin ya da reels videosunun yorumlarında sağ üstteki, ilk yorumun üstündeki (i) düğmesini kaldırır. Her gönderide olmaz.
 # context: Comments: the switch that hides the row of quick emoji above the comment box (#248). Comment box is the field where you type a comment.
 Hide the emoji row	Emoji satırını gizle
 Takes the row of quick emoji off above the comment box. The box itself stays.	Yorum kutusunun üstündeki hızlı emoji satırını kaldırır. Kutunun kendisi kalır.

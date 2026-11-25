@@ -2627,6 +2627,12 @@ once-call Lapp/hushgram/extension/instagram/feed/CommentLikes;->hidden()Z in (LX
 # the dot and "AI-generated profile" on a no. Left out, the label stays; more often or elsewhere,
 # it isn't the check the patch wrote.
 once-call Lapp/hushgram/extension/instagram/feed/CommentAiLabel;->shown(I)Z in instance (LX/*;)LX/*; pooled holding row_comment_textview_username row_comment_textview_time_ago
+# Hide the (i) button in comments (#869), under Hide comments: the component drawing the row above
+# a sheet's comments (0TQj.A0p on 457, the one Button-role render reading CommentListViewModel's
+# two-string explanation from its own field) hands what it read to CommentAboutButton.disclosure
+# right after the read, and its own null test skips the (i). Left out, the (i) stays; more often
+# or elsewhere, it isn't the check the patch wrote.
+once-call Lapp/hushgram/extension/instagram/feed/CommentAboutButton;->disclosure(Ljava/lang/Object;)Ljava/lang/Object; in instance (LX/*;)LX/*; pooled holding android.widget.Button const:0x7f0810b0
 # The download button on feed posts (#97) calls FeedDownloadButton.bind first thing in the Feed
 # view binder Hide the Repost button's view hide is in (0Bfq.A07 on 450's 385611438). No rule, for
 # the reason above: the binder is picked by resource IDs. DownloadVideoHookTest checks on every

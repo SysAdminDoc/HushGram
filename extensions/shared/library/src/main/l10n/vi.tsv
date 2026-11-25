@@ -802,6 +802,9 @@ Hide search suggestions in comments	Ẩn gợi ý tìm kiếm trong bình luận
 Takes the Meta AI search suggestion off the top of a post's or reel's comments. Not every post has one.	Gỡ gợi ý tìm kiếm của Meta AI ở đầu phần bình luận của bài viết hoặc reel. Không phải bài viết nào cũng có.
 Hide the gift button	Ẩn nút quà tặng
 Takes the gift button off the right end of the comment box. The box itself stays.	Gỡ nút quà tặng ở đầu bên phải ô bình luận. Bản thân ô vẫn giữ.
+# context: Comments: a Hide comments switch (#869) that hides the round (i) info button some comment sheets draw at the top right, just above the first comment. Write (i) as is.
+Hide the (i) button in comments	Ẩn nút (i) trong bình luận
+Takes the (i) button off the top right of a post's or reel's comments, above the first comment. Not every post has it.	Gỡ nút (i) ở góc trên bên phải phần bình luận của bài viết hoặc reel, phía trên bình luận đầu tiên. Không phải bài viết nào cũng có.
 Hide the emoji row	Ẩn hàng biểu tượng cảm xúc
 Takes the row of quick emoji off above the comment box. The box itself stays.	Gỡ hàng biểu tượng cảm xúc nhanh phía trên ô bình luận. Bản thân ô vẫn giữ.
 # context: Comments: the switch that takes GIFs and stickers out of a post's comments (#511). A comment that has words keeps its words and loses only the picture. A comment that's only a GIF disappears, and its replies with it. Comment box is the field where you type a comment.

@@ -3603,6 +3603,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_comment_gift_button", FALSE);
 
     /**
+     * The row above a post's or reel's comments leaves out the (i) button some sheets draw at its
+     * right end (#869, {@link app.hushgram.extension.instagram.feed.CommentAboutButton}). Read as the
+     * row is built, so the next comments opened change. Off to start.
+     */
+    public static final BooleanSetting HIDE_COMMENT_ABOUT_BUTTON =
+            new BooleanSetting("hushgram_hide_comment_about_button", FALSE);
+
+    /**
      * The comment sheet leaves out the row of quick emoji above the comment box
      * ({@link app.hushgram.extension.instagram.feed.CommentEmojiRow}). Read before each frame of a
      * resumed screen, so it needs no restart. Off to start.
