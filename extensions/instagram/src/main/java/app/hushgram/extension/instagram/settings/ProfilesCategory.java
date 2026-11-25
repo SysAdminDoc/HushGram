@@ -173,6 +173,10 @@ final class ProfilesCategory {
                 profiles.addPreference(toggle(context, Settings.ASK_BEFORE_FOLLOW, L10n.t("Ask before a follow"),
                         L10n.t("Asks before a Follow or Follow back button follows someone or sends them a request, so a "
                                 + "stray tap on a profile or in a Followers or Following list doesn't do it for you.")));
+                profiles.addPreference(toggle(context, Settings.SKIP_FOLLOW_REVIEW, L10n.t("Follow without the review sheet"),
+                        L10n.t("For some accounts Instagram opens a \"Review this account before following\" sheet before "
+                                + "a follow. With this on, the follow goes through at once, the same as the sheet's Follow "
+                                + "button, so one tap follows. Ask before a follow still asks first.")));
             }
             if (build.contains(PatchFamily.SENT_FOLLOW_REQUESTS)) {
                 profiles.addPreference(toggle(context, Settings.SENT_FOLLOW_REQUESTS, L10n.t("Sent follow requests"),

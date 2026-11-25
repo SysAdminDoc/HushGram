@@ -304,6 +304,10 @@ Ask what to save	السؤال عما تريد حفظه
 Asked to follow you	طلب متابعتك
 Asks Android to run Instagram at your screen's fastest refresh rate, at the same resolution. Some phones keep their own limit for apps, and battery saver can still lower it.	يطلب من Android تشغيل Instagram بأعلى معدل تحديث لشاشتك، وبنفس الدقة. بعض الهواتف تفرض حدًا خاصًا للتطبيقات، وقد يخفضه موفر البطارية أيضًا.
 Asks before a Follow or Follow back button follows someone or sends them a request, so a stray tap on a profile or in a Followers or Following list doesn't do it for you.	يسأل قبل أن يتابع زر Follow أو Follow back شخصًا أو يرسل إليه طلبًا، حتى لا تؤدي نقرة عابرة على ملف أو في قائمة Followers أو Following ذلك نيابة عنك.
+# context: Profiles > title of the switch that skips Instagram's "Review this account before following" sheet, so one tap on Follow follows (#867)
+Follow without the review sheet	المتابعة بدون نافذة المراجعة
+# context: Profiles > summary of Follow without the review sheet; the quoted title is Instagram's own sheet and Follow its button; Ask before a follow is the switch above (#867)
+For some accounts Instagram opens a "Review this account before following" sheet before a follow. With this on, the follow goes through at once, the same as the sheet's Follow button, so one tap follows. Ask before a follow still asks first.	لبعض الحسابات يفتح Instagram نافذة "Review this account before following" قبل المتابعة. مع تشغيل هذا الخيار تتم المتابعة فورًا، كما يفعل زر Follow في النافذة، فتكفي نقرة واحدة. ويظل السؤال قبل المتابعة يسأل أولًا.
 Asks before a pull down or another tap on its tab refreshes Home, Reels or another list. Cancel keeps what's on screen.	يسأل قبل أن تُحدّث عملية السحب لأسفل أو نقرة أخرى على تبويبها الصفحة الرئيسية أو Reels أو أي قائمة أخرى. الإلغاء يُبقي ما هو معروض على الشاشة.
 Asks before the Like button under a post, on a reel or on a comment likes or unlikes it, so a stray tap doesn't do it for you. Double taps aren't asked about.	يسأل قبل أن يُعجب زر Like أسفل منشور أو على Reel أو على تعليق أو يُلغي إعجابه، حتى لا تؤدي نقرة عابرة ذلك. لا يُسأل عن النقر المزدوج.
 At once	في الحال

@@ -1414,6 +1414,13 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting ASK_BEFORE_FOLLOW = new BooleanSetting("hushgram_ask_before_follow", FALSE);
 
     /**
+     * A follow that would open Instagram's "Review this account before following" sheet follows at
+     * once, as the sheet's Follow button would ({@link app.hushgram.extension.instagram.profile.FollowReview}).
+     * Off to start (#867).
+     */
+    public static final BooleanSetting SKIP_FOLLOW_REVIEW = new BooleanSetting("hushgram_skip_follow_review", FALSE);
+
+    /**
      * Keeps the follow requests a follow button shows as Requested, for the Sent follow requests page
      * ({@link app.hushgram.extension.instagram.profile.SentRequests}, #690). Read at each status, so no
      * restart. Off to start.

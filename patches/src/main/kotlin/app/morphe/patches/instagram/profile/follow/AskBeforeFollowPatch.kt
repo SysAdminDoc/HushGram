@@ -4,6 +4,7 @@
  */
 package app.morphe.patches.instagram.profile.follow
 
+import app.morphe.patcher.Fingerprint
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
 import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
@@ -21,6 +22,7 @@ import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
+import app.morphe.patches.instagram.misc.extension.uniqueMethod
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
@@ -51,6 +53,11 @@ internal const val FOLLOW_BUTTON_BASE = "Lcom/instagram/user/follow/FollowButton
 /** The status a Follow tap leaves, which only its enum's static setup loads. */
 internal const val NOT_FOLLOWING = "FollowStatusNotFollowing"
 
+internal const val FOLLOW_REVIEW = "$EXTENSION_PACKAGE/profile/FollowReview;"
+internal const val SKIP_REVIEW = "$FOLLOW_REVIEW->skip(Ljava/lang/Object;)Z"
+
+private const val CONTEXT = "Landroid/content/Context;"
+private const val ON_CLICK = "Landroid/content/DialogInterface\$OnClickListener;"
 private const val USER_SESSION = "Lcom/instagram/common/session/UserSession;"
 private const val MEDIA = "Lcom/instagram/feed/media/Media;"
 private const val SEARCH_CONTEXT = "Lcom/instagram/search/common/analytics/SearchContext;"
@@ -69,7 +76,8 @@ val askBeforeFollowPatch = bytecodePatch(
     name = "Ask before a follow",
     description = "Asks you to confirm before a Follow or Follow back button follows someone or sends them a " +
         "request, so a stray tap on a profile or in a Followers or Following list doesn't do it for you. " +
-        "Starts off. Turn it on in HushGram settings > Profiles.",
+        "A second switch skips Instagram's \"Review this account before following\" sheet, so one tap follows. " +
+        "Both start off. Turn them on in HushGram settings > Profiles.",
     default = true,
 ) {
     category("Profiles")
@@ -79,6 +87,7 @@ val askBeforeFollowPatch = bytecodePatch(
     execute {
         requireStatusMethod("askBeforeFollow")
         askBeforeFollow(findFollowButton())
+        skipFollowReview(findReviewSheet())
         enableStatus("askBeforeFollow")
     }
 }
@@ -306,5 +315,50 @@ internal fun askBeforeFollow(found: FollowButtonTargets) {
             return-void
         """,
         ExternalLabel("instagram", action.getInstruction(0)),
+    )
+}
+
+/**
+ * The "Review this account before following" sheet's builder: the one static void taking (Context,
+ * Follow listener, Cancel listener, session) and two of Instagram's own types, its logger and the
+ * about-this-account data. Every place that opens the sheet (a Follow button, a comment's follow,
+ * follow requests) calls it with the listener its Follow button runs.
+ */
+internal object ReviewSheetFingerprint : Fingerprint(
+    returnType = "V",
+    parameters = listOf(CONTEXT, ON_CLICK, ON_CLICK, USER_SESSION, "L", "L"),
+    custom = { method, _ ->
+        AccessFlags.STATIC.isSet(method.accessFlags) &&
+            method.parameterTypes.drop(4).map(Any::toString).none { it.startsWith("Ljava/") || it.startsWith("Landroid/") }
+    },
+)
+
+/** Finds the review sheet's builder and checks the hook fits, before anything changes. */
+internal fun BytecodePatchContext.findReviewSheet(): MutableMethod {
+    val sheet = uniqueMethod(FOLLOW_PATCH, "follow review sheet", ReviewSheetFingerprint)
+    val where = "${sheet.definingClass}->${sheet.name}"
+    if (sheet.localRegisterCount() < 1) refuse("$where has no local for the answer")
+    if (0 in sheet.jumpTargets()) refuse("a jump or exception handler enters $where at its first instruction")
+    val extension = classDefByOrNull(FOLLOW_REVIEW) ?: refuse("the extension has no $FOLLOW_REVIEW")
+    extension.publicStatic(SKIP_REVIEW) ?: refuse("the extension has no public static $SKIP_REVIEW")
+    return sheet
+}
+
+/**
+ * Asks the extension first thing in the review sheet's builder, with the Follow listener. A yes means
+ * the listener already ran as the sheet's Follow button would, so the builder returns before it
+ * logs or shows the sheet. The listener is the second parameter, past v15 once the builder has fifteen
+ * locals or more, so the call takes the range form.
+ */
+internal fun skipFollowReview(sheet: MutableMethod) {
+    sheet.addInstructionsWithLabels(
+        0,
+        """
+            invoke-static/range { p1 .. p1 }, $SKIP_REVIEW
+            move-result v0
+            if-eqz v0, :instagram
+            return-void
+        """,
+        ExternalLabel("instagram", sheet.getInstruction(0)),
     )
 }

@@ -202,7 +202,7 @@
     },
     {
       "name": "Ask before a follow",
-      "description": "Asks you to confirm before a Follow or Follow back button follows someone or sends them a request, so a stray tap on a profile or in a Followers or Following list doesn't do it for you. Starts off. Turn it on in HushGram settings > Profiles.",
+      "description": "Asks you to confirm before a Follow or Follow back button follows someone or sends them a request, so a stray tap on a profile or in a Followers or Following list doesn't do it for you. A second switch skips Instagram's \"Review this account before following\" sheet, so one tap follows. Both start off. Turn them on in HushGram settings > Profiles.",
       "category": "Profiles",
       "use": true,
       "dependencies": [

@@ -2530,6 +2530,10 @@ Choose a file for your installed patches' settings and saved profiles. Your logi
 Ask before a follow	关注前询问
 # context: Profiles > summary of Ask before a follow; Follow, Follow back, Followers and Following are Instagram's own button and list names (#631)
 Asks before a Follow or Follow back button follows someone or sends them a request, so a stray tap on a profile or in a Followers or Following list doesn't do it for you.	在“关注”或“回关踪”按钮关注某人或送出关注要求前先询问，避免在主页、粉丝名单或关注名单误触时直接帮你关注.
+# context: Profiles > title of the switch that skips Instagram's "Review this account before following" sheet, so one tap on Follow follows (#867)
+Follow without the review sheet	跳过审查页面直接关注
+# context: Profiles > summary of Follow without the review sheet; the quoted title is Instagram's own sheet and Follow its button; Ask before a follow is the switch above (#867)
+For some accounts Instagram opens a "Review this account before following" sheet before a follow. With this on, the follow goes through at once, the same as the sheet's Follow button, so one tap follows. Ask before a follow still asks first.	对某些账号，Instagram 会在关注前打开“关注前先查看这个账号”页面。开启此选项后会立即关注，就像点了该页面的“关注”按钮，点一下就能关注。“关注前询问”仍会先询问。
 # context: Title of the question Ask before a follow puts up; %1$s is the account's username (#631)
 Follow @%1$s?	要关注 @%1$s 吗？
 # context: Title of the question Ask before a follow puts up when the username can't be read (#631)

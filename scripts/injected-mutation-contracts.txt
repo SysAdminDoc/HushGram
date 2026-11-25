@@ -3738,6 +3738,14 @@ once-call Lapp/hushgram/extension/instagram/feed/RefreshConfirm;->pull(Landroid/
 # where it lands on each declared build.
 start-call Lapp/hushgram/extension/instagram/profile/FollowConfirm;->hold(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/String;)Z in instance (LX/*;Lcom/instagram/common/session/UserSession;Lcom/instagram/feed/media/Media;LX/*;Lcom/instagram/search/common/analytics/SearchContext;LX/*;LX/*;Ljava/lang/Double;Ljava/lang/String;)V holding Landroid/view/View;->isAttachedToWindow()Z
 once-call Lapp/hushgram/extension/instagram/profile/FollowConfirm;->hold(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/String;)Z in instance (LX/*;Lcom/instagram/common/session/UserSession;Lcom/instagram/feed/media/Media;LX/*;Lcom/instagram/search/common/analytics/SearchContext;LX/*;LX/*;Ljava/lang/Double;Ljava/lang/String;)V holding Landroid/view/View;->isAttachedToWindow()Z
+# Its "Follow without the review sheet" switch (#867) hands FollowReview.skip the Follow listener
+# first thing in the "Review this account before following" sheet's builder (0BXc.A08 on 457), the
+# one static (Context, listener, listener, session, object, object) void, which reads the account's
+# field 0x46ae0f6e and its button text before it shows the sheet. Left out, the sheet still shows;
+# twice or elsewhere, it isn't the guard the patch wrote. FollowReviewHookTest checks where it lands
+# on each declared build.
+start-call Lapp/hushgram/extension/instagram/profile/FollowReview;->skip(Ljava/lang/Object;)Z in static (Landroid/content/Context;Landroid/content/DialogInterface$OnClickListener;Landroid/content/DialogInterface$OnClickListener;Lcom/instagram/common/session/UserSession;LX/*;LX/*;)V holding const:0x46ae0f6e Landroid/content/Context;->getString(I)Ljava/lang/String;
+once-call Lapp/hushgram/extension/instagram/profile/FollowReview;->skip(Ljava/lang/Object;)Z in static (Landroid/content/Context;Landroid/content/DialogInterface$OnClickListener;Landroid/content/DialogInterface$OnClickListener;Lcom/instagram/common/session/UserSession;LX/*;LX/*;)V holding const:0x46ae0f6e Landroid/content/Context;->getString(I)Ljava/lang/String;
 # Skip the collections tray (piko #2210) asks SaveTray.skip first thing in the check that decides
 # whether a save opens the collections tray (0BWA.A04 on 453, the one instance (UserSession) boolean
 # method loading the collab collection nux count), and answers false on a yes. 453's 385914510 asks
