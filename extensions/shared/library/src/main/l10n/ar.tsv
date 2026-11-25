@@ -2070,6 +2070,11 @@ Takes the banner reminding you to be respectful off the bottom of a chat.	يزي
 Takes the big prompt for your first post off your own profile while it has no posts. Other people's profiles stay as they are.	يزيل المطالبة الكبيرة بنشر أول منشور من ملفك الشخصي عندما لا يحتوي على منشورات. وتبقى ملفات الآخرين الشخصية كما هي.
 Takes the caption off posts in your feed and off reels. The post stays, and the comments sheet still shows it.	يزيل التعليق من المنشورات في خلاصتك ومن المقاطع. ويبقى المنشور، ولا تزال ورقة التعليقات تعرضه.
 Takes the comment box, with your picture and Post, off the bottom of a post's or reel's comments. Turn it off when you want to comment.	يزيل مربع التعليق، بصورتك وزر Post، من أسفل تعليقات منشور أو Reel. أوقفه عندما تريد التعليق.
+# context: Comments: two Hide comments switches (#869). One hides the Meta AI search suggestion some comment sheets show above the comments (a pill reading Search plus a topic), the other the gift button at the end of the comment box. Comment box is the field where you type a comment.
+Hide search suggestions in comments	إخفاء اقتراحات البحث في التعليقات
+Takes the Meta AI search suggestion off the top of a post's or reel's comments. Not every post has one.	يزيل اقتراح البحث من Meta AI من أعلى تعليقات منشور أو Reel. ليس لكل منشور اقتراح.
+Hide the gift button	إخفاء زر الهدية
+Takes the gift button off the right end of the comment box. The box itself stays.	يزيل زر الهدية من طرف مربع التعليق. يبقى المربع نفسه.
 Takes the heart and the like count off each comment in a post's or reel's comments.	يزيل القلب وعدد الإعجابات من كل تعليق في تعليقات منشور أو Reel.
 # context: Comments: a Hide comments switch that takes AI labels like AI-generated profile off the line with a commenter's name and time in a comment sheet (#787). AI-generated profile is a label Instagram shows there, use this language's Instagram words for it if you know them.
 Hide AI labels on comments	إخفاء تصنيفات الذكاء الاصطناعي في التعليقات

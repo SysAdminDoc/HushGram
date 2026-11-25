@@ -799,6 +799,11 @@ Takes AI-generated profile and similar AI labels off the line with a commenter's
 # context: Comments: a Hide comments switch that takes the comment box off the bottom of a comment sheet (#762). Comment box is the field where you type a comment; Post is Instagram's own label on its send button, use this language's Instagram word for it.
 Hide the comment box	댓글 입력창 숨기기
 Takes the comment box, with your picture and Post, off the bottom of a post's or reel's comments. Turn it off when you want to comment.	게시물이나 릴스 댓글 아래쪽에서 내 사진과 게시 버튼이 있는 댓글 입력창을 없앱니다. 댓글을 달고 싶을 때는 꺼 주세요.
+# context: Comments: two Hide comments switches (#869). One hides the Meta AI search suggestion some comment sheets show above the comments (a pill reading Search plus a topic), the other the gift button at the end of the comment box. Comment box is the field where you type a comment.
+Hide search suggestions in comments	댓글의 검색 추천 숨기기
+Takes the Meta AI search suggestion off the top of a post's or reel's comments. Not every post has one.	게시물이나 릴스 댓글 맨 위에 있는 Meta AI 검색 추천을 없앱니다. 모든 게시물에 있지는 않습니다.
+Hide the gift button	선물 버튼 숨기기
+Takes the gift button off the right end of the comment box. The box itself stays.	댓글 입력창 오른쪽 끝의 선물 버튼을 없앱니다. 입력창은 그대로 표시됩니다
 # context: Comments: the switch that hides the row of quick emoji above the comment box (#248). Comment box is the field where you type a comment.
 Hide the emoji row	이모지 줄 숨기기
 Takes the row of quick emoji off above the comment box. The box itself stays.	댓글 입력창 위에 있는 빠른 이모지 줄을 없앱니다. 입력창은 그대로 표시됩니다

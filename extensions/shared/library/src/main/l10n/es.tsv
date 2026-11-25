@@ -800,6 +800,11 @@ Takes AI-generated profile and similar AI labels off the line with a commenter's
 # context: Comments: a Hide comments switch that takes the comment box off the bottom of a comment sheet (#762). Comment box is the field where you type a comment; Post is Instagram's own label on its send button, use this language's Instagram word for it.
 Hide the comment box	Ocultar el cuadro de comentarios
 Takes the comment box, with your picture and Post, off the bottom of a post's or reel's comments. Turn it off when you want to comment.	Quita el cuadro de comentarios, con tu foto y Publicar, de la parte de abajo de los comentarios de una publicación o un reel. Desactívalo cuando quieras comentar.
+# context: Comments: two Hide comments switches (#869). One hides the Meta AI search suggestion some comment sheets show above the comments (a pill reading Search plus a topic), the other the gift button at the end of the comment box. Comment box is the field where you type a comment.
+Hide search suggestions in comments	Ocultar sugerencias de búsqueda en los comentarios
+Takes the Meta AI search suggestion off the top of a post's or reel's comments. Not every post has one.	Quita la sugerencia de búsqueda de Meta AI de la parte de arriba de los comentarios de una publicación o un reel. No todas las publicaciones la tienen.
+Hide the gift button	Ocultar el botón de regalo
+Takes the gift button off the right end of the comment box. The box itself stays.	Quita el botón de regalo del extremo derecho del cuadro de comentarios. El cuadro se queda.
 # context: Comments: the switch that hides the row of quick emoji above the comment box (#248). Comment box is the field where you type a comment.
 Hide the emoji row	Ocultar la fila de emojis
 Takes the row of quick emoji off above the comment box. The box itself stays.	Quita la fila de emojis rápidos que aparece sobre el cuadro de comentarios. El cuadro se queda.

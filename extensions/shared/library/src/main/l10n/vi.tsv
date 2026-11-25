@@ -797,6 +797,11 @@ Takes AI-generated profile and similar AI labels off the line with a commenter's
 # context: Comments: a Hide comments switch that takes the comment box off the bottom of a comment sheet (#762). Comment box is the field where you type a comment; Post is Instagram's own label on its send button, use this language's Instagram word for it.
 Hide the comment box	Ẩn ô bình luận
 Takes the comment box, with your picture and Post, off the bottom of a post's or reel's comments. Turn it off when you want to comment.	Gỡ ô bình luận, cùng ảnh của bạn và nút Đăng, khỏi phía dưới phần bình luận của bài viết hoặc reel. Hãy tắt khi bạn muốn bình luận.
+# context: Comments: two Hide comments switches (#869). One hides the Meta AI search suggestion some comment sheets show above the comments (a pill reading Search plus a topic), the other the gift button at the end of the comment box. Comment box is the field where you type a comment.
+Hide search suggestions in comments	Ẩn gợi ý tìm kiếm trong bình luận
+Takes the Meta AI search suggestion off the top of a post's or reel's comments. Not every post has one.	Gỡ gợi ý tìm kiếm của Meta AI ở đầu phần bình luận của bài viết hoặc reel. Không phải bài viết nào cũng có.
+Hide the gift button	Ẩn nút quà tặng
+Takes the gift button off the right end of the comment box. The box itself stays.	Gỡ nút quà tặng ở đầu bên phải ô bình luận. Bản thân ô vẫn giữ.
 Hide the emoji row	Ẩn hàng biểu tượng cảm xúc
 Takes the row of quick emoji off above the comment box. The box itself stays.	Gỡ hàng biểu tượng cảm xúc nhanh phía trên ô bình luận. Bản thân ô vẫn giữ.
 # context: Comments: the switch that takes GIFs and stickers out of a post's comments (#511). A comment that has words keeps its words and loses only the picture. A comment that's only a GIF disappears, and its replies with it. Comment box is the field where you type a comment.

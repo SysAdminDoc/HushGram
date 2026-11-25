@@ -44,6 +44,8 @@ public class HideCommentsSettingsTest {
         Settings.HIDE_COMMENT_LIKES.resetToDefault();
         Settings.HIDE_COMMENT_AI_LABELS.resetToDefault();
         Settings.HIDE_COMMENT_BOX.resetToDefault();
+        Settings.HIDE_COMMENT_SEARCH_PROMPT.resetToDefault();
+        Settings.HIDE_COMMENT_GIFT_BUTTON.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         BaseSettings.SAFE_MODE.save(false);
@@ -61,6 +63,8 @@ public class HideCommentsSettingsTest {
         Settings.HIDE_COMMENT_LIKES.resetToDefault();
         Settings.HIDE_COMMENT_AI_LABELS.resetToDefault();
         Settings.HIDE_COMMENT_BOX.resetToDefault();
+        Settings.HIDE_COMMENT_SEARCH_PROMPT.resetToDefault();
+        Settings.HIDE_COMMENT_GIFT_BUTTON.resetToDefault();
         Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
     }
     private void open(boolean installed) throws Exception {
@@ -77,6 +81,8 @@ public class HideCommentsSettingsTest {
         assertNull(page.getPreferenceScreen().findPreference(Settings.HIDE_COMMENT_LIKES.key));
         assertNull(page.getPreferenceScreen().findPreference(Settings.HIDE_COMMENT_AI_LABELS.key));
         assertNull(page.getPreferenceScreen().findPreference(Settings.HIDE_COMMENT_BOX.key));
+        assertNull(page.getPreferenceScreen().findPreference(Settings.HIDE_COMMENT_SEARCH_PROMPT.key));
+        assertNull(page.getPreferenceScreen().findPreference(Settings.HIDE_COMMENT_GIFT_BUTTON.key));
     }
     @Test public void theSwitchSitsUnderCommentsAndStartsOff() throws Exception {
         open(true);
@@ -89,7 +95,8 @@ public class HideCommentsSettingsTest {
         assertFalse(row.isChecked());
         assertFalse(Settings.HIDE_COMMENTS.get());
         assertEquals(Arrays.asList(Settings.HIDE_COMMENTS, Settings.HIDE_COMMENT_REPLY, Settings.HIDE_COMMENT_LIKES,
-                Settings.HIDE_COMMENT_AI_LABELS, Settings.HIDE_COMMENT_BOX), PatchFamily.HIDE_COMMENTS.switches);
+                Settings.HIDE_COMMENT_AI_LABELS, Settings.HIDE_COMMENT_BOX, Settings.HIDE_COMMENT_SEARCH_PROMPT,
+                Settings.HIDE_COMMENT_GIFT_BUTTON), PatchFamily.HIDE_COMMENTS.switches);
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.HIDE_COMMENTS.key));
         row.setChecked(true);
         assertTrue(Settings.HIDE_COMMENTS.get());
@@ -209,7 +216,7 @@ public class HideCommentsSettingsTest {
         PreferenceCategory section = categoryHolding(page.getPreferenceScreen(), row);
         assertNotNull(section);
         assertEquals("Comments", section.getTitle().toString());
-        assertEquals("right after Hide AI labels on comments", Settings.HIDE_COMMENT_AI_LABELS.key,
+        assertEquals("right after the search suggestion's switch", Settings.HIDE_COMMENT_SEARCH_PROMPT.key,
                 section.getPreference(indexOf(section, row) - 1).getKey());
         assertFalse(row.isChecked());
         assertFalse(Settings.HIDE_COMMENT_BOX.get());
@@ -218,6 +225,41 @@ public class HideCommentsSettingsTest {
         row.setChecked(true);
         assertTrue(Settings.HIDE_COMMENT_BOX.get());
         assertFalse("the heart keeps its own value", Settings.HIDE_COMMENT_LIKES.get());
+    }
+    /**
+     * #869: the search suggestion's switch sits between the AI labels and the comment box, the one
+     * above the comments, and the gift button's right after the box it sits in. Both start off and
+     * need no restart.
+     */
+    @Test public void theSuggestionAndGiftSwitchesSitAroundTheBoxAndStartOff() throws Exception {
+        open(true);
+        SwitchPreference prompt = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.HIDE_COMMENT_SEARCH_PROMPT.key);
+        SwitchPreference gift = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.HIDE_COMMENT_GIFT_BUTTON.key);
+        assertNotNull(prompt);
+        assertNotNull(gift);
+        assertEquals("Hide search suggestions in comments", prompt.getTitle().toString());
+        assertEquals("Takes the Meta AI search suggestion off the top of a post's or reel's comments. Not every post has one.",
+                prompt.getSummary().toString());
+        assertEquals("Hide the gift button", gift.getTitle().toString());
+        assertEquals("Takes the gift button off the right end of the comment box. The box itself stays.",
+                gift.getSummary().toString());
+        PreferenceCategory section = categoryHolding(page.getPreferenceScreen(), prompt);
+        assertNotNull(section);
+        assertEquals("Comments", section.getTitle().toString());
+        assertSame(section, categoryHolding(page.getPreferenceScreen(), gift));
+        assertEquals(Settings.HIDE_COMMENT_AI_LABELS.key, section.getPreference(indexOf(section, prompt) - 1).getKey());
+        assertEquals(Settings.HIDE_COMMENT_BOX.key, section.getPreference(indexOf(section, gift) - 1).getKey());
+        for (SwitchPreference row : new SwitchPreference[]{prompt, gift}) assertFalse(row.isChecked());
+        assertFalse(Settings.HIDE_COMMENT_SEARCH_PROMPT.get());
+        assertFalse(Settings.HIDE_COMMENT_GIFT_BUTTON.get());
+        assertFalse("each frame reads the switch, so no restart prompt", Settings.HIDE_COMMENT_SEARCH_PROMPT.rebootApp);
+        assertFalse(Settings.HIDE_COMMENT_GIFT_BUTTON.rebootApp);
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.HIDE_COMMENT_SEARCH_PROMPT.key));
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.HIDE_COMMENT_GIFT_BUTTON.key));
+        gift.setChecked(true);
+        assertTrue(Settings.HIDE_COMMENT_GIFT_BUTTON.get());
+        assertFalse("each keeps its own value", Settings.HIDE_COMMENT_SEARCH_PROMPT.get());
+        assertFalse(Settings.HIDE_COMMENT_BOX.get());
     }
     private static int indexOf(PreferenceGroup group, Preference row) {
         for (int i = 0; i < group.getPreferenceCount(); i++) if (group.getPreference(i) == row) return i;

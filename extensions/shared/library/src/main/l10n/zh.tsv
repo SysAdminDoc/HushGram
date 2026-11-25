@@ -803,6 +803,11 @@ Takes AI-generated profile and similar AI labels off the line with a commenter's
 # context: Comments: a Hide comments switch that takes the comment box off the bottom of a comment sheet (#762). Comment box is the field where you type a comment; Post is Instagram's own label on its send button, use this language's Instagram word for it.
 Hide the comment box	隐藏评论输入框
 Takes the comment box, with your picture and Post, off the bottom of a post's or reel's comments. Turn it off when you want to comment.	移除帖子或 Reels 评论底部的评论输入框，连同你的头像和“发布”。想评论时再关闭。
+# context: Comments: two Hide comments switches (#869). One hides the Meta AI search suggestion some comment sheets show above the comments (a pill reading Search plus a topic), the other the gift button at the end of the comment box. Comment box is the field where you type a comment.
+Hide search suggestions in comments	隐藏评论中的搜索建议
+Takes the Meta AI search suggestion off the top of a post's or reel's comments. Not every post has one.	移除帖子或 Reels 评论顶部的 Meta AI 搜索建议。并非每个帖子都有。
+Hide the gift button	隐藏礼物按钮
+Takes the gift button off the right end of the comment box. The box itself stays.	移除评论输入框右端的礼物按钮，输入框本身仍会保留。
 # context: Comments: the switch that hides the row of quick emoji above the comment box (#248). Comment box is the field where you type a comment.
 Hide the emoji row	隐藏表情符号列
 Takes the row of quick emoji off above the comment box. The box itself stays.	移除评论输入框上方的快速表情符号列，输入框本身仍会保留。

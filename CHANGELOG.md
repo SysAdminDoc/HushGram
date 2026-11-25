@@ -76,6 +76,7 @@ Every HushGram release, newest first.
 * `Keep profile history` no longer piles up old pictures. Once a picture falls out of the newest twenty a profile keeps, its saved copy goes too. Copies left over from before are cleared the first time you open a profile after Instagram starts. Reported in #683.
 * `Keep profile history` keeps its saved pictures under 100 MB. Past that, the copies of the profiles you opened longest ago go first. Their old usernames and bios stay listed, and opening one saves its current picture again. Reported in #683.
 * `Space used` is new under Storage, below `Clear saved copies now`. It adds up how much room Instagram's data takes outside its cache, names the three biggest folders and says how much of it is HushGram's own files. Asked for in #683.
+* `Hide search suggestions in comments` and `Hide the gift button` are new under Comments. The first takes the Meta AI search suggestion off the top of a post's or reel's comments, the second the gift button off the end of the comment box. Both start off and need no restart. Asked for in #869.
 
 ## 0.0.22 (2026-11-22)
 

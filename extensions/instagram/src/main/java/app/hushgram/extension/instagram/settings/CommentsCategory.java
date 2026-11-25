@@ -19,6 +19,7 @@ import java.util.Set;
 import app.hushgram.extension.instagram.feed.CommentBox;
 import app.hushgram.extension.instagram.feed.CommentEmojiRow;
 import app.hushgram.extension.instagram.feed.CommentGifs;
+import app.hushgram.extension.instagram.feed.CommentSheetExtras;
 import app.hushgram.extension.shared.L10n;
 
 /** Builds the Comments category of HushGram settings. */
@@ -75,9 +76,15 @@ final class CommentsCategory {
                     comments.addPreference(toggle(context, Settings.HIDE_COMMENT_AI_LABELS, L10n.t("Hide AI labels on comments"),
                             L10n.t("Takes AI-generated profile and similar AI labels off the line with a commenter's name. The name and the time stay.")));
                 }
+                comments.addPreference(onFlip(toggle(context, Settings.HIDE_COMMENT_SEARCH_PROMPT, L10n.t("Hide search suggestions in comments"),
+                        L10n.t("Takes the Meta AI search suggestion off the top of a post's or reel's comments. Not every post has one.")),
+                        CommentSheetExtras::promptSwitchChanged));
                 comments.addPreference(onFlip(toggle(context, Settings.HIDE_COMMENT_BOX, L10n.t("Hide the comment box"),
                         L10n.t("Takes the comment box, with your picture and Post, off the bottom of a post's or reel's comments. Turn it off when you want to comment.")),
                         CommentBox::switchChanged));
+                comments.addPreference(onFlip(toggle(context, Settings.HIDE_COMMENT_GIFT_BUTTON, L10n.t("Hide the gift button"),
+                        L10n.t("Takes the gift button off the right end of the comment box. The box itself stays.")),
+                        CommentSheetExtras::giftSwitchChanged));
             }
             if (build.contains(PatchFamily.COMMENT_EMOJI_ROW)) {
                 comments.addPreference(onFlip(toggle(context, Settings.HIDE_COMMENT_EMOJI_ROW, L10n.t("Hide the emoji row"),

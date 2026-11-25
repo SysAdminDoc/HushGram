@@ -3587,6 +3587,22 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_comment_box", FALSE);
 
     /**
+     * A post's or reel's comments leave out the Meta AI search prompt some sheets show above the
+     * comments (#869, {@link app.hushgram.extension.instagram.feed.CommentSheetExtras}). Read before
+     * each frame of a resumed screen, so it needs no restart. Off to start.
+     */
+    public static final BooleanSetting HIDE_COMMENT_SEARCH_PROMPT =
+            new BooleanSetting("hushgram_hide_comment_search_prompt", FALSE);
+
+    /**
+     * The comment box leaves out the gift button at its right end (#869,
+     * {@link app.hushgram.extension.instagram.feed.CommentSheetExtras}). Read before each frame of a
+     * resumed screen, so it needs no restart. Off to start.
+     */
+    public static final BooleanSetting HIDE_COMMENT_GIFT_BUTTON =
+            new BooleanSetting("hushgram_hide_comment_gift_button", FALSE);
+
+    /**
      * The comment sheet leaves out the row of quick emoji above the comment box
      * ({@link app.hushgram.extension.instagram.feed.CommentEmojiRow}). Read before each frame of a
      * resumed screen, so it needs no restart. Off to start.
