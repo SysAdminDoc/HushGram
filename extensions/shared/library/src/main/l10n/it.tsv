@@ -3013,3 +3013,11 @@ The newest 500 stay, however old they are.	Restano gli ultimi 500, per quanto ve
 Anything seen more than a day ago goes. At most 2000 stay.	Ciò che hai visto più di un giorno fa viene tolto. Ne restano al massimo 2000.
 # context: Keep history for (#228): the row's summary with some days chosen; %1$s is the number
 Anything seen more than %1$s days ago goes. At most 2000 stay.	Ciò che hai visto più di %1$s giorni fa viene tolto. Ne restano al massimo 2000.
+# context: Feed > title of the switch that shows a drag handle at the right edge of Home's feed while it scrolls, like Fast scroll in Saved; Home is Instagram's own Home tab (#826)
+Fast scroll on Home	Scorrimento rapido nella Home
+# context: Feed > summary of Fast scroll on Home; the feed is the list of posts on Home (#826)
+Shows a handle at the right edge of Home while it scrolls. Drag it to jump down your feed and back to the top.	Mostra una maniglia sul bordo destro della Home mentre scorre. Trascinala per scendere nel feed e tornare in cima.
+# context: Messages > title of the switch that shows a drag handle at the right edge of a chat while its messages scroll (#826)
+Fast scroll in chats	Scorrimento rapido nelle chat
+# context: Messages > summary of Fast scroll in chats; the newest messages are at the bottom of a chat (#826)
+Shows a handle at the right edge of a chat while it scrolls. Drag it up to your older messages and back down to the newest.	Mostra una maniglia sul bordo destro di una chat mentre scorre. Trascinala in alto fino ai messaggi meno recenti e in basso fino ai più nuovi.

@@ -2465,6 +2465,20 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting SAVED_FAST_SCROLL = new BooleanSetting("hushgram_saved_fast_scroll", FALSE);
 
     /**
+     * The same handle at the right edge of Home's feed while it scrolls
+     * ({@link app.hushgram.extension.instagram.misc.SavedFastScroll}, #826). Read on every scroll, so it
+     * takes no restart. Off to start.
+     */
+    public static final BooleanSetting FAST_SCROLL_HOME = new BooleanSetting("hushgram_fast_scroll_home", FALSE);
+
+    /**
+     * The same handle at the right edge of a chat's messages while they scroll
+     * ({@link app.hushgram.extension.instagram.misc.SavedFastScroll}, #826). Read on every scroll, so it
+     * takes no restart. Off to start.
+     */
+    public static final BooleanSetting FAST_SCROLL_CHATS = new BooleanSetting("hushgram_fast_scroll_chats", FALSE);
+
+    /**
      * Leaves the + for a new collection off the top of both Saved screens
      * ({@link app.hushgram.extension.instagram.misc.SavedHome}, #762). Your collections stay. Read each
      * time a Saved screen sets up its top bar, so it takes no restart. Off to start.

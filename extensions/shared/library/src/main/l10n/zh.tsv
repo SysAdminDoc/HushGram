@@ -3016,3 +3016,11 @@ The newest 500 stay, however old they are.	保留最新 500 条，不论多久�
 Anything seen more than a day ago goes. At most 2000 stay.	超过一天前看过的会移除，最多保留 2000 条。
 # context: Keep history for (#228): the row's summary with some days chosen; %1$s is the number
 Anything seen more than %1$s days ago goes. At most 2000 stay.	超过 %1$s 天前看过的会移除，最多保留 2000 条。
+# context: Feed > title of the switch that shows a drag handle at the right edge of Home's feed while it scrolls, like Fast scroll in Saved; Home is Instagram's own Home tab (#826)
+Fast scroll on Home	首页快速卷动
+# context: Feed > summary of Fast scroll on Home; the feed is the list of posts on Home (#826)
+Shows a handle at the right edge of Home while it scrolls. Drag it to jump down your feed and back to the top.	卷动首页时，在右侧边缘显示拉杆。拖动拉杆即可在动态中往下跳转，或回到顶部。
+# context: Messages > title of the switch that shows a drag handle at the right edge of a chat while its messages scroll (#826)
+Fast scroll in chats	聊天快速卷动
+# context: Messages > summary of Fast scroll in chats; the newest messages are at the bottom of a chat (#826)
+Shows a handle at the right edge of a chat while it scrolls. Drag it up to your older messages and back down to the newest.	卷动聊天时，在右侧边缘显示拉杆。往上拖动可查看较早的消息，往下拖动可回到最新消息。

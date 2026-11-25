@@ -51,6 +51,7 @@ import app.hushgram.extension.shared.settings.PauseForTests;
 public class SavedFastScrollTest {
     private static final int COLLECTION = 0x7f0b8101;
     private static final int TILE = 0x7f0b8102;
+    private static final int CHAT = 0x7f0b8103;
     /** How much of a grid shows, and how long a long one is: ten screens. */
     private static final int SHOWS = 400;
     private static final int LONG = 4000;
@@ -94,10 +95,18 @@ public class SavedFastScrollTest {
         }
     }
 
+    /** Home's feed, by the class name Instagram keeps for it. */
+    public static class MainFeedRecyclerView extends Grid {
+        public MainFeedRecyclerView(Context context, int length) {
+            super(context, length);
+        }
+    }
+
     @Before
     public void prepare() {
         GlassTabBar.idForTests("save_collection_viewpager", COLLECTION);
         GlassTabBar.idForTests("saved_collection_thumbnail", TILE);
+        GlassTabBar.idForTests(SavedFastScroll.CHAT_LIST, CHAT);
         controller = Robolectric.buildActivity(Activity.class).setup();
         frame = new FrameLayout(controller.get());
         controller.get().setContentView(frame);
@@ -110,8 +119,11 @@ public class SavedFastScrollTest {
     public void restore() {
         SavedFastScroll.release(controller.get());
         for (String name : MessagesLock.SAVED_PAGES) GlassTabBar.idForTests(name, null);
+        GlassTabBar.idForTests(SavedFastScroll.CHAT_LIST, null);
         controller.close();
         Settings.SAVED_FAST_SCROLL.resetToDefault();
+        Settings.FAST_SCROLL_HOME.resetToDefault();
+        Settings.FAST_SCROLL_CHATS.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
     }
@@ -129,6 +141,24 @@ public class SavedFastScrollTest {
 
     private void settle() {
         shadowOf(Looper.getMainLooper()).idle();
+    }
+
+    /** Home's feed filling [height] of the window, [length] long. */
+    private MainFeedRecyclerView homeFeed(int length, int height) {
+        MainFeedRecyclerView feed = new MainFeedRecyclerView(controller.get(), length);
+        frame.addView(feed, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, height));
+        settle();
+        return feed;
+    }
+
+    /** A chat's messages, [length] long, open at the newest, which is at the bottom. */
+    private Grid chat(int length) {
+        Grid chat = new Grid(controller.get(), length);
+        chat.setId(CHAT);
+        frame.addView(chat, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, SHOWS));
+        settle();
+        chat.at = length - SHOWS;
+        return chat;
     }
 
     private SavedFastScroll.Tracker tracker() {
@@ -352,6 +382,112 @@ public class SavedFastScrollTest {
         assertNull(SavedFastScroll.savedList(decor));
         tracker().look();
         flick(grid, 800);
+        assertFalse(handleShows());
+    }
+
+    /** Fast scroll on Home (#826): with its switch, Saved's off, scrolling Home shows the handle at its edge. */
+    @Test
+    public void homesFeedGetsTheHandleWithItsOwnSwitch() {
+        Settings.SAVED_FAST_SCROLL.save(false);
+        Settings.FAST_SCROLL_HOME.save(true);
+        MainFeedRecyclerView feed = homeFeed(LONG, SHOWS);
+        tracker().look();
+        flick(feed, 1800);
+        assertTrue(handleShows());
+        int[] at = new int[2];
+        feed.getLocationInWindow(at);
+        assertEquals("the track runs down the feed's right edge", at[0] + feed.getWidth(), handle().track.right);
+    }
+
+    /** Both start off: Saved's switch alone leaves Home and chats without a handle. */
+    @Test
+    public void homeAndChatsStartWithoutTheHandle() {
+        assertFalse(Settings.FAST_SCROLL_HOME.get());
+        assertFalse(Settings.FAST_SCROLL_CHATS.get());
+        assertFalse(Settings.FAST_SCROLL_HOME.rebootApp);
+        assertFalse(Settings.FAST_SCROLL_CHATS.rebootApp);
+        MainFeedRecyclerView feed = homeFeed(LONG, SHOWS);
+        tracker().look();
+        flick(feed, 1800);
+        assertFalse("Home", handleShows());
+        frame.removeAllViews();
+        Grid chat = chat(LONG);
+        tracker().look();
+        flick(chat, -800);
+        assertFalse("a chat", handleShows());
+    }
+
+    /**
+     * Fast scroll in chats (#826): a chat opens at its newest message, at the bottom of the track. Dragging
+     * the handle up runs back to the oldest message loaded and down again to the newest.
+     */
+    @Test
+    public void aChatsHandleRunsUpToItsOldestMessageAndBack() {
+        Settings.SAVED_FAST_SCROLL.save(false);
+        Settings.FAST_SCROLL_CHATS.save(true);
+        Grid chat = chat(LONG);
+        tracker().look();
+        flick(chat, -400);
+        SavedFastScroll.Handle handle = handle();
+        assertTrue(handleShows());
+        float x = handle.track.right - 3;
+        assertTrue("the handle takes the finger", touch(MotionEvent.ACTION_DOWN, x, handle.top + handle.length() / 2));
+        touch(MotionEvent.ACTION_MOVE, x, -500);
+        assertEquals("the top of the track is the oldest message loaded", 0, chat.at);
+        touch(MotionEvent.ACTION_MOVE, x, handle.track.bottom + 200);
+        assertEquals("the bottom is the newest", LONG - SHOWS, chat.at);
+        touch(MotionEvent.ACTION_UP, x, handle.track.bottom + 200);
+        assertFalse(handle.dragging);
+    }
+
+    /**
+     * A chat can open over Home with Home's feed still laid out under it. The handle follows the list that
+     * moves, the chat, and a drag runs the chat, never the feed under it.
+     */
+    @Test
+    public void aChatOverHomeIsTheOneTheHandleFollows() {
+        Settings.FAST_SCROLL_HOME.save(true);
+        Settings.FAST_SCROLL_CHATS.save(true);
+        MainFeedRecyclerView feed = homeFeed(LONG, ViewGroup.LayoutParams.MATCH_PARENT);
+        feed.at = 1200;
+        Grid chat = chat(LONG);
+        tracker().look();
+        flick(chat, -400);
+        SavedFastScroll.Handle handle = handle();
+        assertTrue(handleShows());
+        float x = handle.track.right - 3;
+        touch(MotionEvent.ACTION_DOWN, x, handle.top + handle.length() / 2);
+        touch(MotionEvent.ACTION_MOVE, x, -500);
+        touch(MotionEvent.ACTION_UP, x, -500);
+        assertEquals("the chat ran to its oldest message", 0, chat.at);
+        assertEquals("Home's feed under it stayed where it was", 1200, feed.at);
+    }
+
+    /** Home's feed on a tab laid out off screen, with Profile picked, gets no handle. */
+    @Test
+    public void homesFeedOffScreenGetsNoHandle() {
+        Settings.FAST_SCROLL_HOME.save(true);
+        MainFeedRecyclerView feed = new MainFeedRecyclerView(controller.get(), LONG);
+        FrameLayout.LayoutParams off = new FrameLayout.LayoutParams(300, SHOWS);
+        off.leftMargin = 2000;
+        frame.addView(feed, off);
+        settle();
+        tracker().look();
+        flick(feed, 1800);
+        assertFalse(handleShows());
+    }
+
+    /** Lock Messages' cover over a chat keeps the handle away, as Lock Saved's does over Saved. */
+    @Test
+    public void theLockCoverKeepsTheHandleOffAChat() {
+        Settings.FAST_SCROLL_CHATS.save(true);
+        Grid chat = chat(LONG);
+        View cover = new View(controller.get());
+        cover.setTag(MessagesLock.COVER_TAG);
+        frame.addView(cover, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, SHOWS));
+        settle();
+        tracker().look();
+        flick(chat, -800);
         assertFalse(handleShows());
     }
 

@@ -3012,3 +3012,11 @@ The newest 500 stay, however old they are.	기간과 상관없이 최근 500개�
 Anything seen more than a day ago goes. At most 2000 stay.	본 지 하루가 넘은 항목은 지워져요. 최대 2000개까지 남아요.
 # context: Keep history for (#228): the row's summary with some days chosen; %1$s is the number
 Anything seen more than %1$s days ago goes. At most 2000 stay.	본 지 %1$s일이 넘은 항목은 지워져요. 최대 2000개까지 남아요.
+# context: Feed > title of the switch that shows a drag handle at the right edge of Home's feed while it scrolls, like Fast scroll in Saved; Home is Instagram's own Home tab (#826)
+Fast scroll on Home	홈 빠른 스크롤
+# context: Feed > summary of Fast scroll on Home; the feed is the list of posts on Home (#826)
+Shows a handle at the right edge of Home while it scrolls. Drag it to jump down your feed and back to the top.	홈을 스크롤하는 동안 오른쪽 가장자리에 핸들을 표시합니다. 핸들을 끌어 피드 아래로 이동하거나 맨 위로 돌아가세요.
+# context: Messages > title of the switch that shows a drag handle at the right edge of a chat while its messages scroll (#826)
+Fast scroll in chats	채팅 빠른 스크롤
+# context: Messages > summary of Fast scroll in chats; the newest messages are at the bottom of a chat (#826)
+Shows a handle at the right edge of a chat while it scrolls. Drag it up to your older messages and back down to the newest.	채팅을 스크롤하는 동안 오른쪽 가장자리에 핸들을 표시합니다. 핸들을 위로 끌면 이전 메시지로, 아래로 끌면 최신 메시지로 이동합니다.

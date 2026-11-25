@@ -101,6 +101,8 @@ public class TabBarAndBatterySettingsTest {
         Settings.GLASS_TAB_BAR_FLOAT.resetToDefault();
         Settings.SAVED_ON_PROFILE.resetToDefault();
         Settings.SAVED_FAST_SCROLL.resetToDefault();
+        Settings.FAST_SCROLL_HOME.resetToDefault();
+        Settings.FAST_SCROLL_CHATS.resetToDefault();
         Settings.HIDE_SAVED_NEW_COLLECTION.resetToDefault();
         PatchFamily.savedNewCollectionForTests = null;
         Settings.HIDE_SAVED_REELS_TAB.resetToDefault();
@@ -129,7 +131,7 @@ public class TabBarAndBatterySettingsTest {
     @Test public void withoutThePatchesNoneOfTheirRowsShow() throws Exception {
         open();
         for (String key : List.of(Settings.GLASS_TAB_BAR.key, Settings.GLASS_TAB_BAR_HAPTIC_STYLE.key, Settings.GLASS_TAB_BAR_OPACITY.key, Settings.GLASS_TAB_BAR_HEIGHT.key,
-                Settings.GLASS_TAB_BAR_CORNERS.key, Settings.GLASS_TAB_BAR_LIFT.key, Settings.GLASS_TAB_BAR_BLUR_RADIUS.key, Settings.GLASS_TAB_BAR_REELS_HIDE.key, Settings.SAVED_ON_PROFILE.key, Settings.SAVED_FAST_SCROLL.key, Settings.HIDE_SAVED_NEW_COLLECTION.key, Settings.HIDE_SAVED_REELS_TAB.key, Settings.HIDE_EXPLORE_SAVED.key, Settings.STOP_HEARTBEAT.key,
+                Settings.GLASS_TAB_BAR_CORNERS.key, Settings.GLASS_TAB_BAR_LIFT.key, Settings.GLASS_TAB_BAR_BLUR_RADIUS.key, Settings.GLASS_TAB_BAR_REELS_HIDE.key, Settings.SAVED_ON_PROFILE.key, Settings.SAVED_FAST_SCROLL.key, Settings.FAST_SCROLL_HOME.key, Settings.FAST_SCROLL_CHATS.key, Settings.HIDE_SAVED_NEW_COLLECTION.key, Settings.HIDE_SAVED_REELS_TAB.key, Settings.HIDE_EXPLORE_SAVED.key, Settings.STOP_HEARTBEAT.key,
                 Settings.STOP_UPLOAD_ALARM.key, Settings.STOP_BACKGROUND_FETCH.key, Settings.GLASS_TAB_BAR_HAPTIC_STRENGTH.key,
                 Settings.GLASS_TAB_BAR_TAP_SOUND.key, Settings.GLASS_TAB_BAR_TAP_SOUND_VOLUME.key)) {
             assertNull(key, row(key));
@@ -772,6 +774,23 @@ public class TabBarAndBatterySettingsTest {
         assertEquals(saved.getOrder() + 1, fast.getOrder());
         assertFalse(fast.isChecked());
         assertFalse(Settings.SAVED_FAST_SCROLL.rebootApp);
+    }
+
+    /** The same handle on Home sits in Feed and in chats in Messages, both off, with no restart (#826). */
+    @Test public void fastScrollOnHomeAndInChatsStartOffUnderFeedAndMessages() throws Exception {
+        open(PatchFamily.SAVED_ON_PROFILE);
+        SwitchPreference home = (SwitchPreference) row(Settings.FAST_SCROLL_HOME.key);
+        SwitchPreference chats = (SwitchPreference) row(Settings.FAST_SCROLL_CHATS.key);
+        assertNotNull(home);
+        assertNotNull(chats);
+        assertEquals("Fast scroll on Home", String.valueOf(home.getTitle()));
+        assertEquals("Fast scroll in chats", String.valueOf(chats.getTitle()));
+        assertEquals("Feed", String.valueOf(sectionOf(page.getPreferenceScreen(), home).getTitle()));
+        assertEquals("Messages", String.valueOf(sectionOf(page.getPreferenceScreen(), chats).getTitle()));
+        assertFalse(home.isChecked());
+        assertFalse(chats.isChecked());
+        assertFalse(Settings.FAST_SCROLL_HOME.rebootApp);
+        assertFalse(Settings.FAST_SCROLL_CHATS.rebootApp);
     }
 
     /** Hiding the + sits right under the fast scroll, starts off, and works without a restart (#762). */

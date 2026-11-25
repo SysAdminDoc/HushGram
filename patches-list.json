@@ -5776,7 +5776,7 @@
     },
     {
       "name": "Saved on your profile",
-      "description": "Adds a bookmark to the tabs on your own profile, beside posts, reels and tagged, that opens Saved on All, a handle to drag through Saved and your collections, and switches that hide the + for a new collection, Saved's Reels tab and the Saved bookmark on the Search tab. All start off. Turn them on in HushGram settings > Profiles. The bookmarks need an Instagram restart.",
+      "description": "Adds a bookmark to the tabs on your own profile, beside posts, reels and tagged, that opens Saved on All, a handle to drag through Saved and your collections, and switches that hide the + for a new collection, Saved's Reels tab and the Saved bookmark on the Search tab. The same handle can run down Home and your chats. All start off. Turn them on in HushGram settings > Profiles, Feed and Messages. The bookmarks need an Instagram restart.",
       "category": "Profiles",
       "use": true,
       "dependencies": [

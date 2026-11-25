@@ -56,7 +56,8 @@ final class MessagesCategory {
                 || build.contains(PatchFamily.PLUS_MENU)
                 || build.contains(PatchFamily.GLASS_CHAT)
                 || build.contains(PatchFamily.CENTER_CHAT_NAME)
-                || build.contains(PatchFamily.FULL_SCREEN_BARS)) {
+                || build.contains(PatchFamily.FULL_SCREEN_BARS)
+                || build.contains(PatchFamily.SAVED_ON_PROFILE)) {
             PreferenceCategory messages = category(screen, L10n.t("Messages"), SettingsIcons.CHATS,
                     L10n.t("Privacy and controls for your chats."));
             if (build.contains(PatchFamily.NOTES_ROW)) {
@@ -295,6 +296,11 @@ final class MessagesCategory {
                 messages.addPreference(toggle(context, Settings.FULL_SCREEN_MESSAGES, L10n.t("Full screen Messages"),
                         L10n.t("Hides the status bar and the navigation bar while your messages or a chat shows. Swipe "
                                 + "in from the edge to bring them back for a moment. Back and the keyboard work as usual.")));
+            }
+            if (build.contains(PatchFamily.SAVED_ON_PROFILE)) {
+                messages.addPreference(toggle(context, Settings.FAST_SCROLL_CHATS, L10n.t("Fast scroll in chats"),
+                        L10n.t("Shows a handle at the right edge of a chat while it scrolls. Drag it up to your "
+                                + "older messages and back down to the newest.")));
             }
             if (build.contains(PatchFamily.MESSAGES_LOCK)) {
                 messages.addPreference(lockToggle(context, Settings.LOCK_MESSAGES, L10n.t("Lock your messages"),

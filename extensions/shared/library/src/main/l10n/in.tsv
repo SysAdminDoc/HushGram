@@ -3013,3 +3013,11 @@ The newest 500 stay, however old they are.	500 terbaru tetap disimpan, berapa pu
 Anything seen more than a day ago goes. At most 2000 stay.	Yang dilihat lebih dari sehari lalu dihapus. Paling banyak 2000 disimpan.
 # context: Keep history for (#228): the row's summary with some days chosen; %1$s is the number
 Anything seen more than %1$s days ago goes. At most 2000 stay.	Yang dilihat lebih dari %1$s hari lalu dihapus. Paling banyak 2000 disimpan.
+# context: Feed > title of the switch that shows a drag handle at the right edge of Home's feed while it scrolls, like Fast scroll in Saved; Home is Instagram's own Home tab (#826)
+Fast scroll on Home	Gulir cepat di Beranda
+# context: Feed > summary of Fast scroll on Home; the feed is the list of posts on Home (#826)
+Shows a handle at the right edge of Home while it scrolls. Drag it to jump down your feed and back to the top.	Menampilkan pegangan di tepi kanan Beranda saat digulir. Seret untuk melompat ke bawah feed-mu dan kembali ke atas.
+# context: Messages > title of the switch that shows a drag handle at the right edge of a chat while its messages scroll (#826)
+Fast scroll in chats	Gulir cepat di chat
+# context: Messages > summary of Fast scroll in chats; the newest messages are at the bottom of a chat (#826)
+Shows a handle at the right edge of a chat while it scrolls. Drag it up to your older messages and back down to the newest.	Menampilkan pegangan di tepi kanan chat saat digulir. Seret ke atas ke pesan lama dan kembali ke bawah ke pesan terbaru.

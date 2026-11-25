@@ -54,13 +54,23 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * It moves the grid by scrollBy, the way AndroidX's own fast scroller does, so the rows in between are
  * laid out as it passes them.
  *
- * <p>The switch is read on every look and every scroll, so it takes effect without a restart. Off or
- * paused, a look costs one read of it and queues nothing.
+ * <p>Fast scroll on Home and Fast scroll in chats (#826) put the same handle on Home's feed, the list
+ * Instagram keeps the class name of ({@link #HOME_LIST}), and on a chat's messages, the list it names
+ * {@link #CHAT_LIST}. A chat's list runs from the newest message up, but its scroll bar reads it as it
+ * shows, so the top of the track is the oldest message loaded and the bottom the newest. Lock Saved's and
+ * Lock Messages' cover hides the handle on all three.
+ *
+ * <p>The switches are read on every look and every scroll, so they take effect without a restart. All
+ * off or paused, a look costs a read of each and queues nothing.
  */
 public final class SavedFastScroll {
     static final String TAG = "hushgram_saved_fast_scroll";
     /** The class Instagram's grids keep the name of. */
     static final String LIST_CLASS = "androidx.recyclerview.widget.RecyclerView";
+    /** The class name Instagram keeps for Home's feed, as Hide the feed's left swipe and Glass reach find it. */
+    static final String HOME_LIST = "MainFeedRecyclerView";
+    /** The name Instagram gives a chat's list of messages. */
+    static final String CHAT_LIST = "message_list";
 
     /** How often a window is looked through for Saved, at most. */
     private static final long LOOK_EVERY_MS = 600;
@@ -104,9 +114,10 @@ public final class SavedFastScroll {
         }
     }
 
-    /** Whether the switch is on and HushGram isn't paused. */
+    /** Whether any of the three switches is on and HushGram isn't paused. */
     static boolean on() {
-        return Utils.settingsReady() && Settings.SAVED_FAST_SCROLL.get();
+        return Utils.settingsReady() && (Settings.SAVED_FAST_SCROLL.get() || Settings.FAST_SCROLL_HOME.get()
+                || Settings.FAST_SCROLL_CHATS.get());
     }
 
     /** Watches [activity]'s window for Saved's grids, once per window. */
@@ -153,6 +164,48 @@ public final class SavedFastScroll {
         synchronized (tracked) {
             return tracked.get(decor);
         }
+    }
+
+    /**
+     * The lists on screen in [window] whose switch is on: Saved's grid, Home's feed and a chat's messages.
+     * Empty when a lock's cover is over the window. A chat can open over Home with Home's feed still laid
+     * out under it, so the handle follows whichever of them moves rather than the biggest. The tab bar's
+     * pager keeps the tabs not picked laid out off screen, and those aren't counted.
+     */
+    static List<ViewGroup> lists(ViewGroup window) {
+        List<ViewGroup> found = new ArrayList<>();
+        View cover = window.findViewWithTag(MessagesLock.COVER_TAG);
+        if (cover != null && cover.isShown()) return found;
+        if (Settings.SAVED_FAST_SCROLL.get()) {
+            ViewGroup saved = savedList(window);
+            if (saved != null) found.add(saved);
+        }
+        boolean home = Settings.FAST_SCROLL_HOME.get();
+        int chat = Settings.FAST_SCROLL_CHATS.get() ? GlassTabBar.id(window.getContext(), CHAT_LIST) : 0;
+        if (home || chat != 0) collectLists(window, home, chat, new Rect(), found);
+        return found;
+    }
+
+    /**
+     * Adds to [found] each list under [view] that shows and is Home's feed, when [home], or a chat's
+     * messages, when [chat] is their id. The lists inside one, a post's carousel or the stories tray,
+     * aren't walked.
+     */
+    private static void collectLists(View view, boolean home, int chat, Rect area, List<ViewGroup> found) {
+        if (view.getVisibility() != View.VISIBLE || view instanceof Handle || !(view instanceof ViewGroup)) return;
+        if (isList(view) && ((chat != 0 && view.getId() == chat) || (home && namedClass(view, HOME_LIST)))) {
+            if (shownArea(view, area) > 0 && !found.contains(view)) found.add((ViewGroup) view);
+            return;
+        }
+        ViewGroup group = (ViewGroup) view;
+        for (int i = 0; i < group.getChildCount(); i++) collectLists(group.getChildAt(i), home, chat, area, found);
+    }
+
+    private static boolean namedClass(View view, String name) {
+        for (Class<?> type = view.getClass(); type != null && type != ViewGroup.class; type = type.getSuperclass()) {
+            if (type.getSimpleName().equals(name)) return true;
+        }
+        return false;
     }
 
     /**
@@ -281,19 +334,22 @@ public final class SavedFastScroll {
     }
 
     /**
-     * One window's watch: the Saved grid it shows, if any, found on a look after a burst of layouts, and
-     * the handle, moved on every scroll of that grid.
+     * One window's watch: the lists it shows that a handle can follow, found on a look after a burst of
+     * layouts, and the handle, moved on every scroll of the one that last moved.
      */
     static final class Tracker implements ViewTreeObserver.OnGlobalLayoutListener,
             ViewTreeObserver.OnScrollChangedListener {
         private final ViewGroup window;
+        /** The lists found on the last look. */
+        private final List<WeakReference<ViewGroup>> lists = new ArrayList<>();
+        /**
+         * Where each of them stood when last seen. A window's scroll listeners hear every view in it that
+         * scrolls, so the handle shows only when one of these lists has moved.
+         */
+        private int[] seenAt = new int[0];
+        /** The list the handle follows: the last of them to move. */
         private WeakReference<ViewGroup> list = new WeakReference<>(null);
         private WeakReference<View> tabBar = new WeakReference<>(null);
-        /**
-         * Where the grid stood when last seen. A window's scroll listeners hear every view in it that
-         * scrolls, so the handle shows only when this grid has moved.
-         */
-        private int seenAt;
         @Nullable private Handle handle;
         private long last;
         private boolean pending;
@@ -325,40 +381,69 @@ public final class SavedFastScroll {
             scrolled();
         }
 
-        /** Finds the Saved grid on screen, if any. Leaving it, or moving to another, hides the handle at once. */
+        /** Finds the lists on screen. Leaving the one the handle follows hides the handle at once. */
         void look() {
             try {
                 if (!on()) return;
-                ViewGroup found = savedList(window);
-                if (found != list.get()) {
-                    list = new WeakReference<>(found);
-                    seenAt = found == null ? 0 : offset(found);
-                    if (handle != null) handle.hideNow();
+                List<ViewGroup> found = lists(window);
+                if (!sameAs(found)) {
+                    int[] at = new int[found.size()];
+                    lists.clear();
+                    for (int i = 0; i < at.length; i++) {
+                        at[i] = offset(found.get(i));
+                        lists.add(new WeakReference<>(found.get(i)));
+                    }
+                    seenAt = at;
+                    ViewGroup followed = list.get();
+                    if (followed != null && !found.contains(followed)) {
+                        list = new WeakReference<>(null);
+                        if (handle != null) handle.hideNow();
+                    }
                 }
-                if (found != null) tabBar = new WeakReference<>(GlassTabBar.findShown(window, GlassTabBar.TAB_BAR));
+                if (!found.isEmpty()) tabBar = new WeakReference<>(GlassTabBar.findShown(window, GlassTabBar.TAB_BAR));
             } catch (Throwable failure) {
                 HookStatus.threw(FamilyNames.SAVED_ON_PROFILE, "fast scroll look", failure);
             }
         }
 
-        /** Shows the handle where the grid now stands, when it's the grid that moved. */
+        private boolean sameAs(List<ViewGroup> found) {
+            if (found.size() != lists.size()) return false;
+            for (int i = 0; i < found.size(); i++) {
+                if (lists.get(i).get() != found.get(i)) return false;
+            }
+            return true;
+        }
+
+        /** Shows the handle where the list that moved now stands, or where the held one does. */
         void scrolled() {
             try {
-                ViewGroup grid = list.get();
-                if (grid == null || !on()) return;
-                if (!grid.isAttachedToWindow() || grid.getRootView() != window || !grid.isShown()) {
-                    list = new WeakReference<>(null);
-                    if (handle != null) handle.hideNow();
-                    return;
+                if (lists.isEmpty() || !on()) return;
+                ViewGroup moved = null;
+                for (int i = 0; i < lists.size(); i++) {
+                    ViewGroup grid = lists.get(i).get();
+                    if (!onScreen(grid)) continue;
+                    int at = offset(grid);
+                    if (at == seenAt[i]) continue;
+                    seenAt[i] = at;
+                    if (moved == null) moved = grid;
                 }
-                int at = offset(grid);
-                boolean held = handle != null && handle.dragging;
-                if (at == seenAt && !held) return;
-                seenAt = at;
-                handle().follow(grid, tabBar.get());
+                ViewGroup followed = list.get();
+                if (followed != null && !onScreen(followed)) {
+                    list = new WeakReference<>(null);
+                    followed = null;
+                    if (handle != null) handle.hideNow();
+                }
+                if (followed != null && handle != null && handle.dragging) moved = followed;
+                if (moved == null) return;
+                list = new WeakReference<>(moved);
+                handle().follow(moved, tabBar.get());
             } catch (Throwable failure) {
                 HookStatus.threw(FamilyNames.SAVED_ON_PROFILE, "fast scroll", failure);
             }
+        }
+
+        private boolean onScreen(@Nullable ViewGroup grid) {
+            return grid != null && grid.isAttachedToWindow() && grid.getRootView() == window && grid.isShown();
         }
 
         /** The handle over this window, put there the first time it's needed. */
