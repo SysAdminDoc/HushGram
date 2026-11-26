@@ -2331,6 +2331,9 @@ Takes the Watch more reels button off the card a reel in your feed shows when it
 # context: a switch on the Playback page under Keep playing in the background; Android's own name for picture in picture
 Picture in picture for reels	Reel 子母画面
 Leaving Instagram while a reel plays shrinks it into a small window over your other apps. Works in Reels and on reels opened from the feed, on Android 15 or newer.	在 Reel 播放时离开 Instagram，视频会缩成浮在其他应用程序上方的小窗口。适用于 Reels 和从动态消息打开的 Reel，需要 Android 15 以上版本。
+# context: a switch on the Playback page under Picture in picture for reels; the reels window is Instagram's small picture in picture window for reels, and the button is Android's own button in that window
+Pause button in the reels window	Reel 小窗口中的暂停按钮
+Instagram's small window for reels gets a button to pause the reel and play it again.	Instagram 的 Reel 小窗口会多一个按钮，可暂停 Reel 并再次播放。
 # context: a switch on the Playback page under Picture in picture for reels; Android's own name for picture in picture, and it keeps moving on to the next stories inside the small window
 Picture in picture for stories	快拍子母画面
 Leaving Instagram while a story plays shrinks it into a small window over your other apps, where it keeps going through the stories.	在快拍播放时离开 Instagram，它会缩成浮在其他应用程序上方的小窗口，并在其中继续播放快拍.

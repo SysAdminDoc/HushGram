@@ -291,6 +291,7 @@ public final class BackgroundPlay {
             // Read once Instagram's start is done: a start another patch holds back plays nothing.
             if (ours) Utils.runOnMainThread(() -> afterStart(player, place, true));
             SettingsPause.started(player);
+            ReelsPipButtons.started(player);
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.BACKGROUND_PLAY, "player start", t);
         }

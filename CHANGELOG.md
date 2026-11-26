@@ -6,6 +6,7 @@ Every HushGram release, newest first.
 
 ### Features
 
+* `Pause button in the reels window` is new under Playback, below `Picture in picture for reels`. Instagram's small window for reels gets a Pause button, which turns into Play while the reel is paused. Starts off. Asked for in #873.
 * `Full screen stories`, `Full screen Explore` and `Full screen profile` are new under Stories, Explore and Profiles. Like `Full screen Home`, each hides the status and navigation bars on its own screen. All start off. Asked for in #187.
 * `Keep HDR on photo uploads` is new under Playback. An Ultra HDR photo you post is saved with its gain map on Android 14 and up, where Instagram otherwise saves it as SDR. Experimental. Starts off. Asked for in #532.
 * `Hide Meta AI restyle credits` is new under Meta AI. It takes lines like Restyled with Meta AI and its Try it link off stories, and the same credit off reels. Music and effect credits stay. Starts off. Asked for in #866.

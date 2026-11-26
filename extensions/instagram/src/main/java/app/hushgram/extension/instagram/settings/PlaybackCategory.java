@@ -72,6 +72,9 @@ final class PlaybackCategory {
                         L10n.t("Picture in picture for reels"),
                         L10n.t("Leaving Instagram while a reel plays shrinks it into a small window over your other "
                                 + "apps. Works in Reels and on reels opened from the feed, on Android 15 or newer.")));
+                playback.addPreference(toggle(context, Settings.REELS_PIP_PLAY_BUTTON,
+                        L10n.t("Pause button in the reels window"),
+                        L10n.t("Instagram's small window for reels gets a button to pause the reel and play it again.")));
                 playback.addPreference(toggle(context, Settings.STORIES_PICTURE_IN_PICTURE,
                         L10n.t("Picture in picture for stories"),
                         L10n.t("Leaving Instagram while a story plays shrinks it into a small window over your other "

@@ -2315,6 +2315,9 @@ Takes the Watch more reels button off the card a reel in your feed shows when it
 # context: a switch on the Playback page under Keep playing in the background; Android's own name for picture in picture
 Picture in picture for reels	การแสดงภาพซ้อนภาพสำหรับรีลส์
 Leaving Instagram while a reel plays shrinks it into a small window over your other apps. Works in Reels and on reels opened from the feed, on Android 15 or newer.	การออกจาก Instagram ขณะที่รีลส์กำลังเล่นจะย่อขนาดเป็นหน้าต่างขนาดเล็กทับบนแอปอื่นๆ ของคุณ ใช้งานได้ในแท็บรีลส์และรีลส์ที่เปิดจากฟีด บน Android 15 ขึ้นไป
+# context: a switch on the Playback page under Picture in picture for reels; the reels window is Instagram's small picture in picture window for reels, and the button is Android's own button in that window
+Pause button in the reels window	ปุ่มหยุดชั่วคราวในหน้าต่างรีลส์
+Instagram's small window for reels gets a button to pause the reel and play it again.	หน้าต่างขนาดเล็กของ Instagram สำหรับรีลส์จะมีปุ่มสำหรับหยุดรีลส์ชั่วคราวและเล่นต่อ
 # context: a switch on the Playback page under Picture in picture for reels; Android's own name for picture in picture, and it keeps moving on to the next stories inside the small window
 Picture in picture for stories	การแสดงภาพซ้อนภาพสำหรับสตอรี่
 Leaving Instagram while a story plays shrinks it into a small window over your other apps, where it keeps going through the stories.	การออกจาก Instagram ขณะที่สตอรี่กำลังเล่นจะย่อขนาดเป็นหน้าต่างขนาดเล็กทับบนแอปอื่นๆ ของคุณ และเล่นสตอรี่ต่อไปเรื่อยๆ ในหน้าต่างนั้น

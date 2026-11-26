@@ -5264,6 +5264,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_reels_picture_in_picture", FALSE);
 
     /**
+     * Adds Pause and Play to Instagram's picture in picture window for reels (#873,
+     * {@link app.hushgram.extension.instagram.media.ReelsPipButtons}). Read each time Instagram sets
+     * the window up. Off to start.
+     */
+    public static final BooleanSetting REELS_PIP_PLAY_BUTTON =
+            new BooleanSetting("hushgram_reels_pip_play_button", FALSE);
+
+    /**
      * Leaving Instagram while a story plays shrinks it into a picture in picture window that keeps
      * going through the stories (#572, {@link app.hushgram.extension.instagram.media.StoriesPip}).
      * Read as you leave. Off to start.
