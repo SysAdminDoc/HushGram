@@ -6,25 +6,34 @@ package app.morphe.patches.instagram.feed.comments
 
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
+import app.morphe.patcher.extensions.InstructionExtensions.replaceInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patches.instagram.misc.comment.STRING
+import app.morphe.patches.instagram.misc.comment.arguments
+import app.morphe.patches.instagram.misc.comment.call
 import app.morphe.patches.instagram.misc.comment.code
 import app.morphe.patches.instagram.misc.comment.discovering
 import app.morphe.patches.instagram.misc.comment.field
 import app.morphe.patches.instagram.misc.comment.one
+import app.morphe.patches.instagram.misc.comment.parameters
 import app.morphe.patches.instagram.misc.comment.reference
 import app.morphe.patches.instagram.misc.comment.refuse
+import app.morphe.patches.instagram.misc.comment.writes
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.patchLog
+import app.morphe.patches.instagram.misc.extension.stringLoadedAt
 import app.morphe.patches.instagram.share.BUTTON_ROLE
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 
@@ -149,4 +158,99 @@ internal fun BytecodePatchContext.hideCommentAbout(plan: CommentAboutPlan) = dis
             check-cast v${plan.register}, ${plan.explanation}
         """,
     )
+}
+
+/** The key of the row with an (i) a reel's comments can start with, "About comments on this reel" in English. */
+internal const val XAR_INFO_ROW = "xar_info_row"
+
+/** Handed the comment list and that row in place of the list's add of it: adds it, or with the switch on leaves it out. */
+internal const val COMMENT_ABOUT_ROW_ADD =
+    "$EXTENSION_PACKAGE/feed/CommentAboutButton;->aboutRow(Ljava/lang/Object;Ljava/lang/Object;)V"
+
+/**
+ * The view model method making a reel's comment list, where it adds the row with an (i), and the
+ * registers the add reads: the list, then the row. Plain text and numbers only, like [CommentAboutPlan].
+ */
+internal class CommentAboutRowPlan(
+    val name: String,
+    val parameters: List<String>,
+    val returnType: String,
+    val addAt: Int,
+    val add: String,
+    val list: Int,
+    val row: Int,
+)
+
+private val ROW_ADDS = setOf(Opcode.INVOKE_VIRTUAL, Opcode.INVOKE_INTERFACE, Opcode.INVOKE_VIRTUAL_RANGE, Opcode.INVOKE_INTERFACE_RANGE)
+private val RESULTS = setOf(Opcode.MOVE_RESULT, Opcode.MOVE_RESULT_OBJECT, Opcode.MOVE_RESULT_WIDE)
+
+/** A java.util collection's add(Object), the call a list gets its rows by. */
+private fun Instruction.isCollectionAdd(): Boolean {
+    val call = call() ?: return false
+    return opcode in ROW_ADDS && call.definingClass.startsWith("Ljava/util/") && call.name == "add" &&
+        call.parameters() == listOf("Ljava/lang/Object;") && call.returnType == "Z"
+}
+
+/**
+ * Finds where [COMMENT_LIST_VIEW_MODEL] adds the row with an (i) to a reel's comment list (457's
+ * A07): the one method of it loading [XAR_INFO_ROW], once. After the key comes the first object of
+ * an app class it makes, the row, then the first java.util add, which has to read the row as its
+ * item. From the key to that add the code runs straight, nothing jumps into it or onto the add,
+ * nothing writes the row's register again and nothing reads what the add answered, so the hook can
+ * take the add's place. Every refusal happens here, before anything changes.
+ */
+internal fun BytecodePatchContext.findCommentAboutRow(): CommentAboutRowPlan = discovering(ABOUT_PATCH) {
+    val model = classDefByOrNull(COMMENT_LIST_VIEW_MODEL) ?: refuse("$COMMENT_LIST_VIEW_MODEL is missing")
+    val builder = model.methods.filter { loadsString(it, XAR_INFO_ROW) }
+        .one("$COMMENT_LIST_VIEW_MODEL method loading \"$XAR_INFO_ROW\"")
+    val code = builder.code()
+    val keyAt = code.indices.filter { stringLoadedAt(code, it) == XAR_INFO_ROW }
+        .one("load of \"$XAR_INFO_ROW\" in ${builder.text()}")
+    val madeAt = (keyAt + 1..code.lastIndex).firstOrNull {
+        code[it].opcode == Opcode.NEW_INSTANCE && !(code[it].reference() as TypeReference).type.startsWith("Ljava/")
+    } ?: refuse("no row made after \"$XAR_INFO_ROW\" in ${builder.text()}")
+    val row = (code[madeAt] as OneRegisterInstruction).registerA
+    val addAt = (madeAt + 1..code.lastIndex).firstOrNull { code[it].isCollectionAdd() }
+        ?: refuse("no add of the row made after \"$XAR_INFO_ROW\" in ${builder.text()}")
+    val read = code[addAt].arguments()
+    if (read.size != 2 || read[1] != row) refuse("no add of the row made after \"$XAR_INFO_ROW\" in ${builder.text()}")
+    if ((keyAt until addAt).any { code[it] is OffsetInstruction || !code[it].opcode.canContinue() } ||
+        (madeAt + 1 until addAt).any { code[it].writes(row) }
+    ) {
+        refuse("${builder.text()} doesn't go straight from \"$XAR_INFO_ROW\" to its add of the row")
+    }
+    if (builder.jumpTargets().any { it in keyAt + 1..addAt }) {
+        refuse("something jumps between \"$XAR_INFO_ROW\" and its add of the row in ${builder.text()}")
+    }
+    if (code.getOrNull(addAt + 1)?.opcode in RESULTS) refuse("${builder.text()} reads what the add of the row answered")
+    CommentAboutRowPlan(
+        builder.name, builder.parameterTypes.map(Any::toString), builder.returnType,
+        addAt, code[addAt].call().toString(), read[0], read[1],
+    )
+}
+
+/** [findCommentAboutRow], or null with a warning, so Hide comments goes in leaving the reel row alone. */
+internal fun BytecodePatchContext.findCommentAboutRowOrWarn(): CommentAboutRowPlan? = try {
+    findCommentAboutRow()
+} catch (refusal: PatchException) {
+    patchLog.warning("${refusal.message}. $ABOUT_PATCH goes in leaving the row with an (i) in reels' comments alone.")
+    null
+}
+
+/**
+ * Puts a static call of [COMMENT_ABOUT_ROW_ADD] with the list and the row in the add's place. It
+ * takes that one instruction's place, so anything jumping onto it would still land there (the find
+ * makes sure nothing does), and the add's answer was never read.
+ */
+internal fun BytecodePatchContext.hideCommentAboutRow(plan: CommentAboutRowPlan) = discovering(ABOUT_PATCH) {
+    val method = mutableClassDefBy(COMMENT_LIST_VIEW_MODEL).methods.single {
+        it.name == plan.name && it.returnType == plan.returnType && it.parameterTypes.map(Any::toString) == plan.parameters
+    }
+    val add = method.getInstruction(plan.addAt)
+    if (!add.isCollectionAdd() || add.call().toString() != plan.add || add.arguments() != listOf(plan.list, plan.row)) {
+        refuse("${method.text()} changed before its add of the row with an (i) could be hooked")
+    }
+    val call = if (add is RegisterRangeInstruction) "invoke-static/range { v${plan.list} .. v${plan.row} }"
+        else "invoke-static { v${plan.list}, v${plan.row} }"
+    method.replaceInstruction(plan.addAt, "$call, $COMMENT_ABOUT_ROW_ADD")
 }

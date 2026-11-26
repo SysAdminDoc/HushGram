@@ -69,16 +69,18 @@ val hideCommentsPatch = bytecodePatch(
         val rowLikes = findCommentRowLikesOrWarn()
         val aiLabel = findCommentAiLabelOrWarn()
         val about = findCommentAboutOrWarn()
+        val aboutRow = findCommentAboutRowOrWarn()
         prepareFeedComments(state)()
         reply?.let { hideCommentReply(it) }
         rowReply?.let { hideCommentRowReply(it) }
         rowLikes?.let { hideCommentRowLikes(it) }
         aiLabel?.let { hideCommentAiLabel(it) }
         about?.let { hideCommentAbout(it) }
+        aboutRow?.let { hideCommentAboutRow(it) }
         if (reply != null || rowReply != null) enableStatus(COMMENT_REPLY_STATUS)
         if (rowLikes != null) enableStatus(COMMENT_LIKES_STATUS)
         if (aiLabel != null) enableStatus(COMMENT_AI_LABEL_STATUS)
-        if (about != null) enableStatus(COMMENT_ABOUT_BUTTON_STATUS)
+        if (about != null || aboutRow != null) enableStatus(COMMENT_ABOUT_BUTTON_STATUS)
         enableStatus("hideComments")
     }
 }

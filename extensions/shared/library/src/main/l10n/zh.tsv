@@ -818,7 +818,7 @@ Hide the gift button	隐藏礼物按钮
 Takes the gift button off the right end of the comment box. The box itself stays.	移除评论输入框右端的礼物按钮，输入框本身仍会保留。
 # context: Comments: a Hide comments switch (#869) that hides the round (i) info button some comment sheets draw at the top right, just above the first comment. Write (i) as is.
 Hide the (i) button in comments	隐藏评论中的 (i) 按钮
-Takes the (i) button off the top right of a post's or reel's comments, above the first comment. Not every post has it.	移除帖子或 Reels 评论右上角、第一条评论上方的 (i) 按钮。并非每个帖子都有。
+Takes the (i) button off the top right of a post's or reel's comments, and the row with an (i) that can sit above a reel's first comment. Not every post has them.	移除帖子或 Reels 评论右上角的 (i) 按钮，以及可能出现在 Reels 第一条评论上方、带有 (i) 的那一行。并非每个帖子都有。
 # context: Comments: the switch that hides the row of quick emoji above the comment box (#248). Comment box is the field where you type a comment.
 Hide the emoji row	隐藏表情符号列
 Takes the row of quick emoji off above the comment box. The box itself stays.	移除评论输入框上方的快速表情符号列，输入框本身仍会保留。

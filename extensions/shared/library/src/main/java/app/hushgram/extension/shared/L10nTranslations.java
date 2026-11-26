@@ -4389,8 +4389,8 @@ public final class L10nTranslations {
                     "\u064a\u0632\u064a\u0644 \u0633\u0637\u0631 \"\u0623\u0639\u062c\u0628 \u0628\u0647\" \u0645\u0646 \u0627\u0644\u0645\u0646\u0634\u0648\u0631\u0627\u062a \u0641\u064a \u062e\u0644\u0627\u0635\u062a\u0643.");
             table.put("Takes the \"Made with Edits\" label out of the line under a post's author. The song, the place and the other labels keep taking turns there.",
                     "\u064a\u0632\u064a\u0644 \u0639\u0644\u0627\u0645\u0629 \"\u0635\u064f\u0646\u0639 \u0628\u0627\u0633\u062a\u062e\u062f\u0627\u0645 Edits\" \u0645\u0646 \u0627\u0644\u0633\u0637\u0631 \u0623\u0633\u0641\u0644 \u0643\u0627\u062a\u0628 \u0627\u0644\u0645\u0646\u0634\u0648\u0631. \u0648\u062a\u0628\u0642\u0649 \u0627\u0644\u0623\u063a\u0646\u064a\u0629 \u0648\u0627\u0644\u0645\u0643\u0627\u0646 \u0648\u0627\u0644\u0639\u0644\u0627\u0645\u0627\u062a \u0627\u0644\u0623\u062e\u0631\u0649 \u062a\u062a\u0646\u0627\u0648\u0628 \u0647\u0646\u0627\u0643.");
-            table.put("Takes the (i) button off the top right of a post's or reel's comments, above the first comment. Not every post has it.",
-                    "\u064a\u0632\u064a\u0644 \u0632\u0631 (i) \u0645\u0646 \u0623\u0639\u0644\u0649 \u064a\u0645\u064a\u0646 \u062a\u0639\u0644\u064a\u0642\u0627\u062a \u0645\u0646\u0634\u0648\u0631 \u0623\u0648 Reel\u060c \u0641\u0648\u0642 \u0623\u0648\u0644 \u062a\u0639\u0644\u064a\u0642. \u0644\u064a\u0633 \u0644\u0643\u0644 \u0645\u0646\u0634\u0648\u0631 \u0647\u0630\u0627 \u0627\u0644\u0632\u0631.");
+            table.put("Takes the (i) button off the top right of a post's or reel's comments, and the row with an (i) that can sit above a reel's first comment. Not every post has them.",
+                    "\u064a\u0632\u064a\u0644 \u0632\u0631 (i) \u0645\u0646 \u0623\u0639\u0644\u0649 \u064a\u0645\u064a\u0646 \u062a\u0639\u0644\u064a\u0642\u0627\u062a \u0645\u0646\u0634\u0648\u0631 \u0623\u0648 Reel\u060c \u0648\u0627\u0644\u0635\u0641 \u0627\u0644\u0630\u064a \u0641\u064a\u0647 (i) \u0648\u0642\u062f \u064a\u0638\u0647\u0631 \u0641\u0648\u0642 \u0623\u0648\u0644 \u062a\u0639\u0644\u064a\u0642 \u0641\u064a Reel. \u0644\u064a\u0633 \u0644\u0643\u0644 \u0645\u0646\u0634\u0648\u0631 \u0647\u0630\u0627\u0646 \u0627\u0644\u0639\u0646\u0635\u0631\u0627\u0646.");
             table.put("Takes the + for a new collection off the top of Saved. Your collections stay.",
                     "\u064a\u0632\u064a\u0644 \u0639\u0644\u0627\u0645\u0629 + \u0627\u0644\u062e\u0627\u0635\u0629 \u0628\u0645\u062c\u0645\u0648\u0639\u0629 \u062c\u062f\u064a\u062f\u0629 \u0645\u0646 \u0623\u0639\u0644\u0649 \u0627\u0644\u0645\u062d\u0641\u0648\u0638\u0627\u062a. \u0648\u062a\u0628\u0642\u0649 \u0645\u062c\u0645\u0648\u0639\u0627\u062a\u0643.");
             table.put("Takes the 2x label off a reel while you hold it to play faster. The speed-up still works.",
@@ -9619,8 +9619,8 @@ public final class L10nTranslations {
                     "Nimmt die Zeile \u201eGef\u00e4llt \u2026\u201c von Beitr\u00e4gen in deinem Feed.");
             table.put("Takes the \"Made with Edits\" label out of the line under a post's author. The song, the place and the other labels keep taking turns there.",
                     "Entfernt den Hinweis \u201eMade with Edits\u201c aus der Zeile unter dem Namen eines Beitrags. Song, Ort und die anderen Hinweise wechseln sich dort weiter ab.");
-            table.put("Takes the (i) button off the top right of a post's or reel's comments, above the first comment. Not every post has it.",
-                    "Entfernt den (i)-Button oben rechts in den Kommentaren eines Beitrags oder Reels, \u00fcber dem ersten Kommentar. Nicht jeder Beitrag hat ihn.");
+            table.put("Takes the (i) button off the top right of a post's or reel's comments, and the row with an (i) that can sit above a reel's first comment. Not every post has them.",
+                    "Entfernt den (i)-Button oben rechts in den Kommentaren eines Beitrags oder Reels und die Zeile mit einem (i), die \u00fcber dem ersten Kommentar eines Reels stehen kann. Nicht jeder Beitrag hat sie.");
             table.put("Takes the + for a new collection off the top of Saved. Your collections stay.",
                     "Entfernt das + f\u00fcr eine neue Sammlung oben aus Gespeichert. Deine Sammlungen bleiben.");
             table.put("Takes the 2x label off a reel while you hold it to play faster. The speed-up still works.",
@@ -14849,8 +14849,8 @@ public final class L10nTranslations {
                     "Quita la l\u00ednea \"Les gusta a\" de las publicaciones de tu feed.");
             table.put("Takes the \"Made with Edits\" label out of the line under a post's author. The song, the place and the other labels keep taking turns there.",
                     "Quita la etiqueta \"Made with Edits\" de la l\u00ednea bajo el autor de una publicaci\u00f3n. La canci\u00f3n, el lugar y las dem\u00e1s etiquetas siguen turn\u00e1ndose ah\u00ed.");
-            table.put("Takes the (i) button off the top right of a post's or reel's comments, above the first comment. Not every post has it.",
-                    "Quita el bot\u00f3n (i) de la esquina superior derecha de los comentarios de una publicaci\u00f3n o un reel, encima del primer comentario. No todas las publicaciones lo tienen.");
+            table.put("Takes the (i) button off the top right of a post's or reel's comments, and the row with an (i) that can sit above a reel's first comment. Not every post has them.",
+                    "Quita el bot\u00f3n (i) de la esquina superior derecha de los comentarios de una publicaci\u00f3n o un reel, y la fila con un (i) que puede aparecer encima del primer comentario de un reel. No todas las publicaciones los tienen.");
             table.put("Takes the + for a new collection off the top of Saved. Your collections stay.",
                     "Quita el + para una nueva colecci\u00f3n de la parte de arriba de Guardado. Tus colecciones se quedan.");
             table.put("Takes the 2x label off a reel while you hold it to play faster. The speed-up still works.",
@@ -20079,8 +20079,8 @@ public final class L10nTranslations {
                     "Menghapus baris \"Disukai oleh\" dari postingan di feed kamu.");
             table.put("Takes the \"Made with Edits\" label out of the line under a post's author. The song, the place and the other labels keep taking turns there.",
                     "Menghapus label \"Made with Edits\" dari baris di bawah pembuat postingan. Lagu, lokasi, dan label lainnya tetap bergantian di sana.");
-            table.put("Takes the (i) button off the top right of a post's or reel's comments, above the first comment. Not every post has it.",
-                    "Menghapus tombol (i) di kanan atas komentar postingan atau reel, di atas komentar pertama. Tidak semua postingan memilikinya.");
+            table.put("Takes the (i) button off the top right of a post's or reel's comments, and the row with an (i) that can sit above a reel's first comment. Not every post has them.",
+                    "Menghapus tombol (i) di kanan atas komentar postingan atau reel, dan baris dengan (i) yang bisa muncul di atas komentar pertama sebuah reel. Tidak semua postingan memilikinya.");
             table.put("Takes the + for a new collection off the top of Saved. Your collections stay.",
                     "Menghapus + untuk koleksi baru dari bagian atas Tersimpan. Koleksimu tetap ada.");
             table.put("Takes the 2x label off a reel while you hold it to play faster. The speed-up still works.",
@@ -25309,8 +25309,8 @@ public final class L10nTranslations {
                     "Toglie la riga \"Piace a\" dai post nel tuo feed.");
             table.put("Takes the \"Made with Edits\" label out of the line under a post's author. The song, the place and the other labels keep taking turns there.",
                     "Toglie l'etichetta \"Made with Edits\" dalla riga sotto l'autore di un post. La canzone, il luogo e le altre etichette continuano ad alternarsi l\u00ec.");
-            table.put("Takes the (i) button off the top right of a post's or reel's comments, above the first comment. Not every post has it.",
-                    "Toglie il pulsante (i) in alto a destra nei commenti di un post o di un reel, sopra il primo commento. Non tutti i post ce l'hanno.");
+            table.put("Takes the (i) button off the top right of a post's or reel's comments, and the row with an (i) that can sit above a reel's first comment. Not every post has them.",
+                    "Toglie il pulsante (i) in alto a destra nei commenti di un post o di un reel e la riga con una (i) che pu\u00f2 stare sopra il primo commento di un reel. Non tutti i post li hanno.");
             table.put("Takes the + for a new collection off the top of Saved. Your collections stay.",
                     "Toglie il + per una nuova raccolta dalla parte alta di Salvati. Le tue raccolte restano.");
             table.put("Takes the 2x label off a reel while you hold it to play faster. The speed-up still works.",
@@ -30539,8 +30539,8 @@ public final class L10nTranslations {
                     "\ud53c\ub4dc \uac8c\uc2dc\ubb3c\uc5d0\uc11c \ub204\uac00 \uc88b\uc544\uc694\ub97c \ub20c\ub800\ub294\uc9c0 \ubcf4\uc5ec \uc8fc\ub294 \uc904\uc744 \uc5c6\uc571\ub2c8\ub2e4.");
             table.put("Takes the \"Made with Edits\" label out of the line under a post's author. The song, the place and the other labels keep taking turns there.",
                     "\uac8c\uc2dc\ubb3c \uc791\uc131\uc790 \uc544\ub798 \uc904\uc5d0\uc11c \"Made with Edits\" \ub77c\ubca8\uc744 \uc5c6\uc571\ub2c8\ub2e4. \ub178\ub798, \uc7a5\uc18c\uc640 \ub2e4\ub978 \ub77c\ubca8\uc740 \uacc4\uc18d \ubc88\uac08\uc544 \ud45c\uc2dc\ub429\ub2c8\ub2e4.");
-            table.put("Takes the (i) button off the top right of a post's or reel's comments, above the first comment. Not every post has it.",
-                    "\uac8c\uc2dc\ubb3c\uc774\ub098 \ub9b4\uc2a4 \ub313\uae00\uc758 \uc624\ub978\ucabd \uc704, \uccab \ub313\uae00 \uc704\uc5d0 \uc788\ub294 (i) \ubc84\ud2bc\uc744 \uc5c6\uc571\ub2c8\ub2e4. \ubaa8\ub4e0 \uac8c\uc2dc\ubb3c\uc5d0 \uc788\uc9c0\ub294 \uc54a\uc2b5\ub2c8\ub2e4.");
+            table.put("Takes the (i) button off the top right of a post's or reel's comments, and the row with an (i) that can sit above a reel's first comment. Not every post has them.",
+                    "\uac8c\uc2dc\ubb3c\uc774\ub098 \ub9b4\uc2a4 \ub313\uae00\uc758 \uc624\ub978\ucabd \uc704\uc5d0 \uc788\ub294 (i) \ubc84\ud2bc\uacfc, \ub9b4\uc2a4\uc758 \uccab \ub313\uae00 \uc704\uc5d0 \ub098\uc62c \uc218 \uc788\ub294 (i)\uac00 \uc788\ub294 \uc904\uc744 \uc5c6\uc571\ub2c8\ub2e4. \ubaa8\ub4e0 \uac8c\uc2dc\ubb3c\uc5d0 \uc788\uc9c0\ub294 \uc54a\uc2b5\ub2c8\ub2e4.");
             table.put("Takes the + for a new collection off the top of Saved. Your collections stay.",
                     "\uc800\uc7a5\ub428 \uc0c1\ub2e8\uc5d0\uc11c \uc0c8 \uceec\ub809\uc158\uc744 \ub9cc\ub4dc\ub294 + \ubc84\ud2bc\uc744 \uc228\uae41\ub2c8\ub2e4. \ub0b4 \uceec\ub809\uc158\uc740 \uadf8\ub300\ub85c \ub0a8\uc2b5\ub2c8\ub2e4.");
             table.put("Takes the 2x label off a reel while you hold it to play faster. The speed-up still works.",
@@ -35769,8 +35769,8 @@ public final class L10nTranslations {
                     "Tira a linha \"Curtido por\" dos posts do seu feed.");
             table.put("Takes the \"Made with Edits\" label out of the line under a post's author. The song, the place and the other labels keep taking turns there.",
                     "Tira a etiqueta \"Made with Edits\" da linha embaixo do autor de um post. A m\u00fasica, o local e as outras etiquetas continuam se revezando ali.");
-            table.put("Takes the (i) button off the top right of a post's or reel's comments, above the first comment. Not every post has it.",
-                    "Tira o bot\u00e3o (i) do canto superior direito dos coment\u00e1rios de um post ou reel, acima do primeiro coment\u00e1rio. Nem todo post tem.");
+            table.put("Takes the (i) button off the top right of a post's or reel's comments, and the row with an (i) that can sit above a reel's first comment. Not every post has them.",
+                    "Tira o bot\u00e3o (i) do canto superior direito dos coment\u00e1rios de um post ou reel, e a linha com um (i) que pode aparecer acima do primeiro coment\u00e1rio de um reel. Nem todo post tem.");
             table.put("Takes the + for a new collection off the top of Saved. Your collections stay.",
                     "Tira o + para uma nova cole\u00e7\u00e3o do topo de Salvos. Suas cole\u00e7\u00f5es continuam l\u00e1.");
             table.put("Takes the 2x label off a reel while you hold it to play faster. The speed-up still works.",
@@ -40999,8 +40999,8 @@ public final class L10nTranslations {
                     "\u0e19\u0e33\u0e1a\u0e23\u0e23\u0e17\u0e31\u0e14 \"\u0e16\u0e39\u0e01\u0e43\u0e08\u0e42\u0e14\u0e22\" \u0e2d\u0e2d\u0e01\u0e08\u0e32\u0e01\u0e42\u0e1e\u0e2a\u0e15\u0e4c\u0e43\u0e19\u0e1f\u0e35\u0e14\u0e02\u0e2d\u0e07\u0e04\u0e38\u0e13");
             table.put("Takes the \"Made with Edits\" label out of the line under a post's author. The song, the place and the other labels keep taking turns there.",
                     "\u0e19\u0e33\u0e1b\u0e49\u0e32\u0e22\u0e01\u0e33\u0e01\u0e31\u0e1a \"Made with Edits\" \u0e2d\u0e2d\u0e01\u0e08\u0e32\u0e01\u0e1a\u0e23\u0e23\u0e17\u0e31\u0e14\u0e43\u0e15\u0e49\u0e0a\u0e37\u0e48\u0e2d\u0e1c\u0e39\u0e49\u0e42\u0e1e\u0e2a\u0e15\u0e4c \u0e42\u0e14\u0e22\u0e0a\u0e37\u0e48\u0e2d\u0e40\u0e1e\u0e25\u0e07 \u0e2a\u0e16\u0e32\u0e19\u0e17\u0e35\u0e48 \u0e41\u0e25\u0e30\u0e1b\u0e49\u0e32\u0e22\u0e01\u0e33\u0e01\u0e31\u0e1a\u0e2d\u0e37\u0e48\u0e19\u0e46 \u0e08\u0e30\u0e22\u0e31\u0e07\u0e04\u0e07\u0e2a\u0e25\u0e31\u0e1a\u0e01\u0e31\u0e19\u0e41\u0e2a\u0e14\u0e07\u0e43\u0e19\u0e15\u0e33\u0e41\u0e2b\u0e19\u0e48\u0e07\u0e14\u0e31\u0e07\u0e01\u0e25\u0e48\u0e32\u0e27");
-            table.put("Takes the (i) button off the top right of a post's or reel's comments, above the first comment. Not every post has it.",
-                    "\u0e19\u0e33\u0e1b\u0e38\u0e48\u0e21 (i) \u0e17\u0e35\u0e48\u0e21\u0e38\u0e21\u0e02\u0e27\u0e32\u0e1a\u0e19\u0e02\u0e2d\u0e07\u0e04\u0e27\u0e32\u0e21\u0e04\u0e34\u0e14\u0e40\u0e2b\u0e47\u0e19\u0e43\u0e19\u0e42\u0e1e\u0e2a\u0e15\u0e4c\u0e2b\u0e23\u0e37\u0e2d\u0e23\u0e35\u0e25 \u0e40\u0e2b\u0e19\u0e37\u0e2d\u0e04\u0e27\u0e32\u0e21\u0e04\u0e34\u0e14\u0e40\u0e2b\u0e47\u0e19\u0e41\u0e23\u0e01\u0e2d\u0e2d\u0e01 \u0e44\u0e21\u0e48\u0e43\u0e0a\u0e48\u0e17\u0e38\u0e01\u0e42\u0e1e\u0e2a\u0e15\u0e4c\u0e17\u0e35\u0e48\u0e21\u0e35");
+            table.put("Takes the (i) button off the top right of a post's or reel's comments, and the row with an (i) that can sit above a reel's first comment. Not every post has them.",
+                    "\u0e19\u0e33\u0e1b\u0e38\u0e48\u0e21 (i) \u0e17\u0e35\u0e48\u0e21\u0e38\u0e21\u0e02\u0e27\u0e32\u0e1a\u0e19\u0e02\u0e2d\u0e07\u0e04\u0e27\u0e32\u0e21\u0e04\u0e34\u0e14\u0e40\u0e2b\u0e47\u0e19\u0e43\u0e19\u0e42\u0e1e\u0e2a\u0e15\u0e4c\u0e2b\u0e23\u0e37\u0e2d\u0e23\u0e35\u0e25 \u0e41\u0e25\u0e30\u0e41\u0e16\u0e27\u0e17\u0e35\u0e48\u0e21\u0e35 (i) \u0e0b\u0e36\u0e48\u0e07\u0e2d\u0e32\u0e08\u0e2d\u0e22\u0e39\u0e48\u0e40\u0e2b\u0e19\u0e37\u0e2d\u0e04\u0e27\u0e32\u0e21\u0e04\u0e34\u0e14\u0e40\u0e2b\u0e47\u0e19\u0e41\u0e23\u0e01\u0e02\u0e2d\u0e07\u0e23\u0e35\u0e25\u0e2d\u0e2d\u0e01 \u0e44\u0e21\u0e48\u0e43\u0e0a\u0e48\u0e17\u0e38\u0e01\u0e42\u0e1e\u0e2a\u0e15\u0e4c\u0e17\u0e35\u0e48\u0e21\u0e35");
             table.put("Takes the + for a new collection off the top of Saved. Your collections stay.",
                     "\u0e19\u0e33\u0e1b\u0e38\u0e48\u0e21 + \u0e2a\u0e33\u0e2b\u0e23\u0e31\u0e1a\u0e04\u0e2d\u0e25\u0e40\u0e25\u0e01\u0e0a\u0e31\u0e19\u0e43\u0e2b\u0e21\u0e48\u0e2d\u0e2d\u0e01\u0e08\u0e32\u0e01\u0e14\u0e49\u0e32\u0e19\u0e1a\u0e19\u0e02\u0e2d\u0e07 \"\u0e1a\u0e31\u0e19\u0e17\u0e36\u0e01\u0e41\u0e25\u0e49\u0e27\" \u0e04\u0e2d\u0e25\u0e40\u0e25\u0e01\u0e0a\u0e31\u0e19\u0e02\u0e2d\u0e07\u0e04\u0e38\u0e13\u0e22\u0e31\u0e07\u0e2d\u0e22\u0e39\u0e48");
             table.put("Takes the 2x label off a reel while you hold it to play faster. The speed-up still works.",
@@ -46229,8 +46229,8 @@ public final class L10nTranslations {
                     "Ak\u0131\u015f\u0131ndaki g\u00f6nderilerden kimlerin be\u011fendi\u011fini g\u00f6steren sat\u0131r\u0131 kald\u0131r\u0131r.");
             table.put("Takes the \"Made with Edits\" label out of the line under a post's author. The song, the place and the other labels keep taking turns there.",
                     "Bir g\u00f6nderinin sahibinin alt\u0131ndaki sat\u0131rdan \"Made with Edits\" etiketini kald\u0131r\u0131r. \u015eark\u0131, konum ve di\u011fer etiketler orada s\u0131rayla g\u00f6r\u00fcnmeye devam eder.");
-            table.put("Takes the (i) button off the top right of a post's or reel's comments, above the first comment. Not every post has it.",
-                    "Bir g\u00f6nderinin ya da reels videosunun yorumlar\u0131nda sa\u011f \u00fcstteki, ilk yorumun \u00fcst\u00fcndeki (i) d\u00fc\u011fmesini kald\u0131r\u0131r. Her g\u00f6nderide olmaz.");
+            table.put("Takes the (i) button off the top right of a post's or reel's comments, and the row with an (i) that can sit above a reel's first comment. Not every post has them.",
+                    "Bir g\u00f6nderinin ya da reels videosunun yorumlar\u0131nda sa\u011f \u00fcstteki (i) d\u00fc\u011fmesini ve bir reels videosunun ilk yorumunun \u00fcst\u00fcnde \u00e7\u0131kabilen (i) i\u015faretli sat\u0131r\u0131 kald\u0131r\u0131r. Her g\u00f6nderide olmaz.");
             table.put("Takes the + for a new collection off the top of Saved. Your collections stay.",
                     "Kaydedilenler'in \u00fcst\u00fcndeki yeni koleksiyon i\u00e7in + d\u00fc\u011fmesini kald\u0131r\u0131r. Koleksiyonlar\u0131n yerinde kal\u0131r.");
             table.put("Takes the 2x label off a reel while you hold it to play faster. The speed-up still works.",
@@ -51459,8 +51459,8 @@ public final class L10nTranslations {
                     "G\u1ee1 d\u00f2ng cho bi\u1ebft ai \u0111\u00e3 th\u00edch kh\u1ecfi b\u00e0i vi\u1ebft trong b\u1ea3ng feed c\u1ee7a b\u1ea1n.");
             table.put("Takes the \"Made with Edits\" label out of the line under a post's author. The song, the place and the other labels keep taking turns there.",
                     "B\u1ecf nh\u00e3n \"Made with Edits\" kh\u1ecfi d\u00f2ng d\u01b0\u1edbi t\u00ean ng\u01b0\u1eddi \u0111\u0103ng b\u00e0i vi\u1ebft. B\u00e0i h\u00e1t, \u0111\u1ecba \u0111i\u1ec3m v\u00e0 c\u00e1c nh\u00e3n kh\u00e1c v\u1eabn thay phi\u00ean hi\u1ec7n \u1edf \u0111\u00f3.");
-            table.put("Takes the (i) button off the top right of a post's or reel's comments, above the first comment. Not every post has it.",
-                    "G\u1ee1 n\u00fat (i) \u1edf g\u00f3c tr\u00ean b\u00ean ph\u1ea3i ph\u1ea7n b\u00ecnh lu\u1eadn c\u1ee7a b\u00e0i vi\u1ebft ho\u1eb7c reel, ph\u00eda tr\u00ean b\u00ecnh lu\u1eadn \u0111\u1ea7u ti\u00ean. Kh\u00f4ng ph\u1ea3i b\u00e0i vi\u1ebft n\u00e0o c\u0169ng c\u00f3.");
+            table.put("Takes the (i) button off the top right of a post's or reel's comments, and the row with an (i) that can sit above a reel's first comment. Not every post has them.",
+                    "G\u1ee1 n\u00fat (i) \u1edf g\u00f3c tr\u00ean b\u00ean ph\u1ea3i ph\u1ea7n b\u00ecnh lu\u1eadn c\u1ee7a b\u00e0i vi\u1ebft ho\u1eb7c reel, v\u00e0 h\u00e0ng c\u00f3 bi\u1ec3u t\u01b0\u1ee3ng (i) c\u00f3 th\u1ec3 n\u1eb1m ph\u00eda tr\u00ean b\u00ecnh lu\u1eadn \u0111\u1ea7u ti\u00ean c\u1ee7a reel. Kh\u00f4ng ph\u1ea3i b\u00e0i vi\u1ebft n\u00e0o c\u0169ng c\u00f3.");
             table.put("Takes the + for a new collection off the top of Saved. Your collections stay.",
                     "G\u1ee1 n\u00fat + \u0111\u1ec3 t\u1ea1o b\u1ed9 s\u01b0u t\u1eadp m\u1edbi kh\u1ecfi ph\u00eda tr\u00ean \u0110\u00e3 l\u01b0u. C\u00e1c b\u1ed9 s\u01b0u t\u1eadp c\u1ee7a b\u1ea1n v\u1eabn c\u00f2n.");
             table.put("Takes the 2x label off a reel while you hold it to play faster. The speed-up still works.",
@@ -56689,8 +56689,8 @@ public final class L10nTranslations {
                     "\u79fb\u9664\u52a8\u6001\u9996\u9875\u5e16\u5b50\u4e0a\u663e\u793a\u8c01\u8d5e\u8fc7\u7684\u90a3\u4e00\u884c\u3002");
             table.put("Takes the \"Made with Edits\" label out of the line under a post's author. The song, the place and the other labels keep taking turns there.",
                     "\u79fb\u9664\u5e16\u5b50\u4f5c\u8005\u4e0b\u65b9\u90a3\u4e00\u884c\u7684\u201cMade with Edits\u201d\u6807\u7b7e\u3002\u6b4c\u66f2\u3001\u5730\u70b9\u548c\u5176\u4ed6\u6807\u7b7e\u4ecd\u4f1a\u5728\u90a3\u91cc\u8f6e\u6d41\u663e\u793a\u3002");
-            table.put("Takes the (i) button off the top right of a post's or reel's comments, above the first comment. Not every post has it.",
-                    "\u79fb\u9664\u5e16\u5b50\u6216 Reels \u8bc4\u8bba\u53f3\u4e0a\u89d2\u3001\u7b2c\u4e00\u6761\u8bc4\u8bba\u4e0a\u65b9\u7684 (i) \u6309\u94ae\u3002\u5e76\u975e\u6bcf\u4e2a\u5e16\u5b50\u90fd\u6709\u3002");
+            table.put("Takes the (i) button off the top right of a post's or reel's comments, and the row with an (i) that can sit above a reel's first comment. Not every post has them.",
+                    "\u79fb\u9664\u5e16\u5b50\u6216 Reels \u8bc4\u8bba\u53f3\u4e0a\u89d2\u7684 (i) \u6309\u94ae\uff0c\u4ee5\u53ca\u53ef\u80fd\u51fa\u73b0\u5728 Reels \u7b2c\u4e00\u6761\u8bc4\u8bba\u4e0a\u65b9\u3001\u5e26\u6709 (i) \u7684\u90a3\u4e00\u884c\u3002\u5e76\u975e\u6bcf\u4e2a\u5e16\u5b50\u90fd\u6709\u3002");
             table.put("Takes the + for a new collection off the top of Saved. Your collections stay.",
                     "\u79fb\u9664\u201c\u5df2\u6536\u85cf\u201d\u9876\u90e8\u7528\u6765\u65b0\u5efa\u73cd\u85cf\u5206\u7c7b\u7684 + \u6309\u94ae\u3002\u4f60\u7684\u73cd\u85cf\u5206\u7c7b\u4f1a\u4fdd\u7559\u3002");
             table.put("Takes the 2x label off a reel while you hold it to play faster. The speed-up still works.",
@@ -61919,8 +61919,8 @@ public final class L10nTranslations {
                     "\u79fb\u9664\u52d5\u614b\u6d88\u606f\u8cbc\u6587\u4e0a\u986f\u793a\u8ab0\u8aaa\u8b9a\u7684\u90a3\u4e00\u884c\u3002");
             table.put("Takes the \"Made with Edits\" label out of the line under a post's author. The song, the place and the other labels keep taking turns there.",
                     "\u79fb\u9664\u8cbc\u6587\u4f5c\u8005\u4e0b\u65b9\u90a3\u4e00\u884c\u7684\u300cMade with Edits\u300d\u6a19\u7c64\u3002\u6b4c\u66f2\u3001\u5730\u9ede\u548c\u5176\u4ed6\u6a19\u7c64\u4ecd\u6703\u5728\u90a3\u88e1\u8f2a\u6d41\u986f\u793a\u3002");
-            table.put("Takes the (i) button off the top right of a post's or reel's comments, above the first comment. Not every post has it.",
-                    "\u79fb\u9664\u8cbc\u6587\u6216 Reels \u7559\u8a00\u53f3\u4e0a\u89d2\u3001\u7b2c\u4e00\u5247\u7559\u8a00\u4e0a\u65b9\u7684 (i) \u6309\u9215\u3002\u4e0d\u662f\u6bcf\u5247\u8cbc\u6587\u90fd\u6709\u3002");
+            table.put("Takes the (i) button off the top right of a post's or reel's comments, and the row with an (i) that can sit above a reel's first comment. Not every post has them.",
+                    "\u79fb\u9664\u8cbc\u6587\u6216 Reels \u7559\u8a00\u53f3\u4e0a\u89d2\u7684 (i) \u6309\u9215\uff0c\u4ee5\u53ca\u53ef\u80fd\u51fa\u73fe\u5728 Reels \u7b2c\u4e00\u5247\u7559\u8a00\u4e0a\u65b9\u3001\u5e36\u6709 (i) \u7684\u90a3\u4e00\u5217\u3002\u4e0d\u662f\u6bcf\u5247\u8cbc\u6587\u90fd\u6709\u3002");
             table.put("Takes the + for a new collection off the top of Saved. Your collections stay.",
                     "\u79fb\u9664\u300c\u5df2\u5132\u5b58\u300d\u9802\u7aef\u7528\u4f86\u65b0\u589e\u73cd\u85cf\u5206\u985e\u7684 + \u6309\u9215\u3002\u4f60\u7684\u73cd\u85cf\u5206\u985e\u6703\u4fdd\u7559\u3002");
             table.put("Takes the 2x label off a reel while you hold it to play faster. The speed-up still works.",

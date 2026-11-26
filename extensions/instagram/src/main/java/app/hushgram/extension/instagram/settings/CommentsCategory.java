@@ -81,7 +81,7 @@ final class CommentsCategory {
                         CommentSheetExtras::promptSwitchChanged));
                 if (PatchFamily.commentAboutButtonInBuild()) {
                     comments.addPreference(toggle(context, Settings.HIDE_COMMENT_ABOUT_BUTTON, L10n.t("Hide the (i) button in comments"),
-                            L10n.t("Takes the (i) button off the top right of a post's or reel's comments, above the first comment. Not every post has it.")));
+                            L10n.t("Takes the (i) button off the top right of a post's or reel's comments, and the row with an (i) that can sit above a reel's first comment. Not every post has them.")));
                 }
                 comments.addPreference(onFlip(toggle(context, Settings.HIDE_COMMENT_BOX, L10n.t("Hide the comment box"),
                         L10n.t("Takes the comment box, with your picture and Post, off the bottom of a post's or reel's comments. Turn it off when you want to comment.")),

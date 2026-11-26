@@ -2681,6 +2681,11 @@ once-call Lapp/hushgram/extension/instagram/feed/CommentAiLabel;->shown(I)Z in i
 # right after the read, and its own null test skips the (i). Left out, the (i) stays; more often
 # or elsewhere, it isn't the check the patch wrote.
 once-call Lapp/hushgram/extension/instagram/feed/CommentAboutButton;->disclosure(Ljava/lang/Object;)Ljava/lang/Object; in instance (LX/*;)LX/*; pooled holding android.widget.Button const:0x7f0810b0
+# The row with an (i) that a reel's comments can start with ("About comments on this reel", key
+# xar_info_row, #869), under the same switch: CommentListViewModel's static list builder (A07 on
+# 457) hands the list and the row to CommentAboutButton.aboutRow in place of its add of the row.
+# Left out, the row stays; more often or elsewhere, it isn't the add the patch replaced.
+once-call Lapp/hushgram/extension/instagram/feed/CommentAboutButton;->aboutRow(Ljava/lang/Object;Ljava/lang/Object;)V in static (*Lcom/instagram/comments/mvvm/viewmodel/CommentListViewModel;*)LX/*; pooled holding xar_info_row
 # The download button on feed posts (#97) calls FeedDownloadButton.bind first thing in the Feed
 # view binder Hide the Repost button's view hide is in (0Bfq.A07 on 450's 385611438). No rule, for
 # the reason above: the binder is picked by resource IDs. DownloadVideoHookTest checks on every

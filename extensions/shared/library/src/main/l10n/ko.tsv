@@ -814,7 +814,7 @@ Hide the gift button	선물 버튼 숨기기
 Takes the gift button off the right end of the comment box. The box itself stays.	댓글 입력창 오른쪽 끝의 선물 버튼을 없앱니다. 입력창은 그대로 표시됩니다
 # context: Comments: a Hide comments switch (#869) that hides the round (i) info button some comment sheets draw at the top right, just above the first comment. Write (i) as is.
 Hide the (i) button in comments	댓글의 (i) 버튼 숨기기
-Takes the (i) button off the top right of a post's or reel's comments, above the first comment. Not every post has it.	게시물이나 릴스 댓글의 오른쪽 위, 첫 댓글 위에 있는 (i) 버튼을 없앱니다. 모든 게시물에 있지는 않습니다.
+Takes the (i) button off the top right of a post's or reel's comments, and the row with an (i) that can sit above a reel's first comment. Not every post has them.	게시물이나 릴스 댓글의 오른쪽 위에 있는 (i) 버튼과, 릴스의 첫 댓글 위에 나올 수 있는 (i)가 있는 줄을 없앱니다. 모든 게시물에 있지는 않습니다.
 # context: Comments: the switch that hides the row of quick emoji above the comment box (#248). Comment box is the field where you type a comment.
 Hide the emoji row	이모지 줄 숨기기
 Takes the row of quick emoji off above the comment box. The box itself stays.	댓글 입력창 위에 있는 빠른 이모지 줄을 없앱니다. 입력창은 그대로 표시됩니다

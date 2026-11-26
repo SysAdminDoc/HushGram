@@ -274,8 +274,8 @@ public class HideCommentsSettingsTest {
         SwitchPreference row = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.HIDE_COMMENT_ABOUT_BUTTON.key);
         assertNotNull(row);
         assertEquals("Hide the (i) button in comments", row.getTitle().toString());
-        assertEquals("Takes the (i) button off the top right of a post's or reel's comments, above the first comment. "
-                + "Not every post has it.", row.getSummary().toString());
+        assertEquals("Takes the (i) button off the top right of a post's or reel's comments, and the row with an (i) "
+                + "that can sit above a reel's first comment. Not every post has them.", row.getSummary().toString());
         PreferenceCategory section = categoryHolding(page.getPreferenceScreen(), row);
         assertNotNull(section);
         assertEquals("Comments", section.getTitle().toString());

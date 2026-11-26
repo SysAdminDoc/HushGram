@@ -808,7 +808,7 @@ Hide the gift button	ซ่อนปุ่มของขวัญ
 Takes the gift button off the right end of the comment box. The box itself stays.	นำปุ่มของขวัญที่ปลายด้านขวาของช่องแสดงความคิดเห็นออก ทั้งนี้ช่องแสดงความคิดเห็นจะยังคงอยู่
 # context: Comments: a Hide comments switch (#869) that hides the round (i) info button some comment sheets draw at the top right, just above the first comment. Write (i) as is.
 Hide the (i) button in comments	ซ่อนปุ่ม (i) ในความคิดเห็น
-Takes the (i) button off the top right of a post's or reel's comments, above the first comment. Not every post has it.	นำปุ่ม (i) ที่มุมขวาบนของความคิดเห็นในโพสต์หรือรีล เหนือความคิดเห็นแรกออก ไม่ใช่ทุกโพสต์ที่มี
+Takes the (i) button off the top right of a post's or reel's comments, and the row with an (i) that can sit above a reel's first comment. Not every post has them.	นำปุ่ม (i) ที่มุมขวาบนของความคิดเห็นในโพสต์หรือรีล และแถวที่มี (i) ซึ่งอาจอยู่เหนือความคิดเห็นแรกของรีลออก ไม่ใช่ทุกโพสต์ที่มี
 # context: Comments: the switch that hides the row of quick emoji above the comment box (#248). Comment box is the field where you type a comment.
 Hide the emoji row	ซ่อนแถวอิโมจิ
 Takes the row of quick emoji off above the comment box. The box itself stays.	นำแถวอิโมจิด่วนด้านบนช่องแสดงความคิดเห็นออก ทั้งนี้ช่องแสดงความคิดเห็นจะยังคงอยู่

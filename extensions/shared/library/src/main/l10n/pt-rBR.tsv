@@ -815,7 +815,7 @@ Hide the gift button	Ocultar o botão de presente
 Takes the gift button off the right end of the comment box. The box itself stays.	Tira o botão de presente da ponta direita da caixa de comentários. A caixa continua lá.
 # context: Comments: a Hide comments switch (#869) that hides the round (i) info button some comment sheets draw at the top right, just above the first comment. Write (i) as is.
 Hide the (i) button in comments	Ocultar o botão (i) nos comentários
-Takes the (i) button off the top right of a post's or reel's comments, above the first comment. Not every post has it.	Tira o botão (i) do canto superior direito dos comentários de um post ou reel, acima do primeiro comentário. Nem todo post tem.
+Takes the (i) button off the top right of a post's or reel's comments, and the row with an (i) that can sit above a reel's first comment. Not every post has them.	Tira o botão (i) do canto superior direito dos comentários de um post ou reel, e a linha com um (i) que pode aparecer acima do primeiro comentário de um reel. Nem todo post tem.
 # context: Comments: the switch that hides the row of quick emoji above the comment box (#248). Comment box is the field where you type a comment.
 Hide the emoji row	Ocultar a linha de emojis
 Takes the row of quick emoji off above the comment box. The box itself stays.	Tira a linha de emojis rápidos acima da caixa de comentários. A caixa continua lá.
