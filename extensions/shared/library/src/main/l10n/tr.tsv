@@ -1587,7 +1587,7 @@ Switches Ghost mode turns	Hayalet modunun değiştirdiği anahtarlar
 Ghost mode needs at least one switch to turn.	Hayalet modu için en az bir anahtar gerekli.
 # context: Ghost mode: the switch under its rows in Ads and privacy that holds likes, story replies, comments, share links and new stories and posts back while Ghost mode is on (#876). A like is the heart under a post, a reel, a story or a comment, a share link is what Copy link and sharing a post out make, and posting is sharing a new story, post or reel from Instagram's camera; the five short ones are toasts shown when a tap is held back
 Block likes, replies and posts in Ghost mode	Hayalet modunda beğenileri, yanıtları ve gönderileri engelle
-While Ghost mode is on, liking, commenting, replying to a story, posting a story or post and copying or sharing a link do nothing, and a message says why. A double tap on a reel still likes it.	Hayalet modu açıkken beğenmek, yorum yapmak, bir hikayeye yanıt vermek, hikaye veya gönderi paylaşmak ve bir bağlantıyı kopyalamak veya paylaşmak hiçbir şey yapmaz, bir mesaj nedenini söyler. Bir Reels videosuna çift dokunmak yine de onu beğenir.
+While Ghost mode is on, liking, commenting, replying to a story, posting a story or post and copying or sharing a link do nothing, and a message says why. Nothing is sent.	Hayalet modu açıkken beğenmek, yorum yapmak, bir hikayeye yanıt vermek, hikaye veya gönderi paylaşmak ve bir bağlantıyı kopyalamak veya paylaşmak hiçbir şey yapmaz, bir mesaj nedenini söyler. Hiçbir şey gönderilmez.
 Likes are off in Ghost mode.	Hayalet modunda beğeniler kapalı.
 Replies are off in Ghost mode.	Hayalet modunda yanıtlar kapalı.
 Comments are off in Ghost mode.	Hayalet modunda yorumlar kapalı.

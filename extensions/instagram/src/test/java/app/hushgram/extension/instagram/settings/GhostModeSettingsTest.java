@@ -151,7 +151,7 @@ public class GhostModeSettingsTest {
         assertNotNull(block);
         assertEquals("Block likes, replies and posts in Ghost mode", block.getTitle().toString());
         assertEquals("While Ghost mode is on, liking, commenting, replying to a story, posting a story or post "
-                + "and copying or sharing a link do nothing, and a message says why. A double tap on a reel still likes it.",
+                + "and copying or sharing a link do nothing, and a message says why. Nothing is sent.",
                 block.getSummary().toString());
         assertFalse("off to start", block.isChecked());
         PreferenceGroup privacy = ghost().getParent();

@@ -42,8 +42,7 @@ final class PrivacyCategory {
             if (build.contains(PatchFamily.GHOST_ACTIONS)) {
                 privacy.add(toggle(context, Settings.BLOCK_GHOST_ACTIONS, L10n.t("Block likes, replies and posts in Ghost mode"),
                         L10n.t("While Ghost mode is on, liking, commenting, replying to a story, posting a story or post "
-                                + "and copying or sharing a link do nothing, and a message says why. "
-                                + "A double tap on a reel still likes it.")));
+                                + "and copying or sharing a link do nothing, and a message says why. Nothing is sent.")));
             }
         }
         if (build.contains(PatchFamily.HIDE_ADS)) {

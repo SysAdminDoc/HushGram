@@ -1575,7 +1575,7 @@ Switches Ghost mode turns	สวิตช์ที่โหมด Ghost สล�
 Ghost mode needs at least one switch to turn.	โหมด Ghost ต้องมีสวิตช์ให้สลับอย่างน้อยหนึ่งตัว
 # context: Ghost mode: the switch under its rows in Ads and privacy that holds likes, story replies, comments, share links and new stories and posts back while Ghost mode is on (#876). A like is the heart under a post, a reel, a story or a comment, a share link is what Copy link and sharing a post out make, and posting is sharing a new story, post or reel from Instagram's camera; the five short ones are toasts shown when a tap is held back
 Block likes, replies and posts in Ghost mode	บล็อกการกดถูกใจ การตอบกลับ และการโพสต์ในโหมด Ghost
-While Ghost mode is on, liking, commenting, replying to a story, posting a story or post and copying or sharing a link do nothing, and a message says why. A double tap on a reel still likes it.	ขณะที่เปิดโหมด Ghost การกดถูกใจ การแสดงความคิดเห็น การตอบกลับสตอรี่ การโพสต์สตอรี่หรือโพสต์ และการคัดลอกหรือแชร์ลิงก์จะไม่เกิดผลใดๆ และมีข้อความบอกเหตุผล การแตะสองครั้งที่รีลยังคงกดถูกใจอยู่
+While Ghost mode is on, liking, commenting, replying to a story, posting a story or post and copying or sharing a link do nothing, and a message says why. Nothing is sent.	ขณะที่เปิดโหมด Ghost การกดถูกใจ การแสดงความคิดเห็น การตอบกลับสตอรี่ การโพสต์สตอรี่หรือโพสต์ และการคัดลอกหรือแชร์ลิงก์จะไม่เกิดผลใดๆ และมีข้อความบอกเหตุผล ไม่มีสิ่งใดถูกส่งออกไป
 Likes are off in Ghost mode.	การกดถูกใจปิดอยู่ในโหมด Ghost
 Replies are off in Ghost mode.	การตอบกลับปิดอยู่ในโหมด Ghost
 Comments are off in Ghost mode.	ความคิดเห็นปิดอยู่ในโหมด Ghost

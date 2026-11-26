@@ -2413,6 +2413,8 @@ once-call Lapp/hushgram/extension/instagram/stories/StoryAnswerSeen;->viewerOpen
 # goes out in Ghost mode; twice or elsewhere, it isn't the hook the patch wrote. A reel's Like
 # button and a comment's heart keep the one guard Ask before a like puts there (LikeConfirm.holdReel
 # and holdComment below), which asks GhostActions.like first, so they get no rule of their own here.
+# A reel's double tap keeps the one read Turn off double tap to like hands to DoubleTapLike.likeAction
+# (its once-call below), which asks GhostActions.like after its own switch, so it gets none either.
 start-call Lapp/hushgram/extension/instagram/settings/GhostActions;->like()Z in instance (Landroid/app/Activity;*Lcom/instagram/feed/media/Media;*)V pooled holding used_double_tap_hint_impressions
 once-call Lapp/hushgram/extension/instagram/settings/GhostActions;->like()Z in instance (Landroid/app/Activity;*Lcom/instagram/feed/media/Media;*)V pooled holding used_double_tap_hint_impressions
 start-call Lapp/hushgram/extension/instagram/settings/GhostActions;->like()Z in instance ()V pooled holding story_viewer_like_button story_unlike_button_tapped

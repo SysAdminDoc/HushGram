@@ -1565,7 +1565,7 @@ Switches Ghost mode turns	幽灵模式控制的开关
 Ghost mode needs at least one switch to turn.	幽灵模式至少需要控制一个开关。
 # context: Ghost mode: the switch under its rows in Ads and privacy that holds likes, story replies, comments, share links and new stories and posts back while Ghost mode is on (#876). A like is the heart under a post, a reel, a story or a comment, a share link is what Copy link and sharing a post out make, and posting is sharing a new story, post or reel from Instagram's camera; the five short ones are toasts shown when a tap is held back
 Block likes, replies and posts in Ghost mode	在幽灵模式中阻止点赞、回复和发布
-While Ghost mode is on, liking, commenting, replying to a story, posting a story or post and copying or sharing a link do nothing, and a message says why. A double tap on a reel still likes it.	开启幽灵模式时，点赞、评论、回复快拍、发布快拍或帖子以及复制或分享链接都不会有任何作用，并会显示消息说明原因。双击 Reels 短视频仍会点赞.
+While Ghost mode is on, liking, commenting, replying to a story, posting a story or post and copying or sharing a link do nothing, and a message says why. Nothing is sent.	开启幽灵模式时，点赞、评论、回复快拍、发布快拍或帖子以及复制或分享链接都不会有任何作用，并会显示消息说明原因。不会发送任何内容.
 Likes are off in Ghost mode.	幽灵模式下无法点赞.
 Replies are off in Ghost mode.	幽灵模式下无法回复.
 Comments are off in Ghost mode.	幽灵模式下无法评论.

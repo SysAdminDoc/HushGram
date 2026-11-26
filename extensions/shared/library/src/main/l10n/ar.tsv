@@ -740,7 +740,7 @@ Ghost mode is on, and so is each of its switches.	وضع الشبح مفعّل،
 Ghost mode needs at least one switch to turn.	يحتاج وضع الشبح إلى تشغيل مفتاح واحد على الأقل.
 # context: Ghost mode: the switch under its rows in Ads and privacy that holds likes, story replies, comments, share links and new stories and posts back while Ghost mode is on (#876). A like is the heart under a post, a reel, a story or a comment, a share link is what Copy link and sharing a post out make, and posting is sharing a new story, post or reel from Instagram's camera; the five short ones are toasts shown when a tap is held back
 Block likes, replies and posts in Ghost mode	حظر الإعجابات والردود والنشر في وضع الشبح
-While Ghost mode is on, liking, commenting, replying to a story, posting a story or post and copying or sharing a link do nothing, and a message says why. A double tap on a reel still likes it.	أثناء تشغيل وضع الشبح، لا يحدث شيء عند الإعجاب أو التعليق أو الرد على قصة أو نشر قصة أو منشور أو نسخ رابط أو مشاركته، وتظهر رسالة توضح السبب. النقر المزدوج على مقطع ريلز ما زال يسجّل إعجابًا.
+While Ghost mode is on, liking, commenting, replying to a story, posting a story or post and copying or sharing a link do nothing, and a message says why. Nothing is sent.	أثناء تشغيل وضع الشبح، لا يحدث شيء عند الإعجاب أو التعليق أو الرد على قصة أو نشر قصة أو منشور أو نسخ رابط أو مشاركته، وتظهر رسالة توضح السبب. لا يُرسل أي شيء.
 Likes are off in Ghost mode.	الإعجابات متوقفة في وضع الشبح.
 Replies are off in Ghost mode.	الردود متوقفة في وضع الشبح.
 Comments are off in Ghost mode.	التعليقات متوقفة في وضع الشبح.

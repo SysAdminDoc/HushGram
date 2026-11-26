@@ -7,6 +7,8 @@ package app.hushgram.extension.instagram.reels;
 import androidx.annotation.Nullable;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
+import app.hushgram.extension.instagram.settings.GhostActions;
+import app.hushgram.extension.instagram.settings.PatchFamily;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.Utils;
@@ -78,10 +80,15 @@ public final class DoubleTapLike {
      * Handed the Reels gesture handler's "on like media" action as it's read. Null while the switch
      * holds the double tap back, so the handler skips the like and its heart, otherwise the action as
      * it was read. Never throws.
+     *
+     * <p>Block likes, replies and posts in Ghost mode (#876) holds the double tap back here too, with
+     * its own message, when that patch is in this build and says so. It goes through this guard
+     * rather than a second one in the same handler.
      */
     @Nullable
     public static Object likeAction(@Nullable Object action) {
-        return action != null && holdingBack("reel", Settings.TURN_OFF_DOUBLE_TAP_LIKE_ON_REELS) ? null : action;
+        if (action == null || holdingBack("reel", Settings.TURN_OFF_DOUBLE_TAP_LIKE_ON_REELS)) return null;
+        return PatchFamily.GHOST_ACTIONS.inBuild() && GhostActions.like() ? null : action;
     }
 
     /** Whether the switch and the one under it for this kind of double tap hold it back. */

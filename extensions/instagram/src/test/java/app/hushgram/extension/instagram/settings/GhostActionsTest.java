@@ -18,6 +18,7 @@ import org.robolectric.annotation.Config;
 import org.robolectric.shadows.ShadowLooper;
 import org.robolectric.shadows.ShadowToast;
 import app.hushgram.extension.instagram.feed.LikeConfirm;
+import app.hushgram.extension.instagram.reels.DoubleTapLike;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 import app.hushgram.extension.shared.settings.BaseSettings;
@@ -160,6 +161,38 @@ public class GhostActionsTest {
         Settings.BLOCK_GHOST_ACTIONS.save(false);
         assertFalse("the switch off", LikeConfirm.holdComment(new Object(), new Object(), Boolean.FALSE, "a", "b"));
         assertNull("no toast", toast());
+    }
+
+    /** A reel's double tap reads its like action through Turn off double tap to like's guard, which asks here next. */
+    @Test public void inGhostModeAReelDoubleTapGetsNoLikeAction() {
+        assertNull(DoubleTapLike.likeAction(new Object()));
+        assertEquals("Likes are off in Ghost mode.", toast());
+        String report = String.join("\n", HookStatus.report());
+        assertTrue(report, report.contains(GhostActions.BLOCKED_LIKE + " 1"));
+        assertNull("a viewer with no like action", DoubleTapLike.likeAction(null));
+    }
+
+    @Test public void withoutThisPatchOrItsSwitchAReelDoubleTapKeepsItsLikeAction() {
+        Object action = new Object();
+        EnumSet<PatchFamily> build = EnumSet.copyOf(PatchFamily.inBuildForTests);
+        build.remove(PatchFamily.GHOST_ACTIONS);
+        PatchFamily.inBuildForTests = build;
+        assertSame("not in this build", action, DoubleTapLike.likeAction(action));
+        build.add(PatchFamily.GHOST_ACTIONS);
+        PatchFamily.inBuildForTests = build;
+        Settings.BLOCK_GHOST_ACTIONS.save(false);
+        assertSame("the switch off", action, DoubleTapLike.likeAction(action));
+        assertNull("no toast", toast());
+    }
+
+    @Test public void aReelDoubleTapItsOwnSwitchHoldsBackGetsNoGhostMessage() {
+        Settings.TURN_OFF_DOUBLE_TAP_LIKE.save(true);
+        try {
+            assertNull(DoubleTapLike.likeAction(new Object()));
+            assertNull("Turn off double tap to like holds it back quietly", toast());
+        } finally {
+            Settings.TURN_OFF_DOUBLE_TAP_LIKE.resetToDefault();
+        }
     }
 
     @Test public void aBuildWithNoGhostSwitchNeverHoldsOneBack() {

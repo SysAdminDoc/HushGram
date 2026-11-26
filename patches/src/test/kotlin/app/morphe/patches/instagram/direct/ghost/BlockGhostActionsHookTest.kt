@@ -13,6 +13,7 @@ import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.instagram.feed.confirm.askBeforeLikePatch
+import app.morphe.patches.instagram.reels.doubletap.turnOffDoubleTapLikePatch
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -113,6 +114,15 @@ class BlockGhostActionsHookTest {
     @Test
     fun aReelOrCommentLikeIsHeldThroughAskBeforeALikesGuard() {
         assertTrue(askBeforeLikePatch in blockGhostActionsPatch.dependencies)
+    }
+
+    /**
+     * A reel's double tap reads its like action through the one read Turn off double tap to like
+     * hands to DoubleTapLike.likeAction, which asks GhostActions next, so the patch brings that in too.
+     */
+    @Test
+    fun aReelDoubleTapIsHeldThroughTurnOffDoubleTapToLikesRead() {
+        assertTrue(turnOffDoubleTapLikePatch in blockGhostActionsPatch.dependencies)
     }
 
     /** 386314341's merged 0Nvz.invoke loads the typed reply's string and sends one too: it stays as it was. */

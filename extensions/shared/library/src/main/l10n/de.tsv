@@ -1587,7 +1587,7 @@ Switches Ghost mode turns	Schalter, die der Ghost-Modus umlegt
 Ghost mode needs at least one switch to turn.	Ghost-Modus braucht mindestens einen Schalter.
 # context: Ghost mode: the switch under its rows in Ads and privacy that holds likes, story replies, comments, share links and new stories and posts back while Ghost mode is on (#876). A like is the heart under a post, a reel, a story or a comment, a share link is what Copy link and sharing a post out make, and posting is sharing a new story, post or reel from Instagram's camera; the five short ones are toasts shown when a tap is held back
 Block likes, replies and posts in Ghost mode	Likes, Antworten und Beiträge im Ghost-Modus sperren
-While Ghost mode is on, liking, commenting, replying to a story, posting a story or post and copying or sharing a link do nothing, and a message says why. A double tap on a reel still likes it.	Solange der Ghost-Modus an ist, passiert nichts, wenn du likest, kommentierst, auf eine Story antwortest, eine Story oder einen Beitrag postest oder einen Link kopierst oder teilst, und eine Meldung sagt dir, warum. Ein Doppeltipp auf ein Reel likt es trotzdem.
+While Ghost mode is on, liking, commenting, replying to a story, posting a story or post and copying or sharing a link do nothing, and a message says why. Nothing is sent.	Solange der Ghost-Modus an ist, passiert nichts, wenn du likest, kommentierst, auf eine Story antwortest, eine Story oder einen Beitrag postest oder einen Link kopierst oder teilst, und eine Meldung sagt dir, warum. Es wird nichts gesendet.
 Likes are off in Ghost mode.	Likes sind im Ghost-Modus aus.
 Replies are off in Ghost mode.	Antworten sind im Ghost-Modus aus.
 Comments are off in Ghost mode.	Kommentare sind im Ghost-Modus aus.

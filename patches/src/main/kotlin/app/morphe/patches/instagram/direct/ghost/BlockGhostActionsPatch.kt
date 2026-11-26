@@ -23,6 +23,7 @@ import app.morphe.patches.instagram.misc.extension.localRegisterCount
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.settings.EXTENSION_ROOT
 import app.morphe.patches.instagram.misc.settings.settingsPatch
+import app.morphe.patches.instagram.reels.doubletap.turnOffDoubleTapLikePatch
 import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.util.ControlFlow
 import com.android.tools.smali.dexlib2.AccessFlags
@@ -114,19 +115,22 @@ private const val LOADER_MANAGER = "Landroidx/loader/app/LoaderManager;"
  * (CommentListViewModel.Fqx) already start with Ask before a like's guard, and a hot method keeps
  * one guard, so this patch brings that one in and LikeConfirm asks GhostActions.like there first.
  * A reel's double tap likes inside a Redex-merged lambda's case (0JdR.invoke) with no step of its
- * own before the request is built, so it isn't held.
+ * own before the request is built, but the Reels gesture handler reads that like action first and
+ * Turn off double tap to like already hands the read to DoubleTapLike.likeAction, so this patch
+ * brings that one in too and likeAction asks GhostActions.like after its own switch. A null action
+ * takes the handler's path for a viewer with no like action, so there's no heart either.
  */
 @Suppress("unused")
 val blockGhostActionsPatch = bytecodePatch(
     name = "Block likes, replies and posts in Ghost mode",
     description = "While Ghost mode is on, liking, commenting, replying to a story, posting a story or post and copying " +
-        "or sharing a link do nothing, and a message says why. A double tap on a reel still likes it. Starts off. " +
+        "or sharing a link do nothing, and a message says why. Starts off. " +
         "Turn it on in HushGram settings > Ads and privacy.",
 ) {
     category("Ghost mode")
     dependsOn(settingsPatch)
     compatibleWith(*AppCompatibilities.instagram())
-    dependsOn(instagramExtensionPatch, ghostModeEntryPatch, askBeforeLikePatch)
+    dependsOn(instagramExtensionPatch, ghostModeEntryPatch, askBeforeLikePatch, turnOffDoubleTapLikePatch)
 
     execute {
         requireStatusMethod("ghostActions")
