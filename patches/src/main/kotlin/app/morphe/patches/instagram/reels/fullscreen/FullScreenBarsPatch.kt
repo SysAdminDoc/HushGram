@@ -19,16 +19,22 @@ import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.loadsString
+import app.morphe.patches.instagram.misc.extension.patchLog
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.extension.uniqueMethod
 import app.morphe.patches.instagram.misc.settings.settingsPatch
+import app.morphe.patches.instagram.misc.theme.ChatBackgroundSite
+import app.morphe.patches.instagram.misc.theme.chatBackgroundSites
 import app.morphe.patches.shared.compat.AppCompatibilities
+import app.morphe.util.addInstructionsAtControlFlowLabel
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.ThreeRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
@@ -43,6 +49,7 @@ internal const val HEIGHTS_ASKED = "$FULL_SCREEN_BARS->heightsAsked(Landroid/app
 internal const val HEIGHTS_DROPPED = "$FULL_SCREEN_BARS->heightsDropped(Landroid/app/Activity;Ljava/lang/Object;)V"
 internal const val TELL_HEIGHTS = "$FULL_SCREEN_BARS->tellHeights(Ljava/lang/Object;II)V"
 internal const val TAB_BAR_KEPT_HOOK = "$FULL_SCREEN_BARS->keepsTabBarThroughATell(I)Z"
+internal const val CHAT_THEME_STRIP = "$FULL_SCREEN_BARS->chatThemeStrip(I)I"
 internal const val MAIN_ACTIVITY = "Lcom/instagram/mainactivity/InstagramMainActivity;"
 
 /** What the main activity's layout for a new screen size logs as it moves the tab bar, held by that method alone. */
@@ -101,7 +108,8 @@ internal val barHeightsPatch = bytecodePatch {
  * both switches off. The story viewer's layout asks too ([fillStoryScreen], #436), and so do its item
  * binder and whole-screen layout ([layStoriesOutAsTheyBind], #618), and the reel item layout on a
  * screen wider than 9:16 ([fillWideReelScreen], #491). Show the whole reel also narrows a reel's cover
- * and video to the post's shape on a screen wider than the reel ([fitReelVideo], #681).
+ * and video to the post's shape on a screen wider than the reel ([fitReelVideo], #681). A themed chat
+ * asks for the height of the strip it paints under the status bar ([closeChatThemeStrip], #187).
  */
 @Suppress("unused")
 val fullScreenBarsPatch = bytecodePatch(
@@ -126,6 +134,7 @@ val fullScreenBarsPatch = bytecodePatch(
         fitReelVideo()
         fillStoryScreen()
         layStoriesOutAsTheyBind()
+        closeChatThemeStrip()
         enableStatus("fullScreenBars")
     }
 }
@@ -343,4 +352,88 @@ internal fun routeBarHeights(listener: MutableMethod) {
             """,
         )
     }
+}
+
+/**
+ * Where an opened chat's background sizes the strip its theme paints under the status bar: the sub-int
+ * making the strip's bottom inset, and the register holding the bar's height it takes from the screen's.
+ */
+internal class ChatThemeStripSite(val method: Method, val at: Int, val height: Int)
+
+private const val LAYER_DRAWABLE = "Landroid/graphics/drawable/LayerDrawable;"
+private const val SET_LAYER_INSET = "$LAYER_DRAWABLE->setLayerInset(IIIII)V"
+
+/**
+ * The strip an opened chat's theme paints across its top, under the status bar (#187). The method painting
+ * the chat's background ([chatBackgroundSites], 07CM.A0D on 386314286, 07Cu.A0D on 386314341 and 07Op.A0D
+ * on 386314340) stacks the theme's ShapeDrawable over its background and gives it, in its layers' first
+ * setLayerInset call, the screen's height less the status bar's as its bottom inset. The bar's height comes
+ * from getInsetsIgnoringVisibility, or the status_bar_height resource, so a hidden bar's height still. The
+ * site is the sub-int making that inset, which both ways there pass. None, with a warning, unless exactly
+ * one method has it; refuses without the extension's hook.
+ */
+internal fun BytecodePatchContext.findChatThemeStrip(): ChatThemeStripSite? {
+    val sites = chatBackgroundSites().mapNotNull(::stripSite)
+    val site = sites.singleOrNull() ?: run {
+        patchLog.warning(
+            "$FULL_SCREEN_BARS_PATCH: found ${sites.size} chat backgrounds sizing a strip under the status bar, " +
+                "so a themed chat keeps it with Full screen Messages",
+        )
+        return null
+    }
+    if (classDefByOrNull(FULL_SCREEN_BARS)?.methods?.any {
+            "${it.definingClass}->${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" == CHAT_THEME_STRIP &&
+                AccessFlags.STATIC.isSet(it.accessFlags) && AccessFlags.PUBLIC.isSet(it.accessFlags)
+        } != true
+    ) {
+        refuse("the extension has no public static $CHAT_THEME_STRIP")
+    }
+    return site
+}
+
+/**
+ * [background]'s strip site: the first setLayerInset after it builds its layers, whose last argument (the
+ * bottom inset) a sub-int writes last, from two registers, the second the status bar's height.
+ */
+private fun stripSite(background: ChatBackgroundSite): ChatThemeStripSite? {
+    val code = background.method.implementation?.instructions?.toList() ?: return null
+    val built = code.indexOfFirst {
+        it.opcode == Opcode.NEW_INSTANCE && (it as ReferenceInstruction).reference.toString() == LAYER_DRAWABLE &&
+            (it as OneRegisterInstruction).registerA == background.layers
+    }
+    if (built < 0) return null
+    val inset = (built + 1 until code.size).firstOrNull {
+        (code[it] as? ReferenceInstruction)?.reference?.toString() == SET_LAYER_INSET
+    } ?: return null
+    val call = code[inset] as? RegisterRangeInstruction ?: return null
+    val bottom = call.startRegister + call.registerCount - 1
+    val made = (inset - 1 downTo built + 1).firstOrNull { code[it].writes(bottom) } ?: return null
+    val sub = code[made]
+    if (sub.opcode != Opcode.SUB_INT || sub !is ThreeRegisterInstruction || sub.registerB == sub.registerC) return null
+    return ChatThemeStripSite(background.method, made, sub.registerC)
+}
+
+private fun Instruction.writes(register: Int): Boolean {
+    val written = (this as? OneRegisterInstruction)?.registerA ?: return false
+    return (opcode.setsRegister() && written == register) || (opcode.setsWideRegister() && written + 1 == register)
+}
+
+/**
+ * Has the strip [findChatThemeStrip] found ask [CHAT_THEME_STRIP] for the status bar's height right before
+ * its inset is made, so with Full screen Messages hiding that bar a themed chat paints no band where the bar
+ * was (#187). A branch onto the sub-int lands on the call. Leaves chats as they are when there's no strip.
+ */
+internal fun BytecodePatchContext.closeChatThemeStrip() {
+    val site = findChatThemeStrip() ?: return
+    val method = mutableClassDefBy(site.method.definingClass).methods.single {
+        it.name == site.method.name && it.parameterTypes.map(Any::toString) == site.method.parameterTypes.map(Any::toString) &&
+            it.returnType == site.method.returnType
+    }
+    method.addInstructionsAtControlFlowLabel(
+        site.at,
+        """
+            invoke-static/range { v${site.height} .. v${site.height} }, $CHAT_THEME_STRIP
+            move-result v${site.height}
+        """,
+    )
 }

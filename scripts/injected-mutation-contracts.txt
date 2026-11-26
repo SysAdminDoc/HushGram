@@ -4458,6 +4458,13 @@ start-call Lapp/hushgram/extension/instagram/reels/FullScreenBars;->heightsAsked
 once-call Lapp/hushgram/extension/instagram/reels/FullScreenBars;->heightsAsked(Landroid/app/Activity;Ljava/lang/Object;)V in instance (Landroid/app/Activity;L*;Z)V calling static LX/*;->*(Landroid/app/Activity;)LX/*; holding LX/*;->*:Ljava/util/List; Ljava/util/List;->add(Ljava/lang/Object;)Z
 start-call Lapp/hushgram/extension/instagram/reels/FullScreenBars;->heightsDropped(Landroid/app/Activity;Ljava/lang/Object;)V in static (Landroid/app/Activity;L*;)V holding LX/*;->*:Ljava/util/Map; LX/*;->*:Ljava/util/List; Ljava/util/List;->remove(Ljava/lang/Object;)Z
 once-call Lapp/hushgram/extension/instagram/reels/FullScreenBars;->heightsDropped(Landroid/app/Activity;Ljava/lang/Object;)V in static (Landroid/app/Activity;L*;)V holding LX/*;->*:Ljava/util/Map; LX/*;->*:Ljava/util/List; Ljava/util/List;->remove(Ljava/lang/Object;)Z
+# A themed chat's strip (#187): the method painting an opened chat's background (07CM.A0D on 386314286)
+# stacks the theme's ShapeDrawable over its background and insets it to the status bar's height, read
+# from the window's insets whether the bar shows or not. FullScreenBars.chatThemeStrip is handed that
+# height right before the sub-int making the strip's bottom inset, which both ways there pass. Left out,
+# a themed chat keeps a dark band where the bar was under Full screen Messages. It's the method
+# chatBackground's rule picks. FullScreenBarsHookTest checks every build.
+once-call Lapp/hushgram/extension/instagram/reels/FullScreenBars;->chatThemeStrip(I)I in instance (Landroid/view/View;IZ)V holding Landroid/graphics/drawable/LayerDrawable;->setLayerInset(IIIII)V LX/*;->*(Landroid/graphics/drawable/Drawable;Landroid/view/View;I)V
 # A chat's tab bar through a tell: the main activity's method that shows or hides its tab bar (A0X on
 # 456's 386214574, private, the one (IZ)V its layout for a new screen size calls on it) asks
 # FullScreenBars.keepsTabBarThroughATell first and returns on a yes. The activity's own heights

@@ -56,9 +56,7 @@ private fun refuse(why: String): Nothing = throw PatchException("$PATCH: $why")
  * exactly one, and refuses without the extension's hook.
  */
 internal fun BytecodePatchContext.findChatBackground(): ChatBackgroundSite? {
-    val sites = THREAD_BACKGROUND_IDS.flatMap { id ->
-        classesLoading(id).flatMap { classDef -> classDef.methods.mapNotNull { site(it, id) } }
-    }.distinctBy { "${it.method.definingClass}->${it.method.name}(${it.method.parameterTypes.joinToString("")})" }
+    val sites = chatBackgroundSites()
     val site = sites.singleOrNull() ?: run {
         patchLog.warning("$PATCH: found ${sites.size} methods painting a chat's background, so chats keep Instagram's black")
         return null
@@ -72,6 +70,14 @@ internal fun BytecodePatchContext.findChatBackground(): ChatBackgroundSite? {
     }
     return site
 }
+
+/**
+ * Every method [findChatBackground] picks among, the one painting an opened chat's background (07CM.A0D on
+ * 386314286), once each. Full screen Messages looks in it for the strip under the status bar (#187).
+ */
+internal fun BytecodePatchContext.chatBackgroundSites(): List<ChatBackgroundSite> = THREAD_BACKGROUND_IDS.flatMap { id ->
+    classesLoading(id).flatMap { classDef -> classDef.methods.mapNotNull { site(it, id) } }
+}.distinctBy { "${it.method.definingClass}->${it.method.name}(${it.method.parameterTypes.joinToString("")})" }
 
 /**
  * [method]'s chat background site when it loads [id], then builds a LayerDrawable, and a later static

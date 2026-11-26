@@ -39,6 +39,9 @@ import org.robolectric.util.ReflectionHelpers;
 import app.hushgram.extension.instagram.misc.GlassTabBar;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.SettingsContextRule;
+import app.hushgram.extension.shared.settings.BaseSettings;
+import app.hushgram.extension.shared.settings.HushgramPause;
+import app.hushgram.extension.shared.settings.PauseForTests;
 
 /** Full screen Reels and Home: the bars hide on the screens the switches name and come back when they're left. */
 @RunWith(RobolectricTestRunner.class)
@@ -474,6 +477,47 @@ public class FullScreenBarsTest {
         assertEquals("without a glass pill the navigation bar's height goes through", 63, FullScreenBars.navBarHeight(63));
         assertEquals(63, GlassTabBar.navBarHeight(63));
         assertEquals("a bar that shows isn't kept room for", 0, FullScreenBars.hiddenNavHeight(63));
+    }
+
+    /**
+     * #187: an opened chat's theme paints a strip as tall as the status bar across its top, by the
+     * window's insets whether the bar shows or not, so with Full screen Messages a themed chat kept a
+     * dark band where the hidden bar had been. With that switch on and the status bar among the bars it
+     * hides the strip comes back 0, even before a chat's bar is gone; another screen's switch, the
+     * navigation bar alone, a pause or settings not read yet keep it, and so does an unset height.
+     */
+    @Test public void aChatThemeKeepsNoStripWhereTheHiddenStatusBarWas() {
+        assertEquals("nothing hidden", 84, chatThemeStrip(84));
+        Settings.FULL_SCREEN_REELS.save(true);
+        Settings.FULL_SCREEN_HOME.save(true);
+        assertEquals("another screen's switch", 84, chatThemeStrip(84));
+
+        Settings.FULL_SCREEN_MESSAGES.save(true);
+        assertEquals("the strip stayed under the hidden status bar", 0, chatThemeStrip(84));
+        assertEquals("an unset height changed", -1, chatThemeStrip(-1));
+        assertEquals(0, chatThemeStrip(0));
+        Settings.FULL_SCREEN_HIDES.save(HiddenBars.STATUS_BAR);
+        assertEquals("the status bar alone hidden", 0, chatThemeStrip(84));
+        Settings.FULL_SCREEN_HIDES.save(HiddenBars.NAVIGATION_BAR);
+        assertEquals("the status bar shows", 84, chatThemeStrip(84));
+        Settings.FULL_SCREEN_HIDES.save(HiddenBars.BOTH);
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        try {
+            assertEquals("paused", 84, chatThemeStrip(84));
+        } finally {
+            BaseSettings.PAUSED.save(false);
+            PauseForTests.resume();
+        }
+        SettingsContextRule.withoutContext(() -> assertEquals("no settings", 84, chatThemeStrip(84)));
+        assertEquals("back on", 0, chatThemeStrip(84));
+    }
+
+    /** FullScreenBars.chatThemeStrip by name, so this class still builds against code without it. */
+    private static int chatThemeStrip(int height) {
+        return ReflectionHelpers.callStaticMethod(FullScreenBars.class, "chatThemeStrip",
+                ReflectionHelpers.ClassParameter.from(int.class, height));
     }
 
     /**

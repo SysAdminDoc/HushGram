@@ -102,6 +102,7 @@ public final class FullScreenBars {
     static final String COUNT_HID = "hid the bars";
     static final String COUNT_SHOWED = "showed the bars";
     static final String COUNT_NO_BAR_SPACE = "kept no space for a hidden bar";
+    static final String COUNT_NO_CHAT_STRIP = "left a chat theme's strip out under a hidden status bar";
 
     @SuppressWarnings("deprecation")
     static final int IMMERSIVE_FLAGS = View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
@@ -422,6 +423,26 @@ public final class FullScreenBars {
             return 0;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.FULL_SCREEN_BARS, "bar height", failure);
+            return height;
+        }
+    }
+
+    /**
+     * Called by an opened chat's background with the height of the strip its theme paints across the top,
+     * under the status bar (#187). Instagram reads it from the window's insets whether the bar shows or
+     * not, so with Full screen Messages the strip stayed where the hidden bar had been, a dark band above a
+     * themed chat's header. While that switch is on with the status bar among the bars it hides the answer
+     * is 0. It goes by the switches rather than the bar right now, since a chat paints its background as
+     * it opens, before the bar is gone. Otherwise, paused, or if anything throws, the height goes through.
+     */
+    public static int chatThemeStrip(int height) {
+        try {
+            if (height <= 0 || !Utils.settingsReady() || HushgramPause.isPaused()) return height;
+            if (!Settings.FULL_SCREEN_MESSAGES.get() || !chosenBars().status()) return height;
+            HookStatus.counted(FamilyNames.FULL_SCREEN_BARS, COUNT_NO_CHAT_STRIP);
+            return 0;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.FULL_SCREEN_BARS, "chat theme strip", failure);
             return height;
         }
     }
