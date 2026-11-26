@@ -2888,13 +2888,15 @@ single-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->defaultIcon(J)J
 once-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->explorePill(Landroid/view/View;)V in instance (Landroid/view/ViewGroup;I)LX/*; holding const:0x7f0b3b38
 # Many icons take Instagram's text and icon color, which the icon style never points (#187). Accent
 # color hands the tab icon view to AccentTheme.textIcons before each return of the method laying its
-# tint (it holds no strings, so the rule names the tint builder it calls and the tint it lays), the
+# tint (it holds no strings, so the rule names the tint builder it calls, the tint it lays and the
+# view's normal color field it reads, A05 on every 457 build, since IgSimpleImageView.maybeSetColors
+# builds and lays its tint the same way from fields of its own), the
 # color the top bar's badged icon drawable reads in its constructor to AccentTheme.textIcon, and the
 # color the tab strip's draw reads for the line under the selected tab to AccentTheme.tabIndicator.
 # Left out, a follow list's sort arrows, the comment box's GIF and gift buttons, a profile's bell,
 # Threads and menu icons and the line under a follow list's tab keep Instagram's text color with
 # Icons in the accent color on. TextIconsTest checks every build.
-once-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->textIcons(Landroid/widget/ImageView;)V in instance ()V sites returns holding LX/*;->*(IIIIII)Landroid/content/res/ColorStateList; Landroid/widget/ImageView;->setImageTintList(Landroid/content/res/ColorStateList;)V
+once-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->textIcons(Landroid/widget/ImageView;)V in instance ()V sites returns holding LX/*;->*(IIIIII)Landroid/content/res/ColorStateList; Landroid/widget/ImageView;->setImageTintList(Landroid/content/res/ColorStateList;)V Lcom/instagram/common/ui/colorfilter/ColorFilterAlphaImageView;->A05:Ljava/lang/Integer;
 single-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->textIcon(Landroid/content/Context;I)I in <init>
 single-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->tabIndicator(Landroid/view/View;I)I in draw
 # An opened chat paints the view behind its messages (id/thread_background_view_container) in one
