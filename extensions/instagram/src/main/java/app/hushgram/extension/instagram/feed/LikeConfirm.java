@@ -15,6 +15,8 @@ import java.lang.ref.WeakReference;
 import java.util.function.Supplier;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
+import app.hushgram.extension.instagram.settings.GhostActions;
+import app.hushgram.extension.instagram.settings.PatchFamily;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.Utils;
@@ -90,6 +92,7 @@ public final class LikeConfirm {
      */
     public static boolean holdReel(Object handler, Object button, Object item, Object state, Object source, String first,
             String second, String third, String fourth, Object done, int firstFlag, int secondFlag) {
+        if (ghostHolds()) return true;
         return hold(() -> button instanceof View ? ((View) button).getContext() : null,
                 () -> likeReelAgain(handler, button, item, state, source, first, second, third, fourth, done,
                         firstFlag != 0, secondFlag != 0));
@@ -101,9 +104,19 @@ public final class LikeConfirm {
      * the heart beside the comment. The question shows over the screen in front. Never throws.
      */
     public static boolean holdComment(Object handler, Object state, Boolean fromButton, String first, String second) {
+        if (ghostHolds()) return true;
         if (Boolean.FALSE.equals(fromButton)) return false;
         return hold(Utils::getActivity, () -> likeCommentAgain(handler, state, fromButton, first, second),
                 () -> L10n.t("Like or unlike this comment?"));
+    }
+
+    /**
+     * Block likes, replies and posts in Ghost mode (#876) holds a reel's or a comment's like back here,
+     * double tap and all, before anything asks, with its own message, when that patch is in this
+     * build and says so. It goes through this guard rather than a second one in the same handler.
+     */
+    private static boolean ghostHolds() {
+        return PatchFamily.GHOST_ACTIONS.inBuild() && GhostActions.like();
     }
 
     static boolean hold(Supplier<Context> screen, Runnable again) {

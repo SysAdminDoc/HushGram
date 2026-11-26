@@ -2400,7 +2400,7 @@ start-call Lapp/hushgram/extension/instagram/stories/StoryAnswerSeen;->answered(
 once-call Lapp/hushgram/extension/instagram/stories/StoryAnswerSeen;->answered(Ljava/lang/Object;Ljava/lang/Object;)V in static (Lcom/instagram/common/session/UserSession;Lcom/instagram/feed/media/Media;Lcom/instagram/model/direct/DirectShareTarget;Ljava/lang/Boolean;*)V pooled holding reel
 once-call Lapp/hushgram/extension/instagram/stories/StoryAnswerSeen;->liked(Ljava/lang/Object;Ljava/lang/String;)V in instance (L*;L*;Ljava/lang/Integer;Ljava/lang/String;*)L*; pooled holding send_story_like unsend_story_like
 once-call Lapp/hushgram/extension/instagram/stories/StoryAnswerSeen;->viewerOpened(Ljava/lang/Object;)V in instance (Lcom/instagram/common/session/UserSession;L*;)V pooled holding STORIES_SEEN_STATE_FLUSH
-# Block likes and replies in Ghost mode (#876) asks GhostActions.like first thing where a like
+# Block likes, replies and posts in Ghost mode (#876) asks GhostActions.like first thing where a like
 # starts, before the heart turns red: in the step a post's Like button, its double tap and the
 # feed's other like paths share (0Sm8.A02 on 386314341, taking an Activity and the post, holding
 # the double tap hint's name), in the newer story viewer's heart (027v.A0T, the one ()V method
@@ -2410,7 +2410,9 @@ once-call Lapp/hushgram/extension/instagram/stories/StoryAnswerSeen;->viewerOpen
 # right after its trace starts, so once anywhere there. GhostActions.reply goes first in the quick
 # reaction (069D.A00, holding its name) and in the typed reply (020U.A06, static on its own class),
 # both upstream of the story reply send StoryAnswerSeen.answered starts. Left out, a like or reply
-# goes out in Ghost mode; twice or elsewhere, it isn't the hook the patch wrote.
+# goes out in Ghost mode; twice or elsewhere, it isn't the hook the patch wrote. A reel's Like
+# button and a comment's heart keep the one guard Ask before a like puts there (LikeConfirm.holdReel
+# and holdComment below), which asks GhostActions.like first, so they get no rule of their own here.
 start-call Lapp/hushgram/extension/instagram/settings/GhostActions;->like()Z in instance (Landroid/app/Activity;*Lcom/instagram/feed/media/Media;*)V pooled holding used_double_tap_hint_impressions
 once-call Lapp/hushgram/extension/instagram/settings/GhostActions;->like()Z in instance (Landroid/app/Activity;*Lcom/instagram/feed/media/Media;*)V pooled holding used_double_tap_hint_impressions
 start-call Lapp/hushgram/extension/instagram/settings/GhostActions;->like()Z in instance ()V pooled holding story_viewer_like_button story_unlike_button_tapped
@@ -2458,6 +2460,21 @@ start-call Lapp/hushgram/extension/instagram/settings/GhostActions;->comment()Z 
 once-call Lapp/hushgram/extension/instagram/settings/GhostActions;->comment()Z in instance (Landroid/app/Activity;Lcom/instagram/api/schemas/CommentGiphyMediaInfoIntf;)V pooled class-holding comment_create
 start-call Lapp/hushgram/extension/instagram/settings/GhostActions;->comment()Z in instance (Landroid/app/Activity;L*;JZ)V pooled class-holding comment_create
 once-call Lapp/hushgram/extension/instagram/settings/GhostActions;->comment()Z in instance (Landroid/app/Activity;L*;JZ)V pooled class-holding comment_create
+# It asks GhostActions.post first thing in the story composer's buttons, each logging sink and
+# where the story goes before any step runs: Your story (0Al5.GqT on 386314341, the one of them
+# calling the story funnel 0AkR.A04 written below), Close friends (0AkR.A0C) and the camera's own
+# share (0AkH.A03, the one holding its no-media toast's key), and first thing in the post and
+# reel composer's share flow its Share button starts (0HR9.A0X, ClipsPublishScreenFragment's, the
+# one holding its missing draft's message). Left out, a story or post goes out in Ghost mode; twice
+# or elsewhere, it isn't the hook the patch wrote.
+start-call Lapp/hushgram/extension/instagram/settings/GhostActions;->post()Z in instance ()V pooled holding sink story LX/*;->*(Lcom/instagram/pendingmedia/model/PendingHighlightsInfo;Lcom/instagram/pendingmedia/model/UserStoryTarget;LX/*;LX/*;Ljava/lang/String;Ljava/lang/String;)V
+once-call Lapp/hushgram/extension/instagram/settings/GhostActions;->post()Z in instance ()V pooled holding sink story LX/*;->*(Lcom/instagram/pendingmedia/model/PendingHighlightsInfo;Lcom/instagram/pendingmedia/model/UserStoryTarget;LX/*;LX/*;Ljava/lang/String;Ljava/lang/String;)V
+start-call Lapp/hushgram/extension/instagram/settings/GhostActions;->post()Z in instance ()V pooled holding sink close_friend
+once-call Lapp/hushgram/extension/instagram/settings/GhostActions;->post()Z in instance ()V pooled holding sink close_friend
+start-call Lapp/hushgram/extension/instagram/settings/GhostActions;->post()Z in instance ()V pooled holding sink story no_active_captured_media
+once-call Lapp/hushgram/extension/instagram/settings/GhostActions;->post()Z in instance ()V pooled holding sink story no_active_captured_media
+start-call Lapp/hushgram/extension/instagram/settings/GhostActions;->post()Z in static (L*;Ljava/lang/String;)V pooled holding Draft\sunavailable\sin\sstartShareFlow
+once-call Lapp/hushgram/extension/instagram/settings/GhostActions;->post()Z in static (L*;Ljava/lang/String;)V pooled holding Draft\sunavailable\sin\sstartShareFlow
 # And it hands StoryTrayOrder the reel store's lists right before they return, so watched stories go
 # behind unwatched ones while their rings stay new (#241): the one for the feed's stories unit
 # (03sa.A0a on 452.1, the synchronized (list) list method calling the store's static (session, list)

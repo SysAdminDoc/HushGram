@@ -149,9 +149,10 @@ public class GhostModeSettingsTest {
         open(build);
         SwitchPreference block = own(Settings.BLOCK_GHOST_ACTIONS);
         assertNotNull(block);
-        assertEquals("Block likes and replies in Ghost mode", block.getTitle().toString());
-        assertEquals("While Ghost mode is on, liking a post or story, replying to a story, posting a comment "
-                + "and copying or sharing a link do nothing, and a message says why. Nothing is sent.", block.getSummary().toString());
+        assertEquals("Block likes, replies and posts in Ghost mode", block.getTitle().toString());
+        assertEquals("While Ghost mode is on, liking, commenting, replying to a story, posting a story or post "
+                + "and copying or sharing a link do nothing, and a message says why. A double tap on a reel still likes it.",
+                block.getSummary().toString());
         assertFalse("off to start", block.isChecked());
         PreferenceGroup privacy = ghost().getParent();
         assertEquals(Settings.GHOST_TAB_TARGET.key, privacy.getPreference(2).getKey());

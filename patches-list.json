@@ -435,11 +435,12 @@
       "options": []
     },
     {
-      "name": "Block likes and replies in Ghost mode",
-      "description": "While Ghost mode is on, liking a post or story, replying to a story, posting a comment and copying or sharing a link do nothing, and a message says why. Starts off. Turn it on in HushGram settings > Ads and privacy.",
+      "name": "Block likes, replies and posts in Ghost mode",
+      "description": "While Ghost mode is on, liking, commenting, replying to a story, posting a story or post and copying or sharing a link do nothing, and a message says why. A double tap on a reel still likes it. Starts off. Turn it on in HushGram settings > Ads and privacy.",
       "category": "Ghost mode",
       "use": true,
       "dependencies": [
+        "Ask before a like",
         "BytecodePatch",
         "HushGram settings"
       ],

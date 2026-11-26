@@ -738,13 +738,14 @@ Ghost mode button on Home's header	زر الوضع الشبح في ترويسة 
 Ghost mode is off, and so is each of its switches.	وضع الشبح متوقف، وكذلك كل مفاتيحه.
 Ghost mode is on, and so is each of its switches.	وضع الشبح مفعّل، وكذلك كل مفاتيحه.
 Ghost mode needs at least one switch to turn.	يحتاج وضع الشبح إلى تشغيل مفتاح واحد على الأقل.
-# context: Ghost mode: the switch under its rows in Ads and privacy that holds likes, story replies, comments and share links back while Ghost mode is on (#876). A like is the heart under a post or a story, a share link is what Copy link and sharing a post out make; the four short ones are toasts shown when a tap is held back
-Block likes and replies in Ghost mode	حظر الإعجابات والردود في وضع الشبح
-While Ghost mode is on, liking a post or story, replying to a story, posting a comment and copying or sharing a link do nothing, and a message says why. Nothing is sent.	أثناء تشغيل وضع الشبح، لا يحدث شيء عند الإعجاب بمنشور أو قصة أو الرد على قصة أو نشر تعليق أو نسخ رابط أو مشاركته، وتظهر رسالة توضح السبب. لا يُرسل أي شيء.
+# context: Ghost mode: the switch under its rows in Ads and privacy that holds likes, story replies, comments, share links and new stories and posts back while Ghost mode is on (#876). A like is the heart under a post, a reel, a story or a comment, a share link is what Copy link and sharing a post out make, and posting is sharing a new story, post or reel from Instagram's camera; the five short ones are toasts shown when a tap is held back
+Block likes, replies and posts in Ghost mode	حظر الإعجابات والردود والنشر في وضع الشبح
+While Ghost mode is on, liking, commenting, replying to a story, posting a story or post and copying or sharing a link do nothing, and a message says why. A double tap on a reel still likes it.	أثناء تشغيل وضع الشبح، لا يحدث شيء عند الإعجاب أو التعليق أو الرد على قصة أو نشر قصة أو منشور أو نسخ رابط أو مشاركته، وتظهر رسالة توضح السبب. النقر المزدوج على مقطع ريلز ما زال يسجّل إعجابًا.
 Likes are off in Ghost mode.	الإعجابات متوقفة في وضع الشبح.
 Replies are off in Ghost mode.	الردود متوقفة في وضع الشبح.
 Comments are off in Ghost mode.	التعليقات متوقفة في وضع الشبح.
 Share links are off in Ghost mode.	روابط المشاركة متوقفة في وضع الشبح.
+Posting is off in Ghost mode.	النشر متوقف في وضع الشبح.
 Ghost mode partly changed. Check HushGram settings.	تغيّر وضع الشبح جزئيًا. تحقّق من إعدادات HushGram.
 Ghost mode partly changed. Check the switches below.	تغيّر وضع الشبح جزئيًا. تحقّق من المفاتيح أدناه.
 Gives Search and your messages a plain search bar and removes Meta AI's buttons, follow-up bar and inbox row. Restart Instagram to see the change.	يمنح البحث ورسائلك شريط بحث بسيطًا ويزيل أزرار Meta AI وشريط المتابعة وصف صندوق الوارد. أعد تشغيل Instagram لرؤية التغيير.

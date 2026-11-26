@@ -11,6 +11,7 @@ import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patcher.util.smali.ExternalLabel
+import app.morphe.patches.instagram.feed.confirm.askBeforeLikePatch
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.enableStatus
@@ -38,7 +39,7 @@ import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
 import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 
-private const val PATCH = "Block likes and replies in Ghost mode"
+private const val PATCH = "Block likes, replies and posts in Ghost mode"
 
 internal const val GHOST_ACTIONS = "$EXTENSION_PACKAGE/settings/GhostActions;"
 
@@ -53,6 +54,17 @@ internal const val GHOST_SHARE = "$GHOST_ACTIONS->share()Z"
 
 /** Asked first where the comment sheet posts a comment: true holds it back, with a toast saying why. */
 internal const val GHOST_COMMENT = "$GHOST_ACTIONS->comment()Z"
+
+/** Asked first in the story composer's Your story and Close friends and in a post's or reel's Share: true holds it back, with a toast saying why. */
+internal const val GHOST_POST = "$GHOST_ACTIONS->post()Z"
+
+/** What the story composer's Your story and Close friends buttons log first, the key and where the story goes. */
+internal const val STORY_SINK = "sink"
+internal const val STORY_SINK_STORY = "story"
+internal const val STORY_SINK_CLOSE_FRIENDS = "close_friend"
+
+/** What the post and reel composer's share flow logs when its draft is gone, which only that flow loads. */
+internal const val POST_SHARE_FLOW = "Draft unavailable in startShareFlow"
 
 /** What Copy link logs as it starts, in each of the steps a profile, a story, a post or a link's id copies through. */
 internal const val COPY_LINK = "copy_link"
@@ -93,21 +105,28 @@ private const val CONTEXT = "Landroid/content/Context;"
 private const val LOADER_MANAGER = "Landroidx/loader/app/LoaderManager;"
 
 /**
- * While Ghost mode is on, a like, a story reply, a comment or a share link does nothing and a toast
- * says why (#876). Each hook goes in where the tap starts, before Instagram changes anything on
- * screen, so the heart never turns red and nothing is sent. Starts off.
+ * While Ghost mode is on, a like, a story reply, a comment, a share link or a new story or post does
+ * nothing and a toast says why (#876). Each hook goes in where the tap starts, before Instagram
+ * changes anything on screen, so the heart never turns red, nothing is sent and the composer stays
+ * open with the story or post as it was. Starts off.
+ *
+ * A reel's Like button (0Gcr.EDJ on 386314341) and a comment's heart and double tap
+ * (CommentListViewModel.Fqx) already start with Ask before a like's guard, and a hot method keeps
+ * one guard, so this patch brings that one in and LikeConfirm asks GhostActions.like there first.
+ * A reel's double tap likes inside a Redex-merged lambda's case (0JdR.invoke) with no step of its
+ * own before the request is built, so it isn't held.
  */
 @Suppress("unused")
 val blockGhostActionsPatch = bytecodePatch(
-    name = "Block likes and replies in Ghost mode",
-    description = "While Ghost mode is on, liking a post or story, replying to a story, posting a comment and " +
-        "copying or sharing a link do nothing, and a message says why. Starts off. Turn it on in HushGram " +
-        "settings > Ads and privacy.",
+    name = "Block likes, replies and posts in Ghost mode",
+    description = "While Ghost mode is on, liking, commenting, replying to a story, posting a story or post and copying " +
+        "or sharing a link do nothing, and a message says why. A double tap on a reel still likes it. Starts off. " +
+        "Turn it on in HushGram settings > Ads and privacy.",
 ) {
     category("Ghost mode")
     dependsOn(settingsPatch)
     compatibleWith(*AppCompatibilities.instagram())
-    dependsOn(instagramExtensionPatch, ghostModeEntryPatch)
+    dependsOn(instagramExtensionPatch, ghostModeEntryPatch, askBeforeLikePatch)
 
     execute {
         requireStatusMethod("ghostActions")
@@ -139,13 +158,16 @@ internal class GhostActionTargets(
     val copyLinks: List<MutableMethod>,
     val linkFetches: List<MutableMethod>,
     val commentPosts: List<MutableMethod>,
+    val storyPosts: List<MutableMethod>,
+    val postShare: MutableMethod,
 ) {
     /** The methods a hook goes first in, with the hook. */
     val atStart: List<Pair<MutableMethod, String>>
         get() = listOf(postLikeStep, storyLike, storyLikeStep).map { it to GHOST_LIKE } +
             (textReplies + quickReaction).map { it to GHOST_REPLY } +
             (copyLinks + linkFetches).map { it to GHOST_SHARE } +
-            commentPosts.map { it to GHOST_COMMENT }
+            commentPosts.map { it to GHOST_COMMENT } +
+            (storyPosts + postShare).map { it to GHOST_POST }
 }
 
 /**
@@ -173,11 +195,18 @@ internal class GhostActionTargets(
  *   other ways out use too);
  * - a comment: each instance method of [COMMENT_VIEW_MODEL] returning nothing that takes an Activity
  *   first and posts, either through a [COMMENT_REPOSITORY] method that starts [COMMENT_POST_JOB] or
- *   by starting [COMMENT_DELAYED_POST_JOB] itself (FPC, FjJ for a GIF and A1P for a delayed post).
+ *   by starting [COMMENT_DELAYED_POST_JOB] itself (FPC, FjJ for a GIF and A1P for a delayed post);
+ * - a new story: each instance `()V` method, Redex merges left out, that loads [STORY_SINK] with
+ *   [STORY_SINK_STORY] or [STORY_SINK_CLOSE_FRIENDS], the story composer's buttons logging where the
+ *   story goes before any step runs (0Al5.GqT for Your story, 0AkR.A0C for Close friends and 0AkH.A03,
+ *   the camera's own share, which asks a pool for where and loads the story string for its warning),
+ *   at least one of each;
+ * - a new post or reel: the one static `(composer, String)V` method loading [POST_SHARE_FLOW], the
+ *   composer's share flow its Share button starts (0HR9.A0X, ClipsPublishScreenFragment's).
  */
 internal fun BytecodePatchContext.findGhostActions(): GhostActionTargets {
     val extension = classDefByOrNull(GHOST_ACTIONS) ?: refuse("$GHOST_ACTIONS isn't in the extension")
-    for (hook in listOf(GHOST_LIKE, GHOST_REPLY, GHOST_SHARE, GHOST_COMMENT)) {
+    for (hook in listOf(GHOST_LIKE, GHOST_REPLY, GHOST_SHARE, GHOST_COMMENT, GHOST_POST)) {
         val name = hook.substringAfter("->").substringBefore("(")
         extension.methods.singleOrNull {
             it.name == name && it.isStatic() && AccessFlags.PUBLIC.isSet(it.accessFlags) && it.parameterTypes.isEmpty() && it.returnType == "Z"
@@ -245,7 +274,25 @@ internal fun BytecodePatchContext.findGhostActions(): GhostActionTargets {
     if (posts.isEmpty()) refuse("no $COMMENT_VIEW_MODEL method taking an Activity posts a comment")
     val commentPosts = posts.map { startHook("comment post", mutable(COMMENT_VIEW_MODEL, it)) }
 
-    return GhostActionTargets(postLikeStep, storyHeart, storyLike, storyLikeStep, textReplies, reaction, copyLinks, linkFetches, commentPosts)
+    val stories = classesLoadingString(STORY_SINK).flatMap { owner ->
+        owner.methods.filter { method ->
+            !method.isStatic() && !method.isMerged() && method.returnType == "V" && method.parameterTypes.isEmpty() &&
+                method.implementation != null && loadsString(method, STORY_SINK) &&
+                (loadsString(method, STORY_SINK_STORY) || loadsString(method, STORY_SINK_CLOSE_FRIENDS))
+        }.map { owner to it }
+    }
+    for (where in listOf(STORY_SINK_STORY, STORY_SINK_CLOSE_FRIENDS)) {
+        if (stories.none { (_, method) -> loadsString(method, where) }) refuse("no story composer button logs \"$STORY_SINK\" with \"$where\"")
+    }
+    val storyPosts = stories.map { (owner, method) -> startHook("story composer button", mutable(owner.type, method)) }
+
+    val postShare = startHook("post and reel Share", one("post and reel Share", POST_SHARE_FLOW) { method ->
+        method.isStatic() && method.returnType == "V" && method.parameters() == listOf(method.definingClass, STRING)
+    })
+
+    return GhostActionTargets(
+        postLikeStep, storyHeart, storyLike, storyLikeStep, textReplies, reaction, copyLinks, linkFetches, commentPosts, storyPosts, postShare,
+    )
 }
 
 /**

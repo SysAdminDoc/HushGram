@@ -198,7 +198,7 @@ public final class FamilyNames {
     }
     public static final String SCREENSHOT_REPORTS = "Don't report screenshots";
     public static final String BLEND_VISITS = "Don't report Blend visits";
-    public static final String GHOST_ACTIONS = "Block likes and replies in Ghost mode";
+    public static final String GHOST_ACTIONS = "Block likes, replies and posts in Ghost mode";
     public static final String SCREENSHOT_BLOCK = "Allow screenshots";
     public static final String KEEP_IN_CHAT = "Keep in chat";
     public static final String VIEW_ONCE_MARK = "Mark one-time photos and videos";

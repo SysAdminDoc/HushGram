@@ -13,15 +13,17 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
 import app.hushgram.extension.shared.settings.HushgramPause;
 
 /**
- * Helper for the "Block likes and replies in Ghost mode" patch (#876): while Ghost mode is on and
- * its switch is on, a tap that would tell someone you were there does nothing and says why.
+ * Helper for the "Block likes, replies and posts in Ghost mode" patch (#876): while Ghost mode is
+ * on and its switch is on, a tap that would tell someone you were there does nothing and says why.
  *
  * <p>The patch calls {@link #like} first thing in the handlers a like goes through (a post's Like
- * button and double tap, a story's heart and super like), {@link #reply} first thing in a story's
- * typed reply and quick reaction, {@link #share} first thing in Copy link and in each step that
- * makes a share link, and {@link #comment} first thing in the comment sheet's posts. A true answer
- * returns before Instagram changes anything on screen, so the heart never turns red and nothing is
- * sent.
+ * button and double tap, a story's heart and super like, and through Ask before a like's guard a
+ * reel's Like button and a comment's heart), {@link #reply} first thing in a story's typed reply and
+ * quick reaction, {@link #share} first thing in Copy link and in each step that makes a share link,
+ * {@link #comment} first thing in the comment sheet's posts, and {@link #post} first thing in the
+ * story composer's Your story and Close friends buttons and the post and reel composer's Share. A
+ * true answer returns before Instagram changes anything on screen, so the heart never turns red and
+ * nothing is sent or posted.
  *
  * <p>Ghost mode is the master switch's own reading: on while every switch it turns is saved on.
  * The block only answers with the switch on, HushGram not paused and its settings read. Once those
@@ -29,11 +31,12 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * switch is there to stop.
  */
 public final class GhostActions {
-    /** What's counted each time a like, a reply, a share link or a comment is held back. */
+    /** What's counted each time a like, a reply, a share link, a comment or a post is held back. */
     static final String BLOCKED_LIKE = "like blocked in Ghost mode";
     static final String BLOCKED_REPLY = "reply blocked in Ghost mode";
     static final String BLOCKED_SHARE = "share link blocked in Ghost mode";
     static final String BLOCKED_COMMENT = "comment blocked in Ghost mode";
+    static final String BLOCKED_POST = "post blocked in Ghost mode";
 
     private GhostActions() {
     }
@@ -67,6 +70,14 @@ public final class GhostActions {
         if (!blocks("comment")) return false;
         HookStatus.counted(FamilyNames.GHOST_ACTIONS, BLOCKED_COMMENT);
         Utils.showToastShort(L10n.t("Comments are off in Ghost mode."));
+        return true;
+    }
+
+    /** Injected first thing in Your story, Close friends and a post's or reel's Share. True returns before anything is posted. Never throws. */
+    public static boolean post() {
+        if (!blocks("post")) return false;
+        HookStatus.counted(FamilyNames.GHOST_ACTIONS, BLOCKED_POST);
+        Utils.showToastShort(L10n.t("Posting is off in Ghost mode."));
         return true;
     }
 

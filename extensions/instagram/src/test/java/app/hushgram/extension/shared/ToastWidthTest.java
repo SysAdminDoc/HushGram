@@ -57,6 +57,7 @@ public class ToastWidthTest {
         assertEquals("HushgramPreferenceFragment.java", keys.get("Emoji saved. Restart Instagram to see them."));
         assertEquals("GhostActions.java", keys.get("Share links are off in Ghost mode."));
         assertEquals("GhostActions.java", keys.get("Comments are off in Ghost mode."));
+        assertEquals("GhostActions.java", keys.get("Posting is off in Ghost mode."));
         assertEquals(1, lines("Saved"));
         assertEquals(1, lines("Twenty-eight characters fit."));
         assertEquals(2, lines("Twenty-nine-characters-don't."));

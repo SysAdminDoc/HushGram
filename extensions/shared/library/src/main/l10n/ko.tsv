@@ -1584,13 +1584,14 @@ All of them. Tap to leave some out, and Ghost mode leaves those as you set them.
 %1$s. The others stay as you set them.	%1$s. 나머지는 설정한 그대로 유지됩니다.
 Switches Ghost mode turns	고스트 모드가 바꾸는 스위치
 Ghost mode needs at least one switch to turn.	고스트 모드에는 바꿀 스위치가 하나 이상 필요합니다.
-# context: Ghost mode: the switch under its rows in Ads and privacy that holds likes, story replies, comments and share links back while Ghost mode is on (#876). A like is the heart under a post or a story, a share link is what Copy link and sharing a post out make; the four short ones are toasts shown when a tap is held back
-Block likes and replies in Ghost mode	고스트 모드에서 좋아요와 답장 차단
-While Ghost mode is on, liking a post or story, replying to a story, posting a comment and copying or sharing a link do nothing, and a message says why. Nothing is sent.	고스트 모드가 켜져 있으면 게시물이나 스토리에 좋아요를 누르거나, 스토리에 답장하거나, 댓글을 게시하거나, 링크를 복사하거나 공유해도 아무 일도 일어나지 않고, 그 이유를 알려 주는 메시지가 표시됩니다. 아무것도 전송되지 않습니다.
+# context: Ghost mode: the switch under its rows in Ads and privacy that holds likes, story replies, comments, share links and new stories and posts back while Ghost mode is on (#876). A like is the heart under a post, a reel, a story or a comment, a share link is what Copy link and sharing a post out make, and posting is sharing a new story, post or reel from Instagram's camera; the five short ones are toasts shown when a tap is held back
+Block likes, replies and posts in Ghost mode	고스트 모드에서 좋아요, 답장, 게시 차단
+While Ghost mode is on, liking, commenting, replying to a story, posting a story or post and copying or sharing a link do nothing, and a message says why. A double tap on a reel still likes it.	고스트 모드가 켜져 있으면 좋아요를 누르거나, 댓글을 달거나, 스토리에 답장하거나, 스토리나 게시물을 올리거나, 링크를 복사하거나 공유해도 아무 일도 일어나지 않고, 그 이유를 알려 주는 메시지가 표시됩니다. 릴스를 두 번 탭하면 여전히 좋아요가 눌립니다.
 Likes are off in Ghost mode.	고스트 모드에서는 좋아요가 꺼져 있습니다.
 Replies are off in Ghost mode.	고스트 모드에서는 답장이 꺼져 있습니다.
 Comments are off in Ghost mode.	고스트 모드에서는 댓글이 꺼져 있습니다.
 Share links are off in Ghost mode.	고스트 모드에서는 공유 링크가 꺼져 있습니다.
+Posting is off in Ghost mode.	고스트 모드에서는 게시가 꺼져 있습니다.
 # context: Ghost mode: turning it on or off with a long press on a tab (#255). %1$s is a tab's name
 Turn Ghost mode on or off with a tab long press	탭을 길게 탭하여 고스트 모드 켜고 끄기
 Tab long presses keep Instagram's own action. Choose one to turn Ghost mode on or off instead.	탭을 길게 탭하면 Instagram의 기본 동작이 실행됩니다. 고스트 모드를 대신 켜고 끌 탭을 하나 고르세요.

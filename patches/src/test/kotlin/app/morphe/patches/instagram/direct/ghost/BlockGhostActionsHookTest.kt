@@ -12,6 +12,7 @@ import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.FixtureDex
+import app.morphe.patches.instagram.feed.confirm.askBeforeLikePatch
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -34,9 +35,9 @@ import org.junit.Test
 import java.io.File
 
 /**
- * Block likes and replies in Ghost mode asks GhostActions first where each like and story reply
- * starts, returning before Instagram does anything when it says so, and in the classic story
- * viewer's heart case jumps to the case's end.
+ * Block likes, replies and posts in Ghost mode asks GhostActions first where each like, story reply,
+ * share link, comment, story and post starts, returning before Instagram does anything when it says
+ * so, and in the classic story viewer's heart case jumps to the case's end.
  */
 class BlockGhostActionsHookTest {
     @Test
@@ -78,8 +79,11 @@ class BlockGhostActionsHookTest {
         assertEquals("the fetch that schedules no request is left out", listOf("$FETCHER->A02"), found.linkFetches.map { it.where() })
         assertEquals("the static post and the one posting nothing are left out", listOf("$COMMENT_VIEW_MODEL->A1P", "$COMMENT_VIEW_MODEL->FPC"),
             found.commentPosts.map { it.where() }.sorted())
+        assertEquals("the static, merged, parameter-taking and sink-only ones are left out",
+            listOf("$STORY_COMPOSER->A0C", "$STORY_COMPOSER->GqT"), found.storyPosts.map { it.where() }.sorted())
+        assertEquals("the instance one and the one loading another message are left out", "$PUBLISH->A0X", found.postShare.where())
         assertEquals(listOf(GHOST_LIKE, GHOST_LIKE, GHOST_LIKE, GHOST_REPLY, GHOST_REPLY, GHOST_SHARE, GHOST_SHARE, GHOST_SHARE,
-            GHOST_COMMENT, GHOST_COMMENT), found.atStart.map { it.second })
+            GHOST_COMMENT, GHOST_COMMENT, GHOST_POST, GHOST_POST, GHOST_POST), found.atStart.map { it.second })
         for ((index, entry) in found.atStart.withIndex()) startsWith(entry.first, entry.second, firsts[index], entry.first.where())
         assertEquals("the fetcher's method scheduling nothing is as it was", idleBefore, idle())
 
@@ -100,6 +104,15 @@ class BlockGhostActionsHookTest {
         assertEquals(listOf(Opcode.CONST_STRING, Opcode.CONST_STRING, Opcode.INVOKE_INTERFACE, Opcode.CONST_4, Opcode.INVOKE_STATIC, Opcode.RETURN_VOID),
             code.drop(6).map { it.opcode })
         assertEquals(1, code.count { it.calls(GHOST_LIKE) })
+    }
+
+    /**
+     * A reel's Like button and a comment's heart and double tap start with Ask before a like's guard,
+     * which asks GhostActions first, so the patch brings that guard in rather than writing a second.
+     */
+    @Test
+    fun aReelOrCommentLikeIsHeldThroughAskBeforeALikesGuard() {
+        assertTrue(askBeforeLikePatch in blockGhostActionsPatch.dependencies)
     }
 
     /** 386314341's merged 0Nvz.invoke loads the typed reply's string and sends one too: it stays as it was. */
@@ -136,6 +149,11 @@ class BlockGhostActionsHookTest {
         refuses("a link class scheduling no request", "schedules no share link's request", world(fetcher = fetcher(schedules = false)))
         refuses("a repository starting no post job", "starts $COMMENT_POST_JOB", world(repository = repository(job = "Lfixture/OtherJob;")))
         refuses("a comment sheet posting nothing", "posts a comment", world(viewModel = viewModel(posts = false)))
+        refuses("no Your story button", "with \"$STORY_SINK_STORY\"", world(storyComposer = storyComposer(story = false)))
+        refuses("no Close friends button", "with \"$STORY_SINK_CLOSE_FRIENDS\"", world(storyComposer = storyComposer(closeFriends = false)))
+        refuses("a story button with no local", "no local", world(storyComposer = storyComposer(registers = 1)))
+        refuses("a share flow on the composer itself", "post and reel Share", world(publish = publishScreen(flags = PUBLIC)))
+        refuses("no share flow", "post and reel Share", world().filter { it.type != PUBLISH })
     }
 
     private fun refuses(case: String, why: String, classes: List<ClassDef>) {
@@ -153,7 +171,7 @@ class BlockGhostActionsHookTest {
      */
     private fun builds(bundle: File, label: String) {
         val strings = setOf(POST_DOUBLE_TAP_HINT, STORY_LIKE_FLOW, STORY_LIKE_TAPPED, STORY_UNLIKE_TAPPED,
-            GHOST_QUICK_REACTION, GHOST_TEXT_REPLY, COPY_LINK)
+            GHOST_QUICK_REACTION, GHOST_TEXT_REPLY, COPY_LINK, STORY_SINK, POST_SHARE_FLOW)
         val loading = FixtureDex.classesLoadingAny(bundle, strings)
         val steps = loading.flatMap { it.methods }.flatMap { it.calls() }.filter { call ->
             call.returnType == "V" && call.parameterTypes.map(Any::toString).let { it.size == 6 && it[1] == MEDIA && it[4] == INTEGER && it[5] == "I" }
@@ -189,7 +207,8 @@ class BlockGhostActionsHookTest {
         println("$label: likes at ${listOf(found.postLikeStep, found.storyLike, found.storyLikeStep).map { it.where() }}, " +
             "heart case ${heart.method.where()} at ${heart.at} (exit ${heart.exit}, trace v${heart.trace}, scratch v${heart.scratch}), " +
             "replies at ${(found.textReplies + found.quickReaction).map { it.where() }}, " +
-            "share links at ${(found.copyLinks + found.linkFetches).map { it.where() }}, comments at ${found.commentPosts.map { it.where() }}")
+            "share links at ${(found.copyLinks + found.linkFetches).map { it.where() }}, comments at ${found.commentPosts.map { it.where() }}, " +
+            "posts at ${(found.storyPosts + found.postShare).map { it.where() }}")
     }
 
     /** [method] starts with [hook], its answer in v0, a no going on to Instagram's own [first] and a yes returning. */
@@ -246,7 +265,9 @@ class BlockGhostActionsHookTest {
         const val ACTIVITY = "Landroid/app/Activity;"
         const val LOADER_MANAGER = "Landroidx/loader/app/LoaderManager;"
         const val SCHEDULE = "Lfixture/Loaders;->A00(Landroid/content/Context;${LOADER_MANAGER}Lfixture/Request;)I"
-        val HOOKS = listOf(GHOST_LIKE, GHOST_REPLY, GHOST_SHARE, GHOST_COMMENT)
+        val HOOKS = listOf(GHOST_LIKE, GHOST_REPLY, GHOST_SHARE, GHOST_COMMENT, GHOST_POST)
+        const val STORY_COMPOSER = "Lfixture/StoryComposer;"
+        const val PUBLISH = "Lfixture/PublishScreen;"
         const val TRACE = "Lfixture/Trace;"
         const val LIKER = "Lfixture/Liker;->like(Ljava/lang/Object;${REEL_ITEM}Ljava/lang/Object;)V"
         const val SEND = "Lfixture/Sender;->A15($SESSION$MEDIA$TARGET)V"
@@ -265,10 +286,42 @@ class BlockGhostActionsHookTest {
             fetcher: ClassDef = fetcher(),
             repository: ClassDef = repository(),
             viewModel: ClassDef = viewModel(),
+            storyComposer: ClassDef = storyComposer(),
+            publish: ClassDef = publishScreen(),
             extra: List<ClassDef> = emptyList(),
         ): List<ClassDef> =
-            listOf(step, story, storyStep(STORY_STEP), viewer, reaction(), composer, copy, fetcher, repository, viewModel) + extra +
-                ExtensionDex.classDef(GHOST_ACTIONS)
+            listOf(step, story, storyStep(STORY_STEP), viewer, reaction(), composer, copy, fetcher, repository, viewModel, storyComposer, publish) +
+                extra + ExtensionDex.classDef(GHOST_ACTIONS)
+
+        /**
+         * The story composer's buttons: Your story (GqT, unless not [story]) and Close friends (A0C,
+         * unless not [closeFriends]), each an instance `()V` logging sink and where the story goes,
+         * plus a static one, a merged one, one taking a parameter and one logging sink alone.
+         */
+        fun storyComposer(story: Boolean = true, closeFriends: Boolean = true, registers: Int = 3): ClassDef {
+            val logs = { where: String -> "const-string v0, \"$STORY_SINK\"\nconst-string v0, \"$where\"\nreturn-void" }
+            return classOf(STORY_COMPOSER, listOfNotNull(
+                method(STORY_COMPOSER, "GqT", emptyList(), "V", registers, PUBLIC, logs(STORY_SINK_STORY)).takeIf { story },
+                method(STORY_COMPOSER, "A0C", emptyList(), "V", registers, PUBLIC, logs(STORY_SINK_CLOSE_FRIENDS)).takeIf { closeFriends },
+                method(STORY_COMPOSER, "A0D", emptyList(), "V", 2, STATIC, logs(STORY_SINK_STORY)),
+                method(STORY_COMPOSER, "A0E", listOf("Ljava/lang/Object;"), "V", 3, PUBLIC, logs(STORY_SINK_STORY)),
+                method(STORY_COMPOSER, "A0F", emptyList(), "V", 3, PUBLIC, "const-string v0, \"$STORY_SINK\"\nreturn-void"),
+                method(STORY_COMPOSER, "A0G", emptyList(), "V", 3, PUBLIC,
+                    "iget v0, v2, $STORY_COMPOSER->\$t:I\nconst-string v0, \"$STORY_SINK\"\nconst-string v0, \"$STORY_SINK_STORY\"\nreturn-void"),
+            ))
+        }
+
+        /**
+         * The post and reel composer: its share flow, a static `(composer, String)V` loading the
+         * missing draft's message (an instance one with [flags]), plus the Share button's own step,
+         * loading another message.
+         */
+        fun publishScreen(flags: Int = STATIC): ClassDef = classOf(PUBLISH, listOf(
+            method(PUBLISH, "A0X", listOf(PUBLISH, "Ljava/lang/String;"), "V", 4, flags,
+                "const-string v0, \"$POST_SHARE_FLOW\"\nreturn-void"),
+            method(PUBLISH, "A0V", listOf(PUBLISH, "Ljava/lang/String;"), "V", 4, STATIC,
+                "const-string v0, \"Draft unavailable in handleShareButtonClick\"\nreturn-void"),
+        ))
 
         /**
          * Copy link's steps: a static one handing the link on to each of [fetchers] (0O0e.A01), an

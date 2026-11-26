@@ -1585,13 +1585,14 @@ All of them. Tap to leave some out, and Ghost mode leaves those as you set them.
 %1$s. The others stay as you set them.	%1$s. Gli altri restano come li hai impostati.
 Switches Ghost mode turns	Interruttori che la modalità Ghost cambia
 Ghost mode needs at least one switch to turn.	La modalità Ghost richiede almeno un interruttore.
-# context: Ghost mode: the switch under its rows in Ads and privacy that holds likes, story replies, comments and share links back while Ghost mode is on (#876). A like is the heart under a post or a story, a share link is what Copy link and sharing a post out make; the four short ones are toasts shown when a tap is held back
-Block likes and replies in Ghost mode	Blocca mi piace e risposte in modalità Ghost
-While Ghost mode is on, liking a post or story, replying to a story, posting a comment and copying or sharing a link do nothing, and a message says why. Nothing is sent.	Mentre la modalità Ghost è attiva, mettere mi piace a un post o a una storia, rispondere a una storia, pubblicare un commento e copiare o condividere un link non fa nulla, e un messaggio spiega perché. Non viene inviato niente.
+# context: Ghost mode: the switch under its rows in Ads and privacy that holds likes, story replies, comments, share links and new stories and posts back while Ghost mode is on (#876). A like is the heart under a post, a reel, a story or a comment, a share link is what Copy link and sharing a post out make, and posting is sharing a new story, post or reel from Instagram's camera; the five short ones are toasts shown when a tap is held back
+Block likes, replies and posts in Ghost mode	Blocca mi piace, risposte e post in modalità Ghost
+While Ghost mode is on, liking, commenting, replying to a story, posting a story or post and copying or sharing a link do nothing, and a message says why. A double tap on a reel still likes it.	Mentre la modalità Ghost è attiva, mettere mi piace, commentare, rispondere a una storia, pubblicare una storia o un post e copiare o condividere un link non fa nulla, e un messaggio spiega perché. Un doppio tocco su un reel mette comunque mi piace.
 Likes are off in Ghost mode.	I mi piace sono disattivati in modalità Ghost.
 Replies are off in Ghost mode.	Le risposte sono disattivate in modalità Ghost.
 Comments are off in Ghost mode.	I commenti sono disattivati in modalità Ghost.
 Share links are off in Ghost mode.	I link sono disattivati in modalità Ghost.
+Posting is off in Ghost mode.	Pubblicare è disattivato in modalità Ghost.
 # context: Ghost mode: turning it on or off with a long press on a tab (#255). %1$s is a tab's name
 Turn Ghost mode on or off with a tab long press	Attiva o disattiva la modalità Ghost con una pressione lunga su una scheda
 Tab long presses keep Instagram's own action. Choose one to turn Ghost mode on or off instead.	Le pressioni lunghe sulle schede mantengono l'azione di Instagram. Scegline una per attivare o disattivare invece la modalità Ghost.

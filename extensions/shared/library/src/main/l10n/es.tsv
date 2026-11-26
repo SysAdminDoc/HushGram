@@ -1585,13 +1585,14 @@ All of them. Tap to leave some out, and Ghost mode leaves those as you set them.
 %1$s. The others stay as you set them.	%1$s. Los demás se quedan como los pusiste.
 Switches Ghost mode turns	Interruptores que cambia el modo fantasma
 Ghost mode needs at least one switch to turn.	El modo fantasma necesita al menos un interruptor.
-# context: Ghost mode: the switch under its rows in Ads and privacy that holds likes, story replies, comments and share links back while Ghost mode is on (#876). A like is the heart under a post or a story, a share link is what Copy link and sharing a post out make; the four short ones are toasts shown when a tap is held back
-Block likes and replies in Ghost mode	Bloquear me gusta y respuestas en modo fantasma
-While Ghost mode is on, liking a post or story, replying to a story, posting a comment and copying or sharing a link do nothing, and a message says why. Nothing is sent.	Mientras el modo fantasma está activado, dar me gusta a una publicación o historia, responder a una historia, publicar un comentario y copiar o compartir un enlace no hace nada, y un mensaje explica por qué. No se envía nada.
+# context: Ghost mode: the switch under its rows in Ads and privacy that holds likes, story replies, comments, share links and new stories and posts back while Ghost mode is on (#876). A like is the heart under a post, a reel, a story or a comment, a share link is what Copy link and sharing a post out make, and posting is sharing a new story, post or reel from Instagram's camera; the five short ones are toasts shown when a tap is held back
+Block likes, replies and posts in Ghost mode	Bloquear me gusta, respuestas y publicaciones en modo fantasma
+While Ghost mode is on, liking, commenting, replying to a story, posting a story or post and copying or sharing a link do nothing, and a message says why. A double tap on a reel still likes it.	Mientras el modo fantasma está activado, dar me gusta, comentar, responder a una historia, publicar una historia o una publicación y copiar o compartir un enlace no hace nada, y un mensaje explica por qué. Tocar dos veces un reel sigue dándole me gusta.
 Likes are off in Ghost mode.	Me gusta desactivados en modo fantasma.
 Replies are off in Ghost mode.	Respuestas desactivadas en modo fantasma.
 Comments are off in Ghost mode.	Comentarios desactivados en modo fantasma.
 Share links are off in Ghost mode.	Enlaces desactivados en modo fantasma.
+Posting is off in Ghost mode.	Publicar desactivado en modo fantasma.
 # context: Ghost mode: turning it on or off with a long press on a tab (#255). %1$s is a tab's name
 Turn Ghost mode on or off with a tab long press	Activar o desactivar el modo fantasma al mantener pulsada una pestaña
 Tab long presses keep Instagram's own action. Choose one to turn Ghost mode on or off instead.	Mantener pulsadas las pestañas conserva la acción de Instagram. Elige una para activar o desactivar el modo fantasma en su lugar.

@@ -40,9 +40,10 @@ final class PrivacyCategory {
             page.ghostTab = ghostTabRow(context);
             privacy.add(page.ghostTab);
             if (build.contains(PatchFamily.GHOST_ACTIONS)) {
-                privacy.add(toggle(context, Settings.BLOCK_GHOST_ACTIONS, L10n.t("Block likes and replies in Ghost mode"),
-                        L10n.t("While Ghost mode is on, liking a post or story, replying to a story, posting a comment "
-                                + "and copying or sharing a link do nothing, and a message says why. Nothing is sent.")));
+                privacy.add(toggle(context, Settings.BLOCK_GHOST_ACTIONS, L10n.t("Block likes, replies and posts in Ghost mode"),
+                        L10n.t("While Ghost mode is on, liking, commenting, replying to a story, posting a story or post "
+                                + "and copying or sharing a link do nothing, and a message says why. "
+                                + "A double tap on a reel still likes it.")));
             }
         }
         if (build.contains(PatchFamily.HIDE_ADS)) {
