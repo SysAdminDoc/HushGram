@@ -44,8 +44,15 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * HushGram settings pause the video under them ({@link SettingsPause}), and the button turns into
  * Play, which plays it again. The players come from the "Keep playing in the background" start
  * hook, which also tells {@link #started} when Instagram starts a video itself, and the button
- * turns back into Pause then. Every hook runs on the main thread, and none of them ever throws into
- * Instagram.
+ * turns back into Pause then.
+ *
+ * <p>Instagram's own Previous and Next, which go a reel back or on to the next one, sit behind the
+ * same server flag: the window's content, ClipsPiPFragment, reads it in its onCreate and moves between
+ * reels and listens for those buttons only when it says yes. The patch hands {@link #skipButtons}
+ * that answer, and with Previous and next on, the window moves between reels and both builders set
+ * Instagram's buttons. The window plays video reels only, so they go between those.
+ *
+ * <p>Every hook runs on the main thread, and none of them ever throws into Instagram.
  */
 public final class ReelsPipButtons {
     static final String ACTION_PAUSE = "app.hushgram.extension.instagram.REELS_PIP_PAUSE";
@@ -101,7 +108,7 @@ public final class ReelsPipButtons {
                 instagramButtons = theirsWanted;
                 screen = activity != null ? new WeakReference<>(activity) : null;
             }
-            return theirsWanted || playButtonOn();
+            return theirsWanted || playButtonOn() || skipButtonsOn();
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.BACKGROUND_PLAY, HOOK, t);
             return theirsWanted;
@@ -109,17 +116,36 @@ public final class ReelsPipButtons {
     }
 
     /**
-     * Right before the settings builder sets the window's buttons, with the list Instagram made.
-     * Answers the list to set: Instagram's buttons when its flag said yes, and Pause or Play.
+     * In ClipsPiPFragment's onCreate, with Instagram's answer (non-zero for yes) to whether the window
+     * moves between reels with its Previous and Next. Yes whenever Previous and next is on too.
      */
-    public static List<?> actions(List<?> stock) {
+    public static boolean skipButtons(int stock) {
+        boolean flagged = stock != 0;
         try {
             HookStatus.invoked(FamilyNames.BACKGROUND_PLAY);
+            return flagged || skipButtonsOn();
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.BACKGROUND_PLAY, HOOK, t);
+            return flagged;
+        }
+    }
+
+    /**
+     * Right before the settings builder sets the window's buttons, with the list Instagram made.
+     * Answers the list to set: Instagram's buttons when its flag said yes or Previous and next is on,
+     * and Pause or Play.
+     */
+    public static List<?> actions(List<?> stock) {
+        boolean keepTheirs;
+        synchronized (LOCK) {
+            keepTheirs = instagramButtons;
+        }
+        try {
+            HookStatus.invoked(FamilyNames.BACKGROUND_PLAY);
+            keepTheirs = keepTheirs || skipButtonsOn();
             Activity activity;
-            boolean keepTheirs;
             synchronized (LOCK) {
                 activity = screen != null ? screen.get() : null;
-                keepTheirs = instagramButtons;
             }
             if (activity == null || !playButtonOn()) return keepTheirs ? stock : new ArrayList<RemoteAction>();
             List<RemoteAction> kept = new ArrayList<>();
@@ -138,9 +164,7 @@ public final class ReelsPipButtons {
             return buttons(activity);
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.BACKGROUND_PLAY, HOOK, t);
-            synchronized (LOCK) {
-                return instagramButtons ? stock : new ArrayList<RemoteAction>();
-            }
+            return keepTheirs ? stock : new ArrayList<RemoteAction>();
         }
     }
 
@@ -286,6 +310,10 @@ public final class ReelsPipButtons {
 
     static boolean playButtonOn() {
         return Utils.settingsReady() && !HushgramPause.isPaused() && Settings.REELS_PIP_PLAY_BUTTON.get();
+    }
+
+    static boolean skipButtonsOn() {
+        return Utils.settingsReady() && !HushgramPause.isPaused() && Settings.REELS_PIP_SKIP_BUTTONS.get();
     }
 
     /** Whether the window's button shows Play. For tests. */

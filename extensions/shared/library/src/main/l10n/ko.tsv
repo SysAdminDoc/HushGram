@@ -2330,6 +2330,9 @@ Leaving Instagram while a reel plays shrinks it into a small window over your ot
 # context: a switch on the Playback page under Picture in picture for reels; the reels window is Instagram's small picture in picture window for reels, and the button is Android's own button in that window
 Pause button in the reels window	릴스 창의 일시정지 버튼
 Instagram's small window for reels gets a button to pause the reel and play it again.	Instagram의 작은 릴스 창에 릴스를 일시정지하고 다시 재생하는 버튼이 생깁니다.
+# context: a switch on the Playback page under Pause button in the reels window; the buttons are Instagram's own Previous and Next buttons in its small picture in picture window for reels
+Previous and next in the reels window	릴스 창의 이전 및 다음
+Instagram's small window for reels gets its own buttons to go back a reel or on to the next one.	Instagram의 작은 릴스 창에 이전 릴스로 돌아가거나 다음 릴스로 넘어가는 Instagram 자체 버튼이 생깁니다.
 # context: a switch on the Playback page under Picture in picture for reels; Android's own name for picture in picture, and it keeps moving on to the next stories inside the small window
 Picture in picture for stories	스토리 PIP 모드
 Leaving Instagram while a story plays shrinks it into a small window over your other apps, where it keeps going through the stories.	스토리가 재생되는 중에 Instagram을 나가면 다른 앱 위의 작은 창으로 줄어들고, 그 창에서 스토리가 계속 넘어갑니다.

@@ -2318,6 +2318,9 @@ Leaving Instagram while a reel plays shrinks it into a small window over your ot
 # context: a switch on the Playback page under Picture in picture for reels; the reels window is Instagram's small picture in picture window for reels, and the button is Android's own button in that window
 Pause button in the reels window	ปุ่มหยุดชั่วคราวในหน้าต่างรีลส์
 Instagram's small window for reels gets a button to pause the reel and play it again.	หน้าต่างขนาดเล็กของ Instagram สำหรับรีลส์จะมีปุ่มสำหรับหยุดรีลส์ชั่วคราวและเล่นต่อ
+# context: a switch on the Playback page under Pause button in the reels window; the buttons are Instagram's own Previous and Next buttons in its small picture in picture window for reels
+Previous and next in the reels window	ก่อนหน้าและถัดไปในหน้าต่างรีลส์
+Instagram's small window for reels gets its own buttons to go back a reel or on to the next one.	หน้าต่างขนาดเล็กของ Instagram สำหรับรีลส์จะมีปุ่มของ Instagram เองสำหรับย้อนกลับไปรีลส์ก่อนหน้าหรือไปยังรีลส์ถัดไป
 # context: a switch on the Playback page under Picture in picture for reels; Android's own name for picture in picture, and it keeps moving on to the next stories inside the small window
 Picture in picture for stories	การแสดงภาพซ้อนภาพสำหรับสตอรี่
 Leaving Instagram while a story plays shrinks it into a small window over your other apps, where it keeps going through the stories.	การออกจาก Instagram ขณะที่สตอรี่กำลังเล่นจะย่อขนาดเป็นหน้าต่างขนาดเล็กทับบนแอปอื่นๆ ของคุณ และเล่นสตอรี่ต่อไปเรื่อยๆ ในหน้าต่างนั้น

@@ -12,12 +12,15 @@ import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.WideLiteralInstruction
+import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -27,7 +30,8 @@ import org.junit.Test
  * Buttons for the reels picture in picture window (#873): in every fixture build, ClipsViewerPipUtil's
  * settings builder asks the extension at its top with its activity and its own answer for the
  * buttons, uses the extension's answer instead, and hands the extension its list right before it's
- * set. The rest of the builder is as it came.
+ * set. The rest of the builder is as it came. The window's fragment hands the extension its flag's
+ * answer for Previous and Next before keeping it, and the rest of its onCreate is as it came.
  */
 class ReelsPipButtonsTest {
     @Test
@@ -35,7 +39,7 @@ class ReelsPipButtonsTest {
         val declared = ExtensionDex.classDef(REELS_PIP_BUTTONS).methods
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "$REELS_PIP_BUTTONS->${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
-        for (hook in listOf(PIP_WITH_ACTIONS, PIP_ACTIONS)) {
+        for (hook in listOf(PIP_WITH_ACTIONS, PIP_ACTIONS, PIP_SKIP_BUTTONS)) {
             assertTrue("ReelsPipButtons declares no $hook: $declared", hook in declared)
         }
     }
@@ -82,6 +86,59 @@ class ReelsPipButtonsTest {
             checked++
         }
         assertEquals("every build is read", Fixtures.BUILDS, checked)
+    }
+
+    @Test
+    fun eachBuildHandsTheExtensionTheWindowsPreviousAndNext() {
+        var checked = 0
+        for (bundle in bundles() + Fixtures.otherBuilds()) {
+            val classes = classesReadingTheSkipFlag(bundle)
+            val context = PatchContexts.of(FixtureDex.withStringPools(bundle, classes) + ExtensionDex.classDef(REELS_PIP_BUTTONS))
+            val sites = context.findReelsPipSkips("test")
+            val stock = sites.create.implementation!!.instructions.toList()
+            val label = bundle.name
+            assertEquals("$label: the flag is read just before", PIP_SKIP_FLAG, (stock[sites.flagRead - 2] as WideLiteralInstruction).wideLiteral)
+            val answer = (stock[sites.flagRead] as OneRegisterInstruction).registerA
+            val store = stock[sites.flagRead + 1]
+            assertEquals("$label: the fragment keeps the answer", Opcode.IPUT_BOOLEAN, store.opcode)
+            assertTrue(
+                "$label: and onCreate branches on what it kept",
+                stock.any { it.opcode == Opcode.IGET_BOOLEAN && it.reference() == store.reference() },
+            )
+
+            context.addReelsPipSkips("test", sites)
+
+            val code = context.mutable(sites.create).implementation!!.instructions.toList()
+            val hook = sites.flagRead + 1
+            assertEquals("$label: the answer goes to the extension", PIP_SKIP_BUTTONS, code[hook].reference())
+            assertEquals("$label: as a range of one", Opcode.INVOKE_STATIC_RANGE, code[hook].opcode)
+            assertEquals("$label: the answer's register", answer, (code[hook] as RegisterRangeInstruction).startRegister)
+            assertEquals("$label: alone", 1, (code[hook] as RegisterRangeInstruction).registerCount)
+            assertEquals("$label: its answer replaces Instagram's", Opcode.MOVE_RESULT, code[hook + 1].opcode)
+            assertEquals("$label: in the same register", answer, (code[hook + 1] as OneRegisterInstruction).registerA)
+            assertEquals("$label: and the fragment keeps it", store.reference(), code[hook + 2].reference())
+            assertEquals("$label: from that register", answer, (code[hook + 2] as TwoRegisterInstruction).registerA)
+
+            val rest = code.take(hook) + code.drop(hook + 2)
+            assertEquals("$label: the rest is stock", stock.kinds(), rest.kinds())
+            checked++
+        }
+        assertEquals("every build is read", Fixtures.BUILDS, checked)
+    }
+
+    /** Every class in [bundle] with a method reading the fragment's flag, as the finder slices the app. */
+    private fun classesReadingTheSkipFlag(bundle: File): List<ClassDef> {
+        val found = mutableListOf<ClassDef>()
+        FixtureDex.forEach(bundle) { dex ->
+            dex.classes.filterTo(found) { classDef ->
+                classDef.methods.any { method ->
+                    method.implementation?.instructions?.any {
+                        it.opcode == Opcode.CONST_WIDE && (it as WideLiteralInstruction).wideLiteral == PIP_SKIP_FLAG
+                    } == true
+                }
+            }
+        }
+        return found.map { ImmutableClassDef.of(it) }
     }
 
     private fun bundles(): List<File> {

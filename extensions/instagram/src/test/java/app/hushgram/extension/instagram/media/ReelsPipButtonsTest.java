@@ -41,7 +41,7 @@ import app.hushgram.extension.shared.settings.PauseForTests;
 /**
  * Pause and Play in Instagram's picture in picture window for reels (#873): the button joins the
  * list Instagram sets, pauses the video in the window and plays it again, and a video Instagram
- * starts itself turns it back into Pause.
+ * starts itself turns it back into Pause. Previous and next turns on Instagram's own buttons there.
  */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = {28, 37})
@@ -75,6 +75,7 @@ public class ReelsPipButtonsTest {
         ReelsPipButtons.resetForTests();
         SettingsPauseForTests.forget();
         Settings.REELS_PIP_PLAY_BUTTON.resetToDefault();
+        Settings.REELS_PIP_SKIP_BUTTONS.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -194,6 +195,45 @@ public class ReelsPipButtonsTest {
         assertTrue(ReelsPipButtons.actions(theirs).isEmpty());
         String report = String.join("\n", HookStatus.report());
         assertTrue(report, report.contains(ReelsPipButtons.HOOK));
+    }
+
+    /** Previous and next starts off: the window moves between reels only where Instagram's flag says so. */
+    @Test
+    public void previousAndNextStartOff() {
+        assertFalse(ReelsPipButtons.skipButtons(0));
+        assertTrue(ReelsPipButtons.skipButtons(1));
+    }
+
+    /** On, the window moves between reels and keeps Instagram's Previous and Next where its flag says no. */
+    @Test
+    public void previousAndNextComeWhereInstagramsFlagSaysNo() {
+        Settings.REELS_PIP_PLAY_BUTTON.resetToDefault();
+        Settings.REELS_PIP_SKIP_BUTTONS.save(true);
+        assertTrue("the window moves between reels", ReelsPipButtons.skipButtons(0));
+        assertTrue("the builder sets the buttons", ReelsPipButtons.withActions(screen, 0));
+        List<RemoteAction> theirs = Arrays.asList(previous, forward);
+        assertSame(theirs, ReelsPipButtons.actions(theirs));
+    }
+
+    /** With Pause on too, it goes between Instagram's Previous and Next. */
+    @Test
+    public void pauseGoesBetweenPreviousAndNext() {
+        Settings.REELS_PIP_SKIP_BUTTONS.save(true);
+        assertTrue(ReelsPipButtons.withActions(screen, 0));
+        assertEquals(Arrays.asList("Previous", "Pause", "Next"), titles(ReelsPipButtons.actions(Arrays.asList(previous, forward))));
+    }
+
+    /** Paused, or before HushGram's settings are ready, Instagram's flag decides. */
+    @Test
+    public void pausedLeavesPreviousAndNextToInstagram() {
+        Settings.REELS_PIP_SKIP_BUTTONS.save(true);
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertFalse(ReelsPipButtons.skipButtons(0));
+        assertTrue(ReelsPipButtons.skipButtons(1));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        SettingsContextRule.withoutContext(() -> assertFalse(ReelsPipButtons.skipButtons(0)));
     }
 
     private static void tap(RemoteAction button) throws PendingIntent.CanceledException {

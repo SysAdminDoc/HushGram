@@ -5272,6 +5272,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_reels_pip_play_button", FALSE);
 
     /**
+     * Gives Instagram's picture in picture window for reels Instagram's own Previous and Next buttons,
+     * which go a reel back or on to the next one (#873,
+     * {@link app.hushgram.extension.instagram.media.ReelsPipButtons}). Read each time Instagram opens
+     * the window. Off to start.
+     */
+    public static final BooleanSetting REELS_PIP_SKIP_BUTTONS =
+            new BooleanSetting("hushgram_reels_pip_skip_buttons", FALSE);
+
+    /**
      * Leaving Instagram while a story plays shrinks it into a picture in picture window that keeps
      * going through the stories (#572, {@link app.hushgram.extension.instagram.media.StoriesPip}).
      * Read as you leave. Off to start.

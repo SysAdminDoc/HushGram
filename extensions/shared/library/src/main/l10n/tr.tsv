@@ -2331,6 +2331,9 @@ Leaving Instagram while a reel plays shrinks it into a small window over your ot
 # context: a switch on the Playback page under Picture in picture for reels; the reels window is Instagram's small picture in picture window for reels, and the button is Android's own button in that window
 Pause button in the reels window	Reels penceresinde duraklatma düğmesi
 Instagram's small window for reels gets a button to pause the reel and play it again.	Instagram'ın reels için küçük penceresine, reel'i duraklatıp yeniden oynatan bir düğme eklenir.
+# context: a switch on the Playback page under Pause button in the reels window; the buttons are Instagram's own Previous and Next buttons in its small picture in picture window for reels
+Previous and next in the reels window	Reels penceresinde önceki ve sonraki
+Instagram's small window for reels gets its own buttons to go back a reel or on to the next one.	Instagram'ın reels için küçük penceresine, önceki reel'e dönmek ya da sonrakine geçmek için kendi düğmeleri eklenir.
 # context: a switch on the Playback page under Picture in picture for reels; Android's own name for picture in picture, and it keeps moving on to the next stories inside the small window
 Picture in picture for stories	Hikayeler için pencere içinde pencere
 Leaving Instagram while a story plays shrinks it into a small window over your other apps, where it keeps going through the stories.	Bir hikaye oynarken Instagram'dan çıkınca, diğer uygulamalarının üstünde küçük bir pencereye dönüşür ve orada hikayeler devam eder.

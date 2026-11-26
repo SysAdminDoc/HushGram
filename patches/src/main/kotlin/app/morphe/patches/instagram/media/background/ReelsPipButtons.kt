@@ -9,15 +9,21 @@ import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.instagram.misc.extension.classesLoading
 import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.jumpTargets
+import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.parameterRegister
 import app.morphe.patches.instagram.misc.extension.requireLocals
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.WideLiteralInstruction
+import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 
 internal const val REELS_PIP_BUTTONS = "$EXTENSION_PACKAGE/media/ReelsPipButtons;"
@@ -30,6 +36,19 @@ internal const val PIP_ACTIONS = "$REELS_PIP_BUTTONS->actions(Ljava/util/List;)L
 
 /** The tag ClipsViewerPipUtil logs a failed picture in picture call under, which its class loads. */
 internal const val PIP_UTIL_TAG = "ClipsViewerPipUtil"
+
+/** Asked in the window fragment's onCreate with Instagram's answer for its Previous and Next (#873). */
+internal const val PIP_SKIP_BUTTONS = "$REELS_PIP_BUTTONS->skipButtons(I)Z"
+
+/**
+ * The server flag ClipsPiPFragment's onCreate reads (0c0U on 457's 386314341) and keeps in a field
+ * that turns on the window's moving between reels and the receiver for its Previous and Next. The
+ * settings builder's own answer for setting those buttons is read from it too (0AMH.A05 there).
+ */
+internal const val PIP_SKIP_FLAG = 0x810a3700093a83L
+
+/** The tag ClipsPiPFragment goes into the window under, which its onCreate loads. */
+internal const val PIP_FRAGMENT_TAG = "clips_pip_fragment"
 
 private const val PIP_ACTIVITY = "Landroid/app/Activity;"
 private const val PIP_PARAMS = "Landroid/app/PictureInPictureParams;"
@@ -93,6 +112,63 @@ internal fun BytecodePatchContext.addReelsPipButtons(patch: String, sites: Reels
         """,
     )
 }
+
+/**
+ * Where the window's Previous and Next are turned on: ClipsPiPFragment's onCreate, which reads
+ * [PIP_SKIP_FLAG] and keeps the answer in a field of its own right away. [flagRead] is the index of
+ * the move-result taking the flag's answer.
+ */
+internal class ReelsPipSkipSites(val create: Method, val flagRead: Int)
+
+/**
+ * Finds the fragment's onCreate before anything changes: the one onCreate(Bundle) of a class loading
+ * [PIP_SKIP_FLAG] that reads it once and loads [PIP_FRAGMENT_TAG], where the flag's const-wide is
+ * followed by the static (..., long) boolean read, its move-result and an iput-boolean of that result
+ * into the fragment's own field. Fails naming [patch] when it isn't found once, when the code there
+ * isn't that shape, or when something can jump onto the iput-boolean.
+ */
+internal fun BytecodePatchContext.findReelsPipSkips(patch: String): ReelsPipSkipSites {
+    val creates = classesLoading(PIP_SKIP_FLAG).flatMap { it.methods }.filter { method ->
+        method.name == "onCreate" && method.returnType == "V" &&
+            method.parameterTypes.map(Any::toString) == listOf("Landroid/os/Bundle;") &&
+            method.pipCode().count { it.loadsSkipFlag() } == 1 && loadsString(method, PIP_FRAGMENT_TAG)
+    }
+    val create = creates.singleOrNull()
+        ?: throw PatchException("$patch: expected one picture in picture fragment onCreate reading ${PIP_SKIP_FLAG.toString(16)}, found ${creates.size}")
+    val code = create.pipCode()
+    val load = code.indexOfFirst { it.loadsSkipFlag() }
+    val read = (code.getOrNull(load + 1) as? ReferenceInstruction)?.reference as? MethodReference
+    val result = code.getOrNull(load + 2)
+    val store = code.getOrNull(load + 3)
+    val field = (store as? ReferenceInstruction)?.reference as? FieldReference
+    val shaped = code.getOrNull(load + 1)?.opcode == Opcode.INVOKE_STATIC && read?.returnType == "Z" &&
+        read?.parameterTypes?.lastOrNull()?.toString() == "J" && result?.opcode == Opcode.MOVE_RESULT &&
+        store?.opcode == Opcode.IPUT_BOOLEAN && field?.definingClass == create.definingClass &&
+        (store as TwoRegisterInstruction).registerA == (result as OneRegisterInstruction).registerA
+    if (!shaped) throw PatchException("$patch: the fragment's onCreate doesn't keep the flag's answer right after reading it")
+    if (load + 3 in create.jumpTargets()) throw PatchException("$patch: the fragment's onCreate can jump past the flag's answer")
+    return ReelsPipSkipSites(create, load + 2)
+}
+
+/**
+ * Hands the flag's answer in the fragment's onCreate to [PIP_SKIP_BUTTONS] before the fragment keeps
+ * it, and keeps the extension's answer instead, in the same register.
+ */
+internal fun BytecodePatchContext.addReelsPipSkips(patch: String, sites: ReelsPipSkipSites) {
+    val create = mutable(sites.create)
+    val answer = create.getInstruction<OneRegisterInstruction>(sites.flagRead).registerA
+    if (answer > 255) throw PatchException("$patch: the fragment keeps the flag's answer in v$answer")
+    create.addInstructions(
+        sites.flagRead + 1,
+        """
+            invoke-static/range { v$answer .. v$answer }, $PIP_SKIP_BUTTONS
+            move-result v$answer
+        """,
+    )
+}
+
+private fun Instruction.loadsSkipFlag(): Boolean =
+    opcode == Opcode.CONST_WIDE && (this as WideLiteralInstruction).wideLiteral == PIP_SKIP_FLAG
 
 private fun Method.pipCode(): List<Instruction> = implementation?.instructions?.toList() ?: emptyList()
 
