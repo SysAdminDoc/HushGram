@@ -140,6 +140,21 @@ final class SettingsHeader extends Preference {
         return column;
     }
 
+    /**
+     * Sets the logo and the name again each time the list draws this row. After a change the list
+     * draws it into the view it drew before, without onCreateView, so a name or logo set only there
+     * stayed as it was until the page opened again.
+     */
+    @Override
+    protected void onBindView(View view) {
+        super.onBindView(view);
+        Context context = getContext();
+        View icon = view.findViewWithTag(ICON);
+        if (icon instanceof ImageView) ((ImageView) icon).setImageDrawable(logo(context, ScreenColors.current()));
+        View name = view.findViewWithTag(NAME);
+        if (name instanceof TextView) ((TextView) name).setText(name());
+    }
+
     /** Draws the header again with the name and logo saved now. */
     void refresh() {
         notifyChanged();

@@ -188,6 +188,16 @@ public class SettingsHeaderLookTest {
         throw new AssertionError("the header isn't on the page");
     }
 
+    /** The page's header row drawn again into [drawn], the view the list hands back after a change. */
+    private View pageHeaderAgain(View drawn) {
+        Preference header = page.getPreferenceScreen().findPreference(SettingsHeader.KEY);
+        ListAdapter adapter = page.getPreferenceScreen().getRootAdapter();
+        for (int i = 0; i < adapter.getCount(); i++) {
+            if (adapter.getItem(i) == header) return adapter.getView(i, drawn, new FrameLayout(controller.get()));
+        }
+        throw new AssertionError("the header isn't on the page");
+    }
+
     @Test public void itStartsOnHushGramsLogoAndName() {
         assertEquals("", Settings.SETTINGS_HEADER_NAME.defaultValue);
         assertEquals(SettingsHeader.Logo.HUSHGRAM, Settings.SETTINGS_HEADER_LOGO.defaultValue);
@@ -386,5 +396,40 @@ public class SettingsHeaderLookTest {
         assertEquals("", Settings.SETTINGS_HEADER_NAME.savedValue());
         assertEquals("HushGram shows at the top of this page.", row.getSummary().toString());
         assertEquals("HushGram", nameIn(pageHeader()));
+    }
+
+    /**
+     * A header already on screen changes with the rows: after a change the list draws the header
+     * again into the view it drew before, so the name and the logo can't be set only when it's made.
+     */
+    @Test public void aHeaderAlreadyDrawnShowsTheNewNameAndLogo() throws Exception {
+        open();
+        View shown = pageHeader();
+        assertEquals("HushGram", nameIn(shown));
+
+        HushgramPreferenceFragment.SettingsNameRow row =
+                (HushgramPreferenceFragment.SettingsNameRow) page.findPreference(Settings.SETTINGS_HEADER_NAME.key);
+        row.showDialog(null);
+        row.getEditText().setText("  Lane Gram ");
+        ((AlertDialog) row.getDialog()).getButton(AlertDialog.BUTTON_POSITIVE).performClick();
+        SettingsHeader.keepPicture(app(), new ByteArrayInputStream(picture(100, 100, Color.RED)));
+        page.headerChanged();
+        finish();
+
+        View again = pageHeaderAgain(shown);
+        assertTrue("the list's view is drawn again, not made anew", again == shown);
+        assertEquals("Lane Gram", nameIn(again));
+        Drawable drawn = logoIn(again);
+        assertTrue(String.valueOf(drawn), drawn instanceof BitmapDrawable);
+        assertEquals(Color.RED, ((BitmapDrawable) drawn).getBitmap().getPixel(10, 10));
+
+        Preference reset = page.findPreference(HushgramPreferenceFragment.RESET_SETTINGS_HEADER_KEY);
+        reset.getOnPreferenceClickListener().onPreferenceClick(reset);
+        finish();
+        again = pageHeaderAgain(shown);
+        assertEquals("HushGram", nameIn(again));
+        drawn = logoIn(again);
+        assertFalse("HushGram's logo again, not the picture",
+                drawn instanceof BitmapDrawable && ((BitmapDrawable) drawn).getBitmap().getPixel(10, 10) == Color.RED);
     }
 }
