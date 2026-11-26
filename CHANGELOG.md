@@ -6,12 +6,12 @@ Every HushGram release, newest first.
 
 ### Features
 
-* `Page dots on a pill` shows the page you're on in your accent color when `Accent color` is on, Material You included. `Pill look` has a new `Dots only` choice, too. It drops the pill and keeps the dots, each on a soft shadow so it still shows on a bright photo. Asked for in #187.
+* `Page dots on a pill` shows the page you're on in your accent color when `Accent color` is on, Material You included. `Pill look` gets `Dots only`, which drops the pill and keeps the dots on a soft shadow. Asked for in #187.
 * `Hide Meta AI in the share sheet` now also takes Meta AI out of the people you can send to, where some accounts see it as Muse, and out of the share sheet's search. Asked for in #879.
 * `Let Instagram close after account checks` is new under Battery. Instagram never answers your phone's account checks, so Android keeps it running up to 15 minutes, even swiped away. This answers at once. Starts off. Reported in #341.
 * `Keep HDR on video uploads` is new under Playback. Instagram makes HDR videos SDR on some phones when it encodes them for upload. This keeps them HLG HDR on Android 13 and up. Experimental. Starts off. Asked for in #532.
 * `Tint color` is new under Tab bar. The glass can take Instagram's colors, light, dark, AMOLED black, your wallpaper's Material You accent or a color you type, and the preview above the sliders shows each pick. Asked for in #875.
-* `Select all in Your activity` is a new patch under Profiles. On a grid in Your activity, like your posts, reels or likes, tap Select and tick one, and a Select all shows beside Select. It ticks the rest one at a time, scrolling down as it goes, and stops if Instagram's own count doesn't go up with each tick. Nothing is deleted or unliked until you press Delete or Unlike yourself. Starts off. Asked for in #762.
+* `Select all in Your activity` is new under Profiles. On a Your activity grid, tap Select and tick one, and Select all ticks the rest as it scrolls. Nothing is removed until you press Delete or Unlike. Starts off. Asked for in #762.
 * `Keep Search in the pill` is new under Tab bar. With `Liquid glass look` on, Search stays in the pill with the other tabs, and scrolling shrinks the pill to whichever tab you're on, Search included. Starts off. Asked for in #875.
 * `Date saves by when they were posted` is new under Downloads. Saved photos and videos get their post's time, so your gallery sorts them by when they were posted. Starts off. Asked for in #792.
 * `Keep your place in feed videos` is new under Playback. A feed video you scroll away from picks up where you left it when you scroll back, until you close Instagram. Reels in the Reels tab start over. Starts off. Asked for in #874.
