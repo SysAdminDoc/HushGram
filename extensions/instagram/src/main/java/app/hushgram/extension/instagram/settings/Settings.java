@@ -2318,6 +2318,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_glass_tab_bar_keep_size", FALSE, true, parent(GLASS_TAB_BAR_LIQUID));
 
     /**
+     * Under {@link #GLASS_TAB_BAR_LIQUID}: Search stays in the pill with the other tabs, where Instagram put it,
+     * rather than in a glass circle of its own beside the pill (#875). The compact row then shrinks to whichever
+     * tab you're on, Search too. Read as the bar is built, so a change asks for a restart. Off to start.
+     */
+    public static final BooleanSetting GLASS_TAB_BAR_SEARCH_IN_PILL =
+            new BooleanSetting("hushgram_glass_tab_bar_search_in_pill", FALSE, true, parent(GLASS_TAB_BAR_LIQUID));
+
+    /**
      * Under {@link #GLASS_TAB_BAR_LIQUID}: a finger held on the bubble, or sliding it across the tabs, swells it
      * and makes its lens bend what's behind it harder, the way glass does under a fingertip (#705). It eases back
      * once the finger lifts. The lens needs Blur behind the tab bar and Android 13 or newer, and without them the

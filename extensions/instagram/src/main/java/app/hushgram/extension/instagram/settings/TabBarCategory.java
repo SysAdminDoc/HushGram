@@ -171,6 +171,9 @@ final class TabBarCategory {
                                 + "the bubble swells and bends what's behind it harder, like glass under a fingertip. It "
                                 + "eases back when you let go. The bend needs Blur behind the tab bar and Android 13 or "
                                 + "newer. Restart Instagram after changing it."))));
+                glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR_SEARCH_IN_PILL, L10n.t("Keep Search in the pill"),
+                        L10n.t("With Liquid glass look on, Search stays in the pill with the other tabs instead of a "
+                                + "glass circle of its own. Restart Instagram after changing it.")));
                 glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR_SHRINK_ON_SCROLL, L10n.t("Shrink the pill as you scroll"),
                         L10n.t("With Liquid glass look off, scrolling a list down makes the pill smaller, and scrolling up "
                                 + "or changing tab brings it back to full size. Hide the tab bar as you scroll takes over "

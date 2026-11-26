@@ -95,6 +95,7 @@ public class GlassTabBarTest {
         Settings.GLASS_TAB_BAR_SLIDE.resetToDefault();
         Settings.GLASS_TAB_BAR_LIQUID.resetToDefault();
         Settings.GLASS_TAB_BAR_KEEP_SIZE.resetToDefault();
+        Settings.GLASS_TAB_BAR_SEARCH_IN_PILL.resetToDefault();
         Settings.GLASS_TAB_BAR_HOLD_LENS.resetToDefault();
         Settings.GLASS_TAB_BAR_SHRINK_ON_SCROLL.resetToDefault();
         Settings.GLASS_TAB_BAR_MATERIAL.resetToDefault();
@@ -1718,6 +1719,85 @@ public class GlassTabBarTest {
         }
     }
 
+    /**
+     * #875: with Keep Search in the pill on, the liquid look leaves Search in the round pill with the other tabs,
+     * every tab where Instagram put it and no circle beside the pill, so the pill's end shows no gap. The compact
+     * row shrinks to a circle round the tab you're on, Search included, with the rest faded and out of a touch's
+     * reach, and grown back every tab is where it was. Right to left too.
+     */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    @Config(sdk = 29, qualifiers = "en-rUS-w411dp-h891dp-xhdpi")
+    public void keepSearchInThePillLeavesNoCircleAndTheCompactRowShrinksRoundSearch() throws Exception {
+        GlassTabBar.animationsOnForTests = false;
+        for (boolean rtl : new boolean[]{false, true}) {
+            try (GlassHost host = new GlassHost(Color.BLACK, true, GlassHeight.STANDARD, rtl, false)) {
+                host.nameSearch(1);
+                Settings.GLASS_TAB_BAR_LIQUID.save(true);
+                Settings.GLASS_TAB_BAR_SEARCH_IN_PILL.save(true);
+                View search = host.bar.getChildAt(1);
+                assertTrue(host.bar.getChildAt(0).performClick());
+                GlassTabBar.apply(host.activity);
+                host.frame();
+                host.frame();
+                String where = rtl ? "rtl" : "ltr";
+                Object glass = host.glass();
+                RectF holder = new RectF(ReflectionHelpers.<RectF>getField(glass, "holder"));
+                RectF circle = new RectF(ReflectionHelpers.<RectF>getField(glass, "circle"));
+                RectF whole = new RectF(ReflectionHelpers.<RectF>getField(glass, "whole"));
+                assertTrue(where + ": Search has no circle", circle.isEmpty());
+                assertEquals(where + ": the pill holds every tab", whole, holder);
+                float[] spread = new float[host.bar.getChildCount()];
+                for (int i = 0; i < spread.length; i++) {
+                    View tab = host.bar.getChildAt(i);
+                    spread[i] = shownMiddle(tab);
+                    assertEquals(where + ": tab " + i + " where Instagram put it", 0f, tab.getTranslationX(), 0f);
+                    assertTrue(where + ": tab " + i + " sits on the pill", spread[i] > holder.left && spread[i] < holder.right);
+                }
+                RectF apartHolder = new RectF();
+                RectF apartCircle = new RectF();
+                assertTrue(GlassTabBar.splitOffSearch(whole, host.dp(GlassTabBar.SEARCH_GAP_DP), rtl, apartHolder, apartCircle));
+                try (Pixels pixels = host.background()) {
+                    int y = Math.round(holder.centerY());
+                    // Where the gap before Search's circle would be, there's pill now.
+                    int gap = Math.round(rtl ? (apartCircle.right + apartHolder.left) / 2f : (apartHolder.right + apartCircle.left) / 2f);
+                    assertTrue(where + ": the pill runs on past where the gap was", Color.alpha(pixels.bitmap.getPixel(gap, y)) > 200);
+                }
+                host.capture("liquid-search-in-pill-" + where);
+
+                assertTrue(search.performClick());
+                host.frame();
+                GlassScrollHide.Shrinker shrinker = (GlassScrollHide.Shrinker) glass;
+                assertTrue(where + ": Search open, the compact row still comes", shrinker.shrink(true, false));
+                host.frame();
+                float size = holder.height();
+                float start = rtl ? holder.right - size / 2f : holder.left + size / 2f;
+                assertEquals(where + ": Search sits in the circle at the start", start, shownMiddle(search), 1f);
+                for (int i : new int[]{0, 2, 3, 4}) {
+                    View tab = host.bar.getChildAt(i);
+                    assertEquals(where + ": tab " + i + " faded", 0f, tab.getAlpha(), 0f);
+                    assertEquals(where + ": tab " + i + " takes no touch", View.INVISIBLE, tab.getVisibility());
+                }
+                try (Pixels pixels = host.background()) {
+                    int y = Math.round(holder.centerY());
+                    assertEquals(where + ": the middle shows what's behind", 0,
+                            Color.alpha(pixels.bitmap.getPixel(Math.round(holder.centerX()), y)));
+                    assertTrue(where + ": Search's circle is drawn", Color.alpha(pixels.bitmap.getPixel(Math.round(start), y)) > 200);
+                }
+                host.capture("liquid-search-in-pill-compact-" + where);
+
+                assertTrue(shrinker.shrink(false, false));
+                host.frame();
+                for (int i = 0; i < spread.length; i++) {
+                    View tab = host.bar.getChildAt(i);
+                    assertEquals(where + ": tab " + i + " back in place", spread[i], shownMiddle(tab), 1f);
+                    assertEquals(1f, tab.getAlpha(), 0f);
+                    assertEquals(View.VISIBLE, tab.getVisibility());
+                }
+            }
+        }
+    }
+
     /** Off, or paused after it showed, the liquid look moves no tab, and the bar is the floating pill of before. */
     @Test
     @Config(sdk = 29, qualifiers = "en-rUS-w411dp-h891dp-xhdpi")
@@ -1882,6 +1962,7 @@ public class GlassTabBarTest {
             Settings.GLASS_TAB_BAR_SLIDE.save(false);
             Settings.GLASS_TAB_BAR_LIQUID.save(false);
             Settings.GLASS_TAB_BAR_KEEP_SIZE.save(false);
+            Settings.GLASS_TAB_BAR_SEARCH_IN_PILL.save(false);
             Settings.GLASS_TAB_BAR_HOLD_LENS.save(false);
             Settings.GLASS_TAB_BAR_SHRINK_ON_SCROLL.save(false);
             Settings.GLASS_TAB_BAR_MATERIAL.save(false);

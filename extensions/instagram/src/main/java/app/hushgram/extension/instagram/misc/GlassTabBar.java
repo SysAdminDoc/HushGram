@@ -2027,6 +2027,8 @@ public final class GlassTabBar {
         private final Rect reelsRect = new Rect();
         /** The liquid look (#65): a round pill and highlight, Search in a circle of its own, and the compact row on a scroll. */
         private final boolean liquid;
+        /** Under the liquid look, Search stays in the pill with the other tabs rather than in a circle of its own (#875). */
+        private final boolean searchInPill;
         /** The Material look (#720): a solid pill in the phone's colors, fully round, with a round marker and no glass. */
         private final boolean material;
         /** Whether the pill's rim bends what's behind it (#369), the liquid pill's or the standard one's (#391). */
@@ -2066,6 +2068,7 @@ public final class GlassTabBar {
             this.lift = liftPx(Settings.GLASS_TAB_BAR_LIFT.get(), floating, density);
             this.room = lift;
             this.liquid = Settings.GLASS_TAB_BAR_LIQUID.get();
+            this.searchInPill = liquid && Settings.GLASS_TAB_BAR_SEARCH_IN_PILL.get();
             this.holdLens = liquid && Settings.GLASS_TAB_BAR_HOLD_LENS.get();
             this.refract = Settings.GLASS_TAB_BAR_REFRACT.get();
             boolean hideOnScroll = Settings.GLASS_TAB_BAR_HIDE_ON_SCROLL.get();
@@ -2169,15 +2172,16 @@ public final class GlassTabBar {
         /**
          * Shrinks the liquid bar to its compact row as a list scrolls down, or grows it back (#65), sliding over
          * {@link #COMPACT_MS} unless [now] or the phone's animations are off. It won't shrink while paused, with no
-         * tab marked selected or with Search selected, which has no tab to shrink to. Without the look it scales the
-         * standard pill instead, and only when that was asked for (#638).
+         * tab marked selected or with Search selected in its own circle, which leaves no tab to shrink to. Search
+         * kept in the pill (#875) shrinks like any other tab. Without the look it scales the standard pill instead,
+         * and only when that was asked for (#638).
          */
         @Override public boolean shrink(boolean on, boolean now) {
             if (!liquid) return scale(on, now);
             if (on) {
                 if (!liquidNow()) return false;
                 View selected = selectedTab();
-                if (selected == null || selected == searchTab()) return false;
+                if (selected == null || (selected == searchTab() && searchApart())) return false;
             }
             float target = on ? 1f : 0f;
             ValueAnimator running = compacting;
@@ -2261,14 +2265,20 @@ public final class GlassTabBar {
         /**
          * Works out the liquid look's shapes for the pill [pillArea] into {@link #holder} and {@link #circle}:
          * Search's circle beside the pill holding the other tabs when [search] shows and there's room, or the
-         * whole pill holding every tab. Says whether Search got its circle.
+         * whole pill holding every tab. Says whether Search got its circle. Kept in the pill (#875), it never does.
          */
         private boolean liquidShapes(RectF pillArea, @Nullable View search) {
             boolean rtl = bar.getLayoutDirection() == View.LAYOUT_DIRECTION_RTL;
-            if (search != null && splitOffSearch(pillArea, dp(SEARCH_GAP_DP), rtl, holder, circle)) return true;
+            if (search != null && !searchInPill && splitOffSearch(pillArea, dp(SEARCH_GAP_DP), rtl, holder, circle)) return true;
             holder.set(pillArea);
             circle.setEmpty();
             return false;
+        }
+
+        /** Whether Search shows in a circle of its own now, with the bar as it's laid out. */
+        private boolean searchApart() {
+            View search = searchTab();
+            return search != null && pill.pillBounds(whole) && liquidShapes(whole, search);
         }
 
         /**

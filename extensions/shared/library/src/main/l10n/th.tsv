@@ -2784,6 +2784,9 @@ HushGram's own files take up %1$s.	ไฟล์ของ HushGram เองใ�
 # context: Tab bar: switch under Keep the pill full size, for the liquid look's bubble under a held finger (#705)
 Glass lens under your finger	เลนส์แก้วใต้นิ้วของคุณ
 Hold a finger on the liquid pill's bubble, or slide it across the tabs, and the bubble swells and bends what's behind it harder, like glass under a fingertip. It eases back when you let go. The bend needs Blur behind the tab bar and Android 13 or newer. Restart Instagram after changing it.	แตะนิ้วค้างไว้บนฟองของแถบแคปซูลแบบแก้วเหลว หรือเลื่อนไปตามแท็บ แล้วฟองจะขยายและหักเหสิ่งที่อยู่ด้านหลังแรงขึ้น เหมือนแก้วใต้ปลายนิ้ว และจะกลับเป็นปกติเมื่อคุณปล่อยนิ้ว การหักเหต้องเปิดเบลอด้านหลังแถบแท็บและใช้ Android 13 ขึ้นไป รีสตาร์ท Instagram หลังจากเปลี่ยนแปลงการตั้งค่า
+# context: Tab bar: switch under Glass lens under your finger that keeps Instagram's Search tab inside the liquid pill with the other tabs instead of in a glass circle of its own, and its description (#875). Search is Instagram's tab, named as it is there; Liquid glass look is another switch's name
+Keep Search in the pill	เก็บแท็บค้นหาไว้ในแถบแคปซูล
+With Liquid glass look on, Search stays in the pill with the other tabs instead of a glass circle of its own. Restart Instagram after changing it.	เมื่อเปิดรูปลักษณ์กระจกเหลว แท็บค้นหาจะอยู่ในแถบแคปซูลร่วมกับแท็บอื่นๆ แทนที่จะอยู่ในวงกลมกระจกแยกต่างหาก โปรดรีสตาร์ท Instagram หลังจากเปลี่ยนการตั้งค่านี้
 # context: Keep story viewers, its Stories settings rows and the Story viewers page.
 Keep story viewers	เก็บรายชื่อผู้ดูสตอรี่
 Each time you open who viewed one of your stories, the list is kept on this phone and set beside your followers. Nothing extra is asked of Instagram. Turn it off and it stops at once.	ทุกครั้งที่คุณเปิดดูว่าใครดูสตอรี่ของคุณ รายชื่อจะถูกเก็บไว้ในโทรศัพท์เครื่องนี้และวางคู่กับผู้ติดตามของคุณ ไม่มีการขออะไรเพิ่มจาก Instagram ปิดแล้วจะหยุดทันที

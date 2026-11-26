@@ -84,6 +84,7 @@ public class TabBarAndBatterySettingsTest {
         Settings.GLASS_TAB_BAR_SLIDE.resetToDefault();
         Settings.GLASS_TAB_BAR_LIQUID.resetToDefault();
         Settings.GLASS_TAB_BAR_KEEP_SIZE.resetToDefault();
+        Settings.GLASS_TAB_BAR_SEARCH_IN_PILL.resetToDefault();
         Settings.GLASS_TAB_BAR_HOLD_LENS.resetToDefault();
         Settings.GLASS_TAB_BAR_REFRACT.resetToDefault();
         Settings.GLASS_TAB_BAR_BLUR.resetToDefault();
@@ -148,8 +149,8 @@ public class TabBarAndBatterySettingsTest {
         assertTrue(Settings.GLASS_TAB_BAR.rebootApp);
         assertEquals(Arrays.asList(Settings.GLASS_TAB_BAR, Settings.GLASS_TAB_BAR_BLUR, Settings.GLASS_TAB_BAR_FLOAT,
                 Settings.GLASS_TAB_BAR_HAPTICS, Settings.GLASS_TAB_BAR_HIDE_ON_SCROLL, Settings.GLASS_TAB_BAR_SLIDE,
-                Settings.GLASS_TAB_BAR_LIQUID, Settings.GLASS_TAB_BAR_KEEP_SIZE, Settings.GLASS_TAB_BAR_HOLD_LENS,
-                Settings.GLASS_TAB_BAR_SHRINK_ON_SCROLL, Settings.GLASS_TAB_BAR_MATERIAL,
+                Settings.GLASS_TAB_BAR_LIQUID, Settings.GLASS_TAB_BAR_KEEP_SIZE, Settings.GLASS_TAB_BAR_SEARCH_IN_PILL,
+                Settings.GLASS_TAB_BAR_HOLD_LENS, Settings.GLASS_TAB_BAR_SHRINK_ON_SCROLL, Settings.GLASS_TAB_BAR_MATERIAL,
                 Settings.GLASS_TAB_BAR_REFRACT, Settings.GLASS_TAB_BAR_REELS_BEHIND, Settings.GLASS_TAB_BAR_TAP_SOUND),
                 PatchFamily.GLASS_TAB_BAR.switches);
         for (String key : List.of(Settings.GLASS_TAB_BAR_BLUR.key, Settings.GLASS_TAB_BAR_HAPTICS.key, Settings.GLASS_TAB_BAR_FLOAT.key,
@@ -635,6 +636,40 @@ public class TabBarAndBatterySettingsTest {
         assertFalse("the standard pill has no bubble to grow", Settings.GLASS_TAB_BAR_HOLD_LENS.isAvailable());
         Settings.GLASS_TAB_BAR_LIQUID.save(true);
         assertTrue(Settings.GLASS_TAB_BAR_HOLD_LENS.isAvailable());
+    }
+
+    /**
+     * #875: Keep Search in the pill is a switch right after Glass lens under your finger, off to start so the
+     * liquid look keeps Search's circle, offered only with the liquid look on, backed up, and read as the bar is
+     * built, so it asks for a restart.
+     */
+    @Test public void keepSearchInThePillSitsUnderTheLiquidLookAndStartsOff() throws Exception {
+        open(PatchFamily.GLASS_TAB_BAR);
+        SwitchPreference inPill = (SwitchPreference) row(Settings.GLASS_TAB_BAR_SEARCH_IN_PILL.key);
+        assertNotNull(inPill);
+        assertEquals("Keep Search in the pill", String.valueOf(inPill.getTitle()));
+        assertEquals("With Liquid glass look on, Search stays in the pill with the other tabs instead of a glass "
+                + "circle of its own. Restart Instagram after changing it.", String.valueOf(inPill.getSummary()));
+        assertFalse(inPill.isChecked());
+        assertFalse(Settings.GLASS_TAB_BAR_SEARCH_IN_PILL.defaultValue);
+        assertTrue(Settings.GLASS_TAB_BAR_SEARCH_IN_PILL.rebootApp);
+        PreferenceGroup section = sectionOf(page.getPreferenceScreen(), inPill);
+        int lensAt = -1;
+        int inPillAt = -1;
+        for (int i = 0; i < section.getPreferenceCount(); i++) {
+            String key = section.getPreference(i).getKey();
+            if (Settings.GLASS_TAB_BAR_HOLD_LENS.key.equals(key)) lensAt = i;
+            if (Settings.GLASS_TAB_BAR_SEARCH_IN_PILL.key.equals(key)) inPillAt = i;
+        }
+        assertTrue(lensAt >= 0);
+        assertEquals("right after Glass lens under your finger", lensAt + 1, inPillAt);
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.GLASS_TAB_BAR_SEARCH_IN_PILL.key));
+
+        assertFalse("no glass bar, no pill", Settings.GLASS_TAB_BAR_SEARCH_IN_PILL.isAvailable());
+        Settings.GLASS_TAB_BAR.save(true);
+        assertFalse("the standard pill keeps Search anyway", Settings.GLASS_TAB_BAR_SEARCH_IN_PILL.isAvailable());
+        Settings.GLASS_TAB_BAR_LIQUID.save(true);
+        assertTrue(Settings.GLASS_TAB_BAR_SEARCH_IN_PILL.isAvailable());
     }
 
     /**
