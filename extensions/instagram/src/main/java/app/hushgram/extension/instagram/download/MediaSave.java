@@ -240,9 +240,16 @@ public final class MediaSave {
                         Feedback.show(application, L10n.f(application, "Not saved: %1$d posts are already waiting", MAX_WAITING), true);
                         return true;
                     }
+                    // Listed while it waits, so the next start says so if Android ends Instagram first.
+                    SaveLeftovers.Waiting line = SaveLeftovers.waiting(application);
                     WAITING.add(() -> {
                         // Whoever asked has moved on, so a waiting save that can't start says so itself.
-                        boolean started = startBatch(application, snapshot, owner, completion);
+                        boolean started = false;
+                        try {
+                            started = startBatch(application, snapshot, owner, completion, line);
+                        } finally {
+                            if (!started) line.leave();
+                        }
                         if (!started) Feedback.show(application, L10n.t(application, "Download failed"), true);
                         return started;
                     });
@@ -253,7 +260,7 @@ public final class MediaSave {
                 }
                 batchTurn = true;
             }
-            if (startBatch(application, snapshot, owner, completion)) return true;
+            if (startBatch(application, snapshot, owner, completion, null)) return true;
             nextBatch();
             return false;
         } catch (Throwable failure) {
@@ -296,9 +303,10 @@ public final class MediaSave {
      * Starts saving [snapshot] now and answers whether it started. [owner] is the account part of
      * the history's keys ({@link DownloadHistory#owner}) read when it was asked for, or null when
      * Skip what's already saved was off then: pages saved before are passed over only with it.
+     * [line] is its place on the list while it waited, or null for one that never waited.
      */
     private static boolean startBatch(Context application, List<Item> snapshot, String owner,
-            Consumer<BatchResult> completion) {
+            Consumer<BatchResult> completion, SaveLeftovers.Waiting line) {
         try {
             DownloadQuality quality = quality();
             boolean compatible = compatibleSaves();
@@ -307,7 +315,7 @@ public final class MediaSave {
             List<String> passedOver = new ArrayList<>();
             // The pages the check let through, each held until the carousel ends.
             List<String> held = new ArrayList<>();
-            boolean started = launch(application, false, snapshot.size(), poster(snapshot), save -> {
+            boolean started = launch(application, false, snapshot.size(), poster(snapshot), line, save -> {
                 int saved = 0, failed = 0, skipped = 0, lower = 0, lowStorage = 0, already = 0;
                 boolean cancelled = false;
                 for (int index = 0; index < snapshot.size(); index++) {
@@ -1619,7 +1627,7 @@ public final class MediaSave {
         // Read on the tap, for the account in front now. Null with Skip what's already saved off,
         // or for a save that doesn't know the media's id: it's saved as it always was.
         final String key = DownloadHistory.key(DownloadHistory.ownerIfOn(), known, kind);
-        return launch(application, video, audio, 0, key != null, known.owner, save -> {
+        return launch(application, video, audio, 0, key != null, known.owner, null, save -> {
             if (key != null && DownloadHistory.saved(application, key)) {
                 info(() -> "save skipped: already saved");
                 DownloadHistory.offerAgain(Collections.singletonList(key));
@@ -1668,9 +1676,9 @@ public final class MediaSave {
     private interface Work { void run(SaveControl.Save save); }
 
     /** Atomically admits one logical save and retires it for every normal result. */
-    private static Thread launch(Context application, boolean video, int pages, String poster, Work work,
-            Consumer<SaveControl.Save> finishing, Runnable finished) {
-        return launch(application, video, false, pages, false, poster, work, finishing, finished);
+    private static Thread launch(Context application, boolean video, int pages, String poster,
+            SaveLeftovers.Waiting line, Work work, Consumer<SaveControl.Save> finishing, Runnable finished) {
+        return launch(application, video, false, pages, false, poster, line, work, finishing, finished);
     }
 
     /**
@@ -1697,15 +1705,19 @@ public final class MediaSave {
      * one already saved and should say only that. [poster] is the account the media is from, or
      * null. With {@link #MAX_IN_FLIGHT} saves running it waits its turn in line, and the answer is
      * its worker, which starts when a save before it ends. Null when the line is full too.
+     * [held] is the place on the list of a save that already waited, as a Download all does for
+     * its turn, or null; a save that waits here gets one, and it's crossed off when it starts.
      */
     private static Thread launch(Context application, boolean video, boolean audio, int pages, boolean quiet,
-            String poster, Work work, Consumer<SaveControl.Save> finishing, Runnable finished) {
+            String poster, SaveLeftovers.Waiting held, Work work, Consumer<SaveControl.Save> finishing,
+            Runnable finished) {
         // Shown once it's known whether the save starts now or waits.
         SaveControl.Save save = SaveControl.begin(application, video && !audio, audio, pages, false);
         boolean[] queued = new boolean[1];
+        SaveLeftovers.Waiting[] line = { held };
         Thread worker;
         try {
-            worker = new Thread(() -> runSave(application, save, pages, quiet, queued[0], poster, work,
+            worker = new Thread(() -> runSave(application, save, pages, quiet, queued[0], line[0], poster, work,
                     finishing, finished), "hushgram-save");
             // A thread that ends when the copy ends leaves nothing behind in a process that is not
             // ours. A pool parks a thread there for as long as the app runs.
@@ -1723,6 +1735,7 @@ public final class MediaSave {
             } else if (QUEUED.size() < MAX_QUEUED) {
                 // Written before the worker can start: whoever starts it takes this lock first.
                 queued[0] = true;
+                if (line[0] == null) line[0] = SaveLeftovers.waiting(application);
                 QUEUED.add(worker);
                 place = QUEUED.size();
             } else {
@@ -1755,9 +1768,13 @@ public final class MediaSave {
         return worker;
     }
 
-    /** One save on its worker thread, from its turn to its end, which hands the turn on. */
+    /**
+     * One save on its worker thread, from its turn to its end, which hands the turn on. [line] is
+     * its place on the list while it waited, or null, crossed off once its own marker is down.
+     */
     private static void runSave(Context application, SaveControl.Save save, int pages, boolean quiet, boolean queued,
-            String poster, Work work, Consumer<SaveControl.Save> finishing, Runnable finished) {
+            SaveLeftovers.Waiting line, String poster, Work work, Consumer<SaveControl.Save> finishing,
+            Runnable finished) {
         String marker = null;
         try {
             if (queued && save.cancelled()) {
@@ -1773,6 +1790,7 @@ public final class MediaSave {
                 // anything. It runs once per process.
                 SaveLeftovers.sweepOnce(application);
                 marker = SaveLeftovers.beginJob(application);
+                if (line != null) line.leave();
                 work.run(save);
             }
         } catch (Throwable t) {
@@ -1785,6 +1803,8 @@ public final class MediaSave {
             // or the Download all turn, or every later Download all would wait forever (#115).
             try { SaveLeftovers.finishJob(application, marker); }
             catch (Throwable failure) { failure(() -> "could not close a save's job marker", failure); }
+            // Cancelled while it waited, or failed before its own marker: its place goes too.
+            if (line != null) line.leave();
             // Publish the batch outcome before the end notification asks the settings to redraw.
             if (pages > 0) {
                 try { finishing.accept(save); }

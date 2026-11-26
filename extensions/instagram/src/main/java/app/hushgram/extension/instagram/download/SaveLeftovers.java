@@ -36,6 +36,7 @@ import app.hushgram.extension.shared.Utils;
  * on a worker, and the first save of a process waits for that or, if it comes first, does it
  * itself before it makes anything of its own. Only the main process saves, so nothing there can
  * belong to a save still running, and a notification of one this process is running is kept.
+ * A save that was running or waiting its turn then is counted, and the next start says so.
  *
  * <p>The pending rows are known by a list kept here, not found by a query. The app's own save
  * can write into the same folders with the same kind of names, and a query can't tell its rows from
@@ -148,6 +149,58 @@ public final class SaveLeftovers {
             }
             return token;
         }
+    }
+
+    /**
+     * A save waiting its turn, on the list like a running one. Android can end Instagram while
+     * saves wait in line, and only a running save had a marker, so the ones waiting went without
+     * a word (#792). The marker is put down on a worker, so the tap never waits on the disk, and
+     * crossed off once the save has its own or ends.
+     */
+    static final class Waiting {
+        private final Context application;
+        private String token;
+        private boolean left;
+
+        Waiting(Context application) {
+            this.application = application;
+        }
+
+        /** Puts the marker down, unless the save already left the line. Never throws. */
+        synchronized void hold() {
+            if (left || token != null) return;
+            try {
+                // A marker put down before this process's sweep would be counted as stopped.
+                sweepOnce(application);
+                token = beginJob(application);
+            } catch (Throwable failure) {
+                MediaSave.failure(() -> "could not list a waiting save", failure);
+            }
+        }
+
+        /** The save started with a marker of its own, or ended. Crosses this one off. Never throws. */
+        void leave() {
+            String held;
+            synchronized (this) {
+                left = true;
+                held = token;
+                token = null;
+            }
+            if (held != null) finishJob(application, held);
+        }
+    }
+
+    /** A save went into line: its marker goes down on a worker. Never throws. */
+    static Waiting waiting(Context application) {
+        Waiting waiting = new Waiting(application);
+        try {
+            if (!Utils.runOnBackgroundThread(waiting::hold)) {
+                MediaSave.failure(() -> "could not list a waiting save: no worker free", null);
+            }
+        } catch (Throwable failure) {
+            MediaSave.failure(() -> "could not list a waiting save", failure);
+        }
+        return waiting;
     }
 
     /** All normal results, including cancellation and failure, retire the same single marker. */

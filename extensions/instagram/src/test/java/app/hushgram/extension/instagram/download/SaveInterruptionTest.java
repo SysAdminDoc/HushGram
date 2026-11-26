@@ -168,6 +168,36 @@ public class SaveInterruptionTest {
         assertEquals("2 saves stopped. Reopen the media and save again.", ShadowToast.getTextOfLatestToast());
     }
 
+    /** A save waiting its turn when Android ended Instagram is counted with the running one (#792). */
+    @Test public void aSaveWaitingItsTurnIsToldOnTheNextStart() throws Exception {
+        SaveLeftovers.beginJob(context);
+        SaveLeftovers.waiting(context);
+        Utils.awaitBackgroundTasksForTests();
+        assertEquals("the waiting save isn't listed", 2, active().size());
+        SaveLeftovers.forgetSweepForTests();
+        notice();
+        assertEquals(2, SaveLeftovers.interruptedCount());
+        assertEquals("2 saves stopped. Reopen the media and save again.", ShadowToast.getTextOfLatestToast());
+        assertTrue(active().isEmpty());
+    }
+
+    /** One that started or ended is crossed off, even when the worker lists it only after that. */
+    @Test public void aWaitingSaveThatLeftTheLineIsNotCounted() throws Exception {
+        SaveLeftovers.Waiting started = SaveLeftovers.waiting(context);
+        Utils.awaitBackgroundTasksForTests();
+        assertEquals(1, active().size());
+        started.leave();
+        started.leave();
+        SaveLeftovers.Waiting quick = new SaveLeftovers.Waiting(context);
+        quick.leave();
+        quick.hold();
+        assertTrue("a save that left the line is still listed", active().isEmpty());
+        SaveLeftovers.forgetSweepForTests();
+        notice();
+        assertEquals(0, SaveLeftovers.interruptedCount());
+        assertNull(ShadowToast.getTextOfLatestToast());
+    }
+
     @Test public void completionAndHandledFailureRetireTheActualWorkersMarker() throws Exception {
         for (Downloader.Status status : new Downloader.Status[]{Downloader.Status.OK, Downloader.Status.NETWORK_ERROR}) {
             AtomicReference<Set<String>> during = new AtomicReference<>();

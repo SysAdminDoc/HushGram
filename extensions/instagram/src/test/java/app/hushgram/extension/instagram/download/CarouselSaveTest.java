@@ -454,6 +454,8 @@ public class CarouselSaveTest {
         assertTrue(entered.await(10, TimeUnit.SECONDS));
         assertTrue(MediaSave.saveBatch(context, Arrays.asList(page(false, "/b1.jpg", "b1"), page(false, "/b2.jpg", "b2")), second::complete));
         assertEquals(1, MediaSave.batchesWaiting());
+        Utils.awaitBackgroundTasksForTests();
+        assertEquals("the waiting Download all isn't listed (#792)", 2, active().size());
         assertEquals("one saving, one waiting", 2, MediaSave.savesInFlight());
         assertEquals("only the first has a Cancel", 1, SaveControl.running().size());
         release.countDown();

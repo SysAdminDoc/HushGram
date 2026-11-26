@@ -265,6 +265,37 @@ public class SaveProgressTest {
         assertEquals(0, MediaSave.savesInFlight());
     }
 
+    /**
+     * A save waiting its turn is listed like a running one, so the next start says it stopped if
+     * Android ends Instagram first, and it's crossed off once it starts or is cancelled (#792).
+     */
+    @Test
+    public void aWaitingSaveIsListedUntilItsTurnComes() throws Exception {
+        int total = MediaSave.MAX_IN_FLIGHT + 2;
+        List<Integer> began = java.util.Collections.synchronizedList(new ArrayList<>());
+        CountDownLatch gate = new CountDownLatch(1);
+        List<Thread> workers = new ArrayList<>();
+        try {
+            for (int number = 0; number < total; number++) {
+                workers.add(MediaSave.start(context, true, held(number, began, gate)));
+            }
+            waitFor(() -> began.size() == MediaSave.MAX_IN_FLIGHT, () -> "the first three never started: " + began);
+            app.hushgram.extension.shared.Utils.awaitBackgroundTasksForTests();
+            assertEquals("the waiting saves aren't listed", total, activeJobs().size());
+            assertTrue(SaveControl.cancel(SaveControl.running().get(total - 1).id));
+        } finally {
+            gate.countDown();
+        }
+        for (Thread worker : workers) finish(worker);
+        assertEquals(total - 1, began.size());
+        assertTrue("a save's place on the list outlived it", activeJobs().isEmpty());
+    }
+
+    private java.util.Set<String> activeJobs() {
+        return context.getSharedPreferences("hushgram_saves", Context.MODE_PRIVATE)
+                .getStringSet("active_jobs", new java.util.HashSet<>());
+    }
+
     /** Past the running saves and a full line, a tap says the line is full instead of saving (#792). */
     @Test
     public void aSavePastAFullLineSaysSo() throws Exception {

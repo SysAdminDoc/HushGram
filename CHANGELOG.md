@@ -58,6 +58,7 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
+* Saves still waiting their turn when Android closes Instagram are no longer lost without a word. Next time you open Instagram, it tells you how many stopped, as it already did for running saves. Reported in #792.
 * With three saves running, their notifications no longer fall behind or stick at an old percentage. Each updates a little less often, so Android stops dropping the updates. Reported in #792.
 * Saving several things in a row no longer loses some of the Saved toasts. Android drops an app's toasts past five waiting, so a Saving toast now makes way and each result waits its turn. Reported in #792.
 * A save on a slow connection now picks up where it stopped when the download stalls or drops. It used to fall back to the 720p file or fail with Download failed. Reported in #792.
