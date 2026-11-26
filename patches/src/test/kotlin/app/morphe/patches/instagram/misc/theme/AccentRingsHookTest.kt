@@ -96,37 +96,50 @@ class AccentRingsHookTest {
         var checked = 0
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                val classes = (StoryRingFixtures.composeRingClasses(bundle) + StoryRingFixtures.composeBrushClasses(bundle) +
-                    FixtureDex.classesLoading(bundle, ROW_RING) + FixtureDex.classes(bundle, setOf(GRADIENT_SPINNER)).values +
-                    ExtensionDex.classDef(ACCENT_RINGS)).distinctBy { it.type }
-                val context = PatchContexts.of(classes)
-                val hooks = context.findAccentRings()
-                assertEquals("${bundle.name}: rows reading a seen ring's color", 2, hooks.composeSeen.size)
-                val originals = hooks.composeSeen.map { ring ->
-                    val method = context.rowMethod(ring)
-                    Triple(ring, method.seenRingRead()!!, NeutralNativePath(method))
-                }
-                context.colorAccentRings(hooks)
-                for ((ring, found, original) in originals) {
-                    val (read, register) = found
-                    val method = context.rowMethod(ring)
-                    val code = method.implementation!!.instructions.toList()
-                    val label = "${bundle.name} ${ring.type}->${ring.name}"
-                    val called = code.indices.filter { (code[it] as? ReferenceInstruction)?.reference?.toString() == ACCENT_COMPOSE_SEEN }
-                    assertEquals("$label: hooks", listOf(read + 1), called)
-                    assertEquals("$label: the read", Opcode.IGET_WIDE, code[read].opcode)
-                    assertEquals("$label: the hook's call", Opcode.INVOKE_STATIC_RANGE, code[read + 1].opcode)
-                    val call = code[read + 1] as RegisterRangeInstruction
-                    assertEquals("$label: the color", register to 2, call.startRegister to call.registerCount)
-                    assertEquals("$label: the answer", Opcode.MOVE_RESULT_WIDE, code[read + 2].opcode)
-                    assertEquals("$label: into the color", register, (code[read + 2] as OneRegisterInstruction).registerA)
-                    assertTrue("$label: something jumps past the hook", method.jumpTargets().none { it in read + 1..read + 3 })
-                    original.assertPreserved(label, method, setOf(read + 1, read + 2))
-                }
+                givesItsSeenRingsTheAccent(bundle, bundle.name)
                 checked++
             }
         }
         assertTrue("no fixture of a declared build", checked > 0)
+    }
+
+    /**
+     * The other builds' rows too: armeabi-v7a's Redex moves one row's palette read into a static of
+     * its own taking the composer (`0ArC.A0H` in `0DZC.A02` on 457), so that row answers it instead.
+     */
+    @Test
+    fun eachOtherBuildsChatListGivesItsSeenRingsTheAccentToo() {
+        for (base in Fixtures.otherBuilds()) givesItsSeenRingsTheAccent(base, base.parentFile.name)
+    }
+
+    private fun givesItsSeenRingsTheAccent(bundle: File, name: String) {
+        val classes = (StoryRingFixtures.composeRingClasses(bundle) + StoryRingFixtures.composeBrushClasses(bundle) +
+            FixtureDex.classesLoading(bundle, ROW_RING) + FixtureDex.classes(bundle, setOf(GRADIENT_SPINNER)).values +
+            ExtensionDex.classDef(ACCENT_RINGS)).distinctBy { it.type }
+        val context = PatchContexts.of(classes)
+        val hooks = context.findAccentRings()
+        assertEquals("$name: rows reading a seen ring's color", 2, hooks.composeSeen.size)
+        val originals = hooks.composeSeen.map { ring ->
+            val method = context.rowMethod(ring)
+            Triple(ring, method.seenRingRead()!!, NeutralNativePath(method))
+        }
+        context.colorAccentRings(hooks)
+        for ((ring, found, original) in originals) {
+            val (read, register) = found
+            val method = context.rowMethod(ring)
+            val code = method.implementation!!.instructions.toList()
+            val label = "$name ${ring.type}->${ring.name}"
+            val called = code.indices.filter { (code[it] as? ReferenceInstruction)?.reference?.toString() == ACCENT_COMPOSE_SEEN }
+            assertEquals("$label: hooks", listOf(read + 1), called)
+            assertTrue("$label: the read", code[read].opcode == Opcode.IGET_WIDE || code[read].opcode == Opcode.MOVE_RESULT_WIDE)
+            assertEquals("$label: the hook's call", Opcode.INVOKE_STATIC_RANGE, code[read + 1].opcode)
+            val call = code[read + 1] as RegisterRangeInstruction
+            assertEquals("$label: the color", register to 2, call.startRegister to call.registerCount)
+            assertEquals("$label: the answer", Opcode.MOVE_RESULT_WIDE, code[read + 2].opcode)
+            assertEquals("$label: into the color", register, (code[read + 2] as OneRegisterInstruction).registerA)
+            assertTrue("$label: something jumps past the hook", method.jumpTargets().none { it in read + 1..read + 3 })
+            original.assertPreserved(label, method, setOf(read + 1, read + 2))
+        }
     }
 
     private fun BytecodePatchContext.rowMethod(ring: ComposeSeenRing): Method = mutableClassDefBy(ring.type).methods.single {

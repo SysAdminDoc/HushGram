@@ -127,9 +127,9 @@ internal class ComposeSeenRing(val type: String, val name: String, val parameter
  * gray. Each makes an unseen story's brush with [brush] and keeps which ring it draws as a state: a
  * seen story's is one object kept in a static field of its own type, and when the row's state is that
  * one it reads a color from Compose's palette and makes a border of it right away (`LX/0J2X;` and
- * `LX/05SA;->A1B` in `0G9f.A06` and `0KEB.A02` on 457). Every method calling [brush] that reads one
- * such color is answered, unless something jumps onto the instruction after the read, where the hook
- * goes.
+ * `LX/05SA;->A1B` in `0G9f.A06` and `0KEB.A02` on 457), or has a static taking the composer make that
+ * read (armeabi-v7a's `0DZC.A02`). Every method calling [brush] that reads one such color is answered,
+ * unless something jumps onto the instruction after the read, where the hook goes.
  */
 internal fun BytecodePatchContext.findComposeSeenRings(brush: ComposeRingBrush): List<ComposeSeenRing> =
     classesCalling(brush.type, brush.name, listOf(BRUSH_TAKES)).flatMap { classDef ->
@@ -144,8 +144,9 @@ private fun Method.callsBrush(brush: ComposeRingBrush) = implementation?.instruc
 } == true
 
 /**
- * The method's one read of a seen ring's color: the index of its `iget-wide` and the register the
- * color lands in. Null for none, for more than one, and for one something jumps past.
+ * The method's one read of a seen ring's color: the index of its `iget-wide` (or the `move-result-wide`
+ * of a static making it) and the register the color lands in. Null for none, for more than one, and
+ * for one something jumps past.
  */
 internal fun Method.seenRingRead(): Pair<Int, Int>? {
     val flow = try {
@@ -154,6 +155,7 @@ internal fun Method.seenRingRead(): Pair<Int, Int>? {
         return null
     }
     val code = flow.instructions
+    val composer = parameterTypes.firstOrNull()?.toString()
     val kept = code.mapNotNullTo(HashSet()) { instruction ->
         if (instruction.opcode != Opcode.SGET_OBJECT) return@mapNotNullTo null
         val field = (instruction as ReferenceInstruction).reference as FieldReference
@@ -168,7 +170,7 @@ internal fun Method.seenRingRead(): Pair<Int, Int>? {
             return@mapNotNull null
         }
         val end = flow.normal[at + 1].firstOrNull()?.takeIf { it > at + 1 } ?: return@mapNotNull null
-        (at + 2 until end).singleOrNull { code.readsBorderColor(it) }
+        (at + 2 until end).singleOrNull { code.readsBorderColor(it, composer) }
     }
     val read = reads.singleOrNull() ?: return null
     if (read + 1 in jumpTargets()) return null
@@ -176,23 +178,41 @@ internal fun Method.seenRingRead(): Pair<Int, Int>? {
 }
 
 /**
- * Whether the instruction at [at] reads a long from the palette the `invoke-static` two before it
- * answers, which one of the next three instructions makes a modifier of.
+ * Whether the instruction at [at] lands a color from Compose's palette that one of the next three
+ * instructions makes a modifier of: a long read from the palette the `invoke-static` two before it
+ * answers, or the answer of a static taking only the [composer] that makes that read itself, where
+ * Redex moved it out of the row (`0ArC.A0H` in armeabi-v7a's `0DZC.A02` on 457).
  */
-private fun List<Instruction>.readsBorderColor(at: Int): Boolean {
+private fun List<Instruction>.readsBorderColor(at: Int, composer: String?): Boolean {
     val read = this[at]
-    if (at < 2 || read.opcode != Opcode.IGET_WIDE) return false
+    val landed = when (read.opcode) {
+        Opcode.IGET_WIDE -> readsPalette(at)
+        Opcode.MOVE_RESULT_WIDE -> at >= 1 && this[at - 1].answersColorOf(composer)
+        else -> false
+    }
+    if (!landed) return false
+    val color = (read as OneRegisterInstruction).registerA
+    return (at + 1..minOf(at + 3, lastIndex)).any { this[it].makesModifierOf(color) }
+}
+
+/** Whether the `iget-wide` at [at] reads the palette the `invoke-static` two before it answers. */
+private fun List<Instruction>.readsPalette(at: Int): Boolean {
+    if (at < 2) return false
+    val read = this[at]
     val field = (read as ReferenceInstruction).reference as FieldReference
     val result = this[at - 1]
     if (result.opcode != Opcode.MOVE_RESULT_OBJECT || (result as OneRegisterInstruction).registerA != (read as TwoRegisterInstruction).registerB) {
         return false
     }
     val palette = this[at - 2]
-    if (palette.opcode != Opcode.INVOKE_STATIC || ((palette as ReferenceInstruction).reference as MethodReference).returnType != field.definingClass) {
-        return false
-    }
-    val color = (read as OneRegisterInstruction).registerA
-    return (at + 1..minOf(at + 3, lastIndex)).any { this[it].makesModifierOf(color) }
+    return palette.opcode == Opcode.INVOKE_STATIC && ((palette as ReferenceInstruction).reference as MethodReference).returnType == field.definingClass
+}
+
+/** Whether this is a static answering a long and taking only one [composer]. */
+private fun Instruction.answersColorOf(composer: String?): Boolean {
+    if (composer == null || (opcode != Opcode.INVOKE_STATIC && opcode != Opcode.INVOKE_STATIC_RANGE)) return false
+    val call = (this as ReferenceInstruction).reference as MethodReference
+    return call.returnType == "J" && call.parameterTypes.map(CharSequence::toString) == listOf(composer)
 }
 
 /** Whether this is a static answering the class its first parameter is, whose last parameter is the long in [color]. */
