@@ -605,6 +605,9 @@ Adds an eye button to the top of each story while you view anonymously. Tap it t
 Mark as seen	읽음으로 표시
 Marked as seen. Tap again to undo.	읽음으로 표시하였습니다. 다시 누르면 실행 취소됩니다
 Marked as seen and sent	읽음으로 표시하고 전송함
+# context: View stories anonymously's third switch, after Mark as seen button. A like is the heart under a story, a quick reaction is an emoji from the row above a story's reply box
+Mark a story seen when you like or reply	좋아요를 누르거나 답장하면 스토리를 읽음으로 표시
+While you view anonymously, liking a story, replying to it or sending it a quick reaction puts you on that story's viewer list first. The other stories stay hidden.	스토리를 몰래 보는 동안 스토리에 좋아요를 누르거나 답장하거나 빠른 반응을 보내면 먼저 해당 스토리의 조회자 목록에 내 계정이 표시됩니다. 다른 스토리는 계속 익명으로 유지됩니다.
 View DM photos and videos anonymously	DM 사진 및 동영상 몰래보기
 Stops people seeing that you opened their view once photos and videos. They still disappear after you view them. This is a test feature and starts off.	다른 사람이 한 번 보기 사진과 동영상을 내가 열었다는 것을 알지 못하게 합니다. 본 후에는 그대로 사라집니다. 테스트 기능이며 꺼진 상태로 시작합니다.
 Restored %1$d settings. Kept %2$d newer choices.	%1$d개의 설정을 복원했습니다. 더 최근에 바꾼 선택 %2$d개는 유지했습니다.

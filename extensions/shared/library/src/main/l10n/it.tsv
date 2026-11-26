@@ -605,6 +605,9 @@ Adds an eye button to the top of each story while you view anonymously. Tap it t
 Mark as seen	Segna come visto
 Marked as seen. Tap again to undo.	Segnato come visto. Tocca di nuovo per annullare.
 Marked as seen and sent	Segnato come visto e inviato
+# context: View stories anonymously's third switch, after Mark as seen button. A like is the heart under a story, a quick reaction is an emoji from the row above a story's reply box
+Mark a story seen when you like or reply	Segna una storia come vista quando metti mi piace o rispondi
+While you view anonymously, liking a story, replying to it or sending it a quick reaction puts you on that story's viewer list first. The other stories stay hidden.	Mentre guardi in modo anonimo, mettere mi piace a una storia, risponderle o inviarle una reazione rapida ti fa comparire prima nell'elenco di chi ha visto quella storia. Le altre storie restano nascoste.
 View DM photos and videos anonymously	Guarda foto e video dei messaggi in modo anonimo
 Stops people seeing that you opened their view once photos and videos. They still disappear after you view them. This is a test feature and starts off.	Impedisce che le persone vedano che hai aperto le loro foto e i loro video a visualizzazione singola. Scompaiono comunque dopo che li hai visti. È una funzione di prova e parte disattivata.
 Restored %1$d settings. Kept %2$d newer choices.	Ripristinate %1$d impostazioni. Mantenute %2$d scelte più recenti.

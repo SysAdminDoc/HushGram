@@ -604,6 +604,9 @@ Adds an eye button to the top of each story while you view anonymously. Tap it t
 Mark as seen	Đánh dấu đã xem
 Marked as seen. Tap again to undo.	Đã đánh dấu đã xem. Nhấn lại để hoàn tác.
 Marked as seen and sent	Đã đánh dấu đã xem và gửi
+# context: View stories anonymously's third switch, after Mark as seen button. A like is the heart under a story, a quick reaction is an emoji from the row above a story's reply box
+Mark a story seen when you like or reply	Đánh dấu đã xem tin khi bạn thích hoặc trả lời
+While you view anonymously, liking a story, replying to it or sending it a quick reaction puts you on that story's viewer list first. The other stories stay hidden.	Khi bạn xem ẩn danh, việc thích một tin, trả lời tin đó hoặc gửi cảm xúc nhanh sẽ đưa bạn vào danh sách người xem của tin đó trước. Các tin khác vẫn ẩn.
 View DM photos and videos anonymously	Xem ảnh và video trong Direct ẩn danh
 Stops people seeing that you opened their view once photos and videos. They still disappear after you view them. This is a test feature and starts off.	Ngăn mọi người thấy bạn đã mở ảnh và video xem một lần của họ. Chúng vẫn biến mất sau khi bạn xem. Đây là tính năng thử nghiệm và mặc định tắt.
 Restored %1$d settings. Kept %2$d newer choices.	Đã khôi phục %1$d cài đặt. Giữ %2$d lựa chọn mới hơn.

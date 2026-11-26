@@ -232,6 +232,22 @@ public class StoryMarksTest {
         assertFalse("for a day", marks.held(ME, "222"));
     }
 
+    /** A like or reply marks its story (#876) without ever undoing a mark, and leaves one already sent alone. */
+    @Test
+    public void aMarkFromALikeNeverUnmarks() {
+        assertEquals(StoryMarks.State.MARKED, marks.mark(ME, "111"));
+        assertEquals("a second like keeps it marked", StoryMarks.State.MARKED, marks.mark(ME, "111"));
+        assertEquals(StoryMarks.State.MARKED, state("111"));
+        assertEquals("a tap after a like still undoes it", StoryMarks.State.UNMARKED, toggle("111"));
+        assertEquals(StoryMarks.State.MARKED, marks.mark(ME, "111"));
+        assertHolds(send(batch(A, B)), A);
+        assertEquals(StoryMarks.State.SENT, marks.mark(ME, "111"));
+        assertEquals(StoryMarks.State.SENT, state("111"));
+        assertEquals("no account, nothing marked", StoryMarks.State.UNMARKED, marks.mark(null, "222"));
+        assertEquals(StoryMarks.State.UNMARKED, state("222"));
+        assertEquals("a mark belongs to its account", StoryMarks.State.UNMARKED, marks.state(OTHER, "111"));
+    }
+
     @Test
     public void anUndoneMarkSendsNothing() {
         assertEquals(StoryMarks.State.MARKED, toggle("111"));

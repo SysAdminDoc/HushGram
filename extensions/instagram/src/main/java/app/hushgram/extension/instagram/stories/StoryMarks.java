@@ -35,8 +35,9 @@ import java.util.function.LongSupplier;
  * memory only, so they also lapse when Instagram's process ends.
  *
  * <p>Batches are held back whole while views are anonymous. So a story you mark after its batch went
- * can still go out, the stories of each batch held back while the button is on are kept here, up to
- * {@link #MAX_HELD} of them for 24 hours, and a tap on one of those sends it straight away.
+ * can still go out, the stories of each batch held back while the button or Mark a story seen when
+ * you like or reply is on are kept here, up to {@link #MAX_HELD} of them for 24 hours, and a tap,
+ * like or reply on one of those sends it straight away.
  */
 final class StoryMarks {
     /** How long a mark waits for a send, and how long a held-back story or a sent one is remembered. */
@@ -107,6 +108,24 @@ final class StoryMarks {
         if (marked.remove(id) != null) return State.UNMARKED;
         marked.put(id, now);
         trim(marked, MAX_MARKS);
+        return State.MARKED;
+    }
+
+    /**
+     * A like or a reply ({@link StoryAnswerSeen}): marks [story] for [account] as a tap does, but
+     * never takes a mark back, so a story you marked and then liked stays marked. A story already
+     * sent stays sent, and with no account nothing is marked. Answers where it stands now.
+     */
+    synchronized State mark(@Nullable String account, String story) {
+        if (account == null) return State.UNMARKED;
+        long now = clock.getAsLong();
+        prune(now);
+        String id = id(account, story);
+        if (sent.containsKey(id)) return State.SENT;
+        if (!marked.containsKey(id)) {
+            marked.put(id, now);
+            trim(marked, MAX_MARKS);
+        }
         return State.MARKED;
     }
 

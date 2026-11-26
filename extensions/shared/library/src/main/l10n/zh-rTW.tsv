@@ -610,6 +610,9 @@ Adds an eye button to the top of each story while you view anonymously. Tap it t
 Mark as seen	標記為已讀
 Marked as seen. Tap again to undo.	已標記為已讀。再次點擊即可復原。
 Marked as seen and sent	已標記為已讀並送出
+# context: View stories anonymously's third switch, after Mark as seen button. A like is the heart under a story, a quick reaction is an emoji from the row above a story's reply box
+Mark a story seen when you like or reply	按讚或回覆時將限時動態標示為已讀
+While you view anonymously, liking a story, replying to it or sending it a quick reaction puts you on that story's viewer list first. The other stories stay hidden.	匿名觀看時，對限時動態按讚、回覆或傳送快速回應，會先讓你出現在該則限時動態的觀看者名單中。其他限時動態仍維持匿名。
 View DM photos and videos anonymously	匿名檢視私訊照片與影片
 Stops people seeing that you opened their view once photos and videos. They still disappear after you view them. This is a test feature and starts off.	不讓對方知道你已開啟只能看一次的照片與影片。觀看後仍會消失。此為測試功能，預設關閉。
 Restored %1$d settings. Kept %2$d newer choices.	已還原 %1$d 項設定，保留較新的 %2$d 項選擇。

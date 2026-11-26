@@ -256,7 +256,7 @@ internal fun BytecodePatchContext.findStorySeen(): StorySeenTargets {
  * shared strings, which Redex picks differently per build (451's 385713073 asks a pool for
  * [FORCE_SEEN_KEY]). The pools themselves aren't taken, though they hold the strings.
  */
-private fun BytecodePatchContext.methodLoading(what: String, vararg strings: String): MutableMethod {
+internal fun BytecodePatchContext.methodLoading(what: String, vararg strings: String): MutableMethod {
     val found = classesLoadingString(strings.first()).flatMap { owner ->
         owner.methods.filter { method -> !method.isStringPool() && strings.all { loadsString(method, it) } }
     }
@@ -787,8 +787,9 @@ private fun BytecodePatchContext.constantAt(code: List<Instruction>, at: Int, re
 /**
  * The public getter of the account the store sends for, the instance method taking nothing that
  * answers a [USER_SESSION], declared on the store or the closest class it extends that has one.
+ * The story like store's is found the same way ([findStoryAnswers]).
  */
-private fun BytecodePatchContext.sessionGetter(storeClass: ClassDef): Method {
+internal fun BytecodePatchContext.sessionGetter(storeClass: ClassDef): Method {
     var type: String? = storeClass.type
     repeat(8) {
         val classDef = type?.takeIf { it != OBJECT }?.let { classDefByOrNull(it) } ?: return@repeat

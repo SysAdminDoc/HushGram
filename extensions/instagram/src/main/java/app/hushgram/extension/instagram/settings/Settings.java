@@ -1492,6 +1492,17 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_mark_stories_seen", FALSE);
 
     /**
+     * Under {@link #VIEW_STORIES_ANONYMOUSLY}: liking a story whose view is held back, replying to it
+     * or sending it a quick reaction lets that story's view go first, as Mark as seen would, so the
+     * like or reply doesn't come from someone Instagram never saw watch it
+     * ({@link app.hushgram.extension.instagram.stories.StoryAnswerSeen}, #876). Read each time a
+     * like, reply or reaction goes and each time a batch of views goes to be sent, so a change
+     * applies to the next one. Off to start.
+     */
+    public static final BooleanSetting MARK_STORY_SEEN_ON_LIKE_OR_REPLY =
+            new BooleanSetting("hushgram_mark_story_seen_on_like_or_reply", FALSE, parent(VIEW_STORIES_ANONYMOUSLY));
+
+    /**
      * Stories you watch while views are held back still turn gray on this phone
      * ({@link app.hushgram.extension.instagram.stories.StorySeenRings}). Off to start, so a watched
      * story keeps its colored ring and its place (#92). On, Instagram writes the story's seen time

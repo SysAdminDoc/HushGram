@@ -1251,6 +1251,9 @@ Mark one-time photos and videos	تعليم الصور والفيديوهات ل�
 Mark who doesn't follow you back	تعليم من لا يتابعونك
 Marked as read	تم التعليم كمقروء
 Marked as seen and sent	تم التعليم كمشاهَد ومُرسَل
+# context: View stories anonymously's third switch, after Mark as seen button. A like is the heart under a story, a quick reaction is an emoji from the row above a story's reply box
+Mark a story seen when you like or reply	تعليم القصة كمشاهَدة عند الإعجاب أو الرد
+While you view anonymously, liking a story, replying to it or sending it a quick reaction puts you on that story's viewer list first. The other stories stay hidden.	أثناء المشاهدة دون الكشف عن هويتك، يؤدي الإعجاب بقصة أو الرد عليها أو إرسال تفاعل سريع إليها إلى ظهورك أولاً في قائمة مشاهدي تلك القصة. تبقى القصص الأخرى مخفية.
 Marked as seen. Tap again to undo.	تم التعليم كمشاهَد. اضغط مرة أخرى للتراجع.
 Matches: %1$d of %2$d account loaded so far. Loading the rest of your list.	المطابقات: %1$d من %2$d حساب تم تحميله حتى الآن. جارٍ تحميل بقية قائمتك.
 Matches: %1$d of %2$d accounts loaded so far. Loading the rest of your list.	المطابقات: %1$d من %2$d حسابات تم تحميلها حتى الآن. جارٍ تحميل بقية قائمتك.

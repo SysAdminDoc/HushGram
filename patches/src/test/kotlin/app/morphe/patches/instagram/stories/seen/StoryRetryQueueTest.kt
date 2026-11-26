@@ -370,9 +370,13 @@ class StoryRetryQueueTest {
         assertTrue("cancellation allocates no batch, callback, lambda or request", code.subList(at, at + 6)
             .none { it.opcode in setOf(Opcode.NEW_INSTANCE, Opcode.NEW_ARRAY, Opcode.FILLED_NEW_ARRAY, Opcode.FILLED_NEW_ARRAY_RANGE) })
         assertEquals("after a null selection there is only the native snapshot-loop backedge", listOf(Opcode.GOTO), code.subList(at + 5, at + 6).map { it.opcode })
+        // Mark a story seen when you like or reply (#876) hooks these three; StoryAnswerSeenHookTest checks them.
+        val answers = PatchContexts.of(classes).let { it.findStoryAnswers(it.findStorySeen()) }
+            .let { setOf(it.like, it.reply, it.viewer) }.map { "${it.definingClass}->${it.name}(${it.parameterTypes.joinToString("")})" }.toSet()
         for (type in classes) for (method in type.methods) {
             if (type.type == queue.owner && method.name == queue.run && method.parameterTypes.map(Any::toString) == queue.parameters || type.type == found.store && method.name == found.send ||
-                type.type == found.binder && method.name == found.binderName || type.type.startsWith("Lapp/hushgram/extension/")) continue
+                type.type == found.binder && method.name == found.binderName || type.type.startsWith("Lapp/hushgram/extension/") ||
+                "${type.type}->${method.name}(${method.parameterTypes.joinToString("")})" in answers) continue
             val after = context.classDefByOrNull(type.type)!!.methods.single { it.name == method.name && it.parameterTypes == method.parameterTypes && it.returnType == method.returnType }
             assertEquals("${type.type}->${method.name} changed", method.code().map { it.opcode to it.reference() }, after.code().map { it.opcode to it.reference() })
         }

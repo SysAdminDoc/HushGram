@@ -602,6 +602,9 @@ Adds an eye button to the top of each story while you view anonymously. Tap it t
 Mark as seen	ทำเครื่องหมายว่าดูแล้ว
 Marked as seen. Tap again to undo.	ทำเครื่องหมายว่าดูแล้ว แตะอีกครั้งเพื่อเลิกทำ
 Marked as seen and sent	ทำเครื่องหมายว่าดูแล้วและส่งแล้ว
+# context: View stories anonymously's third switch, after Mark as seen button. A like is the heart under a story, a quick reaction is an emoji from the row above a story's reply box
+Mark a story seen when you like or reply	ทำเครื่องหมายว่าดูสตอรี่แล้วเมื่อคุณกดถูกใจหรือตอบกลับ
+While you view anonymously, liking a story, replying to it or sending it a quick reaction puts you on that story's viewer list first. The other stories stay hidden.	ขณะที่คุณดูแบบไม่ระบุตัวตน การกดถูกใจสตอรี่ ตอบกลับสตอรี่ หรือส่งการแสดงความรู้สึกด่วนให้สตอรี่นั้น จะทำให้คุณแสดงในรายชื่อผู้ชมของสตอรี่นั้นก่อน สตอรี่อื่นๆ จะยังคงซ่อนอยู่
 View DM photos and videos anonymously	ดูรูปภาพและวิดีโอใน DM แบบไม่ระบุตัวตน
 Stops people seeing that you opened their view once photos and videos. They still disappear after you view them. This is a test feature and starts off.	ป้องกันไม่ให้ผู้อื่นเห็นว่าคุณเปิดดูรูปภาพและวิดีโอแบบดูได้ครั้งเดียวของพวกเขา รูปภาพและวิดีโอจะยังคงหายไปหลังจากที่คุณดู นี่เป็นฟีเจอร์ทดสอบและเริ่มต้นปิดใช้งานอยู่
 Restored %1$d settings. Kept %2$d newer choices.	กู้คืนการตั้งค่าแล้ว %1$d รายการ และคงตัวเลือกที่ใหม่กว่าไว้ %2$d รายการ

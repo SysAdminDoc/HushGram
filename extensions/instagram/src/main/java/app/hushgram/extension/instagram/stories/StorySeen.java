@@ -140,9 +140,10 @@ public final class StorySeen {
     private StorySeen() {
     }
 
-    // Reuse the adapters: a held retry needs no new lambda or batch.
+    // Reuse the adapters: a held retry needs no new lambda or batch. MARKING is what the send and the
+    // retry ask, so StorySeenTest checks it follows both marking switches.
     private static final BooleanSupplier ANONYMOUS = StorySeen::anonymous;
-    private static final BooleanSupplier MARKING = StorySeenButton::switchedOn;
+    static final BooleanSupplier MARKING = StorySeen::marking;
 
     /**
      * Asked first thing in the send, with the store sending and the batch it was handed. Answers the
@@ -233,6 +234,15 @@ public final class StorySeen {
     /** Whether views are held back: the switch on, HushGram not paused and the settings read. */
     static boolean anonymous() {
         return Utils.settingsReady() && Settings.VIEW_STORIES_ANONYMOUSLY.get();
+    }
+
+    /**
+     * Whether marked stories go out of a batch held back: the Mark as seen button's switch on, or
+     * Mark a story seen when you like or reply's ({@link StoryAnswerSeen}, #876). Either keeps the
+     * stories a batch held back, so a mark made later can still send one.
+     */
+    static boolean marking() {
+        return StorySeenButton.switchedOn() || StoryAnswerSeen.switchedOn();
     }
 
     /**

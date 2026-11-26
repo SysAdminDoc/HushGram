@@ -605,6 +605,9 @@ Adds an eye button to the top of each story while you view anonymously. Tap it t
 Mark as seen	Görüldü olarak işaretle
 Marked as seen. Tap again to undo.	Görüldü olarak işaretlendi. Geri almak için tekrar dokun.
 Marked as seen and sent	Görüldü olarak işaretlendi ve gönderildi
+# context: View stories anonymously's third switch, after Mark as seen button. A like is the heart under a story, a quick reaction is an emoji from the row above a story's reply box
+Mark a story seen when you like or reply	Beğendiğinde veya yanıtladığında hikayeyi görüldü olarak işaretle
+While you view anonymously, liking a story, replying to it or sending it a quick reaction puts you on that story's viewer list first. The other stories stay hidden.	Anonim izlerken bir hikayeyi beğenmek, ona yanıt vermek veya hızlı tepki göndermek seni önce o hikayenin izleyici listesine ekler. Diğer hikayeler gizli kalır.
 View DM photos and videos anonymously	Mesajlardaki fotoğraf ve videoları anonim görüntüle
 Stops people seeing that you opened their view once photos and videos. They still disappear after you view them. This is a test feature and starts off.	İnsanların tek seferlik fotoğraf ve videolarını açtığını görmelerini engeller. Baktıktan sonra yine kaybolurlar. Bu bir test özelliğidir ve kapalı başlar.
 Restored %1$d settings. Kept %2$d newer choices.	%1$d ayar geri yüklendi. Daha sonra yapılan %2$d seçim korundu.

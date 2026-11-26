@@ -43,7 +43,36 @@ public class StorySeenTest {
         PauseForTests.resume();
         Settings.VIEW_STORIES_ANONYMOUSLY.resetToDefault();
         Settings.MARK_STORIES_SEEN.resetToDefault();
+        Settings.MARK_STORY_SEEN_ON_LIKE_OR_REPLY.resetToDefault();
         HookStatus.clear();
+    }
+
+    /** Either marking switch keeps the stories a batch holds back, for a mark made later: the button's or the like or reply one's (#876). */
+    @Test
+    public void eitherMarkingSwitchKeepsHeldStories() {
+        assertFalse("neither on", StorySeen.marking());
+        Settings.MARK_STORY_SEEN_ON_LIKE_OR_REPLY.save(true);
+        assertTrue("like or reply alone", StorySeen.marking());
+        Settings.MARK_STORY_SEEN_ON_LIKE_OR_REPLY.resetToDefault();
+        Settings.MARK_STORIES_SEEN.save(true);
+        assertTrue("the button alone", StorySeen.marking());
+        Settings.MARK_STORY_SEEN_ON_LIKE_OR_REPLY.save(true);
+        Settings.VIEW_STORIES_ANONYMOUSLY.save(false);
+        assertFalse("views not held back", StorySeen.marking());
+    }
+
+    /**
+     * The send and the retry ask the like or reply switch too, so a batch held back keeps its stories
+     * for a like or reply made later, with the Mark as seen button off (#876).
+     */
+    @Test
+    public void theSendsMarkingCheckFollowsTheLikeOrReplySwitch() {
+        assertFalse("neither on", StorySeen.MARKING.getAsBoolean());
+        Settings.MARK_STORY_SEEN_ON_LIKE_OR_REPLY.save(true);
+        assertTrue("like or reply alone", StorySeen.MARKING.getAsBoolean());
+        Settings.MARK_STORY_SEEN_ON_LIKE_OR_REPLY.resetToDefault();
+        Settings.MARK_STORIES_SEEN.save(true);
+        assertTrue("the button alone", StorySeen.MARKING.getAsBoolean());
     }
 
     @Test

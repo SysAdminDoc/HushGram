@@ -6,6 +6,7 @@ package app.hushgram.extension.instagram.settings;
 
 import static org.junit.Assert.*;
 import android.app.Activity;
+import android.preference.PreferenceGroup;
 import android.preference.SwitchPreference;
 import java.util.EnumSet;
 import java.util.List;
@@ -49,6 +50,7 @@ public class StorySeenSettingsTest {
         Utils.awaitBackgroundTasksForTests();
         PatchFamily.inBuildForTests = null;
         Settings.MARK_STORIES_SEEN.resetToDefault();
+        Settings.MARK_STORY_SEEN_ON_LIKE_OR_REPLY.resetToDefault();
         Settings.VIEW_STORIES_ANONYMOUSLY.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
@@ -79,7 +81,8 @@ public class StorySeenSettingsTest {
         List<BooleanSetting> switches = PatchFamily.STORY_SEEN.switches;
         assertEquals(Settings.VIEW_STORIES_ANONYMOUSLY, switches.get(0));
         assertEquals(Settings.MARK_STORIES_SEEN, switches.get(1));
-        assertEquals(Settings.GRAY_OUT_WATCHED_STORIES, switches.get(2));
+        assertEquals(Settings.MARK_STORY_SEEN_ON_LIKE_OR_REPLY, switches.get(2));
+        assertEquals(Settings.GRAY_OUT_WATCHED_STORIES, switches.get(3));
         SwitchPreference gray = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.GRAY_OUT_WATCHED_STORIES.key);
         assertNotNull(gray);
         assertEquals("Gray out stories you've watched", gray.getTitle().toString());
@@ -94,6 +97,54 @@ public class StorySeenSettingsTest {
         PauseForTests.resume();
         assertTrue(Settings.MARK_STORIES_SEEN.get());
         assertEquals(37, RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion);
+    }
+
+    /**
+     * Mark a story seen when you like or reply (#876) comes with the patch, right after Mark as seen
+     * button, starts off, says what it does, rests until View stories anonymously is on, and reads
+     * off while paused.
+     */
+    @Test public void theLikeOrReplySwitchFollowsMarkAsSeenAndStartsOff() throws Exception {
+        try {
+            open(false);
+            assertNull(page.getPreferenceScreen().findPreference(Settings.MARK_STORY_SEEN_ON_LIKE_OR_REPLY.key));
+            controller.close();
+            controller = null;
+
+            open(true);
+            SwitchPreference row = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.MARK_STORY_SEEN_ON_LIKE_OR_REPLY.key);
+            SwitchPreference button = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.MARK_STORIES_SEEN.key);
+            assertNotNull(row);
+            assertEquals("Mark a story seen when you like or reply", row.getTitle().toString());
+            String summary = row.getSummary().toString();
+            assertTrue(summary, summary.contains("liking a story") && summary.contains("quick reaction") && summary.contains("other stories stay hidden"));
+            assertFalse(row.isChecked());
+            assertEquals(Boolean.FALSE, Settings.MARK_STORY_SEEN_ON_LIKE_OR_REPLY.defaultValue);
+            assertFalse("rests with View stories anonymously off", row.isEnabled());
+            assertFalse(Settings.MARK_STORY_SEEN_ON_LIKE_OR_REPLY.isAvailable());
+            PreferenceGroup group = row.getParent();
+            assertNotNull(group);
+            assertSame(group, button.getParent());
+            int buttonAt = -1;
+            int rowAt = -1;
+            for (int i = 0; i < group.getPreferenceCount(); i++) {
+                if (group.getPreference(i) == button) buttonAt = i;
+                if (group.getPreference(i) == row) rowAt = i;
+            }
+            assertEquals("right after Mark as seen button", buttonAt + 1, rowAt);
+            Settings.VIEW_STORIES_ANONYMOUSLY.save(true);
+            assertTrue(Settings.MARK_STORY_SEEN_ON_LIKE_OR_REPLY.isAvailable());
+
+            Settings.MARK_STORY_SEEN_ON_LIKE_OR_REPLY.save(true);
+            assertTrue(Settings.MARK_STORY_SEEN_ON_LIKE_OR_REPLY.get());
+            PauseForTests.pause(HushgramPause.Reason.SWITCH);
+            assertFalse(Settings.MARK_STORY_SEEN_ON_LIKE_OR_REPLY.get());
+            assertTrue(Settings.MARK_STORY_SEEN_ON_LIKE_OR_REPLY.savedValue());
+            PauseForTests.resume();
+            assertTrue(Settings.MARK_STORY_SEEN_ON_LIKE_OR_REPLY.get());
+        } finally {
+            Settings.MARK_STORY_SEEN_ON_LIKE_OR_REPLY.resetToDefault();
+        }
     }
 
     /**

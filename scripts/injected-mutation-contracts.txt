@@ -2386,6 +2386,20 @@ once-call Lapp/hushgram/extension/instagram/stories/StoryDownloadButton;->bind(L
 # nux_story take a view or two ints. Left out, every story you watch greys and moves to the end of
 # the tray; twice or elsewhere, it isn't the hook the patch wrote.
 once-call Lapp/hushgram/extension/instagram/stories/StorySeenRings;->seen(Ljava/lang/Object;Ljava/lang/Object;JLjava/lang/Object;)V in instance (Lcom/instagram/model/reels/ReelItem;LX/*;)V holding LX/*;->*(LX/*;LX/*;I)V
+# Mark a story seen when you like or reply (#876) puts three more hooks in. StoryAnswerSeen.answered
+# goes first in the static send a typed story reply and a quick reaction from the reply bar both go
+# through (02yd.A15 on 386314341, taking the account, the story, its target and a flag, and holding
+# reel), with the account and the story. StoryAnswerSeen.liked goes in the story like store's builder
+# of a like's request (02ps.A0S on 386314341, the one method loading both request names, pooled on
+# some builds) right before it loads send_story_like, with the store and the story's id. And
+# StoryAnswerSeen.viewerOpened goes right before the return of the constructor of the story viewer's
+# flush by count (06W8 on 386314341, the one method holding its setting's name), with the flusher it's
+# made with. Left out, a like or reply on a story whose view is held back goes from someone Instagram
+# never saw watch it; twice or elsewhere, it isn't the hook the patch wrote.
+start-call Lapp/hushgram/extension/instagram/stories/StoryAnswerSeen;->answered(Ljava/lang/Object;Ljava/lang/Object;)V in static (Lcom/instagram/common/session/UserSession;Lcom/instagram/feed/media/Media;Lcom/instagram/model/direct/DirectShareTarget;Ljava/lang/Boolean;*)V pooled holding reel
+once-call Lapp/hushgram/extension/instagram/stories/StoryAnswerSeen;->answered(Ljava/lang/Object;Ljava/lang/Object;)V in static (Lcom/instagram/common/session/UserSession;Lcom/instagram/feed/media/Media;Lcom/instagram/model/direct/DirectShareTarget;Ljava/lang/Boolean;*)V pooled holding reel
+once-call Lapp/hushgram/extension/instagram/stories/StoryAnswerSeen;->liked(Ljava/lang/Object;Ljava/lang/String;)V in instance (L*;L*;Ljava/lang/Integer;Ljava/lang/String;*)L*; pooled holding send_story_like unsend_story_like
+once-call Lapp/hushgram/extension/instagram/stories/StoryAnswerSeen;->viewerOpened(Ljava/lang/Object;)V in instance (Lcom/instagram/common/session/UserSession;L*;)V pooled holding STORIES_SEEN_STATE_FLUSH
 # And it hands StoryTrayOrder the reel store's lists right before they return, so watched stories go
 # behind unwatched ones while their rings stay new (#241): the one for the feed's stories unit
 # (03sa.A0a on 452.1, the synchronized (list) list method calling the store's static (session, list)

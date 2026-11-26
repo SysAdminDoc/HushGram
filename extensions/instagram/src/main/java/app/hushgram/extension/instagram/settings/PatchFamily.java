@@ -93,7 +93,7 @@ public enum PatchFamily {
             Settings.CAROUSEL_DOTS_PILL, Settings.CAROUSEL_HIDE_NUMBER),
     AMBIENT_LIGHT(FamilyNames.AMBIENT_LIGHT, "ambientLight", null, Settings.AMBIENT_LIGHT, Settings.AMBIENT_LIGHT_STORIES),
     STORY_SEEN(FamilyNames.STORY_SEEN, "storySeen", null, Settings.VIEW_STORIES_ANONYMOUSLY,
-            Settings.MARK_STORIES_SEEN, Settings.GRAY_OUT_WATCHED_STORIES),
+            Settings.MARK_STORIES_SEEN, Settings.MARK_STORY_SEEN_ON_LIKE_OR_REPLY, Settings.GRAY_OUT_WATCHED_STORIES),
     LIVE_SEEN(FamilyNames.LIVE_SEEN, "liveSeen", null, Settings.VIEW_LIVE_ANONYMOUSLY, Settings.MARK_LIVE_SEEN),
     DM_MEDIA_SEEN(FamilyNames.DM_MEDIA_SEEN, "visualSeen", null, Settings.VIEW_DM_MEDIA_ANONYMOUSLY),
     SPOOF_LOCATION(FamilyNames.SPOOF_LOCATION, "spoofLocation", null, Settings.SPOOF_LOCATION),

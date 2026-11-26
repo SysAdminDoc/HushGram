@@ -20,7 +20,9 @@ internal const val PATCH = "View stories anonymously"
  *
  * In the default selection with its switch off, since it changes what other people see. A second
  * switch, off to start, adds a Mark as seen button to the story viewer's header: a
- * story you tap it on is reported, alone, and the rest stay held back.
+ * story you tap it on is reported, alone, and the rest stay held back. A third, Mark a story seen
+ * when you like or reply (#876), also off to start, does the same for a story you like, reply to or
+ * send a quick reaction to, before the like or reply goes.
  *
  * Instagram also writes down on the phone that you watched a story, which greys its ring and sends
  * it to the end of the tray. While its view is held back that write is skipped too, so the ring
@@ -67,15 +69,19 @@ val viewStoriesAnonymouslyPatch = bytecodePatch(
  * route to the request ([findStorySeen]).
  *
  * The Mark as seen button goes in from the story header binder, which every story on screen runs
- * through with its account, the story and its view holder.
+ * through with its account, the story and its view holder. Mark a story seen when you like or reply
+ * (#876) hooks the story like store, the send of a story reply and the story viewer's flusher
+ * ([findStoryAnswers]), so a like or reply lets that one story's view go first.
  *
- * Everything is found and checked first ([findStorySeen]); nothing is written unless all of it is
- * there.
+ * Everything is found and checked first ([findStorySeen], [findStoryAnswers]); nothing is written
+ * unless all of it is there.
  */
 internal fun BytecodePatchContext.holdBackStoryViews() {
     val found = findStorySeen()
+    val answers = findStoryAnswers(found)
     hookStorySend(found)
     hookStoryRetryQueue(found)
     hookStoryHeader(found)
+    hookStoryAnswers(answers)
     found.fillStubs()
 }

@@ -366,8 +366,9 @@ class StorySeenHookTest {
     /**
      * The classes the patch reads on [bundle]: those holding its four strings in one pass, then every
      * class calling the seen request, then the header binder's parameter types, the story class and
-     * the account's, then their superclasses up to the view holder base and the store's, and the
-     * extension's two classes.
+     * the account's, then their superclasses up to the view holder base and the store's, the
+     * extension's two classes, and what Mark a story seen when you like or reply reads
+     * ([StoryAnswerFixtures.fixtureClasses]).
      */
     /** [fixtureClasses] kept for the retry tests, which check most of their mutations on every build. */
     internal fun keptFixtureClasses(bundle: java.io.File): List<ClassDef> = kept.get(bundle) { fixtureClasses(bundle) }
@@ -449,7 +450,8 @@ class StorySeenHookTest {
                 .forEach { extra += it.returnType }
         }
         found += FixtureDex.classes(bundle, extra.filter { it !in found }.toSet())
-        return (FixtureDex.withStringPools(bundle, found.values) + ExtensionDex.classDef(STORY_SEEN) + ExtensionDex.classDef(STORY_SEEN_BUTTON))
+        val answers = StoryAnswerFixtures.fixtureClasses(bundle, found.keys.toSet())
+        return (FixtureDex.withStringPools(bundle, found.values) + answers + ExtensionDex.classDef(STORY_SEEN) + ExtensionDex.classDef(STORY_SEEN_BUTTON))
             .map { ImmutableClassDef.of(it) }.distinctBy { it.type }
     }
 
@@ -568,7 +570,8 @@ class StorySeenHookTest {
      * The batch, its request builder, its constructors and empty check; the store with its disk
      * reader, getter, send, retry and the methods the patch leaves alone, and the class above it that
      * answers its account; the account; the Reset NUX route; the story header binder; the view holder
-     * base and a holder two classes down; the story class; and the extension's two classes.
+     * base and a holder two classes down; the story class; the extension's two classes; and, unless
+     * [answers] is off, what Mark a story seen when you like or reply hooks ([StoryAnswerFixtures]).
      */
     internal fun standIns(
         request: Boolean = true,
@@ -615,6 +618,7 @@ class StorySeenHookTest {
         itemViewPublic: Boolean = true,
         splitQueue: Boolean = false,
         siblingHandBack: String = "invoke-super",
+        answers: Boolean = true,
     ): List<ClassDef> {
         val stories = if (storiesFromStatic) "sget-object v0, $BATCH->shared:Ljava/util/HashMap;" else "iget-object v0, p0, $BATCH->stories:Ljava/util/HashMap;"
         val builder = """
@@ -914,7 +918,7 @@ class StorySeenHookTest {
             ImmutableClassDef.of(ExtensionDex.classDef(STORY_SEEN)),
             ImmutableClassDef.of(ExtensionDex.classDef(STORY_SEEN_BUTTON)),
             if (splitQueue) storySiblingStore(STORE_BASE, SIBLING_STORE, siblingHandBack) else null,
-        ) + storyQueueDiskHelpers()
+        ) + storyQueueDiskHelpers() + if (answers) StoryAnswerFixtures.standIns(STORE, BATCH, "A0O") else emptyList()
     }
 
     private fun method(
