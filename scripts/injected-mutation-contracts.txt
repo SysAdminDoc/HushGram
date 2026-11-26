@@ -1502,6 +1502,14 @@ once-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->askMetaAiBox(Landroi
 # 385611400 and 439 ask a string pool for some of these names there, so pool asks count (pooled).
 # 457's builder (0PvV.A03 on 386314341) is an instance method taking only the object.
 once-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->shareTarget(I)Z in instance (Ljava/lang/Object;)Ljava/util/ArrayList; pooled holding hatch whatsapp_status add_to_audio_note screenshot_preview
+# The share sheet's grid of people holds Meta AI (Muse on some accounts) as Meta AI's share action,
+# not as a person or a chat (#879). The grid adapter, the class loading its New group button's view
+# name, takes the action through one static (adapter, action, callback, boolean) setter (0ZxB.A0D on
+# 386314341), which asks museRecipient() first with the action it was handed, before testing it. It
+# holds no string, so the rules pick it by its class's. Left out, Muse stays in the grid and its
+# search with Hide Meta AI in the share sheet on.
+start-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->museRecipient(Ljava/lang/Object;)Ljava/lang/Object; in static (LX/*;LX/*;Lkotlin/jvm/functions/Function1;Z)V pooled class-holding direct_share_sheet_new_group_pog_view
+once-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->museRecipient(Ljava/lang/Object;)Ljava/lang/Object; in static (LX/*;LX/*;Lkotlin/jvm/functions/Function1;Z)V pooled class-holding direct_share_sheet_new_group_pog_view
 # The message composer's Meta AI buttons (discover, invocation and voice) all go through one
 # visibility dispatcher, the instance (holder, button, boolean) void method of 02Pe on 450, which
 # asks MetaAi.composerButton first. It holds no string, so the rules pick it by the session field

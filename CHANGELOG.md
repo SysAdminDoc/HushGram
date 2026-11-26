@@ -7,6 +7,7 @@ Every HushGram release, newest first.
 ### Features
 
 * `Page dots on a pill` shows the page you're on in your accent color when `Accent color` is on, Material You included. `Pill look` has a new `Dots only` choice, too. It drops the pill and keeps the dots, each on a soft shadow so it still shows on a bright photo. Asked for in #187.
+* `Hide Meta AI in the share sheet` now also takes Meta AI out of the people you can send to, where some accounts see it as Muse, and out of the share sheet's search. Asked for in #879.
 * `Let Instagram close after account checks` is new under Battery. Instagram never answers your phone's account checks, so Android keeps it running up to 15 minutes, even swiped away. This answers at once. Starts off. Reported in #341.
 * `Keep HDR on video uploads` is new under Playback. Instagram makes HDR videos SDR on some phones when it encodes them for upload. This keeps them HLG HDR on Android 13 and up. Experimental. Starts off. Asked for in #532.
 * `Tint color` is new under Tab bar. The glass can take Instagram's colors, light, dark, AMOLED black, your wallpaper's Material You accent or a color you type, and the preview above the sliders shows each pick. Asked for in #875.

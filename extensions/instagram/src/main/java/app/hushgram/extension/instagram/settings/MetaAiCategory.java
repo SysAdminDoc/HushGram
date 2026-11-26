@@ -37,8 +37,8 @@ final class MetaAiCategory {
                     L10n.t("About this reel keeps its summary and Sources, and only the Ask Meta AI box under them "
                             + "goes.")));
             metaAi.addPreference(toggle(context, Settings.HIDE_META_AI_SHARE_TARGET, L10n.t("Hide Meta AI in the share sheet"),
-                    L10n.t("Removes Meta AI from the row at the bottom of the share sheet. Some accounts see it as "
-                            + "Muse.")));
+                    L10n.t("Removes Meta AI from the share sheet, both from the people you can send to and from "
+                            + "the row at the bottom. Some accounts see it as Muse.")));
             metaAi.addPreference(toggle(context, Settings.HIDE_META_AI_PROFILE_BANNER, L10n.t("Hide the Muse card"),
                     L10n.t("Removes the Meet Muse card, with its Try Muse button, from Home and your profile. "
                             + "Your other cards stay.")));

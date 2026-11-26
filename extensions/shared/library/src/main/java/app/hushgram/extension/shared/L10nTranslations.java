@@ -3607,8 +3607,8 @@ public final class L10nTranslations {
                     "\u0623\u064f\u0632\u064a\u0644 \u0627\u0644\u0645\u062c\u0644\u062f %s");
             table.put("Removes For you from the choices at the top of Home, so it stays on Following or Favorites. Needs Start Home on Following. Restart Instagram to see the change.",
                     "\u064a\u0632\u064a\u0644 For you \u0645\u0646 \u0627\u0644\u062e\u064a\u0627\u0631\u0627\u062a \u0623\u0639\u0644\u0649 \u0627\u0644\u0631\u0626\u064a\u0633\u064a\u0629\u060c \u0641\u064a\u0628\u0642\u0649 \u0639\u0644\u0649 Following \u0623\u0648 \u0627\u0644\u0645\u0641\u0636\u0644\u0629. \u064a\u062a\u0637\u0644\u0628 \u0628\u062f\u0621 \u0627\u0644\u0631\u0626\u064a\u0633\u064a\u0629 \u0639\u0644\u0649 Following. \u0623\u0639\u062f \u062a\u0634\u063a\u064a\u0644 Instagram \u0644\u0631\u0624\u064a\u0629 \u0627\u0644\u062a\u063a\u064a\u064a\u0631.");
-            table.put("Removes Meta AI from the row at the bottom of the share sheet. Some accounts see it as Muse.",
-                    "\u064a\u0632\u064a\u0644 Meta AI \u0645\u0646 \u0627\u0644\u0635\u0641 \u0627\u0644\u0633\u0641\u0644\u064a \u0641\u064a \u0648\u0631\u0642\u0629 \u0627\u0644\u0645\u0634\u0627\u0631\u0643\u0629. \u062a\u0631\u0627\u0647 \u0628\u0639\u0636 \u0627\u0644\u062d\u0633\u0627\u0628\u0627\u062a \u0628\u0627\u0633\u0645 Muse.");
+            table.put("Removes Meta AI from the share sheet, both from the people you can send to and from the row at the bottom. Some accounts see it as Muse.",
+                    "\u064a\u0632\u064a\u0644 Meta AI \u0645\u0646 \u0648\u0631\u0642\u0629 \u0627\u0644\u0645\u0634\u0627\u0631\u0643\u0629\u060c \u0645\u0646 \u0627\u0644\u0623\u0634\u062e\u0627\u0635 \u0627\u0644\u0630\u064a\u0646 \u064a\u0645\u0643\u0646\u0643 \u0627\u0644\u0625\u0631\u0633\u0627\u0644 \u0625\u0644\u064a\u0647\u0645 \u0648\u0645\u0646 \u0627\u0644\u0635\u0641 \u0627\u0644\u0633\u0641\u0644\u064a \u0645\u0639\u064b\u0627. \u062a\u0631\u0627\u0647 \u0628\u0639\u0636 \u0627\u0644\u062d\u0633\u0627\u0628\u0627\u062a \u0628\u0627\u0633\u0645 Muse.");
             table.put("Removes every post with more than one photo or video from Home, even from accounts you follow. Pull down on Home to refresh after changing it.",
                     "\u064a\u0632\u064a\u0644 \u0645\u0646 \u0627\u0644\u0631\u0626\u064a\u0633\u064a\u0629 \u0643\u0644 \u0645\u0646\u0634\u0648\u0631 \u0641\u064a\u0647 \u0623\u0643\u062b\u0631 \u0645\u0646 \u0635\u0648\u0631\u0629 \u0623\u0648 \u0641\u064a\u062f\u064a\u0648\u060c \u062d\u062a\u0649 \u0645\u0646 \u0627\u0644\u062d\u0633\u0627\u0628\u0627\u062a \u0627\u0644\u062a\u064a \u062a\u062a\u0627\u0628\u0639\u0647\u0627. \u0627\u0633\u062d\u0628 \u0644\u0644\u0623\u0633\u0641\u0644 \u0641\u064a \u0627\u0644\u0631\u0626\u064a\u0633\u064a\u0629 \u0644\u0644\u062a\u062d\u062f\u064a\u062b \u0628\u0639\u062f \u062a\u063a\u064a\u064a\u0631\u0647.");
             table.put("Removes every single-photo post from Home, even from accounts you follow. Pull down on Home to refresh after changing it.",
@@ -8905,8 +8905,8 @@ public final class L10nTranslations {
                     "Ordner %s entfernt");
             table.put("Removes For you from the choices at the top of Home, so it stays on Following or Favorites. Needs Start Home on Following. Restart Instagram to see the change.",
                     "Entfernt \u201eF\u00fcr dich\u201c aus der Auswahl oben auf der Startseite, sodass sie bei \u201eGefolgt\u201c oder \u201eFavoriten\u201c bleibt. Braucht \u201eStartseite mit \u201aGefolgt\u2018 \u00f6ffnen\u201c. Starte Instagram neu, um die \u00c4nderung zu sehen.");
-            table.put("Removes Meta AI from the row at the bottom of the share sheet. Some accounts see it as Muse.",
-                    "Entfernt Meta AI aus der Reihe unten im Teilen-Fenster. Manche Konten sehen es als Muse.");
+            table.put("Removes Meta AI from the share sheet, both from the people you can send to and from the row at the bottom. Some accounts see it as Muse.",
+                    "Entfernt Meta AI aus dem Teilen-Fenster, bei den Personen, an die du senden kannst, und aus der Reihe unten. Manche Konten sehen es als Muse.");
             table.put("Removes every post with more than one photo or video from Home, even from accounts you follow. Pull down on Home to refresh after changing it.",
                     "Entfernt jeden Beitrag mit mehreren Fotos oder Videos von der Startseite, auch von Konten, denen du folgst. Ziehe die Startseite nach dem \u00c4ndern nach unten, um sie zu aktualisieren.");
             table.put("Removes every single-photo post from Home, even from accounts you follow. Pull down on Home to refresh after changing it.",
@@ -14203,8 +14203,8 @@ public final class L10nTranslations {
                     "Se quit\u00f3 la carpeta %s");
             table.put("Removes For you from the choices at the top of Home, so it stays on Following or Favorites. Needs Start Home on Following. Restart Instagram to see the change.",
                     "Quita Para ti de las opciones de la parte de arriba de Inicio, as\u00ed que se queda en Seguidos o Favoritos. Necesita \u00abAbrir Inicio en Seguidos\u00bb. Reinicia Instagram para ver el cambio.");
-            table.put("Removes Meta AI from the row at the bottom of the share sheet. Some accounts see it as Muse.",
-                    "Quita Meta AI de la fila de la parte inferior de la hoja de compartir. Algunas cuentas lo ven como Muse.");
+            table.put("Removes Meta AI from the share sheet, both from the people you can send to and from the row at the bottom. Some accounts see it as Muse.",
+                    "Quita Meta AI de la hoja de compartir, tanto de las personas a las que puedes enviar como de la fila de la parte inferior. Algunas cuentas lo ven como Muse.");
             table.put("Removes every post with more than one photo or video from Home, even from accounts you follow. Pull down on Home to refresh after changing it.",
                     "Quita de Inicio todas las publicaciones con m\u00e1s de una foto o video, incluso de cuentas que sigues. Desliza Inicio hacia abajo para actualizar despu\u00e9s de cambiarlo.");
             table.put("Removes every single-photo post from Home, even from accounts you follow. Pull down on Home to refresh after changing it.",
@@ -19501,8 +19501,8 @@ public final class L10nTranslations {
                     "Folder %s dihapus");
             table.put("Removes For you from the choices at the top of Home, so it stays on Following or Favorites. Needs Start Home on Following. Restart Instagram to see the change.",
                     "Menghapus Untuk Anda dari pilihan di bagian atas Beranda, jadi Beranda tetap di Mengikuti atau Favorit. Perlu Buka Beranda di Mengikuti aktif. Mulai ulang Instagram untuk melihat perubahannya.");
-            table.put("Removes Meta AI from the row at the bottom of the share sheet. Some accounts see it as Muse.",
-                    "Menghapus Meta AI dari baris di bagian bawah lembar bagikan. Beberapa akun melihatnya sebagai Muse.");
+            table.put("Removes Meta AI from the share sheet, both from the people you can send to and from the row at the bottom. Some accounts see it as Muse.",
+                    "Menghapus Meta AI dari lembar bagikan, baik dari orang yang bisa kamu kirimi maupun dari baris di bagian bawah. Beberapa akun melihatnya sebagai Muse.");
             table.put("Removes every post with more than one photo or video from Home, even from accounts you follow. Pull down on Home to refresh after changing it.",
                     "Menghapus setiap postingan dengan lebih dari satu foto atau video dari Beranda, bahkan dari akun yang kamu ikuti. Tarik Beranda ke bawah untuk menyegarkan setelah mengubahnya.");
             table.put("Removes every single-photo post from Home, even from accounts you follow. Pull down on Home to refresh after changing it.",
@@ -24799,8 +24799,8 @@ public final class L10nTranslations {
                     "Hai rimosso la cartella %s");
             table.put("Removes For you from the choices at the top of Home, so it stays on Following or Favorites. Needs Start Home on Following. Restart Instagram to see the change.",
                     "Toglie Per te dalle scelte in alto nella Home, cos\u00ec resta su Seguiti o Preferiti. Richiede Apri la Home su Seguiti. Riavvia Instagram per vedere la modifica.");
-            table.put("Removes Meta AI from the row at the bottom of the share sheet. Some accounts see it as Muse.",
-                    "Rimuove Meta AI dalla riga in fondo al foglio di condivisione. Alcuni account lo vedono come Muse.");
+            table.put("Removes Meta AI from the share sheet, both from the people you can send to and from the row at the bottom. Some accounts see it as Muse.",
+                    "Rimuove Meta AI dal foglio di condivisione, sia dalle persone a cui puoi inviare sia dalla riga in fondo. Alcuni account lo vedono come Muse.");
             table.put("Removes every post with more than one photo or video from Home, even from accounts you follow. Pull down on Home to refresh after changing it.",
                     "Rimuove dalla Home ogni post con pi\u00f9 di una foto o un video, anche degli account che segui. Tira verso il basso nella Home per aggiornare dopo averlo cambiato.");
             table.put("Removes every single-photo post from Home, even from accounts you follow. Pull down on Home to refresh after changing it.",
@@ -30097,8 +30097,8 @@ public final class L10nTranslations {
                     "%s \ud3f4\ub354\ub97c \uc0ad\uc81c\ud588\uc2b5\ub2c8\ub2e4");
             table.put("Removes For you from the choices at the top of Home, so it stays on Following or Favorites. Needs Start Home on Following. Restart Instagram to see the change.",
                     "\ud648 \uc0c1\ub2e8\uc758 \uc120\ud0dd\uc9c0\uc5d0\uc11c \ucd94\ucc9c\uc744 \uc5c6\uc560\uc11c \ud314\ub85c\uc789\uc774\ub098 \uc990\uaca8\ucc3e\uae30\uc5d0 \uba38\ubb3c\uac8c \ud569\ub2c8\ub2e4. \u2018\ud314\ub85c\uc789\uc5d0\uc11c \ud648 \uc2dc\uc791\u2019\uc774 \ud544\uc694\ud569\ub2c8\ub2e4. \ubcc0\uacbd \uc0ac\ud56d\uc744 \ubcf4\ub824\uba74 Instagram\uc744 \ub2e4\uc2dc \uc2dc\uc791\ud558\uc138\uc694.");
-            table.put("Removes Meta AI from the row at the bottom of the share sheet. Some accounts see it as Muse.",
-                    "\uacf5\uc720 \uc2dc\ud2b8 \ud558\ub2e8 \ubaa9\ub85d\uc5d0\uc11c Meta AI\ub97c \uc5c6\uc571\ub2c8\ub2e4. \uc77c\ubd80 \uacc4\uc815\uc5d0\uc11c\ub294 Muse\ub85c \ud45c\uc2dc\ub429\ub2c8\ub2e4.");
+            table.put("Removes Meta AI from the share sheet, both from the people you can send to and from the row at the bottom. Some accounts see it as Muse.",
+                    "\uacf5\uc720 \uc2dc\ud2b8\uc5d0\uc11c Meta AI\ub97c \uc5c6\uc571\ub2c8\ub2e4. \ubcf4\ub0bc \uc218 \uc788\ub294 \uc0ac\ub78c \ubaa9\ub85d\uacfc \ud558\ub2e8 \ubaa9\ub85d \ubaa8\ub450\uc5d0\uc11c \uc0ac\ub77c\uc9d1\ub2c8\ub2e4. \uc77c\ubd80 \uacc4\uc815\uc5d0\uc11c\ub294 Muse\ub85c \ud45c\uc2dc\ub429\ub2c8\ub2e4.");
             table.put("Removes every post with more than one photo or video from Home, even from accounts you follow. Pull down on Home to refresh after changing it.",
                     "\ud314\ub85c\uc6b0\ud558\ub294 \uacc4\uc815\uc758 \uac83\uc744 \ud3ec\ud568\ud574 \uc0ac\uc9c4\uc774\ub098 \ub3d9\uc601\uc0c1\uc774 \ub458 \uc774\uc0c1\uc778 \uac8c\uc2dc\ubb3c\uc744 \ud648\uc5d0\uc11c \ubaa8\ub450 \uc5c6\uc571\ub2c8\ub2e4. \ubc14\uafbc \ub4a4\uc5d0\ub294 \ud648\uc744 \uc544\ub798\ub85c \ub2f9\uaca8 \uc0c8\ub85c\uace0\uce68\ud558\uc138\uc694.");
             table.put("Removes every single-photo post from Home, even from accounts you follow. Pull down on Home to refresh after changing it.",
@@ -35395,8 +35395,8 @@ public final class L10nTranslations {
                     "Pasta %s removida");
             table.put("Removes For you from the choices at the top of Home, so it stays on Following or Favorites. Needs Start Home on Following. Restart Instagram to see the change.",
                     "Tira Para voc\u00ea das op\u00e7\u00f5es no topo do In\u00edcio, que ent\u00e3o fica em Seguindo ou Favoritos. Precisa de Abrir o In\u00edcio em Seguindo ativado. Reinicie o Instagram para ver a mudan\u00e7a.");
-            table.put("Removes Meta AI from the row at the bottom of the share sheet. Some accounts see it as Muse.",
-                    "Tira o Meta AI da fileira na parte de baixo da tela de compartilhar. Algumas contas veem como Muse.");
+            table.put("Removes Meta AI from the share sheet, both from the people you can send to and from the row at the bottom. Some accounts see it as Muse.",
+                    "Tira o Meta AI da tela de compartilhar, tanto das pessoas para quem voc\u00ea pode enviar quanto da fileira na parte de baixo. Algumas contas veem como Muse.");
             table.put("Removes every post with more than one photo or video from Home, even from accounts you follow. Pull down on Home to refresh after changing it.",
                     "Tira do In\u00edcio todo post com mais de uma foto ou v\u00eddeo, at\u00e9 de contas que voc\u00ea segue. Puxe o In\u00edcio para baixo para atualizar depois de mudar.");
             table.put("Removes every single-photo post from Home, even from accounts you follow. Pull down on Home to refresh after changing it.",
@@ -40693,8 +40693,8 @@ public final class L10nTranslations {
                     "\u0e25\u0e1a\u0e42\u0e1f\u0e25\u0e40\u0e14\u0e2d\u0e23\u0e4c %s \u0e41\u0e25\u0e49\u0e27");
             table.put("Removes For you from the choices at the top of Home, so it stays on Following or Favorites. Needs Start Home on Following. Restart Instagram to see the change.",
                     "\u0e19\u0e33 \"\u0e2a\u0e33\u0e2b\u0e23\u0e31\u0e1a\u0e04\u0e38\u0e13\" \u0e2d\u0e2d\u0e01\u0e08\u0e32\u0e01\u0e15\u0e31\u0e27\u0e40\u0e25\u0e37\u0e2d\u0e01\u0e17\u0e35\u0e48\u0e14\u0e49\u0e32\u0e19\u0e1a\u0e19\u0e02\u0e2d\u0e07\u0e2b\u0e19\u0e49\u0e32\u0e2b\u0e25\u0e31\u0e01 \u0e40\u0e1e\u0e37\u0e48\u0e2d\u0e43\u0e2b\u0e49\u0e04\u0e07\u0e2d\u0e22\u0e39\u0e48\u0e17\u0e35\u0e48 \"\u0e01\u0e33\u0e25\u0e31\u0e07\u0e15\u0e34\u0e14\u0e15\u0e32\u0e21\" \u0e2b\u0e23\u0e37\u0e2d \"\u0e23\u0e32\u0e22\u0e01\u0e32\u0e23\u0e42\u0e1b\u0e23\u0e14\" \u0e15\u0e49\u0e2d\u0e07\u0e40\u0e1b\u0e34\u0e14\u0e43\u0e0a\u0e49\u0e07\u0e32\u0e19 \"\u0e40\u0e1b\u0e34\u0e14\u0e2b\u0e19\u0e49\u0e32\u0e2b\u0e25\u0e31\u0e01\u0e17\u0e35\u0e48\u0e01\u0e33\u0e25\u0e31\u0e07\u0e15\u0e34\u0e14\u0e15\u0e32\u0e21\" \u0e42\u0e1b\u0e23\u0e14\u0e23\u0e35\u0e2a\u0e15\u0e32\u0e23\u0e4c\u0e17 Instagram \u0e40\u0e1e\u0e37\u0e48\u0e2d\u0e14\u0e39\u0e01\u0e32\u0e23\u0e40\u0e1b\u0e25\u0e35\u0e48\u0e22\u0e19\u0e41\u0e1b\u0e25\u0e07");
-            table.put("Removes Meta AI from the row at the bottom of the share sheet. Some accounts see it as Muse.",
-                    "\u0e25\u0e1a Meta AI \u0e2d\u0e2d\u0e01\u0e08\u0e32\u0e01\u0e41\u0e16\u0e27\u0e14\u0e49\u0e32\u0e19\u0e25\u0e48\u0e32\u0e07\u0e02\u0e2d\u0e07\u0e2b\u0e19\u0e49\u0e32\u0e15\u0e48\u0e32\u0e07\u0e01\u0e32\u0e23\u0e41\u0e0a\u0e23\u0e4c \u0e0b\u0e36\u0e48\u0e07\u0e1a\u0e32\u0e07\u0e1a\u0e31\u0e0d\u0e0a\u0e35\u0e2d\u0e32\u0e08\u0e40\u0e2b\u0e47\u0e19\u0e40\u0e1b\u0e47\u0e19 Muse");
+            table.put("Removes Meta AI from the share sheet, both from the people you can send to and from the row at the bottom. Some accounts see it as Muse.",
+                    "\u0e25\u0e1a Meta AI \u0e2d\u0e2d\u0e01\u0e08\u0e32\u0e01\u0e2b\u0e19\u0e49\u0e32\u0e15\u0e48\u0e32\u0e07\u0e01\u0e32\u0e23\u0e41\u0e0a\u0e23\u0e4c \u0e17\u0e31\u0e49\u0e07\u0e08\u0e32\u0e01\u0e23\u0e32\u0e22\u0e0a\u0e37\u0e48\u0e2d\u0e04\u0e19\u0e17\u0e35\u0e48\u0e04\u0e38\u0e13\u0e2a\u0e48\u0e07\u0e16\u0e36\u0e07\u0e44\u0e14\u0e49\u0e41\u0e25\u0e30\u0e08\u0e32\u0e01\u0e41\u0e16\u0e27\u0e14\u0e49\u0e32\u0e19\u0e25\u0e48\u0e32\u0e07 \u0e0b\u0e36\u0e48\u0e07\u0e1a\u0e32\u0e07\u0e1a\u0e31\u0e0d\u0e0a\u0e35\u0e2d\u0e32\u0e08\u0e40\u0e2b\u0e47\u0e19\u0e40\u0e1b\u0e47\u0e19 Muse");
             table.put("Removes every post with more than one photo or video from Home, even from accounts you follow. Pull down on Home to refresh after changing it.",
                     "\u0e25\u0e1a\u0e42\u0e1e\u0e2a\u0e15\u0e4c\u0e17\u0e35\u0e48\u0e21\u0e35\u0e23\u0e39\u0e1b\u0e20\u0e32\u0e1e\u0e2b\u0e23\u0e37\u0e2d\u0e27\u0e34\u0e14\u0e35\u0e42\u0e2d\u0e21\u0e32\u0e01\u0e01\u0e27\u0e48\u0e32\u0e2b\u0e19\u0e36\u0e48\u0e07\u0e23\u0e32\u0e22\u0e01\u0e32\u0e23\u0e2d\u0e2d\u0e01\u0e08\u0e32\u0e01\u0e2b\u0e19\u0e49\u0e32\u0e2b\u0e25\u0e31\u0e01 \u0e41\u0e21\u0e49\u0e08\u0e30\u0e21\u0e32\u0e08\u0e32\u0e01\u0e1a\u0e31\u0e0d\u0e0a\u0e35\u0e17\u0e35\u0e48\u0e04\u0e38\u0e13\u0e01\u0e33\u0e25\u0e31\u0e07\u0e15\u0e34\u0e14\u0e15\u0e32\u0e21\u0e2d\u0e22\u0e39\u0e48\u0e01\u0e47\u0e15\u0e32\u0e21 \u0e43\u0e2b\u0e49\u0e14\u0e36\u0e07\u0e2b\u0e19\u0e49\u0e32\u0e2b\u0e25\u0e31\u0e01\u0e25\u0e07\u0e40\u0e1e\u0e37\u0e48\u0e2d\u0e23\u0e35\u0e40\u0e1f\u0e23\u0e0a\u0e2b\u0e25\u0e31\u0e07\u0e08\u0e32\u0e01\u0e40\u0e1b\u0e25\u0e35\u0e48\u0e22\u0e19\u0e01\u0e32\u0e23\u0e15\u0e31\u0e49\u0e07\u0e04\u0e48\u0e32\u0e19\u0e35\u0e49");
             table.put("Removes every single-photo post from Home, even from accounts you follow. Pull down on Home to refresh after changing it.",
@@ -45991,8 +45991,8 @@ public final class L10nTranslations {
                     "%s klas\u00f6r\u00fc kald\u0131r\u0131ld\u0131");
             table.put("Removes For you from the choices at the top of Home, so it stays on Following or Favorites. Needs Start Home on Following. Restart Instagram to see the change.",
                     "Ana Sayfa'n\u0131n \u00fcst\u00fcndeki se\u00e7eneklerden Senin i\u00e7in'i kald\u0131r\u0131r, b\u00f6ylece Takip edilenler veya Favoriler'de kal\u0131r. Ana Sayfa'y\u0131 Takip Edilenler ile a\u00e7 se\u00e7ene\u011finin a\u00e7\u0131k olmas\u0131 gerekir. De\u011fi\u015fikli\u011fi g\u00f6rmek i\u00e7in Instagram'\u0131 yeniden ba\u015flat.");
-            table.put("Removes Meta AI from the row at the bottom of the share sheet. Some accounts see it as Muse.",
-                    "Payla\u015f\u0131m sayfas\u0131n\u0131n alt\u0131ndaki sat\u0131rdan Meta AI'\u0131 kald\u0131r\u0131r. Baz\u0131 hesaplar bunu Muse olarak g\u00f6r\u00fcr.");
+            table.put("Removes Meta AI from the share sheet, both from the people you can send to and from the row at the bottom. Some accounts see it as Muse.",
+                    "Meta AI'\u0131 payla\u015f\u0131m sayfas\u0131ndan, hem g\u00f6nderebilece\u011fin ki\u015filerden hem de alttaki sat\u0131rdan kald\u0131r\u0131r. Baz\u0131 hesaplar bunu Muse olarak g\u00f6r\u00fcr.");
             table.put("Removes every post with more than one photo or video from Home, even from accounts you follow. Pull down on Home to refresh after changing it.",
                     "Ana Sayfa'dan birden fazla foto\u011fraf veya videolu t\u00fcm g\u00f6nderileri, takip etti\u011fin hesaplardan gelenler dahil kald\u0131r\u0131r. De\u011fi\u015ftirdikten sonra yenilemek i\u00e7in Ana Sayfa'y\u0131 a\u015fa\u011f\u0131 \u00e7ek.");
             table.put("Removes every single-photo post from Home, even from accounts you follow. Pull down on Home to refresh after changing it.",
@@ -51289,8 +51289,8 @@ public final class L10nTranslations {
                     "\u0110\u00e3 g\u1ee1 th\u01b0 m\u1ee5c %s");
             table.put("Removes For you from the choices at the top of Home, so it stays on Following or Favorites. Needs Start Home on Following. Restart Instagram to see the change.",
                     "B\u1ecf D\u00e0nh cho b\u1ea1n kh\u1ecfi c\u00e1c l\u1ef1a ch\u1ecdn \u1edf \u0111\u1ea7u trang ch\u1ee7, n\u00ean trang ch\u1ee7 \u1edf l\u1ea1i \u0110ang theo d\u00f5i ho\u1eb7c Y\u00eau th\u00edch. C\u1ea7n b\u1eadt M\u1edf trang ch\u1ee7 \u1edf \u0110ang theo d\u00f5i. H\u00e3y kh\u1edfi \u0111\u1ed9ng l\u1ea1i Instagram \u0111\u1ec3 th\u1ea5y thay \u0111\u1ed5i.");
-            table.put("Removes Meta AI from the row at the bottom of the share sheet. Some accounts see it as Muse.",
-                    "G\u1ee1 Meta AI kh\u1ecfi h\u00e0ng \u1edf cu\u1ed1i b\u1ea3ng chia s\u1ebb. M\u1ed9t s\u1ed1 t\u00e0i kho\u1ea3n th\u1ea5y m\u1ee5c n\u00e0y l\u00e0 Muse.");
+            table.put("Removes Meta AI from the share sheet, both from the people you can send to and from the row at the bottom. Some accounts see it as Muse.",
+                    "G\u1ee1 Meta AI kh\u1ecfi b\u1ea3ng chia s\u1ebb, c\u1ea3 trong danh s\u00e1ch ng\u01b0\u1eddi b\u1ea1n c\u00f3 th\u1ec3 g\u1eedi \u0111\u1ebfn l\u1eabn \u1edf h\u00e0ng cu\u1ed1i b\u1ea3ng. M\u1ed9t s\u1ed1 t\u00e0i kho\u1ea3n th\u1ea5y m\u1ee5c n\u00e0y l\u00e0 Muse.");
             table.put("Removes every post with more than one photo or video from Home, even from accounts you follow. Pull down on Home to refresh after changing it.",
                     "G\u1ee1 m\u1ecdi b\u00e0i vi\u1ebft c\u00f3 nhi\u1ec1u h\u01a1n m\u1ed9t \u1ea3nh ho\u1eb7c video kh\u1ecfi trang ch\u1ee7, k\u1ec3 c\u1ea3 t\u1eeb t\u00e0i kho\u1ea3n b\u1ea1n theo d\u00f5i. H\u00e3y k\u00e9o xu\u1ed1ng tr\u00ean trang ch\u1ee7 \u0111\u1ec3 l\u00e0m m\u1edbi sau khi thay \u0111\u1ed5i.");
             table.put("Removes every single-photo post from Home, even from accounts you follow. Pull down on Home to refresh after changing it.",
@@ -56587,8 +56587,8 @@ public final class L10nTranslations {
                     "\u5df2\u79fb\u9664\u6587\u4ef6\u5939 %s");
             table.put("Removes For you from the choices at the top of Home, so it stays on Following or Favorites. Needs Start Home on Following. Restart Instagram to see the change.",
                     "\u79fb\u9664\u9996\u9875\u9876\u7aef\u7684\u201c\u4e3a\u4f60\u63a8\u8350\u201d\u9009\u9879\uff0c\u8ba9\u9996\u9875\u7ef4\u6301\u201c\u5df2\u5173\u6ce8\u201d\u6216\u201c\u7279\u522b\u5173\u6ce8\u201d\u3002\u9700\u542f\u7528\u201c\u9996\u9875\u9ed8\u8ba4\u663e\u793a\u5df2\u5173\u6ce8\u201d\u3002\u8bf7\u91cd\u65b0\u542f\u52a8 Instagram \u4ee5\u5e94\u7528\u53d8\u66f4\u3002");
-            table.put("Removes Meta AI from the row at the bottom of the share sheet. Some accounts see it as Muse.",
-                    "\u4ece\u5206\u4eab\u8868\u5355\u5e95\u90e8\u680f\u79fb\u9664 Meta AI\u3002\u90e8\u5206\u8d26\u6237\u4f1a\u663e\u793a\u4e3a Muse\u3002");
+            table.put("Removes Meta AI from the share sheet, both from the people you can send to and from the row at the bottom. Some accounts see it as Muse.",
+                    "\u4ece\u5206\u4eab\u8868\u5355\u79fb\u9664 Meta AI\uff0c\u5305\u62ec\u53ef\u53d1\u9001\u7684\u5bf9\u8c61\u548c\u5e95\u90e8\u680f\u3002\u90e8\u5206\u8d26\u6237\u4f1a\u663e\u793a\u4e3a Muse\u3002");
             table.put("Removes every post with more than one photo or video from Home, even from accounts you follow. Pull down on Home to refresh after changing it.",
                     "\u79fb\u9664\u9996\u9875\u6240\u6709\u5305\u542b\u591a\u5f20\u7167\u7247\u6216\u591a\u90e8\u89c6\u9891\u7684\u5e16\u5b50\uff0c\u5305\u62ec\u5df2\u5173\u6ce8\u8d26\u6237\u7684\u5e16\u5b50\u3002\u53d8\u66f4\u540e\u8bf7\u4e0b\u62c9\u5237\u65b0\u9996\u9875\u3002");
             table.put("Removes every single-photo post from Home, even from accounts you follow. Pull down on Home to refresh after changing it.",
@@ -61885,8 +61885,8 @@ public final class L10nTranslations {
                     "\u5df2\u79fb\u9664\u8cc7\u6599\u593e %s");
             table.put("Removes For you from the choices at the top of Home, so it stays on Following or Favorites. Needs Start Home on Following. Restart Instagram to see the change.",
                     "\u79fb\u9664\u9996\u9801\u9802\u7aef\u7684\u300c\u70ba\u4f60\u63a8\u85a6\u300d\u9078\u9805\uff0c\u8b93\u9996\u9801\u7dad\u6301\u300c\u8ffd\u8e64\u4e2d\u300d\u6216\u300c\u6700\u611b\u300d\u3002\u9700\u555f\u7528\u300c\u9996\u9801\u9810\u8a2d\u986f\u793a\u8ffd\u8e64\u4e2d\u300d\u3002\u8acb\u91cd\u65b0\u555f\u52d5 Instagram \u4ee5\u5957\u7528\u8b8a\u66f4\u3002");
-            table.put("Removes Meta AI from the row at the bottom of the share sheet. Some accounts see it as Muse.",
-                    "\u5f9e\u5206\u4eab\u8868\u55ae\u5e95\u90e8\u6a6b\u5217\u79fb\u9664 Meta AI\u3002\u90e8\u5206\u5e33\u865f\u6703\u986f\u793a\u70ba Muse\u3002");
+            table.put("Removes Meta AI from the share sheet, both from the people you can send to and from the row at the bottom. Some accounts see it as Muse.",
+                    "\u5f9e\u5206\u4eab\u8868\u55ae\u79fb\u9664 Meta AI\uff0c\u5305\u62ec\u53ef\u50b3\u9001\u7684\u5c0d\u8c61\u548c\u5e95\u90e8\u6a6b\u5217\u3002\u90e8\u5206\u5e33\u865f\u6703\u986f\u793a\u70ba Muse\u3002");
             table.put("Removes every post with more than one photo or video from Home, even from accounts you follow. Pull down on Home to refresh after changing it.",
                     "\u79fb\u9664\u9996\u9801\u6240\u6709\u5305\u542b\u591a\u5f35\u7167\u7247\u6216\u591a\u90e8\u5f71\u7247\u7684\u8cbc\u6587\uff0c\u5305\u62ec\u5df2\u8ffd\u8e64\u5e33\u865f\u7684\u8cbc\u6587\u3002\u8b8a\u66f4\u5f8c\u8acb\u4e0b\u62c9\u91cd\u65b0\u6574\u7406\u9996\u9801\u3002");
             table.put("Removes every single-photo post from Home, even from accounts you follow. Pull down on Home to refresh after changing it.",

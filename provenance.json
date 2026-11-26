@@ -294,6 +294,7 @@
         "patches/src/test/kotlin/app/morphe/MergedReturnSourceTest.kt",
         "patches/src/test/kotlin/app/morphe/patches/instagram/metaai/InboxRowHookTest.kt",
         "patches/src/test/kotlin/app/morphe/patches/instagram/metaai/StoryCreditHookTest.kt",
+        "patches/src/test/kotlin/app/morphe/patches/instagram/metaai/MuseRecipientHookTest.kt",
         "patches/src/main/kotlin/app/morphe/patches/instagram/misc/theme/**",
         "patches/src/main/kotlin/app/morphe/patches/instagram/misc/icon/**",
         "patches/src/main/kotlin/app/morphe/patches/instagram/misc/font/**",

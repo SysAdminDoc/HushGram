@@ -385,7 +385,7 @@ Removes the summary, Sources and Ask Meta AI box from a reel's more menu. In you
 Hide Ask Meta AI in About this reel	隱藏「關於這則 Reel」中的「詢問 Meta AI」
 About this reel keeps its summary and Sources, and only the Ask Meta AI box under them goes.	保留「關於這則 Reel」的摘要與「來源」，僅移除下方的「詢問 Meta AI」區塊。
 Hide Meta AI in the share sheet	隱藏分享表單中的 Meta AI
-Removes Meta AI from the row at the bottom of the share sheet. Some accounts see it as Muse.	從分享表單底部橫列移除 Meta AI。部分帳號會顯示為 Muse。
+Removes Meta AI from the share sheet, both from the people you can send to and from the row at the bottom. Some accounts see it as Muse.	從分享表單移除 Meta AI，包括可傳送的對象和底部橫列。部分帳號會顯示為 Muse。
 Hide the Muse card	隱藏 Muse 卡片
 Removes the Meet Muse card, with its Try Muse button, from Home and your profile. Your other cards stay.	從首頁與個人檔案移除「認識 Muse」卡片及其「試用 Muse」按鈕。其他卡片仍會保留。
 Hide the Muse button on your profile	隱藏個人檔案上的 Muse 按鈕

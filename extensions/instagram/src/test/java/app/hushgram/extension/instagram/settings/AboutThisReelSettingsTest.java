@@ -112,7 +112,8 @@ public class AboutThisReelSettingsTest {
                 Arrays.asList(keys));
         SwitchPreference share = (SwitchPreference) page.findPreference(Settings.HIDE_META_AI_SHARE_TARGET.key);
         assertEquals("Hide Meta AI in the share sheet", String.valueOf(share.getTitle()));
-        assertEquals("Removes Meta AI from the row at the bottom of the share sheet. Some accounts see it as Muse.",
+        assertEquals("Removes Meta AI from the share sheet, both from the people you can send to and from the row at "
+                + "the bottom. Some accounts see it as Muse.",
                 String.valueOf(share.getSummary()));
         assertFalse("the share sheet switch starts off", share.isChecked());
         SwitchPreference banner = (SwitchPreference) page.findPreference(Settings.HIDE_META_AI_PROFILE_BANNER.key);

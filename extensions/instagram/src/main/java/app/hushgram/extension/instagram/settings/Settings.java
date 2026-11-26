@@ -1938,7 +1938,8 @@ public class Settings extends BaseSettings {
 
     /**
      * Meta AI's target ("hatch", shown as Muse on some accounts) in the row at the bottom of the
-     * share sheet. The row is built each time the sheet opens. Off to start.
+     * share sheet, and its cell in the sheet's grid of people (#879). Both are built each time the
+     * sheet opens, and the grid's cell again on each search. Off to start.
      */
     public static final BooleanSetting HIDE_META_AI_SHARE_TARGET =
             new BooleanSetting("hushgram_hide_meta_ai_share_target", FALSE);

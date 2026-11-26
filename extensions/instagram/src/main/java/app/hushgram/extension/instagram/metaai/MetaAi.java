@@ -55,7 +55,10 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  *
  * <p>The share sheet builds the targets in its bottom row from a list of names. Meta AI's ("hatch",
  * shown as Muse on some accounts) has its own case, and the answer of the case's name check goes
- * through {@link #shareTarget}.
+ * through {@link #shareTarget}. The grid of people above the row can hold Meta AI too, as a cell of
+ * its own made from Meta AI's share action rather than from a person or a chat. The grid's adapter
+ * takes that action through one setter, on handing over, closing and each search alike, and the
+ * action goes through {@link #museRecipient} first.
  *
  * <p>A reel's Blend invite button comes from one static check that the Reels viewer's reel binder
  * and the clips viewer both read. {@link #blendButton} makes it answer "no Blend" first.
@@ -331,6 +334,28 @@ public final class MetaAi {
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.META_AI, "share target", failure);
             return true;
+        }
+    }
+
+    /**
+     * Injected at the start of the share sheet's setter for the Meta AI cell in its grid of people
+     * (Muse on some accounts), with the share action the grid is handed, or null for none. Answers
+     * null, which the grid takes as no Meta AI cell, also while searching, as long as Hide Meta AI
+     * in the share sheet is on, and the action otherwise, or when anything goes wrong. Never throws.
+     */
+    public static Object museRecipient(Object action) {
+        try {
+            HookStatus.invoked(FamilyNames.META_AI);
+            if (action == null) {
+                Logger.printDebug(() -> "Meta AI: the share sheet's people grid has no Meta AI cell");
+                return null;
+            }
+            if (!Utils.settingsReady() || !Settings.HIDE_META_AI_SHARE_TARGET.get()) return action;
+            Logger.printDebug(() -> "Meta AI: left Meta AI (Muse) out of the share sheet's people grid");
+            return null;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.META_AI, "Muse recipient", failure);
+            return action;
         }
     }
 
