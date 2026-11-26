@@ -2653,12 +2653,12 @@ once-call Lapp/hushgram/extension/instagram/misc/AccentRings;->composeSeen(J)J i
 # pairs, or from the list alone when the counts differ. Story ring size hands the same list to
 # StoryRing.brush first thing there too (#187), and goes in after Story rings in the accent color,
 # so its hook comes first and the accent one right after it, as on Compose screens above. Either
-# order draws the same ring. Left out, the rings next to chats keep Instagram's yellow, orange,
-# pink and purple with the accent rings on or a Ring color picked. AccentRingsHookTest checks every
-# build in either order.
+# order draws the same ring, and with the first hook's move-result between them the rules hold each
+# call once rather than their order. Left out, the rings next to chats keep Instagram's yellow,
+# orange, pink and purple with the accent rings on or a Ring color picked. AccentRingsHookTest
+# checks every build in either order.
 start-call Lapp/hushgram/extension/instagram/stories/StoryRing;->brush(Ljava/util/List;)Ljava/util/List; in static (Ljava/util/List;)LX/*; holding Ljava/lang/Math;->toRadians(D)D Ljava/lang/Math;->cos(D)D LX/*;->*([LX/*;IJJ)LX/*; LX/*;->*(Ljava/util/List;JJ)LX/*;
 once-call Lapp/hushgram/extension/instagram/stories/StoryRing;->brush(Ljava/util/List;)Ljava/util/List; in static (Ljava/util/List;)LX/*; holding Ljava/lang/Math;->toRadians(D)D Ljava/lang/Math;->cos(D)D LX/*;->*([LX/*;IJJ)LX/*; LX/*;->*(Ljava/util/List;JJ)LX/*;
-next-call Lapp/hushgram/extension/instagram/misc/AccentRings;->composeBrush(Ljava/util/List;)Ljava/util/List; after Lapp/hushgram/extension/instagram/stories/StoryRing;->brush(Ljava/util/List;)Ljava/util/List; in static (Ljava/util/List;)LX/*; holding Ljava/lang/Math;->toRadians(D)D Ljava/lang/Math;->cos(D)D LX/*;->*([LX/*;IJJ)LX/*; LX/*;->*(Ljava/util/List;JJ)LX/*;
 once-call Lapp/hushgram/extension/instagram/misc/AccentRings;->composeBrush(Ljava/util/List;)Ljava/util/List; in static (Ljava/util/List;)LX/*; holding Ljava/lang/Math;->toRadians(D)D Ljava/lang/Math;->cos(D)D LX/*;->*([LX/*;IJJ)LX/*; LX/*;->*(Ljava/util/List;JJ)LX/*;
 # The spinning ring around a group of profile pictures (0N9F.A01 on 457) reads Instagram's yellow,
 # orange, pink and purple from Compose's palette itself and pairs each with one of the default
