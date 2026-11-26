@@ -13,9 +13,11 @@ import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.instagram.misc.profilesaved.EXPLORE_ACTION_BAR
 import app.morphe.patches.instagram.misc.profilesaved.EXPLORE_SAVED_STUB
 import app.morphe.patches.instagram.misc.profilesaved.findExploreSaved
+import app.morphe.patches.instagram.reels.tab.TOASTING_BADGE
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.builder.BuilderOffsetInstruction
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
@@ -123,6 +125,41 @@ class BarIconsTest {
     }
 
     /**
+     * A profile's Tagged tab hands its gray and its color to the extension right before the call making
+     * its tint from them, at that call's label so the branch onto it runs the hooks too. The same call in
+     * a method casting no badge is left alone, two such calls leave both as they are, and an extension
+     * without the hook refuses.
+     */
+    @Test
+    fun aProfilesTaggedTabColorsGoThroughTheExtension() {
+        val context = PatchContexts.of(listOf(taggedTab(), extension()))
+        context.tintTaggedTab()
+        val code = context.mutableClassDefBy(TAGGED_TABS).methods.single { it.name == "Apx" }.code()
+        val hooks = code.indices.filter { code[it].calls(BAR_ICONS) }
+        assertEquals("the gray and the color", 2, hooks.size)
+        assertEquals("the gray's register", 5, (code[hooks[0]] as RegisterRangeInstruction).startRegister)
+        assertEquals("written back", 5, (code[hooks[0] + 1] as OneRegisterInstruction).registerA)
+        assertEquals("then the color's", 6, (code[hooks[1]] as RegisterRangeInstruction).startRegister)
+        assertEquals("written back", 6, (code[hooks[1] + 1] as OneRegisterInstruction).registerA)
+        assertEquals("right before the tint's made", hooks[1] + 2, code.indexOfFirst { it.callsStatic(COLORS, List(6) { "I" }) })
+        val skip = code.single { it.opcode == Opcode.IF_EQZ } as BuilderOffsetInstruction
+        assertEquals("the branch onto the tint runs the hooks", hooks[0], skip.target.location.index)
+        assertEquals("Instagram's code kept", taggedTab().methods.single().code().map { it.opcode },
+            code.filterIndexed { at, _ -> at !in hooks && at - 1 !in hooks }.map { it.opcode })
+
+        for ((case, classes) in listOf(
+            "no badge cast" to listOf(taggedTab(casts = false)),
+            "two tints" to listOf(taggedTab(tints = 2)),
+        )) {
+            val untouched = PatchContexts.of(classes + extension())
+            untouched.tintTaggedTab()
+            assertTrue("$case: no hook", untouched.mutableClassDefBy(TAGGED_TABS).methods.none { method -> method.code().any { it.calls(BAR_ICONS) } })
+        }
+        val failure = assertThrows(PatchException::class.java) { PatchContexts.of(listOf(taggedTab(), extension(bar = false))).tintTaggedTab() }
+        assertTrue(failure.message!!.startsWith("Accent color"))
+    }
+
+    /**
      * The Search tab's top bar hands its Saved bookmark to the extension right after keeping it in its
      * field, and the hook hiding that bookmark still finds its check afterwards.
      */
@@ -146,7 +183,8 @@ class BarIconsTest {
      * maker (at least the back arrow's, the buttons' and the color setter's) and every
      * ImageView.setColorFilter(int) goes to the extension with the same registers. A profile tab hooks
      * its told color and its gray, and the Search tab's bookmark is handed over right after its store,
-     * with the hook hiding it still able to read its check either way round.
+     * with the hook hiding it still able to read its check either way round. One tab maker casting the
+     * badge hands Tagged's gray and color over right before making its tint.
      */
     @Test
     fun everyBuildHandsItsBarIconsToTheExtension() {
@@ -166,7 +204,9 @@ class BarIconsTest {
                 next = found.values.mapNotNull { it.superclass }.toSet()
             }
             held += FixtureDex.classes(bundle, makers)
-            val context = PatchContexts.of(listOf(bar, extension()) + held.values.filter { it.type != bar.type }.map { ImmutableClassDef.of(it) })
+            val badges = FixtureDex.classesLoading(bundle, TOASTING_BADGE_CAST).distinctBy { it.type }.filter { it.type != bar.type && it.type !in held.keys }
+            val context = PatchContexts.of(listOf(bar, extension()) + held.values.filter { it.type != bar.type }.map { ImmutableClassDef.of(it) } +
+                badges.map { ImmutableClassDef.of(it) })
 
             val stockCalls = bar.methods.sumOf { method -> method.code().count { it.callsStatic(FILTER, listOf("I")) && makesAtop(held[(it.called())!!.definingClass]) } }
             val stockTints = bar.methods.sumOf { method -> method.code().count { it.callsMethod(IMAGE, "setColorFilter", "I") } }
@@ -208,6 +248,24 @@ class BarIconsTest {
             assertEquals("$code: of the Search tab's bar", EXPLORE_ACTION_BAR, ((store as ReferenceInstruction).reference as FieldReference).definingClass)
             assertEquals("$code: the bookmark handed over", (store as TwoRegisterInstruction).registerA, (explore[saved] as RegisterRangeInstruction).startRegister)
             context.findExploreSaved()
+
+            val tagged = badges.flatMap { owner -> context.mutableClassDefBy(owner.type).methods.filter { method -> method.code().any { it.calls(BAR_ICONS) } } }
+            assertEquals("$code: one tab maker hands Tagged's colors over, ${tagged.map { "${it.definingClass}->${it.name}" }}", 1, tagged.size)
+            val maker = tagged.single().code()
+            val hooks = maker.indices.filter { maker[it].calls(BAR_ICONS) }
+            assertEquals("$code: the gray and the color", 2, hooks.size)
+            val made = maker[hooks[1] + 2]
+            assertTrue("$code: right before the tint's made", made.callsStatic(COLORS, List(6) { "I" }))
+            val gray = (made as RegisterRangeInstruction).startRegister
+            assertEquals("$code: the gray's register", gray, (maker[hooks[0]] as RegisterRangeInstruction).startRegister)
+            assertEquals("$code: written back", gray, (maker[hooks[0] + 1] as OneRegisterInstruction).registerA)
+            assertEquals("$code: the color's register", gray + 1, (maker[hooks[1]] as RegisterRangeInstruction).startRegister)
+            assertEquals("$code: written back", gray + 1, (maker[hooks[1] + 1] as OneRegisterInstruction).registerA)
+            assertTrue("$code: laid on the tab's icon", maker[hooks[1] + 4].callsMethod(IMAGE, "setImageTintList", COLORS))
+            val stock = badges.single { it.type == tagged.single().definingClass }.methods
+                .single { it.name == tagged.single().name && it.parameterTypes.map(Any::toString) == tagged.single().parameterTypes.map(Any::toString) }
+            assertEquals("$code: Instagram's code kept", stock.code().map { it.opcode }.filter { it != Opcode.NOP },
+                maker.filterIndexed { at, _ -> at !in hooks && at - 1 !in hooks }.map { it.opcode }.filter { it != Opcode.NOP })
         }
     }
 
@@ -233,6 +291,9 @@ class BarIconsTest {
         const val FILTER_MAKER = "Lfixture/BarFilters;"
         const val OTHER_MAKER = "Lfixture/OtherFilters;"
         const val IG_IMAGE = "Lfixture/IgImageView;"
+        const val COLORS = "Landroid/content/res/ColorStateList;"
+        const val TAGGED_TABS = "Lfixture/ProfileTabs;"
+        const val TINTS = "Lfixture/Tints;"
 
         /**
          * The top bar as 457's `LX/01pF` has it: the message only it throws, A1P making a filter of the
@@ -324,6 +385,33 @@ class BarIconsTest {
         """, static = false), superclass = "Landroid/widget/FrameLayout;")
 
         fun igImageView(): ClassDef = classOf(IG_IMAGE, superclass = IMAGE)
+
+        /**
+         * A profile's tab maker as 386314286's `LX/0Bux;->Apx` has it: it throws [TOASTING_BADGE_CAST]
+         * and casts the badge it inflates unless not [casts], then makes the tint from the gray in v5 and
+         * the color handed in as p3 in v6, [tints] times, a branch landing on the first, and lays it on.
+         */
+        fun taggedTab(casts: Boolean = true, tints: Int = 1): ClassDef = classOf(TAGGED_TABS, method(TAGGED_TABS, "Apx", listOf("Landroid/view/ViewGroup;", "Ljava/lang/String;", "I"), 11, (listOf(
+            "const-string v0, \"$TOASTING_BADGE_CAST\"",
+            "const/4 v1, 0x0",
+            if (casts) "check-cast v1, $TOASTING_BADGE" else "nop",
+            "const v5, 0x7f040897",
+            "move v6, p3",
+            "const/4 v7, 0x0",
+            "const/4 v8, 0x0",
+            "const/4 v9, 0x0",
+            "const/4 v10, 0x0",
+            "const/4 v2, 0x0",
+            "if-eqz p3, :tint",
+            "nop",
+            ":tint",
+        ) + List(tints) {
+            """
+            invoke-static/range { v5 .. v10 }, $TINTS->A01(IIIIII)$COLORS
+            move-result-object v0
+            invoke-virtual { v2, v0 }, $IMAGE->setImageTintList($COLORS)V
+            """.trimIndent()
+        } + listOf("return-object v1")).joinToString("\n"), static = false, returns = "Landroid/view/View;"))
 
         /** AccentTheme's bar hooks, without them when [bar] is false. */
         fun extension(bar: Boolean = true): ClassDef = classOf(

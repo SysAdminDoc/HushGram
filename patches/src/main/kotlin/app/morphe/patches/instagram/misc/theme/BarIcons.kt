@@ -11,10 +11,13 @@ import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.misc.extension.classesLoadingString
+import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
 import app.morphe.patches.instagram.misc.extension.patchLog
 import app.morphe.patches.instagram.misc.profilesaved.EXPLORE_ACTION_BAR
 import app.morphe.patches.instagram.misc.profilesaved.EXPLORE_SAVED_STUB
+import app.morphe.patches.instagram.reels.tab.TOASTING_BADGE
+import app.morphe.util.addInstructionsAtControlFlowLabel
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
@@ -33,6 +36,7 @@ private const val PATCH = "Accent color"
 
 private const val FILTER = "Landroid/graphics/ColorFilter;"
 private const val IMAGE = "Landroid/widget/ImageView;"
+private const val COLOR_LIST = "Landroid/content/res/ColorStateList;"
 private const val PORTER_DUFF_FILTER = "Landroid/graphics/PorterDuffColorFilter;"
 private const val SRC_ATOP = "Landroid/graphics/PorterDuff\$Mode;->SRC_ATOP:Landroid/graphics/PorterDuff\$Mode;"
 
@@ -215,10 +219,77 @@ internal fun BytecodePatchContext.tintSearchSaved() {
     found.method.addInstructions(found.at + 1, "invoke-static/range { v${found.view} .. v${found.view} }, $SEARCH_SAVED")
 }
 
-/** [tintActionBarIcons], [tintProfileTabs] and [tintSearchSaved]. */
+/**
+ * What a profile's tab maker and the Home top bar throw when the badge they inflate isn't a
+ * ToastingBadge, the view Tagged's tab is (`LX/0Bux;->Apx` on 386314286). The message keeps its words
+ * through the builds, and only those classes and a pool of shared strings hold it.
+ */
+internal const val TOASTING_BADGE_CAST = "null cannot be cast to non-null type com.instagram.notifications.badging.ui.component.ToastingBadge"
+
+/** Where a profile's Tagged tab is tinted: in [method], the call at [at] making its color list from the gray in [first] and the color in the register after it. */
+internal class TaggedTabColors(val method: MutableMethod, val at: Int, val first: Int)
+
+/**
+ * Finds where a profile's Tagged tab makes its tint: among the methods loading [TOASTING_BADGE_CAST]
+ * and casting to [TOASTING_BADGE], the one call of a static (int, int, int, int, int, int)
+ * ColorStateList, in its range form, whose answer goes straight to ImageView.setImageTintList. Its
+ * first int is the gray the theme holds for a tab you aren't on and the second the color of the one
+ * you are. Tagged is made there rather than as a [PROFILE_TAB], so [tintProfileTabs] never reached it
+ * (#187). Answers null with a warning when there isn't one such call. Refuses when the extension lacks
+ * [BAR_ICONS].
+ */
+internal fun BytecodePatchContext.findTaggedTabColors(): TaggedTabColors? {
+    fun skip(why: String): TaggedTabColors? {
+        patchLog.warning("$PATCH: $why, so a profile's Tagged tab keeps Instagram's gray")
+        return null
+    }
+    val makers = classesLoadingString(TOASTING_BADGE_CAST).distinctBy { it.type }.flatMap { it.methods }.filter { method ->
+        method.code().any { it.opcode == Opcode.CHECK_CAST && ((it as ReferenceInstruction).reference as TypeReference).type == TOASTING_BADGE } &&
+            loadsString(method, TOASTING_BADGE_CAST)
+    }
+    val sites = makers.flatMap { method -> method.code().let { code -> code.indices.filter { code.makesTabTint(it) }.map { method to it } } }
+    val (maker, at) = sites.singleOrNull() ?: return skip("${sites.size} methods casting the badge make a tab's tint, not one")
+    requireHook(BAR_ICONS)
+    val mutable = mutableClassDefBy(maker.definingClass).methods.single { it.name == maker.name && it.sameShape(maker) }
+    return TaggedTabColors(mutable, at, (maker.code()[at] as RegisterRangeInstruction).startRegister)
+}
+
+/** Whether [at] makes a color list from six ints with the range form and lays it straight on an image view as its tint. */
+private fun List<Instruction>.makesTabTint(at: Int): Boolean {
+    val called = this[at].called() ?: return false
+    if (this[at].opcode != Opcode.INVOKE_STATIC_RANGE || called.returnType != COLOR_LIST ||
+        called.parameterTypes.map(Any::toString) != List(6) { "I" }
+    ) return false
+    val taken = getOrNull(at + 1)?.takeIf { it.opcode == Opcode.MOVE_RESULT_OBJECT } as? OneRegisterInstruction ?: return false
+    val tint = getOrNull(at + 2) as? FiveRegisterInstruction ?: return false
+    val set = tint.called() ?: return false
+    return set.definingClass == IMAGE && set.name == "setImageTintList" && tint.registerCount == 2 && tint.registerD == taken.registerA
+}
+
+/**
+ * Hands the two colors a profile's Tagged tab makes its tint from to the extension right before the
+ * call making it, at that call's own label, the gray of a tab you aren't on and the color of the one
+ * you are, so with Icons in the accent color on Tagged takes the picked color like the other tabs (#187).
+ */
+internal fun BytecodePatchContext.tintTaggedTab() {
+    val found = findTaggedTabColors() ?: return
+    val (gray, color) = found.first to found.first + 1
+    found.method.addInstructionsAtControlFlowLabel(
+        found.at,
+        """
+            invoke-static/range { v$gray .. v$gray }, $BAR_ICONS
+            move-result v$gray
+            invoke-static/range { v$color .. v$color }, $BAR_ICONS
+            move-result v$color
+        """,
+    )
+}
+
+/** [tintActionBarIcons], [tintProfileTabs], [tintTaggedTab] and [tintSearchSaved]. */
 internal fun BytecodePatchContext.tintBarIcons() {
     tintActionBarIcons()
     tintProfileTabs()
+    tintTaggedTab()
     tintSearchSaved()
 }
 

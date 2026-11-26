@@ -2859,6 +2859,13 @@ once-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->savedFilter(Landr
 # bookmark to AccentTheme.searchSaved right after the store. Left out, the bookmark stays white with
 # Icons in the accent color on (#187). BarIconsTest checks every build.
 once-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->searchSaved(Landroid/widget/ImageView;)V in instance (Landroidx/fragment/app/Fragment;Landroidx/fragment/app/FragmentActivity;Lcom/instagram/common/session/UserSession;LX/*;LX/*;LX/*;Z)V holding const:0x7f0b166a
+# A profile's Tagged tab isn't a profile tab view: the tab maker throwing the ToastingBadge cast
+# message (0Bux.Apx on 386314286, taking the parent, a name and the selected color) makes its tint
+# from the theme's gray and that color with a static (int x6) ColorStateList call and lays it on the
+# icon. Accent color hands the two colors to AccentTheme.barIcons right before that call, at its
+# label. The Home top bar loads the same message but makes no such call. Left out, Tagged stays gray
+# with Icons in the accent color on (#187). BarIconsTest checks every build.
+shared-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->barIcons(I)I in instance (Landroid/view/ViewGroup;Ljava/lang/String;I)Landroid/view/View; sites 2 pooled holding null\scannot\sbe\scast\sto\snon-null\stype\scom.instagram.notifications.badging.ui.component.ToastingBadge
 # An opened chat paints the view behind its messages (id/thread_background_view_container) in one
 # method (04v3.A0D on 456's 386214574), which stacks its own layers over the chat theme's color and
 # hands the LayerDrawable to a static call taking a drawable, a view and an int. Accent color hands the
