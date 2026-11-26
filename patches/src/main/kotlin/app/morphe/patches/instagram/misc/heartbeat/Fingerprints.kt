@@ -67,6 +67,20 @@ internal fun BytecodePatchContext.findBgFetchScheduler(): MutableMethod {
 
 private val SCHEDULER_INPUTS = listOf("Ljava/lang/Class;", "Ljava/util/List;")
 
+internal const val ACCOUNT_AUTHENTICATOR = "Landroid/accounts/AbstractAccountAuthenticator;"
+
+/**
+ * Instagram's account authenticator's hasFeatures (#341), which returns null without ever answering, so
+ * Android's account service stays bound to Instagram until its own timeout. The framework names the method
+ * and its inputs, and Instagram has one authenticator, LX/0d3b; on 457's arm64 build.
+ */
+internal object AccountFeaturesFingerprint : Fingerprint(
+    name = "hasFeatures",
+    returnType = "Landroid/os/Bundle;",
+    parameters = listOf("Landroid/accounts/AccountAuthenticatorResponse;", "Landroid/accounts/Account;", "[Ljava/lang/String;"),
+    custom = { _, classDef -> classDef.superclass == ACCOUNT_AUTHENTICATOR },
+)
+
 /** The prefetch job's onStartJob, the framework's own, so its name and shape are kept. */
 internal object BgFetchJobStartFingerprint : Fingerprint(
     definingClass = BG_FETCH_SERVICE,

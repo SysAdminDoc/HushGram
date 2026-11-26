@@ -1105,6 +1105,8 @@ Stop the analytics upload alarm	Hentikan alarm unggah analitik
 Instagram sets an alarm to wake your phone and send its usage events five minutes later. This stops that alarm. The events go the next time you use the app.	Instagram memasang alarm yang membangunkan ponselmu untuk mengirim data penggunaannya lima menit kemudian. Ini menghentikan alarm itu. Data dikirim saat kamu memakai aplikasi berikutnya.
 Stop background feed refresh	Hentikan penyegaran feed di latar belakang
 About every half hour, Instagram wakes your phone to download your feed ahead of time. This stops that. The feed loads when you open the app instead, and messages and notifications still arrive.	Kira-kira setiap setengah jam, Instagram membangunkan ponselmu untuk mengunduh feed lebih dulu. Ini menghentikannya. Feed dimuat saat kamu membuka aplikasi, dan pesan serta notifikasi tetap masuk.
+Let Instagram close after account checks	Biarkan Instagram tertutup setelah pemeriksaan akun
+When your phone checks its accounts, as it does at startup and when an account changes, Instagram never answers. Android then keeps it running for up to 15 minutes, even after you swipe it away. This answers right away so Instagram can close. Your login is unaffected.	Saat ponselmu memeriksa akunnya, seperti saat menyala dan saat ada akun yang berubah, Instagram tidak pernah menjawab. Android lalu membiarkannya berjalan hingga 15 menit, bahkan setelah kamu menggesernya keluar. Ini langsung menjawab agar Instagram bisa tertutup. Status login kamu tidak terpengaruh.
 Haptic style	Gaya haptik
 Short tick	Ketukan pendek
 System tick	Ketukan sistem

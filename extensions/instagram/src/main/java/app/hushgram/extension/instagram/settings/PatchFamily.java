@@ -200,7 +200,7 @@ public enum PatchFamily {
             Settings.SAVED_FAST_SCROLL, Settings.FAST_SCROLL_HOME, Settings.FAST_SCROLL_CHATS,
             Settings.HIDE_SAVED_NEW_COLLECTION, Settings.HIDE_SAVED_REELS_TAB, Settings.HIDE_EXPLORE_SAVED),
     STOP_HEARTBEAT(FamilyNames.STOP_HEARTBEAT, "stopHeartbeat", null, Settings.STOP_HEARTBEAT,
-            Settings.STOP_UPLOAD_ALARM, Settings.STOP_BACKGROUND_FETCH),
+            Settings.STOP_UPLOAD_ALARM, Settings.STOP_BACKGROUND_FETCH, Settings.ANSWER_ACCOUNT_CHECKS),
     REFRESH_RATE(FamilyNames.REFRESH_RATE, "refreshRate", null, Settings.HIGHEST_REFRESH_RATE, Settings.MATCH_VIDEO_FRAME_RATE),
     EMOJI_STYLE(FamilyNames.EMOJI_STYLE, "emojiStyle", null, Settings.NOTO_EMOJI),
     ACCENT_COLOR(FamilyNames.ACCENT_COLOR, "accentColor", null, Settings.ACCENT_COLOR, Settings.ACCENT_BADGES,

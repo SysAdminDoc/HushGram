@@ -4059,6 +4059,12 @@ start-call Lapp/hushgram/extension/instagram/misc/Heartbeat;->stopBackgroundFetc
 once-call Lapp/hushgram/extension/instagram/misc/Heartbeat;->stopBackgroundFetch(Ljava/lang/Class;)Z in static (L*;Ljava/lang/Class;Ljava/util/List;)V pooled holding scheduleJobWithJobScheduler()\sfailed:\s scheduleJobWithWorkManager()\sfailed:\s
 start-call Lapp/hushgram/extension/instagram/misc/Heartbeat;->skipBackgroundFetch()Z in instance (Landroid/app/job/JobParameters;)Z holding Lcom/instagram/jobscheduler/bgfetch/scheduler/IgBgFetchSchedulerService;->A00:LX/*;
 once-call Lapp/hushgram/extension/instagram/misc/Heartbeat;->skipBackgroundFetch()Z in instance (Landroid/app/job/JobParameters;)Z holding Lcom/instagram/jobscheduler/bgfetch/scheduler/IgBgFetchSchedulerService;->A00:LX/*;
+# And it asks first thing in hasFeatures of Instagram's one account authenticator (0d3b on 457), which
+# returns null and so never answers Android's account feature checks, keeping the account service bound
+# to Instagram until its 15 minute timeout (#341). Every method of that class returns null and loads
+# nothing, so the rule names the framework's method alone. StopHeartbeatFixtureTest checks the call
+# comes first, on each declared build.
+single-call Lapp/hushgram/extension/instagram/misc/Heartbeat;->answerAccountFeatures()Landroid/os/Bundle; in hasFeatures
 
 # Ghost mode from the inbox: GhostModeEntry.longPress() goes into the inbox header's static builder
 # (07OJ.A01 on 450's 385611438), right after the New message button's tap listener is stored in its

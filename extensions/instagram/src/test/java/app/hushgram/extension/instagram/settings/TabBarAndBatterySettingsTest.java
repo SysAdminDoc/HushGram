@@ -118,6 +118,7 @@ public class TabBarAndBatterySettingsTest {
         Settings.STOP_HEARTBEAT.resetToDefault();
         Settings.STOP_UPLOAD_ALARM.resetToDefault();
         Settings.STOP_BACKGROUND_FETCH.resetToDefault();
+        Settings.ANSWER_ACCOUNT_CHECKS.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
     }
@@ -139,7 +140,7 @@ public class TabBarAndBatterySettingsTest {
         for (String key : List.of(Settings.GLASS_TAB_BAR.key, Settings.GLASS_TAB_BAR_HAPTIC_STYLE.key, Settings.GLASS_TAB_BAR_OPACITY.key, Settings.GLASS_TAB_BAR_HEIGHT.key,
                 Settings.GLASS_TAB_BAR_CORNERS.key, Settings.GLASS_TAB_BAR_LIFT.key, Settings.GLASS_TAB_BAR_BLUR_RADIUS.key, Settings.GLASS_TAB_BAR_REELS_HIDE.key,
                 Settings.GLASS_TAB_BAR_TINT.key, Settings.GLASS_TAB_BAR_TINT_CUSTOM.key, Settings.SAVED_ON_PROFILE.key, Settings.SAVED_FAST_SCROLL.key, Settings.FAST_SCROLL_HOME.key, Settings.FAST_SCROLL_CHATS.key, Settings.HIDE_SAVED_NEW_COLLECTION.key, Settings.HIDE_SAVED_REELS_TAB.key, Settings.HIDE_EXPLORE_SAVED.key, Settings.STOP_HEARTBEAT.key,
-                Settings.STOP_UPLOAD_ALARM.key, Settings.STOP_BACKGROUND_FETCH.key, Settings.GLASS_TAB_BAR_HAPTIC_STRENGTH.key,
+                Settings.STOP_UPLOAD_ALARM.key, Settings.STOP_BACKGROUND_FETCH.key, Settings.ANSWER_ACCOUNT_CHECKS.key, Settings.GLASS_TAB_BAR_HAPTIC_STRENGTH.key,
                 Settings.GLASS_TAB_BAR_TAP_SOUND.key, Settings.GLASS_TAB_BAR_TAP_SOUND_VOLUME.key)) {
             assertNull(key, row(key));
         }
@@ -1000,22 +1001,27 @@ public class TabBarAndBatterySettingsTest {
         assertNull(row(Settings.HIDE_EXPLORE_SAVED.key));
     }
 
-    @Test public void batteryHoldsAllThreeWakeUpSwitchesAndAllStartOff() throws Exception {
+    @Test public void batteryHoldsAllFourWakeUpSwitchesAndAllStartOff() throws Exception {
         open(PatchFamily.STOP_HEARTBEAT);
         SwitchPreference heartbeat = (SwitchPreference) row(Settings.STOP_HEARTBEAT.key);
         SwitchPreference upload = (SwitchPreference) row(Settings.STOP_UPLOAD_ALARM.key);
         SwitchPreference fetch = (SwitchPreference) row(Settings.STOP_BACKGROUND_FETCH.key);
+        SwitchPreference accounts = (SwitchPreference) row(Settings.ANSWER_ACCOUNT_CHECKS.key);
         assertNotNull(heartbeat);
         assertNotNull(upload);
         assertNotNull(fetch);
+        assertNotNull(accounts);
         assertEquals("Battery", String.valueOf(sectionOf(page.getPreferenceScreen(), heartbeat).getTitle()));
         assertSame(sectionOf(page.getPreferenceScreen(), heartbeat), sectionOf(page.getPreferenceScreen(), upload));
         assertSame(sectionOf(page.getPreferenceScreen(), heartbeat), sectionOf(page.getPreferenceScreen(), fetch));
+        assertSame(sectionOf(page.getPreferenceScreen(), heartbeat), sectionOf(page.getPreferenceScreen(), accounts));
         assertEquals("Stop background feed refresh", String.valueOf(fetch.getTitle()));
+        assertEquals("Let Instagram close after account checks", String.valueOf(accounts.getTitle()));
         assertFalse(heartbeat.isChecked());
         assertFalse(upload.isChecked());
         assertFalse(fetch.isChecked());
-        assertEquals(Arrays.asList(Settings.STOP_HEARTBEAT, Settings.STOP_UPLOAD_ALARM, Settings.STOP_BACKGROUND_FETCH),
-                PatchFamily.STOP_HEARTBEAT.switches);
+        assertFalse(accounts.isChecked());
+        assertEquals(Arrays.asList(Settings.STOP_HEARTBEAT, Settings.STOP_UPLOAD_ALARM, Settings.STOP_BACKGROUND_FETCH,
+                Settings.ANSWER_ACCOUNT_CHECKS), PatchFamily.STOP_HEARTBEAT.switches);
     }
 }

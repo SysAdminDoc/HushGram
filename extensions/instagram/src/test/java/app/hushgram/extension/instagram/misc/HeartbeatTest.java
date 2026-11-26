@@ -6,9 +6,14 @@ package app.hushgram.extension.instagram.misc;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.robolectric.Shadows.shadowOf;
 
+import android.accounts.AbstractAccountAuthenticator;
+import android.accounts.Account;
+import android.accounts.AccountAuthenticatorResponse;
+import android.accounts.AccountManager;
 import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.app.job.JobInfo;
@@ -18,6 +23,7 @@ import android.app.job.JobService;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.os.Bundle;
 
 import org.junit.After;
 import org.junit.Before;
@@ -28,6 +34,7 @@ import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
 
+import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -61,6 +68,7 @@ public class HeartbeatTest {
         Settings.STOP_HEARTBEAT.resetToDefault();
         Settings.STOP_UPLOAD_ALARM.resetToDefault();
         Settings.STOP_BACKGROUND_FETCH.resetToDefault();
+        Settings.ANSWER_ACCOUNT_CHECKS.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -184,5 +192,98 @@ public class HeartbeatTest {
         assertTrue(Heartbeat.stopBackgroundFetch(null));
         assertEquals(List.of(7931, 2131434895), pending(jobs));
         assertEquals(List.of(), HookStatus.missing());
+    }
+
+    /**
+     * Stands in for Instagram's account authenticator as patched: hasFeatures takes HushGram's answer when
+     * there is one, then returns Instagram's own null, which never answers.
+     */
+    public static final class Authenticator extends AbstractAccountAuthenticator {
+        Authenticator(Context context) { super(context); }
+        @Override public Bundle hasFeatures(AccountAuthenticatorResponse response, Account account, String[] features) {
+            Bundle answer = Heartbeat.answerAccountFeatures();
+            if (answer != null) return answer;
+            return null;
+        }
+        @Override public Bundle editProperties(AccountAuthenticatorResponse response, String accountType) { return null; }
+        @Override public Bundle addAccount(AccountAuthenticatorResponse response, String accountType, String authTokenType,
+                String[] requiredFeatures, Bundle options) { return null; }
+        @Override public Bundle confirmCredentials(AccountAuthenticatorResponse response, Account account, Bundle options) { return null; }
+        @Override public Bundle getAuthToken(AccountAuthenticatorResponse response, Account account, String authTokenType,
+                Bundle options) { return null; }
+        @Override public String getAuthTokenLabel(String authTokenType) { return null; }
+        @Override public Bundle updateCredentials(AccountAuthenticatorResponse response, Account account, String authTokenType,
+                Bundle options) { return null; }
+    }
+
+    /**
+     * Asks the authenticator through its binder the way Android's account service does when it checks an
+     * account for the device owner features, and returns what the service hears back.
+     */
+    private static List<String> askAccountFeatures() throws Exception {
+        Context context = RuntimeEnvironment.getApplication();
+        shadowOf(RuntimeEnvironment.getApplication()).grantPermissions(ACCOUNT_MANAGER_PERMISSION);
+        List<String> heard = new ArrayList<>();
+        Class<?> responseType = Class.forName("android.accounts.IAccountAuthenticatorResponse");
+        Object response = Proxy.newProxyInstance(responseType.getClassLoader(), new Class<?>[] {responseType}, (proxy, method, args) -> {
+            switch (method.getName()) {
+                case "onResult":
+                    heard.add("result " + ((Bundle) args[0]).getBoolean(AccountManager.KEY_BOOLEAN_RESULT, true));
+                    return null;
+                case "onError":
+                    heard.add("error " + args[0]);
+                    return null;
+                case "onRequestContinued":
+                    heard.add("continued");
+                    return null;
+                case "hashCode":
+                    return System.identityHashCode(proxy);
+                case "equals":
+                    return proxy == args[0];
+                case "toString":
+                    return "response";
+                default:
+                    return null;
+            }
+        });
+        Object transport = new Authenticator(context).getIBinder();
+        Class.forName("android.accounts.IAccountAuthenticator").getMethod("hasFeatures", responseType, Account.class, String[].class)
+                .invoke(transport, response, new Account("423361090", "www.instagram.com"), new String[] {DEVICE_OWNER_ALLOWED});
+        return heard;
+    }
+
+    private static final String ACCOUNT_MANAGER_PERMISSION = "android.permission.ACCOUNT_MANAGER";
+    private static final String DEVICE_OWNER_ALLOWED = "android.account.DEVICE_OR_PROFILE_OWNER_ALLOWED";
+
+    /**
+     * #341. Off to start, the check goes unanswered, as Instagram leaves it, so Android's account service waits
+     * on the app. On, it hears at once that the account doesn't have the feature, and the other switches
+     * don't answer it.
+     */
+    @Test
+    public void theAccountCheckSwitchAnswersAtOnce() throws Exception {
+        assertEquals(Boolean.FALSE, Settings.ANSWER_ACCOUNT_CHECKS.defaultValue);
+        assertEquals(List.of(), askAccountFeatures());
+
+        Settings.STOP_HEARTBEAT.save(true);
+        Settings.STOP_UPLOAD_ALARM.save(true);
+        Settings.STOP_BACKGROUND_FETCH.save(true);
+        assertEquals("the other switches leave the check alone", List.of(), askAccountFeatures());
+
+        Settings.ANSWER_ACCOUNT_CHECKS.save(true);
+        assertEquals(List.of("result false"), askAccountFeatures());
+        assertEquals(List.of(), HookStatus.missing());
+    }
+
+    @Test
+    public void pausedOrUnreadyTheAccountCheckGoesUnanswered() throws Exception {
+        Settings.ANSWER_ACCOUNT_CHECKS.save(true);
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertEquals(List.of(), askAccountFeatures());
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        SettingsContextRule.withoutContext(() -> assertNull(Heartbeat.answerAccountFeatures()));
+        assertEquals(List.of("result false"), askAccountFeatures());
     }
 }

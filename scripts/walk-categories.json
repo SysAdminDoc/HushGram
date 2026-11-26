@@ -892,6 +892,15 @@
               "Stop background wake-ups"
             ]
           }
+        },
+        {
+          "title": "Let Instagram close after account checks",
+          "when": {
+            "op": "any",
+            "patches": [
+              "Stop background wake-ups"
+            ]
+          }
         }
       ]
     },

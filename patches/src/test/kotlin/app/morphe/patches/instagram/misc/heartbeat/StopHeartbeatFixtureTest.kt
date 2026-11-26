@@ -10,11 +10,13 @@ import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.instagram.misc.extension.uniqueMethod
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
+import com.android.tools.smali.dexlib2.builder.BuilderOffsetInstruction
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
@@ -145,6 +147,46 @@ class StopHeartbeatFixtureTest {
             assertEquals(0, (started[3] as NarrowLiteralInstruction).narrowLiteral)
             assertEquals(Opcode.RETURN, started[4].opcode)
             assertEquals("$label: onStartJob's own code follows", stockStart.kinds(), started.drop(5).kinds())
+            checked++
+        }
+        assertEquals("every build is read", Fixtures.BUILDS, checked)
+    }
+
+    /**
+     * #341: every build has one account authenticator, and its hasFeatures returns null without ever
+     * answering, which is what keeps Android's account service bound to Instagram. The patch's fingerprint
+     * picks it, and patched, it returns the extension's answer when there is one and runs Instagram's own
+     * code otherwise.
+     */
+    @Test
+    fun eachBuildsAccountCheckAsksTheExtensionFirst() {
+        var checked = 0
+        for (build in builds()) {
+            val label = "${build.parentFile.name}/${build.name}"
+            val authenticators = FixtureDex.subclasses(build, setOf(ACCOUNT_AUTHENTICATOR))
+            assertEquals("$label: account authenticators", 1, authenticators.size)
+            val context = PatchContexts.of(authenticators)
+            val hasFeatures = context.uniqueMethod("Stop background wake-ups", "account feature check", AccountFeaturesFingerprint)
+            assertEquals("$label: the authenticator's own hasFeatures", authenticators.single().type, hasFeatures.definingClass)
+            val stock = hasFeatures.implementation!!.instructions.toList()
+            assertEquals("$label: Instagram's hasFeatures returns null and never answers",
+                listOf(Opcode.CONST_4, Opcode.RETURN_OBJECT), stock.kinds())
+            assertTrue("$label: no register free in hasFeatures", hasFeatures.implementation!!.registerCount - 4 >= 1)
+
+            answerAccountChecks(hasFeatures)
+
+            val patched = hasFeatures.implementation!!.instructions.toList()
+            assertEquals("$label: hasFeatures asks first", "$EXTENSION/misc/Heartbeat;->answerAccountFeatures()Landroid/os/Bundle;",
+                (patched[0] as ReferenceInstruction).reference.toString())
+            assertEquals(Opcode.MOVE_RESULT_OBJECT, patched[1].opcode)
+            assertEquals(Opcode.IF_EQZ, patched[2].opcode)
+            assertEquals("$label: it tests the answer it got",
+                (patched[1] as OneRegisterInstruction).registerA, (patched[2] as OneRegisterInstruction).registerA)
+            assertEquals("$label: no answer goes on to Instagram's own code", 4, (patched[2] as BuilderOffsetInstruction).target.location.index)
+            assertEquals(Opcode.RETURN_OBJECT, patched[3].opcode)
+            assertEquals("$label: and returns the answer it got",
+                (patched[1] as OneRegisterInstruction).registerA, (patched[3] as OneRegisterInstruction).registerA)
+            assertEquals("$label: Instagram's own code follows", stock.kinds(), patched.drop(4).kinds())
             checked++
         }
         assertEquals("every build is read", Fixtures.BUILDS, checked)

@@ -2612,6 +2612,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_stop_background_fetch", FALSE);
 
     /**
+     * Instagram's account authenticator answers Android's account feature checks at once, so Android's
+     * account service lets go of it instead of keeping it running for up to 15 minutes
+     * ({@link app.hushgram.extension.instagram.misc.Heartbeat#answerAccountFeatures}, #341). Read each time
+     * Android asks. Off to start.
+     */
+    public static final BooleanSetting ANSWER_ACCOUNT_CHECKS =
+            new BooleanSetting("hushgram_answer_account_checks", FALSE);
+
+    /**
      * Instagram's windows ask Android for the display's fastest mode at the resolution it runs at
      * ({@link app.hushgram.extension.instagram.misc.RefreshRate}). Read as each activity resumes, so
      * no restart. Off to start.

@@ -2361,6 +2361,8 @@ Break length	ระยะเวลาพัก
 %1$d minutes	%1$d นาที
 Stop background feed refresh	หยุดการรีเฟรชฟีดในพื้นหลัง
 About every half hour, Instagram wakes your phone to download your feed ahead of time. This stops that. The feed loads when you open the app instead, and messages and notifications still arrive.	ประมาณทุกครึ่งชั่วโมง Instagram จะปลุกโทรศัพท์ของคุณเพื่อดาวน์โหลดฟีดล่วงหน้า ตัวเลือกนี้จะหยุดการทำงานดังกล่าว ฟีดจะโหลดเมื่อคุณเปิดแอปแทน และข้อความกับการแจ้งเตือนยังคงเข้ามาตามปกติ
+Let Instagram close after account checks	ให้ Instagram ปิดได้หลังการตรวจสอบบัญชี
+When your phone checks its accounts, as it does at startup and when an account changes, Instagram never answers. Android then keeps it running for up to 15 minutes, even after you swipe it away. This answers right away so Instagram can close. Your login is unaffected.	เมื่อโทรศัพท์ตรวจสอบบัญชีต่างๆ เช่น ตอนเปิดเครื่องและเมื่อบัญชีมีการเปลี่ยนแปลง Instagram จะไม่ตอบกลับเลย Android จึงให้แอปทำงานต่อได้นานถึง 15 นาที แม้คุณจะปัดปิดไปแล้ว ตัวเลือกนี้จะตอบกลับทันทีเพื่อให้ Instagram ปิดได้ การเข้าสู่ระบบของคุณไม่ได้รับผลกระทบ
 The pill's rim bends what's behind it like real glass, so what passes under the edge shows upside down. Android 13 and newer. Restart Instagram after changing it.	ขอบแถบเม็ดยาจะหักเหสิ่งที่อยู่ด้านหลังเหมือนกระจกจริง สิ่งที่ผ่านใต้ขอบจึงแสดงกลับหัว ใช้ได้ใน Android 13 ขึ้นไป รีสตาร์ท Instagram หลังจากเปลี่ยนค่านี้
 Hide page number	ซ่อนหมายเลขหน้า
 Takes the number like 3/5 off the corner of a carousel post's photo or video.	นำตัวเลขอย่าง 3/5 ออกจากมุมของรูปภาพหรือวิดีโอในโพสต์แบบเลื่อนดูหลายรูป

@@ -1087,6 +1087,8 @@ Stop the analytics upload alarm	停用分析資料上傳鬧鐘
 Instagram sets an alarm to wake your phone and send its usage events five minutes later. This stops that alarm. The events go the next time you use the app.	Instagram 會設定鬧鐘，在五分鐘後喚醒手機並傳送使用事件。此選項會停用該鬧鐘，事件改在下次使用應用程式時傳送。
 Stop background feed refresh	停止背景動態更新
 About every half hour, Instagram wakes your phone to download your feed ahead of time. This stops that. The feed loads when you open the app instead, and messages and notifications still arrive.	Instagram 大約每半小時會喚醒手機，提前下載你的動態。此選項會停止該行為。動態改在開啟應用程式時載入，訊息與通知仍會照常送達。
+Let Instagram close after account checks	帳號檢查後讓 Instagram 關閉
+When your phone checks its accounts, as it does at startup and when an account changes, Instagram never answers. Android then keeps it running for up to 15 minutes, even after you swipe it away. This answers right away so Instagram can close. Your login is unaffected.	手機檢查帳號時（例如開機時和帳號變更時），Instagram 從不回應。Android 因此會讓它持續執行最多 15 分鐘，即使你已將它滑掉關閉。此選項會立即回應，讓 Instagram 可以關閉。不影響你的登入。
 Haptic style	觸覺回饋樣式
 Short tick	短震
 System tick	系統震動

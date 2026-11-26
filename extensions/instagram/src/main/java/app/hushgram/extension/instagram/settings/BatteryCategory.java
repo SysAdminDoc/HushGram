@@ -36,6 +36,11 @@ final class BatteryCategory {
                     L10n.t("About every half hour, Instagram wakes your phone to download your feed ahead of time. "
                             + "This stops that. The feed loads when you open the app instead, and messages and "
                             + "notifications still arrive.")));
+            battery.addPreference(toggle(context, Settings.ANSWER_ACCOUNT_CHECKS, L10n.t("Let Instagram close after account checks"),
+                    L10n.t("When your phone checks its accounts, as it does at startup and when an account changes, "
+                            + "Instagram never answers. Android then keeps it running for up to 15 minutes, even after "
+                            + "you swipe it away. This answers right away so Instagram can close. Your login is "
+                            + "unaffected.")));
         }
     }
 }

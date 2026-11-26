@@ -4,12 +4,14 @@
  */
 package app.hushgram.extension.instagram.misc;
 
+import android.accounts.AccountManager;
 import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.app.job.JobInfo;
 import android.app.job.JobScheduler;
 import android.content.ComponentName;
 import android.content.Context;
+import android.os.Bundle;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
@@ -96,6 +98,28 @@ public final class Heartbeat {
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.STOP_HEARTBEAT, where, t);
             return false;
+        }
+    }
+
+    /**
+     * Asked first thing in Instagram's account authenticator's hasFeatures (#341). Instagram's own answer is
+     * null with nothing sent back, which Android reads as "the answer comes later", so its account service
+     * stays bound to Instagram until its 15-minute timeout and keeps the app running at foreground priority
+     * the whole time, swiped away or not. Android asks whenever accounts change, at boot included. With the
+     * switch on this answers at once that the account has none of the features asked about, the answer the
+     * caller is left with anyway once the wait times out. Null while the switch is off, HushGram is paused or
+     * the settings aren't ready, which keeps Instagram's own answer. Never throws.
+     */
+    public static Bundle answerAccountFeatures() {
+        HookStatus.invoked(FamilyNames.STOP_HEARTBEAT);
+        try {
+            if (!Utils.settingsReady() || !Settings.ANSWER_ACCOUNT_CHECKS.get()) return null;
+            Bundle answer = new Bundle();
+            answer.putBoolean(AccountManager.KEY_BOOLEAN_RESULT, false);
+            return answer;
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.STOP_HEARTBEAT, "account check switch read", t);
+            return null;
         }
     }
 }

@@ -1105,6 +1105,8 @@ Stop the analytics upload alarm	Analyse-Upload-Wecker stoppen
 Instagram sets an alarm to wake your phone and send its usage events five minutes later. This stops that alarm. The events go the next time you use the app.	Instagram stellt einen Wecker, der dein Handy fünf Minuten später weckt, um Nutzungsdaten zu senden. Das stoppt diesen Wecker. Die Daten gehen beim nächsten Öffnen der App raus.
 Stop background feed refresh	Feed-Aktualisierung im Hintergrund stoppen
 About every half hour, Instagram wakes your phone to download your feed ahead of time. This stops that. The feed loads when you open the app instead, and messages and notifications still arrive.	Etwa jede halbe Stunde weckt Instagram dein Handy, um deinen Feed vorab herunterzuladen. Das hört damit auf. Der Feed lädt stattdessen, wenn du die App öffnest, und Nachrichten und Benachrichtigungen kommen weiter an.
+Let Instagram close after account checks	Instagram nach Kontoprüfungen schließen lassen
+When your phone checks its accounts, as it does at startup and when an account changes, Instagram never answers. Android then keeps it running for up to 15 minutes, even after you swipe it away. This answers right away so Instagram can close. Your login is unaffected.	Wenn dein Handy seine Konten prüft, etwa beim Start und wenn sich ein Konto ändert, antwortet Instagram nie. Android lässt es dann bis zu 15 Minuten weiterlaufen, auch nachdem du es weggewischt hast. Das hier antwortet sofort, damit Instagram sich schließen kann. Deine Anmeldung bleibt unberührt.
 Haptic style	Haptik-Stil
 Short tick	Kurzer Tick
 System tick	System-Tick

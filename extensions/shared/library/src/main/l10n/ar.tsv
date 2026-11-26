@@ -164,6 +164,8 @@ A white bar and handle, as they've always been.	شريط ومقبض أبيضان
 A white bar on a strip of frosted glass that blurs the video under it. Before Android 12 the strip is see-through instead.	شريط أبيض على شريط من الزجاج المصنفر يموّه الفيديو تحته. قبل Android 12 يكون الشريط شفافًا بدلًا من ذلك.
 About	حول
 About every half hour, Instagram wakes your phone to download your feed ahead of time. This stops that. The feed loads when you open the app instead, and messages and notifications still arrive.	كل نصف ساعة تقريبًا، يوقظ Instagram هاتفك لتنزيل موجزك مسبقًا. هذا يوقف ذلك. يُحمَّل الموجز عند فتح التطبيق بدلًا من ذلك، ولا تزال الرسائل والإشعارات تصل.
+Let Instagram close after account checks	السماح لـ Instagram بالإغلاق بعد فحص الحسابات
+When your phone checks its accounts, as it does at startup and when an account changes, Instagram never answers. Android then keeps it running for up to 15 minutes, even after you swipe it away. This answers right away so Instagram can close. Your login is unaffected.	عندما يفحص هاتفك حساباته، كما يحدث عند التشغيل وعند تغيّر أحد الحسابات، لا يرد Instagram أبدًا. فيُبقيه Android قيد التشغيل لمدة تصل إلى 15 دقيقة، حتى بعد أن تسحبه لإغلاقه. هذا الخيار يرد فورًا ليتمكن Instagram من الإغلاق. لا يتأثر تسجيل دخولك.
 About this account	حول هذا الحساب
 About this account button	زر حول هذا الحساب
 About this reel keeps its summary and Sources, and only the Ask Meta AI box under them goes.	يبقى جزء حول هذا الريل مع ملخصه ومشاهده، ويختفي فقط مربع اسأل Meta AI تحتهما.

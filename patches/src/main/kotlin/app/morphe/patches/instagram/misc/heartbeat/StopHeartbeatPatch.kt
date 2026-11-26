@@ -28,18 +28,21 @@ private const val SET_UPLOAD_ALARM =
 private const val ALARM_SET = "Landroid/app/AlarmManager;->set(IJLandroid/app/PendingIntent;)V"
 private const val STOP_BACKGROUND_FETCH = "$EXTENSION_PACKAGE/misc/Heartbeat;->stopBackgroundFetch(Ljava/lang/Class;)Z"
 private const val SKIP_BACKGROUND_FETCH = "$EXTENSION_PACKAGE/misc/Heartbeat;->skipBackgroundFetch()Z"
+private const val ANSWER_ACCOUNT_FEATURES = "$EXTENSION_PACKAGE/misc/Heartbeat;->answerAccountFeatures()Landroid/os/Bundle;"
 
 /**
- * Skips Instagram's heartbeat alarm, its analytics upload alarm and its background prefetch job, each
- * behind its own switch. See Heartbeat in the extension. In the default selection with every switch off.
+ * Skips Instagram's heartbeat alarm, its analytics upload alarm and its background prefetch job, and answers
+ * Android's account feature checks for it, each behind its own switch. See Heartbeat in the extension. In the
+ * default selection with every switch off.
  */
 @Suppress("unused")
 val stopHeartbeatPatch = bytecodePatch(
     name = "Stop background wake-ups",
-    description = "Stops three things that wake your phone while Instagram is in the background. One alarm goes off " +
+    description = "Stops four things that keep Instagram busy while it's in the background. One alarm goes off " +
         "every minute or two only to note that Instagram is still running, another wakes it five minutes later to " +
-        "upload usage events, and a job about every half hour downloads your feed ahead of time. Messages and " +
-        "notifications still arrive. Starts off. Turn it on in HushGram settings > Battery.",
+        "upload usage events, and a job about every half hour downloads your feed ahead of time. And when your " +
+        "phone checks its accounts, Instagram never answers, which keeps it running for up to 15 minutes. " +
+        "Messages and notifications still arrive. Starts off. Turn it on in HushGram settings > Battery.",
 ) {
     category("Fixes")
     dependsOn(settingsPatch, instagramExtensionPatch)
@@ -80,7 +83,29 @@ val stopHeartbeatPatch = bytecodePatch(
             uniqueMethod("Stop background wake-ups", "background prefetch job", BgFetchJobStartFingerprint),
         )
 
+        answerAccountChecks(uniqueMethod("Stop background wake-ups", "account feature check", AccountFeaturesFingerprint))
+
         enableStatus("stopHeartbeat")
+    }
+}
+
+/**
+ * The account authenticator's hasFeatures returns the extension's answer when it has one, and Instagram's
+ * own null, which never answers, otherwise (#341).
+ */
+internal fun answerAccountChecks(hasFeatures: MutableMethod) {
+    hasFeatures.apply {
+        requireLocals("Stop background wake-ups", 1)
+        addInstructionsWithLabels(
+            0,
+            """
+                invoke-static { }, $ANSWER_ACCOUNT_FEATURES
+                move-result-object v0
+                if-eqz v0, :stock
+                return-object v0
+            """,
+            ExternalLabel("stock", getInstruction(0)),
+        )
     }
 }
 
