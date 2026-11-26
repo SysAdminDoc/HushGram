@@ -248,7 +248,7 @@ public final class MediaSave {
                     });
                     final int ahead = WAITING.size();
                     info(() -> "carousel queued, " + ahead + " waiting");
-                    Feedback.show(application, L10n.t(application, "Queued. It starts once the post before it is saved."), true);
+                    Feedback.note(application, L10n.t(application, "Queued. It starts once the post before it is saved."), true);
                     return true;
                 }
                 batchTurn = true;
@@ -1681,13 +1681,13 @@ public final class MediaSave {
     private static void announce(Context application, SaveControl.Save save, String poster) {
         save.reveal();
         if (poster == null) {
-            Feedback.show(application, save.manager != null ? L10n.t(application, "Saving...")
+            Feedback.note(application, save.manager != null ? L10n.t(application, "Saving...")
                     : L10n.t(application, "Saving... You can cancel from Downloads in HushGram settings."),
                     save.manager == null);
             return;
         }
         String saving = L10n.f(application, "Saving from @%1$s...", L10n.isolate(poster));
-        Feedback.show(application, save.manager != null ? saving
+        Feedback.note(application, save.manager != null ? saving
                 : saving + "\n" + L10n.t(application, "You can cancel from Downloads in HushGram settings."),
                 save.manager == null);
     }
@@ -1739,7 +1739,7 @@ public final class MediaSave {
             final int waiting = place;
             info(() -> "save queued, " + waiting + " waiting");
             save.waiting();
-            Feedback.show(application, poster == null ? L10n.t(application, "Queued")
+            Feedback.note(application, poster == null ? L10n.t(application, "Queued")
                     : L10n.f(application, "Queued: @%1$s", L10n.isolate(poster)), false);
             return worker;
         }
