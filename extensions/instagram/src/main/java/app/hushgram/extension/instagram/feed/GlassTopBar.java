@@ -4,6 +4,7 @@
  */
 package app.hushgram.extension.instagram.feed;
 
+import android.content.res.ColorStateList;
 import android.content.res.Configuration;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -23,6 +24,7 @@ import android.graphics.RenderNode;
 import android.graphics.Shader;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
 import android.os.SystemClock;
 import android.view.View;
@@ -439,6 +441,50 @@ public final class GlassTopBar {
         return Color.alpha(colour) == 255 ? colour : 0;
     }
 
+    /** How far apart a fill's red, green and blue can be for it to count as one of Instagram's greys. */
+    static final int GREY_SPREAD = 0x10;
+
+    /**
+     * The colour a message box's glass is tinted from (#683). A chat theme colours Instagram's message bar pill,
+     * and the glass takes that colour: from [fill], the pill the glass covers or takes the place of, or else from a
+     * fill taken off a view over it. A see-through one counts as it shows over the theme's white or black. A grey
+     * fill, Instagram's own pill with no theme, and none at all leave the glass white, or black at [night], as it
+     * always was. A box kept [dark] stays black whatever it's given.
+     */
+    static int boxBase(@Nullable Drawable fill, Iterable<Drawable> cleared, boolean dark, boolean night) {
+        int plain = dark || night ? Color.BLACK : Color.WHITE;
+        if (dark) return plain;
+        int found = themed(fill);
+        for (Drawable background : cleared) {
+            if (found != 0) break;
+            found = themed(background);
+        }
+        if (found == 0) return plain;
+        float share = Color.alpha(found) / 255f;
+        return Color.rgb(
+                Math.round(Color.red(plain) + (Color.red(found) - Color.red(plain)) * share),
+                Math.round(Color.green(plain) + (Color.green(found) - Color.green(plain)) * share),
+                Math.round(Color.blue(plain) + (Color.blue(found) - Color.blue(plain)) * share));
+    }
+
+    /** [fill]'s one colour when it's a colour, not a grey or see-through, or 0. */
+    private static int themed(@Nullable Drawable fill) {
+        int colour;
+        if (fill instanceof ColorDrawable) {
+            colour = ((ColorDrawable) fill).getColor();
+        } else if (fill instanceof GradientDrawable) {
+            ColorStateList colours = ((GradientDrawable) fill).getColor();
+            if (colours == null) return 0;
+            colour = colours.getDefaultColor();
+        } else {
+            return 0;
+        }
+        if (Color.alpha(colour) == 0) return 0;
+        int most = Math.max(Color.red(colour), Math.max(Color.green(colour), Color.blue(colour)));
+        int least = Math.min(Color.red(colour), Math.min(Color.green(colour), Color.blue(colour)));
+        return most - least <= GREY_SPREAD ? 0 : colour;
+    }
+
     /** One header's glass: puts it on before each frame, records what's under it, takes it off again. */
     private static final class Glass implements ViewTreeObserver.OnPreDrawListener, View.OnAttachStateChangeListener {
         final View header;
@@ -635,9 +681,9 @@ public final class GlassTopBar {
             on = true;
             if (sourceId != 0) {
                 // A message box keeps what's round it as it is: the glass is only the pill.
-                base = dark || night ? Color.BLACK : Color.WHITE;
                 if (over) uncover();
                 else if (replaces) uncoverInside();
+                base = boxBase(over ? header.getBackground() : original, cleared.values(), dark, night);
                 return;
             }
             View host = host();

@@ -18,6 +18,7 @@ import android.graphics.Color;
 import android.graphics.RenderNode;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
+import android.graphics.drawable.GradientDrawable;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
@@ -287,6 +288,31 @@ public class GlassTopBarTest {
         assertTrue(GlassTopBar.fills(new ColorDrawable(Color.RED)));
     }
 
+    /** #683: a message box's tint takes a chat theme's colour off its pill, and stays white or black otherwise. */
+    @Test
+    public void aMessageBoxsTintTakesAChatThemesColour() {
+        List<Drawable> none = Collections.emptyList();
+        List<Drawable> taken = Collections.<Drawable>singletonList(new ColorDrawable(0xff123456));
+        assertEquals(0xff5b2a86, GlassTopBar.boxBase(themed(0xff5b2a86), none, false, false));
+        assertEquals("at night too", 0xff5b2a86, GlassTopBar.boxBase(themed(0xff5b2a86), none, false, true));
+        assertEquals(0xff123456, GlassTopBar.boxBase(new ColorDrawable(0xff123456), none, false, false));
+        assertEquals("from a fill taken off a view over it", 0xff123456, GlassTopBar.boxBase(null, taken, false, false));
+        assertEquals("the pill's own first", 0xff5b2a86, GlassTopBar.boxBase(themed(0xff5b2a86), taken, false, false));
+        assertEquals("a grey pill passes to the next", 0xff123456, GlassTopBar.boxBase(themed(0xffefefef), taken, false, false));
+        assertEquals("see-through, as it shows over white", 0xffff7f7f, GlassTopBar.boxBase(themed(0x80ff0000), none, false, false));
+        assertEquals("and over black", 0xff800000, GlassTopBar.boxBase(themed(0x80ff0000), none, false, true));
+
+        assertEquals("Instagram's grey pill", Color.WHITE, GlassTopBar.boxBase(themed(0xffefefef), none, false, false));
+        assertEquals(Color.BLACK, GlassTopBar.boxBase(themed(0xff262626), none, false, true));
+        assertEquals("a blue-tinted grey", Color.BLACK, GlassTopBar.boxBase(themed(0xff0c1014), none, false, true));
+        assertEquals(Color.WHITE, GlassTopBar.boxBase(null, none, false, false));
+        assertEquals(Color.BLACK, GlassTopBar.boxBase(null, none, false, true));
+        assertEquals("clear", Color.WHITE, GlassTopBar.boxBase(new ColorDrawable(0x00ff0000), none, false, false));
+        GradientDrawable gradient = new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, new int[] {0xffff0000, 0xff0000ff});
+        assertEquals("a gradient has no one colour", Color.WHITE, GlassTopBar.boxBase(gradient, none, false, false));
+        assertEquals("kept dark", Color.BLACK, GlassTopBar.boxBase(themed(0xff5b2a86), taken, true, false));
+    }
+
     /** On a phone's canvas the feed is recorded under the header and drawn blurred; with nothing under it, only the tint. */
     @Test
     @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -546,6 +572,73 @@ public class GlassTopBarTest {
         assertEquals("a box with no button named stays fully round", HEADER / 2f, GlassTopBar.pillRadius(story), 0.01f);
         String report = HookStatus.report().toString();
         assertFalse(report, report.contains(GlassTopBar.HOOK));
+    }
+
+    /**
+     * #683: a chat theme colours Instagram's message bar pill, and the glass on it takes that colour as its tint,
+     * on the pill's picture and on the row drawing the pill in its place. Instagram's own grey pill, a chat with no
+     * theme, keeps the glass white, and a story's reply box stays dark whatever it's given.
+     */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    @Config(sdk = 33)
+    public void aChatThemesColourTintsTheMessageBarsGlass() {
+        int pink = 0xffffc8dc;
+        View pill = pill(themed(pink));
+        GlassTopBar.glazeBox(pill, screen.getId(), false, () -> true, FamilyNames.GLASS_CHAT, Settings.GLASS_CHAT_BOX_OPACITY);
+        frame();
+        assertTrue(GlassTopBar.boxShowing(pill));
+        assertTint("the picture's glass", pink, drawn(pill.getForeground()));
+
+        View grey = pill(themed(0xffefefef));
+        GlassTopBar.glazeBox(grey, screen.getId(), false, () -> true, FamilyNames.GLASS_CHAT, Settings.GLASS_CHAT_BOX_OPACITY);
+        frame();
+        assertTint("Instagram's grey pill", Color.WHITE, drawn(grey.getForeground()));
+
+        int purple = 0xff5b2a86;
+        FrameLayout row = messageBox();
+        row.setBackground(themed(purple));
+        GlassTopBar.glazeRow(row, screen.getId(), () -> true, FamilyNames.GLASS_CHAT, Settings.GLASS_CHAT_BOX_OPACITY, 0);
+        frame();
+        assertTrue(GlassTopBar.boxShowing(row));
+        assertTint("the row's glass", purple, drawn(row.getBackground()));
+
+        View story = pill(themed(pink));
+        GlassTopBar.glazeBox(story, screen.getId(), true, () -> true, FamilyNames.GLASS_CHAT);
+        frame();
+        assertTint("a story's reply box", Color.BLACK, drawn(story.getForeground()));
+        String report = HookStatus.report().toString();
+        assertFalse(report, report.contains(GlassTopBar.HOOK));
+    }
+
+    /** A picture of a message bar pill filled with [fill], with nothing in it, in a holder over the feed. */
+    private View pill(Drawable fill) {
+        if (screen.getId() == View.NO_ID) screen.setId(View.generateViewId());
+        FrameLayout holder = new FrameLayout(activity);
+        View pill = new View(activity);
+        pill.setBackground(fill);
+        holder.addView(pill, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, HEADER));
+        screen.addView(holder, 2, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, HEADER));
+        layout();
+        return pill;
+    }
+
+    /** A round pill in [colour] with an outline, as a chat theme gives Instagram's message bar. */
+    private static GradientDrawable themed(int colour) {
+        GradientDrawable fill = new GradientDrawable();
+        fill.setCornerRadius(40);
+        fill.setColor(colour);
+        fill.setStroke(2, colour);
+        return fill;
+    }
+
+    /** That the middle of [glass] shows the unblurred tint made from [base], as a software canvas draws it. */
+    private static void assertTint(String what, int base, Bitmap glass) {
+        int expected = GlassTabBar.tint(base, false, GlassTabBar.opacityScale());
+        int found = glass.getPixel(50, 25);
+        assertEquals(what + ": red", Color.red(expected), Color.red(found), 2);
+        assertEquals(what + ": green", Color.green(expected), Color.green(found), 2);
+        assertEquals(what + ": blue", Color.blue(expected), Color.blue(found), 2);
     }
 
     /** A message box in a holder over the feed, laid out, as a chat's composer sits. */

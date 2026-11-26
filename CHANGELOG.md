@@ -103,6 +103,7 @@ Every HushGram release, newest first.
 * With `Backgrounds in the accent color` on and `Material You` or `Custom` picked, your chat list keeps your colors when Instagram starts in the background for a notification. Its rows went black until a force stop. Reported in #187.
 * With `Story rings in the accent color` on, the ring around a story you've already seen takes a soft shade of your color instead of Instagram's gray. Reported in #187.
 * With `Story rings in the accent color` on, the story rings next to chats in your chat list take your color too. They kept Instagram's own gradient there. Reported in #683.
+* With `Glass in chats` on, the message bar's glass takes the color a chat theme gives the bar, as Instagram's own bar does. It stayed white in light mode and black in dark mode. Reported in #683.
 
 ### Improvements
 
