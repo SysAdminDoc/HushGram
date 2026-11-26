@@ -31,6 +31,7 @@ import android.os.Build;
 import android.util.TypedValue;
 import android.view.ContextThemeWrapper;
 import android.view.View;
+import android.widget.ImageView;
 
 import org.junit.After;
 import org.junit.Before;
@@ -42,7 +43,9 @@ import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
@@ -1402,6 +1405,112 @@ public class AccentThemeTest {
         PauseForTests.resume();
         String report = HookStatus.report().toString();
         assertTrue(report, report.contains(AccentTheme.BAR_ICONS + " 5"));
+    }
+
+    /**
+     * A chat composer's voice, gallery, sticker and + buttons are told the chat theme's white or black,
+     * and with Icons in the accent color on they take the picked color's shade the way a top bar's icons
+     * do (#187). The camera button on its own accent circle, another view's button, a view with no id,
+     * a framework id or a name the app doesn't have keep what they're told, as do a red, see-through, a
+     * shade already picked, the switch off and a pause.
+     */
+    @Test
+    public void aChatComposersButtonsTakeThePickedShade() throws Exception {
+        java.lang.reflect.Method hook = AccentTheme.class.getMethod("composerIcon", View.class, int.class);
+        Context app = RuntimeEnvironment.getApplication();
+        Map<Integer, String> names = new HashMap<>();
+        names.put(0x7f0e0001, "row_thread_composer_voice");
+        names.put(0x7f0e0002, "row_thread_composer_button_gallery");
+        names.put(0x7f0e0003, "row_thread_composer_button_sticker");
+        names.put(0x7f0e0004, "row_thread_composer_button_overflow");
+        names.put(0x7f0e0005, "row_thread_composer_button_overflow_left_aligned");
+        names.put(0x7f0e0006, "row_thread_composer_button_camera");
+        names.put(0x7f0e0007, "thread_header_button");
+        names.put(0x01020001, "row_thread_composer_voice");
+        Resources resources = new Resources(app.getAssets(), app.getResources().getDisplayMetrics(), app.getResources().getConfiguration()) {
+            @Override
+            public String getResourceEntryName(int id) {
+                String name = names.get(id);
+                if (name == null) throw new NotFoundException("no name for " + Integer.toHexString(id));
+                return name;
+            }
+        };
+        Context context = new ContextWrapper(app) {
+            @Override
+            public Resources getResources() {
+                return resources;
+            }
+        };
+        ColorButton voice = new ColorButton(context, 0x7f0e0001, hook);
+        int white = 0xffffffff;
+        int black = 0xff000000;
+        voice.setNormalColor(white);
+        assertEquals("off", white, voice.normal);
+        Settings.ACCENT_COLOR.save(true);
+        Settings.ACCENT_HUE.save(AccentHue.TEAL);
+        voice.setNormalColor(white);
+        assertEquals("icons off", white, voice.normal);
+        Settings.ACCENT_ICONS.save(true);
+
+        int onDark = 0xff000000 | AccentColor.swap(0xff85a1ff, AccentHue.TEAL);
+        int onLight = 0xff000000 | AccentColor.swap(0xff3143e3, AccentHue.TEAL);
+        voice.setNormalColor(white);
+        voice.setActiveColor(white);
+        assertEquals("the voice button", onDark, voice.normal);
+        assertEquals("the voice button, pressed", onDark, voice.active);
+        for (int id = 0x7f0e0002; id <= 0x7f0e0005; id++) {
+            ColorButton button = new ColorButton(context, id, hook);
+            button.setNormalColor(white);
+            assertEquals(names.get(id), onDark, button.normal);
+        }
+        ColorButton sticker = new ColorButton(context, 0x7f0e0003, hook);
+        sticker.setNormalColor(black);
+        assertEquals("black on a light chat", onLight, sticker.normal);
+
+        for (int id : new int[] {0x7f0e0006, 0x7f0e0007, View.NO_ID, 0x01020001, 0x7f0e0009}) {
+            ColorButton other = new ColorButton(context, id, hook);
+            other.setNormalColor(white);
+            assertEquals("kept: " + Integer.toHexString(id), white, other.normal);
+        }
+        voice.setNormalColor(0xffff3040);
+        assertEquals("a red of its own", 0xffff3040, voice.normal);
+        voice.setNormalColor(0);
+        assertEquals("see-through", 0, voice.normal);
+        voice.setNormalColor(onDark);
+        assertEquals("already the shade", onDark, voice.normal);
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        voice.setNormalColor(white);
+        assertEquals("paused", white, voice.normal);
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        Settings.ACCENT_ICONS.save(false);
+        voice.setNormalColor(white);
+        assertEquals("icons off again", white, voice.normal);
+        String report = HookStatus.report().toString();
+        assertTrue(report, report.contains(AccentTheme.BAR_ICONS + " 7"));
+    }
+
+    /** A tab icon view whose color setters hand their color to the composer hook first, as the patched view's do. */
+    private static final class ColorButton extends ImageView {
+        private final java.lang.reflect.Method hook;
+        int normal;
+        int active;
+
+        ColorButton(Context context, int id, java.lang.reflect.Method hook) {
+            super(context);
+            this.hook = hook;
+            setId(id);
+        }
+
+        void setNormalColor(int color) throws Exception {
+            normal = (int) hook.invoke(null, this, color);
+        }
+
+        void setActiveColor(int color) throws Exception {
+            active = (int) hook.invoke(null, this, color);
+        }
     }
 
     /**

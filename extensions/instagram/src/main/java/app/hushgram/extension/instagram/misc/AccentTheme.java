@@ -34,6 +34,7 @@ import androidx.annotation.Nullable;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -1462,6 +1463,59 @@ public final class AccentTheme {
      */
     public static void setBarIconColor(ImageView view, int color) {
         view.setColorFilter(barIcons(color));
+    }
+
+    /** The ids of a chat composer's buttons that {@link #composerIcon(View, int)} colors, by their resource names. */
+    static final List<String> COMPOSER_BUTTONS = Arrays.asList(
+            "row_thread_composer_voice",
+            "row_thread_composer_button_gallery",
+            "row_thread_composer_button_sticker",
+            "row_thread_composer_button_overflow",
+            "row_thread_composer_button_overflow_left_aligned");
+
+    /** Whether each view id seen names one of {@link #COMPOSER_BUTTONS}. */
+    private static final Map<Integer, Boolean> COMPOSER_IDS = new HashMap<>();
+
+    /**
+     * Injected where Instagram's tab icon view is told its normal or its active color, [color], with the
+     * view (#187). A chat's composer hands its voice, gallery, sticker and + buttons the icon colors of
+     * the chat's theme this way, white or black for the default theme, which no icon style reaches, so
+     * with Icons in the accent color on they stayed white or black. Answers {@link #barIcons(int)}'s
+     * answer for those buttons and [color] for every other view, the camera button on its own accent
+     * circle among them. Answers [color] with the switch off, HushGram paused or anything thrown.
+     */
+    public static int composerIcon(View view, int color) {
+        try {
+            HookStatus.invoked(FamilyNames.ACCENT_COLOR);
+            if (view == null || color == 0) return color;
+            int icons = iconShade(color);
+            if (icons == color || !composerButton(view)) return color;
+            HookStatus.counted(FamilyNames.ACCENT_COLOR, BAR_ICONS);
+            return icons;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.ACCENT_COLOR, "composer icon", failure);
+            return color;
+        }
+    }
+
+    /** Whether [view]'s id is one of the app's own naming one of {@link #COMPOSER_BUTTONS}. */
+    private static boolean composerButton(View view) {
+        int id = view.getId();
+        if (id >>> 24 != 0x7f) return false;
+        synchronized (COMPOSER_IDS) {
+            Boolean known = COMPOSER_IDS.get(id);
+            if (known != null) return known;
+        }
+        boolean button;
+        try {
+            button = COMPOSER_BUTTONS.contains(view.getResources().getResourceEntryName(id));
+        } catch (Resources.NotFoundException missing) {
+            button = false;
+        }
+        synchronized (COMPOSER_IDS) {
+            COMPOSER_IDS.put(id, button);
+        }
+        return button;
     }
 
     /**

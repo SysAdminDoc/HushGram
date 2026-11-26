@@ -2974,6 +2974,23 @@ once-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->chatBackground(La
 # the header to AccentTheme.chatHeader right after that call. Left out, the header stays black over the
 # chat's navy page under Classic colors (#528). ChatBackgroundTest checks every build.
 once-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->chatHeader(Landroid/view/View;)V in instance (LX/*;)V holding const:0x14d400c4
+# An opened chat's header colors its back arrow and its buttons with the icon colors of the chat's
+# theme, white or black for the default one, through the SRC_ATOP filter maker the top bar uses
+# (03fF.A00 on 386314286, 03qD.A00 on 386314340): in the method holding the header's trace key and in
+# its class's (View, row, int) button builder (08Cr.A0A and A05 on 386314286). Accent color makes each
+# filter laid straight on an image view with AccentTheme.barIconFilter instead. Left out, a chat's
+# header icons stay white or black with Icons in the accent color on (#187). BarIconsTest checks every build.
+shared-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->barIconFilter(I)Landroid/graphics/ColorFilter; in instance (LX/*;)V holding const:0x14d400c4
+shared-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->barIconFilter(I)Landroid/graphics/ColorFilter; in instance (Landroid/view/View;LX/*;I)V class-holding const:0x14d400c4
+# A chat's composer hands its voice, gallery, sticker and + buttons the icon colors of the chat's theme
+# through the tab icon view's setNormalColor and setActiveColor, which keep their names and box the
+# color into the view's A05 and A04 on every 457 build. Accent color hands the view and the color to
+# AccentTheme.composerIcon first thing in each, and keeps its answer. Left out, those buttons stay
+# white or black with Icons in the accent color on (#187). BarIconsTest checks every build.
+start-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->composerIcon(Landroid/view/View;I)I in instance (I)V holding Lcom/instagram/common/ui/colorfilter/ColorFilterAlphaImageView;->A05:Ljava/lang/Integer; Ljava/lang/Integer;->valueOf(I)Ljava/lang/Integer;
+once-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->composerIcon(Landroid/view/View;I)I in instance (I)V holding Lcom/instagram/common/ui/colorfilter/ColorFilterAlphaImageView;->A05:Ljava/lang/Integer; Ljava/lang/Integer;->valueOf(I)Ljava/lang/Integer;
+start-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->composerIcon(Landroid/view/View;I)I in instance (I)V holding Lcom/instagram/common/ui/colorfilter/ColorFilterAlphaImageView;->A04:Ljava/lang/Integer; Ljava/lang/Integer;->valueOf(I)Ljava/lang/Integer;
+once-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->composerIcon(Landroid/view/View;I)I in instance (I)V holding Lcom/instagram/common/ui/colorfilter/ColorFilterAlphaImageView;->A04:Ljava/lang/Integer; Ljava/lang/Integer;->valueOf(I)Ljava/lang/Integer;
 # A chat pads its message list at the bottom each time the message bar changes height, through Instagram's
 # helper setting a view's bottom padding (07tl.A0j on 386214534, the one of the two such helpers with the
 # null check first), then scrolls the list by the difference to keep the newest message in view. Glass in

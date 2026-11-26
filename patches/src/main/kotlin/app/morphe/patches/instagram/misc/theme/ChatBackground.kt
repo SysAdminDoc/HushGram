@@ -150,6 +150,10 @@ internal fun BytecodePatchContext.findChatHeader(): ChatHeaderSite? {
     return site
 }
 
+/** The classes of the methods [findChatHeader] picks among, the one coloring an opened chat's header (`LX/08Cr` on 386314286). */
+internal fun BytecodePatchContext.chatHeaderClasses(): List<String> =
+    classesLoading(CHAT_HEADER_TRACE).flatMap { classDef -> classDef.methods.mapNotNull(::headerSite) }.map { it.method.definingClass }.distinct()
+
 /** [method]'s chat header site, when it loads [CHAT_HEADER_TRACE] into the last argument of a later [COLORS_VIEW] call. */
 private fun headerSite(method: Method): ChatHeaderSite? {
     val code = method.implementation?.instructions?.toList() ?: return null

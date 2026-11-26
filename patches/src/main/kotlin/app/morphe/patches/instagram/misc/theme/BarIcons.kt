@@ -83,11 +83,7 @@ internal fun BytecodePatchContext.findActionBarIcons(): ActionBarIcons? {
     val bars = classesLoadingString(ACTION_BAR_MESSAGE).distinctBy { it.type }
     val bar = bars.singleOrNull() ?: return skip("${bars.size} classes load the top bar's message, not one")
     val makers = HashMap<String, Boolean>()
-    fun makesFilter(called: MethodReference): Boolean = makers.getOrPut("${called.definingClass}->${called.name}") {
-        classDefByOrNull(called.definingClass)?.methods?.singleOrNull {
-            it.name == called.name && it.sameShape(called) && AccessFlags.STATIC.isSet(it.accessFlags)
-        }?.makesSrcAtopFilter() == true
-    }
+    fun makesFilter(called: MethodReference): Boolean = makers.getOrPut("${called.definingClass}->${called.name}") { makesBarFilter(called) }
     val filters = mutableListOf<Pair<String, Int>>()
     val tints = mutableListOf<Pair<String, Int>>()
     for (method in bar.methods) {
@@ -120,12 +116,7 @@ internal fun BytecodePatchContext.findActionBarIcons(): ActionBarIcons? {
  */
 internal fun BytecodePatchContext.tintActionBarIcons() {
     val found = findActionBarIcons() ?: return
-    for ((method, at) in found.filters) {
-        val call = method.getInstruction<Instruction>(at)
-        val color = if (call is RegisterRangeInstruction) call.startRegister else (call as FiveRegisterInstruction).registerC
-        val range = call is RegisterRangeInstruction
-        method.replaceInstruction(at, if (range) "invoke-static/range { v$color .. v$color }, $BAR_ICON_FILTER" else "invoke-static { v$color }, $BAR_ICON_FILTER")
-    }
+    for ((method, at) in found.filters) method.callBarIconFilter(at)
     for ((method, at) in found.tints) {
         val call = method.getInstruction<Instruction>(at)
         val registers = when (call) {
@@ -133,6 +124,104 @@ internal fun BytecodePatchContext.tintActionBarIcons() {
             else -> (call as FiveRegisterInstruction).let { "v${it.registerC}, v${it.registerD}" }
         }
         method.replaceInstruction(at, if (call is RegisterRangeInstruction) "invoke-static/range { $registers }, $SET_BAR_ICON_COLOR" else "invoke-static { $registers }, $SET_BAR_ICON_COLOR")
+    }
+}
+
+/** Puts a call of the extension's [BAR_ICON_FILTER] in place of the filter maker's call at [at], with the same color register and form. */
+private fun MutableMethod.callBarIconFilter(at: Int) {
+    val call = getInstruction<Instruction>(at)
+    val color = if (call is RegisterRangeInstruction) call.startRegister else (call as FiveRegisterInstruction).registerC
+    replaceInstruction(at, if (call is RegisterRangeInstruction) "invoke-static/range { v$color .. v$color }, $BAR_ICON_FILTER" else "invoke-static { v$color }, $BAR_ICON_FILTER")
+}
+
+/**
+ * Finds where an opened chat's header lays a filter on its back arrow and its buttons (`LX/08Cr;->A0A`
+ * and `->A05` on 386314286): in the one class [chatHeaderClasses] answers, each call to a static
+ * `(int)ColorFilter` making a PorterDuffColorFilter in SRC_ATOP mode whose filter goes straight to
+ * ImageView.setColorFilter(ColorFilter). The header colors them with the icon colors of the chat's theme,
+ * white or black for the default one, which no icon style reaches. Answers null with a warning when
+ * there isn't one such class or it lays no such filter, so the header keeps Instagram's colors. Refuses
+ * when the extension lacks [BAR_ICON_FILTER].
+ */
+internal fun BytecodePatchContext.findChatHeaderIcons(): List<Pair<MutableMethod, Int>>? {
+    fun skip(why: String): List<Pair<MutableMethod, Int>>? {
+        patchLog.warning("$PATCH: $why, so the icons on a chat's header keep Instagram's colors")
+        return null
+    }
+    val headers = chatHeaderClasses()
+    val header = headers.singleOrNull()?.let { classDefByOrNull(it) } ?: return skip("${headers.size} classes color a chat's header, not one")
+    val sites = header.methods.flatMap { method ->
+        val code = method.code()
+        code.indices.filter { at -> code.filtersImageView(at) && makesBarFilter(code[at].called()!!) }.map { method.key() to it }
+    }
+    if (sites.isEmpty()) return skip("${header.type} lays no filter on an icon")
+    requireHook(BAR_ICON_FILTER)
+    val methods = mutableClassDefBy(header.type).methods.associateBy { it.key() }
+    return sites.map { (key, at) -> methods.getValue(key) to at }
+}
+
+/**
+ * Whether [at] calls a static `(int)ColorFilter` whose filter, taken right after, goes straight to
+ * ImageView.setColorFilter(ColorFilter).
+ */
+private fun List<Instruction>.filtersImageView(at: Int): Boolean {
+    val called = this[at].called() ?: return false
+    if (this[at].opcode !in STATIC_CALLS || called.returnType != FILTER || called.parameterTypes.map(Any::toString) != listOf("I")) return false
+    val taken = getOrNull(at + 1)?.takeIf { it.opcode == Opcode.MOVE_RESULT_OBJECT } as? OneRegisterInstruction ?: return false
+    val laid = getOrNull(at + 2)?.takeIf { it.opcode in VIRTUAL_CALLS } as? FiveRegisterInstruction ?: return false
+    val set = laid.called() ?: return false
+    return set.definingClass == IMAGE && set.name == "setColorFilter" && set.parameterTypes.map(Any::toString) == listOf(FILTER) &&
+        laid.registerCount == 2 && laid.registerD == taken.registerA
+}
+
+/**
+ * Hands the color an opened chat's header gives its back arrow and its buttons to the extension, in
+ * place of each call making their filter, as [tintActionBarIcons] does a screen's top bar's, so with
+ * Icons in the accent color on they take the picked color too (#187). The registers stay as they were.
+ */
+internal fun BytecodePatchContext.tintChatHeaderIcons() {
+    for ((method, at) in findChatHeaderIcons() ?: return) method.callBarIconFilter(at)
+}
+
+/** The extension's answer to the color a [TAB_ICON_VIEW] is told, which a chat composer's buttons take (#187). */
+internal const val COMPOSER_ICON = "$ACCENT_THEME->composerIcon(Landroid/view/View;I)I"
+
+/** The setters [TAB_ICON_VIEW] takes its normal and its active color through. */
+private val COLOR_SETTERS = listOf("setNormalColor", "setActiveColor")
+
+/**
+ * Finds [TAB_ICON_VIEW]'s setNormalColor(int) and setActiveColor(int). A chat's composer hands its
+ * voice, gallery, sticker and + buttons the icon colors of the chat's theme through them (`LX/08Mo;->A00`
+ * on 386314286 for the default composer), white or black for the default theme, which no icon style
+ * reaches. Answers null with a warning when either is missing, so those buttons keep Instagram's colors.
+ * Refuses when the extension lacks [COMPOSER_ICON].
+ */
+internal fun BytecodePatchContext.findComposerIconSetters(): List<MutableMethod>? {
+    fun skip(why: String): List<MutableMethod>? {
+        patchLog.warning("$PATCH: $why, so a chat composer's buttons keep Instagram's colors")
+        return null
+    }
+    val view = classDefByOrNull(TAB_ICON_VIEW) ?: return skip("no $TAB_ICON_VIEW")
+    val setters = COLOR_SETTERS.map { name ->
+        view.methods.singleOrNull {
+            it.name == name && it.parameterTypes.map(Any::toString) == listOf("I") && it.returnType == "V" &&
+                !AccessFlags.STATIC.isSet(it.accessFlags) && it.implementation != null
+        } ?: return skip("$TAB_ICON_VIEW has no $name(int)")
+    }
+    requireHook(COMPOSER_ICON)
+    val owner = mutableClassDefBy(TAB_ICON_VIEW)
+    return setters.map { setter -> owner.methods.single { it.name == setter.name && it.sameShape(setter) } }
+}
+
+/**
+ * Hands the color [TAB_ICON_VIEW] is told to the extension, with the view, as setNormalColor(int) and
+ * setActiveColor(int) start, and keeps its answer, so with Icons in the accent color on a chat
+ * composer's voice, gallery, sticker and + buttons take the picked color (#187). The extension answers
+ * every other view's color as it came. The range form takes any registers.
+ */
+internal fun BytecodePatchContext.tintComposerIcons() {
+    for (setter in findComposerIconSetters() ?: return) {
+        setter.addInstructions(0, "invoke-static/range { p0 .. p1 }, $COMPOSER_ICON\nmove-result p1")
     }
 }
 
@@ -434,13 +523,18 @@ internal fun BytecodePatchContext.tintSearchBarIcons() {
     found.wrapper.addInstructions(found.read + 1, "invoke-static/range { v$color .. v${color + 1} }, $DEFAULT_ICON\nmove-result-wide v$color")
 }
 
-/** [tintActionBarIcons], [tintProfileTabs], [tintTaggedTab], [tintSearchSaved] and [tintSearchBarIcons]. */
+/**
+ * [tintActionBarIcons], [tintProfileTabs], [tintTaggedTab], [tintSearchSaved], [tintSearchBarIcons],
+ * [tintChatHeaderIcons] and [tintComposerIcons].
+ */
 internal fun BytecodePatchContext.tintBarIcons() {
     tintActionBarIcons()
     tintProfileTabs()
     tintTaggedTab()
     tintSearchSaved()
     tintSearchBarIcons()
+    tintChatHeaderIcons()
+    tintComposerIcons()
 }
 
 private val STATIC_CALLS = setOf(Opcode.INVOKE_STATIC, Opcode.INVOKE_STATIC_RANGE)
@@ -462,6 +556,12 @@ private fun Method.makesSrcAtopFilter(): Boolean {
     return code.any { it.opcode == Opcode.NEW_INSTANCE && ((it as ReferenceInstruction).reference as TypeReference).type == PORTER_DUFF_FILTER } &&
         code.any { it.opcode == Opcode.SGET_OBJECT && ((it as ReferenceInstruction).reference as FieldReference).text() == SRC_ATOP }
 }
+
+/** Whether [called] names a static method of the app making a PorterDuffColorFilter in SRC_ATOP mode, the top bar's filter maker. */
+private fun BytecodePatchContext.makesBarFilter(called: MethodReference): Boolean =
+    classDefByOrNull(called.definingClass)?.methods?.singleOrNull {
+        it.name == called.name && it.sameShape(called) && AccessFlags.STATIC.isSet(it.accessFlags)
+    }?.makesSrcAtopFilter() == true
 
 private fun BytecodePatchContext.requireHook(hook: String) {
     val present = classDefByOrNull(ACCENT_THEME)?.methods?.any {

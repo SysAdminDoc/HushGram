@@ -403,6 +403,142 @@ class BarIconsTest {
         }
     }
 
+    /**
+     * Each filter an opened chat's header makes with the SRC_ATOP maker and lays straight on an image
+     * view comes from the extension's maker instead, with the same register and form. A filter laid on
+     * a drawable and another maker's keep Instagram's code. No header, two headers or a header laying no
+     * such filter is left as it is, and an extension without the hook refuses.
+     */
+    @Test
+    fun aChatHeadersIconsGoThroughTheExtension() {
+        val context = PatchContexts.of(listOf(chatHeader(), filterMaker(), otherMaker(), extension()))
+        context.tintChatHeaderIcons()
+        val methods = context.mutableClassDefBy(CHAT_HEADER_VIEW).methods.associateBy { it.name }
+
+        val back = methods.getValue("A0A").code()
+        val made = back.single { it.calls(BAR_ICON_FILTER) }
+        assertEquals("the plain form", Opcode.INVOKE_STATIC, made.opcode)
+        assertEquals("the color's register", 4, (made as FiveRegisterInstruction).registerC)
+        assertEquals("its filter taken as before", Opcode.MOVE_RESULT_OBJECT, back[back.indexOf(made) + 1].opcode)
+        assertTrue("laid on the icon as before", back[back.indexOf(made) + 2].callsMethod(IMAGE, "setColorFilter", FILTER))
+        assertTrue("another maker kept", back.any { it.callsMethod(OTHER_MAKER, "A00", "I") })
+        assertEquals("the filter laid on a drawable kept", 1, back.count { it.callsMethod(FILTER_MAKER, "A00", "I") })
+        assertTrue("that drawable's filter right before it", back[back.indexOfFirst { it.callsMethod(FILTER_MAKER, "A00", "I") } + 2].callsMethod(DRAWABLE, "setColorFilter", FILTER))
+
+        val button = methods.getValue("A05").code()
+        val ranged = button.single { it.calls(BAR_ICON_FILTER) }
+        assertEquals("the range form", Opcode.INVOKE_STATIC_RANGE, ranged.opcode)
+        assertEquals("the range's register", 16, (ranged as RegisterRangeInstruction).startRegister)
+        assertEquals("one register", 1, ranged.registerCount)
+        for ((name, stock) in chatHeader().methods.associate { it.name to it.code() }) {
+            assertEquals("$name: Instagram's code kept", stock.map { it.opcode }, methods.getValue(name).code().map { it.opcode })
+        }
+
+        for ((case, classes) in listOf(
+            "no header" to listOf(chatHeader(trace = false), filterMaker(), extension()),
+            "two headers" to listOf(chatHeader(), chatHeader(type = OTHER_HEADER), filterMaker(), extension()),
+            "no filter on an icon" to listOf(chatHeader(icons = false), filterMaker(), extension()),
+        )) {
+            val untouched = PatchContexts.of(classes)
+            untouched.tintChatHeaderIcons()
+            val hooked = classes.filter { it.type == CHAT_HEADER_VIEW || it.type == OTHER_HEADER }.flatMap { untouched.mutableClassDefBy(it.type).methods }
+                .filter { method -> method.code().any { it.calls(BAR_ICON_FILTER) } }
+            assertTrue("$case: no hook", hooked.isEmpty())
+        }
+        val failure = assertThrows(PatchException::class.java) {
+            PatchContexts.of(listOf(chatHeader(), filterMaker(), extension(bar = false))).tintChatHeaderIcons()
+        }
+        assertTrue("no hook in the extension: ${failure.message}", failure.message!!.startsWith("Accent color"))
+    }
+
+    /**
+     * The tab icon view hands the color it's told to the extension with itself as setNormalColor(int)
+     * and setActiveColor(int) start, in the range form, and takes the answer back into that parameter,
+     * with Instagram's code kept after it. Its method handing both on keeps its code. No view, or a view
+     * missing either setter, is left as it is, and an extension without the hook refuses.
+     */
+    @Test
+    fun aChatComposersButtonsGoThroughTheExtension() {
+        val context = PatchContexts.of(listOf(colorView(), extension()))
+        context.tintComposerIcons()
+        val methods = context.mutableClassDefBy(TAB_ICON_VIEW).methods.associateBy { it.name }
+        for (name in listOf("setNormalColor", "setActiveColor")) {
+            val code = methods.getValue(name).code()
+            assertTrue("$name: the hook first", code[0].calls(COMPOSER_ICON))
+            assertEquals("$name: the range form", Opcode.INVOKE_STATIC_RANGE, code[0].opcode)
+            assertEquals("$name: the view and its color", listOf(2, 2), (code[0] as RegisterRangeInstruction).let { listOf(it.startRegister, it.registerCount) })
+            assertEquals("$name: written back", Opcode.MOVE_RESULT, code[1].opcode)
+            assertEquals("$name: into the color", 3, (code[1] as OneRegisterInstruction).registerA)
+            val stock = colorView().methods.single { it.name == name }.code()
+            assertEquals("$name: Instagram's code kept", stock.map { it.opcode }, code.drop(2).map { it.opcode })
+        }
+        val both = methods.getValue("A03").code()
+        assertEquals("the method handing both on kept", colorView().methods.single { it.name == "A03" }.code().map { it.opcode }, both.map { it.opcode })
+
+        PatchContexts.of(listOf(extension())).tintComposerIcons()
+        val missing = PatchContexts.of(listOf(colorView(active = false), extension()))
+        missing.tintComposerIcons()
+        assertTrue("a missing setter: no hook", missing.mutableClassDefBy(TAB_ICON_VIEW).methods.none { method -> method.code().any { it.calls(COMPOSER_ICON) } })
+        val failure = assertThrows(PatchException::class.java) { PatchContexts.of(listOf(colorView(), extension(bar = false))).tintComposerIcons() }
+        assertTrue("no hook in the extension: ${failure.message}", failure.message!!.startsWith("Accent color"))
+    }
+
+    /**
+     * Every build: the one class coloring an opened chat's header lays two filters from the SRC_ATOP
+     * maker straight on image views, its back arrow's and its buttons', and both come from the
+     * extension's maker in the same registers and form. The tab icon view's two color setters hand
+     * their color over first, with Instagram's code kept after.
+     */
+    @Test
+    fun everyBuildHandsItsChatHeaderAndComposerIconsToTheExtension() {
+        for ((code, bundle) in builds()) {
+            val loading = mutableListOf<ClassDef>()
+            FixtureDex.forEach(bundle) { dex ->
+                for (classDef in dex.classes) {
+                    if (classDef.methods.any { method -> method.code().any { it.loads(CHAT_HEADER_TRACE.toInt()) } }) loading += ImmutableClassDef.of(classDef)
+                }
+            }
+            val makers = loading.flatMap { owner -> owner.methods.flatMap { it.code() } }
+                .filter { it.callsStatic(FILTER, listOf("I")) }.map { it.called()!!.definingClass }.toSet()
+            val others = FixtureDex.classes(bundle, makers + TAB_ICON_VIEW - loading.map { it.type }.toSet()).values
+            val context = PatchContexts.of(loading + others + ExtensionDex.classDef(ACCENT_THEME))
+            val header = context.chatHeaderClasses().single()
+            val stock = loading.single { it.type == header }
+            context.tintChatHeaderIcons()
+            context.tintComposerIcons()
+
+            var hooked = 0
+            for (method in context.mutableClassDefBy(header).methods) {
+                val after = method.code()
+                val before = stock.methods.single { it.name == method.name && it.parameterTypes.map(Any::toString) == method.parameterTypes.map(Any::toString) }.code()
+                val where = "$code: $header->${method.name}"
+                assertEquals("$where: Instagram's code kept", before.filter { it.opcode != Opcode.NOP }.map { it.kind() }, after.filter { it.opcode != Opcode.NOP }.map { it.kind() })
+                for (at in after.indices.filter { after[it].calls(BAR_ICON_FILTER) }) {
+                    hooked++
+                    assertEquals("$where@$at: in the maker's register", before[at].firstRegister(), after[at].firstRegister())
+                    assertTrue("$where@$at: in place of a SRC_ATOP maker", makesAtop(others.singleOrNull { it.type == before[at].called()!!.definingClass }))
+                    assertEquals("$where@$at: its filter taken", Opcode.MOVE_RESULT_OBJECT, after[at + 1].opcode)
+                    assertTrue("$where@$at: laid on an image view", after[at + 2].callsMethod(IMAGE, "setColorFilter", FILTER))
+                }
+            }
+            assertEquals("$code: the back arrow's and the buttons' filters", 2, hooked)
+
+            val view = context.mutableClassDefBy(TAB_ICON_VIEW)
+            val stockView = others.single { it.type == TAB_ICON_VIEW }
+            for (name in listOf("setNormalColor", "setActiveColor")) {
+                val setter = view.methods.single { it.name == name && it.parameterTypes.map(Any::toString) == listOf("I") }
+                val after = setter.code()
+                val registers = setter.implementation!!.registerCount
+                val where = "$code: $name"
+                assertTrue("$where: the hook first", after[0].calls(COMPOSER_ICON))
+                assertEquals("$where: the view and its color", listOf(registers - 2, 2), (after[0] as RegisterRangeInstruction).let { listOf(it.startRegister, it.registerCount) })
+                assertEquals("$where: written back into the color", registers - 1, (after[1] as OneRegisterInstruction).registerA)
+                val before = stockView.methods.single { it.name == name && it.parameterTypes.map(Any::toString) == listOf("I") }.code()
+                assertEquals("$where: Instagram's code kept", before.filter { it.opcode != Opcode.NOP }.map { it.kind() }, after.drop(2).filter { it.opcode != Opcode.NOP }.map { it.kind() })
+            }
+        }
+    }
+
     private fun builds(): Map<String, File> {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
         val declared = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } }
@@ -438,6 +574,75 @@ class BarIconsTest {
         const val ICONS = "Lfixture/Icons;"
         const val SEARCH_ROW = "Lfixture/SearchRow;"
         const val SEARCH_TWIN = "Lfixture/SearchTwin;"
+        const val DRAWABLE = "Landroid/graphics/drawable/Drawable;"
+        const val CHAT_HEADER_VIEW = "Lfixture/ChatHeader;"
+        const val OTHER_HEADER = "Lfixture/OtherHeader;"
+        const val CHAT_THEME = "Lfixture/ChatTheme;"
+
+        /**
+         * An opened chat's header as 386314286's `LX/08Cr` has it: A0A loads the header's trace key
+         * (unless not [trace]) into a static (View, int, int) call coloring the header, lays a filter
+         * from the SRC_ATOP maker on its back arrow, another maker's on it too and the SRC_ATOP maker's
+         * on a drawable; A05 lays one on a button with the color in v16 through the range form. Without
+         * [icons], both lay theirs on drawables only.
+         */
+        fun chatHeader(type: String = CHAT_HEADER_VIEW, trace: Boolean = true, icons: Boolean = true): ClassDef {
+            val lay = if (icons) IMAGE else DRAWABLE
+            return classOf(
+                type,
+                method(type, "A0A", listOf(CHAT_THEME), 6, """
+                    const v0, ${if (trace) "0x14d400c4" else "0x14d400c5"}
+                    iget-object v1, p0, $type->A06:Landroid/view/View;
+                    const/4 v2, 0x0
+                    invoke-static { v1, v2, v0 }, Lfixture/Views;->A00(Landroid/view/View;II)V
+                    iget-object v3, p0, $type->A09:$lay
+                    iget v4, p1, $CHAT_THEME->A02:I
+                    invoke-static { v4 }, $FILTER_MAKER->A00(I)$FILTER
+                    move-result-object v5
+                    invoke-virtual { v3, v5 }, $lay->setColorFilter($FILTER)V
+                    invoke-static { v4 }, $OTHER_MAKER->A00(I)$FILTER
+                    move-result-object v5
+                    invoke-virtual { v3, v5 }, $lay->setColorFilter($FILTER)V
+                    iget-object v2, p0, $type->A0B:$DRAWABLE
+                    invoke-static { v4 }, $FILTER_MAKER->A00(I)$FILTER
+                    move-result-object v5
+                    invoke-virtual { v2, v5 }, $DRAWABLE->setColorFilter($FILTER)V
+                    return-void
+                """, static = false),
+                method(type, "A05", listOf("Landroid/view/View;", "Lfixture/Row;", "I"), 17, """
+                    move/from16 v16, p3
+                    move-object/from16 v1, p0
+                    iget-object v0, v1, $type->A0C:$lay
+                    invoke-static/range { v16 .. v16 }, $FILTER_MAKER->A00(I)$FILTER
+                    move-result-object v2
+                    invoke-virtual { v0, v2 }, $lay->setColorFilter($FILTER)V
+                    return-void
+                """, static = false),
+            )
+        }
+
+        /**
+         * Instagram's tab icon view as 457 has it: setNormalColor(int) and setActiveColor(int) keep the
+         * color boxed, and A03 hands both on. Without [active], no setActiveColor.
+         */
+        fun colorView(active: Boolean = true): ClassDef {
+            fun setter(name: String, field: String) = method(TAB_ICON_VIEW, name, listOf("I"), 2, """
+                invoke-static { p1 }, Ljava/lang/Integer;->valueOf(I)Ljava/lang/Integer;
+                move-result-object v1
+                iput-object v1, p0, $TAB_ICON_VIEW->$field:Ljava/lang/Integer;
+                return-void
+            """, static = false)
+            val methods = listOfNotNull(
+                setter("setNormalColor", "A05"),
+                if (active) setter("setActiveColor", "A04") else null,
+                method(TAB_ICON_VIEW, "A03", listOf("I", "I"), 0, """
+                    invoke-virtual { p0, p1 }, $TAB_ICON_VIEW->setNormalColor(I)V
+                    invoke-virtual { p0, p2 }, $TAB_ICON_VIEW->setActiveColor(I)V
+                    return-void
+                """, static = false),
+            )
+            return classOf(TAB_ICON_VIEW, *methods.toTypedArray(), superclass = IMAGE)
+        }
 
         /**
          * The top bar as 457's `LX/01pF` has it: the message only it throws, A1P making a filter of the
@@ -616,6 +821,7 @@ class BarIconsTest {
                 if (bar) method(ACCENT_THEME, "searchIconNext", emptyList(), 0, "return-void", static = true) else null,
                 if (bar) method(ACCENT_THEME, "defaultIcon", listOf("J"), 1, "return-wide p0", static = true, returns = "J") else null,
                 if (bar) method(ACCENT_THEME, "searchIcon", listOf("J"), 1, "return-wide p0", static = true, returns = "J") else null,
+                if (bar) method(ACCENT_THEME, "composerIcon", listOf("Landroid/view/View;", "I"), 0, "return p1", static = true, returns = "I") else null,
             ).toTypedArray(),
         )
 
