@@ -134,7 +134,10 @@ final class Feedback {
         }
     }
 
-    /** What another app (a test's, in practice) left here is no measure of this one's queue. */
+    /**
+     * What another app (a test's, in practice) left here is no measure of this one's queue, and a
+     * come back it was owed went with its main thread's queue, so this one's would never be posted.
+     */
     private static void forgetAnother(Context context) {
         Context app = context.getApplicationContext();
         if (app == null) app = context;
@@ -142,6 +145,7 @@ final class Feedback {
         owner = app;
         SHOWN.clear();
         WAITING.clear();
+        pumpPosted = false;
     }
 
     /** Hand Android what it has room for, and come back when it has room for more. Main thread. */

@@ -9,6 +9,8 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import android.app.Application;
+import android.content.Context;
+import android.content.ContextWrapper;
 import android.os.Looper;
 import android.widget.Toast;
 
@@ -84,6 +86,31 @@ public class FeedbackTest {
 
         Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(400));
         assertEquals(5, ShadowToast.shownToastCount());
+        assertEquals("Result 5", ShadowToast.getTextOfLatestToast());
+    }
+
+    /**
+     * The come back owed to another app's waiting toasts went with that app's main thread queue,
+     * as a test's does when the next one starts, and this app's waiting result still shows.
+     */
+    @Test
+    public void anotherAppsLostComeBackDoesNotHoldBackThisOnesResults() {
+        Context other = new ContextWrapper(app) {
+            @Override
+            public Context getApplicationContext() {
+                return this;
+            }
+        };
+        for (int i = 1; i <= 5; i++) Feedback.show(other, "Old " + i, false);
+        idle();
+        assertEquals(4, ShadowToast.shownToastCount());
+        Shadows.shadowOf(Looper.getMainLooper().getQueue()).reset();
+
+        for (int i = 1; i <= 5; i++) Feedback.show(app, "Result " + i, false);
+        idle();
+        assertEquals(8, ShadowToast.shownToastCount());
+        Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(2_400));
+        assertEquals("the fifth result never came", 9, ShadowToast.shownToastCount());
         assertEquals("Result 5", ShadowToast.getTextOfLatestToast());
     }
 
