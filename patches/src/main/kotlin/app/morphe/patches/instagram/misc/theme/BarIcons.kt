@@ -10,7 +10,9 @@ import app.morphe.patcher.extensions.InstructionExtensions.replaceInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
+import app.morphe.patches.instagram.misc.extension.classesLoading
 import app.morphe.patches.instagram.misc.extension.classesLoadingString
+import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
 import app.morphe.patches.instagram.misc.extension.patchLog
@@ -24,6 +26,7 @@ import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
@@ -37,6 +40,7 @@ private const val PATCH = "Accent color"
 private const val FILTER = "Landroid/graphics/ColorFilter;"
 private const val IMAGE = "Landroid/widget/ImageView;"
 private const val COLOR_LIST = "Landroid/content/res/ColorStateList;"
+private const val STRING = "Ljava/lang/String;"
 private const val PORTER_DUFF_FILTER = "Landroid/graphics/PorterDuffColorFilter;"
 private const val SRC_ATOP = "Landroid/graphics/PorterDuff\$Mode;->SRC_ATOP:Landroid/graphics/PorterDuff\$Mode;"
 
@@ -285,12 +289,158 @@ internal fun BytecodePatchContext.tintTaggedTab() {
     )
 }
 
-/** [tintActionBarIcons], [tintProfileTabs], [tintTaggedTab] and [tintSearchSaved]. */
+/** Tells the extension the next icon Compose's icon wrapper draws in the default color is a search bar's search icon (#187). */
+internal const val SEARCH_ICON_NEXT = "$ACCENT_THEME->searchIconNext()V"
+
+/** Hands the extension the color Compose's icon wrapper reads for an icon given none of its own (#187). */
+internal const val DEFAULT_ICON = "$ACCENT_THEME->defaultIcon(J)J"
+
+/** Hands the extension the color a Compose search bar draws the search icon its theme names in (#187). */
+internal const val SEARCH_ICON = "$ACCENT_THEME->searchIcon(J)J"
+
+/** Instagram 457's attr/inlineSearchBarSearchIconResource, the search icon a search bar's theme names, in all four 457 builds (aapt2). */
+internal const val INLINE_SEARCH_ICON = 0x7f04091a
+
+/**
+ * Instagram 457's search outline icon, a search bar's own, in all four 457 builds: SearchEditText and
+ * SearchController load it too, and it sits between instagram_search_filled_24 and
+ * instagram_search_gen_ai_outline_24, though aapt2 names neither it nor the ids beside it.
+ */
+internal const val SEARCH_OUTLINE_ICON = 0x7f0812f2
+
+/**
+ * Where Compose search bars draw their search icon, your messages' among them (`LX/0O2s;->A07` and its
+ * twin `LX/0BUR;->A07` on 386314286): [named], each call of the icon wrapper that draws the bar's own
+ * icon in the default color, [given], each call drawing the theme's icon in the color in the two
+ * registers before the call's last, and in [wrapper], the icon wrapper (`LX/0833;->A1O`), the read of
+ * that default color at [read].
+ */
+internal class SearchBarIcons(
+    val named: List<Pair<MutableMethod, Int>>,
+    val given: List<Pair<MutableMethod, Int>>,
+    val wrapper: MutableMethod,
+    val read: Int,
+)
+
+/**
+ * Finds [SearchBarIcons]: the static void methods loading both [INLINE_SEARCH_ICON] and
+ * [SEARCH_OUTLINE_ICON], in each the first call after the outline's load of a static
+ * (composer, modifier, painter, String) void icon wrapper, and the first call after the theme icon's
+ * load of a static (composer, modifier, painter, String, long) void with the color taken right before
+ * it. The bars read their gray from Compose's own palette, which no theme reaches, so with Icons in the
+ * accent color on your messages' search icon stayed gray (#187). The wrapper is the same for every bar
+ * and reads the default color once, a long field of the palette it's handed. Answers null with a
+ * warning when a bar draws either icon another way or the wrapper reads its color another way. Refuses
+ * when the extension lacks a hook.
+ */
+internal fun BytecodePatchContext.findSearchBarIcons(): SearchBarIcons? {
+    fun skip(why: String): SearchBarIcons? {
+        patchLog.warning("$PATCH: $why, so a search bar's search icon keeps Instagram's gray")
+        return null
+    }
+    val bars = classesLoading(INLINE_SEARCH_ICON.toLong()).distinctBy { it.type }.flatMap { it.methods }.filter { method ->
+        AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "V" &&
+            method.code().let { code -> code.any { it.loads(INLINE_SEARCH_ICON) } && code.any { it.loads(SEARCH_OUTLINE_ICON) } }
+    }
+    if (bars.isEmpty()) return skip("no search bar loads both search icons")
+    val sites = bars.map { bar ->
+        val code = bar.code()
+        val named = code.firstCallAfter(code.indexOfFirst { it.loads(SEARCH_OUTLINE_ICON) }) { at -> code.drawsDefaultIcon(at) }
+        val given = code.firstCallAfter(code.indexOfFirst { it.loads(INLINE_SEARCH_ICON) }) { at -> code.drawsGivenIcon(at) }
+        if (named < 0 || given < 0) return skip("${bar.definingClass}->${bar.name} draws a search icon another way")
+        Triple(bar, named, given)
+    }
+    val wrappers = sites.map { (bar, named, _) -> bar.code()[named].called()!! }.distinctBy { "${it.definingClass}->${it.name}" }
+    val wrapperCall = wrappers.singleOrNull() ?: return skip("the bars draw their own icon with ${wrappers.size} wrappers, not one")
+    val wrapper = classDefByOrNull(wrapperCall.definingClass)?.methods?.singleOrNull { it.name == wrapperCall.name && it.sameShape(wrapperCall) }
+        ?: return skip("no ${wrapperCall.definingClass}->${wrapperCall.name}")
+    val read = wrapper.code().defaultColorRead() ?: return skip("${wrapper.definingClass}->${wrapper.name} reads its color another way")
+    if (read + 1 in wrapper.jumpTargets()) return skip("${wrapper.definingClass}->${wrapper.name} jumps to right after reading its color")
+    requireHook(SEARCH_ICON_NEXT)
+    requireHook(DEFAULT_ICON)
+    requireHook(SEARCH_ICON)
+    fun mutable(method: Method) = mutableClassDefBy(method.definingClass).methods.single { it.name == method.name && it.sameShape(method) }
+    return SearchBarIcons(
+        sites.map { (bar, named, _) -> mutable(bar) to named },
+        sites.map { (bar, _, given) -> mutable(bar) to given },
+        mutable(wrapper),
+        read,
+    )
+}
+
+/** The first index after [from] that [wanted] takes among the static calls, or -1. */
+private fun List<Instruction>.firstCallAfter(from: Int, wanted: (Int) -> Boolean): Int {
+    if (from < 0) return -1
+    return (from + 1 until size).firstOrNull { this[it].opcode in STATIC_CALLS && wanted(it) } ?: -1
+}
+
+/** Whether [at] calls a static (object, object, object, String) void, an icon drawn in the default color. */
+private fun List<Instruction>.drawsDefaultIcon(at: Int): Boolean {
+    val called = this[at].called() ?: return false
+    val parameters = called.parameterTypes.map(Any::toString)
+    return called.returnType == "V" && parameters.size == 4 && parameters.last() == STRING &&
+        parameters.dropLast(1).all { it.startsWith("L") && it != STRING }
+}
+
+/**
+ * Whether [at] calls a static (object, object, object, String, long) void with the range form, its
+ * long taken by the move-result-wide right before it, an icon drawn in a color handed over.
+ */
+private fun List<Instruction>.drawsGivenIcon(at: Int): Boolean {
+    val call = this[at] as? RegisterRangeInstruction ?: return false
+    val called = this[at].called() ?: return false
+    val parameters = called.parameterTypes.map(Any::toString)
+    if (called.returnType != "V" || parameters.size != 5 || parameters[3] != STRING || parameters.last() != "J" ||
+        parameters.take(3).any { !it.startsWith("L") || it == STRING }
+    ) return false
+    val taken = getOrNull(at - 1)?.takeIf { it.opcode == Opcode.MOVE_RESULT_WIDE } as? OneRegisterInstruction ?: return false
+    return taken.registerA == call.startRegister + call.registerCount - 2
+}
+
+/**
+ * In Compose's icon wrapper, the one iget-wide of a long field, with no branch before it, whose pair
+ * the range call after it hands on last: the default icon color read from the palette. With no branch
+ * before it, every call of the wrapper reads it, so the extension's flag never outlives its icon.
+ */
+private fun List<Instruction>.defaultColorRead(): Int? {
+    val reads = indices.filter { this[it].opcode == Opcode.IGET_WIDE && ((this[it] as ReferenceInstruction).reference as FieldReference).type == "J" }
+    val read = reads.singleOrNull() ?: return null
+    if (subList(0, read).any { it is OffsetInstruction }) return null
+    val color = (this[read] as TwoRegisterInstruction).registerA
+    val handed = (read + 1 until size).any { at ->
+        val call = this[at] as? RegisterRangeInstruction ?: return@any false
+        this[at].called()?.parameterTypes?.lastOrNull()?.toString() == "J" && color == call.startRegister + call.registerCount - 2
+    }
+    return read.takeIf { handed }
+}
+
+/**
+ * Names each Compose search bar's own search icon to the extension right before the bar draws it, at
+ * the call's label, hands the color a bar draws its theme's icon in to the extension right before that
+ * call, and hands the default color the icon wrapper reads to the extension right after the read, so
+ * with Icons in the accent color on the search icon atop your messages takes the picked color (#187).
+ * The wrapper's hook answers every other icon's color as it came.
+ */
+internal fun BytecodePatchContext.tintSearchBarIcons() {
+    val found = findSearchBarIcons() ?: return
+    val sites = found.named.map { (method, at) -> Triple(method, at, "invoke-static {}, $SEARCH_ICON_NEXT") } +
+        found.given.map { (method, at) ->
+            val color = (method.getInstruction(at - 1) as OneRegisterInstruction).registerA
+            Triple(method, at, "invoke-static/range { v$color .. v${color + 1} }, $SEARCH_ICON\nmove-result-wide v$color")
+        }
+    // Later sites first, so each index still names its call.
+    for ((method, at, code) in sites.sortedByDescending { it.second }) method.addInstructionsAtControlFlowLabel(at, code)
+    val color = (found.wrapper.getInstruction(found.read) as TwoRegisterInstruction).registerA
+    found.wrapper.addInstructions(found.read + 1, "invoke-static/range { v$color .. v${color + 1} }, $DEFAULT_ICON\nmove-result-wide v$color")
+}
+
+/** [tintActionBarIcons], [tintProfileTabs], [tintTaggedTab], [tintSearchSaved] and [tintSearchBarIcons]. */
 internal fun BytecodePatchContext.tintBarIcons() {
     tintActionBarIcons()
     tintProfileTabs()
     tintTaggedTab()
     tintSearchSaved()
+    tintSearchBarIcons()
 }
 
 private val STATIC_CALLS = setOf(Opcode.INVOKE_STATIC, Opcode.INVOKE_STATIC_RANGE)

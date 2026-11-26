@@ -2866,6 +2866,20 @@ once-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->searchSaved(Landr
 # label. The Home top bar loads the same message but makes no such call. Left out, Tagged stays gray
 # with Icons in the accent color on (#187). BarIconsTest checks every build.
 shared-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->barIcons(I)I in instance (Landroid/view/ViewGroup;Ljava/lang/String;I)Landroid/view/View; sites 2 pooled holding null\scannot\sbe\scast\sto\snon-null\stype\scom.instagram.notifications.badging.ui.component.ToastingBadge
+# Your messages' search bar (0O2s.A07 on 386314286, Compose group 0x8a8105f0) and its twin (0BUR.A07,
+# group 0x21dd2ca5) draw their own search icon (0x7f0812f2 on 457) through Compose's icon wrapper,
+# which reads Compose's gray, and the icon their theme names (attr/inlineSearchBarSearchIconResource,
+# 0x7f04091a) in a color they read first. Accent color tells AccentTheme.searchIconNext right before
+# the wrapper's draw and hands the theme icon's color to AccentTheme.searchIcon right before its draw,
+# and the wrapper (0833.A1O on 386314286, A1L on 386314341 and 386314297, A19 on 386314340) hands the
+# gray it reads to AccentTheme.defaultIcon right after the read. The bars load no string, so the
+# rules name the ids' numbers, which move every update, and the group keys. Left out, the search icon
+# atop your messages stays gray with Icons in the accent color on (#187). BarIconsTest checks every build.
+once-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->searchIconNext()V in static (LX/*;LX/*;LX/*;FIZ)V holding const:0x7f0812f2 const:0x8a8105f0
+once-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->searchIconNext()V in static (LX/*;LX/*;LX/*;FIZ)V holding const:0x7f0812f2 const:0x21dd2ca5
+once-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->searchIcon(J)J in static (LX/*;LX/*;LX/*;FIZ)V holding const:0x7f04091a const:0x8a8105f0
+once-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->searchIcon(J)J in static (LX/*;LX/*;LX/*;FIZ)V holding const:0x7f04091a const:0x21dd2ca5
+single-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->defaultIcon(J)J in A1O|A1L|A19
 # An opened chat paints the view behind its messages (id/thread_background_view_container) in one
 # method (04v3.A0D on 456's 386214574), which stacks its own layers over the chat theme's color and
 # hands the LayerDrawable to a static call taking a drawable, a view and an int. Accent color hands the

@@ -1221,6 +1221,48 @@ public class AccentThemeTest {
         assertTrue(report, report.contains(AccentTheme.STORY_BUTTONS + " 1"));
     }
 
+    /**
+     * A Compose search bar's search icon takes the picked shade with Icons in the accent color on,
+     * whether its color is handed over as it's read or Compose's icon wrapper reads the default one
+     * for it, which only the icon named right before takes; every other icon the wrapper draws keeps
+     * its color (#187). A color in another space, a red, the switch off and a pause keep theirs.
+     */
+    @Test
+    public void searchBarIconsTakeThePickedShade() {
+        AccentTheme.searchIconForTests();
+        long gray = (long) 0xffa8a8a8 << 32;
+        long white = (long) 0xfff5f5f5 << 32;
+        assertEquals("off", gray, AccentTheme.searchIcon(gray));
+        Settings.ACCENT_COLOR.save(true);
+        Settings.ACCENT_HUE.save(AccentHue.TEAL);
+        assertEquals("icons off", gray, AccentTheme.searchIcon(gray));
+        Settings.ACCENT_ICONS.save(true);
+
+        assertEquals("the gray, dimmer", (long) AccentTheme.barIcons(0xffa8a8a8) << 32, AccentTheme.searchIcon(gray));
+        assertEquals("a white", (long) AccentTheme.barIcons(0xfff5f5f5) << 32, AccentTheme.searchIcon(white));
+        assertTrue("a shade of its own", AccentTheme.searchIcon(white) != white);
+        long red = (long) 0xffff3040 << 32;
+        assertEquals("a red of its own", red, AccentTheme.searchIcon(red));
+        long otherSpace = white | 0x12L;
+        assertEquals("another color space", otherSpace, AccentTheme.searchIcon(otherSpace));
+
+        assertEquals("any other icon keeps the default", white, AccentTheme.defaultIcon(white));
+        AccentTheme.searchIconNext();
+        assertEquals("the search icon named", AccentTheme.searchIcon(white), AccentTheme.defaultIcon(white));
+        assertEquals("and only that one", white, AccentTheme.defaultIcon(white));
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertEquals("paused", gray, AccentTheme.searchIcon(gray));
+        AccentTheme.searchIconNext();
+        assertEquals("paused, named", white, AccentTheme.defaultIcon(white));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        String report = HookStatus.report().toString();
+        assertTrue(report, report.contains(AccentTheme.SEARCH_ICONS + " 5"));
+    }
+
+    /**
      * The top bar's filter maker and its back arrow's setColorFilter(int) go through the extension,
      * which gives them Instagram's own SRC_ATOP filter of the color with Icons in the accent color off,
      * and of the picked shade with it on, one filter kept per color (#187).

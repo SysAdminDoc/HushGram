@@ -4,6 +4,7 @@
  */
 package app.morphe.patches.instagram.misc.theme
 
+import app.morphe.ExtensionDex
 import app.morphe.Fixtures
 import app.morphe.PatchContexts
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
@@ -23,6 +24,7 @@ import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
@@ -160,6 +162,61 @@ class BarIconsTest {
     }
 
     /**
+     * A search bar names its own search icon to the extension right before drawing it, at that call's
+     * label so the branch onto it does too, and hands over the color it draws its theme's icon in right
+     * before that draw, written back. The icon wrapper both bars share hands over the default color it
+     * reads right after the read, once. A bar drawing its own icon another way, or a wrapper reading its
+     * color past a branch, leaves everything as it was, and an extension without the hooks refuses.
+     */
+    @Test
+    fun aSearchBarsSearchIconGoesThroughTheExtension() {
+        val context = PatchContexts.of(listOf(searchRow(), searchRow(SEARCH_TWIN), icons(), extension()))
+        context.tintSearchBarIcons()
+        for (type in listOf(SEARCH_ROW, SEARCH_TWIN)) {
+            val code = context.mutableClassDefBy(type).methods.single { it.name == "A07" }.code()
+            val named = code.indices.single { code[it].calls(SEARCH_ICON_NEXT) }
+            assertTrue("$type: right before its own icon's drawn", code[named + 1].callsMethod(ICONS, "A1O", COMPOSER, MODIFIER, PAINTER, STRING))
+            val skip = code.single { it.opcode == Opcode.IF_EQZ } as BuilderOffsetInstruction
+            assertEquals("$type: the branch onto that draw names it too", named, skip.target.location.index)
+            val given = code.indices.single { code[it].calls(SEARCH_ICON) }
+            assertEquals("$type: taken right before", Opcode.MOVE_RESULT_WIDE, code[given - 1].opcode)
+            assertEquals("$type: the color's register", 18, (code[given] as RegisterRangeInstruction).startRegister)
+            assertEquals("$type: both its halves", 2, (code[given] as RegisterRangeInstruction).registerCount)
+            assertEquals("$type: written back", Opcode.MOVE_RESULT_WIDE, code[given + 1].opcode)
+            assertEquals("$type: to its register", 18, (code[given + 1] as OneRegisterInstruction).registerA)
+            assertTrue("$type: right before the theme's icon's drawn", code[given + 2].callsMethod(ICONS, "A0E", COMPOSER, MODIFIER, PAINTER, STRING, "J"))
+            val hooks = setOf(named, given, given + 1)
+            assertEquals("$type: Instagram's code kept", searchRow(type).methods.single().code().map { it.opcode },
+                code.filterIndexed { at, _ -> at !in hooks }.map { it.opcode })
+        }
+        val wrapper = context.mutableClassDefBy(ICONS).methods.single { it.name == "A1O" }.code()
+        val read = wrapper.indexOfFirst { it.opcode == Opcode.IGET_WIDE }
+        assertEquals("the wrapper hooked once", 1, wrapper.count { it.calls(DEFAULT_ICON) })
+        assertTrue("right after its read", wrapper[read + 1].calls(DEFAULT_ICON))
+        assertEquals("the color's register", 5, (wrapper[read + 1] as RegisterRangeInstruction).startRegister)
+        assertEquals("written back", 5, (wrapper[read + 2] as OneRegisterInstruction).registerA)
+        assertEquals("Instagram's code kept", icons().methods.single().code().map { it.opcode },
+            wrapper.filterIndexed { at, _ -> at != read + 1 && at != read + 2 }.map { it.opcode })
+
+        for ((case, classes) in listOf(
+            "no bar" to listOf(icons()),
+            "a bar drawing its own icon another way" to listOf(searchRow(own = false), icons()),
+            "a wrapper reading its color past a branch" to listOf(searchRow(), icons(branch = true)),
+        )) {
+            val untouched = PatchContexts.of(classes + extension())
+            untouched.tintSearchBarIcons()
+            val hooked = classes.flatMap { owner ->
+                untouched.mutableClassDefBy(owner.type).methods.filter { method ->
+                    method.code().any { it.calls(SEARCH_ICON_NEXT) || it.calls(SEARCH_ICON) || it.calls(DEFAULT_ICON) }
+                }
+            }
+            assertTrue("$case: no hook", hooked.isEmpty())
+        }
+        val failure = assertThrows(PatchException::class.java) { PatchContexts.of(listOf(searchRow(), icons(), extension(bar = false))).tintSearchBarIcons() }
+        assertTrue(failure.message!!.startsWith("Accent color"))
+    }
+
+    /**
      * The Search tab's top bar hands its Saved bookmark to the extension right after keeping it in its
      * field, and the hook hiding that bookmark still finds its check afterwards.
      */
@@ -269,6 +326,83 @@ class BarIconsTest {
         }
     }
 
+    /**
+     * Every build: two static methods load both search icons, your messages' search bar and its twin.
+     * Each names its own icon to the extension right before the wrapper draws it and hands over the
+     * theme icon's color right before drawing that, and the one wrapper both use hands over the default
+     * color right after reading it, with Instagram's code kept around the hooks.
+     */
+    @Test
+    fun everyBuildHandsItsSearchBarIconsToTheExtension() {
+        for ((code, bundle) in builds()) {
+            val loading = mutableListOf<ClassDef>()
+            FixtureDex.forEach(bundle) { dex ->
+                for (classDef in dex.classes) {
+                    if (classDef.methods.any { method -> method.code().any { it.loads(INLINE_SEARCH_ICON) } }) loading += ImmutableClassDef.of(classDef)
+                }
+            }
+            val bars = loading.flatMap { owner ->
+                owner.methods.filter { method ->
+                    AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "V" &&
+                        method.code().any { it.loads(INLINE_SEARCH_ICON) } && method.code().any { it.loads(SEARCH_OUTLINE_ICON) }
+                }
+            }
+            assertEquals("$code: your messages' search bar and its twin, ${bars.map { "${it.definingClass}->${it.name}" }}", 2, bars.size)
+            val drawers = bars.flatMap { bar ->
+                bar.code().mapNotNull { it.called() }.filter { it.returnType == "V" && it.parameterTypes.size == 4 && it.parameterTypes.last().toString() == STRING }
+            }.map { it.definingClass }.toSet()
+            val context = PatchContexts.of(loading + FixtureDex.classes(bundle, drawers - loading.map { it.type }.toSet()).values + ExtensionDex.classDef(ACCENT_THEME))
+            context.tintSearchBarIcons()
+
+            val wrappers = mutableSetOf<String>()
+            for (bar in bars) {
+                val after = context.mutableClassDefBy(bar.definingClass).methods
+                    .single { it.name == bar.name && it.parameterTypes.map(Any::toString) == bar.parameterTypes.map(Any::toString) }.code()
+                val where = "$code: ${bar.definingClass}->${bar.name}"
+                val named = after.indices.single { after[it].calls(SEARCH_ICON_NEXT) }
+                val drawn = after[named + 1].called()!!
+                assertTrue("$where: right before a static draw", after[named + 1].opcode == Opcode.INVOKE_STATIC || after[named + 1].opcode == Opcode.INVOKE_STATIC_RANGE)
+                assertEquals("$where: of a painter named by a String", STRING, drawn.parameterTypes.last().toString())
+                assertTrue("$where: after its own icon's load", after.subList(0, named).any { it.loads(SEARCH_OUTLINE_ICON) })
+                wrappers += "${drawn.definingClass}->${drawn.name}(${drawn.parameterTypes.joinToString("")})${drawn.returnType}"
+
+                val given = after.indices.single { after[it].calls(SEARCH_ICON) }
+                assertEquals("$where: the color taken right before", Opcode.MOVE_RESULT_WIDE, after[given - 1].opcode)
+                val color = (after[given - 1] as OneRegisterInstruction).registerA
+                assertEquals("$where: the color's register", color, (after[given] as RegisterRangeInstruction).startRegister)
+                assertEquals("$where: both its halves", 2, (after[given] as RegisterRangeInstruction).registerCount)
+                assertEquals("$where: written back", Opcode.MOVE_RESULT_WIDE, after[given + 1].opcode)
+                assertEquals("$where: to its register", color, (after[given + 1] as OneRegisterInstruction).registerA)
+                val draw = after[given + 2] as RegisterRangeInstruction
+                assertEquals("$where: drawn in that color", color, draw.startRegister + draw.registerCount - 2)
+                assertEquals("$where: the color last", "J", after[given + 2].called()!!.parameterTypes.last().toString())
+                assertTrue("$where: after the theme icon's load", after.subList(0, given).any { it.loads(INLINE_SEARCH_ICON) })
+
+                val hooks = setOf(named, given, given + 1)
+                assertEquals("$where: Instagram's code kept", bar.code().filter { it.opcode != Opcode.NOP }.map { it.kind() },
+                    after.filterIndexed { at, instruction -> at !in hooks && instruction.opcode != Opcode.NOP }.map { it.kind() })
+            }
+            assertEquals("$code: one wrapper draws both bars' own icons, $wrappers", 1, wrappers.size)
+
+            val shape = wrappers.single()
+            val owner = shape.substringBefore("->")
+            val icon = context.mutableClassDefBy(owner).methods.single { method ->
+                "${method.definingClass}->${method.name}(${method.parameterTypes.joinToString("")})${method.returnType}" == shape
+            }.code()
+            val hook = icon.indices.single { icon[it].calls(DEFAULT_ICON) }
+            assertEquals("$code: right after reading the default color", Opcode.IGET_WIDE, icon[hook - 1].opcode)
+            val read = (icon[hook - 1] as TwoRegisterInstruction).registerA
+            assertEquals("$code: the color's register", read, (icon[hook] as RegisterRangeInstruction).startRegister)
+            assertEquals("$code: written back", read, (icon[hook + 1] as OneRegisterInstruction).registerA)
+            assertTrue("$code: nothing branches before the read", icon.subList(0, hook - 1).none { it is OffsetInstruction })
+            val stock = FixtureDex.classes(bundle, setOf(owner)).getValue(owner).methods.single { method ->
+                "${method.definingClass}->${method.name}(${method.parameterTypes.joinToString("")})${method.returnType}" == shape
+            }
+            assertEquals("$code: the wrapper's code kept", stock.code().filter { it.opcode != Opcode.NOP }.map { it.kind() },
+                icon.filterIndexed { at, instruction -> at != hook && at != hook + 1 && instruction.opcode != Opcode.NOP }.map { it.kind() })
+        }
+    }
+
     private fun builds(): Map<String, File> {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
         val declared = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } }
@@ -294,6 +428,16 @@ class BarIconsTest {
         const val COLORS = "Landroid/content/res/ColorStateList;"
         const val TAGGED_TABS = "Lfixture/ProfileTabs;"
         const val TINTS = "Lfixture/Tints;"
+        const val STRING = "Ljava/lang/String;"
+        const val COMPOSER = "Lfixture/Composer;"
+        const val MODIFIER = "Lfixture/Modifier;"
+        const val PAINTER = "Lfixture/Painter;"
+        const val PAINTERS = "Lfixture/Painters;"
+        const val PALETTE = "Lfixture/Palette;"
+        const val PALETTE_COLORS = "Lfixture/PaletteColors;"
+        const val ICONS = "Lfixture/Icons;"
+        const val SEARCH_ROW = "Lfixture/SearchRow;"
+        const val SEARCH_TWIN = "Lfixture/SearchTwin;"
 
         /**
          * The top bar as 457's `LX/01pF` has it: the message only it throws, A1P making a filter of the
@@ -413,6 +557,53 @@ class BarIconsTest {
             """.trimIndent()
         } + listOf("return-object v1")).joinToString("\n"), static = false, returns = "Landroid/view/View;"))
 
+        /**
+         * A Compose search bar as 386314286's `LX/0O2s;->A07` has it: it loads its own search outline,
+         * makes a painter of it and draws it with the icon wrapper (a branch landing on that draw), or
+         * unless [own] hands the painter elsewhere; then loads the icon its theme names and draws it with
+         * the color it reads, taken right before the range call.
+         */
+        fun searchRow(type: String = SEARCH_ROW, own: Boolean = true): ClassDef = classOf(type, method(type, "A07", listOf(COMPOSER, MODIFIER), 20, listOf(
+            "move-object/from16 v6, p0",
+            "move-object/from16 v7, p1",
+            "const v1, $SEARCH_OUTLINE_ICON",
+            "invoke-static { v1, v6 }, $PAINTERS->A00(I$COMPOSER)$PAINTER",
+            "move-result-object v2",
+            "const-string v3, \"Search\"",
+            "if-eqz v2, :named",
+            "nop",
+            ":named",
+            if (own) "invoke-static { v6, v7, v2, v3 }, $ICONS->A1O($COMPOSER$MODIFIER$PAINTER$STRING)V" else "invoke-virtual { v6, v2 }, $COMPOSER->A00($PAINTER)V",
+            "const v4, $INLINE_SEARCH_ICON",
+            "invoke-static { v4, v6 }, $PAINTERS->A00(I$COMPOSER)$PAINTER",
+            "move-result-object v5",
+            "move-object/from16 v14, v6",
+            "move-object/from16 v15, v7",
+            "move-object/from16 v16, v5",
+            "move-object/from16 v17, v3",
+            "invoke-static { v6 }, $PALETTE->A0D($COMPOSER)J",
+            "move-result-wide v18",
+            "invoke-static/range { v14 .. v19 }, $ICONS->A0E($COMPOSER$MODIFIER$PAINTER${STRING}J)V",
+            "return-void",
+        ).joinToString("\n"), static = true))
+
+        /**
+         * Compose's icon wrapper as 386314286's `LX/0833;->A1O` has it: it reads the default color off
+         * the composer's palette and draws the painter in it, with [branch] a branch before the read.
+         */
+        fun icons(branch: Boolean = false): ClassDef = classOf(ICONS, method(ICONS, "A1O", listOf(COMPOSER, MODIFIER, PAINTER, STRING), 6, (listOf(
+            "move-object v1, p0",
+            "invoke-static { p0 }, $PALETTE->A00($COMPOSER)$PALETTE_COLORS",
+            "move-result-object v0",
+        ) + (if (branch) listOf("if-eqz v0, :read", "nop", ":read") else emptyList()) + listOf(
+            "iget-wide v5, v0, $PALETTE_COLORS->A10:J",
+            "move-object v2, p1",
+            "move-object v3, p2",
+            "move-object v4, p3",
+            "invoke-static/range { v1 .. v6 }, $ICONS->A0E($COMPOSER$MODIFIER$PAINTER${STRING}J)V",
+            "return-void",
+        )).joinToString("\n"), static = true))
+
         /** AccentTheme's bar hooks, without them when [bar] is false. */
         fun extension(bar: Boolean = true): ClassDef = classOf(
             ACCENT_THEME,
@@ -422,6 +613,9 @@ class BarIconsTest {
                 if (bar) method(ACCENT_THEME, "barIconFilter", listOf("I"), 1, "const/4 v0, 0x0\nreturn-object v0", static = true, returns = FILTER) else null,
                 if (bar) method(ACCENT_THEME, "setBarIconColor", listOf(IMAGE, "I"), 0, "return-void", static = true) else null,
                 if (bar) method(ACCENT_THEME, "searchSaved", listOf(IMAGE), 0, "return-void", static = true) else null,
+                if (bar) method(ACCENT_THEME, "searchIconNext", emptyList(), 0, "return-void", static = true) else null,
+                if (bar) method(ACCENT_THEME, "defaultIcon", listOf("J"), 1, "return-wide p0", static = true, returns = "J") else null,
+                if (bar) method(ACCENT_THEME, "searchIcon", listOf("J"), 1, "return-wide p0", static = true, returns = "J") else null,
             ).toTypedArray(),
         )
 
@@ -468,3 +662,5 @@ private fun Instruction.firstRegister(): Int = when (this) {
 }
 
 private fun Instruction.loads(literal: Int) = (this as? NarrowLiteralInstruction)?.narrowLiteral == literal
+
+private fun Instruction.kind(): Opcode = if (opcode == Opcode.GOTO_16 || opcode == Opcode.GOTO_32) Opcode.GOTO else opcode

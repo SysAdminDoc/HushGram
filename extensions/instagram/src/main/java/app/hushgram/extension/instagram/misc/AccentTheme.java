@@ -1300,19 +1300,77 @@ public final class AccentTheme {
     public static int barIcons(int color) {
         try {
             HookStatus.invoked(FamilyNames.ACCENT_COLOR);
-            AccentHue hue = AccentColor.picked();
-            int alpha = color >>> 24;
-            if (hue == null || alpha == 0 || !neutral(color) || !Settings.ACCENT_ICONS.get()) return color;
-            int shade = AccentColor.swap(readsLight(color) ? LINK_ON_DARK : LINK_ON_LIGHT, hue);
-            int brightness = brightness(color);
-            if (brightness >= SECONDARY_LOW && brightness <= SECONDARY_HIGH) alpha = alpha * 3 / 5;
-            int icons = (alpha << 24) | (shade & 0xffffff);
+            int icons = iconShade(color);
             if (icons != color) HookStatus.counted(FamilyNames.ACCENT_COLOR, BAR_ICONS);
             return icons;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.ACCENT_COLOR, "bar icons", failure);
             return color;
         }
+    }
+
+    /** {@link #barIcons(int)}'s answer to [color], uncounted. Throws what the settings do. */
+    private static int iconShade(int color) {
+        AccentHue hue = AccentColor.picked();
+        int alpha = color >>> 24;
+        if (hue == null || alpha == 0 || !neutral(color) || !Settings.ACCENT_ICONS.get()) return color;
+        int shade = AccentColor.swap(readsLight(color) ? LINK_ON_DARK : LINK_ON_LIGHT, hue);
+        int brightness = brightness(color);
+        if (brightness >= SECONDARY_LOW && brightness <= SECONDARY_HIGH) alpha = alpha * 3 / 5;
+        return (alpha << 24) | (shade & 0xffffff);
+    }
+
+    /** Counted each time a search bar's search icon takes the picked color (#187). */
+    static final String SEARCH_ICONS = "Search bar icons given the accent color";
+
+    /** Whether the next icon Compose draws in its default color is a search bar's search icon. */
+    private static volatile boolean searchIconNext;
+
+    /**
+     * Injected right before a Compose search bar, your messages' among them, draws its own search icon
+     * in the default icon color, which Compose's icon wrapper reads inside (#187). Names that icon to
+     * {@link #defaultIcon(long)}, the next read.
+     */
+    public static void searchIconNext() {
+        searchIconNext = true;
+    }
+
+    /**
+     * Injected where Compose's icon wrapper reads the color for an icon given none of its own, [value]
+     * (#187). Answers {@link #searchIcon(long)}'s answer for the one icon {@link #searchIconNext()}
+     * named, and [value] itself for every other icon, which costs one read of a flag.
+     */
+    public static long defaultIcon(long value) {
+        if (!searchIconNext) return value;
+        searchIconNext = false;
+        return searchIcon(value);
+    }
+
+    /**
+     * Injected where a Compose search bar, your messages' among them, takes the color it draws the
+     * search icon its theme names in, [value] (#187). That gray never comes from the icon style, so
+     * with Icons in the accent color on it stayed gray. Answers {@link #barIcons(int)}'s shade as a
+     * Compose color. A color in a space other than sRGB, one of its own, the switch off, HushGram
+     * paused or anything thrown answers [value].
+     */
+    public static long searchIcon(long value) {
+        try {
+            HookStatus.invoked(FamilyNames.ACCENT_COLOR);
+            if ((value & 0xffffffffL) != 0) return value;
+            int color = (int) (value >>> 32);
+            int icons = iconShade(color);
+            if (icons == color) return value;
+            HookStatus.counted(FamilyNames.ACCENT_COLOR, SEARCH_ICONS);
+            return (long) icons << 32;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.ACCENT_COLOR, "search icon", failure);
+            return value;
+        }
+    }
+
+    /** Forgets a search icon named but never drawn, for tests. */
+    static void searchIconForTests() {
+        searchIconNext = false;
     }
 
     /**
