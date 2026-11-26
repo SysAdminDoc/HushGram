@@ -697,6 +697,88 @@ public class AccentThemeTest {
         }
     }
 
+    /**
+     * Backgrounds in the accent color on a light theme hands that theme's page to Compose's white too,
+     * so the Messages rows and the search band match the tinted page around them instead of staying
+     * white, and the dark grays a light screen writes its text with stay (#187).
+     */
+    @Test
+    public void accentBackgroundsHandALightThemesPageToCompose() {
+        Settings.ACCENT_COLOR.save(true);
+        Settings.ACCENT_HUE.save(AccentHue.TEAL);
+        Settings.ACCENT_BACKGROUNDS.save(true);
+        AccentTheme.darkSurfacesForTests(null);
+        AccentTheme.lightSurfacesForTests(null);
+        try {
+            Context light = new ContextThemeWrapper(themed(THEMED + ".accent.compose.light", (name, type) -> {
+                if (type.equals("style") && name.equals(AccentTheme.paletteStyle(AccentHue.TEAL))) return android.R.style.TextAppearance;
+                if (type.equals("style") && name.startsWith("HushGramAccentBackgrounds_")) return android.R.style.TextAppearance_Small;
+                if (type.equals("attr") && name.equals(AccentTheme.ICON_ATTRIBUTE)) return android.R.attr.colorForeground;
+                if (type.equals("attr") && name.equals("igds_color_secondary_background")) return android.R.attr.colorForeground;
+                return type.equals("attr") && name.startsWith("igds_color_") ? android.R.attr.colorBackground : 0;
+            }), android.R.style.Theme_Material_Light);
+            long white = (long) 0xffffffff << 32;
+            long text = (long) 0xff0c1014 << 32;
+
+            AccentTheme.apply(light, "igds_color_link");
+
+            TypedValue page = new TypedValue();
+            assertTrue(light.getTheme().resolveAttribute(android.R.attr.colorBackground, page, true));
+            TypedValue top = new TypedValue();
+            assertTrue(light.getTheme().resolveAttribute(android.R.attr.colorForeground, top, true));
+            assertTrue("a page color unlike Compose's own", (page.data & 0xffffff) != 0xffffff);
+            assertEquals((long) (0xff000000 | page.data & 0xffffff) << 32, AccentTheme.composeSurface(white));
+            assertEquals("the search band takes the top shade", (long) (0xff000000 | top.data & 0xffffff) << 32,
+                    AccentTheme.composeSurface((long) 0xfff0f2f5 << 32));
+            assertEquals("the text", text, AccentTheme.composeSurface(text));
+
+            Settings.ACCENT_BACKGROUNDS.save(false);
+            assertEquals("backgrounds off", white, AccentTheme.composeSurface(white));
+        } finally {
+            AccentTheme.darkSurfacesForTests(null);
+            AccentTheme.lightSurfacesForTests(null);
+        }
+    }
+
+    /**
+     * The same before any screen is styled, as Instagram builds its palettes on a start with no screen:
+     * the picked color's light style is read while the app will show a light screen, and only then,
+     * since a dark one's white labels over media would take it (#187).
+     */
+    @Test
+    public void composeReadsTheAccentsLightBackgroundsBeforeAnyScreenIsStyled() {
+        Settings.ACCENT_COLOR.save(true);
+        Settings.ACCENT_HUE.save(AccentHue.TEAL);
+        Settings.ACCENT_BACKGROUNDS.save(true);
+        AccentTheme.darkSurfacesForTests(null);
+        AccentTheme.lightSurfacesForTests(null);
+        String pkg = THEMED + ".accent.light.early";
+        SharedPreferences prefs = RuntimeEnvironment.getApplication().getSharedPreferences(pkg + "_preferences", Context.MODE_PRIVATE);
+        try {
+            Context app = themed(pkg, (name, type) -> {
+                if (type.equals("style") && name.equals("HushGramAccentBackgrounds_TEAL_light")) return android.R.style.Theme_Material_Light;
+                return type.equals("attr") && name.startsWith("igds_color_") ? android.R.attr.colorBackground : 0;
+            });
+            long white = (long) 0xffffffff << 32;
+            long black = (long) 0xff000000 << 32;
+            long lightPage = (long) (0xff000000 | page(app, android.R.style.Theme_Material_Light)) << 32;
+            assertTrue("a page color unlike Compose's own", lightPage != white);
+
+            prefs.edit().putInt(AccentTheme.DARK_MODE_KEY, AccentTheme.DARK_MODE_OFF).commit();
+            assertEquals("Dark mode off", lightPage, AccentTheme.composeSurface(white, app));
+            assertEquals("a light screen's text", black, AccentTheme.composeSurface(black, app));
+            AccentTheme.darkSurfacesForTests(null);
+            AccentTheme.lightSurfacesForTests(null);
+
+            prefs.edit().putInt(AccentTheme.DARK_MODE_KEY, AccentTheme.DARK_MODE_ON).commit();
+            assertEquals("a dark screen's white", white, AccentTheme.composeSurface(white, app));
+        } finally {
+            prefs.edit().clear().commit();
+            AccentTheme.darkSurfacesForTests(null);
+            AccentTheme.lightSurfacesForTests(null);
+        }
+    }
+
     /** The RGB of the window background [style] gives a theme of [context]'s resources. */
     private static int page(Context context, int style) {
         Resources.Theme theme = context.getResources().newTheme();
@@ -728,6 +810,7 @@ public class AccentThemeTest {
             assertEquals(fill, AccentTheme.dspDark(0xff0082fb));
             assertEquals("the blue's own alpha", 0x80000000 | fill & 0xffffff, AccentTheme.dspDark(0x800082fb));
             assertEquals("backgrounds off", 0xff1f1f20, AccentTheme.dspDark(0xff1f1f20));
+            assertEquals("a light page with backgrounds off", 0xffffffff, AccentTheme.dspLight(0xffffffff));
 
             Settings.ACCENT_BACKGROUNDS.save(true);
             assertEquals("the menu", dark[1], AccentTheme.dspDark(0xff1f1f20));
@@ -735,7 +818,7 @@ public class AccentThemeTest {
             assertEquals("a scrim keeps its alpha", 0xb2000000 | dark[1] & 0xffffff, AccentTheme.dspDark(0xb21f1f20));
             assertEquals("the light text gray", 0xffd1d3d5, AccentTheme.dspDark(0xffd1d3d5));
             assertEquals("a dark gray on a light screen is text", 0xff28292b, AccentTheme.dspLight(0xff28292b));
-            assertEquals("a light page without Classic colors", 0xffffffff, AccentTheme.dspLight(0xffffffff));
+            assertEquals("a light page with the backgrounds", light[0], AccentTheme.dspLight(0xffffffff));
 
             Settings.CLASSIC_COLORS.save(true);
             assertEquals(light[0], AccentTheme.dspLight(0xffffffff));
@@ -805,7 +888,7 @@ public class AccentThemeTest {
             assertEquals("the accent's backgrounds", List.of(dark[0], dark[0]), colors(accent));
             LayerDrawable lightAccent = chat(0xffffffff);
             AccentTheme.chatBackground(lightAccent);
-            assertEquals("a light page without Classic colors", List.of(0xffffffff, 0xffffffff), colors(lightAccent));
+            assertEquals("a light page with the accent's backgrounds", List.of(light[0], light[0]), colors(lightAccent));
 
             BaseSettings.PAUSED.save(true);
             PauseForTests.pause(HushgramPause.Reason.SWITCH);

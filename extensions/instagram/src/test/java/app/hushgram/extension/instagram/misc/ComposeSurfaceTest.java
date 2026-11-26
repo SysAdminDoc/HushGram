@@ -204,9 +204,16 @@ public class ComposeSurfaceTest {
         assertEquals(compose(LIGHT_TOP), AccentTheme.composeSurface(compose(0xfff0f2f5)));
     }
 
-    /** The accent's light backgrounds alone leave Compose's white page as it is. */
-    @Test public void theAccentsLightBackgroundsLeaveTheWhitePage() {
+    /**
+     * The accent's light backgrounds give Compose's white page and search gray their shades, so the
+     * Messages rows and search band stop showing white on a tinted page (#187), and leave them with
+     * the backgrounds off.
+     */
+    @Test public void theAccentsLightBackgroundsPaintTheWhitePage() {
         AccentTheme.lightSurfacesForTests(new int[] {0xfff5f8ff, 0xffffffff, 0xffe8eeff});
+        assertEquals(compose(0xfff5f8ff), AccentTheme.composeSurface(compose(WHITE)));
+        assertEquals(compose(0xffe8eeff), AccentTheme.composeSurface(compose(0xfff0f2f5)));
+        Settings.ACCENT_BACKGROUNDS.save(false);
         assertEquals(compose(WHITE), AccentTheme.composeSurface(compose(WHITE)));
         assertEquals(compose(0xfff0f2f5), AccentTheme.composeSurface(compose(0xfff0f2f5)));
     }

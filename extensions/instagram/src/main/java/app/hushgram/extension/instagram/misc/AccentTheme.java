@@ -320,7 +320,7 @@ public final class AccentTheme {
     @Nullable
     private static volatile int[] darkSurfaces;
 
-    /** The shades {@link #SURFACE_ATTRIBUTES} last held on a light theme given Classic colors, or null for none yet. */
+    /** The shades {@link #SURFACE_ATTRIBUTES} last held on a light theme given Classic colors or the accent backgrounds, or null for none yet. */
     @Nullable
     private static volatile int[] lightSurfaces;
 
@@ -500,7 +500,7 @@ public final class AccentTheme {
             } else {
                 theme.applyStyle(backgrounds, true);
                 HookStatus.counted(FamilyNames.ACCENT_COLOR, BACKGROUNDS);
-                if (dark) rememberSurfaces(resources, theme, app, true);
+                rememberSurfaces(resources, theme, app, dark);
             }
         }
     }
@@ -544,8 +544,9 @@ public final class AccentTheme {
      * alone leaves their rows and search field near-black under a colored page, or white beside an
      * off-white one. With Classic colors on, or Backgrounds in the accent color on and a dark theme
      * seen, answers a dark gray as the same shade the theme's own backgrounds hold, keeping the
-     * alpha. With Classic colors on, does the same for the white page and the search field's gray,
-     * whichever kind of screen shows (see {@link #styledSurfaces}). The white labels and icons
+     * alpha. With Classic colors on, or Backgrounds in the accent color on and a light theme seen, does
+     * the same for the white page and the search field's gray, so the Messages rows and search band
+     * stopped showing white on a tinted page (#187; see {@link #styledSurfaces}). The white labels and icons
      * Compose draws over colored fills and media share that field, so they take the page shade too
      * (#fafafa against #ffffff, too slight to see). The light grays a dark screen writes its text
      * with aren't among either. Answers [value] itself for any other color. Never throws.
@@ -589,8 +590,8 @@ public final class AccentTheme {
      * tile), and palettes built on a light screen kept the dark one's Messages rows, Settings' header
      * and its loading page black until the next start (#683). A light screen writing its text in the
      * dark grays takes Classic's navy then, as it already did after a start in dark mode. The picked
-     * color's backgrounds come only for the kind of screen the app will show, since their tints would
-     * color a light screen's text. Material You's and a typed color's come too: a start with no screen
+     * color's backgrounds come only for the kind of screen the app will show, dark or light, since a
+     * dark style's tints would color a light screen's text. Material You's and a typed color's come too: a start with no screen
      * (a push, a sync job) builds the palettes with nothing styled at all, and they kept the Messages
      * rows black until a force stop (#187). Material You's style points at the wallpaper's tones, and a
      * typed color's table is loaded first, with Instagram's grays kept when it can't be. Null when none
@@ -611,11 +612,11 @@ public final class AccentTheme {
         String style = null;
         if (Settings.CLASSIC_COLORS.get()) {
             style = classicStyle(dark);
-        } else if (dark && Settings.ACCENT_BACKGROUNDS.get() && showsDark(app)) {
+        } else if (Settings.ACCENT_BACKGROUNDS.get() && showsDark(app) == dark) {
             AccentHue hue = AccentColor.picked();
             // A typed color's style holds stand-ins until its table is in the assets, as in applyAccent.
             if (hue == AccentHue.CUSTOM && !CustomAccent.load(app, customNames)) hue = null;
-            if (hue != null) style = backgroundStyle(hue, true);
+            if (hue != null) style = backgroundStyle(hue, dark);
         }
         if (style == null) return null;
         String pkg = Utils.resourcePackage(app);
@@ -643,8 +644,8 @@ public final class AccentTheme {
      * Injected at the start of the constructor of Meta's design system color, with the color it keeps
      * for a light screen. Meta's own menus in Instagram, the account switcher among them, build their
      * colors from tables in the code and not from Instagram's theme, so they kept Meta's blue (#187).
-     * Answers Meta's blues as the picked color's fill, and with Classic colors on, Meta's white page
-     * and gray wash as the shades Instagram's light theme holds. Keeps the alpha. Answers [color] for
+     * Answers Meta's blues as the picked color's fill, and with Classic colors or Backgrounds in the
+     * accent color on, Meta's white page and gray wash as the shades Instagram's light theme holds. Keeps the alpha. Answers [color] for
      * any other color, with the switches off, HushGram paused or anything thrown.
      */
     public static int dspLight(int color) {
@@ -690,8 +691,8 @@ public final class AccentTheme {
      * black, or white on a light screen, and the strip behind the status bar the header's black, both
      * taken from the chat theme and not from Instagram's theme, so Classic colors and Backgrounds in the
      * accent color left the chat black under a colored page. With either painting, each plain layer of
-     * Instagram's page black takes the dark page shade, and with Classic colors on, each white one takes
-     * the light page shade, the way {@link #composeSurface} answers Compose's. The strip's shape is
+     * Instagram's page black takes the dark page shade, and each white one the light page shade, the
+     * way {@link #composeSurface} answers Compose's. The strip's shape is
      * copied, not changed, since Instagram keeps it for the next chat. A chat theme of its own (a
      * gradient, a picture or another color) keeps its look. Changes nothing with the switches off,
      * HushGram paused or anything thrown.
@@ -830,11 +831,16 @@ public final class AccentTheme {
         return AccentColor.picked() == null || !Settings.ACCENT_BACKGROUNDS.get() ? null : surfaces;
     }
 
-    /** The shades {@link #rememberSurfaces} kept from a light theme, while Classic colors is painting with them, or null. */
+    /**
+     * The shades {@link #rememberSurfaces} kept from a light theme, while Classic colors or Backgrounds in
+     * the accent color is painting with them, or null.
+     */
     @Nullable
     private static int[] paintedLightSurfaces() {
         int[] surfaces = lightSurfaces;
-        return surfaces != null && Utils.settingsReady() && Settings.CLASSIC_COLORS.get() ? surfaces : null;
+        if (surfaces == null || !Utils.settingsReady()) return null;
+        if (Settings.CLASSIC_COLORS.get()) return surfaces;
+        return AccentColor.picked() == null || !Settings.ACCENT_BACKGROUNDS.get() ? null : surfaces;
     }
 
     /**
