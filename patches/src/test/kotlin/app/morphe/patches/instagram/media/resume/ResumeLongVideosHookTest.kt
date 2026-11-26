@@ -12,6 +12,7 @@ import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.FixtureDex
+import app.morphe.patches.instagram.media.taptoplay.CLIPS_VIEWER_CONFIG
 import app.morphe.patches.instagram.media.taptoplay.PLAY_INTERNAL
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
@@ -40,6 +41,8 @@ class ResumeLongVideosHookTest {
     private val source = "Lfixture/VideoSource;"
     private val dumper = "Lfixture/SourceLogger;"
     private val manager = "Lfixture/SessionManager;"
+    private val logger = "Lfixture/VideoLogger;"
+    private val clipsLogger = "Lfixture/ClipsVideoLogger;"
     private val string = "Ljava/lang/String;"
     private val hooks = setOf(STARTED, STOPPED, REBOUND, ENDED, SEEKING, SESSION_ENDED)
 
@@ -55,6 +58,7 @@ class ResumeLongVideosHookTest {
             "productType(Ljava/lang/Object;)Ljava/lang/Object;", "sponsored(Ljava/lang/Object;)Z",
             "seekPlayer(Ljava/lang/Object;IZZ)Z", "playerSession(Ljava/lang/Object;)Ljava/lang/Object;",
             "sessionUserId(Ljava/lang/Object;)Ljava/lang/String;", "sessionLoggedOut(Ljava/lang/Object;)Z",
+            "reelsViewer(Ljava/lang/Object;)I",
         )
         for (member in hooks.map { it.substringAfter("->") } + stubs) {
             assertTrue("$member is not in the extension: $declared", member in declared)
@@ -88,10 +92,7 @@ class ResumeLongVideosHookTest {
         assertTrue("the seek's other (String) call", context.method(player, "A0K").code().none { it.referenceText() in hooks })
         assertTrue("a start with another log line", context.method(player, "GMp").code().none { it.referenceText() in hooks })
 
-        // What the filled stub does before its first return; its own body stays behind it, unreached.
-        fun stub(name: String) = context.method(RESUME_PLAYBACK, name).code()
-            .let { code -> code.take(code.indexOfFirst { it.opcode.name.startsWith("return") } + 1) }
-            .mapNotNull { it.referenceText() }
+        fun stub(name: String) = context.stub(name)
         assertEquals(listOf(player, "$player->BrK()I"), stub("position"))
         assertEquals(listOf(player, "$player->A0N()I"), stub("duration"))
         assertEquals(listOf(player, "$player->A0K:$holder", "$holder->A0A:$source"), stub("videoSource"))
@@ -102,6 +103,8 @@ class ResumeLongVideosHookTest {
         assertEquals(listOf(player, "$player->A0t:$RESUME_SESSION"), stub("playerSession"))
         assertEquals(listOf(RESUME_SESSION, "$RESUME_SESSION->userId:$string"), stub("sessionUserId"))
         assertEquals(listOf(RESUME_SESSION, "$RESUME_SESSION->isLoggedOut:Z"), stub("sessionLoggedOut"))
+        // Keep your place in feed videos tells the Reels viewer's players by their video logger.
+        assertEquals(listOf(player, "$player->A0r:$logger", clipsLogger), stub("reelsViewer"))
 
         // The session's end tells the extension first, with the session alone.
         val ending = context.method(RESUME_SESSION, RESUME_END_SESSION).code()
@@ -110,6 +113,32 @@ class ResumeLongVideosHookTest {
         assertEquals("Instagram's own end follows", "$RESUME_SESSION->sessionState:$string", ending[1].referenceText())
         assertTrue("the other session method", context.method(RESUME_SESSION, "endSessionAndBroadcast").code()
             .none { it.referenceText() in hooks })
+    }
+
+    /**
+     * Without the Reels viewer's logger, Resume long videos still goes in whole, and the
+     * reelsViewer stub keeps its own answer, which leaves Keep your place in feed videos inert.
+     */
+    @Test
+    fun noReelsLoggerStillHooksAndLeavesTheReelsStubAlone() {
+        val context = PatchContexts.of(classes(reelsLogger = false))
+
+        context.resumeLongVideos()
+
+        assertEquals(STARTED, context.method(player, "GMo").code()[0].referenceText())
+        assertEquals(listOf(player, "$player->BrK()I"), context.stub("position"))
+        assertEquals("the stub's own answer", emptyList<String>(), context.stub("reelsViewer"))
+    }
+
+    /** A logger field the extension can't read leaves the reelsViewer stub alone too. */
+    @Test
+    fun aHiddenLoggerFieldLeavesTheReelsStubAlone() {
+        val context = PatchContexts.of(classes(privateLogger = true))
+
+        context.resumeLongVideos()
+
+        assertEquals(STARTED, context.method(player, "GMo").code()[0].referenceText())
+        assertEquals("the stub's own answer", emptyList<String>(), context.stub("reelsViewer"))
     }
 
     @Test
@@ -207,6 +236,13 @@ class ResumeLongVideosHookTest {
             .mapNotNull { it.parameterTypes.firstOrNull()?.toString() }
         val fieldTypes = players.flatMap { it.fields }.map { it.type }
         val extra = FixtureDex.classes(bundle, (sources + fieldTypes).toSet()).values
+        // The Reels viewer's video logger, made with its config, for Keep your place in feed videos.
+        val madeWithConfig = mutableListOf<ClassDef>()
+        FixtureDex.forEach(bundle) { dex ->
+            dex.classes.filterTo(madeWithConfig) { classDef ->
+                classDef.methods.any { it.name == "<init>" && it.parameterTypes.firstOrNull()?.toString() == CLIPS_VIEWER_CONFIG }
+            }
+        }
         // Where a build inlined the session's end: the classes handing listeners the sign-out flag.
         val enders = mutableListOf<ClassDef>()
         FixtureDex.forEach(bundle) { dex ->
@@ -216,8 +252,8 @@ class ResumeLongVideosHookTest {
             }
         }
         val context = PatchContexts.of(
-            (players + dumps + extra + enders.map(ImmutableClassDef::of) + ExtensionDex.classDef(RESUME_PLAYBACK))
-                .distinctBy { it.type },
+            (players + dumps + extra + madeWithConfig.map(ImmutableClassDef::of) + enders.map(ImmutableClassDef::of) +
+                ExtensionDex.classDef(RESUME_PLAYBACK)).distinctBy { it.type },
         )
         val found = context.findResumePlayer()
         assertEquals("$label: the holder is the player's", found.player.type, found.holder.definingClass)
@@ -231,6 +267,9 @@ class ResumeLongVideosHookTest {
         assertEquals("$label: the session's end reads its state", "$RESUME_SESSION->$RESUME_SESSION_STATE",
             stock[end.index].referenceText()?.substringBefore(":"))
         assertEquals("$label: the sign-out flag", "$RESUME_SESSION->isLoggedOut:Z", found.loggedOut.toString())
+        val reels = found.reelsLogger
+        assertTrue("$label: the Reels viewer's video logger", reels != null)
+        assertEquals("$label: the logger field is the player's", found.player.type, reels!!.field.definingClass)
 
         context.resumeLongVideos()
 
@@ -241,6 +280,7 @@ class ResumeLongVideosHookTest {
             found.bind to REBOUND, found.seek to SEEKING, found.completed to ENDED, found.looping to ENDED)) {
             assertEquals("$label: ${method.name}", hook, after(method)[0].referenceText())
         }
+        assertEquals("$label: the reels stub", listOf(found.player.type, reels.field.toString(), reels.type), context.stub("reelsViewer"))
         val ending = after(end.method)
         assertEquals("$label: the session's end", SESSION_ENDED, ending[end.index].referenceText())
         assertEquals("$label: Instagram's own end follows", stock[end.index].referenceText(), ending[end.index + 1].referenceText())
@@ -266,6 +306,11 @@ class ResumeLongVideosHookTest {
 
     private fun BytecodePatchContext.method(type: String, name: String): Method = classDefBy(type).methods.first { it.name == name }
 
+    /** What a filled stub does before its first return; its own body stays behind it, unreached. */
+    private fun BytecodePatchContext.stub(name: String): List<String> = method(RESUME_PLAYBACK, name).code()
+        .let { code -> code.take(code.indexOfFirst { it.opcode.name.startsWith("return") } + 1) }
+        .mapNotNull { it.referenceText() }
+
     private fun Method.code(): List<Instruction> = implementation?.instructions?.toList().orEmpty()
 
     private fun Instruction.referenceText(): String? = (this as? ReferenceInstruction)?.reference?.toString()
@@ -285,6 +330,8 @@ class ResumeLongVideosHookTest {
         loggedOut: Boolean = true,
         inlinedEnd: Boolean = false,
         endJumpedOnto: Boolean = false,
+        reelsLogger: Boolean = true,
+        privateLogger: Boolean = false,
     ): List<ClassDef> {
         val open = AccessFlags.PUBLIC.value
         val videoPlayer = classDef(
@@ -343,6 +390,8 @@ class ResumeLongVideosHookTest {
                 ImmutableField(player, "A0K", holder, open, null, null, null),
                 if (secondPath) ImmutableField(player, "A0L", holder, open, null, null, null) else null,
                 ImmutableField(player, "A0t", RESUME_SESSION, open or AccessFlags.FINAL.value, null, null, null),
+                ImmutableField(player, "A0r", logger, (if (privateLogger) AccessFlags.PRIVATE.value else open) or AccessFlags.FINAL.value,
+                    null, null, null),
                 if (secondSession) ImmutableField(player, "A0u", RESUME_SESSION, open, null, null, null) else null,
             ),
         )
@@ -420,8 +469,22 @@ class ResumeLongVideosHookTest {
                 """),
             ),
         )
+        // The feed's video logger and the Reels viewer's, made with the viewer's config.
+        val videoLogger = classDef(logger, emptyList())
+        val reelsViewerLogger = ImmutableClassDef(
+            clipsLogger, open, logger, null, null, null,
+            listOf(ImmutableField(clipsLogger, "config", CLIPS_VIEWER_CONFIG, open or AccessFlags.FINAL.value, null, null, null)),
+            listOf(
+                method(clipsLogger, "<init>", listOf(CLIPS_VIEWER_CONFIG, RESUME_SESSION), "V", 3, body = """
+                    invoke-direct { p0 }, $logger-><init>()V
+                    iput-object p1, p0, $clipsLogger->config:$CLIPS_VIEWER_CONFIG
+                    return-void
+                """),
+            ),
+        )
         return listOfNotNull(videoPlayer, playerVideo, videoSource, sourceLogger, session,
-            if (inlinedEnd) sessionManager else null, ExtensionDex.classDef(RESUME_PLAYBACK))
+            if (inlinedEnd) sessionManager else null, videoLogger, if (reelsLogger) reelsViewerLogger else null,
+            ExtensionDex.classDef(RESUME_PLAYBACK))
     }
 
     /** A media ID reader: the player's field, its IgVideoSource, the ID, each checked for null. */

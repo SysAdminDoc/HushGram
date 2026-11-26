@@ -6,6 +6,7 @@ Every HushGram release, newest first.
 
 ### Features
 
+* `Keep your place in feed videos` is new under Playback. A feed video you scroll away from picks up where you left it when you scroll back, until you close Instagram. Reels in the Reels tab start over. Starts off. Asked for in #874.
 * `Photos and carousels in the reels window` is new under Playback. Photo and carousel reels go in the reels window too, with a dot per carousel page. Previous and Next go through those pages first. Starts off. Asked for in #873.
 * `Previous and next in the reels window` is new under Playback. Instagram's small window for reels gets Instagram's own buttons to go back a reel or on to the next one. Starts off. Asked for in #873.
 * `Pause button in the reels window` is new under Playback, below `Picture in picture for reels`. Instagram's small window for reels gets a Pause button, which turns into Play while the reel is paused. Starts off. Asked for in #873.

@@ -5219,6 +5219,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_resume_long_videos", FALSE);
 
     /**
+     * A feed video of any length you scroll away from picks up where you left it when you scroll
+     * back to it, while Instagram stays open ({@link app.hushgram.extension.instagram.media.ResumePlayback},
+     * #874). Reels in the Reels viewer, live videos and ads start as Instagram starts them. The
+     * places stay in memory and nothing is written. Read at each start. Off to start.
+     */
+    public static final BooleanSetting RESUME_FEED_VIDEOS =
+            new BooleanSetting("hushgram_resume_feed_videos", FALSE);
+
+    /**
      * HDR photos and reels don't brighten the screen: every headroom Instagram asks Android for is
      * none, HDR color mode is the default one, the screen's HDR/SDR ratio reads as none, the screen
      * reads as one without HDR outside the camera's recording helper, and Instagram's extended range

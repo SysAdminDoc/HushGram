@@ -290,6 +290,9 @@ Feed videos and stories wait for your tap. Reels and videos in Explore play as I
 Turn on Tap to play to use this choice.	Aktiviere „Zum Abspielen tippen“, um diese Auswahl zu nutzen.
 Resume long videos	Lange Videos fortsetzen
 Videos and reels over two minutes pick up where you left off. Seek to start elsewhere. Live videos and ads start as usual.	Videos und Reels über zwei Minuten laufen an deiner letzten Stelle weiter. Die Zeitleiste ändert den Start. Live-Videos und Werbung starten wie gewohnt.
+# context: a switch under Resume long videos (#874). A feed video you scroll past and come back to keeps playing from where it was, only until Instagram closes. The Reels tab is Instagram's own tab.
+Keep your place in feed videos	Stelle in Feed-Videos merken
+A feed video you scroll away from picks up where you left it when you scroll back, until you close Instagram. Reels in the Reels tab start over as usual.	Ein Feed-Video, von dem du wegscrollst, läuft an derselben Stelle weiter, wenn du zurückscrollst, bis du Instagram schließt. Reels im Reels-Tab starten wie gewohnt von vorn.
 Default playback quality	Standard-Wiedergabequalität
 # context: description of the Default playback quality switch on the Playback page, with the list of qualities below it
 Videos, reels and stories play at the quality below, starting with the next one you open.	Videos, Reels und Stories laufen in der Qualität unten, ab dem nächsten Video, das du öffnest.

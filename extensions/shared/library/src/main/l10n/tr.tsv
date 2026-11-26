@@ -290,6 +290,9 @@ Feed videos and stories wait for your tap. Reels and videos in Explore play as I
 Turn on Tap to play to use this choice.	Bu seçimi kullanmak için Oynatmak için dokun seçeneğini açın.
 Resume long videos	Uzun videolara kaldığın yerden devam et
 Videos and reels over two minutes pick up where you left off. Seek to start elsewhere. Live videos and ads start as usual.	İki dakikadan uzun videolar ve reels kaldığın yerden devam eder. Başka bir yerden başlatmak için çubuğu kaydır. Canlı videolar ve reklamlar normal başlar.
+# context: a switch under Resume long videos (#874). A feed video you scroll past and come back to keeps playing from where it was, only until Instagram closes. The Reels tab is Instagram's own tab.
+Keep your place in feed videos	Akış videolarında kaldığın yeri hatırla
+A feed video you scroll away from picks up where you left it when you scroll back, until you close Instagram. Reels in the Reels tab start over as usual.	Kaydırıp geçtiğin bir akış videosu, geri döndüğünde kaldığın yerden devam eder. Bu, Instagram'ı kapatana kadar sürer. Reels sekmesindeki reels videoları her zamanki gibi baştan başlar.
 Default playback quality	Varsayılan oynatma kalitesi
 # context: description of the Default playback quality switch on the Playback page, with the list of qualities below it
 Videos, reels and stories play at the quality below, starting with the next one you open.	Videolar, reels ve hikayeler, açacağın bir sonrakinden itibaren aşağıdaki kalitede oynatılır.

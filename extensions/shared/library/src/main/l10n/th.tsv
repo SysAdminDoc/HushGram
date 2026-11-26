@@ -287,6 +287,9 @@ Feed videos and stories wait for your tap. Reels and videos in Explore play as I
 Turn on Tap to play to use this choice.	เปิด "แตะเพื่อเล่น" เพื่อใช้ตัวเลือกนี้
 Resume long videos	เล่นวิดีโอยาวต่อจากเดิม
 Videos and reels over two minutes pick up where you left off. Seek to start elsewhere. Live videos and ads start as usual.	วิดีโอและรีลส์ที่ยาวเกินสองนาทีจะเล่นต่อจากจุดที่คุณดูค้างไว้ เลื่อนแถบเวลาเพื่อเริ่มเล่นจากจุดอื่น ส่วนวิดีโอถ่ายทอดสดและโฆษณาจะเริ่มเล่นตามปกติ
+# context: a switch under Resume long videos (#874). A feed video you scroll past and come back to keeps playing from where it was, only until Instagram closes. The Reels tab is Instagram's own tab.
+Keep your place in feed videos	จำตำแหน่งในวิดีโอฟีด
+A feed video you scroll away from picks up where you left it when you scroll back, until you close Instagram. Reels in the Reels tab start over as usual.	วิดีโอในฟีดที่คุณเลื่อนผ่านไปจะเล่นต่อจากจุดเดิมเมื่อคุณเลื่อนกลับมา จนกว่าคุณจะปิด Instagram ส่วนรีลส์ในแท็บรีลส์จะเริ่มเล่นใหม่ตามปกติ
 Default playback quality	คุณภาพการเล่นเริ่มต้น
 # context: description of the Default playback quality switch on the Playback page, with the list of qualities below it
 Videos, reels and stories play at the quality below, starting with the next one you open.	วิดีโอ, รีลส์ และสตอรี่จะเล่นตามคุณภาพด้านล่าง โดยเริ่มจากรายการถัดไปที่คุณเปิด

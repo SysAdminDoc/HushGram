@@ -1010,6 +1010,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     if (Settings.REEL_AUTO_ADVANCE.key.equals(key)) aliases.append(" auto advance autoloop loop next reels");
                     if (Settings.AUTO_SCROLL_IN_REEL_MENU.key.equals(key)) aliases.append(" auto advance three dots menu toggle reels");
                     if (Settings.STOP_VIDEO_LOOPING.key.equals(key)) aliases.append(" autoloop loop replay repeat reels");
+                    if (Settings.RESUME_FEED_VIDEOS.key.equals(key)) aliases.append(" resume continue position scroll back");
                     if (Settings.KEEP_PLAYING_IN_BACKGROUND.key.equals(key)) {
                         aliases.append(" background audio minimized screen off notification music");
                     }

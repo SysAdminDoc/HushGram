@@ -290,6 +290,9 @@ Feed videos and stories wait for your tap. Reels and videos in Explore play as I
 Turn on Tap to play to use this choice.	Aktifkan Ketuk untuk memutar untuk menggunakan pilihan ini.
 Resume long videos	Lanjutkan video panjang
 Videos and reels over two minutes pick up where you left off. Seek to start elsewhere. Live videos and ads start as usual.	Video dan reel lebih dari dua menit dilanjutkan dari posisi terakhir. Geser bilah untuk posisi lain. Video langsung dan iklan mulai seperti biasa.
+# context: a switch under Resume long videos (#874). A feed video you scroll past and come back to keeps playing from where it was, only until Instagram closes. The Reels tab is Instagram's own tab.
+Keep your place in feed videos	Ingat posisi di video feed
+A feed video you scroll away from picks up where you left it when you scroll back, until you close Instagram. Reels in the Reels tab start over as usual.	Video feed yang kamu gulir lewati akan lanjut dari posisi terakhir saat kamu kembali, sampai kamu menutup Instagram. Reel di tab Reels mulai dari awal seperti biasa.
 Default playback quality	Kualitas pemutaran default
 # context: description of the Default playback quality switch on the Playback page, with the list of qualities below it
 Videos, reels and stories play at the quality below, starting with the next one you open.	Video, reels, dan cerita diputar dengan kualitas di bawah, mulai dari yang berikutnya Anda buka.

@@ -290,6 +290,9 @@ Feed videos and stories wait for your tap. Reels and videos in Explore play as I
 Turn on Tap to play to use this choice.	Activa «Toca para reproducir» para usar esta opción.
 Resume long videos	Reanudar videos largos
 Videos and reels over two minutes pick up where you left off. Seek to start elsewhere. Live videos and ads start as usual.	Los videos y reels de más de dos minutos siguen donde los dejaste. Usa la barra para cambiar el inicio. Los directos y los anuncios empiezan como siempre.
+# context: a switch under Resume long videos (#874). A feed video you scroll past and come back to keeps playing from where it was, only until Instagram closes. The Reels tab is Instagram's own tab.
+Keep your place in feed videos	Recordar dónde ibas en los videos del feed
+A feed video you scroll away from picks up where you left it when you scroll back, until you close Instagram. Reels in the Reels tab start over as usual.	Un video del feed del que te desplazas sigue donde lo dejaste cuando vuelves a él, hasta que cierras Instagram. Los reels de la pestaña de Reels empiezan desde el principio como siempre.
 Default playback quality	Calidad de reproducción predeterminada
 # context: description of the Default playback quality switch on the Playback page, with the list of qualities below it
 Videos, reels and stories play at the quality below, starting with the next one you open.	Los videos, reels e historias se reproducen en la calidad de abajo, a partir del próximo que abras.

@@ -288,6 +288,9 @@ Feed videos and stories wait for your tap. Reels and videos in Explore play as I
 Turn on Tap to play to use this choice.	Hãy bật Nhấn để phát để dùng lựa chọn này.
 Resume long videos	Tiếp tục xem video dài
 Videos and reels over two minutes pick up where you left off. Seek to start elsewhere. Live videos and ads start as usual.	Video và reel dài hơn hai phút tiếp tục từ chỗ bạn dừng. Hãy tua để bắt đầu ở nơi khác. Video trực tiếp và quảng cáo bắt đầu như bình thường.
+# context: a switch under Resume long videos (#874). A feed video you scroll past and come back to keeps playing from where it was, only until Instagram closes. The Reels tab is Instagram's own tab.
+Keep your place in feed videos	Nhớ vị trí trong video bảng feed
+A feed video you scroll away from picks up where you left it when you scroll back, until you close Instagram. Reels in the Reels tab start over as usual.	Video bảng feed bạn cuộn qua sẽ tiếp tục từ chỗ bạn dừng khi bạn cuộn lại, cho đến khi bạn đóng Instagram. Reel trong tab Reels vẫn bắt đầu lại như bình thường.
 Default playback quality	Chất lượng phát mặc định
 # context: description of the Default playback quality switch on the Playback page, with the list of qualities below it
 Videos, reels and stories play at the quality below, starting with the next one you open.	Video, reel và tin phát ở chất lượng bên dưới, bắt đầu từ mục tiếp theo bạn mở.

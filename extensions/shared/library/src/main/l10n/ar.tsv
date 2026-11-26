@@ -2375,6 +2375,9 @@ Video resolution	دقة الفيديو
 Video stories you post are sent at 1080p and a higher bitrate, as with Instagram's own Upload at highest quality setting on. Instagram still shrinks story videos to 720p on its servers, so the difference viewers see is small. Photo stories already go up larger than Instagram keeps.	تُرسل قصص الفيديو التي تنشرها بدقة 1080p وبمعدل بت أعلى، كما لو كانت إعدادة الرفع بأعلى جودة مفعلة في Instagram. مع ذلك، لا يزال Instagram يُصغّر فيديوهات القصص إلى 720p على خوادمه، لذا الفرق الذي يراه المشاهدون صغير. قصص الصور تُرفع بحجم أكبر مما يحتفظ به Instagram.
 Videos and photos use %1$s. Unknown codes are left out.	تستخدم الفيديوهات والصور %1$s. الأكواد غير المعروفة تُستبعد.
 Videos and reels over two minutes pick up where you left off. Seek to start elsewhere. Live videos and ads start as usual.	تستأنف الفيديوهات وReels التي تزيد عن دقيقتين من حيث توقفت. انتقل للبدء من مكان آخر. تبدأ الفيديوهات المباشرة والإعلانات كالمعتاد.
+# context: a switch under Resume long videos (#874). A feed video you scroll past and come back to keeps playing from where it was, only until Instagram closes. The Reels tab is Instagram's own tab.
+Keep your place in feed videos	تذكّر موضعك في مقاطع فيديو الخلاصة
+A feed video you scroll away from picks up where you left it when you scroll back, until you close Instagram. Reels in the Reels tab start over as usual.	يستأنف فيديو الخلاصة الذي تمرّر بعيدًا عنه من حيث توقفت عندما تعود إليه، حتى تغلق Instagram. تبدأ مقاطع Reels في تبويب Reels من البداية كالمعتاد.
 Videos are named %1$s. Photos are named %2$s followed by the date and time.	تُسمى الفيديوهات %1$s. تُسمى الصور %2$s يليها التاريخ والوقت.
 Videos go to %1$s and photos to %2$s.	تُرسل الفيديوهات إلى %1$s والصور إلى %2$s.
 Videos in Explore wait for your tap. Feed videos, reels and stories play as Instagram plays them.	فيديوهات Explore تنتظر نقراتك. فيديوهات Feed وReels والقصص تُعرض كما يعرضها Instagram.

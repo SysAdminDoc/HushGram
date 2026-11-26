@@ -49,6 +49,11 @@ public final class ResumePlaybackForTests {
         public String account = ACCOUNT;
         /** Whether that UserSession's account has signed out since. */
         public boolean signedOut;
+        /**
+         * What the reelsViewer stub answers for it: 0 for a feed player, 1 for one made for the
+         * Reels viewer, {@link ResumePlayback#NOT_PATCHED_FLAG} where the patch couldn't tell.
+         */
+        public int reelsViewer;
 
         public Player(Video video) {
             this.video = video;
@@ -104,6 +109,11 @@ public final class ResumePlaybackForTests {
             Session session = playing.account == null ? null : new Session(playing.account, playing.signedOut);
             String owner = ResumePlayback.owner(session, SESSIONS);
             return ResumePlayback.factsOf(ResumePlayback.ownedKey(owner, video.id), video.product, video.sponsored);
+        }
+
+        @Override
+        public int reelsViewer(Object player) {
+            return ((Player) player).reelsViewer;
         }
 
         @Override

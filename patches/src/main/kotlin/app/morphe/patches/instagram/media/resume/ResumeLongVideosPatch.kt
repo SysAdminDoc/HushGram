@@ -11,6 +11,8 @@ import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.media.taptoplay.PLAY_INTERNAL
+import app.morphe.patches.instagram.media.taptoplay.ReelsLogger
+import app.morphe.patches.instagram.media.taptoplay.findReelsLogger
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesAccessing
 import app.morphe.patches.instagram.misc.extension.classesHolding
@@ -18,6 +20,7 @@ import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
+import app.morphe.patches.instagram.misc.extension.patchLog
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
@@ -96,6 +99,12 @@ private const val OBJECT = "Ljava/lang/Object;"
  * isLoggedOut flag, so the extension drops that account's waiting resumes and, at a sign-out, its
  * points, and a signed-out session's players save nothing as they let go.
  *
+ * The same hooks keep the place of a feed video scrolled away from, while Instagram runs, under a
+ * second switch, Keep your place in feed videos. Its stub tells a player made for the Reels viewer by
+ * its video logger, as Tap to play does, so reels in the Reels tab start over. Where that logger
+ * can't be found the stub stays as it is, the extension leaves the switch inert, and long videos
+ * still resume.
+ *
  * Everything is found before anything changes, so a build that differs stops the patch naming
  * what it couldn't find, and nothing is half done.
  */
@@ -103,7 +112,8 @@ private const val OBJECT = "Ljava/lang/Object;"
 val resumeLongVideosPatch = bytecodePatch(
     name = "Resume long videos",
     description = "A video or reel longer than two minutes picks up where you left off the next time you play it " +
-        "on the same account. Live videos and ads start as usual. Starts off. Turn it on in HushGram settings > " +
+        "on the same account. Live videos and ads start as usual. A second switch, Keep your place in feed videos, picks " +
+        "up any feed video you scroll back to until you close Instagram. Starts off. Turn them on in HushGram settings > " +
         "Playback.",
     default = true,
 ) {
@@ -143,6 +153,8 @@ internal class ResumePlayer(
     /** Where UserSession lets the session go, and its flag saying the account signed out. */
     val sessionEnd: SessionEnd,
     val loggedOut: FieldReference,
+    /** The player's video logger field and the Reels viewer's logger class, or null where they can't be found. */
+    val reelsLogger: ReelsLogger?,
 )
 
 /** Where a session's end starts: the method, the index its hook goes in at, and the register holding the session. */
@@ -279,7 +291,32 @@ internal fun BytecodePatchContext.findResumePlayer(): ResumePlayer {
     }
 
     return ResumePlayer(player, started, pause, stop, bind, seek, completed, looping, position, length,
-        holder, sourceField, mediaId, productType, sponsored, session, userId, sessionEnd, loggedOut)
+        holder, sourceField, mediaId, productType, sponsored, session, userId, sessionEnd, loggedOut,
+        findReelsLoggerOrWarn(player))
+}
+
+/**
+ * The Reels viewer's video logger, as Tap to play finds it, for Keep your place in feed videos to
+ * leave the Reels tab's players be. The extension reads the player's logger field and the logger's
+ * class from outside Instagram's packages, so both must be public. Without them this warns and
+ * answers null, and the extension's reelsViewer stub keeps its own answer, which leaves the switch inert.
+ */
+private fun BytecodePatchContext.findReelsLoggerOrWarn(player: ClassDef): ReelsLogger? {
+    val logger = try {
+        findReelsLogger(player.type)
+    } catch (refusal: PatchException) {
+        patchLog.warning("${refusal.message}. $PATCH goes in, but Keep your place in feed videos stays off.")
+        return null
+    }
+    val field = player.fields.single { it.name == logger.field.name && it.type == logger.field.type }
+    val hidden = listOf(logger.field.toString() to field.accessFlags, logger.type to classDefBy(logger.type).accessFlags)
+        .filter { !AccessFlags.PUBLIC.isSet(it.second) }.map { it.first }
+    if (hidden.isNotEmpty()) {
+        patchLog.warning("$PATCH: the extension can't read ${hidden.joinToString()}, not public. $PATCH goes in, " +
+            "but Keep your place in feed videos stays off.")
+        return null
+    }
+    return logger
 }
 
 /** How IgVideoPlayerImpl reaches the media ID of what it plays: its own field, that holder's IgVideoSource, and the ID. */
@@ -434,9 +471,22 @@ private class ResumeStubs(
     val playerSession: MutableMethod,
     val sessionUserId: MutableMethod,
     val sessionLoggedOut: MutableMethod,
+    val reelsViewer: MutableMethod,
 ) {
     fun fill(found: ResumePlayer) {
         val player = found.player.type
+        // Hooks only ever hand it the player. Left alone, the stub answers that it couldn't tell.
+        found.reelsLogger?.let { logger ->
+            reelsViewer.addInstructionsWithLabels(
+                0,
+                """
+                    check-cast p0, $player
+                    iget-object p0, p0, ${logger.field}
+                    instance-of p0, p0, ${logger.type}
+                    return p0
+                """,
+            )
+        }
         listOf(position to found.position, duration to found.length).forEach { (stub, reader) ->
             stub.addInstructionsWithLabels(
                 0,
@@ -535,6 +585,7 @@ private fun BytecodePatchContext.resumeStubs(): ResumeStubs {
         playerSession = stub("playerSession", listOf(OBJECT), OBJECT),
         sessionUserId = stub("sessionUserId", listOf(OBJECT), STRING),
         sessionLoggedOut = stub("sessionLoggedOut", listOf(OBJECT), "Z"),
+        reelsViewer = stub("reelsViewer", listOf(OBJECT), "I"),
     )
 }
 

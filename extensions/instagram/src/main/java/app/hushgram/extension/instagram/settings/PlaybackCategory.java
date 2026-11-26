@@ -91,6 +91,9 @@ final class PlaybackCategory {
                 playback.addPreference(toggle(context, Settings.RESUME_LONG_VIDEOS, L10n.t("Resume long videos"),
                         L10n.t("Videos and reels over two minutes pick up where you left off. Seek to start elsewhere. "
                                 + "Live videos and ads start as usual.")));
+                playback.addPreference(toggle(context, Settings.RESUME_FEED_VIDEOS, L10n.t("Keep your place in feed videos"),
+                        L10n.t("A feed video you scroll away from picks up where you left it when you scroll back, "
+                                + "until you close Instagram. Reels in the Reels tab start over as usual.")));
                 page.clearPositions = new Row(context);
                 page.clearPositions.setKey("hushgram_clear_resume_points");
                 page.clearPositions.setPersistent(false);

@@ -707,6 +707,7 @@
         "extensions/instagram/src/main/java/app/hushgram/extension/instagram/settings/ViewingHistoryViewer.java",
         "extensions/instagram/src/main/java/app/hushgram/extension/instagram/feed/CommentSheetExtras.java",
         "extensions/instagram/src/test/java/app/hushgram/extension/instagram/feed/CommentSheetExtrasTest.java",
+        "extensions/instagram/src/test/java/app/hushgram/extension/instagram/media/KeepFeedPlaceTest.java",
         "scripts/gen-readme-patches.py"
       ],
       "origin": "original",
