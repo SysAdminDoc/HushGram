@@ -80,6 +80,14 @@ final class VideoMetadata {
     private static final int DATA = type("data");
     private static final int MDIR = type("mdir");
     private static final int APPL = type("appl");
+    private static final int MVHD = type("mvhd");
+    private static final int TRAK = type("trak");
+    private static final int TKHD = type("tkhd");
+    private static final int MDIA = type("mdia");
+    private static final int MDHD = type("mdhd");
+
+    /** Seconds from the start of 1904, where an MP4's clock starts, to the start of 1970. */
+    static final long FROM_1904 = 2_082_844_800L;
 
     /** The item types written: Artist, content date and Description. */
     static final int ARTIST = itunes("ART");
@@ -282,6 +290,92 @@ final class VideoMetadata {
             throw failure;
         }
         return true;
+    }
+
+    /**
+     * Sets the creation and modification times of the MP4 in [store] to [posted] (#792): the movie
+     * header's, which Android's gallery reads as the date taken, and each track's and its media's,
+     * which other players read. Written in place, so the file keeps its length and every other
+     * byte. False, with the file untouched, when the file isn't one this writes into or its moov
+     * has no movie header this can date. A read or write that fails is thrown.
+     */
+    static boolean dated(Store store, Date posted) throws IOException {
+        if (posted == null) return false;
+        long length = store.size();
+        Box moov = movie(store, length);
+        if (moov == null) return false;
+        byte[] was = store.read(moov.start, (int) moov.size);
+        List<Box> top = children(was, moov.header, moov.size);
+        if (top == null) return false;
+        byte[] next = was.clone();
+        long seconds = posted.getTime() / 1000 + FROM_1904;
+        boolean movieHeader = false;
+        for (Box box : top) {
+            if (box.type == MVHD) {
+                movieHeader |= stamped(next, box, seconds);
+            } else if (box.type == TRAK) {
+                List<Box> track = children(was, box.content(), box.end());
+                if (track == null) continue;
+                for (Box part : track) {
+                    if (part.type == TKHD) stamped(next, part, seconds);
+                    if (part.type != MDIA) continue;
+                    List<Box> media = children(was, part.content(), part.end());
+                    if (media == null) continue;
+                    for (Box header : media) {
+                        if (header.type == MDHD) stamped(next, header, seconds);
+                    }
+                }
+            }
+        }
+        if (!movieHeader) return false;
+        // Only the runs that changed, so a write cut short leaves no more than a time half set.
+        int at = 0;
+        while (at < next.length) {
+            if (next[at] == was[at]) {
+                at++;
+                continue;
+            }
+            int from = at;
+            while (at < next.length && next[at] != was[at]) at++;
+            store.write(moov.start + from, Arrays.copyOfRange(next, from, at));
+        }
+        if (!Arrays.equals(store.read(moov.start, next.length), next)) {
+            throw new IOException("the movie's times read back different");
+        }
+        store.sync();
+        return true;
+    }
+
+    /**
+     * Puts [seconds] in [bytes] as the creation and modification times of the full box [box]: two
+     * 32-bit fields after a version 0 box's version and flags, two 64-bit ones after a version 1
+     * box's. False, with nothing changed, when the box is too short, of a version this doesn't
+     * know, or version 0 and the time past what 32 bits hold.
+     */
+    private static boolean stamped(byte[] bytes, Box box, long seconds) {
+        long at = box.content();
+        long room = box.end() - at;
+        if (room < 4) return false;
+        int version = bytes[(int) at] & 0xFF;
+        if (version == 0 && room >= 12 && seconds <= 0xFFFFFFFFL) {
+            put(bytes, at + 4, seconds, 4);
+            put(bytes, at + 8, seconds, 4);
+            return true;
+        }
+        if (version == 1 && room >= 20) {
+            put(bytes, at + 4, seconds, 8);
+            put(bytes, at + 12, seconds, 8);
+            return true;
+        }
+        return false;
+    }
+
+    /** [value]'s low [length] bytes into [bytes] at [at], big-endian. */
+    private static void put(byte[] bytes, long at, long value, int length) {
+        for (int k = length - 1; k >= 0; k--) {
+            bytes[(int) at + k] = (byte) value;
+            value >>>= 8;
+        }
     }
 
     /**

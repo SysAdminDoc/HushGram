@@ -17,6 +17,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -74,6 +75,7 @@ final class MkvJoin {
     private static final int MUXING_APP = 0x4D80;
     private static final int WRITING_APP = 0x5741;
     private static final int DURATION = 0x4489;
+    private static final int DATE_UTC = 0x4461;
     private static final int TRACKS = 0x1654AE6B;
     private static final int TRACK_ENTRY = 0xAE;
     private static final int TRACK_NUMBER = 0xD7;
@@ -118,6 +120,9 @@ final class MkvJoin {
     private static final int SIMPLE_TAG = 0x67C8;
     private static final int TAG_NAME = 0x45A3;
     private static final int TAG_STRING = 0x4487;
+
+    /** The start of 2001 in UTC, where Matroska's clock starts, in milliseconds since 1970. */
+    private static final long FROM_2001_MS = 978_307_200_000L;
 
     /** A SeekHead entry's position is written in this many bytes, so the SeekHead's size never moves. */
     private static final int POSITION_BYTES = 8;
@@ -623,7 +628,10 @@ final class MkvJoin {
             uint(TIMESTAMP_SCALE, 1_000_000),
             string(MUXING_APP, "HushGram"),
             string(WRITING_APP, "HushGram"),
-            dbl(DURATION, duration))));
+            dbl(DURATION, duration),
+            // When the file was made, as mkvmerge writes it. With Date saves by when they were
+            // posted on, PostDate puts the post time over it (#792).
+            element(DATE_UTC, fixed(dateUtc(System.currentTimeMillis()), 8)))));
         List<byte[]> trackEntries = new ArrayList<>();
         for (Entry entry : entries) trackEntries.add(entry.entry());
         byte[] tracks = element(TRACKS, join(trackEntries));
@@ -760,6 +768,48 @@ final class MkvJoin {
             at = child.end();
         }
         return false;
+    }
+
+    /**
+     * Puts [posted] over the DateUTC the join wrote in the Info of the MKV in [store], in place
+     * (#792). False, with the file untouched, when the file isn't laid out that way or its Info has
+     * no eight-byte DateUTC.
+     */
+    static boolean dated(VideoMetadata.Store store, Date posted) throws IOException {
+        if (posted == null) return false;
+        long length = store.size();
+        Element ebml = Element.at(store, 0, length);
+        if (ebml == null || ebml.id != EBML) return false;
+        Element segment = Element.at(store, ebml.end(), length);
+        if (segment == null || segment.id != SEGMENT) return false;
+        long at = segment.content;
+        long end = Math.min(length, segment.end());
+        while (at < end) {
+            Element child = Element.at(store, at, end);
+            if (child == null || child.id == CLUSTER) return false;
+            if (child.id == INFO) {
+                long in = child.content;
+                while (in < child.end()) {
+                    Element field = Element.at(store, in, child.end());
+                    if (field == null) return false;
+                    if (field.id == DATE_UTC) {
+                        if (field.size != 8) return false;
+                        store.write(field.content, fixed(dateUtc(posted.getTime()), 8));
+                        store.sync();
+                        return true;
+                    }
+                    in = field.end();
+                }
+                return false;
+            }
+            at = child.end();
+        }
+        return false;
+    }
+
+    /** [millis] since 1970 as Matroska's DateUTC: nanoseconds since the start of 2001, in UTC. */
+    static long dateUtc(long millis) {
+        return (millis - FROM_2001_MS) * 1_000_000L;
     }
 
     /** The Tags element for [items]: the poster as ARTIST, the post time as DATE_RELEASED, the link as DESCRIPTION. */

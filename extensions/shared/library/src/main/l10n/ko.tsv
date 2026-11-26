@@ -3092,3 +3092,7 @@ Settings page logo set.	설정 페이지 로고를 설정했습니다.
 HushGram shows at the top of this page.	이 페이지 맨 위에 HushGram이 표시됩니다.
 # context: Settings entry > summary of Settings page name; %1$s is the typed name (#872)
 The top of this page says %1$s.	이 페이지 맨 위에 %1$s 이름이 표시됩니다.
+# context: Settings > Downloads > switch title, under Name saves by account and post time (#792)
+Date saves by when they were posted	게시 시간으로 저장 파일 날짜 지정
+# context: Settings > Downloads > summary of Date saves by when they were posted (#792)
+Gives each saved photo and video the time its post went up, so your gallery sorts saves by the post instead of the day you saved them. A save that doesn't know when it was posted keeps the time it was saved.	저장한 각 사진과 동영상에 게시물이 올라온 시간을 넣어, 갤러리가 저장한 날이 아니라 게시물 기준으로 저장 파일을 정렬합니다. 언제 게시됐는지 모르는 저장 파일은 저장한 시간을 그대로 씁니다.

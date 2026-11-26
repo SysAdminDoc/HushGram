@@ -3093,3 +3093,7 @@ Settings page logo set.	Logo de ajustes listo.
 HushGram shows at the top of this page.	HushGram aparece arriba de esta página.
 # context: Settings entry > summary of Settings page name; %1$s is the typed name (#872)
 The top of this page says %1$s.	Arriba de esta página dice %1$s.
+# context: Settings > Downloads > switch title, under Name saves by account and post time (#792)
+Date saves by when they were posted	Fechar lo guardado por la hora de publicación
+# context: Settings > Downloads > summary of Date saves by when they were posted (#792)
+Gives each saved photo and video the time its post went up, so your gallery sorts saves by the post instead of the day you saved them. A save that doesn't know when it was posted keeps the time it was saved.	Da a cada foto y video guardado la hora en que se subió su publicación, para que tu galería ordene lo guardado por la publicación y no por el día en que lo guardaste. Lo que se guarda sin saber cuándo se publicó mantiene la hora en que se guardó.

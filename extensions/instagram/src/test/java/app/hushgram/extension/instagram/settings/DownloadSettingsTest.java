@@ -83,6 +83,7 @@ public class DownloadSettingsTest {
         Settings.FILENAME_TEMPLATE.resetToDefault();
         Settings.SAVE_FOLDER_PER_ACCOUNT.resetToDefault();
         Settings.SAVE_NAME_BY_POST.resetToDefault();
+        Settings.SAVE_POST_DATE.resetToDefault();
         Settings.SEND_DOWNLOADS_TO_APP.resetToDefault();
         Settings.OPEN_IN_PLAYER.resetToDefault();
         Settings.POST_DETAILS.resetToDefault();
@@ -1198,9 +1199,10 @@ public class DownloadSettingsTest {
 
     /**
      * Skip what's already saved sits in the download naming rows, under Name saves by account and
-     * post time and the Add the source to saved photos and videos row that follows it, with Clear download
-     * history directly under Skip. The switch starts off and goes in a settings file, the list it
-     * keeps never does, and Clear forgets the list at once and says so (#150).
+     * post time, Date saves by when they were posted and the Add the source to saved photos and
+     * videos row that follow it, with Clear download history directly under Skip. The switch starts
+     * off and goes in a settings file, the list it keeps never does, and Clear forgets the list at
+     * once and says so (#150).
      */
     @Test
     public void skipWhatsAlreadySavedSitsUnderTheNameSwitchWithItsClearRow() throws Exception {
@@ -1211,6 +1213,7 @@ public class DownloadSettingsTest {
         try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
             PreferenceGroup downloads = section(pageIn(controller).getPreferenceScreen(), "Downloads");
             int byPost = -1;
+            int date = -1;
             int metadata = -1;
             int scrub = -1;
             int skip = -1;
@@ -1218,13 +1221,25 @@ public class DownloadSettingsTest {
             for (int i = 0; i < downloads.getPreferenceCount(); i++) {
                 String key = downloads.getPreference(i).getKey();
                 if (Settings.SAVE_NAME_BY_POST.key.equals(key)) byPost = i;
+                if (Settings.SAVE_POST_DATE.key.equals(key)) date = i;
                 if (Settings.SAVE_PHOTO_METADATA.key.equals(key)) metadata = i;
                 if (Settings.SAVE_PHOTO_SCRUB.key.equals(key)) scrub = i;
                 if (Settings.DOWNLOAD_SKIP_SAVED.key.equals(key)) skip = i;
                 if (HushgramPreferenceFragment.CLEAR_DOWNLOAD_HISTORY.equals(key)) clear = i;
             }
-            assertEquals(byPost + 1, metadata);
+            assertEquals(byPost + 1, date);
+            assertEquals(date + 1, metadata);
             assertEquals(metadata + 1, scrub);
+
+            // Date saves by when they were posted (#792) sits right under Name saves by post, off at first.
+            Preference dateRow = downloads.getPreference(date);
+            assertTrue(dateRow instanceof SwitchPreference);
+            assertEquals("Date saves by when they were posted", String.valueOf(dateRow.getTitle()));
+            assertTrue(String.valueOf(dateRow.getSummary()),
+                    String.valueOf(dateRow.getSummary()).contains("the time its post went up"));
+            assertFalse(((SwitchPreference) dateRow).isChecked());
+            assertFalse(Settings.SAVE_POST_DATE.get());
+            assertTrue(ConfigurationBackup.eligible().containsKey(Settings.SAVE_POST_DATE.key));
             assertEquals(scrub + 1, skip);
             assertEquals(skip + 1, clear);
 

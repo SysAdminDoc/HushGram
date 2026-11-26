@@ -2629,3 +2629,7 @@ Settings page logo set.	تم تعيين شعار الإعدادات.
 HushGram shows at the top of this page.	يظهر HushGram في أعلى هذه الصفحة.
 # context: Settings entry > summary of Settings page name; %1$s is the typed name (#872)
 The top of this page says %1$s.	أعلى هذه الصفحة يعرض %1$s.
+# context: Settings > Downloads > switch title, under Name saves by account and post time (#792)
+Date saves by when they were posted	تأريخ المحفوظات بوقت نشرها
+# context: Settings > Downloads > summary of Date saves by when they were posted (#792)
+Gives each saved photo and video the time its post went up, so your gallery sorts saves by the post instead of the day you saved them. A save that doesn't know when it was posted keeps the time it was saved.	يمنح كل صورة وفيديو محفوظ وقت نشر منشوره، ليُرتِّب معرض الصور لديك المحفوظات حسب المنشور بدلًا من اليوم الذي حفظتها فيه. المحفوظات التي لا يُعرف وقت نشرها تحتفظ بوقت حفظها.

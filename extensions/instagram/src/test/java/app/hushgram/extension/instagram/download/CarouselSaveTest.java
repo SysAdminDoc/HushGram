@@ -152,6 +152,7 @@ public class CarouselSaveTest {
         DownloadHistory.accounts = accounts;
         Settings.SAVE_NAME_BY_POST.resetToDefault();
         Settings.SAVE_PHOTO_METADATA.resetToDefault();
+        Settings.SAVE_POST_DATE.resetToDefault();
         Settings.FILENAME_TEMPLATE.resetToDefault();
         MetadataExif.files.clear();
         MetadataExif.failures.clear();
@@ -1644,6 +1645,48 @@ public class CarouselSaveTest {
         assertClean();
     }
 
+    /**
+     * With Date saves by when they were posted on and Add the source off, a batch's JPEG gets its
+     * post time as its EXIF date, marked UTC, and nothing of the source, and its MP4 gets it as its
+     * movie, track and media times with every other byte where it was (#792).
+     */
+    @Test
+    @Config(shadows = {LocalCandidates.class, MediaBridge.class, MetadataExif.class})
+    public void aBatchDatedByItsPostsGetsThePostTimeInsideAndNoSource() throws Exception {
+        Settings.SAVE_POST_DATE.save(true);
+        Settings.SAVE_PHOTO_METADATA.save(false);
+        assertTrue("the date switch did not become active", PostDate.on());
+        MetadataGallery output = metadataGallery();
+        server.serve("/dated.jpg", "image/jpeg", metadataJpeg());
+        byte[] mp4 = VideoMetadataTest.sample(VideoMetadataTest.MOOV_LAST);
+        server.serve("/dated.mp4", "video/mp4", mp4);
+        PostDetails photo = metadataDetails("409960495", "source_one");
+        PostDetails clip = metadataDetails("908540701891980503", "source_video");
+
+        MediaSave.BatchResult result = metadataBatch(Arrays.asList(
+                new MediaSave.Item(false, SavesForTests.renditions(server.origin() + "/dated.jpg"), null, photo),
+                new MediaSave.Item(true, SavesForTests.renditions(server.origin() + "/dated.mp4"), null, clip)));
+
+        assertEquals(2, result.saved);
+        assertEquals(metadataDiagnostics(), Arrays.asList(1L, 2L), output.metadataOpens);
+        ExifInterface exif = new ExifInterface(output.files.get(1L).getPath());
+        java.text.SimpleDateFormat stamp = new java.text.SimpleDateFormat("yyyy:MM:dd HH:mm:ss", java.util.Locale.US);
+        stamp.setTimeZone(java.util.TimeZone.getTimeZone("UTC"));
+        assertEquals(metadataDiagnostics(), stamp.format(photo.posted), exif.getAttribute(ExifInterface.TAG_DATETIME_ORIGINAL));
+        assertEquals("+00:00", exif.getAttribute("OffsetTimeOriginal"));
+        assertNull("the source went in with Add the source off", exif.getAttribute(ExifInterface.TAG_ARTIST));
+        assertNull(exif.getAttribute(ExifInterface.TAG_IMAGE_DESCRIPTION));
+
+        byte[] saved = Files.readAllBytes(output.files.get(2L).toPath());
+        long want = clip.posted.getTime() / 1000 + VideoMetadata.FROM_1904;
+        List<long[]> times = VideoMetadataTest.headerTimes(saved);
+        assertTrue(times.size() >= 3);
+        for (long[] pair : times) assertEquals(metadataDiagnostics(), want, pair[0]);
+        VideoMetadataTest.assertOnlyHeaderTimesMoved(mp4, saved);
+        assertTrue("the source went in with Add the source off", VideoMetadataTest.items(saved).isEmpty());
+        assertClean();
+    }
+
     private MediaSave.BatchResult metadataBatch(List<MediaSave.Item> pages) throws Exception {
         CompletableFuture<MediaSave.BatchResult> ended = new CompletableFuture<>();
         assertTrue(MediaSave.saveBatch(context, pages, ended::complete));
@@ -1691,7 +1734,8 @@ public class CarouselSaveTest {
 
     private static String metadataDiagnostics() {
         String logged = LogBufferManager.buildExportText().lines()
-                .filter(line -> line.contains("tagged") || line.contains("could not tag") || line.contains("Exception:"))
+                .filter(line -> line.contains("tagged") || line.contains("could not tag") || line.contains("Exception:")
+                        || line.contains("dated") || line.contains("post time"))
                 .collect(java.util.stream.Collectors.joining("\n"));
         java.io.StringWriter trace = new java.io.StringWriter();
         synchronized (MetadataExif.failures) {

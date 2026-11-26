@@ -30,6 +30,7 @@ import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -88,6 +89,12 @@ public class MkvJoinTest {
     private static final int SIMPLE_TAG = 0x67C8;
     private static final int TAG_NAME = 0x45A3;
     private static final int TAG_STRING = 0x4487;
+    private static final int DATE_UTC = 0x4461;
+
+    /** The start of 2001 in UTC, where DateUTC counts from, in milliseconds since 1970. */
+    private static final long FROM_2001_MS = 978_307_200_000L;
+    /** Noon on 2026-09-01 UTC. */
+    private static final long POSTED = 1_788_264_000_000L;
 
     private static final Set<Integer> MASTERS = new HashSet<>(Arrays.asList(EBML, SEGMENT, SEEK_HEAD, SEEK, INFO,
             TRACKS, TRACK_ENTRY, VIDEO, AUDIO, COLOUR, 0x55D0, CLUSTER, CUES, CUE_POINT, CUE_TRACK_POSITIONS, TAGS,
@@ -664,6 +671,51 @@ public class MkvJoinTest {
         File empty = temp.newFile("empty.mkv");
         assertFalse(tag(empty, details("https://www.instagram.com/p/x/")));
         assertEquals(0, empty.length());
+
+        assertFalse(dated(mp4, new Date(POSTED)));
+        assertArrayEquals(before, Files.readAllBytes(mp4.toPath()));
+        assertFalse(dated(empty, new Date(POSTED)));
+        assertEquals(0, empty.length());
+    }
+
+    // ---------------------------------------------------------------- dating (#792)
+
+    /**
+     * The join writes when it made the file as the Info's DateUTC, the way mkvmerge does, and the
+     * post time goes over those eight bytes and nothing else, before or after the tags go in.
+     */
+    @Test
+    public void theJoinDatesTheFileAndThePostTimeGoesOverIt() throws IOException {
+        long before = System.currentTimeMillis();
+        File out = joinedFile();
+        long after = System.currentTimeMillis();
+        byte[] joined = Files.readAllBytes(out.toPath());
+        Node date = new Mkv(joined).segment.child(INFO).child(DATE_UTC);
+        assertNotNull("the join wrote no DateUTC", date);
+        assertEquals(8, date.size);
+        long made = uint(joined, date) / 1_000_000L + FROM_2001_MS;
+        assertTrue("made at " + made, made >= before && made <= after);
+
+        assertTrue(dated(out, new Date(POSTED)));
+        byte[] dated = Files.readAllBytes(out.toPath());
+        assertEquals((POSTED - FROM_2001_MS) * 1_000_000L, uint(dated, new Mkv(dated).segment.child(INFO).child(DATE_UTC)));
+        for (int i = 0; i < joined.length; i++) {
+            if (i < date.content || i >= date.end()) assertEquals("byte " + i, joined[i], dated[i]);
+        }
+
+        assertTrue(tag(out, details("https://www.instagram.com/p/DAbC123xYz_/")));
+        byte[] tagged = Files.readAllBytes(out.toPath());
+        assertTrue(dated(out, new Date(POSTED + 60_000L)));
+        assertEquals((POSTED + 60_000L - FROM_2001_MS) * 1_000_000L,
+                uint(Files.readAllBytes(out.toPath()), new Mkv(tagged).segment.child(INFO).child(DATE_UTC)));
+        assertEquals("ARTIST, DATE_RELEASED and DESCRIPTION stay", 3,
+                new Mkv(Files.readAllBytes(out.toPath())).segment.child(TAGS).child(TAG).all(SIMPLE_TAG).size());
+    }
+
+    private static boolean dated(File file, Date posted) throws IOException {
+        try (FileChannel channel = FileChannel.open(file.toPath(), StandardOpenOption.READ, StandardOpenOption.WRITE)) {
+            return MkvJoin.dated(VideoMetadata.over(channel, channel), posted);
+        }
     }
 
     // ---------------------------------------------------------------- FFmpeg
@@ -736,6 +788,10 @@ public class MkvJoinTest {
             assertTrue(format, format.contains("ARTIST=nasa\n"));
             assertTrue(format, format.contains("DATE_RELEASED=2026-03-01 12:30:00\n"));
             assertTrue(format, format.contains("DESCRIPTION=https://www.instagram.com/p/DAbC123xYz_/\n"));
+            assertTrue(name, dated(out, new Date(POSTED)));
+            format = Mp4JoinTest.run(Mp4JoinTest.FFPROBE.getPath(), "-v", "error", "-show_entries",
+                    "format_tags", "-of", "default=noprint_wrappers=1", out.getPath()).replace("\r", "");
+            assertTrue(format, format.contains("creation_time=2026-09-01T12:00:00.000000Z\n"));
             assertEquals(name + " didn't decode cleanly once tagged", "", Mp4JoinTest.run(
                     Mp4JoinTest.FFMPEG.getPath(), "-v", "error", "-xerror", "-i", out.getPath(), "-f", "null", "-"));
         }

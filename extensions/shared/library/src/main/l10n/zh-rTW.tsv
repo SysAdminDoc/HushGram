@@ -3096,3 +3096,7 @@ Settings page logo set.	已設定設定頁面標誌。
 HushGram shows at the top of this page.	此頁頂端顯示 HushGram。
 # context: Settings entry > summary of Settings page name; %1$s is the typed name (#872)
 The top of this page says %1$s.	此頁頂端顯示「%1$s」。
+# context: Settings > Downloads > switch title, under Name saves by account and post time (#792)
+Date saves by when they were posted	按發佈時間標示儲存日期
+# context: Settings > Downloads > summary of Date saves by when they were posted (#792)
+Gives each saved photo and video the time its post went up, so your gallery sorts saves by the post instead of the day you saved them. A save that doesn't know when it was posted keeps the time it was saved.	為每張儲存的照片及影片標上貼文發佈的時間，讓圖庫依貼文而非儲存當天排序。若無法取得發佈時間，則保留儲存時的時間。

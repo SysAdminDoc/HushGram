@@ -15,6 +15,7 @@ import static org.junit.Assert.fail;
 import android.content.Context;
 
 import org.junit.After;
+import org.junit.Assume;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -416,6 +417,75 @@ public class VideoMetadataTest {
         assertArrayEquals(original, Files.readAllBytes(video.toPath()));
     }
 
+    // ---- Dating by the post (#792) --------------------------------------------------------------
+
+    /**
+     * The post time goes in as the movie header's creation and modification times, which Android's
+     * gallery reads as the date taken, and as each track's and media's, in place: every other byte
+     * stays, wherever the moov sits.
+     */
+    @Test
+    public void datesTheMovieAndEachTrackInPlace() throws Exception {
+        long want = postedUtc().getTime() / 1000 + VideoMetadata.FROM_1904;
+        for (String name : new String[] {MOOV_FIRST, MOOV_LAST}) {
+            byte[] original = sample(name);
+            for (long[] pair : headerTimes(original)) assertTrue(name + " starts dated otherwise", pair[0] != want);
+            File video = file(original);
+
+            assertTrue(name, dated(video, postedUtc()));
+
+            byte[] dated = Files.readAllBytes(video.toPath());
+            List<long[]> times = headerTimes(dated);
+            assertTrue(name + " has a movie, track and media header", times.size() >= 3);
+            for (long[] pair : times) {
+                assertEquals(name + " creation", want, pair[0]);
+                assertEquals(name + " modification", want, pair[1]);
+            }
+            assertOnlyHeaderTimesMoved(original, dated);
+        }
+    }
+
+    /** A file Add the source already tagged, its moov moved to the end, is dated there with its tags kept. */
+    @Test
+    public void datesTheMoovATagWroteOnTheEnd() throws Exception {
+        File video = file(sample(MOOV_FIRST));
+        assertTrue(write(video, full()));
+        byte[] tagged = Files.readAllBytes(video.toPath());
+
+        assertTrue(dated(video, postedUtc()));
+
+        byte[] dated = Files.readAllBytes(video.toPath());
+        assertOnlyHeaderTimesMoved(tagged, dated);
+        long want = postedUtc().getTime() / 1000 + VideoMetadata.FROM_1904;
+        for (long[] pair : headerTimes(dated)) assertEquals(want, pair[0]);
+        assertEquals("stevious", items(dated).get(ART));
+    }
+
+    /** A fragmented MP4 or a file that isn't an MP4 at all is never written to. */
+    @Test
+    public void aFileItCantDateIsLeftAlone() throws Exception {
+        for (byte[] original : new byte[][] {sample(FRAGMENTED), "not a video at all".getBytes(StandardCharsets.US_ASCII)}) {
+            File video = file(original);
+            assertFalse(dated(video, postedUtc()));
+            assertArrayEquals(original, Files.readAllBytes(video.toPath()));
+        }
+    }
+
+    /** FFprobe reads the post time as the file's and each stream's creation time. */
+    @Test
+    public void ffprobeReadsThePostTime() throws Exception {
+        Assume.assumeTrue("FFmpeg isn't installed here", Mp4JoinTest.FFPROBE.isFile());
+        File video = file(sample(MOOV_LAST));
+        assertTrue(dated(video, postedUtc()));
+
+        String format = Mp4JoinTest.run(Mp4JoinTest.FFPROBE.getPath(), "-v", "error", "-show_entries",
+                "format_tags=creation_time:stream_tags=creation_time", "-of", "default=noprint_wrappers=1",
+                video.getPath()).replace("\r", "");
+        for (String line : format.trim().split("\n")) {
+            assertEquals(format, "TAG:creation_time=2026-09-01T12:00:00.000000Z", line);
+        }
+    }
+
     // ---- Helpers --------------------------------------------------------------------------------
 
     /** The account, noon on 2026-09-01 UTC and the post link, as a full save knows them. */
@@ -438,6 +508,12 @@ public class VideoMetadataTest {
     private static boolean write(File video, Map<Integer, String> items) throws IOException {
         try (RandomAccessFile file = new RandomAccessFile(video, "rw")) {
             return VideoMetadata.write(VideoMetadata.over(file.getChannel(), file.getChannel()), items);
+        }
+    }
+
+    private static boolean dated(File video, Date posted) throws IOException {
+        try (RandomAccessFile file = new RandomAccessFile(video, "rw")) {
+            return VideoMetadata.dated(VideoMetadata.over(file.getChannel(), file.getChannel()), posted);
         }
     }
 
@@ -551,6 +627,59 @@ public class VideoMetadataTest {
             items.put(new String(file, at + 4, 4, StandardCharsets.ISO_8859_1), value);
         }
         return items;
+    }
+
+    /**
+     * The creation and modification times, in seconds since 1904, of the moov's mvhd and of each
+     * trak's tkhd and mdia/mdhd, in file order.
+     */
+    static List<long[]> headerTimes(byte[] file) {
+        List<long[]> times = new ArrayList<>();
+        for (int content : headerContents(file)) {
+            if ((file[content] & 0xFF) == 1) {
+                times.add(new long[] {wide(file, content + 4), wide(file, content + 12)});
+            } else {
+                times.add(new long[] {word(file, content + 4) & 0xFFFFFFFFL, word(file, content + 8) & 0xFFFFFFFFL});
+            }
+        }
+        return times;
+    }
+
+    /**
+     * [dated] is [original] but for the creation and modification times of the moov's mvhd and of
+     * each trak's tkhd and mdhd.
+     */
+    static void assertOnlyHeaderTimesMoved(byte[] original, byte[] dated) {
+        assertEquals("the file kept its length", original.length, dated.length);
+        boolean[] times = new boolean[dated.length];
+        for (int content : headerContents(dated)) {
+            int length = (dated[content] & 0xFF) == 1 ? 16 : 8;
+            for (int k = 0; k < length; k++) times[content + 4 + k] = true;
+        }
+        for (int i = 0; i < dated.length; i++) {
+            if (!times[i] && original[i] != dated[i]) fail("byte " + i + " moved, outside every header's times");
+        }
+    }
+
+    /** Where the content (the version byte) of the moov's mvhd and each trak's tkhd and mdia/mdhd starts. */
+    private static List<Integer> headerContents(byte[] file) {
+        List<Integer> found = new ArrayList<>();
+        int moov = topLevelStart(file, "moov");
+        for (int box = moov + 8, end = moov + size(file, moov); box < end; box += size(file, box)) {
+            if ("mvhd".equals(type(file, box))) found.add(box + 8);
+            if (!"trak".equals(type(file, box))) continue;
+            for (int part = box + 8, trakEnd = box + size(file, box); part < trakEnd; part += size(file, part)) {
+                if ("tkhd".equals(type(file, part))) found.add(part + 8);
+                if (!"mdia".equals(type(file, part))) continue;
+                int mdhd = child(file, part + 8, part + size(file, part), "mdhd");
+                if (mdhd >= 0) found.add(mdhd + 8);
+            }
+        }
+        return found;
+    }
+
+    private static long wide(byte[] file, int at) {
+        return ((word(file, at) & 0xFFFFFFFFL) << 32) | (word(file, at + 4) & 0xFFFFFFFFL);
     }
 
     private static int child(byte[] file, int from, int to, String type) {

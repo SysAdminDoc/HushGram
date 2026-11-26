@@ -5420,6 +5420,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_save_name_by_post", FALSE);
 
     /**
+     * Every save, photo or video, is dated by when its post went up rather than when it was saved
+     * (#792): the date taken Android's gallery reads out of the file (a JPEG's EXIF dates, an MP4's
+     * movie and track times, an MKV's DateUTC) and the file's modified time. Only when the save
+     * knows the post time. Starts off, so saves keep the time they were saved.
+     */
+    public static final BooleanSetting SAVE_POST_DATE =
+            new BooleanSetting("hushgram_save_post_date", FALSE);
+
+    /**
      * A saved photo carries where it came from in its EXIF: the account that posted it, when the
      * post went up and a link to the post. Written only into a JPEG, after the file is saved, and
      * only what the save knows, so a profile picture carries just the account. The picture's pixels

@@ -159,6 +159,10 @@ final class DownloadsCategory {
                             + "username_20261005_143012, so an account's saves sort by date. A carousel page gets its "
                             + "number on the end. Takes the place of the video file name. A save that doesn't know who "
                             + "posted or when keeps its usual name.")));
+            downloads.addPreference(toggle(context, Settings.SAVE_POST_DATE, L10n.t("Date saves by when they were posted"),
+                    L10n.t("Gives each saved photo and video the time its post went up, so your gallery sorts saves by "
+                            + "the post instead of the day you saved them. A save that doesn't know when it was posted "
+                            + "keeps the time it was saved.")));
             downloads.addPreference(toggle(context, Settings.SAVE_PHOTO_METADATA,
                     L10n.t("Add the source to saved photos and videos"),
                     L10n.t("Writes the account that posted, the post date and a link to the post into a saved photo "

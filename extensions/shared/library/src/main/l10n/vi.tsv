@@ -3008,3 +3008,7 @@ Settings page logo set.	Đã đặt logo trang cài đặt.
 HushGram shows at the top of this page.	HushGram hiện ở đầu trang này.
 # context: Settings entry > summary of Settings page name; %1$s is the typed name (#872)
 The top of this page says %1$s.	Đầu trang này ghi %1$s.
+# context: Settings > Downloads > switch title, under Name saves by account and post time (#792)
+Date saves by when they were posted	Ghi ngày bản lưu theo giờ đăng
+# context: Settings > Downloads > summary of Date saves by when they were posted (#792)
+Gives each saved photo and video the time its post went up, so your gallery sorts saves by the post instead of the day you saved them. A save that doesn't know when it was posted keeps the time it was saved.	Gán cho mỗi ảnh và video đã lưu thời điểm bài đăng được đăng, để thư viện sắp xếp bản lưu theo bài đăng thay vì ngày bạn lưu. Bản lưu không biết khi nào được đăng vẫn giữ thời điểm được lưu.

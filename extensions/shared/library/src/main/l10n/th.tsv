@@ -3090,3 +3090,7 @@ Settings page logo set.	ตั้งโลโก้หน้าการตั�
 HushGram shows at the top of this page.	HushGram จะแสดงที่ด้านบนของหน้านี้
 # context: Settings entry > summary of Settings page name; %1$s is the typed name (#872)
 The top of this page says %1$s.	ด้านบนของหน้านี้จะแสดง %1$s
+# context: Settings > Downloads > switch title, under Name saves by account and post time (#792)
+Date saves by when they were posted	ระบุวันที่ของไฟล์ที่บันทึกตามเวลาที่โพสต์
+# context: Settings > Downloads > summary of Date saves by when they were posted (#792)
+Gives each saved photo and video the time its post went up, so your gallery sorts saves by the post instead of the day you saved them. A save that doesn't know when it was posted keeps the time it was saved.	ใส่เวลาที่โพสต์ขึ้นให้กับรูปภาพและวิดีโอที่บันทึกแต่ละรายการ เพื่อให้แกลเลอรีจัดเรียงไฟล์ที่บันทึกตามโพสต์แทนวันที่คุณบันทึก การบันทึกที่ไม่ทราบเวลาที่โพสต์จะคงเวลาที่บันทึกไว้
