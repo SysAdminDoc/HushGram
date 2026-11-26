@@ -9,6 +9,9 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import android.app.Activity;
+import android.graphics.Matrix;
+import android.graphics.RectF;
+import android.graphics.drawable.GradientDrawable;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
@@ -83,6 +86,10 @@ public class TabIconsTest {
         root.addView(bar, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 100, Gravity.BOTTOM));
         activity.setContentView(root);
         ShadowLooper.idleMainLooper();
+        layOut();
+    }
+
+    private void layOut() {
         root.measure(View.MeasureSpec.makeMeasureSpec(400, View.MeasureSpec.EXACTLY),
                 View.MeasureSpec.makeMeasureSpec(800, View.MeasureSpec.EXACTLY));
         root.layout(0, 0, 400, 800);
@@ -127,6 +134,34 @@ public class TabIconsTest {
     private static void assertScale(String what, float expected, View view) {
         assertEquals(what, expected, view.getScaleX(), 0f);
         assertEquals(what, expected, view.getScaleY(), 0f);
+    }
+
+    /** A picture with a size of its own, like Instagram's vector icons. */
+    private static GradientDrawable picture(int width, int height) {
+        GradientDrawable picture = new GradientDrawable();
+        picture.setSize(width, height);
+        return picture;
+    }
+
+    /** Where [icon] draws its picture inside its padding, as ImageView itself places it. */
+    private static RectF drawn(ImageView icon) {
+        RectF rect = new RectF(icon.getDrawable().getBounds());
+        icon.getImageMatrix().mapRect(rect);
+        return rect;
+    }
+
+    /** [rect] grown [scale] times about ([x], [y]). */
+    private static RectF about(RectF rect, float scale, float x, float y) {
+        return new RectF(x + (rect.left - x) * scale, y + (rect.top - y) * scale,
+                x + (rect.right - x) * scale, y + (rect.bottom - y) * scale);
+    }
+
+    private static void assertRect(String what, RectF expected, RectF actual) {
+        String both = what + ": expected " + expected + " but was " + actual;
+        assertEquals(both, expected.left, actual.left, 0.01f);
+        assertEquals(both, expected.top, actual.top, 0.01f);
+        assertEquals(both, expected.right, actual.right, 0.01f);
+        assertEquals(both, expected.bottom, actual.bottom, 0.01f);
     }
 
     @Test
@@ -272,6 +307,82 @@ public class TabIconsTest {
         root.getViewTreeObserver().dispatchOnPreDraw();
         assertScale("reels back", 1f, reels);
         assertTrue("the Reels tab clips again", reelsTab.getClipChildren());
+    }
+
+    /**
+     * #826: the Reels icon drawn bigger came out soft and stretched, since growing the whole view
+     * stretched the bitmap Android draws a vector icon into at the view's size. An icon with a picture
+     * is drawn bigger through the picture's own matrix, so the drawing is made at that size, and the
+     * view Instagram animates keeps its own.
+     */
+    @Test
+    public void anIconsPictureIsDrawnBiggerRatherThanTheViewStretched() {
+        int reelsTabId = View.generateViewId();
+        TabIcons.idForTests(activity, TabIcons.REELS_TAB, reelsTabId);
+        ImageView reels = icon(home.getId());
+        reels.setImageDrawable(picture(24, 24));
+        reels.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+        FrameLayout reelsTab = tab(reels);
+        reelsTab.setId(reelsTabId);
+        bar.addView(reelsTab, 1, tabParams());
+        layOut();
+        RectF stock = drawn(reels);
+        assertRect("Instagram's own placement", new RectF(12, 12, 36, 36), stock);
+        Settings.FULL_SIZE_REELS_ICON.save(true);
+        TabIcons.watch(activity);
+
+        frame();
+
+        assertScale("the view keeps Instagram's size", 1f, reels);
+        RectF bigger = about(stock, TabIcons.REELS_BOOST, 24, 24);
+        assertRect("the picture is drawn bigger from the icon's center", bigger, drawn(reels));
+        assertFalse("the Reels tab doesn't cut it off", reelsTab.getClipChildren());
+        assertScale("home stays Instagram's", 1f, home);
+
+        reels.setScaleX(0.9f);
+        reels.setScaleY(0.9f);
+        root.getViewTreeObserver().dispatchOnPreDraw();
+        assertScale("Instagram's press keeps the view", 0.9f, reels);
+        assertRect("the picture stays bigger under the press", bigger, drawn(reels));
+        reels.setScaleX(1f);
+        reels.setScaleY(1f);
+
+        // Selected, Instagram shows another picture: it's drawn bigger from where Instagram puts it.
+        reels.setImageDrawable(picture(30, 20));
+        root.getViewTreeObserver().dispatchOnPreDraw();
+        RectF swapped = new RectF(9, 14, 39, 34);
+        assertRect("the new picture, bigger", about(swapped, TabIcons.REELS_BOOST, 24, 24), drawn(reels));
+
+        Settings.FULL_SIZE_REELS_ICON.save(false);
+        root.getViewTreeObserver().dispatchOnPreDraw();
+        assertEquals("Instagram's own scale type", ImageView.ScaleType.CENTER_INSIDE, reels.getScaleType());
+        assertRect("placed as Instagram does again", swapped, drawn(reels));
+        assertTrue("the Reels tab clips again", reelsTab.getClipChildren());
+    }
+
+    /** Paused, a picture placed by Instagram's own matrix gets that matrix back. */
+    @Test
+    public void pausedPutsAPictureBackOnInstagramsMatrix() {
+        home.setImageDrawable(picture(20, 20));
+        home.setScaleType(ImageView.ScaleType.MATRIX);
+        Matrix own = new Matrix();
+        own.setTranslate(14, 14);
+        home.setImageMatrix(own);
+        layOut();
+        Settings.TAB_ICON_SIZE.save(TabIconSize.PERCENT_130);
+        TabIcons.watch(activity);
+        frame();
+        assertScale("the view keeps Instagram's size", 1f, home);
+        assertRect("bigger from the icon's center", about(new RectF(14, 14, 34, 34), 1.3f, 24, 24), drawn(home));
+        assertScale("the Profile picture, a photo, is drawn bigger whole", 1.3f, profile);
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        root.getViewTreeObserver().dispatchOnPreDraw();
+
+        assertEquals(ImageView.ScaleType.MATRIX, home.getScaleType());
+        assertEquals("Instagram's own matrix", own, home.getImageMatrix());
+        assertScale("profile", 1f, profile);
     }
 
     /** Paused, the Reels icon goes back to Instagram's size too. */

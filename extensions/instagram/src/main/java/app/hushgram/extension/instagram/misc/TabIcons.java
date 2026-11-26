@@ -7,9 +7,13 @@ package app.hushgram.extension.instagram.misc;
 import android.app.Activity;
 import android.app.Application;
 import android.content.Context;
+import android.graphics.Matrix;
+import android.graphics.RectF;
+import android.graphics.drawable.Drawable;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
+import android.widget.ImageView;
 
 import androidx.annotation.Nullable;
 
@@ -37,6 +41,13 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * it's pressed, so an icon caught at a size that is neither Instagram's nor the one given here is left
  * to finish, and gets its size again once it's back. Instagram's size, a pause, or anything thrown puts
  * every icon back as it was.
+ *
+ * <p>An icon that shows a picture of its own is drawn bigger through its picture, not the whole view
+ * (#826): Instagram's icons are vector drawings, which Android draws into a bitmap at the size the
+ * view lays them out, so growing the view stretched that bitmap and left the icon soft. Drawn through
+ * the image's own matrix, the drawing is made at the bigger size and stays sharp. The view itself,
+ * which Instagram's press animation scales, keeps its size. The Profile picture, a photo, is still
+ * drawn bigger as a whole.
  *
  * <p>Full-size Reels icon draws the Reels tab's icon {@link #REELS_BOOST} times bigger on top of that
  * (#793): its glyph is narrower than the ones beside it, so at the same size it looks smaller. The tab
@@ -68,6 +79,8 @@ public final class TabIcons {
 
     /** The icons given a size here, and the size, so only those are put back. */
     private static final WeakHashMap<View, Float> sized = new WeakHashMap<>();
+    /** The icons whose picture is drawn bigger here, and how each picture was placed before. */
+    private static final WeakHashMap<ImageView, Placed> pictured = new WeakHashMap<>();
     /** The parents told not to clip here, and whether each clipped its children and its padding before. */
     private static final WeakHashMap<ViewGroup, boolean[]> unclipped = new WeakHashMap<>();
     private static volatile boolean registered;
@@ -146,7 +159,14 @@ public final class TabIcons {
             View icon = iconOf(tab, iconId, avatarId);
             if (icon == null) continue;
             float scale = reelsTabId != 0 && tab.getId() == reelsTabId ? wanted * reels : wanted;
-            changed |= scale(icon, scale);
+            if (iconId != 0 && icon.getId() == iconId && icon instanceof ImageView && hasPicture((ImageView) icon)) {
+                // Any size given to the whole view before goes first, so the two never stack.
+                changed |= scale(icon, 1f);
+                changed |= picture((ImageView) icon, scale);
+            } else {
+                if (icon instanceof ImageView) changed |= picture((ImageView) icon, 1f);
+                changed |= scale(icon, scale);
+            }
             if (scale != 1f) changed |= unclip(icon, tab);
         }
         return changed;
@@ -212,9 +232,142 @@ public final class TabIcons {
         return true;
     }
 
+    /** Whether [icon] shows a picture with a size of its own, laid out, so it can be drawn bigger through it. */
+    static boolean hasPicture(ImageView icon) {
+        Drawable picture = icon.getDrawable();
+        return picture != null && picture.getIntrinsicWidth() > 0 && picture.getIntrinsicHeight() > 0
+                && contentWidth(icon) > 0 && contentHeight(icon) > 0;
+    }
+
+    /**
+     * Draws [icon]'s picture [wanted] times bigger from the view's center through the image's own
+     * matrix, or with [wanted] at 1 puts it back as Instagram placed it. Answers whether it changed.
+     */
+    private static boolean picture(ImageView icon, float wanted) {
+        Placed placed = pictured.get(icon);
+        if (wanted == 1f) {
+            if (placed == null) return false;
+            pictured.remove(icon);
+            return placed.putBack(icon);
+        }
+        if (placed != null && !placed.stillOurs(icon)) placed = null;
+        if (placed == null) placed = new Placed(icon);
+        Matrix bigger = placement(icon, placed.type, placed.matrix);
+        bigger.postScale(wanted, wanted, icon.getWidth() / 2f - icon.getPaddingLeft(),
+                icon.getHeight() / 2f - icon.getPaddingTop());
+        pictured.put(icon, placed);
+        if (placed.given != null && placed.given.equals(bigger) && placed.stillOurs(icon)) return false;
+        placed.given = bigger;
+        icon.setScaleType(ImageView.ScaleType.MATRIX);
+        icon.setImageMatrix(bigger);
+        HookStatus.counted(FamilyNames.REELS_TAB, COUNT_SIZED);
+        return true;
+    }
+
+    /**
+     * Where [icon] would draw its picture with [type] (and [matrix] for {@link ImageView.ScaleType#MATRIX}),
+     * as the matrix from the picture's own size to the view: the same placement ImageView works out.
+     */
+    static Matrix placement(ImageView icon, ImageView.ScaleType type, @Nullable Matrix matrix) {
+        Drawable picture = icon.getDrawable();
+        float pw = picture.getIntrinsicWidth();
+        float ph = picture.getIntrinsicHeight();
+        float vw = contentWidth(icon);
+        float vh = contentHeight(icon);
+        Matrix placed = new Matrix();
+        switch (type) {
+            case MATRIX:
+                if (matrix != null) placed.set(matrix);
+                break;
+            case CENTER:
+                placed.setTranslate(Math.round((vw - pw) * 0.5f), Math.round((vh - ph) * 0.5f));
+                break;
+            case CENTER_CROP: {
+                float scale;
+                float dx = 0;
+                float dy = 0;
+                if (pw * vh > vw * ph) {
+                    scale = vh / ph;
+                    dx = (vw - pw * scale) * 0.5f;
+                } else {
+                    scale = vw / pw;
+                    dy = (vh - ph * scale) * 0.5f;
+                }
+                placed.setScale(scale, scale);
+                placed.postTranslate(Math.round(dx), Math.round(dy));
+                break;
+            }
+            case CENTER_INSIDE: {
+                float scale = pw <= vw && ph <= vh ? 1f : Math.min(vw / pw, vh / ph);
+                placed.setScale(scale, scale);
+                placed.postTranslate(Math.round((vw - pw * scale) * 0.5f), Math.round((vh - ph * scale) * 0.5f));
+                break;
+            }
+            default:
+                placed.setRectToRect(new RectF(0, 0, pw, ph), new RectF(0, 0, vw, vh), fit(type));
+                break;
+        }
+        return placed;
+    }
+
+    private static Matrix.ScaleToFit fit(ImageView.ScaleType type) {
+        switch (type) {
+            case FIT_XY:
+                return Matrix.ScaleToFit.FILL;
+            case FIT_START:
+                return Matrix.ScaleToFit.START;
+            case FIT_END:
+                return Matrix.ScaleToFit.END;
+            default:
+                return Matrix.ScaleToFit.CENTER;
+        }
+    }
+
+    private static int contentWidth(View view) {
+        return view.getWidth() - view.getPaddingLeft() - view.getPaddingRight();
+    }
+
+    private static int contentHeight(View view) {
+        return view.getHeight() - view.getPaddingTop() - view.getPaddingBottom();
+    }
+
+    /** How an icon's picture was placed before it was drawn bigger here, and the matrix given it here. */
+    static final class Placed {
+        final ImageView.ScaleType type;
+        /** Instagram's own matrix, when its scale type was {@link ImageView.ScaleType#MATRIX}. */
+        @Nullable
+        final Matrix matrix;
+        @Nullable
+        Matrix given;
+
+        Placed(ImageView icon) {
+            type = icon.getScaleType();
+            matrix = type == ImageView.ScaleType.MATRIX ? new Matrix(icon.getImageMatrix()) : null;
+        }
+
+        /** Whether [icon] still draws with the matrix given here, so nothing else has placed it since. */
+        boolean stillOurs(ImageView icon) {
+            return given != null && icon.getScaleType() == ImageView.ScaleType.MATRIX && icon.getImageMatrix().equals(given);
+        }
+
+        /** Places [icon]'s picture as before, unless something else placed it since. Answers whether it changed. */
+        boolean putBack(ImageView icon) {
+            if (!stillOurs(icon)) return false;
+            icon.setScaleType(type);
+            // A scale type alone waits for the next layout to place the picture again. A new matrix
+            // places it now, and other scale types don't read it.
+            icon.setImageMatrix(type == ImageView.ScaleType.MATRIX ? matrix : null);
+            return true;
+        }
+    }
+
     /** Puts every icon sized here back at Instagram's size. Answers whether one changed. */
     static boolean putBack() {
         boolean changed = false;
+        for (Map.Entry<ImageView, Placed> each : new ArrayList<>(pictured.entrySet())) {
+            if (each.getKey() != null) changed |= each.getValue().putBack(each.getKey());
+        }
+        pictured.clear();
         for (Map.Entry<View, Float> each : new ArrayList<>(sized.entrySet())) {
             View icon = each.getKey();
             if (icon == null) continue;
@@ -249,7 +402,9 @@ public final class TabIcons {
     private static boolean apply(Activity owner, Session session, boolean laidOut) {
         float wanted = wantedScale();
         float reels = reelsScale();
-        if (wanted == 1f && reels == 1f) return (!sized.isEmpty() || !unclipped.isEmpty()) && putBack();
+        if (wanted == 1f && reels == 1f) {
+            return (!sized.isEmpty() || !unclipped.isEmpty() || !pictured.isEmpty()) && putBack();
+        }
         View bar = session.bar == null ? null : session.bar.get();
         if (laidOut || bar == null || !bar.isAttachedToWindow()) {
             int barId = id(owner, TAB_BAR);
