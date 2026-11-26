@@ -5293,6 +5293,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_keep_hdr_on_photo_uploads", FALSE);
 
     /**
+     * An HDR video you post is encoded in HDR: Instagram's encoder search marks a 10-bit HEVC
+     * encoder as keeping HLG on Android 13 and newer even when the encoder doesn't list P010
+     * ({@link app.hushgram.extension.instagram.media.HdrVideos}, #532). Read as each video is
+     * encoded for upload. Off to start: experimental.
+     */
+    public static final BooleanSetting KEEP_HDR_ON_VIDEO_UPLOADS =
+            new BooleanSetting("hushgram_keep_hdr_on_video_uploads", FALSE);
+
+    /**
      * Feed videos and reels stop on their last frame instead of playing again
      * ({@link app.hushgram.extension.instagram.media.StopLooping}). A reel in the Reels viewer still
      * loops while auto scroll or Move on when a reel ends is moving Reels on. Read each time a video

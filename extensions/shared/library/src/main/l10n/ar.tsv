@@ -2306,6 +2306,9 @@ Turn it off to leave a chat's top bar as Instagram draws it, with no frosted ban
 Turn off HDR brightness boosts	أوقف تعزيزات سطوع HDR
 Keep HDR on photo uploads	احتفظ بـ HDR عند رفع الصور
 Experimental. An Ultra HDR photo you post keeps its gain map on Android 14 and newer, so it can still show in HDR. Turn it off if a photo you post looks wrong.	تجريبي. تحتفظ صورة Ultra HDR التي تنشرها بخريطة الكسب على Android 14 والإصدارات الأحدث، لتظل تظهر بتقنية HDR. أوقفه إذا بدت صورة تنشرها غير صحيحة.
+# context: Keep HDR on video uploads, under Playback next to the photo switch. Instagram encodes a video again before it uploads it; HDR means HLG here.
+Keep HDR on video uploads	احتفظ بـ HDR عند رفع الفيديوهات
+Experimental. An HDR video you post is encoded in HDR on Android 13 and newer, where Instagram would make it SDR on some phones. Turn it off if a video you post looks wrong or won't upload.	تجريبي. يُرمَّز فيديو HDR الذي تنشره بتقنية HDR على Android 13 والإصدارات الأحدث، بينما يحوّله Instagram إلى SDR على بعض الهواتف. أوقفه إذا بدا فيديو تنشره غير صحيح أو لم يُرفع.
 Turn off Hide the Search tab and restart.	أوقف إخفاء علامة تبويب البحث وأعد التشغيل.
 Turn off Show the whole reel to use this choice.	أوقف إظهار الريل بالكامل لاستخدام هذا الخيار.
 # context: Settings page, Feed: the line under the greyed-out Time in the top corner switch while Time under the tags button is on (#788)

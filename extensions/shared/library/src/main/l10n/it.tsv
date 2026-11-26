@@ -774,6 +774,9 @@ The latitude and the longitude in degrees, with a comma between them, like 40.75
 Turn off HDR brightness boosts	Disattiva l'aumento di luminosità HDR
 Keep HDR on photo uploads	Mantieni l'HDR nelle foto caricate
 Experimental. An Ultra HDR photo you post keeps its gain map on Android 14 and newer, so it can still show in HDR. Turn it off if a photo you post looks wrong.	Sperimentale. Una foto Ultra HDR che pubblichi mantiene la sua gain map su Android 14 e versioni successive, così può ancora essere mostrata in HDR. Disattivalo se una foto che pubblichi sembra sbagliata.
+# context: Keep HDR on video uploads, under Playback next to the photo switch. Instagram encodes a video again before it uploads it; HDR means HLG here.
+Keep HDR on video uploads	Mantieni l'HDR nei video caricati
+Experimental. An HDR video you post is encoded in HDR on Android 13 and newer, where Instagram would make it SDR on some phones. Turn it off if a video you post looks wrong or won't upload.	Sperimentale. Un video HDR che pubblichi viene codificato in HDR su Android 13 e versioni successive, dove su alcuni telefoni Instagram lo renderebbe SDR. Disattivalo se un video che pubblichi sembra sbagliato o non si carica.
 What you open from search stays out of Recent, in the app and on Instagram's side. Searches already there stay until you clear them.	Ciò che apri dalla ricerca resta fuori da Recenti, nell'app e dal lato di Instagram. Le ricerche già presenti restano finché non le cancelli.
 Wi-Fi stays as it is. Turn this off to save data on every network.	Il Wi-Fi resta com'è. Disattiva per risparmiare dati su ogni rete.
 Hide comments	Nascondi i commenti

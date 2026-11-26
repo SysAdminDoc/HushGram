@@ -774,6 +774,9 @@ The latitude and the longitude in degrees, with a comma between them, like 40.75
 Turn off HDR brightness boosts	HDR parlaklık artışını kapat
 Keep HDR on photo uploads	Fotoğraf yüklerken HDR'yi koru
 Experimental. An Ultra HDR photo you post keeps its gain map on Android 14 and newer, so it can still show in HDR. Turn it off if a photo you post looks wrong.	Deneysel. Paylaştığın bir Ultra HDR fotoğraf Android 14 ve üzerinde kazanç haritasını korur, böylece HDR olarak görünmeye devam edebilir. Paylaştığın bir fotoğraf yanlış görünürse kapat.
+# context: Keep HDR on video uploads, under Playback next to the photo switch. Instagram encodes a video again before it uploads it; HDR means HLG here.
+Keep HDR on video uploads	Video yüklerken HDR'yi koru
+Experimental. An HDR video you post is encoded in HDR on Android 13 and newer, where Instagram would make it SDR on some phones. Turn it off if a video you post looks wrong or won't upload.	Deneysel. Paylaştığın bir HDR video Android 13 ve üzerinde HDR olarak kodlanır, oysa Instagram bazı telefonlarda onu SDR yapar. Paylaştığın bir video yanlış görünürse veya yüklenmezse kapat.
 What you open from search stays out of Recent, in the app and on Instagram's side. Searches already there stay until you clear them.	Aramadan açtıkların ne uygulamada ne de Instagram tarafında Son aramalar'a girer. Orada zaten olan aramalar sen temizleyene kadar kalır.
 Wi-Fi stays as it is. Turn this off to save data on every network.	Wi-Fi olduğu gibi kalır. Her ağda veri tasarrufu için bu anahtarı kapat.
 Hide comments	Yorumları gizle

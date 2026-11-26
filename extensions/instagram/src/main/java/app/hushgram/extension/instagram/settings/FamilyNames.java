@@ -112,6 +112,7 @@ public final class FamilyNames {
     public static final String NOTIFICATION_GROUPS = "Group Instagram's notifications";
     public static final String HDR_BOOST = "Turn off HDR brightness boosts";
     public static final String HDR_PHOTOS = "Keep HDR on photo uploads";
+    public static final String HDR_VIDEOS = "Keep HDR on video uploads";
     public static final String STOP_LOOPING = "Stop videos looping";
     public static final String BACKGROUND_PLAY = "Keep playing in the background";
     public static final String MEDIA_CACHE = "Clear the media cache";

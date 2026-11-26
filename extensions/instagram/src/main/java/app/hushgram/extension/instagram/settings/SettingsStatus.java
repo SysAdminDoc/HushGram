@@ -335,6 +335,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean hdrVideos() {
+        return false;
+    }
+
     /** Rewritten by the Stop videos looping patch. */
     public static boolean stopLooping() {
         return false;

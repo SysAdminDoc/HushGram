@@ -436,6 +436,7 @@
         "patches": [
           "Turn off HDR brightness boosts",
           "Keep HDR on photo uploads",
+          "Keep HDR on video uploads",
           "Tap to play",
           "Resume long videos",
           "Control taps and volume on Reels",

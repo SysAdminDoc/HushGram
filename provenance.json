@@ -509,6 +509,7 @@
         "extensions/instagram/src/main/java/app/hushgram/extension/instagram/media/QualityReader.java",
         "extensions/instagram/src/main/java/app/hushgram/extension/instagram/media/HdrBoost.java",
         "extensions/instagram/src/main/java/app/hushgram/extension/instagram/media/HdrPhotos.java",
+        "extensions/instagram/src/main/java/app/hushgram/extension/instagram/media/HdrVideos.java",
         "extensions/instagram/src/main/java/app/hushgram/extension/instagram/media/VideoSurface.java",
         "extensions/instagram/src/test/java/app/hushgram/extension/instagram/media/VideoSurfaceTest.java",
         "patches/src/test/kotlin/app/morphe/patches/instagram/media/surface/**",

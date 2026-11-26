@@ -777,6 +777,9 @@ The latitude and the longitude in degrees, with a comma between them, like 40.75
 Turn off HDR brightness boosts	停用 HDR 亮度提升
 Keep HDR on photo uploads	上傳相片時保留 HDR
 Experimental. An Ultra HDR photo you post keeps its gain map on Android 14 and newer, so it can still show in HDR. Turn it off if a photo you post looks wrong.	實驗性功能。在 Android 14 以上版本，你發布的 Ultra HDR 相片會保留增益圖，因此仍可以 HDR 顯示。如果發布的相片看起來不對，請關閉此項。
+# context: Keep HDR on video uploads, under Playback next to the photo switch. Instagram encodes a video again before it uploads it; HDR means HLG here.
+Keep HDR on video uploads	上傳影片時保留 HDR
+Experimental. An HDR video you post is encoded in HDR on Android 13 and newer, where Instagram would make it SDR on some phones. Turn it off if a video you post looks wrong or won't upload.	實驗性功能。在 Android 13 以上版本，你發布的 HDR 影片會以 HDR 編碼，而在部分手機上 Instagram 原本會把它轉成 SDR。如果發布的影片看起來不對或無法上傳，請關閉此項。
 What you open from search stays out of Recent, in the app and on Instagram's side. Searches already there stay until you clear them.	從搜尋開啟的內容不會加入最近搜尋，應用程式與 Instagram 端皆適用。既有搜尋記錄會保留，直到你清除。
 Wi-Fi stays as it is. Turn this off to save data on every network.	Wi-Fi 不受影響。關閉此選項可在所有網路節省數據。
 Hide comments	隱藏留言

@@ -935,6 +935,13 @@ once-call Lapp/hushgram/extension/instagram/media/HdrBoost;->optionOff(JJ)Z in i
 once-call Lapp/hushgram/extension/instagram/media/HdrPhotos;->ultraHdr(I)I in static (Lcom/instagram/common/session/UserSession;)Z holding const:0x810442000311d9 const:0x8107d700012aba
 once-call Lapp/hushgram/extension/instagram/media/HdrPhotos;->colorGainmap(I)I in instance (L*;)V calling Landroid/graphics/Bitmap;->setGainmap(Landroid/graphics/Gainmap;)V pooled holding ImageFinalRenderer
 once-call Lapp/hushgram/extension/instagram/media/HdrPhotos;->saved(Landroid/graphics/Bitmap;Ljava/lang/String;I)V in instance ()Z pooled holding UltraHDR Landroid/graphics/Bitmap$CompressFormat;->JPEG:Landroid/graphics/Bitmap$CompressFormat;
+# Keep HDR on video uploads (#532) hands HdrVideos.hlg whether HLG is asked for right after the encoder
+# search writes a candidate's SDR mark, and puts its answer in the mark. The search is the one static
+# (encoder type, profile, level, three booleans)HashSet holding .mtk. that reads the encoders' color
+# formats, where a candidate keeps HLG only when its encoder lists P010. Left out, an HDR video is
+# encoded SDR on phones whose encoder doesn't list P010; twice or elsewhere, it isn't the hook the
+# patch wrote.
+once-call Lapp/hushgram/extension/instagram/media/HdrVideos;->hlg(I)I in static (L*;IIZZZ)Ljava/util/HashSet; pooled holding .mtk. Landroid/media/MediaCodecInfo$CodecCapabilities;->colorFormats:[I
 # And it hands the AV1 decoder settings' enhancement mode to HdrBoost.enhancementMode right before
 # their constructor writes it, so the synthetic HDR modes read as none (#85). The constructor is the
 # one method of its shape touching the field. Left out, software-decoded reels keep their synthetic

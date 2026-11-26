@@ -27,7 +27,8 @@ final class PlaybackCategory {
     private PlaybackCategory() { }
 
     static void add(HushgramPreferenceFragment page, PreferenceScreen screen, Context context, Set<PatchFamily> build) {
-        if (build.contains(PatchFamily.HDR_BOOST) || build.contains(PatchFamily.HDR_PHOTOS) || build.contains(PatchFamily.TAP_TO_PLAY)
+        if (build.contains(PatchFamily.HDR_BOOST) || build.contains(PatchFamily.HDR_PHOTOS)
+                || build.contains(PatchFamily.HDR_VIDEOS) || build.contains(PatchFamily.TAP_TO_PLAY)
                 || build.contains(PatchFamily.RESUME_LONG_VIDEOS) || build.contains(PatchFamily.REEL_TAP_AND_VOLUME)
                 || build.contains(PatchFamily.REEL_SOUND)
                 || build.contains(PatchFamily.PLAYBACK_QUALITY) || build.contains(PatchFamily.DATA_SAVER)
@@ -129,6 +130,12 @@ final class PlaybackCategory {
                 playback.addPreference(toggle(context, Settings.KEEP_HDR_ON_PHOTO_UPLOADS, L10n.t("Keep HDR on photo uploads"),
                         L10n.t("Experimental. An Ultra HDR photo you post keeps its gain map on Android 14 and newer, "
                                 + "so it can still show in HDR. Turn it off if a photo you post looks wrong.")));
+            }
+            if (build.contains(PatchFamily.HDR_VIDEOS)) {
+                playback.addPreference(toggle(context, Settings.KEEP_HDR_ON_VIDEO_UPLOADS, L10n.t("Keep HDR on video uploads"),
+                        L10n.t("Experimental. An HDR video you post is encoded in HDR on Android 13 and newer, where "
+                                + "Instagram would make it SDR on some phones. Turn it off if a video you post looks wrong "
+                                + "or won't upload.")));
             }
         }
     }

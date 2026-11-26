@@ -774,6 +774,9 @@ The latitude and the longitude in degrees, with a comma between them, like 40.75
 Turn off HDR brightness boosts	Matikan peningkatan kecerahan HDR
 Keep HDR on photo uploads	Pertahankan HDR saat mengunggah foto
 Experimental. An Ultra HDR photo you post keeps its gain map on Android 14 and newer, so it can still show in HDR. Turn it off if a photo you post looks wrong.	Eksperimental. Foto Ultra HDR yang kamu posting tetap menyimpan gain map-nya di Android 14 dan yang lebih baru, sehingga masih bisa tampil dalam HDR. Matikan jika foto yang kamu posting terlihat salah.
+# context: Keep HDR on video uploads, under Playback next to the photo switch. Instagram encodes a video again before it uploads it; HDR means HLG here.
+Keep HDR on video uploads	Pertahankan HDR saat mengunggah video
+Experimental. An HDR video you post is encoded in HDR on Android 13 and newer, where Instagram would make it SDR on some phones. Turn it off if a video you post looks wrong or won't upload.	Eksperimental. Video HDR yang kamu posting dienkode dalam HDR di Android 13 dan yang lebih baru, padahal Instagram akan menjadikannya SDR di beberapa ponsel. Matikan jika video yang kamu posting terlihat salah atau tidak terunggah.
 What you open from search stays out of Recent, in the app and on Instagram's side. Searches already there stay until you clear them.	Apa yang Anda buka dari pencarian tidak masuk ke Terbaru, baik di aplikasi maupun di sisi Instagram. Pencarian yang sudah ada di sana tetap ada sampai Anda menghapusnya.
 Wi-Fi stays as it is. Turn this off to save data on every network.	Wi-Fi tetap seperti semula. Matikan sakelar ini untuk menghemat data di setiap jaringan.
 Hide comments	Sembunyikan komentar

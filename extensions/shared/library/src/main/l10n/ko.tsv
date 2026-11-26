@@ -773,6 +773,9 @@ The latitude and the longitude in degrees, with a comma between them, like 40.75
 Turn off HDR brightness boosts	HDR 밝기 강조 끄기
 Keep HDR on photo uploads	사진 업로드 시 HDR 유지
 Experimental. An Ultra HDR photo you post keeps its gain map on Android 14 and newer, so it can still show in HDR. Turn it off if a photo you post looks wrong.	실험적 기능입니다. Android 14 이상에서 게시하는 Ultra HDR 사진의 게인 맵이 유지되어 계속 HDR로 표시될 수 있습니다. 게시한 사진이 이상하게 보이면 끄세요.
+# context: Keep HDR on video uploads, under Playback next to the photo switch. Instagram encodes a video again before it uploads it; HDR means HLG here.
+Keep HDR on video uploads	동영상 업로드 시 HDR 유지
+Experimental. An HDR video you post is encoded in HDR on Android 13 and newer, where Instagram would make it SDR on some phones. Turn it off if a video you post looks wrong or won't upload.	실험적 기능입니다. Android 13 이상에서 게시하는 HDR 동영상이 HDR로 인코딩됩니다. 일부 휴대폰에서는 Instagram이 SDR로 바꿉니다. 게시한 동영상이 이상하게 보이거나 업로드되지 않으면 끄세요.
 What you open from search stays out of Recent, in the app and on Instagram's side. Searches already there stay until you clear them.	검색에서 연 항목은 앱에서도 Instagram 쪽에서도 최근 항목에 남지 않습니다. 이미 있는 검색은 지울 때까지 남아 있습니다.
 Wi-Fi stays as it is. Turn this off to save data on every network.	Wi-Fi는 그대로입니다. 모든 네트워크에서 데이터를 아끼려면 이 스위치를 끄세요.
 Hide comments	댓글 숨기기

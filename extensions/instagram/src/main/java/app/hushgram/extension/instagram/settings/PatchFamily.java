@@ -215,6 +215,7 @@ public enum PatchFamily {
     NOTIFICATION_GROUPS(FamilyNames.NOTIFICATION_GROUPS, "notificationGroups", null, Settings.GROUP_NOTIFICATIONS),
     HDR_BOOST(FamilyNames.HDR_BOOST, "hdrBoost", null, Settings.TURN_OFF_HDR_BOOSTS),
     HDR_PHOTOS(FamilyNames.HDR_PHOTOS, "hdrPhotos", null, Settings.KEEP_HDR_ON_PHOTO_UPLOADS),
+    HDR_VIDEOS(FamilyNames.HDR_VIDEOS, "hdrVideos", null, Settings.KEEP_HDR_ON_VIDEO_UPLOADS),
     STOP_LOOPING(FamilyNames.STOP_LOOPING, "stopLooping", null, Settings.STOP_VIDEO_LOOPING),
     BACKGROUND_PLAY(FamilyNames.BACKGROUND_PLAY, "backgroundPlay", null, Settings.KEEP_PLAYING_IN_BACKGROUND,
             Settings.REELS_PICTURE_IN_PICTURE, Settings.REELS_PIP_PLAY_BUTTON, Settings.REELS_PIP_SKIP_BUTTONS,
