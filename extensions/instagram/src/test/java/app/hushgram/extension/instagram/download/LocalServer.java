@@ -15,9 +15,14 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -80,6 +85,16 @@ final class LocalServer implements Closeable {
     private final Map<String, Integer> cutOnce = new ConcurrentHashMap<>();
     /** Routes never answered. */
     private final Set<String> stalled = ConcurrentHashMap.newKeySet();
+    /** Routes that answer a {@code Range: bytes=N-} request with a 206 from byte N. */
+    private final Set<String> ranged = ConcurrentHashMap.newKeySet();
+    /** For a ranged route, where each answer in turn ends: a byte of the whole body. */
+    private final Map<String, Deque<Integer>> cutsAt = new ConcurrentHashMap<>();
+    /** For a ranged route, the byte its next answer stops at and goes quiet until the client goes. */
+    private final Map<String, Integer> stallOnce = new ConcurrentHashMap<>();
+    /** For a ranged route, the Content-Range its 206 claims in place of the true one. */
+    private final Map<String, String> claimedRange = new ConcurrentHashMap<>();
+    /** The Range header of each request for a route, in order, or "" for a request with none. */
+    private final Map<String, List<String>> asked = new ConcurrentHashMap<>();
     /** Counted down when a route's client let go of its connection before the server did. */
     private final Map<String, CountDownLatch> gone = new ConcurrentHashMap<>();
     private final Thread thread;
@@ -133,6 +148,39 @@ final class LocalServer implements Closeable {
     void serveCutOnce(String path, String type, byte[] body, int cutAfter) {
         serve(path, type, body);
         cutOnce.put(path, cutAfter);
+    }
+
+    /**
+     * Answer [path] with [body], announced whole, and a {@code Range: bytes=N-} request with a 206
+     * of the rest from byte N, the way Meta's servers do. Each answer in turn ends at the next of
+     * [cuts], a byte of the whole body, as a network that keeps dropping a long read does (#792).
+     */
+    void serveResumable(String path, String type, byte[] body, int... cuts) {
+        serve(path, type, body);
+        ranged.add(path);
+        Deque<Integer> queue = new ArrayDeque<>();
+        for (int cut : cuts) queue.add(cut);
+        cutsAt.put(path, queue);
+    }
+
+    /**
+     * Like {@link #serveResumable} with no cuts, but the first answer stops at byte [stallAt] and
+     * sends nothing more until the client gives up on it: a read that times out partway (#792).
+     */
+    void serveStallingOnce(String path, String type, byte[] body, int stallAt) {
+        serveResumable(path, type, body);
+        stallOnce.put(path, stallAt);
+    }
+
+    /** A resumable [path] whose 206 claims [contentRange], whatever it was asked for. */
+    void claimRange(String path, String contentRange) {
+        claimedRange.put(path, contentRange);
+    }
+
+    /** The Range header of each request for [path] so far, "" for one that sent none. */
+    List<String> rangesAsked(String path) {
+        List<String> list = asked.get(path);
+        return list == null ? new ArrayList<>() : new ArrayList<>(list);
     }
 
     void redirect(String path, String location) {
@@ -196,14 +244,17 @@ final class LocalServer implements Closeable {
         String request = in.readLine();
         if (request == null) return;
         String line;
+        String range = "";
         while ((line = in.readLine()) != null && !line.isEmpty()) {
-            // Headers are not needed.
+            // Only a Range header matters here.
+            if (line.regionMatches(true, 0, "Range:", 0, 6)) range = line.substring(6).trim();
         }
         String[] parts = request.split(" ");
         String path = parts.length > 1 ? parts[1] : "/";
         int query = path.indexOf('?');
         if (query >= 0) path = path.substring(0, query);
         hits.computeIfAbsent(path, k -> new AtomicInteger()).incrementAndGet();
+        asked.computeIfAbsent(path, k -> new CopyOnWriteArrayList<>()).add(range);
         if (stalled.contains(path)) {
             stall(client, path);
             return;
@@ -211,6 +262,10 @@ final class LocalServer implements Closeable {
 
         Route route = routes.get(path);
         if (route == null) route = new Route(404, "text/plain", "missing".getBytes(StandardCharsets.UTF_8), 7, null);
+        if (ranged.contains(path)) {
+            answerRanged(client, path, route, range);
+            return;
+        }
 
         StringBuilder head = new StringBuilder("HTTP/1.1 ").append(route.code).append(" X\r\n");
         head.append("Connection: close\r\n");
@@ -238,6 +293,35 @@ final class LocalServer implements Closeable {
             gone(path).countDown();
             throw e;
         }
+    }
+
+    /** A ranged route's answer: all of it, or a 206 from the byte a Range asked for. */
+    private void answerRanged(Socket client, String path, Route route, String range) throws IOException {
+        byte[] body = route.body;
+        int start = 0;
+        if (range.startsWith("bytes=") && range.endsWith("-")) {
+            start = Integer.parseInt(range.substring(6, range.length() - 1));
+        }
+        StringBuilder head = new StringBuilder("HTTP/1.1 ").append(start > 0 ? 206 : 200).append(" X\r\n");
+        head.append("Connection: close\r\n");
+        head.append("Content-Type: ").append(route.type).append("\r\n");
+        if (start > 0) {
+            String claimed = claimedRange.get(path);
+            head.append("Content-Range: ")
+                .append(claimed != null ? claimed : "bytes " + start + "-" + (body.length - 1) + "/" + body.length)
+                .append("\r\n");
+        }
+        head.append("Content-Length: ").append(body.length - start).append("\r\n\r\n");
+
+        Deque<Integer> cuts = cutsAt.get(path);
+        Integer cut = cuts == null ? null : cuts.poll();
+        Integer stallAt = stallOnce.remove(path);
+        int end = stallAt != null ? stallAt : cut != null ? cut : body.length;
+        OutputStream out = client.getOutputStream();
+        out.write(head.toString().getBytes(StandardCharsets.ISO_8859_1));
+        out.write(body, start, Math.max(0, end - start));
+        out.flush();
+        if (stallAt != null) stall(client, path);
     }
 
     /** [tick] bytes every 200 ms until the client goes away or the server closes. */

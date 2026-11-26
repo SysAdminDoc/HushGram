@@ -34,9 +34,10 @@ import javax.net.ssl.SSLProtocolException;
  *
  * <p>The shape of this class comes from one measured fact. An address of Facebook carries an
  * {@code oh} and an {@code oe} parameter, the server signs them, and they stop working after a few
- * hours. So there is no queue and no scheduler in here, and the only retry is the one a fetch the
- * network cut off partway gets straight away, while its address is seconds old (#546). The fetch
- * starts when the user taps and either finishes or reports why not. That is also why this feature does not use
+ * hours. So there is no queue and no scheduler in here, and the only retries are the ones a fetch
+ * the network cut off or stalled partway gets straight away, while its address is seconds old
+ * (#546, #792). The fetch starts when the user taps and either finishes or reports why not. That
+ * is also why this feature does not use
  * {@code DownloadManager}, which is otherwise the obvious choice. That class queues, and a queued
  * fetch of an address with hours to live is the one thing that cannot be allowed.
  *
@@ -187,9 +188,10 @@ final class Downloader {
     private static final class CacheFile extends OutputStream {
         private final OutputStream file;
 
-        CacheFile(File into) throws StorageFailure {
+        /** [append] goes on from the bytes a cut-off try left, rather than starting the file over. */
+        CacheFile(File into, boolean append) throws StorageFailure {
             try {
-                file = new FileOutputStream(into);
+                file = new FileOutputStream(into, append);
             } catch (IOException e) {
                 throw new StorageFailure(e);
             }
@@ -245,8 +247,9 @@ final class Downloader {
         final boolean lowStorage;
         /**
          * The answer had begun and the network ended it early: a read the connection dropped, a
-         * TLS record that broke (SSLProtocolException on a Redmi Note 7, #546), or a body shorter
-         * than it announced. A second fetch straight away can finish it.
+         * TLS record that broke (SSLProtocolException on a Redmi Note 7, #546), a body shorter
+         * than it announced, or a read that timed out after part of the body came (#792). Another
+         * fetch straight away, from the byte it reached, can finish it.
          */
         final boolean cutOff;
 
@@ -289,9 +292,10 @@ final class Downloader {
             return new Result(status, reason, mime, true, noRoom, true, cutOff);
         }
 
-        /** This second try's failure, with the first try's reason for the log. */
-        Result after(Result first) {
-            return new Result(status, reason + ", on a second try after " + first.reason, mime, lower, noRoom,
+        /** This later try's failure, try [number] of the fetch, with the first try's reason for the log. */
+        Result after(Result first, int number) {
+            String which = number == 2 ? "second" : number == 3 ? "third" : number == 4 ? "fourth" : "later";
+            return new Result(status, reason + ", on a " + which + " try after " + first.reason, mime, lower, noRoom,
                     lowStorage, cutOff);
         }
 
@@ -327,6 +331,8 @@ final class Downloader {
         int code;
         String type;
         long length;
+        /** The Content-Range of a 206, the answer to a fetch that goes on from a cut-off. */
+        String range;
         InputStream stream;
         private boolean closed;
 
@@ -388,37 +394,78 @@ final class Downloader {
      * [maxBytes] is the most the file may hold. Blocking. Never throws. On anything but OK, [into]
      * is deleted.
      *
-     * <p>No header is set on the request. A captured address was fetched from an unrelated machine
-     * with none at all and answered 200, so a guessed {@code User-Agent} or {@code Referer} can
-     * only make a refusal more likely.
+     * <p>No header is set on the request but the Range of a try that goes on from a cut-off. A
+     * captured address was fetched from an unrelated machine with none at all and answered 200, so
+     * a guessed {@code User-Agent} or {@code Referer} can only make a refusal more likely.
      *
-     * <p>A fetch the network cut off partway ({@link Result#cutOff}) is made once more at once, from
-     * the start. A phone whose TLS dropped a long read saved the 720p file in place of a 1080p 60 fps
-     * track the next try would have fetched (#546). A refusal, an error answer, a timeout or a
-     * cancel is never tried again.
+     * <p>A fetch the network cut off or stalled partway ({@link Result#cutOff}) is made again at
+     * once. A phone whose TLS dropped a long read saved the 720p file in place of a 1080p 60 fps
+     * track the next try would have fetched (#546), and on a slow link a read that waited out its
+     * timeout halfway did the same, or failed the save (#792). The next try asks for the rest with
+     * {@code Range: bytes=N-} from the byte the last one reached, and keeps the 206 only when it
+     * goes on from that byte of a file of the same length; a server that answers 200 instead
+     * sends the file over from the start. Up to {@link #MAX_TRIES} tries in all, and only while
+     * each gets further than the one before. A refusal, an error answer, an answer that never
+     * starts or a cancel is never tried again.
      */
     static Result fetch(String url, Kind kind, File into, MediaUrlPolicy policy, long maxBytes, Progress progress) {
-        Result first = fetchOnce(url, kind, into, policy, maxBytes, progress);
-        if (!first.cutOff || progress.cancelled()) return first;
-        Result again = fetchOnce(url, kind, into, policy, maxBytes, progress);
-        if (again.ok() || again.status == Status.CANCELLED) return again;
-        return again.after(first);
+        Partial partial = new Partial();
+        Result first = fetchOnce(url, kind, into, policy, maxBytes, progress, partial);
+        Result result = first;
+        for (int tries = 1; result.cutOff && tries < MAX_TRIES && !progress.cancelled(); tries++) {
+            long reached = partial.kept;
+            result = fetchOnce(url, kind, into, policy, maxBytes, progress, partial);
+            if (result.ok() || result.status == Status.CANCELLED) break;
+            result = result.after(first, tries + 1);
+            // A try that got no further than the last won't be helped by another.
+            if (partial.kept <= reached) break;
+        }
+        if (!result.ok()) delete(into);
+        return result;
+    }
+
+    /** The most tries one fetch makes: the first, and three that go on from a cut-off (#792). */
+    static final int MAX_TRIES = 4;
+
+    /**
+     * What one try of a fetch leaves for the next: how far the cache file got, and what the first
+     * bytes of the file were found to be, which a 206 from the middle of it can't show again.
+     */
+    private static final class Partial {
+        /** Bytes in the cache file the next try can ask the rest after, or 0 to start over. */
+        long kept;
+        /** The length the whole file was announced as, or -1. */
+        long expected = -1;
+        String declared;
+        String sniffed;
+        /** Where this try began writing into the cache file, once it has opened it. */
+        long from = -1;
     }
 
     private static Result fetchOnce(String url, Kind kind, File into, MediaUrlPolicy policy, long maxBytes,
-            Progress progress) {
-        boolean kept = false;
+            Progress progress, Partial partial) {
+        partial.from = -1;
+        Result result = tryOnce(url, kind, into, policy, maxBytes, progress, partial);
+        // Only what a cut-off left can be gone on from: anything else starts over, or ends the fetch.
+        // A try cut off before it wrote anything left the file as the try before it did.
+        long have = !result.cutOff ? 0 : partial.from >= 0 ? into.length() : partial.kept;
+        partial.kept = have > 0 && (partial.expected < 0 || have < partial.expected) ? have : 0;
+        if (partial.kept == 0 && !result.ok()) delete(into);
+        return result;
+    }
+
+    private static Result tryOnce(String url, Kind kind, File into, MediaUrlPolicy policy, long maxBytes,
+            Progress progress, Partial partial) {
         boolean reading = false;
         Result result = null;
         try {
-            Object opened = connect(url, kind, policy, maxBytes, progress);
+            Object opened = connect(url, kind, policy, maxBytes, progress, partial.kept);
             if (opened instanceof Result) return (Result) opened;
             reading = true;
             try (Prepared response = (Prepared) opened) {
-                result = receive(response, kind, into, maxBytes, progress);
+                result = receive(response, kind, into, maxBytes, progress, partial);
             }
             // Closing the response is part of the fetch. A close failure must not keep cache bytes.
-            kept = result.ok();
             return result;
         } catch (IOException e) {
             if (progress.cancelled()) return cancelled();
@@ -428,20 +475,22 @@ final class Downloader {
                     + e.getCause().getClass().getSimpleName());
             }
             String why = "the fetch failed: " + e.getClass().getSimpleName();
+            // A timeout is a stall partway only once this try's bytes had begun to come (#792): an
+            // answer that went quiet before any of its body isn't fetched again.
+            boolean stalled = e instanceof SocketTimeoutException && partial.from >= 0 && into.length() > partial.from;
             // Only a failure before the body was all in is a cut. A close that fails after it isn't.
             boolean cut = result == null
-                && ((reading && !(e instanceof SocketTimeoutException)) || e instanceof SSLProtocolException);
+                && ((reading && (!(e instanceof SocketTimeoutException) || stalled)) || e instanceof SSLProtocolException);
             return cut ? Result.cutOff(Status.NETWORK_ERROR, why) : Result.fail(Status.NETWORK_ERROR, why);
         } catch (Throwable t) {
             if (progress.cancelled()) return cancelled();
             if (result != null && !result.ok()) return result;
             return Result.fail(Status.NETWORK_ERROR, "the fetch failed: " + t.getClass().getSimpleName());
-        } finally {
-            if (!kept) delete(into);
         }
     }
 
-    private static Result receive(Prepared response, Kind kind, File into, long maxBytes, Progress progress) throws IOException {
+    private static Result receive(Prepared response, Kind kind, File into, long maxBytes, Progress progress,
+            Partial partial) throws IOException {
         if (progress.cancelled()) return cancelled();
         int code = response.code;
         if (code == 401 || code == 403 || code == 410) {
@@ -449,7 +498,9 @@ final class Downloader {
             if (progress.cancelled()) return cancelled();
             return Result.fail(Status.EXPIRED, "the server answered " + code);
         }
-        // No Range was sent. Only 200 names a complete file, whatever length a partial answer gives.
+        if (code == 206 && partial.kept > 0) return resume(response, kind, into, maxBytes, progress, partial);
+        // Only 200 names a complete file, whatever length a partial answer gives. A server that
+        // answers a Range with 200 sends the whole file again, and it's taken from the start.
         if (code != 200) {
             drain(response, progress);
             if (progress.cancelled()) return cancelled();
@@ -472,21 +523,90 @@ final class Downloader {
         if (sniffed == null) {
             return Result.fail(Status.REFUSED, "the body does not start like a " + kind.name().toLowerCase(Locale.US) + " file");
         }
+        partial.expected = expected;
+        partial.declared = declared;
+        partial.sniffed = sniffed;
         long total;
-        try (OutputStream out = new CacheFile(into)) {
+        try (OutputStream out = new CacheFile(into, false)) {
+            partial.from = 0;
             out.write(head, 0, headLength);
             progress.transferred(headLength, expected);
             total = headLength + copy(in, out, maxBytes - headLength, headLength, expected, progress);
         }
+        return checked(total, expected, maxBytes, kind, partial);
+    }
+
+    /**
+     * The rest of a file a cut-off try left [partial.kept] bytes of, appended to them. A 206 that
+     * doesn't go on from that byte, or gives the whole file another length, is part of something
+     * else, so it ends the fetch rather than joining bytes that don't belong together.
+     */
+    private static Result resume(Prepared response, Kind kind, File into, long maxBytes, Progress progress,
+            Partial partial) throws IOException {
+        long from = partial.kept;
+        long[] range = contentRange(response.range);
+        long whole = partial.expected;
+        if (range == null || range[0] != from || (range[2] >= 0 && range[1] != range[2] - 1)
+                || (range[2] >= 0 && whole >= 0 && range[2] != whole)) {
+            return Result.fail(Status.HTTP_ERROR, "the server went on with "
+                + (response.range == null ? "no stated range" : response.range) + ", not from byte " + from
+                + (whole >= 0 ? " of " + whole : ""));
+        }
+        String declared = mimeOf(response.type);
+        if (!declaresKind(declared, kind)) {
+            return Result.fail(Status.REFUSED, "the server sent " + (declared == null ? "no type" : declared)
+                + ", not " + kind.name().toLowerCase(Locale.US));
+        }
+        long expected = whole >= 0 ? whole : range[2];
+        if (expected > maxBytes) {
+            return Result.fail(Status.TOO_LARGE, "the server announced " + expected + " bytes, more than " + maxBytes);
+        }
+        partial.expected = expected;
+        long total;
+        try (OutputStream out = new CacheFile(into, true)) {
+            partial.from = from;
+            total = from + copy(response.stream, out, maxBytes - from, from, expected, progress);
+        }
+        return checked(total, expected, maxBytes, kind, partial);
+    }
+
+    /** A body of [total] bytes, all in: whether it's the file, and as what type. */
+    private static Result checked(long total, long expected, long maxBytes, Kind kind, Partial partial) {
         if (total > maxBytes) return Result.fail(Status.TOO_LARGE, "the body ran past " + maxBytes + " bytes");
         if (expected >= 0 && total != expected) {
             String why = "the body was " + total + " of " + expected + " bytes";
             return total < expected ? Result.cutOff(Status.WRITE_ERROR, why) : Result.fail(Status.WRITE_ERROR, why);
         }
         // Name the checked bytes. DASH audio keeps its specific declared container for the join.
+        String declared = partial.declared;
+        String sniffed = partial.sniffed;
         if (kind == Kind.AUDIO && isSpecific(declared)) return Result.ok(declared);
         if (HEIF.equals(sniffed) && isHeifType(declared)) return Result.ok(declared);
         return Result.ok(sniffed);
+    }
+
+    /**
+     * The first byte, last byte and whole length a {@code Content-Range: bytes a-b/n} header
+     * names, with -1 for an unknown length ({@code /*}), or null for anything else.
+     */
+    static long[] contentRange(String header) {
+        if (header == null) return null;
+        String value = header.trim();
+        if (!value.regionMatches(true, 0, "bytes ", 0, 6)) return null;
+        value = value.substring(6).trim();
+        int dash = value.indexOf('-');
+        int slash = value.indexOf('/');
+        if (dash <= 0 || slash <= dash + 1) return null;
+        try {
+            long first = Long.parseLong(value.substring(0, dash).trim());
+            long last = Long.parseLong(value.substring(dash + 1, slash).trim());
+            String length = value.substring(slash + 1).trim();
+            long whole = length.equals("*") ? -1 : Long.parseLong(length);
+            if (first < 0 || last < first || (whole >= 0 && last >= whole)) return null;
+            return new long[] { first, last, whole };
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 
     /**
@@ -540,14 +660,16 @@ final class Downloader {
      * this to the default means an occasional unexplained failure, and it would also skip the
      * policy on the hop.
      */
-    private static Object connect(String url, Kind kind, MediaUrlPolicy policy, long maxBytes, Progress progress) throws IOException {
+    private static Object connect(String url, Kind kind, MediaUrlPolicy policy, long maxBytes, Progress progress,
+            long from) throws IOException {
         // Includes policy discovery and URLConnection's own proxy/DNS/header/stream callbacks.
         return DownloadPreparation.await(progress, (long) CONNECT_TIMEOUT_MS + readTimeoutMs,
-                owner -> connectNow(url, kind, policy, maxBytes, owner));
+                owner -> connectNow(url, kind, policy, maxBytes, owner, from));
     }
 
+    /** [from] above 0 asks for the file from that byte on, the rest after a cut-off (#792). */
     private static Object connectNow(String url, Kind kind, MediaUrlPolicy policy, long maxBytes,
-            DownloadPreparation progress) throws IOException {
+            DownloadPreparation progress, long from) throws IOException {
         URL current;
         try {
             current = new URL(url);
@@ -578,15 +700,17 @@ final class Downloader {
                 connection.setConnectTimeout(CONNECT_TIMEOUT_MS);
                 connection.setReadTimeout(readTimeoutMs);
                 connection.setUseCaches(false);
+                if (from > 0) connection.setRequestProperty("Range", "bytes=" + from + "-");
                 connection.connect();
                 if (progress.cancelled()) return cancelled();
                 int code = connection.getResponseCode();
                 if (progress.cancelled()) return cancelled();
                 response.code = code;
                 if (code != 301 && code != 302 && code != 303 && code != 307 && code != 308) {
-                    if (code == 200) {
+                    if (code == 200 || (code == 206 && from > 0)) {
                         response.type = connection.getContentType();
                         response.length = connection.getContentLengthLong();
+                        if (code == 206) response.range = connection.getHeaderField("Content-Range");
                         if (progress.cancelled()) return cancelled();
                         if (declaresKind(mimeOf(response.type), kind) && response.length <= maxBytes) {
                             response.stream = connection.getInputStream();

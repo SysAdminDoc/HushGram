@@ -58,6 +58,7 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
+* A save on a slow connection now picks up where it stopped when the download stalls or drops. It used to fall back to the 720p file or fail with Download failed. Reported in #792.
 * With `Blur the chat behind a held message` on, the chat now blurs as one smooth surface. Each message used to blur on its own, so the chat broke into blocks with hard edges between them. Reported in #684.
 * A settings page left open kept animating its title with Instagram in the background, and `Ambient light` kept checking its post a few times a second. Both now wait until Instagram is back on screen. Reported in #341.
 * `Seek bar on stories` and its time now show the moment a story's video starts. On a reel shared to a story they popped in a quarter of a second late, which looked like the story jumping. Reported in #618.
