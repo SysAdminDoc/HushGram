@@ -51,7 +51,7 @@ class AccentRingsHookTest {
         val declared = ExtensionDex.classDef(ACCENT_RINGS).methods
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.definingClass}->${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
-        for (hook in listOf(ACCENT_RING_COLORS, ACCENT_DEFAULT_RING)) assertTrue("$hook is not in the extension: $declared", hook in declared)
+        for (hook in listOf(ACCENT_RING_COLORS, ACCENT_DEFAULT_RING, ACCENT_SEEN_RING)) assertTrue("$hook is not in the extension: $declared", hook in declared)
     }
 
     @Test
@@ -72,6 +72,18 @@ class AccentRingsHookTest {
         assertTrue(builder.implementation!!.instructions.none { (it as? ReferenceInstruction)?.reference?.toString() == ACCENT_RING_COLORS })
     }
 
+    /**
+     * A ring view without the one setter a seen ring's gray goes through, or one that jumps back to its
+     * first instruction, fails Accent color before anything changes (#187).
+     */
+    @Test
+    fun aSeenRingTheFinderCantReadFailsAccentColor() {
+        refuses("Accent color: expected one setInactiveColour(I)V in $GRADIENT_SPINNER, found 0",
+            fixture(spinner = StoryRingFixtures.spinner(setters = 1, inactiveSetter = false)))
+        refuses("Accent color: something jumps back to the first instruction of $GRADIENT_SPINNER->setInactiveColour",
+            fixture(spinner = StoryRingFixtures.spinner(setters = 1, inactiveLoops = true)))
+    }
+
     /** On its own, the accent hook goes first in the builder and the setter, and right after the Compose ring's array lands. */
     @Test
     fun onItsOwnTheAccentHookGoesFirst() {
@@ -84,6 +96,7 @@ class AccentRingsHookTest {
         assertEquals(listOf("build", "keep"), gradients.map { it.name })
         originals.assertBuilders("alone", listOf(ACCENT_RING_COLORS))
         originals.assertComposeRing("alone", listOf(ACCENT_DEFAULT_RING))
+        originals.assertSeenRing("alone")
     }
 
     /** After Story ring size, the accent hook goes behind its guard, so the color picked under Ring color is what it's given. */
@@ -96,6 +109,7 @@ class AccentRingsHookTest {
 
         originals.assertBuilders("after", listOf(RING_COLORS, ACCENT_RING_COLORS))
         originals.assertComposeRing("after", listOf(ACCENT_DEFAULT_RING, RING_DEFAULT_COLORS))
+        originals.assertSeenRing("after")
     }
 
     /**
@@ -112,6 +126,7 @@ class AccentRingsHookTest {
 
         originals.assertBuilders("before", listOf(RING_COLORS, ACCENT_RING_COLORS))
         originals.assertComposeRing("before", listOf(RING_DEFAULT_COLORS, ACCENT_DEFAULT_RING))
+        originals.assertSeenRing("before")
     }
 
     /** In each declared build both patches take every ring in either order. */
@@ -143,6 +158,7 @@ class AccentRingsHookTest {
         accentColor(after)
         afterOriginals.assertBuilders("$label after", listOf(RING_COLORS, ACCENT_RING_COLORS))
         afterOriginals.assertComposeRing("$label after", listOf(ACCENT_DEFAULT_RING, RING_DEFAULT_COLORS))
+        afterOriginals.assertSeenRing("$label after")
 
         val before = PatchContexts.of(classes)
         val beforeOriginals = Originals(before, before.findRingGradients(), before.findComposeRing())
@@ -150,6 +166,7 @@ class AccentRingsHookTest {
         storyRingSize(before)
         beforeOriginals.assertBuilders("$label before", listOf(RING_COLORS, ACCENT_RING_COLORS))
         beforeOriginals.assertComposeRing("$label before", listOf(RING_DEFAULT_COLORS, ACCENT_DEFAULT_RING))
+        beforeOriginals.assertSeenRing("$label before")
     }
 
     private fun refuses(why: String, classes: List<ClassDef>) {
@@ -178,6 +195,8 @@ class AccentRingsHookTest {
     private class Originals(val context: BytecodePatchContext, val gradients: List<RingGradient>, val ring: ComposeRing) {
         private val builders = gradients.map { NeutralNativePath(builder(it)) }
         private val compose = NeutralNativePath(composeMethod())
+        private val inactive = NeutralNativePath(inactiveSetter())
+        private val color = inactiveSetter().let { it.implementation!!.registerCount - 1 }
 
         /** [hooks] in order at the top of each builder, each passed the colors and the stops and answering into the colors. */
         fun assertBuilders(what: String, hooks: List<String>) {
@@ -219,6 +238,28 @@ class AccentRingsHookTest {
             val added = (ring.at until ring.at + hooks.size * 2).toSet()
             assertTrue("$what Compose ring: something jumps onto a hook", method.jumpTargets().none { it in added })
             compose.assertPreserved("$what Compose ring", method, added)
+        }
+
+        /**
+         * The seen ring's hook first in the ring view's inactive color setter, passed the color alone
+         * and answering into its register, once, with the setter's own code after it as it was.
+         */
+        fun assertSeenRing(what: String) {
+            val method = inactiveSetter()
+            val code = method.implementation!!.instructions.toList()
+            val called = code.indices.filter { (code[it] as? ReferenceInstruction)?.reference?.toString() == ACCENT_SEEN_RING }
+            assertEquals("$what seen ring: hooks", listOf(0), called)
+            assertEquals("$what seen ring: the call", Opcode.INVOKE_STATIC_RANGE, code[0].opcode)
+            val call = code[0] as RegisterRangeInstruction
+            assertEquals("$what seen ring: the color", color to 1, call.startRegister to call.registerCount)
+            assertEquals("$what seen ring: the answer", Opcode.MOVE_RESULT, code[1].opcode)
+            assertEquals("$what seen ring: into the color", color, (code[1] as OneRegisterInstruction).registerA)
+            assertTrue("$what seen ring: something jumps onto the hook", method.jumpTargets().none { it < 2 })
+            inactive.assertPreserved("$what seen ring", method, setOf(0, 1))
+        }
+
+        private fun inactiveSetter(): Method = context.mutableClassDefBy(GRADIENT_SPINNER).methods.single {
+            it.name == INACTIVE_SETTER && it.parameterTypes.map(CharSequence::toString) == listOf("I")
         }
 
         private fun builder(gradient: RingGradient): Method = context.mutableClassDefBy(GRADIENT_SPINNER).methods.single {

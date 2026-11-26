@@ -71,6 +71,15 @@ internal object StoryRingFixtures {
      * that hands its arrays to the builder never makes one from arrays itself, and with
      * [setterLoops] it ends jumping back to its start. With [elsewhere], a private `drawn(I)V`
      * makes a gradient from arrays as well.
+     *
+     * With [inactiveSetter] it also gets a public `setInactiveColour(I)V`, the setter a seen ring's
+     * gray goes through, shaped like 457's: six registers, the color in v5, read where the ring's
+     * shader is drawn. With [inactiveLoops] it ends jumping back to its start.
+     *
+     *     a0  iget-object v3, v4, A0V        the inactive paint
+     *     a2  move v1, v5                    the color
+     *     a3  return-void
+     *     a4  goto a0                        only with [inactiveLoops]
      */
     fun spinner(
         builders: Int = 1,
@@ -81,6 +90,8 @@ internal object StoryRingFixtures {
         setterMakesItsOwn: Boolean = true,
         setterLoops: Boolean = false,
         elsewhere: Boolean = false,
+        inactiveSetter: Boolean = true,
+        inactiveLoops: Boolean = false,
     ): ClassDef {
         val first = registers - GRADIENT_PARAMETERS.size
         val stops = first + STOPS_PARAMETER
@@ -127,7 +138,19 @@ internal object StoryRingFixtures {
                 AccessFlags.PRIVATE.value or AccessFlags.FINAL.value, null, null,
                 ImmutableMethodImplementation(registers, code(arrays = true, returnsGradient = false, loop = false), null, null),
             ).takeIf { elsewhere },
-        )
+        ) + listOfNotNull(Unit.takeIf { inactiveSetter }).map {
+            val inactive = mutableListOf<Instruction>(
+                ImmutableInstruction22c(Opcode.IGET_OBJECT, 3, 4, ImmutableFieldReference(GRADIENT_SPINNER, "A0V", "Landroid/graphics/Paint;")),
+                ImmutableInstruction12x(Opcode.MOVE, 1, 5),
+                ImmutableInstruction10x(Opcode.RETURN_VOID),
+            )
+            if (inactiveLoops) inactive += ImmutableInstruction10t(Opcode.GOTO, -4)
+            ImmutableMethod(
+                GRADIENT_SPINNER, "setInactiveColour", listOf(ImmutableMethodParameter("I", null, null)), "V",
+                AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, null, null,
+                ImmutableMethodImplementation(6, inactive, null, null),
+            )
+        }
         return ImmutableClassDef(
             GRADIENT_SPINNER, AccessFlags.PUBLIC.value, "Landroid/view/View;",
             null, null, null, null, methods,

@@ -90,7 +90,7 @@ private val GET_COLOR = listOf(listOf("I"), listOf("I", THEME))
  * and both go through the extension as the color is made ([swapDspColors]). Most story rings read
  * Instagram's default ring, whose colors were read once from a context no accent theme is laid on,
  * so the ring view's gradients and the Compose screens' default ring go through the extension as
- * they're made ([colorAccentRings], #528).
+ * they're made ([colorAccentRings], #528), and so does the gray a seen story's ring is drawn in (#187).
  *
  * A text color written into a layout's XML doesn't pass any of that either, which left the end of
  * Home's "Older posts" link blue (#187). The text views Instagram's layouts build hand the colors they

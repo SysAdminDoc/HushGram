@@ -2630,6 +2630,14 @@ once-call Lapp/hushgram/extension/instagram/stories/StoryRing;->defaultColors([I
 once-call Lapp/hushgram/extension/instagram/misc/AccentRings;->colors([I[F)[I in instance ([F[F[F[III)Landroid/graphics/LinearGradient; holding Landroid/graphics/Shader$TileMode;->CLAMP:Landroid/graphics/Shader$TileMode;
 once-call Lapp/hushgram/extension/instagram/misc/AccentRings;->colors([I[F)[I in instance ([F[F[F[III)V holding Landroid/graphics/Shader$TileMode;->CLAMP:Landroid/graphics/Shader$TileMode;
 once-call Lapp/hushgram/extension/instagram/misc/AccentRings;->composeColors([I)[I in static (LX/*;)LX/*; calling static LX/*;->*(Ljava/util/List;)[I holding Ljava/lang/Float;->floatToRawIntBits(F)I LX/*;->*(Ljava/lang/String;LX/*;LX/*;JJ)V
+# It also hands the gray a ring view draws a seen story's ring in to AccentRings.seen, first thing
+# in GradientSpinner.setInactiveColour(int), which the view's constructor calls with its theme's
+# seen gray and a few screens with a gray of their own (#187). setErrorColour has the same shape and
+# calls, so the rules also hold the setter by the inactive paint it gives the shader, A0V on every
+# 457 build. Left out, a seen story's ring stays gray with the accent rings on; anywhere else, it
+# isn't the setter the patch means. AccentRingsHookTest checks every build.
+start-call Lapp/hushgram/extension/instagram/misc/AccentRings;->seen(I)I in instance (I)V holding Lcom/instagram/ui/widget/gradientspinner/GradientSpinner;->A0V:Landroid/graphics/Paint; Landroid/graphics/BitmapShader;-><init>(Landroid/graphics/Bitmap;Landroid/graphics/Shader$TileMode;Landroid/graphics/Shader$TileMode;)V
+once-call Lapp/hushgram/extension/instagram/misc/AccentRings;->seen(I)I in instance (I)V holding Lcom/instagram/ui/widget/gradientspinner/GradientSpinner;->A0V:Landroid/graphics/Paint; Landroid/graphics/BitmapShader;-><init>(Landroid/graphics/Bitmap;Landroid/graphics/Shader$TileMode;Landroid/graphics/Shader$TileMode;)V
 # Hide the Repost button answers FALSE first thing in the post model's getter of
 # enable_media_notes_production, the one instance method taking nothing and answering a Boolean
 # that loads the field's name (Media.A3o on 449). Its other hooks filter the reads of the field

@@ -26,8 +26,9 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * <p>{@link AccentTheme} keeps the four shades the ring style gives those colors' attributes, light
  * to deep as the default ring runs. The patch hands every gradient the ring view makes to
  * {@link #colors}, and the default ring's colors on Compose screens to {@link #composeColors},
- * and they answer the kept shades for Instagram's own story gradient. A color picked under Story
- * ring size's Ring color wins, so the two never fight over a ring.
+ * and they answer the kept shades for Instagram's own story gradient. A seen story's ring is drawn
+ * in one gray the ring view is handed apart from its gradient, which goes to {@link #seen} (#187).
+ * A color picked under Story ring size's Ring color wins, so the two never fight over a ring.
  */
 public final class AccentRings {
     /** What's counted each time a story ring outside the theme takes the accent shades. */
@@ -112,6 +113,53 @@ public final class AccentRings {
             HookStatus.threw(FamilyNames.ACCENT_COLOR, "Compose story ring", failure);
             return colors;
         }
+    }
+
+    /** What's counted each time a seen story's ring takes the accent. */
+    static final String SEEN = "seen story rings given the accent";
+
+    /**
+     * The alpha a seen ring's fill takes, 30%. Over Instagram's dark page that's about as far from it
+     * as its own seen gray (#2b3036 on #0c1014), and over a white one about as pale as #dbdfe4.
+     */
+    static final int SEEN_ALPHA = 0x4d;
+
+    /** Prism's indigo, Instagram's fill, which {@link AccentColor#swap(int, AccentHue)} answers as the picked fill. */
+    private static final int FILL = 0xff4a5df9;
+
+    /**
+     * Injected first in the ring view's setter for its inactive color, the one a seen story's ring is
+     * drawn with (#187). Every ring view's constructor hands it the gray its theme holds for a seen
+     * ring, and a few screens hand it a gray of their own. Answers an opaque gray (not black or
+     * white) as the picked color's fill at {@link #SEEN_ALPHA}, which the view keeps in a shader,
+     * while Accent color and Story rings in the accent color are on and no Ring color is picked.
+     * Answers [color] for anything else, a see-through or colored ring included. Never throws.
+     */
+    public static int seen(int color) {
+        try {
+            HookStatus.invoked(FamilyNames.ACCENT_COLOR);
+            if (!seenGray(color)) return color;
+            AccentHue hue = AccentColor.picked();
+            if (hue == null || !Settings.ACCENT_RINGS.get() || StoryRing.picksColor()) return color;
+            int fill = AccentColor.swap(FILL, hue);
+            if (fill == FILL) return color;
+            HookStatus.counted(FamilyNames.ACCENT_COLOR, SEEN);
+            return SEEN_ALPHA << 24 | fill & 0xffffff;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.ACCENT_COLOR, "seen story ring", failure);
+            return color;
+        }
+    }
+
+    /** Whether [color] is an opaque gray between near-black and near-white, as Instagram's seen rings are. */
+    private static boolean seenGray(int color) {
+        if (color >>> 24 != 0xff) return false;
+        int red = color >> 16 & 0xff;
+        int green = color >> 8 & 0xff;
+        int blue = color & 0xff;
+        int most = Math.max(red, Math.max(green, blue));
+        int least = Math.min(red, Math.min(green, blue));
+        return most - least <= 0x10 && least >= 0x20 && most <= 0xf0;
     }
 
     private static int[] accent(int[] colors) {

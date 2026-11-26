@@ -101,6 +101,7 @@ Every HushGram release, newest first.
 * With `Icons in the accent color` on, the search icon in the search bar atop your messages takes your color. Reported in #187.
 * With `Filters in the accent color` on, the icon chip before Explore's filters gets your color's outline like the filters do. Reported in #187.
 * With `Backgrounds in the accent color` on and `Material You` or `Custom` picked, your chat list keeps your colors when Instagram starts in the background for a notification. Its rows went black until a force stop. Reported in #187.
+* With `Story rings in the accent color` on, the ring around a story you've already seen takes a soft shade of your color instead of Instagram's gray. Reported in #187.
 
 ### Improvements
 

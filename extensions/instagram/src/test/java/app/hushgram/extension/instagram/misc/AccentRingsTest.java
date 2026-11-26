@@ -54,6 +54,11 @@ public class AccentRingsTest {
     private static final float[] STORY_STOPS = {(float) 0.1435, (float) 0.3779, (float) 0.6071, (float) 0.831};
     private static final float[] FLAT_STOPS = {0f, 1f};
     private static final int[] CLOSE_FRIENDS = {0xFF1CD14F, 0xFF1CD14F};
+    /**
+     * The grays 457's themes hand a seen story's ring: Prism's dark and light seen and stroke grays, and
+     * the older theme's dark and light ones.
+     */
+    private static final int[] SEEN_GRAYS = {0xFF2B3036, 0xFFDCE0E5, 0xFFDBDFE4, 0xFFE7EAEE, 0xFFE9EDF0, 0xFF363636, 0xFFC7C7C7, 0xFFDBDBDB};
     /** What a ring style might give the default ring's four attributes, light to deep. */
     private static final int[] SHADES = {0xFFE1BEE7, 0xFFBA68C8, 0xFF8E24AA, 0xFF4A148C};
     /** Android's own color attributes, standing in for the default ring's four in a test theme. */
@@ -198,6 +203,92 @@ public class AccentRingsTest {
         Settings.STORY_RING_COLOR.save(StoryRingColor.TEAL);
         assertArrayEquals(SHADES, AccentRings.colors(STORY.clone(), STORY_STOPS));
         assertArrayEquals(SHADES, AccentRings.composeColors(STORY.clone()));
+    }
+
+    /**
+     * A seen story's ring is drawn in one gray Instagram hands the ring view, kept as a 1x1 shader so
+     * its alpha holds. Each of Instagram's seen grays, dark and light, Prism's and the older theme's,
+     * takes the picked color's fill at 30 percent, which sits on a screen about as Instagram's gray does
+     * (#187). Each is counted. No theme has to have had the ring style first.
+     */
+    @Test
+    public void aSeenRingsGrayTakesTheAccent() {
+        Settings.ACCENT_COLOR.save(true);
+        Settings.ACCENT_HUE.save(AccentHue.PURPLE);
+        Settings.ACCENT_RINGS.save(true);
+        int seen = AccentRings.SEEN_ALPHA << 24 | AccentHue.PURPLE.fill & 0xffffff;
+        for (int gray : SEEN_GRAYS) assertEquals(Integer.toHexString(gray), seen, AccentRings.seen(gray));
+        assertTrue(HookStatus.report().toString(), HookStatus.report().get(0).contains(AccentRings.SEEN + " " + SEEN_GRAYS.length));
+
+        Settings.ACCENT_HUE.save(AccentHue.DUSK);
+        assertEquals("a color set's fill", AccentRings.SEEN_ALPHA << 24 | AccentHue.DUSK.fill & 0xffffff, AccentRings.seen(SEEN_GRAYS[0]));
+    }
+
+    /** A see-through, black, white or colored inactive ring isn't a seen story's gray and keeps its color. */
+    @Test
+    public void otherInactiveRingsKeepTheirColors() {
+        accentRingsOn();
+        for (int color : new int[]{0x00000000, 0x802b3036, 0xff000000, 0xff121212, 0xffffffff, 0xfffafafa, 0xff1cd14f, 0xffff0069}) {
+            assertEquals(Integer.toHexString(color), color, AccentRings.seen(color));
+        }
+    }
+
+    /**
+     * Story rings in the accent color off, Accent color off, Instagram's blue, paused, before the
+     * settings are read, or a picked Ring color: a seen ring keeps Instagram's gray.
+     */
+    @Test
+    @Config(shadows = StoryRingBuilt.class)
+    public void offPausedAndPickedKeepTheSeenGray() {
+        accentRingsOn();
+        int gray = SEEN_GRAYS[0];
+        assertTrue("on", AccentRings.seen(gray) != gray);
+
+        Settings.ACCENT_RINGS.save(false);
+        assertEquals("the rings off", gray, AccentRings.seen(gray));
+        Settings.ACCENT_RINGS.save(true);
+
+        Settings.ACCENT_COLOR.save(false);
+        assertEquals("Accent color off", gray, AccentRings.seen(gray));
+        Settings.ACCENT_COLOR.save(true);
+
+        Settings.ACCENT_HUE.save(AccentHue.BLUE);
+        assertEquals("Instagram's blue", gray, AccentRings.seen(gray));
+        Settings.ACCENT_HUE.save(AccentHue.PURPLE);
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertEquals("paused", gray, AccentRings.seen(gray));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+
+        SettingsContextRule.withoutContext(() -> assertEquals("no context", gray, AccentRings.seen(gray)));
+
+        Settings.STORY_RING_COLOR.save(StoryRingColor.TEAL);
+        assertEquals("Ring color picked", gray, AccentRings.seen(gray));
+        Settings.STORY_RING_COLOR.save(StoryRingColor.INSTAGRAM);
+        assertTrue("Instagram's own ring color", AccentRings.seen(gray) != gray);
+    }
+
+    /** Material You's seen ring takes the wallpaper's fill tone, and before Android 12 keeps the gray. */
+    @Test
+    @Config(sdk = {28, 37})
+    public void materialYousSeenRingTakesTheWallpapersFill() {
+        MaterialYou.reset();
+        try {
+            Settings.ACCENT_COLOR.save(true);
+            Settings.ACCENT_HUE.save(AccentHue.WALLPAPER);
+            Settings.ACCENT_RINGS.save(true);
+            int gray = SEEN_GRAYS[0];
+            if (!MaterialYou.available()) {
+                assertEquals(gray, AccentRings.seen(gray));
+                return;
+            }
+            int fill = RuntimeEnvironment.getApplication().getColor(android.R.color.system_accent1_500) & 0xffffff;
+            assertEquals(AccentRings.SEEN_ALPHA << 24 | fill, AccentRings.seen(gray));
+        } finally {
+            MaterialYou.reset();
+        }
     }
 
     /**
