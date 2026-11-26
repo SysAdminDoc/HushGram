@@ -590,11 +590,20 @@ public final class AccentTheme {
      * and its loading page black until the next start (#683). A light screen writing its text in the
      * dark grays takes Classic's navy then, as it already did after a start in dark mode. The picked
      * color's backgrounds come only for the kind of screen the app will show, since their tints would
-     * color a light screen's text, and not for Material You's or a typed color, whose shades load with
-     * the first screen. Null when none of that holds or the style can't be read.
+     * color a light screen's text. Material You's and a typed color's come too: a start with no screen
+     * (a push, a sync job) builds the palettes with nothing styled at all, and they kept the Messages
+     * rows black until a force stop (#187). Material You's style points at the wallpaper's tones, and a
+     * typed color's table is loaded first, with Instagram's grays kept when it can't be. Null when none
+     * of that holds or the style can't be read.
      */
     @Nullable
     static int[] styledSurfaces(@Nullable Context context, boolean dark) {
+        return styledSurfaces(context, dark, customColors());
+    }
+
+    /** {@link #styledSurfaces(Context, boolean)} with the custom colors the patch listed. */
+    @Nullable
+    static int[] styledSurfaces(@Nullable Context context, boolean dark, @Nullable String customNames) {
         if (!Utils.settingsReady()) return null;
         Context app = context != null ? context : Utils.getContext();
         if (app == null) return null;
@@ -604,7 +613,9 @@ public final class AccentTheme {
             style = classicStyle(dark);
         } else if (dark && Settings.ACCENT_BACKGROUNDS.get() && showsDark(app)) {
             AccentHue hue = AccentColor.picked();
-            if (hue != null && hue != AccentHue.WALLPAPER && hue != AccentHue.CUSTOM) style = backgroundStyle(hue, true);
+            // A typed color's style holds stand-ins until its table is in the assets, as in applyAccent.
+            if (hue == AccentHue.CUSTOM && !CustomAccent.load(app, customNames)) hue = null;
+            if (hue != null) style = backgroundStyle(hue, true);
         }
         if (style == null) return null;
         String pkg = Utils.resourcePackage(app);

@@ -27,6 +27,7 @@ import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.LayerDrawable;
 import android.graphics.drawable.ShapeDrawable;
 import android.graphics.drawable.shapes.RectShape;
+import android.os.Build;
 import android.util.TypedValue;
 import android.view.ContextThemeWrapper;
 import android.view.View;
@@ -608,6 +609,91 @@ public class AccentThemeTest {
             prefs.edit().clear().commit();
             AccentTheme.darkSurfacesForTests(null);
             AccentTheme.lightSurfacesForTests(null);
+        }
+    }
+
+    /**
+     * Instagram can start with no screen at all (a push, a sync job), and then builds its Compose
+     * palettes long before a theme is styled. With Material You picked, the dark grays came back as
+     * Instagram's own, so the Messages rows and search field stayed black until a force stop (#187).
+     * Its backgrounds' style points at the wallpaper's own tones, so it's read like a fixed color's.
+     * Before Android 12 there's no wallpaper palette and the color isn't picked at all.
+     */
+    @Test
+    public void composeReadsMaterialYousBackgroundsBeforeAnyScreenIsStyled() {
+        Settings.ACCENT_COLOR.save(true);
+        Settings.ACCENT_HUE.save(AccentHue.WALLPAPER);
+        Settings.ACCENT_BACKGROUNDS.save(true);
+        MaterialYou.reset();
+        AccentTheme.darkSurfacesForTests(null);
+        AccentTheme.lightSurfacesForTests(null);
+        String pkg = THEMED + ".wallpaper.early";
+        SharedPreferences prefs = RuntimeEnvironment.getApplication().getSharedPreferences(pkg + "_preferences", Context.MODE_PRIVATE);
+        try {
+            Context app = themed(pkg, (name, type) -> {
+                if (type.equals("style") && name.equals("HushGramAccentBackgrounds_WALLPAPER_dark")) return android.R.style.Theme_Material;
+                return type.equals("attr") && name.startsWith("igds_color_") ? android.R.attr.colorBackground : 0;
+            });
+            long black = (long) 0xff000000 << 32;
+            long darkPage = (long) (0xff000000 | page(app, android.R.style.Theme_Material)) << 32;
+            assertTrue("a page color unlike Compose's own", darkPage != black);
+
+            prefs.edit().putInt(AccentTheme.DARK_MODE_KEY, AccentTheme.DARK_MODE_ON).commit();
+            assertEquals(MaterialYou.available() ? darkPage : black, AccentTheme.composeSurface(black, app));
+            AccentTheme.darkSurfacesForTests(null);
+
+            prefs.edit().putInt(AccentTheme.DARK_MODE_KEY, AccentTheme.DARK_MODE_OFF).commit();
+            assertEquals("a light screen's text", black, AccentTheme.composeSurface(black, app));
+        } finally {
+            prefs.edit().clear().commit();
+            MaterialYou.reset();
+            AccentTheme.darkSurfacesForTests(null);
+            AccentTheme.lightSurfacesForTests(null);
+        }
+    }
+
+    /**
+     * The same start with a typed color picked: its backgrounds' style holds stand-ins until the
+     * color's table is in the assets, so the read loads the table first (#187). Without it (no color
+     * names, or Android 10 and older) Instagram's grays stay, as a styled screen keeps its theme then.
+     */
+    @Test
+    public void composeReadsATypedColorsBackgroundsBeforeAnyScreenIsStyled() {
+        CustomAccent.Installer realInstaller = CustomAccent.installer;
+        List<byte[]> installed = new ArrayList<>();
+        CustomAccent.installer = (resources, table) -> installed.add(table);
+        CustomAccent.forget();
+        Settings.ACCENT_COLOR.save(true);
+        Settings.ACCENT_HUE.save(AccentHue.CUSTOM);
+        Settings.ACCENT_CUSTOM.save("#4A6B82");
+        Settings.ACCENT_BACKGROUNDS.save(true);
+        AccentTheme.darkSurfacesForTests(null);
+        String pkg = THEMED + ".custom.early";
+        String names = "hushgram_accent_custom_background_dark_base";
+        SharedPreferences prefs = RuntimeEnvironment.getApplication().getSharedPreferences(pkg + "_preferences", Context.MODE_PRIVATE);
+        try {
+            Context app = themed(pkg, (name, type) -> {
+                if (type.equals("style") && name.equals("HushGramAccentBackgrounds_CUSTOM_dark")) return android.R.style.Theme_Material;
+                if (type.equals("color") && name.equals(names)) return 0x7f060101;
+                return type.equals("attr") && name.startsWith("igds_color_") ? android.R.attr.colorBackground : 0;
+            });
+            prefs.edit().putInt(AccentTheme.DARK_MODE_KEY, AccentTheme.DARK_MODE_ON).commit();
+
+            assertNull("without the patch's color names", AccentTheme.styledSurfaces(app, true, null));
+            int[] surfaces = AccentTheme.styledSurfaces(app, true, names);
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+                assertNull(surfaces);
+                assertTrue(installed.isEmpty());
+                return;
+            }
+            assertEquals("the typed color's table first", 1, installed.size());
+            assertEquals(page(app, android.R.style.Theme_Material), surfaces[0] & 0xffffff);
+        } finally {
+            prefs.edit().clear().commit();
+            CustomAccent.installer = realInstaller;
+            CustomAccent.forget();
+            Settings.ACCENT_CUSTOM.resetToDefault();
+            AccentTheme.darkSurfacesForTests(null);
         }
     }
 
