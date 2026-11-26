@@ -215,6 +215,7 @@ public abstract class AbstractPreferenceFragment extends PreferenceFragment {
     private boolean listenerRegistered;
     private boolean destroyed;
     private boolean retryScheduled;
+    private boolean availabilityOwed;
 
     private final SharedPreferences.OnSharedPreferenceChangeListener listener = (sharedPreferences, key) ->
             Utils.runOnMainThreadNowOrLater(() -> onPreferenceChanged(sharedPreferences, key));
@@ -270,8 +271,10 @@ public abstract class AbstractPreferenceFragment extends PreferenceFragment {
 
             // Apply 'Setting <- Preference', unless importing already updated the Setting.
             updatePreference(pref, setting, true, settingImportInProgress);
-            // Update any other preference availability that may now be different.
-            updateUIAvailability();
+            // Update any other preference availability that may now be different. A batch's keys
+            // arrive together, so they share one pass once the last of them is in.
+            if (Setting.landingInBatch(key)) updateUIAvailabilityLater();
+            else updateUIAvailability();
             // Report success only after every operation that can still enter recovery succeeded.
             if (showRestartAfterUpdate) {
                 if (noteRestartPending(setting, valueBefore) && isAdded()) {
@@ -455,6 +458,16 @@ public abstract class AbstractPreferenceFragment extends PreferenceFragment {
      */
     protected void updateUIAvailability() {
         updatePreferenceScreen(getPreferenceScreen(), false, false);
+    }
+
+    /** One {@link #updateUIAvailability()} after the message running now, however many ask for it. */
+    private void updateUIAvailabilityLater() {
+        if (availabilityOwed) return;
+        availabilityOwed = true;
+        Utils.runOnMainThread(() -> {
+            availabilityOwed = false;
+            if (!destroyed && getPreferenceScreen() != null) updateUIAvailability();
+        });
     }
 
     /**

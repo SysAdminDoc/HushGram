@@ -59,6 +59,7 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
+* Importing a big settings file no longer freezes Instagram. The settings page redid its whole list once for every setting in the file, so a file with hundreds of them could make Android offer to close Instagram. Reported in #341.
 * With Add the source on, a saved photo's post time is now marked as UTC. Without that, Android took it for your phone's local time, and the gallery left the photo's date taken empty. Reported in #792.
 * Saves still waiting their turn when Android closes Instagram are no longer lost without a word. Next time you open Instagram, it tells you how many stopped, as it already did for running saves. Reported in #792.
 * With three saves running, their notifications no longer fall behind or stick at an old percentage. Each updates a little less often, so Android stops dropping the updates. Reported in #792.

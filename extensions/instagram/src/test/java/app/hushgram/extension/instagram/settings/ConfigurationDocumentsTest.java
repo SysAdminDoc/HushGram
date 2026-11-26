@@ -54,6 +54,7 @@ import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.settings.BaseSettings;
+import app.hushgram.extension.shared.settings.BooleanSetting;
 import app.hushgram.extension.shared.settings.HushgramPause;
 import app.hushgram.extension.shared.settings.PauseForTests;
 import app.hushgram.extension.shared.settings.preference.AbstractPreferenceFragment;
@@ -387,6 +388,60 @@ public class ConfigurationDocumentsTest {
             assertTrue(control.isChecked());
             assertFalse(undo.isEnabled());
         }
+    }
+
+    // The store hands a file's settings to the page one at a time, all in one main-thread message,
+    // and the page redid its whole list for each: a 618-setting export held Instagram long enough
+    // for Android to offer to close it (#341). A file now costs the page one pass, and every row
+    // still shows what the file saved.
+    @Test public void aBigImportRedoesThePageOnceAndLeavesEveryRowRight() throws Exception {
+        PatchFamily.inBuildForTests = EnumSet.allOf(PatchFamily.class);
+        List<BooleanSetting> flipped = new ArrayList<>();
+        try (ActivityController<Activity> activity = Robolectric.buildActivity(Activity.class).setup()) {
+            HushgramPreferenceFragment page = DownloadSettingsTest.pageIn(activity);
+            StringBuilder entries = new StringBuilder();
+            for (PatchFamily family : PatchFamily.values()) {
+                for (BooleanSetting setting : family.switches) {
+                    if (flipped.size() == 40 || flipped.contains(setting) || setting.defaultValue || setting.savedValue()
+                            || setting.rebootApp || setting.userDialogMessage != null || !setting.includeWithImportExport
+                            || setting.key.contains("_lock") || setting.key.startsWith("hushgram_settings_")
+                            || !(page.findPreference(setting.key) instanceof SwitchPreference)) continue;
+                    if (entries.length() > 0) entries.append(',');
+                    entries.append(ConfigurationBackupTest.entry(setting.key, "boolean", true));
+                    flipped.add(setting);
+                }
+            }
+            assertEquals("enough switches that one pass each shows", 40, flipped.size());
+            Shadows.shadowOf(activity.get().getContentResolver()).registerInputStream(DOCUMENT,
+                    new ByteArrayInputStream(ConfigurationBackupTest.file(entries.toString())));
+            ShadowActivity.IntentForResult picked = pick(page, activity.get(), "hushgram_import_configuration");
+            HushgramPreferenceFragment.availabilityRefreshesForTests = 0;
+            Shadows.shadowOf(activity.get()).receiveResult(picked.intent, Activity.RESULT_OK, new Intent().setData(DOCUMENT));
+            finish();
+            int passes = HushgramPreferenceFragment.availabilityRefreshesForTests;
+            assertTrue(page.findPreference("hushgram_import_configuration").getSummary().toString().contains("Imported 40 settings."));
+            for (BooleanSetting setting : flipped) {
+                assertTrue(setting.key, setting.savedValue());
+                assertTrue(setting.key, ((SwitchPreference) page.findPreference(setting.key)).isChecked());
+            }
+            assertTrue("the page redid its list " + passes + " times for one file", passes <= 2);
+            java.util.Map<String, Boolean> shown = enabledRows(page.getPreferenceScreen(), new java.util.TreeMap<>());
+            page.updateUIAvailability();
+            assertEquals("each row's availability already matched the file", shown,
+                    enabledRows(page.getPreferenceScreen(), new java.util.TreeMap<>()));
+        } finally {
+            for (BooleanSetting setting : flipped) setting.resetToDefault();
+        }
+    }
+
+    private static java.util.Map<String, Boolean> enabledRows(android.preference.PreferenceGroup group,
+                                                              java.util.Map<String, Boolean> into) {
+        for (int at = 0; at < group.getPreferenceCount(); at++) {
+            Preference row = group.getPreference(at);
+            if (row.hasKey()) into.put(row.getKey(), row.isEnabled());
+            if (row instanceof android.preference.PreferenceGroup) enabledRows((android.preference.PreferenceGroup) row, into);
+        }
+        return into;
     }
 
     // A file that changes a choice waiting on a restart owes Restart now, as flipping its row does.

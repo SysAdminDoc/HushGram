@@ -1391,7 +1391,11 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         try { super.updateUIToSettingValues(); } finally { showGhostMode(); filterSettings(); }
     }
 
+    /** How many times a page redid its whole list's availability, so tests can count the passes. */
+    static int availabilityRefreshesForTests;
+
     @Override protected void updateUIAvailability() {
+        availabilityRefreshesForTests++;
         restoreSearchRows();
         try { super.updateUIAvailability(); } finally { showGhostMode(); filterSettings(); }
     }

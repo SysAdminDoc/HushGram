@@ -438,40 +438,78 @@ public abstract class Setting<T> {
             previous.put(setting, setting.savedValue());
         }
         Throwable failure = null;
-        for (Setting<?> setting : bounded.keySet()) setting.savedRevision++;
-        boolean committing = false;
+        List<String> keys = new ArrayList<>(bounded.size());
+        for (Setting<?> setting : bounded.keySet()) {
+            setting.savedRevision++;
+            keys.add(setting.key);
+        }
+        // On the main thread the store tells its listeners before commit returns, one key at a time
+        // as before. From a worker it posts them, so they're marked until the main thread is past them.
+        boolean marked = !Utils.isCurrentlyOnMainThread();
+        if (marked) landing(keys, true);
         try {
-            var editor = stage(bounded);
-            committing = true;
-            if (editor.commit()) return;
-        } catch (RuntimeException thrown) {
-            // An editor that wouldn't open, a value it refused or a commit that threw.
-            failure = thrown;
-        }
-        boolean restored = true;
-        if (committing) {
-            // A commit that failed may still have landed, so the values from before are written back.
+            boolean committing = false;
             try {
-                restored = stage(previous).commit();
+                var editor = stage(bounded);
+                committing = true;
+                if (editor.commit()) return;
             } catch (RuntimeException thrown) {
-                restored = false;
+                // An editor that wouldn't open, a value it refused or a commit that threw.
+                failure = thrown;
             }
-        }
-        // Each setting runs what the store holds, which is what a restart loads, and the batch
-        // counts as put back only when that is the value from before.
-        for (var entry : previous.entrySet()) {
-            Setting setting = entry.getKey();
-            setting.value = entry.getValue();
-            try {
-                setting.load();
-                setting.value = setting.coerce(setting.value);
-            } catch (RuntimeException unreadable) {
+            boolean restored = true;
+            if (committing) {
+                // A commit that failed may still have landed, so the values from before are written back.
+                try {
+                    restored = stage(previous).commit();
+                } catch (RuntimeException thrown) {
+                    restored = false;
+                }
+            }
+            // Each setting runs what the store holds, which is what a restart loads, and the batch
+            // counts as put back only when that is the value from before.
+            for (var entry : previous.entrySet()) {
+                Setting setting = entry.getKey();
                 setting.value = entry.getValue();
-                restored = false;
+                try {
+                    setting.load();
+                    setting.value = setting.coerce(setting.value);
+                } catch (RuntimeException unreadable) {
+                    setting.value = entry.getValue();
+                    restored = false;
+                }
+                if (!setting.value.equals(entry.getValue())) restored = false;
             }
-            if (!setting.value.equals(entry.getValue())) restored = false;
+            throw new BatchFailed(restored, failure);
+        } finally {
+            // Each commit posted its notices before returning, and the main thread runs posts in
+            // order, so this comes after every one of them.
+            if (marked) Utils.runOnMainThread(() -> landing(keys, false));
         }
-        throw new BatchFailed(restored, failure);
+    }
+
+    /** The keys of batches whose change notices the main thread hasn't reached yet, each with how many. */
+    private static final Map<String, Integer> landing = new HashMap<>();
+
+    private static void landing(List<String> keys, boolean start) {
+        synchronized (landing) {
+            for (String key : keys) {
+                if (start) landing.merge(key, 1, Integer::sum);
+                else landing.computeIfPresent(key, (k, count) -> count > 1 ? count - 1 : null);
+            }
+        }
+    }
+
+    /**
+     * Whether a change notice for [key] comes from a batch saved off the main thread. The store
+     * hands such a batch to its listeners one key at a time, all in one main-thread message, so a
+     * page that redid its whole list for each key redid it once per setting: a 618-setting file
+     * held Instagram long enough for Android to offer to close it (#341).
+     */
+    public static boolean landingInBatch(String key) {
+        synchronized (landing) {
+            return landing.containsKey(key);
+        }
     }
 
     /** An editor holding [values], each already the setting's live value, so an import's page shows them. */
