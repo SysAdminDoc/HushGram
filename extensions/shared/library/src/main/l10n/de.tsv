@@ -1822,7 +1822,7 @@ Previous page	Vorherige Seite
 Next page	Nächste Seite
 # context: Feed settings: the Page dots on a pill switch, right under Carousel arrows (#419). A pill is a small bar with round ends that holds the dots.
 Page dots on a pill	Seitenpunkte in einer Kapsel
-Moves a carousel post's page dots onto a round pill at the bottom of its photo or video, with the page you're on in blue. Hold the pill and slide left or right to move through the pages.	Verschiebt die Seitenpunkte eines Karussellbeitrags in eine runde Kapsel unten auf dem Foto oder Video. Die Seite, auf der du bist, ist blau. Halte die Kapsel gedrückt und wische nach links oder rechts, um die Seiten zu wechseln.
+Moves a carousel post's page dots onto a round pill at the bottom of its photo or video, with the page you're on in blue, or your accent color when Accent color is on. Hold the pill and slide left or right to move through the pages.	Verschiebt die Seitenpunkte eines Karussellbeitrags in eine runde Kapsel unten auf dem Foto oder Video. Die Seite, auf der du bist, ist blau oder, wenn Akzentfarbe an ist, in deiner Akzentfarbe. Halte die Kapsel gedrückt und wische nach links oder rechts, um die Seiten zu wechseln.
 # context: Feed settings: the Hide page number switch, under Carousel arrows (#581). The number is the 3/5 in the corner of a carousel post.
 Hide page number	Seitenzahl ausblenden
 Takes the number like 3/5 off the corner of a carousel post's photo or video.	Entfernt die Zahl wie 3/5 aus der Ecke des Fotos oder Videos eines Karussellbeitrags.
@@ -2141,9 +2141,11 @@ Solid	Deckend
 See-through	Durchsichtig
 # context: a look for the page-dots pill and the seek bars: blurs what's under it
 Frosted glass	Milchglas
+Dots only	Nur Punkte
 A light pill with dark dots, as it's always been.	Eine helle Kapsel mit dunklen Punkten, wie bisher.
 A see-through dark pill with white dots, so more of the photo shows.	Eine durchsichtige dunkle Kapsel mit weißen Punkten, damit mehr vom Foto zu sehen ist.
 A frosted glass pill that blurs the photo under it. Before Android 12 it's see-through instead.	Eine Kapsel aus Milchglas, die das Foto darunter verschwimmen lässt. Vor Android 12 ist sie stattdessen durchsichtig.
+Just the white dots with no pill behind them. A soft shadow keeps them clear on a bright photo.	Nur die weißen Punkte, ohne Kapsel dahinter. Ein weicher Schatten hält sie auf hellen Fotos gut sichtbar.
 Turn on Page dots on a pill to use this choice.	Aktiviere „Seitenpunkte in einer Kapsel“, um diese Auswahl zu nutzen.
 Turn on Seek bar on feed videos or its button to use this choice.	Aktiviere „Zeitleiste in Feed-Videos“ oder ihre Schaltfläche, um diese Auswahl zu nutzen.
 Turn on Seek bar on stories to use this choice.	Aktiviere „Zeitleiste in Stories“, um diese Auswahl zu nutzen.

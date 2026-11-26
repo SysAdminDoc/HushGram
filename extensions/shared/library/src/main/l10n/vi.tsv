@@ -1762,7 +1762,7 @@ Puts a back and a next arrow on a carousel post's photos and videos. Tap one to 
 Previous page	Trang trước
 Next page	Trang sau
 Page dots on a pill	Chấm trang trên viên thuốc
-Moves a carousel post's page dots onto a round pill at the bottom of its photo or video, with the page you're on in blue. Hold the pill and slide left or right to move through the pages.	Đưa các chấm trang của bài viết nhiều trang lên viên thuốc tròn ở cuối ảnh hoặc video, trang đang xem màu xanh dương. Giữ viên thuốc rồi trượt sang trái hoặc phải để chuyển trang.
+Moves a carousel post's page dots onto a round pill at the bottom of its photo or video, with the page you're on in blue, or your accent color when Accent color is on. Hold the pill and slide left or right to move through the pages.	Đưa các chấm trang của bài viết nhiều trang lên viên thuốc tròn ở cuối ảnh hoặc video, trang đang xem màu xanh dương, hoặc màu nhấn khi bật Màu nhấn. Giữ viên thuốc rồi trượt sang trái hoặc phải để chuyển trang.
 # context: Feed settings: the Hide page number switch, under Carousel arrows (#581). The number is the 3/5 in the corner of a carousel post.
 Hide page number	Ẩn số trang
 Takes the number like 3/5 off the corner of a carousel post's photo or video.	Bỏ số như 3/5 ở góc ảnh hoặc video của bài viết dạng băng chuyền.
@@ -2056,9 +2056,11 @@ Solid	Đặc
 See-through	Trong suốt
 # context: a look for the page-dots pill and the seek bars: blurs what's under it
 Frosted glass	Kính mờ
+Dots only	Chỉ chấm
 A light pill with dark dots, as it's always been.	Viên thuốc sáng màu với chấm tối, như trước giờ.
 A see-through dark pill with white dots, so more of the photo shows.	Viên thuốc tối trong suốt với chấm trắng, để thấy rõ ảnh hơn.
 A frosted glass pill that blurs the photo under it. Before Android 12 it's see-through instead.	Viên thuốc kính mờ làm nhòe ảnh bên dưới. Trước Android 12, viên thuốc chỉ trong suốt.
+Just the white dots with no pill behind them. A soft shadow keeps them clear on a bright photo.	Chỉ có các chấm trắng, không có viên thuốc phía sau. Bóng mờ nhẹ giúp chấm vẫn rõ trên ảnh sáng.
 Turn on Page dots on a pill to use this choice.	Hãy bật Chấm trang trên viên thuốc để dùng lựa chọn này.
 Turn on Seek bar on feed videos or its button to use this choice.	Hãy bật Thanh tua trên video bảng feed hoặc nút của nó để dùng lựa chọn này.
 Turn on Seek bar on stories to use this choice.	Hãy bật Thanh tua trên tin để dùng lựa chọn này.

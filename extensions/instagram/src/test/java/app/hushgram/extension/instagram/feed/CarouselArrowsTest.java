@@ -14,6 +14,9 @@ import static org.robolectric.Shadows.shadowOf;
 
 import android.app.Activity;
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Rect;
 import android.os.Looper;
 import android.os.SystemClock;
@@ -42,7 +45,9 @@ import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.Config;
+import org.robolectric.annotation.GraphicsMode;
 
+import app.hushgram.extension.instagram.misc.AccentHue;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
@@ -1016,6 +1021,65 @@ public class CarouselArrowsTest {
         assertEquals(CarouselArrows.Pill.DARK, CarouselArrows.Pill.otherDot(OverlayLook.SOLID));
         assertEquals(CarouselArrows.Pill.LIGHT_DOT, CarouselArrows.Pill.otherDot(OverlayLook.SEE_THROUGH));
         assertEquals(CarouselArrows.Pill.LIGHT_DOT, CarouselArrows.Pill.otherDot(OverlayLook.FROSTED));
+        assertEquals("dots only has nothing behind its dots", 0, CarouselArrows.Pill.back(OverlayLook.DOTS_ONLY, false));
+        assertEquals(CarouselArrows.Pill.LIGHT_DOT, CarouselArrows.Pill.otherDot(OverlayLook.DOTS_ONLY));
+    }
+
+    /**
+     * #187: the dot for the page showing takes the color Accent color picked, Instagram's blue with none, and
+     * Dots only draws the dots with no pill behind them, each over its shadow.
+     */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    public void thePageDotTakesTheAccentColorAndDotsOnlyDropsThePill() {
+        CarouselArrows.Pill pill = new CarouselArrows.Pill(activity);
+        float density = activity.getResources().getDisplayMetrics().density;
+        int width = CarouselArrows.Pill.widest(density), height = Math.round(CarouselArrows.PILL_HEIGHT * density);
+        pill.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY));
+        pill.layout(0, 0, width, height);
+        pill.showing(1, 3);
+        float left = (width - CarouselArrows.Pill.wide(3, density)) / 2f;
+        float step = (CarouselArrows.DOT + CarouselArrows.DOT_GAP) * density;
+        int middle = height / 2;
+        int first = Math.round(left + (CarouselArrows.PILL_PAD + CarouselArrows.DOT / 2) * density);
+        int showing = Math.round(first + step);
+        // Just inside the pill's round end, past the reach of the first dot's shadow.
+        int pillOnly = Math.round(left + density);
+        try {
+            assertEquals("Instagram's blue with no color picked", CarouselArrows.Pill.BLUE, drawn(pill, showing, middle));
+            assertEquals(CarouselArrows.Pill.DARK, drawn(pill, first, middle));
+            assertTrue("the light pill is behind its dots", Color.alpha(drawn(pill, pillOnly, middle)) > 0x80);
+
+            Settings.ACCENT_COLOR.save(true);
+            Settings.ACCENT_HUE.save(AccentHue.GREEN);
+            assertEquals(0xff000000 | AccentHue.GREEN.fill, drawn(pill, showing, middle));
+            assertEquals("only the page showing takes it", CarouselArrows.Pill.DARK, drawn(pill, first, middle));
+
+            pill.look(OverlayLook.DOTS_ONLY);
+            int bare = drawn(pill, pillOnly, middle);
+            assertEquals("no pill behind the dots: " + Integer.toHexString(bare), 0, Color.alpha(bare));
+            assertEquals(0xff000000 | AccentHue.GREEN.fill, drawn(pill, showing, middle));
+            int other = drawn(pill, first, middle);
+            assertTrue("a white dot: " + Integer.toHexString(other),
+                    Color.red(other) > 0xc0 && Color.green(other) > 0xc0 && Color.blue(other) > 0xc0);
+            int shadow = drawn(pill, Math.round(first - (CarouselArrows.DOT / 2 + 1) * density), middle);
+            assertTrue("each dot sits on a shadow: " + Integer.toHexString(shadow),
+                    Color.alpha(shadow) > 0 && Color.red(shadow) < 0x80);
+
+            Settings.ACCENT_COLOR.save(false);
+            assertEquals(CarouselArrows.Pill.BLUE, drawn(pill, showing, middle));
+        } finally {
+            Settings.ACCENT_COLOR.resetToDefault();
+            Settings.ACCENT_HUE.resetToDefault();
+        }
+    }
+
+    /** The colour [pill] draws at [x], [y]. */
+    private static int drawn(View pill, int x, int y) {
+        Bitmap bitmap = Bitmap.createBitmap(pill.getWidth(), pill.getHeight(), Bitmap.Config.ARGB_8888);
+        pill.draw(new Canvas(bitmap));
+        return bitmap.getPixel(x, y);
     }
 
     @Test

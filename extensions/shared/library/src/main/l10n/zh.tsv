@@ -1825,7 +1825,7 @@ Previous page	上一页
 Next page	下一页
 # context: Feed settings: the Page dots on a pill switch, right under Carousel arrows (#419). A pill is a small bar with round ends that holds the dots.
 Page dots on a pill	胶囊页面圆点
-Moves a carousel post's page dots onto a round pill at the bottom of its photo or video, with the page you're on in blue. Hold the pill and slide left or right to move through the pages.	将轮播帖子的页面圆点移到照片或视频底部的圆角胶囊上，目前的页面以蓝色显示。按住胶囊并左右滑动即可切换页面。
+Moves a carousel post's page dots onto a round pill at the bottom of its photo or video, with the page you're on in blue, or your accent color when Accent color is on. Hold the pill and slide left or right to move through the pages.	将轮播帖子的页面圆点移到照片或视频底部的圆角胶囊上，目前的页面以蓝色显示，开启强调色时则以强调色显示。按住胶囊并左右滑动即可切换页面。
 # context: Feed settings: the Hide page number switch, under Carousel arrows (#581). The number is the 3/5 in the corner of a carousel post.
 Hide page number	隐藏页码
 Takes the number like 3/5 off the corner of a carousel post's photo or video.	拿掉轮播帖子照片或视频角落类似 3/5 的数字。
@@ -2144,9 +2144,11 @@ Solid	不透明
 See-through	半透明
 # context: a look for the page-dots pill and the seek bars: blurs what's under it
 Frosted glass	毛玻璃
+Dots only	仅圆点
 A light pill with dark dots, as it's always been.	浅色胶囊配深色圆点，与以往相同。
 A see-through dark pill with white dots, so more of the photo shows.	半透明深色胶囊配白色圆点，能看到更多照片。
 A frosted glass pill that blurs the photo under it. Before Android 12 it's see-through instead.	毛玻璃胶囊，会模糊其下方的照片。Android 12 以前改为半透明。
+Just the white dots with no pill behind them. A soft shadow keeps them clear on a bright photo.	只显示白色圆点，背后没有胶囊。柔和的阴影让圆点在明亮的照片上也看得清楚。
 Turn on Page dots on a pill to use this choice.	请启用“胶囊页面圆点”以使用此选项。
 Turn on Seek bar on feed videos or its button to use this choice.	请启用“动态视频拖动条”或其按钮以使用此选项。
 Turn on Seek bar on stories to use this choice.	请启用“快拍拖动条”以使用此选项。

@@ -49,8 +49,9 @@ public final class GlassSeekBar extends SeekBar {
         look(OverlayLook.SOLID);
     }
 
-    /** Takes on [wanted]'s colours, unless it has them already. */
+    /** Takes on [wanted]'s colours, unless it has them already. The pill's dots-only look draws solid. */
     public void look(OverlayLook wanted) {
+        if (wanted == OverlayLook.DOTS_ONLY) wanted = OverlayLook.SOLID;
         if (wanted == null || wanted == look) return;
         look = wanted;
         setProgressTintList(ColorStateList.valueOf(progress(wanted)));

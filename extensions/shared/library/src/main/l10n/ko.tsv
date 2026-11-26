@@ -1821,7 +1821,7 @@ Previous page	이전 페이지
 Next page	다음 페이지
 # context: Feed settings: the Page dots on a pill switch, right under Carousel arrows (#419). A pill is a small bar with round ends that holds the dots.
 Page dots on a pill	알약 모양 페이지 점
-Moves a carousel post's page dots onto a round pill at the bottom of its photo or video, with the page you're on in blue. Hold the pill and slide left or right to move through the pages.	캐러셀 게시물의 페이지 점을 사진이나 동영상 아래쪽의 둥근 알약 모양 위로 옮깁니다. 지금 보고 있는 페이지는 파란색으로 표시됩니다. 알약을 길게 누른 채 왼쪽이나 오른쪽으로 밀면 페이지를 넘길 수 있습니다.
+Moves a carousel post's page dots onto a round pill at the bottom of its photo or video, with the page you're on in blue, or your accent color when Accent color is on. Hold the pill and slide left or right to move through the pages.	캐러셀 게시물의 페이지 점을 사진이나 동영상 아래쪽의 둥근 알약 모양 위로 옮깁니다. 지금 보고 있는 페이지는 파란색으로 표시되며, 강조 색상이 켜져 있으면 강조 색상으로 표시됩니다. 알약을 길게 누른 채 왼쪽이나 오른쪽으로 밀면 페이지를 넘길 수 있습니다.
 # context: Feed settings: the Hide page number switch, under Carousel arrows (#581). The number is the 3/5 in the corner of a carousel post.
 Hide page number	페이지 번호 숨기기
 Takes the number like 3/5 off the corner of a carousel post's photo or video.	캐러셀 게시물의 사진이나 동영상 모서리에 있는 3/5 같은 숫자를 없앱니다.
@@ -2140,9 +2140,11 @@ Solid	불투명
 See-through	반투명
 # context: a look for the page-dots pill and the seek bars: blurs what's under it
 Frosted glass	젖빛 유리
+Dots only	점만
 A light pill with dark dots, as it's always been.	지금까지처럼 밝은 알약에 어두운 점을 표시합니다.
 A see-through dark pill with white dots, so more of the photo shows.	사진이 더 잘 보이도록 반투명한 어두운 알약에 흰색 점을 표시합니다.
 A frosted glass pill that blurs the photo under it. Before Android 12 it's see-through instead.	아래 사진을 흐리게 비추는 젖빛 유리 알약입니다. Android 12 이전에는 대신 반투명하게 표시됩니다.
+Just the white dots with no pill behind them. A soft shadow keeps them clear on a bright photo.	알약 없이 흰색 점만 표시합니다. 부드러운 그림자 덕분에 밝은 사진 위에서도 잘 보입니다.
 Turn on Page dots on a pill to use this choice.	이 옵션을 사용하려면 ‘알약 모양 페이지 점’을 켜세요
 Turn on Seek bar on feed videos or its button to use this choice.	이 옵션을 사용하려면 ‘피드 동영상 탐색 막대’ 또는 그 버튼을 켜세요
 Turn on Seek bar on stories to use this choice.	이 옵션을 사용하려면 ‘스토리 탐색 막대’를 켜세요

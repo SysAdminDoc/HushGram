@@ -116,6 +116,21 @@ public final class AccentColor {
     }
 
     /**
+     * [color], one of Instagram's accent blues that HushGram draws itself (the carousel pill's page dot, #187),
+     * as the picked color's shade, or [color] with no color picked. Unlike {@link #color} it's no hook, so it
+     * counts nothing. Never throws.
+     */
+    public static int shade(int color) {
+        try {
+            AccentHue hue = picked();
+            return hue == null ? color : swap(color, hue);
+        } catch (Throwable failure) {
+            Logger.printException(() -> "accent shade", failure);
+            return color;
+        }
+    }
+
+    /**
      * Injected where one of Instagram's Compose palettes stores an accent blue, as the palette is set
      * up. A Compose color in the sRGB space holds its ARGB in the high 32 bits and nothing in the low
      * ones; answers [value] as the picked color's shade then, keeping the alpha, and [value] itself

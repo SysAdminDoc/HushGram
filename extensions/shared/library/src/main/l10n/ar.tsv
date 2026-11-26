@@ -107,6 +107,7 @@ A file named %1$s in %2$s paused HushGram.	ملف باسم %1$s في %2$s أوق
 A finished story stays on screen until you tap or swipe. Turn this off for Instagram's timing.	القصة المنتهية تبقى على الشاشة حتى تنقر أو تسحب. أوقف هذا لتوقيت Instagram.
 A font file	ملف خط
 A frosted glass pill that blurs the photo under it. Before Android 12 it's see-through instead.	كبسولة زجاجية مثلجة تطمس الصورة تحتها. وقبل Android 12 تكون شفافة بدلًا من ذلك.
+Just the white dots with no pill behind them. A soft shadow keeps them clear on a bright photo.	النقاط البيضاء فقط بلا شريط خلفها. ظل خفيف يبقيها واضحة فوق الصور الفاتحة.
 A group for each kind of notification, such as comments or messages, in place of one group.	مجموعة لكل نوع من الإشعارات كالتعليقات أو الرسائل، بدلًا من مجموعة واحدة.
 A left swipe on a reel opens the creator's profile, like Instagram used to. Tap Friends at the top to reach your friends' reels.	السحب لليسار على reel يفتح ملف صاحبه، كما كان Instagram سابقًا. اضغط Friends في الأعلى للوصول إلى Reels أصدقائك.
 A light pill with dark dots, as it's always been.	كبسولة فاتحة بنقاط داكنة، كما كانت دائمًا.
@@ -708,6 +709,7 @@ Frequent	متكرر
 Friendship status	حالة الصداقة
 From the next start, every switch but Debug logging acts as if it were off. Changes made when you patched stay in, and your choices stay saved.	من التشغيل التالي، يعمل كل مفتاح عدا Debug logging وكأنه متوقف. تبقى التغييرات التي أجريتها عند تطبيق التعديل، وتبقى اختياراتك محفوظة.
 Frosted glass	زجاج مثلج
+Dots only	النقاط فقط
 Full report saved to %1$s	تم حفظ التقرير الكامل في %1$s
 Full resolution photos	صور بالدقة الكاملة
 Full screen	ملء الشاشة
@@ -1309,7 +1311,7 @@ Move down	نقل لأسفل
 Move on when a reel ends	الانتقال عند انتهاء الـ Reel
 Move up	نقل لأعلى
 Moves Home on to the next post by itself. A video moves on when it ends, a photo or carousel after Time on each post. Touch the screen to hold it.	ينقل الرئيسية إلى المنشور التالي تلقائياً. الفيديو ينتقل عند انتهائه، والصورة أو المنشور الدائري بعد الوقت المحدد لكل منشور. المس الشاشة لتثبيته.
-Moves a carousel post's page dots onto a round pill at the bottom of its photo or video, with the page you're on in blue. Hold the pill and slide left or right to move through the pages.	ينقل نقاط صفحات المنشور الدائري إلى شريط بيضاوي في أسفل الصورة أو الفيديو، مع الصفحة الحالية بالأزرق. اضغط مطولاً على الشريط واسحب يميناً أو يساراً للتنقل بين الصفحات.
+Moves a carousel post's page dots onto a round pill at the bottom of its photo or video, with the page you're on in blue, or your accent color when Accent color is on. Hold the pill and slide left or right to move through the pages.	ينقل نقاط صفحات المنشور الدائري إلى شريط بيضاوي في أسفل الصورة أو الفيديو، مع الصفحة الحالية بالأزرق، أو بلون التمييز عند تشغيل لون التمييز. اضغط مطولاً على الشريط واسحب يميناً أو يساراً للتنقل بين الصفحات.
 Moves the Mark as seen and Download buttons to the bottom right of a story, next to Like and Share, where your thumb is. Stories without Like and Share keep them at the top.	ينقل زرّي وضع علامة كمشاهَد والتنزيل إلى أسفل يمين القصة، بجانب الإعجاب والمشاركة، حيث يكون إبهامك. القصص بلا إعجاب ومشاركة تُبقيهما في الأعلى.
 Moves the gallery and microphone buttons off the message bar and into the plus menu. They work as before. Turn it off and they're back the next time a chat opens.	ينقل زرّي المعرض والميكروفون من شريط الرسائل إلى قائمة الإضافة. يعملان كما كانا. أوقفه وسيعودان في المرة التالية التي تُفتح فيها محادثة.
 Mute	كتم الصوت

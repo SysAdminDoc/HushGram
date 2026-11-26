@@ -1810,7 +1810,7 @@ Previous page	หน้าก่อนหน้า
 Next page	หน้าถัดไป
 # context: Feed settings: the Page dots on a pill switch, right under Carousel arrows (#419). A pill is a small bar with round ends that holds the dots.
 Page dots on a pill	จุดบอกหน้าในแถบแคปซูล
-Moves a carousel post's page dots onto a round pill at the bottom of its photo or video, with the page you're on in blue. Hold the pill and slide left or right to move through the pages.	ย้ายจุดบอกหน้าของโพสต์ภาพหมุนไปยังแถบแคปซูลมนที่ด้านล่างของรูปภาพหรือวิดีโอ โดยแสดงหน้าที่คุณเปิดอยู่เป็นสีฟ้า กดแถบแคปซูลค้างไว้แล้วเลื่อนไปทางซ้ายหรือขวาเพื่อเปลี่ยนหน้า
+Moves a carousel post's page dots onto a round pill at the bottom of its photo or video, with the page you're on in blue, or your accent color when Accent color is on. Hold the pill and slide left or right to move through the pages.	ย้ายจุดบอกหน้าของโพสต์ภาพหมุนไปยังแถบแคปซูลมนที่ด้านล่างของรูปภาพหรือวิดีโอ โดยแสดงหน้าที่คุณเปิดอยู่เป็นสีฟ้า หรือเป็นสีเน้นเมื่อเปิดสีเน้นไว้ กดแถบแคปซูลค้างไว้แล้วเลื่อนไปทางซ้ายหรือขวาเพื่อเปลี่ยนหน้า
 # context: Feed settings: the Ambient light switch and its Glow spread and Glow speed lists (#416)
 Ambient light	แสงรอบข้าง
 Puts a soft glow in a post's own colors around its photo or video, and in the bands around a reel that doesn't fill the screen. The glow follows a video as it plays.	แสดงแสงเรืองนุ่มนวลตามโทนสีของโพสต์รอบๆ รูปภาพหรือวิดีโอ และบริเวณขอบรอบรีลส์ที่ไม่เต็มหน้าจอ โดยแสงเรืองจะเปลี่ยนตามวิดีโอขณะเล่น
@@ -2126,9 +2126,11 @@ Solid	ทึบแสง
 See-through	โปร่งแสง
 # context: a look for the page-dots pill and the seek bars: blurs what's under it
 Frosted glass	กระจกฝ้า
+Dots only	เฉพาะจุด
 A light pill with dark dots, as it's always been.	แถบแคปซูลสีสว่างพร้อมจุดสีเข้มตามรูปแบบเดิม
 A see-through dark pill with white dots, so more of the photo shows.	แถบแคปซูลสีเข้มแบบโปร่งแสงพร้อมจุดสีขาว เพื่อให้เห็นรูปภาพได้มากขึ้น
 A frosted glass pill that blurs the photo under it. Before Android 12 it's see-through instead.	แถบแคปซูลแบบกระจกฝ้าที่เบลอรูปภาพด้านล่าง สำหรับเวอร์ชันก่อน Android 12 จะแสดงเป็นแบบโปร่งแสงแทน
+Just the white dots with no pill behind them. A soft shadow keeps them clear on a bright photo.	แสดงเฉพาะจุดสีขาวโดยไม่มีแถบแคปซูลด้านหลัง เงาจาง ๆ ช่วยให้มองเห็นได้ชัดบนรูปภาพสีสว่าง
 Turn on Page dots on a pill to use this choice.	เปิด "จุดบอกหน้าในแถบแคปซูล" เพื่อใช้ตัวเลือกนี้
 Turn on Seek bar on feed videos or its button to use this choice.	เปิด "แถบเลื่อนเวลาในวิดีโอฟีด" หรือปุ่มของฟีเจอร์นี้เพื่อใช้ตัวเลือกนี้
 Turn on Seek bar on stories to use this choice.	เปิด "แถบเลื่อนเวลาในสตอรี่" เพื่อใช้ตัวเลือกนี้

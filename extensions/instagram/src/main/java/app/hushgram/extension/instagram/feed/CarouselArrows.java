@@ -35,6 +35,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.WeakHashMap;
 
+import app.hushgram.extension.instagram.misc.AccentColor;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.instagram.settings.SettingsStatus;
@@ -58,7 +59,7 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * dots, the page counter and a video's playback follow as they do after a swipe.
  *
  * <p>Its second switch, Page dots on a pill (#419), puts a {@link Pill} of page dots over the bottom
- * of each carousel instead, the page showing in blue, and fades out Instagram's own dots ({@link #DOTS})
+ * of each carousel instead, the page showing in blue or the accent color, and fades out Instagram's own dots ({@link #DOTS})
  * under that carousel while the pill stands in for them. Instagram keeps those dots in another row of
  * the feed, so they're matched to a carousel by where they sit: the nearest set just under it. Like
  * Instagram's own dots, the pill can be held and slid along to move through the pages (#651).
@@ -677,14 +678,15 @@ public final class CarouselArrows {
     }
 
     /**
-     * A carousel's page dots on a round pill: the page showing in Instagram's blue. Up to {@link #MAX_DOTS}
-     * show, so a longer carousel's dots slide along with its page, an end dot drawn smaller while more pages
-     * lie past it. The view is as wide as the widest pill and draws its pill centered, so a carousel that
-     * grows never lays the post out again.
+     * A carousel's page dots on a round pill: the page showing in Instagram's blue, or in the color Accent
+     * color picked (#187). Up to {@link #MAX_DOTS} show, so a longer carousel's dots slide along with its page,
+     * an end dot drawn smaller while more pages lie past it. The view is as wide as the widest pill and draws
+     * its pill centered, so a carousel that grows never lays the post out again.
      *
      * <p>Its look is Pill look's choice (#471): a light pill with dark dots, as it always was, a see-through
-     * dark one with white dots, or frosted glass ({@link FrostedBackdrop}) that blurs the page under it,
-     * recorded as each frame is about to draw ({@link #frost}).
+     * dark one with white dots, frosted glass ({@link FrostedBackdrop}) that blurs the page under it,
+     * recorded as each frame is about to draw ({@link #frost}), or the white dots alone with no pill, each
+     * over a soft shadow so it still reads on a bright photo (#187).
      */
     static final class Pill extends View {
         static final int BLUE = 0xFF0095F6, DARK = 0xFF3C3C3C, BACK = 0xCCDCDCDC;
@@ -692,6 +694,9 @@ public final class CarouselArrows {
         static final int SEE_THROUGH_BACK = 0x4D000000, LIGHT_DOT = 0xB3FFFFFF;
         /** Over the blur, a lighter shade, so white dots still read on a bright page, and a hairline edge. */
         static final int FROST_TINT = 0x26000000, FROST_EDGE = 0x59FFFFFF;
+        /** The shadow under each dot with no pill behind it, and how far it spreads, in dp. */
+        static final int DOT_SHADOW = 0x80000000;
+        static final float DOT_SHADOW_SPREAD = 2;
 
         private final Paint back = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Paint edge = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -750,6 +755,8 @@ public final class CarouselArrows {
                     return SEE_THROUGH_BACK;
                 case FROSTED:
                     return blurred ? FROST_TINT : SEE_THROUGH_BACK;
+                case DOTS_ONLY:
+                    return 0;
                 default:
                     return BACK;
             }
@@ -758,6 +765,11 @@ public final class CarouselArrows {
         /** The colour of a dot for a page not showing, with [look]. */
         static int otherDot(OverlayLook look) {
             return look == OverlayLook.SOLID ? DARK : LIGHT_DOT;
+        }
+
+        /** The colour of the dot for the page showing: Instagram's blue, or Accent color's shade of it (#187). */
+        static int currentDot() {
+            return AccentColor.shade(BLUE);
         }
 
         /** The view's width, which holds the pill of {@link #MAX_DOTS} dots, in pixels. */
@@ -795,19 +807,24 @@ public final class CarouselArrows {
             float left = (getWidth() - wide) / 2f;
             shape.set(left, 0, left + wide, height);
             float radius = height / 2f;
+            boolean bare = look == OverlayLook.DOTS_ONLY;
             boolean blurred = look == OverlayLook.FROSTED && backdrop.draw(canvas, shape, radius);
-            back.setColor(back(look, blurred));
-            canvas.drawRoundRect(shape, radius, radius, back);
+            if (!bare) {
+                back.setColor(back(look, blurred));
+                canvas.drawRoundRect(shape, radius, radius, back);
+            }
             if (look == OverlayLook.FROSTED) {
                 float line = Math.max(1f, density / 2f);
                 edge.setStrokeWidth(line);
                 shape.inset(line / 2f, line / 2f);
                 canvas.drawRoundRect(shape, radius, radius, edge);
             }
-            int other = otherDot(look);
+            if (bare) dot.setShadowLayer(DOT_SHADOW_SPREAD * density, 0, 0, DOT_SHADOW);
+            else dot.clearShadowLayer();
+            int other = otherDot(look), current = currentDot();
             for (int i = 0; i < shown; i++) {
                 boolean more = (i == 0 && from > 0) || (i == shown - 1 && from + shown < count);
-                dot.setColor(from + i == at ? BLUE : other);
+                dot.setColor(from + i == at ? current : other);
                 canvas.drawCircle(left + pad + i * (size + gap) + size / 2, height / 2f, size / 2 * (more ? 0.6f : 1f), dot);
             }
         }

@@ -85,6 +85,11 @@ public class GlassSeekBarTest {
 
         bar.look(OverlayLook.SOLID);
         assertColours(Color.WHITE, Color.WHITE, GlassSeekBar.SOLID_TRACK);
+
+        bar.look(OverlayLook.SEE_THROUGH);
+        bar.look(OverlayLook.DOTS_ONLY);
+        assertEquals("the pill's dots-only look, brought in with a backup, draws solid", OverlayLook.SOLID, bar.look());
+        assertColours(Color.WHITE, Color.WHITE, GlassSeekBar.SOLID_TRACK);
     }
 
     @Test

@@ -107,7 +107,8 @@ public class CarouselArrowsSettingsTest {
         assertNotNull(row);
         assertEquals("Page dots on a pill", row.getTitle().toString());
         assertEquals("Moves a carousel post's page dots onto a round pill at the bottom of its photo or video, with "
-                + "the page you're on in blue. Hold the pill and slide left or right to move through the pages.",
+                + "the page you're on in blue, or your accent color when Accent color is on. Hold the pill and slide "
+                + "left or right to move through the pages.",
                 row.getSummary().toString());
         PreferenceGroup feed = arrows.getParent();
         assertSame(feed, row.getParent());

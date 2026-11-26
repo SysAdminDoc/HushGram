@@ -7434,25 +7434,26 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         }
     }
 
-    /** How Page dots on a pill's pill looks (#471). */
+    /** How Page dots on a pill's pill looks (#471), with the dots alone as a choice of its own (#187). */
     static OverlayLookRow carouselPillLookRow(Context context) {
-        return overlayLookRow(context, Settings.CAROUSEL_PILL_LOOK, L10n.t("Pill look"), new String[] {
+        return overlayLookRow(context, Settings.CAROUSEL_PILL_LOOK, OverlayLook.values(), L10n.t("Pill look"), new String[] {
                 L10n.t("A light pill with dark dots, as it's always been."),
                 L10n.t("A see-through dark pill with white dots, so more of the photo shows."),
                 L10n.t("A frosted glass pill that blurs the photo under it. Before Android 12 it's see-through instead."),
+                L10n.t("Just the white dots with no pill behind them. A soft shadow keeps them clear on a bright photo."),
         }, L10n.t("Turn on Page dots on a pill to use this choice."));
     }
 
     /** How the seek bar on feed videos looks (#471). */
     static OverlayLookRow feedSeekBarLookRow(Context context) {
-        return overlayLookRow(context, Settings.FEED_SEEK_BAR_LOOK, L10n.t("Seek bar look"), seekBarLookSummaries(),
-                L10n.t("Turn on Seek bar on feed videos or its button to use this choice."));
+        return overlayLookRow(context, Settings.FEED_SEEK_BAR_LOOK, OverlayLook.seekBarLooks(), L10n.t("Seek bar look"),
+                seekBarLookSummaries(), L10n.t("Turn on Seek bar on feed videos or its button to use this choice."));
     }
 
     /** How the seek bar on stories looks (#471). */
     static OverlayLookRow storySeekBarLookRow(Context context) {
-        return overlayLookRow(context, Settings.STORY_SEEK_BAR_LOOK, L10n.t("Seek bar look"), seekBarLookSummaries(),
-                L10n.t("Turn on Seek bar on stories to use this choice."));
+        return overlayLookRow(context, Settings.STORY_SEEK_BAR_LOOK, OverlayLook.seekBarLooks(), L10n.t("Seek bar look"),
+                seekBarLookSummaries(), L10n.t("Turn on Seek bar on stories to use this choice."));
     }
 
     /** Where the seek bar on stories sits (#636). Its values are the positions' own names. */
@@ -7496,13 +7497,12 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     }
 
     /**
-     * A choice of [setting]'s look, titled [title], with [summaries] saying what each look is in their order
+     * A choice of [setting]'s [looks], titled [title], with [summaries] saying what each look is in their order
      * and [needs] shown while its switch is off. Its values are the looks' own names.
      */
-    static OverlayLookRow overlayLookRow(Context context, EnumSetting<OverlayLook> setting, String title,
-            String[] summaries, String needs) {
-        OverlayLookRow row = new OverlayLookRow(context, setting, summaries, needs);
-        OverlayLook[] looks = OverlayLook.values();
+    static OverlayLookRow overlayLookRow(Context context, EnumSetting<OverlayLook> setting, OverlayLook[] looks,
+            String title, String[] summaries, String needs) {
+        OverlayLookRow row = new OverlayLookRow(context, setting, looks, summaries, needs);
         String[] labels = new String[looks.length];
         for (int i = 0; i < looks.length; i++) labels[i] = overlayLookLabel(looks[i]);
         fill(row, setting, looks, labels, title);
@@ -7605,6 +7605,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 return L10n.t("See-through");
             case FROSTED:
                 return L10n.t("Frosted glass");
+            case DOTS_ONLY:
+                return L10n.t("Dots only");
             default:
                 return L10n.t("Solid");
         }
@@ -11104,8 +11106,9 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     }
 
     static final class OverlayLookRow extends ChoiceRow<OverlayLook> {
-        OverlayLookRow(Context context, EnumSetting<OverlayLook> setting, String[] summaries, String needs) {
-            super(context, setting, OverlayLook.values(), summaries, needs);
+        OverlayLookRow(Context context, EnumSetting<OverlayLook> setting, OverlayLook[] looks, String[] summaries,
+                String needs) {
+            super(context, setting, looks, summaries, needs);
         }
     }
 

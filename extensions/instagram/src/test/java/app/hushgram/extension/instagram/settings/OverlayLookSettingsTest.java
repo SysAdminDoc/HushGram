@@ -237,10 +237,17 @@ public class OverlayLookSettingsTest {
         assertEquals("right under its switch", row, group.getPreference(aboveAt + 1));
         List<String> entries = new ArrayList<>();
         for (CharSequence entry : row.getEntries()) entries.add(String.valueOf(entry));
-        assertEquals(Arrays.asList("Solid", "See-through", "Frosted glass"), entries);
         List<String> values = new ArrayList<>();
         for (CharSequence value : row.getEntryValues()) values.add(String.valueOf(value));
-        assertEquals(Arrays.asList("SOLID", "SEE_THROUGH", "FROSTED"), values);
+        if (setting == Settings.CAROUSEL_PILL_LOOK) {
+            assertEquals("the pill's dots alone are its own choice (#187)",
+                    Arrays.asList("Solid", "See-through", "Frosted glass", "Dots only"), entries);
+            assertEquals(Arrays.asList("SOLID", "SEE_THROUGH", "FROSTED", "DOTS_ONLY"), values);
+        } else {
+            assertEquals("a seek bar has no dots to show alone",
+                    Arrays.asList("Solid", "See-through", "Frosted glass"), entries);
+            assertEquals(Arrays.asList("SOLID", "SEE_THROUGH", "FROSTED"), values);
+        }
         assertEquals("SOLID", row.getValue());
         return row;
     }
@@ -272,11 +279,17 @@ public class OverlayLookSettingsTest {
         assertEquals("A frosted glass pill that blurs the photo under it. Before Android 12 it's see-through instead.",
                 String.valueOf(row.getSummary()));
 
+        row.setValue("DOTS_ONLY");
+        ShadowLooper.idleMainLooper();
+        assertEquals(OverlayLook.DOTS_ONLY, Settings.CAROUSEL_PILL_LOOK.savedValue());
+        assertEquals("Just the white dots with no pill behind them. A soft shadow keeps them clear on a bright photo.",
+                String.valueOf(row.getSummary()));
+
         Settings.CAROUSEL_DOTS_PILL.save(false);
         ShadowLooper.idleMainLooper();
         row.showSummary();
         assertEquals("Turn on Page dots on a pill to use this choice.", String.valueOf(row.getSummary()));
-        assertEquals(OverlayLook.FROSTED, Settings.CAROUSEL_PILL_LOOK.savedValue());
+        assertEquals(OverlayLook.DOTS_ONLY, Settings.CAROUSEL_PILL_LOOK.savedValue());
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.CAROUSEL_PILL_LOOK.key));
     }
 

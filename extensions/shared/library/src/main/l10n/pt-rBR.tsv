@@ -1822,7 +1822,7 @@ Previous page	Página anterior
 Next page	Próxima página
 # context: Feed settings: the Page dots on a pill switch, right under Carousel arrows (#419). A pill is a small bar with round ends that holds the dots.
 Page dots on a pill	Pontos de página em uma pílula
-Moves a carousel post's page dots onto a round pill at the bottom of its photo or video, with the page you're on in blue. Hold the pill and slide left or right to move through the pages.	Move os pontos de página de uma publicação em carrossel para uma pílula arredondada na parte de baixo da foto ou do vídeo, com a página em que você está em azul. Segure a pílula e deslize para a esquerda ou para a direita para passar as páginas.
+Moves a carousel post's page dots onto a round pill at the bottom of its photo or video, with the page you're on in blue, or your accent color when Accent color is on. Hold the pill and slide left or right to move through the pages.	Move os pontos de página de uma publicação em carrossel para uma pílula arredondada na parte de baixo da foto ou do vídeo, com a página em que você está em azul, ou na sua cor de destaque quando Cor de destaque está ativada. Segure a pílula e deslize para a esquerda ou para a direita para passar as páginas.
 # context: Feed settings: the Hide page number switch, under Carousel arrows (#581). The number is the 3/5 in the corner of a carousel post.
 Hide page number	Ocultar número da página
 Takes the number like 3/5 off the corner of a carousel post's photo or video.	Tira o número como 3/5 do canto da foto ou do vídeo de uma publicação em carrossel.
@@ -2141,9 +2141,11 @@ Solid	Sólido
 See-through	Transparente
 # context: a look for the page-dots pill and the seek bars: blurs what's under it
 Frosted glass	Vidro fosco
+Dots only	Só pontos
 A light pill with dark dots, as it's always been.	Uma pílula clara com pontos escuros, como sempre foi.
 A see-through dark pill with white dots, so more of the photo shows.	Uma pílula escura transparente com pontos brancos, para mostrar mais da foto.
 A frosted glass pill that blurs the photo under it. Before Android 12 it's see-through instead.	Uma pílula de vidro fosco que desfoca a foto embaixo. Antes do Android 12 ela fica transparente.
+Just the white dots with no pill behind them. A soft shadow keeps them clear on a bright photo.	Só os pontos brancos, sem pílula atrás. Uma sombra suave deixa eles visíveis numa foto clara.
 Turn on Page dots on a pill to use this choice.	Ative Pontos de página em uma pílula para usar esta opção.
 Turn on Seek bar on feed videos or its button to use this choice.	Ative Barra de progresso nos vídeos do feed ou o botão dela para usar esta opção.
 Turn on Seek bar on stories to use this choice.	Ative Barra de progresso nos stories para usar esta opção.
