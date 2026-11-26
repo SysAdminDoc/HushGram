@@ -56,7 +56,8 @@ internal const val SETTLED_PER_METHOD = 3
  *
  * The color reaches the ring view's gradients ([colorRingGradients]) and, on Compose screens, the
  * default ring's colors ([colorComposeRing], #528), and on the chat list, the list of colors its rings'
- * brush is made from ([colorComposeRingBrush], #187). The thickness reaches every width the ring view
+ * brush is made from ([colorComposeRingBrush], #187), and each color the spinning ring around a group
+ * of profile pictures pairs with a stop ([colorGroupRing], #187). The thickness reaches every width the ring view
  * reads ([thickenRings], #528).
  */
 @Suppress("unused")
@@ -81,6 +82,7 @@ val storyRingSizePatch = bytecodePatch(
         val draw = findRingDraw()
         val composeRing = findComposeRing()
         val brush = findRingBrush()
+        val group = findRingGroup()
         val widths = findRingWidthReads()
         scaleRingSizes(sizings)
         // The widths go in by index, before the color hook moves the builder's code along and
@@ -89,6 +91,7 @@ val storyRingSizePatch = bytecodePatch(
         colorRingGradients(gradients)
         colorComposeRing(composeRing, RING_DEFAULT_COLORS)
         brush?.let { colorComposeRingBrush(it, RING_BRUSH_COLORS) }
+        group?.let { colorGroupRing(it, RING_GROUP_COLORS, RING_GROUP_BOXED_COLORS) }
         hideRingsOutsideTheRow(draw)
         enableStatus("storyRingSize")
     }
@@ -181,6 +184,19 @@ internal fun BytecodePatchContext.findRingBrush(): ComposeRingBrush? =
         findComposeRingBrush()
     } catch (refusal: PatchException) {
         patchLog.warning("${refusal.message}. $PATCH goes in without coloring the rings on the chat list.")
+        null
+    }
+
+/**
+ * The spinning ring around a group of profile pictures ([findGroupRing], #187), which pairs Compose's
+ * colors with the default ring's stops itself. None, with a warning, when it can't be found: Ring
+ * color then leaves only that ring in Instagram's gradient, and the rest of the patch goes in.
+ */
+internal fun BytecodePatchContext.findRingGroup(): GroupRing? =
+    try {
+        findGroupRing()
+    } catch (refusal: PatchException) {
+        patchLog.warning("${refusal.message}. $PATCH goes in without coloring the ring around a group of pictures.")
         null
     }
 

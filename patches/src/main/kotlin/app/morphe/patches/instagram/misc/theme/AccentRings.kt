@@ -15,13 +15,16 @@ import app.morphe.patches.instagram.misc.extension.patchLog
 import app.morphe.patches.instagram.stories.ring.ComposeRing
 import app.morphe.patches.instagram.stories.ring.ComposeRingBrush
 import app.morphe.patches.instagram.stories.ring.GRADIENT_SPINNER
+import app.morphe.patches.instagram.stories.ring.GroupRing
 import app.morphe.patches.instagram.stories.ring.RING_COLORS
 import app.morphe.patches.instagram.stories.ring.RingGradient
 import app.morphe.patches.instagram.stories.ring.colorComposeRing
 import app.morphe.patches.instagram.stories.ring.colorComposeRingBrush
+import app.morphe.patches.instagram.stories.ring.colorGroupRing
 import app.morphe.patches.instagram.stories.ring.colorRingGradients
 import app.morphe.patches.instagram.stories.ring.findComposeRing
 import app.morphe.patches.instagram.stories.ring.findComposeRingBrush
+import app.morphe.patches.instagram.stories.ring.findGroupRing
 import app.morphe.patches.instagram.stories.ring.findRingGradients
 import app.morphe.util.ControlFlow
 import com.android.tools.smali.dexlib2.AccessFlags
@@ -43,6 +46,8 @@ internal const val ACCENT_DEFAULT_RING = "$ACCENT_RINGS->composeColors([I)[I"
 internal const val ACCENT_SEEN_RING = "$ACCENT_RINGS->seen(I)I"
 internal const val ACCENT_RING_BRUSH = "$ACCENT_RINGS->composeBrush(Ljava/util/List;)Ljava/util/List;"
 internal const val ACCENT_COMPOSE_SEEN = "$ACCENT_RINGS->composeSeen(J)J"
+internal const val ACCENT_GROUP_RING = "$ACCENT_RINGS->composeStop(FJ)J"
+internal const val ACCENT_GROUP_BOXED_RING = "$ACCENT_RINGS->composeBoxedStop(Ljava/lang/Object;J)J"
 
 /** What the chat list's ring brush takes, a list of Compose colors. */
 private const val BRUSH_TAKES = "Ljava/util/List;"
@@ -61,6 +66,7 @@ internal class AccentRingHooks(
     val brush: ComposeRingBrush,
     val seenRegister: Int,
     val composeSeen: List<ComposeSeenRing> = emptyList(),
+    val group: GroupRing? = null,
 )
 
 /**
@@ -76,13 +82,18 @@ internal class AccentRingHooks(
  * chat list's rings take Compose's own yellow, orange, pink and purple and make their brush from them
  * in one static the finder for it reads (#683). Those rows draw a seen story's ring themselves, in a
  * gray from Compose's palette ([findComposeSeenRings]); a build where none is found goes in without
- * them, with a warning.
+ * them, with a warning. So does one without the spinning ring around a group of profile pictures
+ * ([findGroupRing]), which pairs Compose's yellow, orange, pink and purple with the stops itself.
  */
 internal fun BytecodePatchContext.findAccentRings(): AccentRingHooks {
     val declared = classDefByOrNull(ACCENT_RINGS)?.methods?.toList().orEmpty()
         .filter { AccessFlags.STATIC.isSet(it.accessFlags) && AccessFlags.PUBLIC.isSet(it.accessFlags) }
         .map { "${it.definingClass}->${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
-    for (hook in listOf(ACCENT_RING_COLORS, ACCENT_DEFAULT_RING, ACCENT_SEEN_RING, ACCENT_RING_BRUSH, ACCENT_COMPOSE_SEEN)) {
+    val hooks = listOf(
+        ACCENT_RING_COLORS, ACCENT_DEFAULT_RING, ACCENT_SEEN_RING, ACCENT_RING_BRUSH, ACCENT_COMPOSE_SEEN, ACCENT_GROUP_RING,
+        ACCENT_GROUP_BOXED_RING,
+    )
+    for (hook in hooks) {
         if (hook !in declared) throw PatchException("Accent color: the extension has no public static $hook")
     }
     val gradients = findRingGradients("Accent color")
@@ -98,7 +109,13 @@ internal fun BytecodePatchContext.findAccentRings(): AccentRingHooks {
     if (composeSeen.isEmpty()) {
         patchLog.warning("Accent color: no chat list row reads a seen story ring's color. It goes in without those rings.")
     }
-    return AccentRingHooks(gradients, composeRing, brush, setter.parameterRegisterNumber(0), composeSeen)
+    val group = try {
+        findGroupRing("Accent color")
+    } catch (refusal: PatchException) {
+        patchLog.warning("${refusal.message}. It goes in without the ring around a group of pictures.")
+        null
+    }
+    return AccentRingHooks(gradients, composeRing, brush, setter.parameterRegisterNumber(0), composeSeen, group)
 }
 
 /** A chat list row that draws a seen story's ring in a color from Compose's palette: its method, by class, name and parameters. */
@@ -220,7 +237,10 @@ private fun Method.isInactiveSetter() = name == INACTIVE_SETTER && returnType ==
  * in their brush. Story ring size hooks that brush too, and whichever goes in later runs first, which
  * draws the same ring either way: this one answers a picked Ring color back, and Ring color answers
  * back what it's given while none is picked. The chat list rows' seen ring color goes to the
- * extension right after each row reads it.
+ * extension right after each row reads it, and each color of the group ring right before it's paired
+ * with its stop. Whichever patch goes in later puts its hook after the other's, right before the
+ * pairing, which draws the same ring either way: this one gives way to a picked Ring color, and Ring
+ * color answers back what it's given while none is picked.
  */
 internal fun BytecodePatchContext.colorAccentRings(hooks: AccentRingHooks) {
     colorRingGradients(hooks.gradients, ACCENT_RING_COLORS, behind = RING_COLORS)
@@ -235,4 +255,5 @@ internal fun BytecodePatchContext.colorAccentRings(hooks: AccentRingHooks) {
         """,
     )
     hooks.composeSeen.forEach { colorComposeSeenRing(it) }
+    hooks.group?.let { colorGroupRing(it, ACCENT_GROUP_RING, ACCENT_GROUP_BOXED_RING, "Accent color") }
 }

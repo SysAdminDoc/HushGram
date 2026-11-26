@@ -32,7 +32,8 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * in one gray the ring view is handed apart from its gradient, which goes to {@link #seen} (#187),
  * and the chat list's rows draw theirs in a Compose gray that goes to {@link #composeSeen}.
  * The chat list's rings make their brush from Compose's own yellow, orange, pink and purple, which go
- * to {@link #composeBrush} (#683).
+ * to {@link #composeBrush} (#683). The spinning ring around a group of profile pictures pairs the
+ * same four with the default ring's stops itself, each through {@link #composeStop}.
  * A color picked under Story ring size's Ring color wins, so the two never fight over a ring.
  */
 public final class AccentRings {
@@ -211,6 +212,41 @@ public final class AccentRings {
             HookStatus.threw(FamilyNames.ACCENT_COLOR, "seen chat list story ring", failure);
             return color;
         }
+    }
+
+    /** What's counted each time the spinning ring around a group of profile pictures takes the accent shades. */
+    static final String GROUP = "group story rings given the accent";
+
+    /**
+     * Injected right before the spinning ring around a group of profile pictures pairs each of its
+     * colors with one of the default ring's four stops (#187), with that stop and the Compose color it
+     * gets: Instagram's yellow, orange, pink and purple from Compose's palette. Answers the kept shade
+     * for that stop, as a Compose color, while Accent color and Story rings in the accent color are on
+     * and no Ring color is picked, as {@link #composeBrush} does, and [color] for any other stop and a
+     * color outside sRGB. Counted once a ring, at its first stop. Never throws.
+     */
+    public static long composeStop(float stop, long color) {
+        try {
+            HookStatus.invoked(FamilyNames.ACCENT_COLOR);
+            int at = StoryRing.stopAt(stop);
+            if (at < 0 || (color & COLOR_SPACE) != 0) return color;
+            int[] shades = kept;
+            if (shades == null || shades.length != ATTRIBUTES.length) return color;
+            if (AccentColor.picked() == null || !Settings.ACCENT_RINGS.get() || StoryRing.picksColor()) return color;
+            if (at == 0) HookStatus.counted(FamilyNames.ACCENT_COLOR, GROUP);
+            return (long) shades[at] << 32;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.ACCENT_COLOR, "group story ring", failure);
+            return color;
+        }
+    }
+
+    /**
+     * {@link #composeStop(float, long)} for a build whose group ring boxes each stop as a Float before
+     * pairing it (457's 386314341). Anything but a Float keeps [color]. Never throws.
+     */
+    public static long composeBoxedStop(Object stop, long color) {
+        return stop instanceof Float ? composeStop((Float) stop, color) : color;
     }
 
     /** The shade a seen ring's [color] takes: the picked fill at {@link #SEEN_ALPHA} for a seen gray, [color] otherwise. */

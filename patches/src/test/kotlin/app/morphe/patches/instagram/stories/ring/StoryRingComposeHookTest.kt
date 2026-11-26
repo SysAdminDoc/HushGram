@@ -23,6 +23,7 @@ import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
@@ -51,7 +52,79 @@ class StoryRingComposeHookTest {
         val declared = ExtensionDex.classDef(RING_BRUSH_COLORS.substringBefore("->")).methods
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
-        assertTrue("$RING_BRUSH_COLORS is not in the extension: $declared", RING_BRUSH_COLORS.substringAfter("->") in declared)
+        for (hook in listOf(RING_BRUSH_COLORS, RING_GROUP_COLORS, RING_GROUP_BOXED_COLORS)) {
+            assertTrue("$hook is not in the extension: $declared", hook.substringAfter("->") in declared)
+        }
+    }
+
+    /**
+     * Story ring size finds the spinning ring around a group of profile pictures where it pairs the
+     * default ring's stops with colors, and a build without one, with two, with the stops out of order
+     * or with a jump onto a pairing leaves just that ring out instead of failing the patch (#187).
+     */
+    @Test
+    fun theGroupRingIsFoundOrLeftOut() {
+        for (boxed in listOf(false, true)) {
+            val ring = PatchContexts.of(listOf(StoryRingFixtures.groupRing(boxed = boxed))).findRingGroup()
+            assertEquals("boxed $boxed", listOf(StoryRingFixtures.GROUP_RING, "A01", listOf("Lfixture/Group;")),
+                listOf(ring?.type, ring?.name, ring?.parameters))
+            assertEquals("boxed $boxed, a jump onto a pairing", null,
+                PatchContexts.of(listOf(StoryRingFixtures.groupRing(jumps = true, boxed = boxed))).findRingGroup())
+        }
+        assertEquals("no ring", null, PatchContexts.of(listOf(composeRing())).findRingGroup())
+        assertEquals("two rings", null, PatchContexts.of(listOf(StoryRingFixtures.groupRing(rings = 2))).findRingGroup())
+        assertEquals("three stops", null,
+            PatchContexts.of(listOf(StoryRingFixtures.groupRing(stops = COMPOSE_RING_STOPS.drop(1)))).findRingGroup())
+        assertEquals("stops out of order", null,
+            PatchContexts.of(listOf(StoryRingFixtures.groupRing(stops = COMPOSE_RING_STOPS.reversed()))).findRingGroup())
+        assertEquals("a jump onto a pairing", null, PatchContexts.of(listOf(StoryRingFixtures.groupRing(jumps = true))).findRingGroup())
+        val refusal = assertThrows(PatchException::class.java) {
+            PatchContexts.of(listOf(StoryRingFixtures.groupRing(jumps = true))).findGroupRing()
+        }
+        assertEquals("Story ring size: something jumps onto a stop's pairing in ${StoryRingFixtures.GROUP_RING}->A01", refusal.message)
+    }
+
+    /**
+     * Each color the group ring pairs with a stop goes through the hook with that stop right before the
+     * pairing, answering into the color's registers, with the ring's own code around it as it was. A
+     * ring boxing its stops as Floats, as 457's 386314341 does, gets the boxed stop's hook.
+     */
+    @Test
+    fun eachOfTheGroupRingsColorsGoesThroughTheHook() {
+        for (boxed in listOf(false, true)) {
+            val what = if (boxed) "boxed" else "float"
+            val hook = if (boxed) RING_GROUP_BOXED_COLORS else RING_GROUP_COLORS
+            val context = PatchContexts.of(listOf(StoryRingFixtures.groupRing(boxed = boxed)))
+            val ring = context.findGroupRing()
+            fun method() = context.mutableClassDefBy(ring.type).methods.single { it.name == ring.name }
+            val original = NeutralNativePath(method())
+            context.colorGroupRing(ring, RING_GROUP_COLORS, RING_GROUP_BOXED_COLORS)
+
+            val code = method().implementation!!.instructions.toList()
+            val pairings = method().stopPairings()!!
+            assertEquals(what, listOf(1 to 2, 0 to 2, 0 to 2, 0 to 2), pairings.map { it.stop to it.color })
+            assertEquals(what, List(4) { boxed }, pairings.map { it.boxed })
+            val called = code.indices.filter {
+                (code[it] as? ReferenceInstruction)?.reference?.toString() in setOf(RING_GROUP_COLORS, RING_GROUP_BOXED_COLORS)
+            }
+            assertEquals(what, pairings.map { it.at - 2 }, called)
+            assertEquals(what, Opcode.INVOKE_STATIC_RANGE, code[called[0]].opcode)
+            for (pairing in pairings) {
+                val call = code[pairing.at - 2]
+                assertEquals("$what: the hook", hook, (call as ReferenceInstruction).reference.toString())
+                val registers = when (call) {
+                    is RegisterRangeInstruction -> (call.startRegister until call.startRegister + call.registerCount).toList()
+                    is FiveRegisterInstruction -> listOf(call.registerC, call.registerD, call.registerE).take(call.registerCount)
+                    else -> emptyList()
+                }
+                assertEquals("$what: the stop and the color", listOf(pairing.stop, pairing.color, pairing.color + 1), registers)
+                assertEquals(what, Opcode.MOVE_RESULT_WIDE, code[pairing.at - 1].opcode)
+                assertEquals("$what: into the color", pairing.color, (code[pairing.at - 1] as OneRegisterInstruction).registerA)
+            }
+            val added = pairings.flatMap { listOf(it.at - 2, it.at - 1) }.toSet()
+            assertTrue("$what: something jumps onto a hook", method().jumpTargets().none { it in added })
+            original.assertPreserved("$what group ring", method(), added)
+        }
     }
 
     /**

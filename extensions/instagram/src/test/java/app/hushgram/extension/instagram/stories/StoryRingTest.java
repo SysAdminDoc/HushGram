@@ -462,6 +462,86 @@ public class StoryRingTest {
         }
     }
 
+    /**
+     * The spinning ring around a group of profile pictures pairs Compose's yellow, orange, pink and
+     * purple with the default ring's stops itself (#187): with a color picked, each stop's color comes
+     * back as that color's shade for the stop, and the ring is counted once, at its first stop. A build
+     * boxing each stop as a Float gets the same.
+     */
+    @Test
+    public void aChosenColorPaintsTheGroupRing() {
+        for (int at = 0; at < STORY.length; at++) {
+            assertEquals("Instagram's own choice", (long) STORY[at] << 32, groupStop(STORY_STOPS[at], (long) STORY[at] << 32));
+        }
+
+        Settings.STORY_RING_COLOR.save(StoryRingColor.PURPLE);
+        int[] shades = StoryRingColor.PURPLE.colors(STORY.length);
+        for (int at = 0; at < STORY.length; at++) {
+            assertEquals("stop " + at, (long) shades[at] << 32, groupStop(STORY_STOPS[at], (long) STORY[at] << 32));
+        }
+        assertTrue(HookStatus.report().toString(),
+                HookStatus.report().toString().contains("group story rings given the ring color 1"));
+        for (int at = 0; at < STORY.length; at++) {
+            assertEquals("boxed stop " + at, (long) shades[at] << 32, groupBoxedStop(STORY_STOPS[at], (long) STORY[at] << 32));
+        }
+        assertTrue(HookStatus.report().toString(),
+                HookStatus.report().toString().contains("group story rings given the ring color 2"));
+        assertTrue(HookStatus.missing(FamilyNames.STORY_RING).toString(), HookStatus.missing(FamilyNames.STORY_RING).isEmpty());
+    }
+
+    /**
+     * A color paired with any other stop, a color outside sRGB, and every color while the switch is off,
+     * paused, without a context or with Custom and nothing typed keep their color, and so does one
+     * paired with anything but a boxed Float.
+     */
+    @Test
+    public void everyOtherGroupRingStopKeepsItsColor() {
+        Settings.STORY_RING_COLOR.save(StoryRingColor.RED);
+        long yellow = (long) STORY[0] << 32;
+        assertTrue("on", groupStop(STORY_STOPS[0], yellow) != yellow);
+        assertTrue("boxed", groupBoxedStop(STORY_STOPS[0], yellow) != yellow);
+        for (Object stop : new Object[]{null, (double) STORY_STOPS[0], "0.1435", 0.5f}) {
+            assertEquals("boxed stop " + stop, yellow, groupBoxedStop(stop, yellow));
+        }
+
+        for (float stop : new float[]{0f, 0.5f, 1f, 0.15f}) assertEquals("stop " + stop, yellow, groupStop(stop, yellow));
+        assertEquals("a color outside sRGB", 0x3c00_0000_0000_0011L, groupStop(STORY_STOPS[0], 0x3c00_0000_0000_0011L));
+        assertEquals("unspecified", 0x10L, groupStop(STORY_STOPS[0], 0x10L));
+
+        Settings.STORY_RING.save(false);
+        assertEquals("off", yellow, groupStop(STORY_STOPS[0], yellow));
+        Settings.STORY_RING.save(true);
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertEquals("paused", yellow, groupStop(STORY_STOPS[0], yellow));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+
+        SettingsContextRule.withoutContext(() -> assertEquals("no context", yellow, groupStop(STORY_STOPS[0], yellow)));
+
+        Settings.STORY_RING_COLOR.save(StoryRingColor.CUSTOM);
+        assertEquals("Custom with nothing typed", yellow, groupStop(STORY_STOPS[0], yellow));
+    }
+
+    /** The group ring's hook, found by name so this compiles against a build without it. */
+    private static long groupStop(float stop, long color) {
+        try {
+            return (Long) StoryRing.class.getMethod("composeStop", float.class, long.class).invoke(null, stop, color);
+        } catch (ReflectiveOperationException missing) {
+            throw new AssertionError("StoryRing has no public static composeStop(float, long)", missing);
+        }
+    }
+
+    /** The group ring's hook for a boxed stop, found by name so this compiles against a build without it. */
+    private static long groupBoxedStop(Object stop, long color) {
+        try {
+            return (Long) StoryRing.class.getMethod("composeBoxedStop", Object.class, long.class).invoke(null, stop, color);
+        } catch (ReflectiveOperationException missing) {
+            throw new AssertionError("StoryRing has no public static composeBoxedStop(Object, long)", missing);
+        }
+    }
+
     /** The thickness starts as Instagram's, so every ring keeps its width. */
     @Test
     public void picked_theRingsKeepInstagramsThickness() {

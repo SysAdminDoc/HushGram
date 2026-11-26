@@ -345,6 +345,72 @@ public class AccentRingsTest {
     }
 
     /**
+     * The spinning ring around a group of profile pictures pairs Compose's yellow, orange, pink and
+     * purple with the default ring's stops itself (#187): on, each stop's color comes back as the kept
+     * shade for that stop, and the ring is counted once, at its first stop. A build boxing each stop as
+     * a Float gets the same.
+     */
+    @Test
+    public void theGroupRingTakesTheKeptShades() throws Exception {
+        accentRingsOn();
+        for (int at = 0; at < STORY.length; at++) {
+            assertEquals("stop " + at, (long) SHADES[at] << 32, groupStop(STORY_STOPS[at], (long) STORY[at] << 32));
+        }
+        assertTrue(HookStatus.report().toString(), HookStatus.report().get(0).contains("group story rings given the accent 1"));
+        for (int at = 0; at < STORY.length; at++) {
+            assertEquals("boxed stop " + at, (long) SHADES[at] << 32, groupBoxedStop(STORY_STOPS[at], (long) STORY[at] << 32));
+        }
+        assertTrue(HookStatus.report().toString(), HookStatus.report().get(0).contains("group story rings given the accent 2"));
+    }
+
+    /**
+     * Off, paused, with a Ring color picked or no shades kept yet, and for any other stop, anything but
+     * a boxed Float or a color outside sRGB, the group ring keeps its color.
+     */
+    @Test
+    @Config(shadows = StoryRingBuilt.class)
+    public void everyOtherGroupRingStopKeepsItsColor() throws Exception {
+        long yellow = (long) STORY[0] << 32;
+        assertEquals("off", yellow, groupStop(STORY_STOPS[0], yellow));
+        accentRingsOn();
+        assertTrue("on", groupStop(STORY_STOPS[0], yellow) != yellow);
+        assertTrue("boxed", groupBoxedStop(STORY_STOPS[0], yellow) != yellow);
+        for (Object stop : new Object[]{null, (double) STORY_STOPS[0], "0.1435", 0.5f}) {
+            assertEquals("boxed stop " + stop, yellow, groupBoxedStop(stop, yellow));
+        }
+
+        for (float stop : new float[]{0f, 0.5f, 1f, 0.15f}) assertEquals("stop " + stop, yellow, groupStop(stop, yellow));
+        assertEquals("outside sRGB", yellow | 0x11, groupStop(STORY_STOPS[0], yellow | 0x11));
+
+        Settings.STORY_RING_COLOR.save(StoryRingColor.TEAL);
+        assertEquals("Ring color picked", yellow, groupStop(STORY_STOPS[0], yellow));
+        Settings.STORY_RING_COLOR.save(StoryRingColor.INSTAGRAM);
+
+        Settings.ACCENT_RINGS.save(false);
+        assertEquals("the rings off", yellow, groupStop(STORY_STOPS[0], yellow));
+        Settings.ACCENT_RINGS.save(true);
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertEquals("paused", yellow, groupStop(STORY_STOPS[0], yellow));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+
+        AccentRings.keptForTests(null);
+        assertEquals("no theme had the ring style yet", yellow, groupStop(STORY_STOPS[0], yellow));
+    }
+
+    /** The group ring's hook, called by name so this test builds against an extension without it. */
+    private static long groupStop(float stop, long color) throws Exception {
+        return (long) AccentRings.class.getMethod("composeStop", float.class, long.class).invoke(null, stop, color);
+    }
+
+    /** The group ring's hook for a boxed stop, called by name so this test builds against an extension without it. */
+    private static long groupBoxedStop(Object stop, long color) throws Exception {
+        return (long) AccentRings.class.getMethod("composeBoxedStop", Object.class, long.class).invoke(null, stop, color);
+    }
+
+    /**
      * Laying the ring style on a theme keeps the shades the theme then holds for the default ring's
      * four attributes, in their order.
      */

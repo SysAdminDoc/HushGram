@@ -34,7 +34,8 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * own colors, and asks again each time a ring is measured or bound to another story. Compose
  * screens build their default ring apart from the view, and pass its colors through
  * {@link #defaultColors}, and the chat list's rings make their brush from a list of Compose colors
- * that goes through {@link #brush}.
+ * that goes through {@link #brush}. The spinning ring around a group of profile pictures pairs
+ * each of its colors with a stop itself, and each goes through {@link #composeStop}.
  *
  * <p>The view also reads the width of its ring wherever it measures or draws one, and the patch
  * passes each read through {@link #thickness} (#528).
@@ -199,6 +200,52 @@ public final class StoryRing {
             HookStatus.threw(FamilyNames.STORY_RING, "chat list ring color", failure);
             return colors;
         }
+    }
+
+    /** What's counted each time the spinning ring around a group of profile pictures takes the chosen color. */
+    static final String GROUP = "group story rings given the ring color";
+
+    /** The low half of a Compose color, which holds its color space and is all zero for an sRGB one. */
+    private static final long COLOR_SPACE = 0xffffffffL;
+
+    /**
+     * Injected right before the spinning ring around a group of profile pictures pairs each of its
+     * colors with one of the default ring's four stops (#187), with that stop and the Compose color it
+     * gets: Instagram's yellow, orange, pink and purple from Compose's palette. That ring never sees
+     * the default ring or the chat list's brush. Answers the chosen color's shade for that stop, as a
+     * Compose color, while the switch is on and a color is picked, and [color] for any other stop and
+     * a color outside sRGB. Counted once a ring, at its first stop. Never throws.
+     */
+    public static long composeStop(float stop, long color) {
+        try {
+            HookStatus.invoked(FamilyNames.STORY_RING);
+            int at = stopAt(stop);
+            if (at < 0 || (color & COLOR_SPACE) != 0) return color;
+            if (!Utils.settingsReady() || !Settings.STORY_RING.get()) return color;
+            int[] shades = shades(Settings.STORY_RING_COLOR.get(), INSTAGRAM_STOPS.length);
+            if (shades == null) return color;
+            if (at == 0) HookStatus.counted(FamilyNames.STORY_RING, GROUP);
+            return (long) shades[at] << 32;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.STORY_RING, "group ring color", failure);
+            return color;
+        }
+    }
+
+    /**
+     * {@link #composeStop(float, long)} for a build whose group ring boxes each stop as a Float before
+     * pairing it (457's 386314341). Anything but a Float keeps [color]. Never throws.
+     */
+    public static long composeBoxedStop(Object stop, long color) {
+        return stop instanceof Float ? composeStop((Float) stop, color) : color;
+    }
+
+    /** Which of the default ring's four stops [stop] is, first to last, or -1 for none of them. */
+    public static int stopAt(float stop) {
+        for (int at = 0; at < INSTAGRAM_STOPS.length; at++) {
+            if (Math.abs(stop - INSTAGRAM_STOPS[at]) <= STOP_SLACK) return at;
+        }
+        return -1;
     }
 
     /**

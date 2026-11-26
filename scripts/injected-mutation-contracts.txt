@@ -2658,6 +2658,21 @@ start-call Lapp/hushgram/extension/instagram/stories/StoryRing;->brush(Ljava/uti
 once-call Lapp/hushgram/extension/instagram/stories/StoryRing;->brush(Ljava/util/List;)Ljava/util/List; in static (Ljava/util/List;)LX/*; holding Ljava/lang/Math;->toRadians(D)D Ljava/lang/Math;->cos(D)D LX/*;->*([LX/*;IJJ)LX/*; LX/*;->*(Ljava/util/List;JJ)LX/*;
 next-call Lapp/hushgram/extension/instagram/misc/AccentRings;->composeBrush(Ljava/util/List;)Ljava/util/List; after Lapp/hushgram/extension/instagram/stories/StoryRing;->brush(Ljava/util/List;)Ljava/util/List; in static (Ljava/util/List;)LX/*; holding Ljava/lang/Math;->toRadians(D)D Ljava/lang/Math;->cos(D)D LX/*;->*([LX/*;IJJ)LX/*; LX/*;->*(Ljava/util/List;JJ)LX/*;
 once-call Lapp/hushgram/extension/instagram/misc/AccentRings;->composeBrush(Ljava/util/List;)Ljava/util/List; in static (Ljava/util/List;)LX/*; holding Ljava/lang/Math;->toRadians(D)D Ljava/lang/Math;->cos(D)D LX/*;->*([LX/*;IJJ)LX/*; LX/*;->*(Ljava/util/List;JJ)LX/*;
+# The spinning ring around a group of profile pictures (0N9F.A01 on 457) reads Instagram's yellow,
+# orange, pink and purple from Compose's palette itself and pairs each with one of the default
+# ring's four stops, loaded just before through a static taking a float and a long (0ArC.A0f on
+# 457), so neither the default ring nor the brush above sees them (#187). Each color goes to
+# AccentRings.composeStop and then StoryRing.composeStop with its stop right before its pairing,
+# four times each: Story ring size goes in after Story rings in the accent color and puts its hook
+# after the accent one. Either order draws the same ring. 386314341 boxes each stop as a Float and
+# pairs it through a merged static taking an object and a long (0N9i.A01 through 089w.A0t), so
+# there each goes to the composeBoxedStop hooks instead. Left out, that ring keeps Instagram's
+# gradient with the accent rings on or a Ring color picked. AccentRingsHookTest checks every build
+# in either order.
+except 386314341 once-call Lapp/hushgram/extension/instagram/misc/AccentRings;->composeStop(FJ)J in static (LX/*;LX/*;LX/*;IIIZZ)V sites 4 holding const:0x3e12f1aa const:0x3ec17c1c const:0x3f1b6ae8 const:0x3f54bc6a
+except 386314341 once-call Lapp/hushgram/extension/instagram/stories/StoryRing;->composeStop(FJ)J in static (LX/*;LX/*;LX/*;IIIZZ)V sites 4 holding const:0x3e12f1aa const:0x3ec17c1c const:0x3f1b6ae8 const:0x3f54bc6a
+on 386314341 once-call Lapp/hushgram/extension/instagram/misc/AccentRings;->composeBoxedStop(Ljava/lang/Object;J)J in static (LX/*;LX/*;LX/*;IIIZZ)V sites 4 holding const:0x3e12f1aa const:0x3ec17c1c const:0x3f1b6ae8 const:0x3f54bc6a
+on 386314341 once-call Lapp/hushgram/extension/instagram/stories/StoryRing;->composeBoxedStop(Ljava/lang/Object;J)J in static (LX/*;LX/*;LX/*;IIIZZ)V sites 4 holding const:0x3e12f1aa const:0x3ec17c1c const:0x3f1b6ae8 const:0x3f54bc6a
 # Hide the Repost button answers FALSE first thing in the post model's getter of
 # enable_media_notes_production, the one instance method taking nothing and answering a Boolean
 # that loads the field's name (Media.A3o on 449). Its other hooks filter the reads of the field
