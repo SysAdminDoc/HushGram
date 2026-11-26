@@ -181,11 +181,22 @@ public final class HeaderPicture {
      * down too.
      */
     public static void copy(@Nullable InputStream input, File target, Choice choice) throws Refused {
+        copyWithin(input, target, MAX_WIDTH, MAX_HEIGHT, choice);
+        forget();
+    }
+
+    /**
+     * {@link #copy} for a picture other than the header's, kept at most [maxWidth] by [maxHeight]
+     * (the settings page's logo, #872). It writes beside [target] first the same way, under
+     * [target]'s name plus ".part", and leaves the header's copy and what it read alone.
+     */
+    public static void copyWithin(@Nullable InputStream input, File target, int maxWidth, int maxHeight, Choice choice)
+            throws Refused {
         if (input == null) throw new Refused(Refusal.UNREADABLE, "No stream to read");
-        File partial = new File(target.getParentFile(), PARTIAL);
+        File partial = new File(target.getParentFile(), target.getName() + ".part");
         boolean kept = false;
         try {
-            Bitmap picture = shrink(readAll(input));
+            Bitmap picture = shrink(readAll(input), maxWidth, maxHeight);
             try {
                 write(picture, partial);
             } finally {
@@ -209,7 +220,6 @@ public final class HeaderPicture {
                 throw refused;
             }
             kept = true;
-            forget();
         } finally {
             try {
                 input.close();
@@ -227,15 +237,20 @@ public final class HeaderPicture {
      * least one pixel each way.
      */
     static int[] fit(int width, int height) {
-        float scale = Math.min(1f, Math.min(MAX_WIDTH / (float) width, MAX_HEIGHT / (float) height));
+        return fitWithin(width, height, MAX_WIDTH, MAX_HEIGHT);
+    }
+
+    /** {@link #fit} for a box of [maxWidth] by [maxHeight]. */
+    static int[] fitWithin(int width, int height, int maxWidth, int maxHeight) {
+        float scale = Math.min(1f, Math.min(maxWidth / (float) width, maxHeight / (float) height));
         return new int[]{Math.max(1, Math.round(width * scale)), Math.max(1, Math.round(height * scale))};
     }
 
     /**
-     * [bytes] decoded at the size {@link #fit} gives, turned the way the camera wrote it. An
-     * animated picture gives its first frame.
+     * [bytes] decoded at the size {@link #fitWithin} gives for [maxWidth] by [maxHeight], turned the
+     * way the camera wrote it. An animated picture gives its first frame.
      */
-    static Bitmap shrink(byte[] bytes) throws Refused {
+    static Bitmap shrink(byte[] bytes, int maxWidth, int maxHeight) throws Refused {
         Bitmap picture;
         try {
             picture = ImageDecoder.decodeBitmap(ImageDecoder.createSource(ByteBuffer.wrap(bytes)),
@@ -243,7 +258,7 @@ public final class HeaderPicture {
                         // A software bitmap, so it can be written out as a PNG.
                         decoder.setAllocator(ImageDecoder.ALLOCATOR_SOFTWARE);
                         Size size = info.getSize();
-                        int[] kept = fit(size.getWidth(), size.getHeight());
+                        int[] kept = fitWithin(size.getWidth(), size.getHeight(), maxWidth, maxHeight);
                         if (kept[0] != size.getWidth() || kept[1] != size.getHeight()) {
                             decoder.setTargetSize(kept[0], kept[1]);
                         }

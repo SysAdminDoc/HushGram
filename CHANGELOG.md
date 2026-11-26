@@ -50,6 +50,7 @@ Every HushGram release, newest first.
 * `Space used` is new under Storage, below `Clear saved copies now`. It adds up how much room Instagram's data takes outside its cache, names the three biggest folders and says how much of it is HushGram's own files. Asked for in #683.
 * `Hide search suggestions in comments` and `Hide the gift button` are new under Comments. They take the Meta AI search suggestion off the top of the comments and the gift off the comment box. Both start off. Asked for in #869.
 * `Hide the (i) button in comments` is new under Comments too. It takes the round (i) off the top right of a post's or reel's comments, above the first comment, and starts off. Asked for in #869.
+* `Settings page logo` and `Settings page name` are new under Settings entry. They put Instagram's icon or a picture you pick, and a name you type, at the top of HushGram's settings. `Reset the settings page header` puts both back. Asked for in #872.
 
 ### Bug Fixes
 

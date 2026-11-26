@@ -3054,3 +3054,33 @@ Hides the status bar and the navigation bar while Explore shows. Swipe in from t
 Full screen profile	全屏幕主页
 # context: Full screen profile (#187): its summary, worded like Full screen Home's
 Hides the status bar and the navigation bar while your profile tab shows. Swipe in from the edge to bring them back for a moment.	显示你的主页标签时隐藏状态栏与导航栏。从边缘向内滑动可短暂显示。
+# context: Settings entry > summary of Settings page logo while HushGram's logo is picked; this page is HushGram's settings page (#872)
+HushGram's logo shows at the top of this page.	此页顶端显示 HushGram 标志。
+# context: Settings entry > summary of Settings page logo while Instagram's icon is picked (#872)
+Instagram's icon shows at the top of this page.	此页顶端显示 Instagram 图标。
+# context: Settings entry > summary of Settings page logo while Your picture is picked; Your picture is the list choice of that name (#872)
+Your picture shows at the top of this page. Pick Your picture again to change it.	此页顶端显示你的图片。再次选择“你的图片”即可更换。
+# context: Settings entry > Settings page logo list choice: HushGram's own logo (#872)
+HushGram's logo	HushGram 标志
+# context: Settings entry > Settings page logo list choice: Instagram's own app icon (#872)
+Instagram's icon	Instagram 图标
+# context: Settings entry > Settings page logo list choice: a picture the person picks from their phone (#872)
+Your picture	你的图片
+# context: Settings entry > row and list title: the picture at the top of HushGram's settings page, over its name (#872)
+Settings page logo	设置页面标志
+# context: Settings entry > row and dialog title: the name at the top of HushGram's settings page (#872)
+Settings page name	设置页面名称
+# context: Settings entry > Settings page name dialog message; %1$d is the most characters it takes (#872)
+A name of your own at the top of this page, in place of HushGram. Up to %1$d characters. Leave it blank for HushGram.	此页顶端显示的自定义名称，取代 HushGram。最多 %1$d 个字符。留空则显示 HushGram。
+# context: Settings entry > row that puts HushGram's logo and name back at the top of the settings page (#872)
+Reset the settings page header	重置设置页面顶端
+# context: Settings entry > summary of Reset the settings page header (#872)
+Puts HushGram's logo and name back at the top of this page.	让此页顶端恢复 HushGram 的标志和名称。
+# context: toast after Reset the settings page header; keep under two short lines (#872)
+Settings page header reset.	已重置设置页面顶端。
+# context: toast after a picked picture becomes the settings page logo; keep under two short lines (#872)
+Settings page logo set.	已设置设置页面标志。
+# context: Settings entry > summary of Settings page name while no name is typed (#872)
+HushGram shows at the top of this page.	此页顶端显示 HushGram。
+# context: Settings entry > summary of Settings page name; %1$s is the typed name (#872)
+The top of this page says %1$s.	此页顶端显示“%1$s”。

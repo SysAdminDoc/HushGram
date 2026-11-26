@@ -194,6 +194,22 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting SETTINGS_INSTAGRAM_LOOK =
             new BooleanSetting("hushgram_settings_instagram_look", FALSE);
 
+    /**
+     * A name of your own at the top of HushGram's page and on its bar, in place of HushGram (#872).
+     * The row saves it cleaned, one line of at most {@link SettingsHeader#MAX_NAME} characters, and
+     * blank shows HushGram. A settings-page choice, read saved even during Pause.
+     */
+    public static final StringSetting SETTINGS_HEADER_NAME = new StringSetting("hushgram_settings_header_name", "");
+
+    /**
+     * What sits over that name (#872): HushGram's logo, Instagram's icon, or a picture of your own
+     * that the settings screen keeps in Instagram's files ({@link SettingsHeader#pictureFile}). A
+     * picture that's gone or won't decode shows HushGram's logo. A settings-page choice, read saved
+     * even during Pause. A settings file leaves it out: the picture can't travel in one.
+     */
+    public static final EnumSetting<SettingsHeader.Logo> SETTINGS_HEADER_LOGO =
+            new EnumSetting<>("hushgram_settings_header_logo", SettingsHeader.Logo.HUSHGRAM, false, false);
+
     /** A settings-page choice, read saved even during Pause. Existing backup names stay the default. */
     public static final BooleanSetting DATE_SETTINGS_EXPORT =
             new BooleanSetting("hushgram_date_settings_export", FALSE);

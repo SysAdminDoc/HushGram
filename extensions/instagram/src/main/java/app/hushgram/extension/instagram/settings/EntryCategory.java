@@ -7,6 +7,7 @@
 package app.hushgram.extension.instagram.settings;
 
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.category;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.mark;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.navigationRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.profileMenuRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.toggle;
@@ -87,5 +88,9 @@ final class EntryCategory {
             return true;
         });
         entry.addPreference(instagram);
+        // The header those pages put at the top: its logo and name can be your own (#872).
+        entry.addPreference(mark(page.settingsLogoRow(context), SettingsIcons.STORIES));
+        entry.addPreference(mark(page.settingsNameRow(context), SettingsIcons.WRITING));
+        entry.addPreference(mark(page.resetSettingsHeaderRow(context), SettingsIcons.APPEARANCE));
     }
 }

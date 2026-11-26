@@ -408,6 +408,8 @@ public final class ConfigurationBackup {
         settings.put(Settings.SETTINGS_BLACK_LOOK.key, Settings.SETTINGS_BLACK_LOOK);
         settings.put(Settings.SETTINGS_LIGHT_LOOK.key, Settings.SETTINGS_LIGHT_LOOK);
         settings.put(Settings.SETTINGS_INSTAGRAM_LOOK.key, Settings.SETTINGS_INSTAGRAM_LOOK);
+        // The name only. The logo can be a picture kept on this phone, so it stays here (#872).
+        settings.put(Settings.SETTINGS_HEADER_NAME.key, Settings.SETTINGS_HEADER_NAME);
         settings.put(Settings.DATE_SETTINGS_EXPORT.key, Settings.DATE_SETTINGS_EXPORT);
         return settings;
     }
@@ -647,6 +649,8 @@ public final class ConfigurationBackup {
         if (setting == Settings.SHARING_DOMAIN) return SharingDomain.normalize(text) != null;
         // The row saves the header text cleaned, so a file holds it that way or blank.
         if (setting == Settings.HEADER_TEXT) return text.equals(HeaderText.clean(text));
+        // The settings page name saves the same way, a little shorter (#872).
+        if (setting == Settings.SETTINGS_HEADER_NAME) return text.equals(SettingsHeader.cleanName(text));
         // The Place row keeps what was typed, spaces too, and takes blank as no place.
         if (setting == Settings.SPOOF_LOCATION_PLACE) return text.trim().isEmpty() || SpoofLocation.parse(text) != null;
         // The row saves the server as host:port, so a file holds it that way or blank.

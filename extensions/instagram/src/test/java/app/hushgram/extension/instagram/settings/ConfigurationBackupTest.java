@@ -143,7 +143,10 @@ public class ConfigurationBackupTest {
         original.edit().putString("private-session", "secret-token").commit();
         PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.HIDE_ADS);
         JSONObject values = new JSONObject(new String(ConfigurationBackup.export(), StandardCharsets.UTF_8)).getJSONObject("settings");
-        assertEquals(15, values.length());
+        assertEquals(16, values.length());
+        assertEquals("#872: the settings page's own name goes in, blank by default", "",
+                values.getJSONObject(Settings.SETTINGS_HEADER_NAME.key).getString("value"));
+        assertFalse("its logo stays on the phone", values.has(Settings.SETTINGS_HEADER_LOGO.key));
         assertFalse(values.getJSONObject(Settings.SETTINGS_LIGHT_LOOK.key).getBoolean("value"));
         assertFalse(values.getJSONObject(Settings.SETTINGS_INSTAGRAM_LOOK.key).getBoolean("value"));
         assertTrue(values.getJSONObject(Settings.CATEGORY_OWN_PAGE.key).getBoolean("value"));

@@ -216,7 +216,8 @@ public final class SettingsDialog extends DialogFragment {
 
         TextView title = new TextView(getContext());
         heading = title;
-        title.setText("HushGram");
+        // HushGram, or the name typed for the page's header (#872).
+        title.setText(SettingsHeader.name());
         ShimmerTitle.wear(title);
         title.setTypeface(Typeface.create("sans-serif", Typeface.BOLD));
         title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 22);
@@ -361,7 +362,7 @@ public final class SettingsDialog extends DialogFragment {
     void showTitle(@androidx.annotation.Nullable CharSequence title, boolean pageHeader) {
         TextView bar = heading;
         if (bar == null) return;
-        CharSequence text = title == null ? "HushGram" : title;
+        CharSequence text = title == null ? SettingsHeader.name() : title;
         // A new text asks for a layout, which a scroll in the middle of one shouldn't.
         if (!TextUtils.equals(text, bar.getText())) bar.setText(text);
         // Invisible rather than gone, so the bar keeps its height and a search doesn't move the rows.

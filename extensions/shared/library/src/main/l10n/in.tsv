@@ -3051,3 +3051,33 @@ Hides the status bar and the navigation bar while Explore shows. Swipe in from t
 Full screen profile	Profil layar penuh
 # context: Full screen profile (#187): its summary, worded like Full screen Home's
 Hides the status bar and the navigation bar while your profile tab shows. Swipe in from the edge to bring them back for a moment.	Menyembunyikan bilah status dan bilah navigasi saat tab profilmu ditampilkan. Geser dari tepi untuk menampilkannya kembali sebentar.
+# context: Settings entry > summary of Settings page logo while HushGram's logo is picked; this page is HushGram's settings page (#872)
+HushGram's logo shows at the top of this page.	Logo HushGram tampil di bagian atas halaman ini.
+# context: Settings entry > summary of Settings page logo while Instagram's icon is picked (#872)
+Instagram's icon shows at the top of this page.	Ikon Instagram tampil di bagian atas halaman ini.
+# context: Settings entry > summary of Settings page logo while Your picture is picked; Your picture is the list choice of that name (#872)
+Your picture shows at the top of this page. Pick Your picture again to change it.	Gambarmu tampil di bagian atas halaman ini. Pilih Gambarmu lagi untuk menggantinya.
+# context: Settings entry > Settings page logo list choice: HushGram's own logo (#872)
+HushGram's logo	Logo HushGram
+# context: Settings entry > Settings page logo list choice: Instagram's own app icon (#872)
+Instagram's icon	Ikon Instagram
+# context: Settings entry > Settings page logo list choice: a picture the person picks from their phone (#872)
+Your picture	Gambarmu
+# context: Settings entry > row and list title: the picture at the top of HushGram's settings page, over its name (#872)
+Settings page logo	Logo halaman pengaturan
+# context: Settings entry > row and dialog title: the name at the top of HushGram's settings page (#872)
+Settings page name	Nama halaman pengaturan
+# context: Settings entry > Settings page name dialog message; %1$d is the most characters it takes (#872)
+A name of your own at the top of this page, in place of HushGram. Up to %1$d characters. Leave it blank for HushGram.	Nama pilihanmu di bagian atas halaman ini, sebagai ganti HushGram. Maksimal %1$d karakter. Kosongkan untuk HushGram.
+# context: Settings entry > row that puts HushGram's logo and name back at the top of the settings page (#872)
+Reset the settings page header	Setel ulang kepala halaman pengaturan
+# context: Settings entry > summary of Reset the settings page header (#872)
+Puts HushGram's logo and name back at the top of this page.	Mengembalikan logo dan nama HushGram ke bagian atas halaman ini.
+# context: toast after Reset the settings page header; keep under two short lines (#872)
+Settings page header reset.	Kepala pengaturan disetel ulang.
+# context: toast after a picked picture becomes the settings page logo; keep under two short lines (#872)
+Settings page logo set.	Logo pengaturan dipasang.
+# context: Settings entry > summary of Settings page name while no name is typed (#872)
+HushGram shows at the top of this page.	HushGram tampil di bagian atas halaman ini.
+# context: Settings entry > summary of Settings page name; %1$s is the typed name (#872)
+The top of this page says %1$s.	Bagian atas halaman ini bertuliskan %1$s.

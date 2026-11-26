@@ -3051,3 +3051,33 @@ Hides the status bar and the navigation bar while Explore shows. Swipe in from t
 Full screen profile	Perfil a pantalla completa
 # context: Full screen profile (#187): its summary, worded like Full screen Home's
 Hides the status bar and the navigation bar while your profile tab shows. Swipe in from the edge to bring them back for a moment.	Oculta la barra de estado y la barra de navegación mientras se muestra la pestaña de tu perfil. Desliza desde el borde para volver a mostrarlas un momento.
+# context: Settings entry > summary of Settings page logo while HushGram's logo is picked; this page is HushGram's settings page (#872)
+HushGram's logo shows at the top of this page.	El logo de HushGram aparece arriba de esta página.
+# context: Settings entry > summary of Settings page logo while Instagram's icon is picked (#872)
+Instagram's icon shows at the top of this page.	El icono de Instagram aparece arriba de esta página.
+# context: Settings entry > summary of Settings page logo while Your picture is picked; Your picture is the list choice of that name (#872)
+Your picture shows at the top of this page. Pick Your picture again to change it.	Tu imagen aparece arriba de esta página. Elige Tu imagen otra vez para cambiarla.
+# context: Settings entry > Settings page logo list choice: HushGram's own logo (#872)
+HushGram's logo	Logo de HushGram
+# context: Settings entry > Settings page logo list choice: Instagram's own app icon (#872)
+Instagram's icon	Icono de Instagram
+# context: Settings entry > Settings page logo list choice: a picture the person picks from their phone (#872)
+Your picture	Tu imagen
+# context: Settings entry > row and list title: the picture at the top of HushGram's settings page, over its name (#872)
+Settings page logo	Logo de la página de ajustes
+# context: Settings entry > row and dialog title: the name at the top of HushGram's settings page (#872)
+Settings page name	Nombre de la página de ajustes
+# context: Settings entry > Settings page name dialog message; %1$d is the most characters it takes (#872)
+A name of your own at the top of this page, in place of HushGram. Up to %1$d characters. Leave it blank for HushGram.	Un nombre propio arriba de esta página, en lugar de HushGram. Hasta %1$d caracteres. Déjalo vacío para HushGram.
+# context: Settings entry > row that puts HushGram's logo and name back at the top of the settings page (#872)
+Reset the settings page header	Restablecer la cabecera de la página de ajustes
+# context: Settings entry > summary of Reset the settings page header (#872)
+Puts HushGram's logo and name back at the top of this page.	Vuelve a poner el logo y el nombre de HushGram arriba de esta página.
+# context: toast after Reset the settings page header; keep under two short lines (#872)
+Settings page header reset.	Cabecera de ajustes restablecida.
+# context: toast after a picked picture becomes the settings page logo; keep under two short lines (#872)
+Settings page logo set.	Logo de ajustes listo.
+# context: Settings entry > summary of Settings page name while no name is typed (#872)
+HushGram shows at the top of this page.	HushGram aparece arriba de esta página.
+# context: Settings entry > summary of Settings page name; %1$s is the typed name (#872)
+The top of this page says %1$s.	Arriba de esta página dice %1$s.

@@ -2587,3 +2587,33 @@ Hides the status bar and the navigation bar while Explore shows. Swipe in from t
 Full screen profile	ملء الشاشة للملف الشخصي
 # context: Full screen profile (#187): its summary, worded like Full screen Home's
 Hides the status bar and the navigation bar while your profile tab shows. Swipe in from the edge to bring them back for a moment.	يخفي شريط الحالة وشريط التنقل أثناء ظهور تبويب ملفك الشخصي. اسحب من الحافة لإعادتهما للحظات.
+# context: Settings entry > summary of Settings page logo while HushGram's logo is picked; this page is HushGram's settings page (#872)
+HushGram's logo shows at the top of this page.	يظهر شعار HushGram في أعلى هذه الصفحة.
+# context: Settings entry > summary of Settings page logo while Instagram's icon is picked (#872)
+Instagram's icon shows at the top of this page.	تظهر أيقونة Instagram في أعلى هذه الصفحة.
+# context: Settings entry > summary of Settings page logo while Your picture is picked; Your picture is the list choice of that name (#872)
+Your picture shows at the top of this page. Pick Your picture again to change it.	تظهر صورتك في أعلى هذه الصفحة. اختر «صورتك» مرة أخرى لتغييرها.
+# context: Settings entry > Settings page logo list choice: HushGram's own logo (#872)
+HushGram's logo	شعار HushGram
+# context: Settings entry > Settings page logo list choice: Instagram's own app icon (#872)
+Instagram's icon	أيقونة Instagram
+# context: Settings entry > Settings page logo list choice: a picture the person picks from their phone (#872)
+Your picture	صورتك
+# context: Settings entry > row and list title: the picture at the top of HushGram's settings page, over its name (#872)
+Settings page logo	شعار صفحة الإعدادات
+# context: Settings entry > row and dialog title: the name at the top of HushGram's settings page (#872)
+Settings page name	اسم صفحة الإعدادات
+# context: Settings entry > Settings page name dialog message; %1$d is the most characters it takes (#872)
+A name of your own at the top of this page, in place of HushGram. Up to %1$d characters. Leave it blank for HushGram.	اسم من اختيارك في أعلى هذه الصفحة بدلًا من HushGram. حتى %1$d حرفًا. اتركه فارغًا لإظهار HushGram.
+# context: Settings entry > row that puts HushGram's logo and name back at the top of the settings page (#872)
+Reset the settings page header	إعادة ضبط ترويسة صفحة الإعدادات
+# context: Settings entry > summary of Reset the settings page header (#872)
+Puts HushGram's logo and name back at the top of this page.	يعيد شعار HushGram واسمه إلى أعلى هذه الصفحة.
+# context: toast after Reset the settings page header; keep under two short lines (#872)
+Settings page header reset.	أُعيد ضبط ترويسة الإعدادات.
+# context: toast after a picked picture becomes the settings page logo; keep under two short lines (#872)
+Settings page logo set.	تم تعيين شعار الإعدادات.
+# context: Settings entry > summary of Settings page name while no name is typed (#872)
+HushGram shows at the top of this page.	يظهر HushGram في أعلى هذه الصفحة.
+# context: Settings entry > summary of Settings page name; %1$s is the typed name (#872)
+The top of this page says %1$s.	أعلى هذه الصفحة يعرض %1$s.
