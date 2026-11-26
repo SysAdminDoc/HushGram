@@ -2886,6 +2886,17 @@ single-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->defaultIcon(J)J
 # id's number, which moves every update. Left out, the chip keeps its gray outline with Filters in the
 # accent color on (#187). PrismChipsTest checks every build.
 once-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->explorePill(Landroid/view/View;)V in instance (Landroid/view/ViewGroup;I)LX/*; holding const:0x7f0b3b38
+# Many icons take Instagram's text and icon color, which the icon style never points (#187). Accent
+# color hands the tab icon view to AccentTheme.textIcons before each return of the method laying its
+# tint (it holds no strings, so the rule names the tint builder it calls and the tint it lays), the
+# color the top bar's badged icon drawable reads in its constructor to AccentTheme.textIcon, and the
+# color the tab strip's draw reads for the line under the selected tab to AccentTheme.tabIndicator.
+# Left out, a follow list's sort arrows, the comment box's GIF and gift buttons, a profile's bell,
+# Threads and menu icons and the line under a follow list's tab keep Instagram's text color with
+# Icons in the accent color on. TextIconsTest checks every build.
+once-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->textIcons(Landroid/widget/ImageView;)V in instance ()V sites returns holding LX/*;->*(IIIIII)Landroid/content/res/ColorStateList; Landroid/widget/ImageView;->setImageTintList(Landroid/content/res/ColorStateList;)V
+single-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->textIcon(Landroid/content/Context;I)I in <init>
+single-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->tabIndicator(Landroid/view/View;I)I in draw
 # An opened chat paints the view behind its messages (id/thread_background_view_container) in one
 # method (04v3.A0D on 456's 386214574), which stacks its own layers over the chat theme's color and
 # hands the LayerDrawable to a static call taking a drawable, a view and an int. Accent color hands the
