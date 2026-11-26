@@ -2638,6 +2638,13 @@ once-call Lapp/hushgram/extension/instagram/misc/AccentRings;->composeColors([I)
 # isn't the setter the patch means. AccentRingsHookTest checks every build.
 start-call Lapp/hushgram/extension/instagram/misc/AccentRings;->seen(I)I in instance (I)V holding Lcom/instagram/ui/widget/gradientspinner/GradientSpinner;->A0V:Landroid/graphics/Paint; Landroid/graphics/BitmapShader;-><init>(Landroid/graphics/Bitmap;Landroid/graphics/Shader$TileMode;Landroid/graphics/Shader$TileMode;)V
 once-call Lapp/hushgram/extension/instagram/misc/AccentRings;->seen(I)I in instance (I)V holding Lcom/instagram/ui/widget/gradientspinner/GradientSpinner;->A0V:Landroid/graphics/Paint; Landroid/graphics/BitmapShader;-><init>(Landroid/graphics/Bitmap;Landroid/graphics/Shader$TileMode;Landroid/graphics/Shader$TileMode;)V
+# The chat list's rows draw a seen story's ring themselves, a border in a gray they read from
+# Compose's palette, so the setter never sees it. That read goes to AccentRings.composeSeen right
+# after it (#187), in each of the two rows naming their ring avatar_story_ring that make an unseen
+# ring's brush with the static below (0G9f.A06 and 0KEB.A02 on 457). Left out, a seen story's ring
+# next to a chat stays gray with the accent rings on. AccentRingsHookTest checks every declared build.
+once-call Lapp/hushgram/extension/instagram/misc/AccentRings;->composeSeen(J)J in static (LX/*;LX/*;LX/*;LX/*;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;LX/*;II)V pooled holding avatar_story_ring
+once-call Lapp/hushgram/extension/instagram/misc/AccentRings;->composeSeen(J)J in static (LX/*;LX/*;LX/*;LX/*;LX/*;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function1;LX/*;II)V pooled holding avatar_story_ring
 # And it hands the list of colors the chat list's story rings make their brush from to
 # AccentRings.composeBrush, first thing in that brush (#683): the static taking only a list that
 # pairs it with the default ring's stops at an angle (0G9f.A01 on 457), making a brush from the

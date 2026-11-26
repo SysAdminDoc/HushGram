@@ -29,7 +29,8 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * to deep as the default ring runs. The patch hands every gradient the ring view makes to
  * {@link #colors}, and the default ring's colors on Compose screens to {@link #composeColors},
  * and they answer the kept shades for Instagram's own story gradient. A seen story's ring is drawn
- * in one gray the ring view is handed apart from its gradient, which goes to {@link #seen} (#187).
+ * in one gray the ring view is handed apart from its gradient, which goes to {@link #seen} (#187),
+ * and the chat list's rows draw theirs in a Compose gray that goes to {@link #composeSeen}.
  * The chat list's rings make their brush from Compose's own yellow, orange, pink and purple, which go
  * to {@link #composeBrush} (#683).
  * A color picked under Story ring size's Ring color wins, so the two never fight over a ring.
@@ -176,17 +177,50 @@ public final class AccentRings {
     public static int seen(int color) {
         try {
             HookStatus.invoked(FamilyNames.ACCENT_COLOR);
-            if (!seenGray(color)) return color;
-            AccentHue hue = AccentColor.picked();
-            if (hue == null || !Settings.ACCENT_RINGS.get() || StoryRing.picksColor()) return color;
-            int fill = AccentColor.swap(FILL, hue);
-            if (fill == FILL) return color;
-            HookStatus.counted(FamilyNames.ACCENT_COLOR, SEEN);
-            return SEEN_ALPHA << 24 | fill & 0xffffff;
+            int shade = seenShade(color);
+            if (shade != color) HookStatus.counted(FamilyNames.ACCENT_COLOR, SEEN);
+            return shade;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.ACCENT_COLOR, "seen story ring", failure);
             return color;
         }
+    }
+
+    /** What's counted each time a seen story's ring on the chat list takes the accent. */
+    static final String CHAT_LIST_SEEN = "seen chat list story rings given the accent";
+
+    /** The low half of a Compose color, which holds its color space and is all zero for an sRGB one. */
+    private static final long COLOR_SPACE = 0xffffffffL;
+
+    /**
+     * Injected right where the chat list's rows read the Compose color they draw a seen story's ring in
+     * (#187), a gray from Compose's palette. Those rows draw their own ring, so the ring view's
+     * {@link #seen} never sees it. Answers what {@link #seen} would for the gray, as a Compose color,
+     * for an sRGB one, and [color] for anything else. Never throws.
+     */
+    public static long composeSeen(long color) {
+        try {
+            HookStatus.invoked(FamilyNames.ACCENT_COLOR);
+            if ((color & COLOR_SPACE) != 0) return color;
+            int argb = (int) (color >>> 32);
+            int shade = seenShade(argb);
+            if (shade == argb) return color;
+            HookStatus.counted(FamilyNames.ACCENT_COLOR, CHAT_LIST_SEEN);
+            return (long) shade << 32;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.ACCENT_COLOR, "seen chat list story ring", failure);
+            return color;
+        }
+    }
+
+    /** The shade a seen ring's [color] takes: the picked fill at {@link #SEEN_ALPHA} for a seen gray, [color] otherwise. */
+    private static int seenShade(int color) {
+        if (!seenGray(color)) return color;
+        AccentHue hue = AccentColor.picked();
+        if (hue == null || !Settings.ACCENT_RINGS.get() || StoryRing.picksColor()) return color;
+        int fill = AccentColor.swap(FILL, hue);
+        if (fill == FILL) return color;
+        return SEEN_ALPHA << 24 | fill & 0xffffff;
     }
 
     /** Whether [color] is an opaque gray between near-black and near-white, as Instagram's seen rings are. */

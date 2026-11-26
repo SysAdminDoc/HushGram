@@ -294,6 +294,57 @@ public class AccentRingsTest {
     }
 
     /**
+     * The chat list's rows draw a seen story's ring themselves, in a gray from Compose's palette (#187).
+     * Each of Instagram's seen grays, as a Compose color, takes the same shade the ring view's does, as a
+     * Compose color, and each is counted.
+     */
+    @Test
+    public void aChatListsSeenRingTakesTheAccent() throws Exception {
+        Settings.ACCENT_COLOR.save(true);
+        Settings.ACCENT_HUE.save(AccentHue.PURPLE);
+        Settings.ACCENT_RINGS.save(true);
+        long seen = (long) (AccentRings.SEEN_ALPHA << 24 | AccentHue.PURPLE.fill & 0xffffff) << 32;
+        for (int gray : SEEN_GRAYS) assertEquals(Integer.toHexString(gray), seen, composeSeen((long) gray << 32));
+        assertTrue(HookStatus.report().toString(),
+                HookStatus.report().get(0).contains("seen chat list story rings given the accent " + SEEN_GRAYS.length));
+    }
+
+    /**
+     * A color outside sRGB, Compose's unspecified color, a colored, black or white ring, and every gray
+     * while the rings are off, Accent color is off or a Ring color is picked keep their color.
+     */
+    @Test
+    @Config(shadows = StoryRingBuilt.class)
+    public void everyOtherChatListSeenRingKeepsItsColor() throws Exception {
+        long gray = (long) SEEN_GRAYS[0] << 32;
+        assertEquals("off", gray, composeSeen(gray));
+        accentRingsOn();
+        assertTrue("on", composeSeen(gray) != gray);
+
+        assertEquals("outside sRGB", gray | 0x11, composeSeen(gray | 0x11));
+        assertEquals("unspecified", 0x10L, composeSeen(0x10L));
+        for (int color : new int[]{0xff000000, 0xffffffff, 0xff1cd14f, 0x802b3036}) {
+            assertEquals(Integer.toHexString(color), (long) color << 32, composeSeen((long) color << 32));
+        }
+
+        Settings.ACCENT_RINGS.save(false);
+        assertEquals("the rings off", gray, composeSeen(gray));
+        Settings.ACCENT_RINGS.save(true);
+
+        Settings.ACCENT_COLOR.save(false);
+        assertEquals("Accent color off", gray, composeSeen(gray));
+        Settings.ACCENT_COLOR.save(true);
+
+        Settings.STORY_RING_COLOR.save(StoryRingColor.TEAL);
+        assertEquals("Ring color picked", gray, composeSeen(gray));
+    }
+
+    /** The chat list's seen ring hook, called by name so this test builds against an extension without it. */
+    private static long composeSeen(long color) throws Exception {
+        return (long) AccentRings.class.getMethod("composeSeen", long.class).invoke(null, color);
+    }
+
+    /**
      * Laying the ring style on a theme keeps the shades the theme then holds for the default ring's
      * four attributes, in their order.
      */

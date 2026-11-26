@@ -57,7 +57,57 @@ class AccentRingsHookTest {
         val declared = ExtensionDex.classDef(ACCENT_RINGS).methods
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.definingClass}->${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
-        for (hook in listOf(ACCENT_RING_COLORS, ACCENT_DEFAULT_RING, ACCENT_SEEN_RING, ACCENT_RING_BRUSH)) assertTrue("$hook is not in the extension: $declared", hook in declared)
+        for (hook in listOf(ACCENT_RING_COLORS, ACCENT_DEFAULT_RING, ACCENT_SEEN_RING, ACCENT_RING_BRUSH, ACCENT_COMPOSE_SEEN)) {
+            assertTrue("$hook is not in the extension: $declared", hook in declared)
+        }
+    }
+
+    /**
+     * Each declared build's chat list rows draw a seen story's ring in a Compose gray they read right
+     * before making its border (#187), two rows on 457. The accent patch passes each read through the
+     * extension once, right after it, with the row's own code around the hook as it was.
+     */
+    @Test
+    fun eachDeclaredBuildsChatListGivesItsSeenRingsTheAccent() {
+        val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
+        var checked = 0
+        for (version in versions) {
+            for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
+                val classes = (StoryRingFixtures.composeRingClasses(bundle) + StoryRingFixtures.composeBrushClasses(bundle) +
+                    FixtureDex.classesLoading(bundle, ROW_RING) + FixtureDex.classes(bundle, setOf(GRADIENT_SPINNER)).values +
+                    ExtensionDex.classDef(ACCENT_RINGS)).distinctBy { it.type }
+                val context = PatchContexts.of(classes)
+                val hooks = context.findAccentRings()
+                assertEquals("${bundle.name}: rows reading a seen ring's color", 2, hooks.composeSeen.size)
+                val originals = hooks.composeSeen.map { ring ->
+                    val method = context.rowMethod(ring)
+                    Triple(ring, method.seenRingRead()!!, NeutralNativePath(method))
+                }
+                context.colorAccentRings(hooks)
+                for ((ring, found, original) in originals) {
+                    val (read, register) = found
+                    val method = context.rowMethod(ring)
+                    val code = method.implementation!!.instructions.toList()
+                    val label = "${bundle.name} ${ring.type}->${ring.name}"
+                    val called = code.indices.filter { (code[it] as? ReferenceInstruction)?.reference?.toString() == ACCENT_COMPOSE_SEEN }
+                    assertEquals("$label: hooks", listOf(read + 1), called)
+                    assertEquals("$label: the read", Opcode.IGET_WIDE, code[read].opcode)
+                    assertEquals("$label: the hook's call", Opcode.INVOKE_STATIC_RANGE, code[read + 1].opcode)
+                    val call = code[read + 1] as RegisterRangeInstruction
+                    assertEquals("$label: the color", register to 2, call.startRegister to call.registerCount)
+                    assertEquals("$label: the answer", Opcode.MOVE_RESULT_WIDE, code[read + 2].opcode)
+                    assertEquals("$label: into the color", register, (code[read + 2] as OneRegisterInstruction).registerA)
+                    assertTrue("$label: something jumps past the hook", method.jumpTargets().none { it in read + 1..read + 3 })
+                    original.assertPreserved(label, method, setOf(read + 1, read + 2))
+                }
+                checked++
+            }
+        }
+        assertTrue("no fixture of a declared build", checked > 0)
+    }
+
+    private fun BytecodePatchContext.rowMethod(ring: ComposeSeenRing): Method = mutableClassDefBy(ring.type).methods.single {
+        it.name == ring.name && it.parameterTypes.map(CharSequence::toString) == ring.parameters
     }
 
     @Test
@@ -351,5 +401,8 @@ class AccentRingsHookTest {
     private companion object {
         val ALL_HOOKS = setOf(RING_COLORS, ACCENT_RING_COLORS, RING_DEFAULT_COLORS, ACCENT_DEFAULT_RING)
         val BRUSH_HOOKS = ALL_HOOKS + ACCENT_RING_BRUSH + RING_BRUSH_COLORS
+
+        /** What the chat list's rows name the ring they draw, which every row drawing one loads. */
+        const val ROW_RING = "avatar_story_ring"
     }
 }
