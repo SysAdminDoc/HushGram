@@ -3038,3 +3038,15 @@ The line for writing a comment sits where Instagram puts it, at the bottom of th
 The line for writing a comment sits a little higher on the story.	댓글을 쓰는 입력줄이 스토리에서 조금 더 높은 곳에 있습니다.
 # context: Stories > summary of Comment line height on stories while Higher is chosen; the bottom edge is the bottom of the screen (#826)
 The line for writing a comment sits higher on the story, well clear of the bottom edge.	댓글을 쓰는 입력줄이 스토리에서 더 높은 곳, 아래쪽 가장자리에서 충분히 떨어진 곳에 있습니다.
+# context: Stories: a switch (#187), named like Full screen Reels, Full screen Home and Full screen Messages
+Full screen stories	스토리 전체 화면
+# context: Full screen stories (#187): its summary, worded like Full screen Home's
+Hides the status bar and the navigation bar while a story shows. Swipe in from the edge to bring them back for a moment.	스토리가 표시되는 동안 상태 표시줄과 탐색 막대를 숨깁니다. 가장자리에서 안쪽으로 밀면 잠깐 다시 나타납니다.
+# context: Explore: a switch (#187), named like Full screen Home. Explore is Instagram's tab, as the app names it
+Full screen Explore	탐색 전체 화면
+# context: Full screen Explore (#187): its summary, worded like Full screen Home's
+Hides the status bar and the navigation bar while Explore shows. Swipe in from the edge to bring them back for a moment.	탐색이 표시되는 동안 상태 표시줄과 탐색 막대를 숨깁니다. 가장자리에서 안쪽으로 밀면 잠깐 다시 나타납니다.
+# context: Profiles: a switch (#187) for your own profile's tab, named like Full screen Home
+Full screen profile	프로필 전체 화면
+# context: Full screen profile (#187): its summary, worded like Full screen Home's
+Hides the status bar and the navigation bar while your profile tab shows. Swipe in from the edge to bring them back for a moment.	내 프로필 탭이 표시되는 동안 상태 표시줄과 탐색 막대를 숨깁니다. 가장자리에서 안쪽으로 밀면 잠깐 다시 나타납니다.

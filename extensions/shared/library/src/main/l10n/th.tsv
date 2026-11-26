@@ -3036,3 +3036,15 @@ The line for writing a comment sits where Instagram puts it, at the bottom of th
 The line for writing a comment sits a little higher on the story.	บรรทัดสำหรับเขียนความคิดเห็นอยู่สูงขึ้นเล็กน้อยบนสตอรี่
 # context: Stories > summary of Comment line height on stories while Higher is chosen; the bottom edge is the bottom of the screen (#826)
 The line for writing a comment sits higher on the story, well clear of the bottom edge.	บรรทัดสำหรับเขียนความคิดเห็นอยู่สูงขึ้นบนสตอรี่ ห่างจากขอบล่างพอสมควร
+# context: Stories: a switch (#187), named like Full screen Reels, Full screen Home and Full screen Messages
+Full screen stories	สตอรี่แบบเต็มหน้าจอ
+# context: Full screen stories (#187): its summary, worded like Full screen Home's
+Hides the status bar and the navigation bar while a story shows. Swipe in from the edge to bring them back for a moment.	ซ่อนแถบสถานะและแถบการนำทางขณะแสดงสตอรี่ ปัดเข้าจากขอบเพื่อแสดงแถบชั่วขณะ
+# context: Explore: a switch (#187), named like Full screen Home. Explore is Instagram's tab, as the app names it
+Full screen Explore	สำรวจแบบเต็มหน้าจอ
+# context: Full screen Explore (#187): its summary, worded like Full screen Home's
+Hides the status bar and the navigation bar while Explore shows. Swipe in from the edge to bring them back for a moment.	ซ่อนแถบสถานะและแถบการนำทางขณะแสดงหน้าสำรวจ ปัดเข้าจากขอบเพื่อแสดงแถบชั่วขณะ
+# context: Profiles: a switch (#187) for your own profile's tab, named like Full screen Home
+Full screen profile	โปรไฟล์แบบเต็มหน้าจอ
+# context: Full screen profile (#187): its summary, worded like Full screen Home's
+Hides the status bar and the navigation bar while your profile tab shows. Swipe in from the edge to bring them back for a moment.	ซ่อนแถบสถานะและแถบการนำทางขณะแสดงแท็บโปรไฟล์ของคุณ ปัดเข้าจากขอบเพื่อแสดงแถบชั่วขณะ

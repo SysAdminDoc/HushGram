@@ -158,6 +158,9 @@ final class StoriesCategory {
             }
         }
         if (build.contains(PatchFamily.FULL_SCREEN_BARS)) {
+            stories.add(toggle(context, Settings.FULL_SCREEN_STORIES, L10n.t("Full screen stories"),
+                    L10n.t("Hides the status bar and the navigation bar while a story shows. Swipe in from the edge "
+                            + "to bring them back for a moment.")));
             stories.add(toggle(context, Settings.FILL_STORY_SCREEN, L10n.t("Stories fill the screen"),
                     L10n.t("On a tall screen a story covers the whole screen, with the reply bar on top of it like "
                             + "on shorter phones, instead of a rounded card above the bar.")));

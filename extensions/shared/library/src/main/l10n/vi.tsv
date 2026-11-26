@@ -2954,3 +2954,15 @@ The line for writing a comment sits where Instagram puts it, at the bottom of th
 The line for writing a comment sits a little higher on the story.	Dòng để viết bình luận nằm cao hơn một chút trên tin.
 # context: Stories > summary of Comment line height on stories while Higher is chosen; the bottom edge is the bottom of the screen (#826)
 The line for writing a comment sits higher on the story, well clear of the bottom edge.	Dòng để viết bình luận nằm cao hơn trên tin, cách xa mép dưới.
+# context: Stories: a switch (#187), named like Full screen Reels, Full screen Home and Full screen Messages
+Full screen stories	Tin toàn màn hình
+# context: Full screen stories (#187): its summary, worded like Full screen Home's
+Hides the status bar and the navigation bar while a story shows. Swipe in from the edge to bring them back for a moment.	Ẩn thanh trạng thái và thanh điều hướng khi một tin hiện. Vuốt từ mép vào để đưa chúng trở lại trong giây lát.
+# context: Explore: a switch (#187), named like Full screen Home. Explore is Instagram's tab, as the app names it
+Full screen Explore	Khám phá toàn màn hình
+# context: Full screen Explore (#187): its summary, worded like Full screen Home's
+Hides the status bar and the navigation bar while Explore shows. Swipe in from the edge to bring them back for a moment.	Ẩn thanh trạng thái và thanh điều hướng khi Khám phá hiện. Vuốt từ mép vào để đưa chúng trở lại trong giây lát.
+# context: Profiles: a switch (#187) for your own profile's tab, named like Full screen Home
+Full screen profile	Trang cá nhân toàn màn hình
+# context: Full screen profile (#187): its summary, worded like Full screen Home's
+Hides the status bar and the navigation bar while your profile tab shows. Swipe in from the edge to bring them back for a moment.	Ẩn thanh trạng thái và thanh điều hướng khi tab trang cá nhân hiện. Vuốt từ mép vào để đưa chúng trở lại trong giây lát.

@@ -2191,6 +2191,18 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting FULL_SCREEN_MESSAGES =
             new BooleanSetting("hushgram_full_screen_messages", FALSE);
 
+    /** The same while a story shows, wherever it opened from (#187). Off to start. */
+    public static final BooleanSetting FULL_SCREEN_STORIES =
+            new BooleanSetting("hushgram_full_screen_stories", FALSE);
+
+    /** The same on Explore, while its tab is selected and Reels isn't showing (#187). Off to start. */
+    public static final BooleanSetting FULL_SCREEN_EXPLORE =
+            new BooleanSetting("hushgram_full_screen_explore", FALSE);
+
+    /** The same on your profile, while its tab is selected (#187). Off to start. */
+    public static final BooleanSetting FULL_SCREEN_PROFILE =
+            new BooleanSetting("hushgram_full_screen_profile", FALSE);
+
     /**
      * Stories over the whole screen (#436): on a screen taller than 9:16 a story shows behind the
      * reply bar, the way it does on a shorter phone, instead of as a rounded card above it. It's laid
@@ -2201,14 +2213,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_fill_story_screen", FALSE);
 
     /**
-     * Which bars the three switches above hide (#231): both to start, or only the status bar or only the
-     * navigation bar ({@link app.hushgram.extension.instagram.reels.HiddenBars}). Read each time a
-     * screen hides them.
+     * Which bars the full screen switches above hide (#231): both to start, or only the status bar or
+     * only the navigation bar ({@link app.hushgram.extension.instagram.reels.HiddenBars}). Read each
+     * time a screen hides them.
      */
     public static final EnumSetting<app.hushgram.extension.instagram.reels.HiddenBars> FULL_SCREEN_HIDES =
             new EnumSetting<>("hushgram_full_screen_hides",
                     app.hushgram.extension.instagram.reels.HiddenBars.BOTH,
-                    parentsAny(FULL_SCREEN_REELS, FULL_SCREEN_HOME, FULL_SCREEN_MESSAGES));
+                    parentsAny(FULL_SCREEN_REELS, FULL_SCREEN_HOME, FULL_SCREEN_MESSAGES, FULL_SCREEN_STORIES,
+                            FULL_SCREEN_EXPLORE, FULL_SCREEN_PROFILE));
 
     /**
      * Under {@link #GLASS_TAB_BAR}: the pill blurs what's behind it, on Android 12 and newer. Off, or

@@ -40,6 +40,9 @@ public class FullScreenBarsSettingsTest {
         Settings.FIT_REEL_SCREEN.resetToDefault();
         Settings.FULL_SCREEN_HOME.resetToDefault();
         Settings.FULL_SCREEN_MESSAGES.resetToDefault();
+        Settings.FULL_SCREEN_STORIES.resetToDefault();
+        Settings.FULL_SCREEN_EXPLORE.resetToDefault();
+        Settings.FULL_SCREEN_PROFILE.resetToDefault();
         Settings.FILL_STORY_SCREEN.resetToDefault();
         Settings.FULL_SCREEN_HIDES.resetToDefault();
         BaseSettings.PAUSED.save(false);
@@ -56,6 +59,9 @@ public class FullScreenBarsSettingsTest {
         Settings.FIT_REEL_SCREEN.resetToDefault();
         Settings.FULL_SCREEN_HOME.resetToDefault();
         Settings.FULL_SCREEN_MESSAGES.resetToDefault();
+        Settings.FULL_SCREEN_STORIES.resetToDefault();
+        Settings.FULL_SCREEN_EXPLORE.resetToDefault();
+        Settings.FULL_SCREEN_PROFILE.resetToDefault();
         Settings.FILL_STORY_SCREEN.resetToDefault();
         Settings.FULL_SCREEN_HIDES.resetToDefault();
         BaseSettings.PAUSED.save(false);
@@ -105,7 +111,11 @@ public class FullScreenBarsSettingsTest {
         assertNull(page.getPreferenceScreen().findPreference(Settings.FULL_SCREEN_HIDES.key));
         assertNull(page.getPreferenceScreen().findPreference(Settings.FIT_REEL_SCREEN.key));
         assertNull(page.getPreferenceScreen().findPreference(Settings.FILL_STORY_SCREEN.key));
+        assertNull(page.getPreferenceScreen().findPreference(Settings.FULL_SCREEN_STORIES.key));
+        assertNull(page.getPreferenceScreen().findPreference(Settings.FULL_SCREEN_EXPLORE.key));
+        assertNull(page.getPreferenceScreen().findPreference(Settings.FULL_SCREEN_PROFILE.key));
         assertFalse(ConfigurationBackup.eligible().containsKey(Settings.FULL_SCREEN_HIDES.key));
+        assertFalse(ConfigurationBackup.eligible().containsKey(Settings.FULL_SCREEN_EXPLORE.key));
         assertFalse(ConfigurationBackup.eligible().containsKey(Settings.FILL_STORY_SCREEN.key));
     }
 
@@ -180,6 +190,49 @@ public class FullScreenBarsSettingsTest {
         PauseForTests.pause(HushgramPause.Reason.SWITCH);
         assertFalse(Settings.FULL_SCREEN_MESSAGES.get());
         assertTrue(Settings.FULL_SCREEN_MESSAGES.savedValue());
+    }
+
+    /**
+     * #187: Full screen stories sits under Stories, Full screen Explore under Explore and Full screen
+     * profile under Profiles, each with only this patch in the build. Each starts off, is backed up,
+     * wakes Bars to hide on its own and answers off while paused.
+     */
+    @Test public void storiesExploreAndProfileHaveTheirOwnSwitches() throws Exception {
+        open(EnumSet.of(PatchFamily.FULL_SCREEN_BARS));
+        Object[][] rows = {
+                {Settings.FULL_SCREEN_STORIES, "Full screen stories", "Stories",
+                        "Hides the status bar and the navigation bar while a story shows. Swipe in from the edge to "
+                                + "bring them back for a moment."},
+                {Settings.FULL_SCREEN_EXPLORE, "Full screen Explore", "Explore",
+                        "Hides the status bar and the navigation bar while Explore shows. Swipe in from the edge to "
+                                + "bring them back for a moment."},
+                {Settings.FULL_SCREEN_PROFILE, "Full screen profile", "Profiles",
+                        "Hides the status bar and the navigation bar while your profile tab shows. Swipe in from the "
+                                + "edge to bring them back for a moment."},
+        };
+        for (Object[] expected : rows) {
+            app.hushgram.extension.shared.settings.BooleanSetting setting =
+                    (app.hushgram.extension.shared.settings.BooleanSetting) expected[0];
+            android.preference.Preference row = page.getPreferenceScreen().findPreference(setting.key);
+            assertNotNull(expected[1].toString(), row);
+            assertEquals(expected[1], row.getTitle().toString());
+            assertEquals(expected[3], row.getSummary().toString());
+            assertEquals(expected[2], ((PreferenceGroup) row.getParent()).getTitle().toString());
+            assertFalse(setting.defaultValue);
+            assertFalse(setting.get());
+            assertTrue(ConfigurationBackup.eligible().containsKey(setting.key));
+
+            assertFalse(Settings.FULL_SCREEN_HIDES.isAvailable());
+            setting.save(true);
+            assertTrue(expected[1] + " wakes Bars to hide", Settings.FULL_SCREEN_HIDES.isAvailable());
+            BaseSettings.PAUSED.save(true);
+            PauseForTests.pause(HushgramPause.Reason.SWITCH);
+            assertFalse(setting.get());
+            assertTrue(setting.savedValue());
+            BaseSettings.PAUSED.save(false);
+            PauseForTests.resume();
+            setting.save(false);
+        }
     }
 
     /** #231: with either switch on the row says what each choice hides. */

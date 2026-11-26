@@ -3042,3 +3042,15 @@ The line for writing a comment sits where Instagram puts it, at the bottom of th
 The line for writing a comment sits a little higher on the story.	写评论的那一栏在快拍上的位置稍高一点。
 # context: Stories > summary of Comment line height on stories while Higher is chosen; the bottom edge is the bottom of the screen (#826)
 The line for writing a comment sits higher on the story, well clear of the bottom edge.	写评论的那一栏在快拍上的位置更高，离底部边缘有一段距离。
+# context: Stories: a switch (#187), named like Full screen Reels, Full screen Home and Full screen Messages
+Full screen stories	全屏幕快拍
+# context: Full screen stories (#187): its summary, worded like Full screen Home's
+Hides the status bar and the navigation bar while a story shows. Swipe in from the edge to bring them back for a moment.	显示快拍时隐藏状态栏与导航栏。从边缘向内滑动可短暂显示。
+# context: Explore: a switch (#187), named like Full screen Home. Explore is Instagram's tab, as the app names it
+Full screen Explore	全屏幕探索
+# context: Full screen Explore (#187): its summary, worded like Full screen Home's
+Hides the status bar and the navigation bar while Explore shows. Swipe in from the edge to bring them back for a moment.	显示探索时隐藏状态栏与导航栏。从边缘向内滑动可短暂显示。
+# context: Profiles: a switch (#187) for your own profile's tab, named like Full screen Home
+Full screen profile	全屏幕主页
+# context: Full screen profile (#187): its summary, worded like Full screen Home's
+Hides the status bar and the navigation bar while your profile tab shows. Swipe in from the edge to bring them back for a moment.	显示你的主页标签时隐藏状态栏与导航栏。从边缘向内滑动可短暂显示。

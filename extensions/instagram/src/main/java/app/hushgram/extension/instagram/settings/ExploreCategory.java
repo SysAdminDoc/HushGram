@@ -23,7 +23,8 @@ final class ExploreCategory {
 
     static void add(HushgramPreferenceFragment page, PreferenceScreen screen, Context context, Set<PatchFamily> build) {
         if (build.contains(PatchFamily.EXPLORE_GRID) || build.contains(PatchFamily.RECENT_SEARCHES)
-                || build.contains(PatchFamily.ALL_RECENT_SEARCHES) || build.contains(PatchFamily.EXPLORE_MENU)) {
+                || build.contains(PatchFamily.ALL_RECENT_SEARCHES) || build.contains(PatchFamily.EXPLORE_MENU)
+                || build.contains(PatchFamily.FULL_SCREEN_BARS)) {
             PreferenceCategory explore = category(screen, L10n.t("Explore"), SettingsIcons.EXPLORE,
                     L10n.t("Search, suggestions and the Explore grid."));
             if (build.contains(PatchFamily.EXPLORE_GRID)) {
@@ -60,6 +61,11 @@ final class ExploreCategory {
                         L10n.t("Hide Explore's personalized menu"),
                         L10n.t("Hides the top bar button that switches Explore's personalization, where Instagram "
                                 + "shows it (in the EU).")));
+            }
+            if (build.contains(PatchFamily.FULL_SCREEN_BARS)) {
+                explore.addPreference(toggle(context, Settings.FULL_SCREEN_EXPLORE, L10n.t("Full screen Explore"),
+                        L10n.t("Hides the status bar and the navigation bar while Explore shows. Swipe in from the "
+                                + "edge to bring them back for a moment.")));
             }
         }
     }

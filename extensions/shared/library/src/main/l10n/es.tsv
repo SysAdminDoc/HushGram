@@ -3039,3 +3039,15 @@ The line for writing a comment sits where Instagram puts it, at the bottom of th
 The line for writing a comment sits a little higher on the story.	La línea para escribir un comentario queda un poco más arriba en la historia.
 # context: Stories > summary of Comment line height on stories while Higher is chosen; the bottom edge is the bottom of the screen (#826)
 The line for writing a comment sits higher on the story, well clear of the bottom edge.	La línea para escribir un comentario queda más arriba en la historia, bien lejos del borde inferior.
+# context: Stories: a switch (#187), named like Full screen Reels, Full screen Home and Full screen Messages
+Full screen stories	Historias a pantalla completa
+# context: Full screen stories (#187): its summary, worded like Full screen Home's
+Hides the status bar and the navigation bar while a story shows. Swipe in from the edge to bring them back for a moment.	Oculta la barra de estado y la barra de navegación mientras se muestra una historia. Desliza desde el borde para volver a mostrarlas un momento.
+# context: Explore: a switch (#187), named like Full screen Home. Explore is Instagram's tab, as the app names it
+Full screen Explore	Explorar a pantalla completa
+# context: Full screen Explore (#187): its summary, worded like Full screen Home's
+Hides the status bar and the navigation bar while Explore shows. Swipe in from the edge to bring them back for a moment.	Oculta la barra de estado y la barra de navegación mientras se muestra Explorar. Desliza desde el borde para volver a mostrarlas un momento.
+# context: Profiles: a switch (#187) for your own profile's tab, named like Full screen Home
+Full screen profile	Perfil a pantalla completa
+# context: Full screen profile (#187): its summary, worded like Full screen Home's
+Hides the status bar and the navigation bar while your profile tab shows. Swipe in from the edge to bring them back for a moment.	Oculta la barra de estado y la barra de navegación mientras se muestra la pestaña de tu perfil. Desliza desde el borde para volver a mostrarlas un momento.
