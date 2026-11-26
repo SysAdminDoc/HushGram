@@ -36,6 +36,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
+import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 
 private const val PATCH = "Block likes and replies in Ghost mode"
 
@@ -46,6 +47,21 @@ internal const val GHOST_LIKE = "$GHOST_ACTIONS->like()Z"
 
 /** Asked first where a story reply starts: true holds it back, with a toast saying why. */
 internal const val GHOST_REPLY = "$GHOST_ACTIONS->reply()Z"
+
+/** Asked first in Copy link and where a share link is made: true holds it back, with a toast saying why. */
+internal const val GHOST_SHARE = "$GHOST_ACTIONS->share()Z"
+
+/** Asked first where the comment sheet posts a comment: true holds it back, with a toast saying why. */
+internal const val GHOST_COMMENT = "$GHOST_ACTIONS->comment()Z"
+
+/** What Copy link logs as it starts, in each of the steps a profile, a story, a post or a link's id copies through. */
+internal const val COPY_LINK = "copy_link"
+
+/** The comment sheet's view model and the repository whose jobs post a comment, names Redex keeps. */
+internal const val COMMENT_VIEW_MODEL = "Lcom/instagram/comments/mvvm/viewmodel/CommentListViewModel;"
+internal const val COMMENT_REPOSITORY = "Lcom/instagram/comments/mvvm/data/MediaCommentListRepository;"
+internal const val COMMENT_POST_JOB = "Lcom/instagram/comments/mvvm/data/MediaCommentListRepository\$postComment\$1;"
+internal const val COMMENT_DELAYED_POST_JOB = "Lcom/instagram/comments/mvvm/data/MediaCommentListRepository\$postDelayedComment\$1;"
 
 /**
  * What the like path under a post counts the double tap hint with, which only its shared step loads.
@@ -73,17 +89,20 @@ private const val INTEGER = "Ljava/lang/Integer;"
 private const val CLICK_LISTENER = "Landroid/view/View\$OnClickListener;"
 private const val USER_SESSION = "Lcom/instagram/common/session/UserSession;"
 private const val DIRECT_SHARE_TARGET = "Lcom/instagram/model/direct/DirectShareTarget;"
+private const val CONTEXT = "Landroid/content/Context;"
+private const val LOADER_MANAGER = "Landroidx/loader/app/LoaderManager;"
 
 /**
- * While Ghost mode is on, a like or a story reply does nothing and a toast says why (#876). Each
- * hook goes in where the tap starts, before Instagram changes anything on screen, so the heart never
- * turns red and nothing is sent. Starts off.
+ * While Ghost mode is on, a like, a story reply, a comment or a share link does nothing and a toast
+ * says why (#876). Each hook goes in where the tap starts, before Instagram changes anything on
+ * screen, so the heart never turns red and nothing is sent. Starts off.
  */
 @Suppress("unused")
 val blockGhostActionsPatch = bytecodePatch(
     name = "Block likes and replies in Ghost mode",
-    description = "While Ghost mode is on, liking a post or story and replying to a story do nothing, and a " +
-        "message says why. Starts off. Turn it on in HushGram settings > Ads and privacy.",
+    description = "While Ghost mode is on, liking a post or story, replying to a story, posting a comment and " +
+        "copying or sharing a link do nothing, and a message says why. Starts off. Turn it on in HushGram " +
+        "settings > Ads and privacy.",
 ) {
     category("Ghost mode")
     dependsOn(settingsPatch)
@@ -117,11 +136,16 @@ internal class GhostActionTargets(
     val storyLikeStep: MutableMethod,
     val textReplies: List<MutableMethod>,
     val quickReaction: MutableMethod,
+    val copyLinks: List<MutableMethod>,
+    val linkFetches: List<MutableMethod>,
+    val commentPosts: List<MutableMethod>,
 ) {
     /** The methods a hook goes first in, with the hook. */
     val atStart: List<Pair<MutableMethod, String>>
         get() = listOf(postLikeStep, storyLike, storyLikeStep).map { it to GHOST_LIKE } +
-            (textReplies + quickReaction).map { it to GHOST_REPLY }
+            (textReplies + quickReaction).map { it to GHOST_REPLY } +
+            (copyLinks + linkFetches).map { it to GHOST_SHARE } +
+            commentPosts.map { it to GHOST_COMMENT }
 }
 
 /**
@@ -140,11 +164,20 @@ internal class GhostActionTargets(
  * - a typed story reply: each method returning nothing, Redex merges left out, that loads
  *   [GHOST_TEXT_REPLY] and calls the story reply send, a static call starting (UserSession, Media,
  *   DirectShareTarget) (020U.A06; 386314341's merged 0Nvz.invoke sends one too and stays unhooked);
- * - a quick reaction: the one method loading [GHOST_QUICK_REACTION] (069D.A00).
+ * - a quick reaction: the one method loading [GHOST_QUICK_REACTION] (069D.A00);
+ * - Copy link: each method returning nothing that takes a LoaderManager and loads [COPY_LINK], Redex
+ *   merges left out (0O0e.A00, A01, A04 and A05 and 0O0j.A00), each of which asks for a share link;
+ * - the share links themselves: each static method returning nothing that takes a LoaderManager and
+ *   schedules the link's request through a static `(Context, LoaderManager, request)int` call, in
+ *   the one class Copy link hands its link to that way (0O0F's A00 to A05, which the share sheet's
+ *   other ways out use too);
+ * - a comment: each instance method of [COMMENT_VIEW_MODEL] returning nothing that takes an Activity
+ *   first and posts, either through a [COMMENT_REPOSITORY] method that starts [COMMENT_POST_JOB] or
+ *   by starting [COMMENT_DELAYED_POST_JOB] itself (FPC, FjJ for a GIF and A1P for a delayed post).
  */
 internal fun BytecodePatchContext.findGhostActions(): GhostActionTargets {
     val extension = classDefByOrNull(GHOST_ACTIONS) ?: refuse("$GHOST_ACTIONS isn't in the extension")
-    for (hook in listOf(GHOST_LIKE, GHOST_REPLY)) {
+    for (hook in listOf(GHOST_LIKE, GHOST_REPLY, GHOST_SHARE, GHOST_COMMENT)) {
         val name = hook.substringAfter("->").substringBefore("(")
         extension.methods.singleOrNull {
             it.name == name && it.isStatic() && AccessFlags.PUBLIC.isSet(it.accessFlags) && it.parameterTypes.isEmpty() && it.returnType == "Z"
@@ -179,7 +212,40 @@ internal fun BytecodePatchContext.findGhostActions(): GhostActionTargets {
     if (typed.isEmpty()) refuse("no method loading \"$GHOST_TEXT_REPLY\" sends a typed story reply through ${send.key()}")
     val textReplies = typed.map { (owner, method) -> startHook("typed story reply", mutable(owner.type, method)) }
 
-    return GhostActionTargets(postLikeStep, storyHeart, storyLike, storyLikeStep, textReplies, reaction)
+    val copies = classesLoadingString(COPY_LINK).flatMap { owner ->
+        owner.methods.filter { method ->
+            !method.isPool() && !method.isMerged() && method.returnType == "V" && method.implementation != null &&
+                LOADER_MANAGER in method.parameters() && loadsString(method, COPY_LINK)
+        }.map { owner to it }
+    }
+    if (copies.isEmpty()) refuse("no method taking a LoaderManager loads \"$COPY_LINK\"")
+    val handedTo = copies.flatMap { (_, method) -> method.staticCalls().filter { it.returnType == "V" && LOADER_MANAGER in it.parameters() } }
+        .map { it.definingClass }.distinct()
+    val fetcherType = handedTo.singleOrNull()
+        ?: refuse("expected Copy link to hand its link to one class through a static LoaderManager call, found ${handedTo.size}")
+    val fetcher = classDefByOrNull(fetcherType) ?: refuse("$fetcherType isn't in this build")
+    val fetches = fetcher.methods.filter { method ->
+        method.isStatic() && method.returnType == "V" && method.implementation != null && LOADER_MANAGER in method.parameters() &&
+            method.staticCalls().any { it.isLinkRequestSchedule() }
+    }
+    if (fetches.isEmpty()) refuse("$fetcherType schedules no share link's request")
+    val copyKeys = copies.map { (_, method) -> method.key() }.toSet()
+    val copyLinks = copies.map { (owner, method) -> startHook("Copy link step", mutable(owner.type, method)) }
+    val linkFetches = fetches.filter { it.key() !in copyKeys }.map { startHook("share link step", mutable(fetcherType, it)) }
+
+    val repository = classDefByOrNull(COMMENT_REPOSITORY) ?: refuse("$COMMENT_REPOSITORY isn't in this build")
+    val postJobs = repository.methods.filter { it.creates(COMMENT_POST_JOB) }.map { it.key() }.toSet()
+    if (postJobs.isEmpty()) refuse("no $COMMENT_REPOSITORY method starts $COMMENT_POST_JOB")
+    val viewModel = classDefByOrNull(COMMENT_VIEW_MODEL) ?: refuse("$COMMENT_VIEW_MODEL isn't in this build")
+    val posts = viewModel.methods.filter { method ->
+        !method.isStatic() && !method.isMerged() && method.returnType == "V" && method.implementation != null &&
+            method.parameters().firstOrNull() == ACTIVITY &&
+            (method.calls().any { it.key() in postJobs } || method.creates(COMMENT_DELAYED_POST_JOB))
+    }
+    if (posts.isEmpty()) refuse("no $COMMENT_VIEW_MODEL method taking an Activity posts a comment")
+    val commentPosts = posts.map { startHook("comment post", mutable(COMMENT_VIEW_MODEL, it)) }
+
+    return GhostActionTargets(postLikeStep, storyHeart, storyLike, storyLikeStep, textReplies, reaction, copyLinks, linkFetches, commentPosts)
 }
 
 /**
@@ -352,8 +418,22 @@ private fun MethodReference.isStoryReplySend(): Boolean = returnType == "V" && p
     it.size >= 3 && it[0] == USER_SESSION && it[1] == MEDIA && it[2] == DIRECT_SHARE_TARGET
 }
 
+/** A share link's request handed to the loader: a call taking (Context, LoaderManager, request) and answering an int. */
+private fun MethodReference.isLinkRequestSchedule(): Boolean = returnType == "I" && parameters().let {
+    it.size == 3 && it[0] == CONTEXT && it[1] == LOADER_MANAGER && it[2].startsWith("L")
+}
+
 private fun Method.calls(): List<MethodReference> =
     implementation?.instructions?.mapNotNull { it.method() } ?: emptyList()
+
+private fun Method.staticCalls(): List<MethodReference> = implementation?.instructions
+    ?.filter { it.opcode == Opcode.INVOKE_STATIC || it.opcode == Opcode.INVOKE_STATIC_RANGE }
+    ?.mapNotNull { it.method() } ?: emptyList()
+
+/** Whether this method makes a new [type]. */
+private fun Method.creates(type: String): Boolean = implementation?.instructions?.any { instruction ->
+    instruction.opcode == Opcode.NEW_INSTANCE && ((instruction as ReferenceInstruction).reference as? TypeReference)?.type == type
+} == true
 
 private fun Instruction.method(): MethodReference? = (this as? ReferenceInstruction)?.reference as? MethodReference
 
@@ -370,7 +450,7 @@ private fun Method.isMerged() = implementation?.instructions?.any { instruction 
     ((instruction as? ReferenceInstruction)?.reference as? FieldReference)?.let { it.definingClass == definingClass && it.name == "\$t" } == true
 } == true
 
-private fun Method.parameters() = parameterTypes.map(Any::toString)
+private fun MethodReference.parameters() = parameterTypes.map(Any::toString)
 
 private fun Method.where() = "$definingClass->$name"
 

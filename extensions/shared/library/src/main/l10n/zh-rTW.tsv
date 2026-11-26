@@ -1563,11 +1563,13 @@ All of them. Tap to leave some out, and Ghost mode leaves those as you set them.
 %1$s. The others stay as you set them.	%1$s。其他開關會保留你原本的設定。
 Switches Ghost mode turns	幽靈模式控制的開關
 Ghost mode needs at least one switch to turn.	幽靈模式至少需要控制一個開關。
-# context: Ghost mode: the switch under its rows in Ads and privacy that holds likes and story replies back while Ghost mode is on (#876). A like is the heart under a post or a story; the two short ones are toasts shown when a tap is held back
+# context: Ghost mode: the switch under its rows in Ads and privacy that holds likes, story replies, comments and share links back while Ghost mode is on (#876). A like is the heart under a post or a story, a share link is what Copy link and sharing a post out make; the four short ones are toasts shown when a tap is held back
 Block likes and replies in Ghost mode	在幽靈模式中封鎖按讚和回覆
-While Ghost mode is on, liking a post or story and replying to a story do nothing, and a message says why. Nothing is sent.	開啟幽靈模式時，對貼文或限時動態按讚以及回覆限時動態都不會有任何作用，並會顯示訊息說明原因。不會傳送任何內容.
+While Ghost mode is on, liking a post or story, replying to a story, posting a comment and copying or sharing a link do nothing, and a message says why. Nothing is sent.	開啟幽靈模式時，對貼文或限時動態按讚、回覆限時動態、發表留言以及複製或分享連結都不會有任何作用，並會顯示訊息說明原因。不會傳送任何內容.
 Likes are off in Ghost mode.	幽靈模式下無法按讚.
 Replies are off in Ghost mode.	幽靈模式下無法回覆.
+Comments are off in Ghost mode.	幽靈模式下無法留言.
+Share links are off in Ghost mode.	幽靈模式下無法分享連結.
 # context: Ghost mode: turning it on or off with a long press on a tab (#255). %1$s is a tab's name
 Turn Ghost mode on or off with a tab long press	長按分頁切換幽靈模式
 Tab long presses keep Instagram's own action. Choose one to turn Ghost mode on or off instead.	長按分頁會保留 Instagram 原本的操作。選擇一個分頁，改為開啟或關閉幽靈模式。

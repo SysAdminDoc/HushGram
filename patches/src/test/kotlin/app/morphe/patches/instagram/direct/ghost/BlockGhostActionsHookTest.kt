@@ -60,8 +60,13 @@ class BlockGhostActionsHookTest {
 
     @Test
     fun theStandInsGetEachHookWhereItGoes() {
-        val context = PatchContexts.of(world())
+        val classes = world()
+        val stock = classes.associateBy { it.type }
+        val context = PatchContexts.of(classes)
+        val idle = { context.mutableClassDefBy(FETCHER).methods.single { it.name == "A09" }.implementation!!.instructions.map { it.opcode } }
+        val idleBefore = idle()
         val found = context.findGhostActions()
+        val firsts = found.atStart.map { (method, _) -> stock.getValue(method.definingClass).body(method).first().opcode }
         blockGhostActions(found)
 
         assertEquals("$STEP->A02", found.postLikeStep.where())
@@ -69,11 +74,14 @@ class BlockGhostActionsHookTest {
         assertEquals("$STORY_STEP->A0P", found.storyLikeStep.where())
         assertEquals(listOf("$COMPOSER->A06"), found.textReplies.map { it.where() })
         assertEquals("$REACTION->A00", found.quickReaction.where())
-        assertEquals(listOf(GHOST_LIKE, GHOST_LIKE, GHOST_LIKE, GHOST_REPLY, GHOST_REPLY), found.atStart.map { it.second })
-        for ((method, hook) in found.atStart) {
-            val first = if (method.definingClass == STORY_STEP) Opcode.CONST_4 else Opcode.CONST_STRING
-            startsWith(method, hook, first, method.where())
-        }
+        assertEquals("the step with no LoaderManager is left out", listOf("$COPY->A00", "$COPY->A05"), found.copyLinks.map { it.where() }.sorted())
+        assertEquals("the fetch that schedules no request is left out", listOf("$FETCHER->A02"), found.linkFetches.map { it.where() })
+        assertEquals("the static post and the one posting nothing are left out", listOf("$COMMENT_VIEW_MODEL->A1P", "$COMMENT_VIEW_MODEL->FPC"),
+            found.commentPosts.map { it.where() }.sorted())
+        assertEquals(listOf(GHOST_LIKE, GHOST_LIKE, GHOST_LIKE, GHOST_REPLY, GHOST_REPLY, GHOST_SHARE, GHOST_SHARE, GHOST_SHARE,
+            GHOST_COMMENT, GHOST_COMMENT), found.atStart.map { it.second })
+        for ((index, entry) in found.atStart.withIndex()) startsWith(entry.first, entry.second, firsts[index], entry.first.where())
+        assertEquals("the fetcher's method scheduling nothing is as it was", idleBefore, idle())
 
         val heart = found.storyHeart
         assertEquals("$VIEWER->onClick", heart.method.where())
@@ -123,6 +131,11 @@ class BlockGhostActionsHookTest {
         refuses("a heart case with no trace start", "starts no trace", world(viewer = viewer(start = false)))
         refuses("a heart case whose only local besides the trace is read after the hook", "local register", world(viewer = busyViewer()))
         refuses("a typed reply sending some other way", "sends a typed story reply", world(composer = composer(send = OTHER_SEND)))
+        refuses("no Copy link step", "loads \"$COPY_LINK\"", world().filter { it.type != COPY })
+        refuses("Copy link handing its links to two classes", "found 2", world(copy = copyLink(fetchers = listOf(FETCHER, OTHER_FETCHER))))
+        refuses("a link class scheduling no request", "schedules no share link's request", world(fetcher = fetcher(schedules = false)))
+        refuses("a repository starting no post job", "starts $COMMENT_POST_JOB", world(repository = repository(job = "Lfixture/OtherJob;")))
+        refuses("a comment sheet posting nothing", "posts a comment", world(viewModel = viewModel(posts = false)))
     }
 
     private fun refuses(case: String, why: String, classes: List<ClassDef>) {
@@ -140,12 +153,15 @@ class BlockGhostActionsHookTest {
      */
     private fun builds(bundle: File, label: String) {
         val strings = setOf(POST_DOUBLE_TAP_HINT, STORY_LIKE_FLOW, STORY_LIKE_TAPPED, STORY_UNLIKE_TAPPED,
-            GHOST_QUICK_REACTION, GHOST_TEXT_REPLY)
+            GHOST_QUICK_REACTION, GHOST_TEXT_REPLY, COPY_LINK)
         val loading = FixtureDex.classesLoadingAny(bundle, strings)
         val steps = loading.flatMap { it.methods }.flatMap { it.calls() }.filter { call ->
             call.returnType == "V" && call.parameterTypes.map(Any::toString).let { it.size == 6 && it[1] == MEDIA && it[4] == INTEGER && it[5] == "I" }
         }.map { it.definingClass }.toSet()
-        val taken = FixtureDex.classes(bundle, steps).values
+        val fetchers = loading.flatMap { it.methods }.flatMap { it.calls() }.filter { call ->
+            call.returnType == "V" && LOADER_MANAGER in call.parameterTypes.map(Any::toString)
+        }.map { it.definingClass }.toSet()
+        val taken = FixtureDex.classes(bundle, steps + fetchers + setOf(COMMENT_VIEW_MODEL, COMMENT_REPOSITORY)).values
         val classes = (loading + taken).distinctBy { it.type } + ExtensionDex.classDef(GHOST_ACTIONS)
         val stock = classes.associateBy { it.type }
         val context = PatchContexts.of(classes)
@@ -172,7 +188,8 @@ class BlockGhostActionsHookTest {
 
         println("$label: likes at ${listOf(found.postLikeStep, found.storyLike, found.storyLikeStep).map { it.where() }}, " +
             "heart case ${heart.method.where()} at ${heart.at} (exit ${heart.exit}, trace v${heart.trace}, scratch v${heart.scratch}), " +
-            "replies at ${(found.textReplies + found.quickReaction).map { it.where() }}")
+            "replies at ${(found.textReplies + found.quickReaction).map { it.where() }}, " +
+            "share links at ${(found.copyLinks + found.linkFetches).map { it.where() }}, comments at ${found.commentPosts.map { it.where() }}")
     }
 
     /** [method] starts with [hook], its answer in v0, a no going on to Instagram's own [first] and a yes returning. */
@@ -184,7 +201,7 @@ class BlockGhostActionsHookTest {
         assertEquals(label, 0, (code[2] as OneRegisterInstruction).registerA)
         assertEquals("$label: a no goes on to Instagram's code", 4, (code[2] as BuilderOffsetInstruction).target.location.index)
         assertEquals("$label: Instagram's own code follows", first, code[4].opcode)
-        assertEquals(label, 1, code.count { it.calls(GHOST_LIKE) || it.calls(GHOST_REPLY) })
+        assertEquals(label, 1, code.count { instruction -> HOOKS.any { instruction.calls(it) } })
     }
 
     private fun BytecodePatchContext.code(type: String): List<List<Opcode>>? = classDefByOrNull(type)?.let {
@@ -223,6 +240,13 @@ class BlockGhostActionsHookTest {
         const val REACTION = "Lfixture/Reaction;"
         const val COMPOSER = "Lfixture/Composer;"
         const val MERGED = "Lfixture/Merged;"
+        const val COPY = "Lfixture/CopyLink;"
+        const val FETCHER = "Lfixture/LinkFetcher;"
+        const val OTHER_FETCHER = "Lfixture/OtherFetcher;"
+        const val ACTIVITY = "Landroid/app/Activity;"
+        const val LOADER_MANAGER = "Landroidx/loader/app/LoaderManager;"
+        const val SCHEDULE = "Lfixture/Loaders;->A00(Landroid/content/Context;${LOADER_MANAGER}Lfixture/Request;)I"
+        val HOOKS = listOf(GHOST_LIKE, GHOST_REPLY, GHOST_SHARE, GHOST_COMMENT)
         const val TRACE = "Lfixture/Trace;"
         const val LIKER = "Lfixture/Liker;->like(Ljava/lang/Object;${REEL_ITEM}Ljava/lang/Object;)V"
         const val SEND = "Lfixture/Sender;->A15($SESSION$MEDIA$TARGET)V"
@@ -237,9 +261,54 @@ class BlockGhostActionsHookTest {
             story: ClassDef = storyLike(),
             viewer: ClassDef = viewer(),
             composer: ClassDef = composer(),
+            copy: ClassDef = copyLink(),
+            fetcher: ClassDef = fetcher(),
+            repository: ClassDef = repository(),
+            viewModel: ClassDef = viewModel(),
             extra: List<ClassDef> = emptyList(),
         ): List<ClassDef> =
-            listOf(step, story, storyStep(STORY_STEP), viewer, reaction(), composer) + extra + ExtensionDex.classDef(GHOST_ACTIONS)
+            listOf(step, story, storyStep(STORY_STEP), viewer, reaction(), composer, copy, fetcher, repository, viewModel) + extra +
+                ExtensionDex.classDef(GHOST_ACTIONS)
+
+        /**
+         * Copy link's steps: a static one handing the link on to each of [fetchers] (0O0e.A01), an
+         * instance one scheduling its own request (0O0e.A00's way), and one with no LoaderManager.
+         */
+        fun copyLink(fetchers: List<String> = listOf(FETCHER)): ClassDef = classOf(COPY, listOf(
+            method(COPY, "A00", listOf(ACTIVITY, LOADER_MANAGER), "V", 3, STATIC,
+                "const-string v0, \"$COPY_LINK\"\n" + fetchers.joinToString("") { "invoke-static { v1, v2 }, $it->A02($ACTIVITY$LOADER_MANAGER)V\n" } +
+                    "return-void"),
+            method(COPY, "A05", listOf(ACTIVITY, "Ljava/lang/Object;", LOADER_MANAGER), "V", 5, PUBLIC,
+                "const/4 v0, 0x0\nconst-string v0, \"$COPY_LINK\"\ninvoke-static { v2, v4, v0 }, $SCHEDULE\nmove-result v0\nreturn-void"),
+            method(COPY, "A0A", listOf("Landroid/view/View;"), "V", 2, STATIC, "const-string v0, \"$COPY_LINK\"\nreturn-void"),
+        ))
+
+        /** The class share links are made in: a step scheduling its request (unless not [schedules]) and one that schedules none. */
+        fun fetcher(schedules: Boolean = true): ClassDef = classOf(FETCHER, listOf(
+            method(FETCHER, "A02", listOf(ACTIVITY, LOADER_MANAGER), "V", 4, STATIC,
+                if (schedules) "const/4 v0, 0x0\ninvoke-static { v2, v3, v0 }, $SCHEDULE\nmove-result v0\nreturn-void" else "const/4 v0, 0x0\nreturn-void"),
+            method(FETCHER, "A09", listOf(LOADER_MANAGER), "V", 2, STATIC, "const/4 v0, 0x0\nreturn-void"),
+        ))
+
+        /** The comment repository's post: it starts [job]. */
+        fun repository(job: String = COMMENT_POST_JOB): ClassDef = classOf(COMMENT_REPOSITORY, listOf(
+            method(COMMENT_REPOSITORY, "A0S", listOf(ACTIVITY), "V", 3, PUBLIC, "new-instance v0, $job\nreturn-void"),
+        ))
+
+        /**
+         * The comment sheet's view model: a post going through the repository (FPC), a delayed post
+         * starting its own job (A1P), unless not [posts], plus an Activity method posting nothing and
+         * a static one that does post.
+         */
+        fun viewModel(posts: Boolean = true): ClassDef = classOf(COMMENT_VIEW_MODEL, listOf(
+            method(COMMENT_VIEW_MODEL, "FPC", listOf(ACTIVITY, "Ljava/lang/Object;", "Ljava/lang/Boolean;"), "V", 5, PUBLIC,
+                if (posts) "invoke-virtual { v1, v2 }, $COMMENT_REPOSITORY->A0S($ACTIVITY)V\nreturn-void" else "const/4 v0, 0x0\nreturn-void"),
+            method(COMMENT_VIEW_MODEL, "A1P", listOf(ACTIVITY, "Ljava/lang/Object;", "J", "Z"), "V", 7, PUBLIC,
+                if (posts) "new-instance v0, $COMMENT_DELAYED_POST_JOB\nreturn-void" else "const/4 v0, 0x0\nreturn-void"),
+            method(COMMENT_VIEW_MODEL, "FqX", listOf(ACTIVITY), "V", 3, PUBLIC, "const/4 v0, 0x0\nreturn-void"),
+            method(COMMENT_VIEW_MODEL, "A0Z", listOf(ACTIVITY), "V", 2, STATIC,
+                "invoke-virtual { v0, v1 }, $COMMENT_REPOSITORY->A0S($ACTIVITY)V\nreturn-void"),
+        ))
 
         /** The shared like step: an instance `(Activity, Media)V` counting the double tap hint, one local. */
         fun likeStep(registers: Int = 4, flags: Int = PUBLIC, body: String = "const-string v0, \"$POST_DOUBLE_TAP_HINT\"\nreturn-void"): ClassDef =

@@ -41,8 +41,8 @@ final class PrivacyCategory {
             privacy.add(page.ghostTab);
             if (build.contains(PatchFamily.GHOST_ACTIONS)) {
                 privacy.add(toggle(context, Settings.BLOCK_GHOST_ACTIONS, L10n.t("Block likes and replies in Ghost mode"),
-                        L10n.t("While Ghost mode is on, liking a post or story and replying to a story do nothing, "
-                                + "and a message says why. Nothing is sent.")));
+                        L10n.t("While Ghost mode is on, liking a post or story, replying to a story, posting a comment "
+                                + "and copying or sharing a link do nothing, and a message says why. Nothing is sent.")));
             }
         }
         if (build.contains(PatchFamily.HIDE_ADS)) {

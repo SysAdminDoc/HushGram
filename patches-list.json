@@ -436,7 +436,7 @@
     },
     {
       "name": "Block likes and replies in Ghost mode",
-      "description": "While Ghost mode is on, liking a post or story and replying to a story do nothing, and a message says why. Starts off. Turn it on in HushGram settings > Ads and privacy.",
+      "description": "While Ghost mode is on, liking a post or story, replying to a story, posting a comment and copying or sharing a link do nothing, and a message says why. Starts off. Turn it on in HushGram settings > Ads and privacy.",
       "category": "Ghost mode",
       "use": true,
       "dependencies": [

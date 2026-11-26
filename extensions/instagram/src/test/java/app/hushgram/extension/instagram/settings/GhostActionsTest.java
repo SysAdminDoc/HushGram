@@ -24,7 +24,7 @@ import app.hushgram.extension.shared.settings.BooleanSetting;
 import app.hushgram.extension.shared.settings.HushgramPause;
 import app.hushgram.extension.shared.settings.PauseForTests;
 
-/** #876: with its switch on and Ghost mode on, a like or a story reply is held back with a toast saying why. */
+/** #876: with its switch on and Ghost mode on, a like, a story reply, a share link or a comment is held back with a toast saying why. */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = {28, 37})
 public class GhostActionsTest {
@@ -84,17 +84,35 @@ public class GhostActionsTest {
         assertTrue(report, report.contains(GhostActions.BLOCKED_REPLY + " 1"));
     }
 
-    @Test public void withTheSwitchOffBothGoThrough() {
+    @Test public void inGhostModeAShareLinkIsHeldBackAndSaysWhy() {
+        assertTrue(GhostActions.share());
+        assertEquals("Share links are off in Ghost mode.", toast());
+        String report = String.join("\n", HookStatus.report());
+        assertTrue(report, report.contains(GhostActions.BLOCKED_SHARE + " 1"));
+    }
+
+    @Test public void inGhostModeACommentIsHeldBackAndSaysWhy() {
+        assertTrue(GhostActions.comment());
+        assertEquals("Comments are off in Ghost mode.", toast());
+        String report = String.join("\n", HookStatus.report());
+        assertTrue(report, report.contains(GhostActions.BLOCKED_COMMENT + " 1"));
+    }
+
+    @Test public void withTheSwitchOffEachGoesThrough() {
         Settings.BLOCK_GHOST_ACTIONS.save(false);
         assertFalse(GhostActions.like());
         assertFalse(GhostActions.reply());
+        assertFalse(GhostActions.share());
+        assertFalse(GhostActions.comment());
         assertNull("no toast", toast());
     }
 
-    @Test public void withGhostModeOffBothGoThrough() {
+    @Test public void withGhostModeOffEachGoesThrough() {
         Settings.HIDE_TYPING.save(false);
         assertFalse("one switch off turns Ghost mode off", GhostActions.like());
         assertFalse(GhostActions.reply());
+        assertFalse(GhostActions.share());
+        assertFalse(GhostActions.comment());
         for (BooleanSetting setting : ghostSwitches()) setting.save(false);
         assertFalse(GhostActions.like());
         assertNull("no toast", toast());
@@ -113,23 +131,28 @@ public class GhostActionsTest {
         PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.HIDE_ADS, PatchFamily.GHOST_ACTIONS);
         assertFalse(GhostActions.like());
         assertFalse(GhostActions.reply());
+        assertFalse(GhostActions.share());
+        assertFalse(GhostActions.comment());
     }
 
-    @Test public void pauseLetsBothThrough() {
+    @Test public void pauseLetsEachThrough() {
         BaseSettings.PAUSED.save(true);
         PauseForTests.pause(HushgramPause.Reason.SWITCH);
         assertFalse(GhostActions.like());
         assertFalse(GhostActions.reply());
+        assertFalse(GhostActions.share());
+        assertFalse(GhostActions.comment());
         assertNull("no toast", toast());
     }
 
-    @Test public void beforeTheSettingsAreReadBothGoThrough() {
-        boolean[] answers = new boolean[2];
+    @Test public void beforeTheSettingsAreReadEachGoesThrough() {
+        boolean[] answers = new boolean[4];
         SettingsContextRule.beforeThePauseIsDecided(() -> {
             answers[0] = GhostActions.like();
             answers[1] = GhostActions.reply();
+            answers[2] = GhostActions.share();
+            answers[3] = GhostActions.comment();
         });
-        assertFalse(answers[0]);
-        assertFalse(answers[1]);
+        for (boolean answer : answers) assertFalse(answer);
     }
 }
