@@ -1958,6 +1958,10 @@ Hide the Map bubble	Karte ausblenden
 Takes only the Map bubble out of the row of notes. Your notes stay.	Entfernt nur die Karte aus der Reihe mit Notizen. Deine Notizen bleiben.
 Split the notes row	Notizen-Reihe aufteilen
 Splits the row of notes into three stacks, Instants, Notes and Stories, the layout Instagram is trying out. Restart Instagram to see the change.	Teilt die Reihe mit Notizen in drei Stapel auf, Instants, Notizen und Stories, das Layout, das Instagram gerade testet. Starte Instagram neu, um die Änderung zu sehen.
+# context: Messages: a switch under Split the notes row (#832). Primary and General are the two tabs Instagram shows professional accounts at the top of their messages. Use the names Instagram's own messages page gives them in this language.
+Primary and General tabs	Tabs Primär und Allgemein
+# context: the summary under Primary and General tabs; Primary is the tab's name again
+Experimental. Adds the Primary and General tabs that professional accounts get to your messages. Instagram may put every chat in Primary at first. Starts off. Restart Instagram to see the change.	Experimentell. Fügt deinen Nachrichten die Tabs Primär und Allgemein hinzu, die professionelle Konten bekommen. Instagram legt anfangs vielleicht alle Chats unter Primär ab. Startet ausgeschaltet. Starte Instagram neu, um die Änderung zu sehen.
 Hide Saved in the plus menu	Gespeichert im Plus-Menü ausblenden
 Takes Saved off the menu the plus button opens in a chat's message bar.	Entfernt Gespeichert aus dem Menü, das der Plus-Button in der Nachrichtenleiste eines Chats öffnet.
 Hide AI images in the plus menu	KI-Bilder im Plus-Menü ausblenden

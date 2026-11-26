@@ -4213,7 +4213,7 @@
     {
       "name": "Keep in chat",
       "description": "Keeps view once and replayable photos and videos in your chats after you open them, so they don't disappear. A photo or video you send stays Instagram's own sent bubble. Starts off. Turn it on in HushGram settings > Messages.",
-      "category": "Messages",
+      "category": "Downloads",
       "use": true,
       "dependencies": [
         "BytecodePatch",
@@ -5151,6 +5151,45 @@
     {
       "name": "Preview chats",
       "description": "Long press a chat in your messages and tap Preview to read its newest messages without opening it, so nobody sees Seen. You can reply from there too. Starts off. Turn it on in HushGram settings > Messages. Either way, a chat's menu opens above the chat when it wouldn't fit between the chat and the tab bar.",
+      "category": "Messages",
+      "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "457.0.0.55.73"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "457.0.0.55.73",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 386314341,
+                "ARMEABI_V7A": 386314340,
+                "X86_64": 386314286
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
+      "name": "Primary and General tabs",
+      "description": "Adds the Primary and General tabs professional accounts get to your messages, for any account. Experimental. It takes a restart. Starts off. Turn it on in HushGram settings > Messages.",
       "category": "Messages",
       "use": true,
       "dependencies": [

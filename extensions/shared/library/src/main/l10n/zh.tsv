@@ -1961,6 +1961,10 @@ Hide the Map bubble	隐藏地图泡泡
 Takes only the Map bubble out of the row of notes. Your notes stay.	只移除笔记栏中的地图泡泡。笔记仍会保留。
 Split the notes row	拆分笔记栏
 Splits the row of notes into three stacks, Instants, Notes and Stories, the layout Instagram is trying out. Restart Instagram to see the change.	将笔记栏拆成 Instants、笔记和快拍三叠，这是 Instagram 正在测试的版面。请重新启动 Instagram 以应用变更。
+# context: Messages: a switch under Split the notes row (#832). Primary and General are the two tabs Instagram shows professional accounts at the top of their messages. Use the names Instagram's own messages page gives them in this language.
+Primary and General tabs	“主要”和“一般”标签页
+# context: the summary under Primary and General tabs; Primary is the tab's name again
+Experimental. Adds the Primary and General tabs that professional accounts get to your messages. Instagram may put every chat in Primary at first. Starts off. Restart Instagram to see the change.	实验性功能。在消息中加入专业账户才有的“主要”和“一般”标签页。一开始 Instagram 可能会把所有聊天都放在“主要”中。默认关闭。请重新启动 Instagram 以应用变更。
 Hide Saved in the plus menu	在加号菜单中隐藏已保存
 Takes Saved off the menu the plus button opens in a chat's message bar.	从聊天消息栏的加号按钮所打开的菜单中移除已保存。
 Hide AI images in the plus menu	在加号菜单中隐藏 AI 图片

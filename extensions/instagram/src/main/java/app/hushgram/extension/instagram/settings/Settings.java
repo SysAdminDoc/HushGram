@@ -2053,6 +2053,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_split_notes_row", FALSE, true);
 
     /**
+     * The Primary and General tabs at the top of your messages, the ones professional accounts get
+     * ({@link app.hushgram.extension.instagram.direct.InboxTabs}). Instagram reads its test when
+     * your messages are first set up and when the app starts, so a change takes a restart. Off to
+     * start.
+     */
+    public static final BooleanSetting INBOX_TABS =
+            new BooleanSetting("hushgram_inbox_tabs", FALSE, true);
+
+    /**
      * The search bar at the top of your messages, the Meta AI one included
      * ({@link app.hushgram.extension.instagram.direct.InboxSearchBar}). Read each time Instagram
      * works out your messages again, so a change shows the next time they update. Off to start.

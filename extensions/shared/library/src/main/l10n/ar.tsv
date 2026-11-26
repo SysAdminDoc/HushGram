@@ -1932,6 +1932,10 @@ Adds Show the whole reel to the menu a reel's three dots open. A tap fits that r
 Speed in the story menu	السرعة في قائمة القصة
 Split the notes row	قسّم صف الملاحظات
 Splits the row of notes into three stacks, Instants, Notes and Stories, the layout Instagram is trying out. Restart Instagram to see the change.	يقسم صف الملاحظات إلى ثلاث مجموعات، Instants وNotes وStories، التخطيط الذي يجرّبه Instagram. أعد تشغيل Instagram لرؤية التغيير.
+# context: Messages: a switch under Split the notes row (#832). Primary and General are the two tabs Instagram shows professional accounts at the top of their messages. Use the names Instagram's own messages page gives them in this language.
+Primary and General tabs	تبويبا الأساسية والعامة
+# context: the summary under Primary and General tabs; Primary is the tab's name again
+Experimental. Adds the Primary and General tabs that professional accounts get to your messages. Instagram may put every chat in Primary at first. Starts off. Restart Instagram to see the change.	تجريبي. يضيف إلى رسائلك تبويبي الأساسية والعامة اللذين تحصل عليهما الحسابات الاحترافية. قد يضع Instagram كل المحادثات في الأساسية في البداية. يبدأ مُعطّلًا. أعد تشغيل Instagram لرؤية التغيير.
 Spoof location	انتحال الموقع
 Standard	قياسي
 Start Home on Following	ابدأ الرئيسية على Following

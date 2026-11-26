@@ -1958,6 +1958,10 @@ Hide the Map bubble	Harita balonunu gizle
 Takes only the Map bubble out of the row of notes. Your notes stay.	Notlar satırından yalnızca Harita balonunu kaldırır. Notların kalır.
 Split the notes row	Notlar satırını böl
 Splits the row of notes into three stacks, Instants, Notes and Stories, the layout Instagram is trying out. Restart Instagram to see the change.	Notlar satırını Instants, Notlar ve Hikayeler olmak üzere üç yığına böler, Instagram'ın denediği düzen budur. Değişikliği görmek için Instagram'ı yeniden başlat.
+# context: Messages: a switch under Split the notes row (#832). Primary and General are the two tabs Instagram shows professional accounts at the top of their messages. Use the names Instagram's own messages page gives them in this language.
+Primary and General tabs	Birincil ve Genel sekmeleri
+# context: the summary under Primary and General tabs; Primary is the tab's name again
+Experimental. Adds the Primary and General tabs that professional accounts get to your messages. Instagram may put every chat in Primary at first. Starts off. Restart Instagram to see the change.	Deneysel. Profesyonel hesapların sahip olduğu Birincil ve Genel sekmelerini mesajlarına ekler. Instagram başta tüm sohbetleri Birincil'e koyabilir. Kapalı başlar. Değişikliği görmek için Instagram'ı yeniden başlat.
 Hide Saved in the plus menu	Artı menüsündeki Kaydedilenler'i gizle
 Takes Saved off the menu the plus button opens in a chat's message bar.	Bir sohbetin mesaj çubuğundaki artı düğmesinin açtığı menüden Kaydedilenler'i kaldırır.
 Hide AI images in the plus menu	Artı menüsündeki yapay zeka görsellerini gizle

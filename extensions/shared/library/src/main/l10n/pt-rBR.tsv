@@ -1958,6 +1958,10 @@ Hide the Map bubble	Ocultar a bolha do Mapa
 Takes only the Map bubble out of the row of notes. Your notes stay.	Tira só a bolha do Mapa da fileira de notas. Suas notas continuam.
 Split the notes row	Dividir a fileira de notas
 Splits the row of notes into three stacks, Instants, Notes and Stories, the layout Instagram is trying out. Restart Instagram to see the change.	Divide a fileira de notas em três pilhas, Instants, Notas e Stories, o layout que o Instagram está testando. Reinicie o Instagram para ver a mudança.
+# context: Messages: a switch under Split the notes row (#832). Primary and General are the two tabs Instagram shows professional accounts at the top of their messages. Use the names Instagram's own messages page gives them in this language.
+Primary and General tabs	Abas Principal e Geral
+# context: the summary under Primary and General tabs; Primary is the tab's name again
+Experimental. Adds the Primary and General tabs that professional accounts get to your messages. Instagram may put every chat in Primary at first. Starts off. Restart Instagram to see the change.	Experimental. Adiciona às suas mensagens as abas Principal e Geral que as contas profissionais têm. No começo, o Instagram pode colocar todas as conversas em Principal. Começa desativado. Reinicie o Instagram para ver a mudança.
 Hide Saved in the plus menu	Ocultar Salvos no menu de mais
 Takes Saved off the menu the plus button opens in a chat's message bar.	Tira Salvos do menu que o botão de mais abre na barra de mensagens de uma conversa.
 Hide AI images in the plus menu	Ocultar imagens de IA no menu de mais

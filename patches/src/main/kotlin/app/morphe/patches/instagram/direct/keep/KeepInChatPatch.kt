@@ -103,7 +103,7 @@ val keepInChatPatch = bytecodePatch(
         "in HushGram settings > Messages.",
     default = true,
 ) {
-    category("Messages")
+    category("Downloads")
     dependsOn(settingsPatch, instagramExtensionPatch)
     compatibleWith(*AppCompatibilities.instagram())
     execute {

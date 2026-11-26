@@ -1943,6 +1943,10 @@ Hide the Map bubble	ซ่อนบับเบิลแผนที่
 Takes only the Map bubble out of the row of notes. Your notes stay.	นำเฉพาะบับเบิลแผนที่ออกจากแถวโน้ต โดยโน้ตของคุณจะยังคงอยู่
 Split the notes row	แยกแถวโน้ต
 Splits the row of notes into three stacks, Instants, Notes and Stories, the layout Instagram is trying out. Restart Instagram to see the change.	แยกแถวโน้ตออกเป็นสามกลุ่ม ได้แก่ ด่วน โน้ต และสตอรี่ ตามรูปแบบที่ Instagram กำลังทดลองใช้ รีสตาร์ท Instagram เพื่อดูการเปลี่ยนแปลง
+# context: Messages: a switch under Split the notes row (#832). Primary and General are the two tabs Instagram shows professional accounts at the top of their messages. Use the names Instagram's own messages page gives them in this language.
+Primary and General tabs	แท็บหลักและทั่วไป
+# context: the summary under Primary and General tabs; Primary is the tab's name again
+Experimental. Adds the Primary and General tabs that professional accounts get to your messages. Instagram may put every chat in Primary at first. Starts off. Restart Instagram to see the change.	ทดลอง เพิ่มแท็บหลักและทั่วไปที่บัญชีมืออาชีพมีลงในข้อความของคุณ ในช่วงแรก Instagram อาจใส่ทุกแชทไว้ในหลัก เริ่มต้นปิดใช้งานอยู่ รีสตาร์ท Instagram เพื่อดูการเปลี่ยนแปลง
 Hide Saved in the plus menu	ซ่อน "บันทึกแล้ว" ในเมนูเครื่องหมายบวก
 Takes Saved off the menu the plus button opens in a chat's message bar.	นำ "บันทึกแล้ว" ออกจากเมนูที่เปิดด้วยปุ่มเครื่องหมายบวกในแถบข้อความของแชท
 Hide AI images in the plus menu	ซ่อน "รูปภาพ AI" ในเมนูเครื่องหมายบวก

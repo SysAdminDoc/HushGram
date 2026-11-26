@@ -228,6 +228,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean inboxTabs() {
+        return false;
+    }
+
     public static boolean inboxSearch() {
         return false;
     }

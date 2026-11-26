@@ -1957,6 +1957,10 @@ Hide the Map bubble	지도 버블 숨기기
 Takes only the Map bubble out of the row of notes. Your notes stay.	메모 목록에서 지도 버블만 숨깁니다. 메모는 그대로 유지됩니다.
 Split the notes row	메모 목록 나누기
 Splits the row of notes into three stacks, Instants, Notes and Stories, the layout Instagram is trying out. Restart Instagram to see the change.	메모 목록을 Instants, 메모, 스토리의 세 묶음으로 나눕니다. Instagram이 시험 중인 레이아웃입니다. 변경 사항을 보려면 Instagram을 다시 시작하세요.
+# context: Messages: a switch under Split the notes row (#832). Primary and General are the two tabs Instagram shows professional accounts at the top of their messages. Use the names Instagram's own messages page gives them in this language.
+Primary and General tabs	기본 및 일반 탭
+# context: the summary under Primary and General tabs; Primary is the tab's name again
+Experimental. Adds the Primary and General tabs that professional accounts get to your messages. Instagram may put every chat in Primary at first. Starts off. Restart Instagram to see the change.	실험적 기능입니다. 프로페셔널 계정에 있는 기본 및 일반 탭을 메시지에 추가합니다. 초기에는 Instagram이 모든 채팅을 기본 탭에 둘 수도 있습니다. 처음에는 꺼져 있습니다. 변경 사항을 보려면 Instagram을 다시 시작하세요.
 Hide Saved in the plus menu	플러스 메뉴에서 저장됨 숨기기
 Takes Saved off the menu the plus button opens in a chat's message bar.	채팅 메시지 바의 플러스 버튼이 여는 메뉴에서 저장됨을 뺍니다.
 Hide AI images in the plus menu	플러스 메뉴에서 AI 이미지 숨기기

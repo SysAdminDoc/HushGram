@@ -242,6 +242,7 @@
         "patches": [
           "Hide the notes row",
           "Split the notes row",
+          "Primary and General tabs",
           "Hide the search bar in Messages",
           "Hide suggested accounts in DMs",
           "Hide New message button and suggestions",

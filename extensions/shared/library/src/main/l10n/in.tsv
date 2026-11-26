@@ -1958,6 +1958,10 @@ Hide the Map bubble	Sembunyikan gelembung Peta
 Takes only the Map bubble out of the row of notes. Your notes stay.	Hanya menghapus gelembung Peta dari baris catatan. Catatanmu tetap ada.
 Split the notes row	Pisahkan baris catatan
 Splits the row of notes into three stacks, Instants, Notes and Stories, the layout Instagram is trying out. Restart Instagram to see the change.	Memisahkan baris catatan menjadi tiga tumpukan, Instants, Catatan, dan Cerita, tata letak yang sedang dicoba Instagram. Mulai ulang Instagram untuk melihat perubahannya.
+# context: Messages: a switch under Split the notes row (#832). Primary and General are the two tabs Instagram shows professional accounts at the top of their messages. Use the names Instagram's own messages page gives them in this language.
+Primary and General tabs	Tab Utama dan Umum
+# context: the summary under Primary and General tabs; Primary is the tab's name again
+Experimental. Adds the Primary and General tabs that professional accounts get to your messages. Instagram may put every chat in Primary at first. Starts off. Restart Instagram to see the change.	Eksperimental. Menambahkan tab Utama dan Umum yang dimiliki akun profesional ke pesanmu. Awalnya Instagram mungkin menaruh semua chat di Utama. Mulai dalam keadaan mati. Mulai ulang Instagram untuk melihat perubahannya.
 Hide Saved in the plus menu	Sembunyikan Tersimpan di menu plus
 Takes Saved off the menu the plus button opens in a chat's message bar.	Menghapus Tersimpan dari menu yang dibuka tombol plus di bilah pesan chat.
 Hide AI images in the plus menu	Sembunyikan gambar AI di menu plus
