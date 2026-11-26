@@ -6,6 +6,7 @@ package app.hushgram.extension.instagram.stories;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.robolectric.Shadows.shadowOf;
@@ -13,6 +14,9 @@ import static org.robolectric.Shadows.shadowOf;
 import android.app.Activity;
 import android.app.Instrumentation;
 import android.content.res.ColorStateList;
+import android.graphics.ColorFilter;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffColorFilter;
 import android.os.Looper;
 import android.view.Gravity;
 import android.view.View;
@@ -491,6 +495,54 @@ public class StoryReplyBoxTest {
         assertSame("the switch off puts it back", white, heart.getImageTintList());
         assertSame(white, plane.getImageTintList());
         assertSame(commentTint, bubble.getImageTintList());
+    }
+
+    /**
+     * A story's More actions dots take the picked color with Icons in the accent color on (#187): as a
+     * filter while Instagram draws them with no tint or filter, through their tint when they have one,
+     * and the switch off puts Instagram's look back. A filter of Instagram's own is left alone.
+     */
+    @Test
+    public void theMoreActionsDotsTakeThePickedColor() {
+        int moreId = View.generateViewId();
+        StoryReplyBox.putIdForTests(activity, "mimicry_top_right_hamburger", moreId);
+        FrameLayout header = new FrameLayout(activity);
+        ImageView dots = new ImageView(activity);
+        dots.setId(moreId);
+        header.addView(dots, new FrameLayout.LayoutParams(96, 96));
+        viewerView.addView(header, new FrameLayout.LayoutParams(720, 140, Gravity.TOP));
+        layOut();
+        Settings.ACCENT_COLOR.save(true);
+        Settings.ACCENT_HUE.save(AccentHue.TEAL);
+        Settings.ACCENT_ICONS.save(true);
+        int shade = AccentTheme.storyButton(ColorStateList.valueOf(0xffffffff)).getDefaultColor();
+        assertTrue("a shade of its own", shade != 0xffffffff);
+
+        StoryReplyBox.resumed(viewer);
+        frame();
+        assertEquals("drawn with no tint, a filter of the shade", new PorterDuffColorFilter(shade, PorterDuff.Mode.SRC_IN), dots.getColorFilter());
+        ColorFilter ours = dots.getColorFilter();
+        frame();
+        assertSame("filtered once", ours, dots.getColorFilter());
+        Settings.ACCENT_ICONS.save(false);
+        frame();
+        assertNull("the switch off takes the filter away", dots.getColorFilter());
+
+        ColorFilter instagrams = new PorterDuffColorFilter(0xff000000, PorterDuff.Mode.SRC_IN);
+        dots.setColorFilter(instagrams);
+        Settings.ACCENT_ICONS.save(true);
+        frame();
+        assertSame("a filter of Instagram's own stays", instagrams, dots.getColorFilter());
+
+        dots.clearColorFilter();
+        ColorStateList white = ColorStateList.valueOf(0xffffffff);
+        dots.setImageTintList(white);
+        frame();
+        assertEquals("tinted, the tint takes the shade", shade, dots.getImageTintList().getDefaultColor());
+        assertNull(dots.getColorFilter());
+        Settings.ACCENT_ICONS.save(false);
+        frame();
+        assertSame("the switch off puts the tint back", white, dots.getImageTintList());
     }
 
     @Test

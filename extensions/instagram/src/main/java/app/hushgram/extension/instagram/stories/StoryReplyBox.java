@@ -8,6 +8,9 @@ import android.app.Activity;
 import android.app.Application;
 import android.content.Context;
 import android.content.res.ColorStateList;
+import android.graphics.ColorFilter;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffColorFilter;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewStub;
@@ -82,7 +85,8 @@ import app.hushgram.extension.shared.settings.BooleanSetting;
  * <p>Accent color's Icons in the accent color (#187) uses it as well: the like, comment and share
  * icons sit over the story in white, which no theme reaches, so each frame gives the icons of the
  * buttons it found the tint {@link AccentTheme#storyButton} answers, and puts Instagram's back once
- * the switch goes off.
+ * the switch goes off. The More actions dots atop the story ({@link #MORE}) take it the same way, or
+ * as a color filter while Instagram draws them white with no tint or filter of its own.
  */
 public final class StoryReplyBox {
     /** The story's footer on 453, and the Send message box in it. */
@@ -94,6 +98,10 @@ public final class StoryReplyBox {
     static final String[] COMMENTS = {"story_comments_bubbles", "story_comments_face_swarm", "story_comments_preview"};
     /** The line a story shows on 457 to tap and write a comment. */
     static final String COMMENT_LINE = "story_comments_add_comment_text";
+    /** The More actions dots at the top right of a story, in its header (#187). */
+    static final String MORE = "mimicry_top_right_hamburger";
+    /** The white Instagram draws a story's icons in, which {@link AccentTheme#storyButton} answers for an icon with no tint. */
+    private static final ColorStateList WHITE = ColorStateList.valueOf(0xffffffff);
 
     static final String HOOK = "story reply box";
 
@@ -379,6 +387,12 @@ public final class StoryReplyBox {
         private final Set<ViewGroup.LayoutParams> lineStubs = Collections.newSetFromMap(new WeakHashMap<>());
         /** The button icons this keeper gave the picked color, with Instagram's tint for each and the one this gave it. */
         private final Map<ImageView, ColorStateList[]> tinted = new WeakHashMap<>();
+        /** The More actions icons found at the last look. */
+        private final List<WeakReference<ImageView>> menus = new ArrayList<>();
+        /** The More actions icons this keeper gave a color filter, Instagram drawing them with none, and that filter. */
+        private final Map<ImageView, ColorFilter> filtered = new WeakHashMap<>();
+        /** {@link #MORE}'s id at the last look, 0 when the build has none. */
+        private int more;
         @Nullable
         private ViewTreeObserver observer;
         private boolean stale = true;
@@ -521,7 +535,7 @@ public final class StoryReplyBox {
                 boolean boxOn = switchedOn();
                 View view = root.get();
                 if (!boxOn && !anyOn()) {
-                    if (!hidden.isEmpty() || !gone.isEmpty() || !quiet.isEmpty() || !lifted.isEmpty() || !tinted.isEmpty()) moved = restore();
+                    if (!hidden.isEmpty() || !gone.isEmpty() || !quiet.isEmpty() || !lifted.isEmpty() || !tinted.isEmpty() || !filtered.isEmpty()) moved = restore();
                 } else if (view != null) {
                     boolean commentsOn = commentsOn();
                     StoryCommentLine line = commentLine();
@@ -537,7 +551,7 @@ public final class StoryReplyBox {
                     else if (!lifted.isEmpty()) lowerLines();
                     moved = keepButtons();
                     if (AccentTheme.storyButtonsOn()) colorButtons();
-                    else if (!tinted.isEmpty()) uncolorButtons();
+                    else if (!tinted.isEmpty() || !filtered.isEmpty()) uncolorButtons();
                 }
             } catch (Throwable failure) {
                 HookStatus.threw(FamilyNames.STORY_REPLY_BOX, HOOK, failure);
@@ -597,6 +611,32 @@ public final class StoryReplyBox {
                 View button = held.view.get();
                 if (button != null && button.getVisibility() != View.GONE) colorIcons(button, ICON_DEPTH);
             }
+            for (WeakReference<ImageView> held : menus) {
+                ImageView icon = held.get();
+                if (icon != null) colorMenu(icon);
+            }
+        }
+
+        /**
+         * Gives the More actions dots the picked color: through their tint as {@link #colorIcon} does
+         * when they have one, or else, while Instagram draws them white with no color filter of its own,
+         * through a filter of the shade {@link AccentTheme#storyButton} gives white.
+         */
+        private void colorMenu(ImageView icon) {
+            if (icon.getImageTintList() != null || tinted.containsKey(icon)) {
+                colorIcon(icon);
+                return;
+            }
+            ColorFilter now = icon.getColorFilter();
+            ColorFilter ours = filtered.get(icon);
+            if (ours != null && now == ours) return;
+            filtered.remove(icon);
+            if (now != null) return;
+            ColorStateList shade = AccentTheme.storyButton(WHITE);
+            if (shade == null) return;
+            ours = new PorterDuffColorFilter(shade.getDefaultColor(), PorterDuff.Mode.SRC_IN);
+            icon.setColorFilter(ours);
+            filtered.put(icon, ours);
         }
 
         /** Colors [view] when it's an icon, or each icon at most [depth] levels under it. */
@@ -621,13 +661,18 @@ public final class StoryReplyBox {
             tinted.put(icon, new ColorStateList[] {now, ours});
         }
 
-        /** Puts Instagram's tint back on each icon this colored, unless Instagram has tinted it again since. */
+        /** Puts Instagram's tint back on each icon this colored, and its filter back on each it filtered, unless Instagram has changed it since. */
         private void uncolorButtons() {
             for (Map.Entry<ImageView, ColorStateList[]> entry : new ArrayList<>(tinted.entrySet())) {
                 ImageView icon = entry.getKey();
                 if (icon != null && icon.getImageTintList() == entry.getValue()[1]) icon.setImageTintList(entry.getValue()[0]);
             }
             tinted.clear();
+            for (Map.Entry<ImageView, ColorFilter> entry : new ArrayList<>(filtered.entrySet())) {
+                ImageView icon = entry.getKey();
+                if (icon != null && icon.getColorFilter() == entry.getValue()) icon.clearColorFilter();
+            }
+            filtered.clear();
         }
 
         /**
@@ -639,6 +684,9 @@ public final class StoryReplyBox {
             buttons.clear();
             comments.clear();
             lines.clear();
+            menus.clear();
+            more = id(view, MORE);
+            if (AccentTheme.storyButtonsOn()) report(more, MORE);
             int[] talk = new int[COMMENTS.length];
             for (int i = 0; i < COMMENTS.length; i++) {
                 talk[i] = id(view, COMMENTS[i]);
@@ -670,6 +718,10 @@ public final class StoryReplyBox {
         private void walk(View view, int footer, int box, int old, int[] ids, Button[] owners, int[] talk, int[] line) {
             if (floating(view, talk, line)) return;
             int id = view.getId();
+            if (more != 0 && id == more && view instanceof ImageView) {
+                menus.add(new WeakReference<>((ImageView) view));
+                return;
+            }
             if (old != 0 && id == old) {
                 boxes.add(new WeakReference<>(view));
                 return;
