@@ -24,6 +24,9 @@ import java.util.Set;
 
 import javax.net.ssl.SSLProtocolException;
 
+import app.hushgram.extension.shared.Logger;
+import app.hushgram.extension.shared.diagnostics.DiagnosticCategory;
+
 /**
  * Fetches one address into a file in the cache, checks what arrived, and only then hands it to a
  * {@link Sink}.
@@ -49,6 +52,9 @@ import javax.net.ssl.SSLProtocolException;
 final class Downloader {
 
     private Downloader() {}
+
+    /** The source a resume's line carries in the diagnostic report. */
+    private static final String SOURCE = "Downloader";
 
     /** What happened, in the terms that the message to the user needs. */
     enum Status {
@@ -294,9 +300,9 @@ final class Downloader {
 
         /** This later try's failure, try [number] of the fetch, with the first try's reason for the log. */
         Result after(Result first, int number) {
-            String which = number == 2 ? "second" : number == 3 ? "third" : number == 4 ? "fourth" : "later";
-            return new Result(status, reason + ", on a " + which + " try after " + first.reason, mime, lower, noRoom,
-                    lowStorage, cutOff);
+            String which = number == 2 ? "a second" : number == 3 ? "a third" : number == 4 ? "a fourth" : "try " + number;
+            return new Result(status, reason + ", on " + which + (number <= 4 ? " try" : "") + " after " + first.reason,
+                    mime, lower, noRoom, lowStorage, cutOff);
         }
 
         boolean ok() {
@@ -404,28 +410,47 @@ final class Downloader {
      * timeout halfway did the same, or failed the save (#792). The next try asks for the rest with
      * {@code Range: bytes=N-} from the byte the last one reached, and keeps the 206 only when it
      * goes on from that byte of a file of the same length; a server that answers 200 instead
-     * sends the file over from the start. Up to {@link #MAX_TRIES} tries in all, and only while
-     * each gets further than the one before. A refusal, an error answer, an answer that never
-     * starts or a cancel is never tried again.
+     * sends the file over from the start. It goes on only while each try gets further than the
+     * one before. A try that gets less than {@link #PROGRESS_FLOOR} further counts toward
+     * {@link #MAX_TRIES}, and one that keeps the file moving doesn't: on a slow link that cut a
+     * read every half minute, four tries in all gave up a 1080p track that was still coming
+     * (#792). {@link #MAX_ALL_TRIES} ends the fetch however far each try gets. A refusal, an
+     * error answer, an answer that never starts or a cancel is never tried again.
      */
     static Result fetch(String url, Kind kind, File into, MediaUrlPolicy policy, long maxBytes, Progress progress) {
         Partial partial = new Partial();
+        partial.number = 1;
         Result first = fetchOnce(url, kind, into, policy, maxBytes, progress, partial);
         Result result = first;
-        for (int tries = 1; result.cutOff && tries < MAX_TRIES && !progress.cancelled(); tries++) {
+        int slow = partial.kept < PROGRESS_FLOOR ? 1 : 0;
+        while (result.cutOff && slow < MAX_TRIES && partial.number < MAX_ALL_TRIES && !progress.cancelled()) {
             long reached = partial.kept;
+            partial.number++;
             result = fetchOnce(url, kind, into, policy, maxBytes, progress, partial);
             if (result.ok() || result.status == Status.CANCELLED) break;
-            result = result.after(first, tries + 1);
+            result = result.after(first, partial.number);
             // A try that got no further than the last won't be helped by another.
             if (partial.kept <= reached) break;
+            if (partial.kept - reached < PROGRESS_FLOOR) slow++;
         }
         if (!result.ok()) delete(into);
         return result;
     }
 
-    /** The most tries one fetch makes: the first, and three that go on from a cut-off (#792). */
+    /** The most tries of one fetch that each get less than {@link #PROGRESS_FLOOR} further (#792). */
     static final int MAX_TRIES = 4;
+
+    /**
+     * How much further a try has to get for it not to count toward {@link #MAX_TRIES}. A save's
+     * tracks on a 600 kbit link shared six ways got about 250 KB a try between cut-offs.
+     */
+    static final long PROGRESS_FLOOR = 64 * 1024;
+
+    /**
+     * The most tries one fetch makes, however far each gets: enough for a 16 MB track at the
+     * 250 KB a try above, and an end for a server that cuts every answer short.
+     */
+    static final int MAX_ALL_TRIES = 64;
 
     /**
      * What one try of a fetch leaves for the next: how far the cache file got, and what the first
@@ -440,6 +465,8 @@ final class Downloader {
         String sniffed;
         /** Where this try began writing into the cache file, once it has opened it. */
         long from = -1;
+        /** Which try of the fetch this is, from 1. */
+        int number;
     }
 
     private static Result fetchOnce(String url, Kind kind, File into, MediaUrlPolicy policy, long maxBytes,
@@ -562,6 +589,11 @@ final class Downloader {
             return Result.fail(Status.TOO_LARGE, "the server announced " + expected + " bytes, more than " + maxBytes);
         }
         partial.expected = expected;
+        // A resume that worked left no trace in the report before, so a save that went on from a
+        // cut-off read the same as one that never had any (#792).
+        int number = partial.number;
+        Logger.diagnosticDebug(DiagnosticCategory.DOWNLOADS, SOURCE,
+            () -> "resumed at byte " + from + (expected >= 0 ? " of " + expected : "") + ", try " + number);
         long total;
         try (OutputStream out = new CacheFile(into, true)) {
             partial.from = from;

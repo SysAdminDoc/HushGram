@@ -457,7 +457,10 @@ public class DownloaderTest {
         assertArrayEquals(body, Files.readAllBytes(into.toPath()));
     }
 
-    /** Each cut goes on again while bytes keep coming, up to four tries in all. */
+    /**
+     * Each cut goes on again while bytes keep coming. Tries that each get less than the progress
+     * floor further end it at the fourth.
+     */
     @Test
     public void aFetchCutOffAgainAndAgainGoesOnWhileItGetsFurther() throws IOException {
         byte[] body = mp4(200_000);
@@ -476,6 +479,38 @@ public class DownloaderTest {
         assertEquals("tries", 4, hitsOf("/worse.mp4"));
         assertTrue(failed.reason, failed.reason.contains("on a fourth try after"));
         assertFalse("the part file was kept", worse.exists());
+    }
+
+    /**
+     * On a slow link that cut a read every half minute, a 1080p track still coming in was given
+     * up after four tries for the 720p file (#792). Tries that keep it moving go on past four.
+     */
+    @Test
+    public void aFetchCutOffSixTimesWhileItKeepsMovingArrivesWhole() throws IOException {
+        byte[] body = mp4(800_000);
+        server.serveResumable("/moving.mp4", "video/mp4", body, 100_000, 200_000, 300_000, 400_000, 500_000, 600_000);
+        File into = temp.newFile();
+        Downloader.Result result = fetch("/moving.mp4", Downloader.Kind.VIDEO, into, Downloader.MAX_BYTES);
+        assertEquals(result.toString(), Downloader.Status.OK, result.status);
+        assertEquals(java.util.Arrays.asList("", "bytes=100000-", "bytes=200000-", "bytes=300000-", "bytes=400000-",
+                "bytes=500000-", "bytes=600000-"), server.rangesAsked("/moving.mp4"));
+        assertArrayEquals("the seven parts, whole", body, Files.readAllBytes(into.toPath()));
+    }
+
+    /** A server that cuts every answer short ends the fetch at the cap, however far each try gets. */
+    @Test
+    public void aFetchCutOffOverAndOverEndsAtTheCap() throws IOException {
+        int step = (int) Downloader.PROGRESS_FLOOR + 1_000;
+        int[] cuts = new int[Downloader.MAX_ALL_TRIES + 1];
+        for (int i = 0; i < cuts.length; i++) cuts[i] = step * (i + 1);
+        byte[] body = mp4(step * (cuts.length + 1));
+        server.serveResumable("/endless-cuts.mp4", "video/mp4", body, cuts);
+        File into = temp.newFile();
+        Downloader.Result result = fetch("/endless-cuts.mp4", Downloader.Kind.VIDEO, into, Downloader.MAX_BYTES);
+        assertNotEquals(result.toString(), Downloader.Status.OK, result.status);
+        assertEquals("tries", Downloader.MAX_ALL_TRIES, hitsOf("/endless-cuts.mp4"));
+        assertTrue(result.reason, result.reason.contains("on try " + Downloader.MAX_ALL_TRIES + " after"));
+        assertFalse("the part file was kept", into.exists());
     }
 
     /**
