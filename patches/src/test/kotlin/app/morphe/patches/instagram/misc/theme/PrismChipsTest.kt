@@ -19,6 +19,7 @@ import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
@@ -199,6 +200,75 @@ class PrismChipsTest {
         }
     }
 
+    /**
+     * The icon chip before Explore's chips hands its outlined view to the extension right after the
+     * chip list finds it, in the register it's taken into. Two such finds, one something jumps to right
+     * after, or an id handed to a call answering something else is left as it is, and an extension
+     * without the hook refuses.
+     */
+    @Test
+    fun exploresIconChipHandsItsOutlineOn() {
+        val context = PatchContexts.of(listOf(chipList(), ExtensionDex.classDef(ACCENT_THEME)))
+        context.tintExplorePill()
+        val code = context.mutableClassDefBy(CHIP_LIST).methods.single().code()
+        val hook = code.indices.single { code[it].calls(EXPLORE_PILL) }
+        assertEquals("the range form", Opcode.INVOKE_STATIC_RANGE, code[hook].opcode)
+        assertEquals("the view", 0, (code[hook] as RegisterRangeInstruction).startRegister)
+        assertEquals("the view alone", 1, (code[hook] as RegisterRangeInstruction).registerCount)
+        assertEquals("right after it's taken", Opcode.MOVE_RESULT_OBJECT, code[hook - 1].opcode)
+        assertTrue("from the find", code[hook - 2].callsMethod(VIEWS, "A05", VIEW, "I"))
+        assertEquals("then kept", Opcode.IPUT_OBJECT, code[hook + 1].opcode)
+        assertKept("the chip list", chipList().methods.single().code(), code.filterIndexed { at, _ -> at != hook })
+
+        for ((case, list) in listOf(
+            "two finds" to chipList(finds = 2),
+            "a jump to right after" to chipList(jumps = true),
+            "another answer" to chipList(answers = "Ljava/lang/Object;"),
+        )) {
+            val untouched = PatchContexts.of(listOf(list, ExtensionDex.classDef(ACCENT_THEME)))
+            assertNull("$case: not found", untouched.findExplorePill())
+            untouched.tintExplorePill()
+            assertTrue("$case: no hook", untouched.mutableClassDefBy(CHIP_LIST).methods.none { method -> method.code().any { it.calls(EXPLORE_PILL) } })
+        }
+        refuses { PatchContexts.of(listOf(chipList(), noHooks())).tintExplorePill() }
+    }
+
+    /**
+     * Every build: the one place loading the icon chip's id hands its outlined view on right after it's
+     * found and taken, with the real extension and Instagram's code otherwise kept.
+     */
+    @Test
+    fun everyBuildHandsExploresIconChipToTheExtension() {
+        for ((build, bundle) in builds()) {
+            val lists = mutableListOf<ClassDef>()
+            FixtureDex.forEach(bundle) { dex ->
+                for (classDef in dex.classes) {
+                    if (classDef.methods.any { method -> method.code().any { (it as? NarrowLiteralInstruction)?.narrowLiteral == EXPLORE_SETTINGS_PILL } }) {
+                        lists += ImmutableClassDef.of(classDef)
+                    }
+                }
+            }
+            assertTrue("$build: something loads the icon chip's id", lists.isNotEmpty())
+            val context = PatchContexts.of(lists + ExtensionDex.classDef(ACCENT_THEME))
+
+            context.tintExplorePill()
+
+            val hooked = lists.flatMap { owner -> context.mutableClassDefBy(owner.type).methods.filter { method -> method.code().any { it.calls(EXPLORE_PILL) } } }
+            assertEquals("$build: one place hands the outline on, ${hooked.map { "${it.definingClass}->${it.name}" }}", 1, hooked.size)
+            val code = hooked.single().code()
+            val hook = code.indices.single { code[it].calls(EXPLORE_PILL) }
+            val taken = code[hook - 1]
+            assertEquals("$build: right after it's taken", Opcode.MOVE_RESULT_OBJECT, taken.opcode)
+            assertEquals("$build: the view", (taken as OneRegisterInstruction).registerA, (code[hook] as RegisterRangeInstruction).startRegister)
+            assertEquals("$build: from a find answering a View", VIEW, code[hook - 2].called()!!.returnType)
+            assertEquals("$build: handed the id", EXPLORE_SETTINGS_PILL, (code[hook - 3] as NarrowLiteralInstruction).narrowLiteral)
+            val stock = lists.single { it.type == hooked.single().definingClass }.methods
+                .single { it.name == hooked.single().name && it.parameterTypes.map(Any::toString) == hooked.single().parameterTypes.map(Any::toString) }
+            assertKept("$build: ${hooked.single().name}", stock.code().filter { it.opcode != Opcode.NOP },
+                code.filterIndexed { at, instruction -> at != hook && instruction.opcode != Opcode.NOP })
+        }
+    }
+
     private fun assertKept(what: String, stock: List<Instruction>, patched: List<Instruction>) {
         assertEquals("$what: Instagram's code kept", stock.map { it.kind() }, patched.map { it.kind() })
     }
@@ -226,6 +296,9 @@ class PrismChipsTest {
         const val OTHER_BACKGROUND = "Lfixture/OtherBackground;"
         const val COLORS_OF = "Lfixture/Colors;"
         const val STYLE = "Lfixture/ChipStyle;"
+        const val VIEW = "Landroid/view/View;"
+        const val CHIP_LIST = "Lfixture/ChipList;"
+        const val VIEWS = "Lfixture/Views;"
 
         /**
          * The chip: a constructor building it, making each of [backgrounds] unless it has no style, one
@@ -281,6 +354,24 @@ class PrismChipsTest {
                 return-void
             """.trimIndent()).joinToString("\n"), static = false),
             superclass = DRAWABLE,
+        )
+
+        /**
+         * Explore's chip list as 386314286's `LX/0CUr;->A0c` has it: the icon chip's id handed to a
+         * static find answering [answers], its answer taken and kept, [finds] times, with a branch to
+         * right after the first take when [jumps].
+         */
+        fun chipList(finds: Int = 1, jumps: Boolean = false, answers: String = VIEW): ClassDef = classOf(
+            CHIP_LIST,
+            method(CHIP_LIST, "A0c", listOf("Landroid/view/ViewGroup;", "I"), 2, (listOf(if (jumps) "if-eqz p2, :kept" else "nop") + List(finds) {
+                """
+                const v0, $EXPLORE_SETTINGS_PILL
+                invoke-static { p1, v0 }, $VIEWS->A05(${VIEW}I)$answers
+                move-result-object v0
+                ${if (it == 0) ":kept" else "nop"}
+                iput-object v0, p0, $CHIP_LIST->A00:$answers
+                """.trimIndent()
+            } + listOf("return-object v0")).joinToString("\n"), static = false, returns = "Ljava/lang/Object;"),
         )
 
         /** AccentTheme without the hooks for prism chips. */

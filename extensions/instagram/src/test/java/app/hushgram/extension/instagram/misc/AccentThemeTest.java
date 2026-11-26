@@ -1577,6 +1577,74 @@ public class AccentThemeTest {
         assertTrue(report, report.contains(AccentTheme.PILLS + " 2"));
     }
 
+    /**
+     * The chip with only an icon before Explore's chips is outlined in the gray its prism chips read, and
+     * with Filters in the accent color on each shape of its background, every state and through a
+     * wrapper too, takes the outline the chips beside it get at Instagram's width for it (#187). The
+     * switch off, a pause or a background with no shape leaves it as it is.
+     */
+    @Test
+    public void exploresIconChipTakesTheChipsOutline() {
+        Ids ids = (name, type) -> {
+            if (type.equals("dimen") && name.equals(AccentTheme.PILL_BORDER)) return android.R.dimen.app_icon_size;
+            return type.equals("attr") && name.equals(AccentTheme.ICON_ATTRIBUTE) ? android.R.attr.colorForeground : 0;
+        };
+        Context dark = new ContextThemeWrapper(themed(THEMED + ".explore", ids), android.R.style.Theme_Material);
+        int gray = 0xff363636;
+        View pill = new View(dark);
+        pill.setBackground(outlined(gray));
+        AccentTheme.explorePill(pill);
+        assertEquals("off", gray, shadow(pill(pill.getBackground(), new int[0])).getStrokeColor());
+        Settings.ACCENT_COLOR.save(true);
+        Settings.ACCENT_HUE.save(AccentHue.TEAL);
+        AccentTheme.explorePill(pill);
+        assertEquals("the filters' switch off", gray, shadow(pill(pill.getBackground(), new int[0])).getStrokeColor());
+        Settings.ACCENT_PILLS.save(true);
+
+        int onDark = 0xff000000 | AccentColor.swap(0xff85a1ff, AccentHue.TEAL);
+        int width = dark.getResources().getDimensionPixelSize(android.R.dimen.app_icon_size);
+        AccentTheme.explorePill(pill);
+        GradientDrawable rest = pill(pill.getBackground(), new int[0]);
+        assertEquals("the chips' outline", onDark, shadow(rest).getStrokeColor());
+        assertEquals("Instagram's width", width, shadow(rest).getStrokeWidth());
+        assertEquals("pressed too", onDark, shadow(pill(pill.getBackground(), new int[] {android.R.attr.state_pressed})).getStrokeColor());
+
+        View wrapped = new View(dark);
+        wrapped.setBackground(new android.graphics.drawable.InsetDrawable(outlined(gray), 2));
+        AccentTheme.explorePill(wrapped);
+        Drawable inner = ((android.graphics.drawable.InsetDrawable) wrapped.getBackground()).getDrawable();
+        assertEquals("through a wrapper", onDark, shadow(pill(inner, new int[0])).getStrokeColor());
+        Drawable flat = new ColorDrawable(gray);
+        View plain = new View(dark);
+        plain.setBackground(flat);
+        AccentTheme.explorePill(plain);
+        assertSame("no shape, nothing to outline", flat, plain.getBackground());
+        AccentTheme.explorePill(null);
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        View paused = new View(dark);
+        paused.setBackground(outlined(gray));
+        AccentTheme.explorePill(paused);
+        assertEquals("paused", gray, shadow(pill(paused.getBackground(), new int[0])).getStrokeColor());
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        String report = HookStatus.report().toString();
+        assertTrue(report, report.contains(AccentTheme.PRISM_CHIPS + " 2"));
+    }
+
+    /** A chip's background as Instagram's resources hold one: a shape for pressed and one for the rest, each outlined in [color]. */
+    private static Drawable outlined(int color) {
+        android.graphics.drawable.StateListDrawable states = new android.graphics.drawable.StateListDrawable();
+        for (int[] state : new int[][] {{android.R.attr.state_pressed}, {}}) {
+            GradientDrawable shape = new GradientDrawable();
+            shape.setColor(0);
+            shape.setStroke(2, color);
+            states.addState(state, shape);
+        }
+        return states;
+    }
+
     /** A filter as Instagram builds one: a title in [color]. */
     private static android.widget.TextView filter(Context context, int color) {
         android.widget.TextView tab = new android.widget.TextView(context);

@@ -98,6 +98,7 @@ Every HushGram release, newest first.
 * With `Icons in the accent color` on, the like, comment and share icons on a story take your color. A heart you've liked stays red. Reported in #187.
 * With `Icons in the accent color` on, a profile's Tagged tab takes your color like the tabs beside it. It stayed gray. Reported in #187.
 * With `Icons in the accent color` on, the search icon in the search bar atop your messages takes your color. Reported in #187.
+* With `Filters in the accent color` on, the icon chip before Explore's filters gets your color's outline like the filters do. Reported in #187.
 
 ### Improvements
 

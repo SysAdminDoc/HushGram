@@ -18,6 +18,8 @@ import android.graphics.PorterDuffColorFilter;
 import android.graphics.Rect;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
+import android.graphics.drawable.DrawableContainer;
+import android.graphics.drawable.DrawableWrapper;
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.LayerDrawable;
 import android.graphics.drawable.ShapeDrawable;
@@ -1564,6 +1566,67 @@ public final class AccentTheme {
             } else if (child instanceof ViewGroup) {
                 any |= colorLabels((ViewGroup) child, labels);
             }
+        }
+        return any;
+    }
+
+    /** The width Instagram outlines its chips with, by the name its text chips' background reads it under. */
+    static final String PILL_BORDER = "afi_segmented_pill_border_width";
+
+    /**
+     * Injected as Explore makes the holder of the chip with only an icon before its chips, with the
+     * view carrying the chip's outlined background, [pill] (#187). That background is a shape from
+     * Instagram's resources, outlined in the gray its prism chips read, so it stayed gray beside chips in
+     * the accent color. With {@link Settings#ACCENT_PILLS} on, gives each shape in it, for every state,
+     * the outline {@link #prismStroke} gives those chips at Instagram's width for it. Leaves [pill] as
+     * it is with the switch off, HushGram paused, no shape there or anything thrown.
+     */
+    public static void explorePill(View pill) {
+        try {
+            HookStatus.invoked(FamilyNames.ACCENT_COLOR);
+            AccentHue hue = AccentColor.picked();
+            Drawable background = pill == null ? null : pill.getBackground();
+            if (background == null || hue == null || !Settings.ACCENT_PILLS.get()) return;
+            Context context = pill.getContext();
+            Resources resources = context.getResources();
+            int border = id(resources, PILL_BORDER, "dimen", Utils.resourcePackage(context));
+            int width = border != 0 ? resources.getDimensionPixelSize(border)
+                    : Math.max(1, Math.round(PILL_STROKE_DP * resources.getDisplayMetrics().density));
+            Drawable own = background.mutate();
+            if (!outline(own, width, pillLink(context, hue))) return;
+            if (own != background) pill.setBackground(own);
+            HookStatus.counted(FamilyNames.ACCENT_COLOR, PRISM_CHIPS);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.ACCENT_COLOR, "explore pill", failure);
+        }
+    }
+
+    /**
+     * Gives each shape in [drawable], through the state lists, layers and wrappers holding it, an outline
+     * [width] wide in [color]. Answers whether there was one.
+     */
+    private static boolean outline(Drawable drawable, int width, int color) {
+        if (drawable instanceof GradientDrawable) {
+            ((GradientDrawable) drawable).setStroke(width, color);
+            return true;
+        }
+        boolean any = false;
+        if (drawable instanceof LayerDrawable) {
+            LayerDrawable layers = (LayerDrawable) drawable;
+            for (int i = 0; i < layers.getNumberOfLayers(); i++) {
+                Drawable layer = layers.getDrawable(i);
+                if (layer != null) any |= outline(layer, width, color);
+            }
+        } else if (drawable instanceof DrawableContainer
+                && drawable.getConstantState() instanceof DrawableContainer.DrawableContainerState) {
+            DrawableContainer.DrawableContainerState states = (DrawableContainer.DrawableContainerState) drawable.getConstantState();
+            Drawable[] children = states.getChildren();
+            for (int i = 0; i < states.getChildCount() && i < children.length; i++) {
+                if (children[i] != null) any |= outline(children[i], width, color);
+            }
+        } else if (drawable instanceof DrawableWrapper) {
+            Drawable inner = ((DrawableWrapper) drawable).getDrawable();
+            any = inner != null && outline(inner, width, color);
         }
         return any;
     }

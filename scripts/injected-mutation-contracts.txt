@@ -2880,6 +2880,12 @@ once-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->searchIconNext()V
 once-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->searchIcon(J)J in static (LX/*;LX/*;LX/*;FIZ)V holding const:0x7f04091a const:0x8a8105f0
 once-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->searchIcon(J)J in static (LX/*;LX/*;LX/*;FIZ)V holding const:0x7f04091a const:0x21dd2ca5
 single-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->defaultIcon(J)J in A1O|A1L|A19
+# Explore's chip list finds the outlined view of the icon chip before its chips (settings_background,
+# 0x7f0b3b38 on 457) in one method (0CUr.A0c on 386314286). Accent color hands the view to
+# AccentTheme.explorePill right after it's taken. The method loads no string, so the rule names the
+# id's number, which moves every update. Left out, the chip keeps its gray outline with Filters in the
+# accent color on (#187). PrismChipsTest checks every build.
+once-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->explorePill(Landroid/view/View;)V in instance (Landroid/view/ViewGroup;I)LX/*; holding const:0x7f0b3b38
 # An opened chat paints the view behind its messages (id/thread_background_view_container) in one
 # method (04v3.A0D on 456's 386214574), which stacks its own layers over the chat theme's color and
 # hands the LayerDrawable to a static call taking a drawable, a view and an int. Accent color hands the

@@ -8,6 +8,7 @@ import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
+import app.morphe.patches.instagram.misc.extension.classesLoading
 import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.patchLog
 import app.morphe.patches.instagram.misc.extension.requireThisIntact
@@ -17,8 +18,10 @@ import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
@@ -165,10 +168,70 @@ internal fun BytecodePatchContext.tintPrismChipLabels() {
     }
 }
 
-/** The hooks giving Instagram's prism chips the picked color with Filters in the accent color on (#187). */
+/** Hands the extension the view carrying the outline of the chip with only an icon before Explore's chips (#187). */
+internal const val EXPLORE_PILL = "$ACCENT_THEME->explorePill(Landroid/view/View;)V"
+
+/**
+ * Instagram 457's id/settings_background, the outlined view of the chip with only an icon that leads
+ * Explore's chips (its layout is explore_carrera_settings_pill_view_holder), the same in all four 457
+ * builds (aapt2).
+ */
+internal const val EXPLORE_SETTINGS_PILL = 0x7f0b3b38
+
+/** Where Explore's chip list finds its icon chip's outlined view: the move-result at [at] taking it into [view]. */
+internal class ExplorePillFind(val method: MutableMethod, val at: Int, val view: Int)
+
+/**
+ * The one place loading [EXPLORE_SETTINGS_PILL] that hands it straight to a call answering a View and
+ * takes the answer, where Explore's chip list makes the holder of its icon chip (`LX/0CUr;->A0c` on
+ * 386314286). The chip's outline comes from its layout's background, not from the prism chips' drawable,
+ * so [tintPrismBackgrounds] never reached it and it stayed gray (#187). Answers null with a warning
+ * when there isn't one such place or something jumps to right after it. Refuses when the extension
+ * lacks [EXPLORE_PILL].
+ */
+internal fun BytecodePatchContext.findExplorePill(): ExplorePillFind? {
+    fun skip(why: String): ExplorePillFind? {
+        patchLog.warning("$PATCH: $why, so the icon chip before Explore's chips keeps Instagram's outline")
+        return null
+    }
+    val sites = classesLoading(EXPLORE_SETTINGS_PILL.toLong()).distinctBy { it.type }.flatMap { it.methods }.flatMap { method ->
+        method.code().let { code -> code.indices.filter { code.findsPill(it) }.map { method to it + 2 } }
+    }
+    val (finder, at) = sites.singleOrNull() ?: return skip("${sites.size} places find the icon chip's outline, not one")
+    if (at + 1 in finder.jumpTargets()) return skip("${finder.where()} jumps to right after finding the icon chip's outline")
+    requireHook(EXPLORE_PILL)
+    val mutable = mutableClassDefBy(finder.definingClass).methods.single {
+        it.name == finder.name && it.parameterTypes.map(Any::toString) == finder.parameterTypes.map(Any::toString) && it.returnType == finder.returnType
+    }
+    return ExplorePillFind(mutable, at, (finder.code()[at] as OneRegisterInstruction).registerA)
+}
+
+/** Whether [at] loads [EXPLORE_SETTINGS_PILL], the next instruction hands it to a call answering a View and the one after takes the answer. */
+private fun List<Instruction>.findsPill(at: Int): Boolean {
+    if ((this[at] as? NarrowLiteralInstruction)?.narrowLiteral != EXPLORE_SETTINGS_PILL) return false
+    val id = (this[at] as OneRegisterInstruction).registerA
+    val call = getOrNull(at + 1) ?: return false
+    val called = call.called() ?: return false
+    if (called.returnType != "Landroid/view/View;") return false
+    val handed = when (call) {
+        is RegisterRangeInstruction -> id in call.startRegister until call.startRegister + call.registerCount
+        is FiveRegisterInstruction -> id in listOf(call.registerC, call.registerD, call.registerE, call.registerF, call.registerG).take(call.registerCount)
+        else -> false
+    }
+    return handed && getOrNull(at + 2)?.opcode == Opcode.MOVE_RESULT_OBJECT
+}
+
+/** Hands [findExplorePill]'s view to the extension right after it's found, which outlines it like the chips beside it (#187). */
+internal fun BytecodePatchContext.tintExplorePill() {
+    val found = findExplorePill() ?: return
+    found.method.addInstructions(found.at + 1, "invoke-static/range { v${found.view} .. v${found.view} }, $EXPLORE_PILL")
+}
+
+/** The hooks giving Instagram's prism chips, and the icon chip before Explore's, the picked color with Filters in the accent color on (#187). */
 internal fun BytecodePatchContext.tintPrismChips() {
     tintPrismBackgrounds()
     tintPrismChipLabels()
+    tintExplorePill()
 }
 
 private fun BytecodePatchContext.requireHook(hook: String) {
