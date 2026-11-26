@@ -8,6 +8,9 @@ import android.content.Context;
 import android.view.View;
 import android.view.ViewParent;
 
+import java.util.List;
+
+import app.hushgram.extension.instagram.misc.BoxedColors;
 import app.hushgram.extension.instagram.misc.CustomAccent;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.PatchFamily;
@@ -30,7 +33,8 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * Instagram's own story gradient for the chosen ones. Nothing is kept: Instagram still holds its
  * own colors, and asks again each time a ring is measured or bound to another story. Compose
  * screens build their default ring apart from the view, and pass its colors through
- * {@link #defaultColors}.
+ * {@link #defaultColors}, and the chat list's rings make their brush from a list of Compose colors
+ * that goes through {@link #brush}.
  *
  * <p>The view also reads the width of its ring wherever it measures or draws one, and the patch
  * passes each read through {@link #thickness} (#528).
@@ -162,6 +166,37 @@ public final class StoryRing {
             return shades == null ? colors : shades;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.STORY_RING, "Compose ring color", failure);
+            return colors;
+        }
+    }
+
+    /** What's counted each time a ring on the chat list takes the chosen color. */
+    static final String CHAT_LIST = "chat list story rings given the ring color";
+
+    /**
+     * Injected first in the brush the chat list's story rings are made with (#187), with the list of
+     * Compose colors it pairs with the default ring's four stops: Compose's own yellow, orange, pink and
+     * purple, or the ones the server sends. Those rings never see the default ring, so a picked color
+     * left them in Instagram's gradient. Answers the chosen color's shades in a list of their own, boxed
+     * as Instagram's are, for four colors that aren't all one while the switch is on, as {@link #colors}
+     * does for the ring view. Answers [colors] itself for any other list, one it can't read included,
+     * and never changes it. Never throws.
+     */
+    public static List<?> brush(List<?> colors) {
+        try {
+            HookStatus.invoked(FamilyNames.STORY_RING);
+            if (colors == null || colors.size() != INSTAGRAM_STOPS.length) return colors;
+            if (!Utils.settingsReady() || !Settings.STORY_RING.get()) return colors;
+            int[] shades = shades(Settings.STORY_RING_COLOR.get(), colors.size());
+            if (shades == null) return colors;
+            int[] argb = BoxedColors.argb(colors);
+            if (argb == null || !instagramsOwn(argb, INSTAGRAM_STOPS)) return colors;
+            List<Object> boxed = BoxedColors.boxed(colors.get(0), shades);
+            if (boxed == null) return colors;
+            HookStatus.counted(FamilyNames.STORY_RING, CHAT_LIST);
+            return boxed;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.STORY_RING, "chat list ring color", failure);
             return colors;
         }
     }

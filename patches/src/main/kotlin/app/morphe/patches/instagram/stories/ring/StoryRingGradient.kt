@@ -56,6 +56,9 @@ private const val HIGHEST_LISTED_REGISTER = 15
 /** Where Compose screens hand the default ring's colors on, as an array (#528). */
 internal const val RING_DEFAULT_COLORS = "$EXTENSION_PACKAGE/stories/StoryRing;->defaultColors([I)[I"
 
+/** Where the chat list's rings hand on the list of colors their brush is made from (#187). */
+internal const val RING_BRUSH_COLORS = "$EXTENSION_PACKAGE/stories/StoryRing;->brush(Ljava/util/List;)Ljava/util/List;"
+
 private fun refuse(detail: String, patch: String = PATCH): Nothing = throw PatchException("$patch: $detail")
 
 /** What the ring's own setter takes: the builder's parameters without the ring, which is `this` there. */

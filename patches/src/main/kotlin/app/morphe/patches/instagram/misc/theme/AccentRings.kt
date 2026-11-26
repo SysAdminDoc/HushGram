@@ -86,7 +86,9 @@ private fun Method.isInactiveSetter() = name == INACTIVE_SETTER && returnType ==
  * so its guard stays first in either order and a color picked under Ring color is what this one is
  * given, and leaves alone. The seen ring's gray goes to the extension first thing in
  * [INACTIVE_SETTER], which then keeps the answer, and so do the chat list's ring colors first thing
- * in their brush.
+ * in their brush. Story ring size hooks that brush too, and whichever goes in later runs first, which
+ * draws the same ring either way: this one answers a picked Ring color back, and Ring color answers
+ * back what it's given while none is picked.
  */
 internal fun BytecodePatchContext.colorAccentRings(hooks: AccentRingHooks) {
     colorRingGradients(hooks.gradients, ACCENT_RING_COLORS, behind = RING_COLORS)

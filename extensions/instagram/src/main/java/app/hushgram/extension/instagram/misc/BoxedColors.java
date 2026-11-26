@@ -18,7 +18,7 @@ import java.util.List;
  * long's top half and nothing in its bottom half. The class is read by reflection the first time it's
  * seen: its one long field, and its constructor taking a long.
  */
-final class BoxedColors {
+public final class BoxedColors {
     /** The last class read, its field and its constructor, or null before any. */
     @Nullable
     private static volatile Kind known;
@@ -31,7 +31,7 @@ final class BoxedColors {
      * this can read and make again.
      */
     @Nullable
-    static int[] argb(List<?> colors) throws ReflectiveOperationException {
+    public static int[] argb(List<?> colors) throws ReflectiveOperationException {
         if (colors.isEmpty()) return null;
         Object first = colors.get(0);
         if (first == null) return null;
@@ -50,7 +50,7 @@ final class BoxedColors {
 
     /** [argb] boxed as [like]'s colors are, in a list of its own, or null when its class can't be read. */
     @Nullable
-    static List<Object> boxed(Object like, int[] argb) throws ReflectiveOperationException {
+    public static List<Object> boxed(Object like, int[] argb) throws ReflectiveOperationException {
         Kind kind = kind(like.getClass());
         if (kind == null) return null;
         List<Object> boxed = new ArrayList<>(argb.length);

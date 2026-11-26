@@ -2641,10 +2641,15 @@ once-call Lapp/hushgram/extension/instagram/misc/AccentRings;->seen(I)I in insta
 # And it hands the list of colors the chat list's story rings make their brush from to
 # AccentRings.composeBrush, first thing in that brush (#683): the static taking only a list that
 # pairs it with the default ring's stops at an angle (0G9f.A01 on 457), making a brush from the
-# pairs, or from the list alone when the counts differ. Left out, the rings next to chats keep
-# Instagram's yellow, orange, pink and purple with the accent rings on. AccentRingsHookTest checks
-# every build.
-start-call Lapp/hushgram/extension/instagram/misc/AccentRings;->composeBrush(Ljava/util/List;)Ljava/util/List; in static (Ljava/util/List;)LX/*; holding Ljava/lang/Math;->toRadians(D)D Ljava/lang/Math;->cos(D)D LX/*;->*([LX/*;IJJ)LX/*; LX/*;->*(Ljava/util/List;JJ)LX/*;
+# pairs, or from the list alone when the counts differ. Story ring size hands the same list to
+# StoryRing.brush first thing there too (#187), and goes in after Story rings in the accent color,
+# so its hook comes first and the accent one right after it, as on Compose screens above. Either
+# order draws the same ring. Left out, the rings next to chats keep Instagram's yellow, orange,
+# pink and purple with the accent rings on or a Ring color picked. AccentRingsHookTest checks every
+# build in either order.
+start-call Lapp/hushgram/extension/instagram/stories/StoryRing;->brush(Ljava/util/List;)Ljava/util/List; in static (Ljava/util/List;)LX/*; holding Ljava/lang/Math;->toRadians(D)D Ljava/lang/Math;->cos(D)D LX/*;->*([LX/*;IJJ)LX/*; LX/*;->*(Ljava/util/List;JJ)LX/*;
+once-call Lapp/hushgram/extension/instagram/stories/StoryRing;->brush(Ljava/util/List;)Ljava/util/List; in static (Ljava/util/List;)LX/*; holding Ljava/lang/Math;->toRadians(D)D Ljava/lang/Math;->cos(D)D LX/*;->*([LX/*;IJJ)LX/*; LX/*;->*(Ljava/util/List;JJ)LX/*;
+next-call Lapp/hushgram/extension/instagram/misc/AccentRings;->composeBrush(Ljava/util/List;)Ljava/util/List; after Lapp/hushgram/extension/instagram/stories/StoryRing;->brush(Ljava/util/List;)Ljava/util/List; in static (Ljava/util/List;)LX/*; holding Ljava/lang/Math;->toRadians(D)D Ljava/lang/Math;->cos(D)D LX/*;->*([LX/*;IJJ)LX/*; LX/*;->*(Ljava/util/List;JJ)LX/*;
 once-call Lapp/hushgram/extension/instagram/misc/AccentRings;->composeBrush(Ljava/util/List;)Ljava/util/List; in static (Ljava/util/List;)LX/*; holding Ljava/lang/Math;->toRadians(D)D Ljava/lang/Math;->cos(D)D LX/*;->*([LX/*;IJJ)LX/*; LX/*;->*(Ljava/util/List;JJ)LX/*;
 # Hide the Repost button answers FALSE first thing in the post model's getter of
 # enable_media_notes_production, the one instance method taking nothing and answering a Boolean

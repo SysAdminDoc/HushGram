@@ -17,6 +17,7 @@ import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
+import app.morphe.patches.instagram.misc.extension.patchLog
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.settings.EXTENSION_ROOT
 import app.morphe.patches.instagram.misc.settings.settingsPatch
@@ -54,7 +55,8 @@ internal const val SETTLED_PER_METHOD = 3
  * thickness start as Instagram's own, so nothing changes until one is chosen.
  *
  * The color reaches the ring view's gradients ([colorRingGradients]) and, on Compose screens, the
- * default ring's colors ([colorComposeRing], #528). The thickness reaches every width the ring view
+ * default ring's colors ([colorComposeRing], #528), and on the chat list, the list of colors its rings'
+ * brush is made from ([colorComposeRingBrush], #187). The thickness reaches every width the ring view
  * reads ([thickenRings], #528).
  */
 @Suppress("unused")
@@ -78,6 +80,7 @@ val storyRingSizePatch = bytecodePatch(
         val gradients = findRingGradients()
         val draw = findRingDraw()
         val composeRing = findComposeRing()
+        val brush = findRingBrush()
         val widths = findRingWidthReads()
         scaleRingSizes(sizings)
         // The widths go in by index, before the color hook moves the builder's code along and
@@ -85,6 +88,7 @@ val storyRingSizePatch = bytecodePatch(
         thickenRings(widths)
         colorRingGradients(gradients)
         colorComposeRing(composeRing, RING_DEFAULT_COLORS)
+        brush?.let { colorComposeRingBrush(it, RING_BRUSH_COLORS) }
         hideRingsOutsideTheRow(draw)
         enableStatus("storyRingSize")
     }
@@ -166,6 +170,19 @@ internal fun BytecodePatchContext.findRingDraw(): Method {
     if (0 in draw.jumpTargets()) refuse("something jumps back to the first instruction of $where")
     return draw
 }
+
+/**
+ * The brush the chat list's story rings are made from ([findComposeRingBrush], #187), which never sees
+ * the default ring's colors. None, with a warning, when it can't be found: Ring color then leaves only
+ * the chat list's rings in Instagram's gradient, and the rest of the patch goes in.
+ */
+internal fun BytecodePatchContext.findRingBrush(): ComposeRingBrush? =
+    try {
+        findComposeRingBrush()
+    } catch (refusal: PatchException) {
+        patchLog.warning("${refusal.message}. $PATCH goes in without coloring the rings on the chat list.")
+        null
+    }
 
 /** The ring's draw returns first thing while [RING_HIDES] answers yes for that ring, so nothing of it is drawn. */
 internal fun BytecodePatchContext.hideRingsOutsideTheRow(draw: Method) {

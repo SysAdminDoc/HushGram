@@ -45,6 +45,29 @@ class StoryRingComposeHookTest {
         assertTrue("$RING_DEFAULT_COLORS is not in the extension: $declared", RING_DEFAULT_COLORS.substringAfter("->") in declared)
     }
 
+    /** The chat list's ring brush hands its colors to a hook the extension has (#187). */
+    @Test
+    fun theBrushHookIsInTheExtension() {
+        val declared = ExtensionDex.classDef(RING_BRUSH_COLORS.substringBefore("->")).methods
+            .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
+            .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
+        assertTrue("$RING_BRUSH_COLORS is not in the extension: $declared", RING_BRUSH_COLORS.substringAfter("->") in declared)
+    }
+
+    /**
+     * Story ring size finds the chat list's ring brush where its colors arrive, and a build without
+     * one, or with two, leaves just that brush out instead of failing the patch (#187).
+     */
+    @Test
+    fun theChatListsBrushIsFoundOrLeftOut() {
+        val brush = PatchContexts.of(listOf(StoryRingFixtures.composeBrush())).findRingBrush()
+        assertEquals(listOf(StoryRingFixtures.RING_BRUSH, "A01", 13), listOf(brush?.type, brush?.name, brush?.register))
+        assertEquals("no brush", null, PatchContexts.of(listOf(composeRing())).findRingBrush())
+        assertEquals("two brushes", null, PatchContexts.of(listOf(StoryRingFixtures.composeBrush(builders = 2))).findRingBrush())
+        assertEquals("a brush something loops back to", null,
+            PatchContexts.of(listOf(StoryRingFixtures.composeBrush(loops = true))).findRingBrush())
+    }
+
     /** The hook goes right after the array lands, takes it, and answers into the same register. */
     @Test
     fun theDefaultRingsColorsGoThroughTheHook() {

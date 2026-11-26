@@ -17,6 +17,10 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
 import org.robolectric.RuntimeEnvironment;
 
 import org.junit.After;
@@ -363,6 +367,99 @@ public class StoryRingTest {
 
         SettingsContextRule.withoutContext(() -> assertSame("no context", story, StoryRing.defaultColors(story)));
         assertNotSame("on again", story, StoryRing.defaultColors(story));
+    }
+
+    /**
+     * The chat list's rings hand their brush Compose's yellow, orange, pink and purple as boxed colors
+     * (#187): with a color picked they get its shades back in a list of their own, boxed the same way,
+     * and the list Instagram made isn't touched. Each is counted.
+     */
+    @Test
+    public void aChosenColorPaintsTheChatListsRings() {
+        List<Boxed> story = boxed(STORY);
+        assertSame("Instagram's own choice", story, chatListBrush(story));
+
+        Settings.STORY_RING_COLOR.save(StoryRingColor.PURPLE);
+        List<?> painted = chatListBrush(story);
+        assertNotSame(story, painted);
+        assertArrayEquals(StoryRingColor.PURPLE.colors(STORY.length), unboxed(painted));
+        assertArrayEquals("changed Instagram's own list", STORY, unboxed(story));
+        assertNotSame("handed two rings one list", painted, chatListBrush(story));
+        assertTrue(HookStatus.report().toString(),
+                HookStatus.report().toString().contains("chat list story rings given the ring color 2"));
+        assertTrue(HookStatus.missing(FamilyNames.STORY_RING).toString(), HookStatus.missing(FamilyNames.STORY_RING).isEmpty());
+    }
+
+    /**
+     * Off, paused, without a context, or for a list that isn't four of Instagram's sRGB colors in one
+     * class it can read, the chat list's ring keeps the list it was given.
+     */
+    @Test
+    public void everyOtherChatListRingKeepsItsColors() {
+        Settings.STORY_RING_COLOR.save(StoryRingColor.RED);
+        List<Boxed> story = boxed(STORY);
+        assertNotSame("on", story, chatListBrush(story));
+
+        List<Boxed> two = boxed(CLOSE_FRIENDS);
+        assertSame("two colors", two, chatListBrush(two));
+        List<Boxed> flat = boxed(new int[]{0xFF1CD14F, 0xFF1CD14F, 0xFF1CD14F, 0xFF1CD14F});
+        assertSame("one color", flat, chatListBrush(flat));
+        List<Object> wide = new ArrayList<>(story);
+        wide.set(2, new Boxed(0x3c00_0000_0000_0011L));
+        assertSame("a color outside sRGB", wide, chatListBrush(wide));
+        List<String> named = Arrays.asList("#feda75", "#fa7e1e", "#d62976", "#962fbf");
+        assertSame("not colors", named, chatListBrush(named));
+        assertNull(chatListBrush(null));
+
+        Settings.STORY_RING.save(false);
+        assertSame("off", story, chatListBrush(story));
+        Settings.STORY_RING.save(true);
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertSame("paused", story, chatListBrush(story));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+
+        SettingsContextRule.withoutContext(() -> assertSame("no context", story, chatListBrush(story)));
+
+        Settings.STORY_RING_COLOR.save(StoryRingColor.CUSTOM);
+        assertSame("Custom with nothing typed", story, chatListBrush(story));
+        assertArrayEquals(STORY, unboxed(story));
+    }
+
+    /** The brush hook, found by name so this compiles against a build without it. */
+    private static List<?> chatListBrush(List<?> colors) {
+        try {
+            return (List<?>) StoryRing.class.getMethod("brush", List.class).invoke(null, colors);
+        } catch (ReflectiveOperationException missing) {
+            throw new AssertionError("StoryRing has no public static brush(List)", missing);
+        }
+    }
+
+    private static List<Boxed> boxed(int[] colors) {
+        List<Boxed> boxed = new ArrayList<>();
+        for (int color : colors) boxed.add(new Boxed((long) color << 32));
+        return boxed;
+    }
+
+    private static int[] unboxed(List<?> colors) {
+        int[] argb = new int[colors.size()];
+        for (int at = 0; at < argb.length; at++) {
+            long packed = ((Boxed) colors.get(at)).packed;
+            assertEquals("an sRGB color", 0L, packed & 0xffffffffL);
+            argb[at] = (int) (packed >>> 32);
+        }
+        return argb;
+    }
+
+    /** Compose's color class as the build leaves it: a long and a constructor taking it, under a name of its own. */
+    private static final class Boxed {
+        final long packed;
+
+        private Boxed(long packed) {
+            this.packed = packed;
+        }
     }
 
     /** The thickness starts as Instagram's, so every ring keeps its width. */
