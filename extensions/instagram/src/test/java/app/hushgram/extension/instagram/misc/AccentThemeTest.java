@@ -835,6 +835,60 @@ public class AccentThemeTest {
     }
 
     /**
+     * The account switcher's card and button outlines, Meta's #3d4f5c and #445664 on a dark screen and
+     * #dde2e8 and #ccd3db on a light one, take a faint shade of the picked color with the accent
+     * backgrounds on: a fifth of the way from the surface under them to the link shade. Its Add account
+     * button's fill, Meta's near black on a dark screen and #f1f4f7 on a light one, takes the page and
+     * the wash. A see-through near black and the same grays kept for the other screen stay (#187).
+     */
+    @Test
+    public void metasOutlinesAndButtonFillsTakeTheAccent() {
+        int[] dark = {0xff101820, 0xff182030, 0xff203040};
+        int[] light = {0xfffafafa, 0xfff0f0f0, 0xffe8e8e8};
+        AccentTheme.darkSurfacesForTests(dark);
+        AccentTheme.lightSurfacesForTests(light);
+        try {
+            Settings.ACCENT_COLOR.save(true);
+            Settings.ACCENT_HUE.save(AccentHue.PINK);
+            assertEquals("backgrounds off", 0xff3d4f5c, AccentTheme.dspDark(0xff3d4f5c));
+            assertEquals("backgrounds off", 0xffdde2e8, AccentTheme.dspLight(0xffdde2e8));
+            assertEquals("backgrounds off", 0xff0a1317, AccentTheme.dspDark(0xff0a1317));
+
+            Settings.ACCENT_BACKGROUNDS.save(true);
+            int darkLine = fifthOfTheWay(dark[1], AccentHue.PINK.linkOnDark);
+            int lightLine = fifthOfTheWay(light[0], AccentHue.PINK.linkOnLight);
+            assertEquals("the cards' outline", darkLine, AccentTheme.dspDark(0xff3d4f5c));
+            assertEquals("the button's outline", darkLine, AccentTheme.dspDark(0xff445664));
+            assertEquals("an outline keeps its alpha", 0x80000000 | darkLine & 0xffffff, AccentTheme.dspDark(0x803d4f5c));
+            assertEquals("the cards' outline", lightLine, AccentTheme.dspLight(0xffdde2e8));
+            assertEquals("the button's outline", lightLine, AccentTheme.dspLight(0xffccd3db));
+            assertEquals("Add account's fill", dark[0], AccentTheme.dspDark(0xff0a1317));
+            assertEquals("Add account's fill", light[2], AccentTheme.dspLight(0xfff1f4f7));
+            assertEquals("a see-through near black", 0x260a1317, AccentTheme.dspDark(0x260a1317));
+            assertEquals("near black on a light screen is text", 0xff0a1317, AccentTheme.dspLight(0xff0a1317));
+            assertEquals("a light outline gray on a dark screen is text", 0xffdde2e8, AccentTheme.dspDark(0xffdde2e8));
+            assertEquals("a dark outline gray on a light screen", 0xff445664, AccentTheme.dspLight(0xff445664));
+
+            Settings.ACCENT_COLOR.save(false);
+            assertEquals("Accent color off", 0xff3d4f5c, AccentTheme.dspDark(0xff3d4f5c));
+        } finally {
+            AccentTheme.darkSurfacesForTests(null);
+            AccentTheme.lightSurfacesForTests(null);
+        }
+    }
+
+    /** The opaque shade a fifth of the way from [from] to [to], each channel rounded. */
+    private static int fifthOfTheWay(int from, int to) {
+        int color = 0xff000000;
+        for (int shift = 16; shift >= 0; shift -= 8) {
+            int start = from >> shift & 0xff;
+            int end = to >> shift & 0xff;
+            color |= Math.round(start + (end - start) / 5f) << shift;
+        }
+        return color;
+    }
+
+    /**
      * An opened chat's default background, a bottom layer of Instagram's page black (or white on a light
      * screen) and a strip of the header's black behind the status bar, takes the painted page shade, the
      * strip as a copy of its shape, and a chat theme of its own keeps its look (#528).

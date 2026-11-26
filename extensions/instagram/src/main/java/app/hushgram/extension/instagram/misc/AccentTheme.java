@@ -645,8 +645,10 @@ public final class AccentTheme {
      * for a light screen. Meta's own menus in Instagram, the account switcher among them, build their
      * colors from tables in the code and not from Instagram's theme, so they kept Meta's blue (#187).
      * Answers Meta's blues as the picked color's fill, and with Classic colors or Backgrounds in the
-     * accent color on, Meta's white page and gray wash as the shades Instagram's light theme holds. Keeps the alpha. Answers [color] for
-     * any other color, with the switches off, HushGram paused or anything thrown.
+     * accent color on, Meta's white page and gray washes as the shades Instagram's light theme holds,
+     * and its outline grays as a faint shade of the picked color ({@link #dspOutline}). Keeps the
+     * alpha. Answers [color] for any other color, with the switches off, HushGram paused or anything
+     * thrown.
      */
     public static int dspLight(int color) {
         return dspColor(color, false);
@@ -654,8 +656,9 @@ public final class AccentTheme {
 
     /**
      * The same as {@link #dspLight} for the color kept for a dark screen. With Classic colors or
-     * Backgrounds in the accent color on, Meta's dark grays (the menu's #1f1f20 and the raised ones)
-     * take the shades Instagram's dark theme holds, as {@link #composeSurface} gives Compose's.
+     * Backgrounds in the accent color on, Meta's dark grays (its near black, the menu's #1f1f20 and the
+     * raised ones) take the shades Instagram's dark theme holds, as {@link #composeSurface} gives
+     * Compose's, and its outline grays a faint shade of the picked color.
      */
     public static int dspDark(int color) {
         return dspColor(color, true);
@@ -673,6 +676,8 @@ public final class AccentTheme {
             }
             int step = dark ? dspDarkStep(rgb) : dspLightStep(rgb);
             int[] surfaces = dark ? paintedSurfaces() : paintedLightSurfaces();
+            if (step == DSP_OUTLINE) return dspOutline(color, dark, surfaces);
+            if (rgb == META_DARK_PAGE && color >>> 24 != 0xff) return color;
             if (step < 0 || surfaces == null) return color;
             HookStatus.counted(FamilyNames.ACCENT_COLOR, DSP);
             return color & 0xff000000 | surfaces[step] & 0xffffff;
@@ -680,6 +685,34 @@ public final class AccentTheme {
             HookStatus.threw(FamilyNames.ACCENT_COLOR, "Meta menu color", failure);
             return color;
         }
+    }
+
+    /** What {@link #dspDarkStep} and {@link #dspLightStep} answer for one of Meta's outline grays. */
+    private static final int DSP_OUTLINE = -2;
+
+    /** How far an outline goes from the surface under it toward the picked color's link shade. */
+    static final float DSP_OUTLINE_SHARE = 0.2f;
+
+    /**
+     * Meta's near black, which fills its dark menus' round buttons, the account switcher's Add account
+     * among them. See-through, it's a shadow or a pressed row's wash and stays.
+     */
+    private static final int META_DARK_PAGE = 0x0a1317;
+
+    /**
+     * Meta's outline grays, around the account switcher's cards and its Accounts Center button (#187),
+     * as the shade {@link #DSP_OUTLINE_SHARE} of the way from the painted surface Meta's menus sit on
+     * (the raised one on a dark screen, the page on a light one) to the picked color's link shade. The
+     * line stays about as faint as Meta's, in the picked color. Keeps the alpha. Answers [color] with
+     * no color picked or the surfaces not painted.
+     */
+    private static int dspOutline(int color, boolean dark, @Nullable int[] surfaces) {
+        AccentHue hue = AccentColor.picked();
+        if (hue == null || surfaces == null) return color;
+        int link = AccentColor.swap(dark ? LINK_ON_DARK : LINK_ON_LIGHT, hue);
+        int line = GlassTabBar.blend(surfaces[dark ? 1 : 0], link, DSP_OUTLINE_SHARE);
+        HookStatus.counted(FamilyNames.ACCENT_COLOR, DSP);
+        return color & 0xff000000 | line & 0xffffff;
     }
 
     /** Meta's blue on a light screen and on a dark one. */
@@ -767,29 +800,42 @@ public final class AccentTheme {
     }
 
     /**
-     * Which of {@link #SURFACE_ATTRIBUTES} a dark gray of Meta's stands for, or -1: its menus' surface
-     * raised like Instagram's sheets, and the raised and wash grays over it. The light grays it writes
-     * text with aren't among them.
+     * Which of {@link #SURFACE_ATTRIBUTES} a dark gray of Meta's stands for, or -1: its near black as
+     * the page, its menus' surface raised like Instagram's sheets, and the raised and wash grays over
+     * it. Its outline grays answer {@link #DSP_OUTLINE}. The light grays it writes text with aren't
+     * among them.
      */
     private static int dspDarkStep(int rgb) {
         switch (rgb) {
+            case META_DARK_PAGE:
+                return 0;
             case 0x1f1f20:
                 return 1;
             case 0x323435:
             case 0x28292b:
                 return 2;
+            case 0x3d4f5c:
+            case 0x445664:
+                return DSP_OUTLINE;
             default:
                 return -1;
         }
     }
 
-    /** Which of {@link #SURFACE_ATTRIBUTES} a light fill of Meta's stands for, or -1: the white page and the gray wash. */
+    /**
+     * Which of {@link #SURFACE_ATTRIBUTES} a light fill of Meta's stands for, or -1: the white page and
+     * the gray washes. Its outline grays answer {@link #DSP_OUTLINE}.
+     */
     private static int dspLightStep(int rgb) {
         switch (rgb) {
             case 0xffffff:
                 return 0;
             case 0xf3f4f5:
+            case 0xf1f4f7:
                 return 2;
+            case 0xdde2e8:
+            case 0xccd3db:
+                return DSP_OUTLINE;
             default:
                 return -1;
         }
