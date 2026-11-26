@@ -95,6 +95,7 @@ Every HushGram release, newest first.
 * With `Icons in the accent color` on, the back, bell and three-dot icons atop a profile, a follow list's sort arrows and the line under its tab take your color. Reported in #187.
 * With `Filters in the accent color` on, the filters under a search take your color too. The one you're on is filled with it, like Saved's filters. Reported in #187.
 * With `Icons in the accent color` on, the icons in a reel's three-dot menu and Instagram's other menus take your icon color instead of white or black. Reported in #187.
+* With `Icons in the accent color` on, the like, comment and share icons on a story take your color. A heart you've liked stays red. Reported in #187.
 
 ### Improvements
 

@@ -1228,6 +1228,56 @@ public final class AccentTheme {
         }
     }
 
+    /** Counted each time a story's like, comment or share icon takes the picked color (#187). */
+    static final String STORY_BUTTONS = "Story buttons given the accent color";
+
+    /**
+     * Whether a story's like, comment and share icons take the picked color: Icons in the accent color
+     * on, a color picked and HushGram not paused (#187). Asked as any activity resumes, so it reads no
+     * switch before the settings are. Answers false on anything thrown.
+     */
+    public static boolean storyButtonsOn() {
+        try {
+            return AccentColor.picked() != null && Settings.ACCENT_ICONS.get();
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.ACCENT_COLOR, "story buttons", failure);
+            return false;
+        }
+    }
+
+    /**
+     * The tint for a story's like, comment or share icon, for the one Instagram gave it, [tint] (#187).
+     * The icons sit over the story in white, which no theme reaches, so with {@link #storyButtonsOn} each
+     * white or light gray in [tint] takes the picked color's link shade for a dark screen, keeping its
+     * alpha, the way a reel's buttons do. Answers null, leaving the icon as it is, for no tint (a liked
+     * heart has none and keeps Instagram's red), a list of its own kind, no such color, the switch off,
+     * HushGram paused or anything thrown.
+     */
+    @Nullable
+    public static ColorStateList storyButton(@Nullable ColorStateList tint) {
+        try {
+            // A subclass may draw its own way, so only a plain list is rebuilt.
+            if (tint == null || tint.getClass() != ColorStateList.class || !storyButtonsOn()) return null;
+            AccentHue hue = AccentColor.picked();
+            AccentColor.Read read = hue == null ? null : AccentColor.read(tint);
+            if (read == null) return null;
+            int shade = AccentColor.swap(LINK_ON_DARK, hue) & 0xffffff;
+            boolean changed = false;
+            for (int i = 0; i < read.colors.length; i++) {
+                int color = read.colors[i];
+                if (color >>> 24 == 0 || !neutral(color) || !readsLight(color)) continue;
+                read.colors[i] = (color & 0xff000000) | shade;
+                changed |= read.colors[i] != color;
+            }
+            if (!changed) return null;
+            HookStatus.counted(FamilyNames.ACCENT_COLOR, STORY_BUTTONS);
+            return new ColorStateList(read.states, read.colors);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.ACCENT_COLOR, "story buttons", failure);
+            return null;
+        }
+    }
+
     /** {@link #tabIcons(int)} for the color a tab is told to use while it isn't selected, which comes boxed. Null stays null. */
     @Nullable
     public static Integer tabIcons(@Nullable Integer color) {

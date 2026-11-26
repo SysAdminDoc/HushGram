@@ -7,10 +7,12 @@ package app.hushgram.extension.instagram.stories;
 import android.app.Activity;
 import android.app.Application;
 import android.content.Context;
+import android.content.res.ColorStateList;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewStub;
 import android.view.ViewTreeObserver;
+import android.widget.ImageView;
 
 import androidx.annotation.Nullable;
 
@@ -23,6 +25,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.WeakHashMap;
 
+import app.hushgram.extension.instagram.misc.AccentTheme;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.instagram.settings.SettingsStatus;
@@ -75,6 +78,11 @@ import app.hushgram.extension.shared.settings.BooleanSetting;
  * {@link StoryCommentLine} other than Instagram's each frame lifts it by that many dp with
  * translationY, which moves nothing else and needs no layout. It lifts a line only while it sits at
  * rest or where this put it, so a move of Instagram's own wins, and puts it back the same way.
+ *
+ * <p>Accent color's Icons in the accent color (#187) uses it as well: the like, comment and share
+ * icons sit over the story in white, which no theme reaches, so each frame gives the icons of the
+ * buttons it found the tint {@link AccentTheme#storyButton} answers, and puts Instagram's back once
+ * the switch goes off.
  */
 public final class StoryReplyBox {
     /** The story's footer on 453, and the Send message box in it. */
@@ -95,6 +103,8 @@ public final class StoryReplyBox {
     static final int OPENING_DEPTH = 3;
     /** The most views looked at under one child, so the app's own big tree costs next to nothing. */
     static final int OPENING_LOOK = 48;
+    /** How far under a footer button its icons may sit: the heart is one level under its container on 457. */
+    static final int ICON_DEPTH = 2;
 
     /**
      * A footer button with a switch of its own, by the ids it goes by in the footer. The first is
@@ -312,13 +322,13 @@ public final class StoryReplyBox {
     }
 
     /**
-     * Whether the reply box, the comments or any footer button is kept off stories, or the comment
-     * line lifted. Asked as any activity resumes too, so it reads no switch before the settings are,
+     * Whether the reply box, the comments or any footer button is kept off stories, the comment line
+     * lifted or the buttons given the picked color. Asked as any activity resumes too, so it reads no switch before the settings are,
      * which would break them for good.
      */
     static boolean anyOn() {
         if (!Utils.settingsReady()) return false;
-        if (switchedOn() || commentsOn() || commentLine() != StoryCommentLine.INSTAGRAM) return true;
+        if (switchedOn() || commentsOn() || commentLine() != StoryCommentLine.INSTAGRAM || AccentTheme.storyButtonsOn()) return true;
         for (Button button : Button.ALL) {
             if (button.on()) return true;
         }
@@ -367,6 +377,8 @@ public final class StoryReplyBox {
         private final Map<View, Float> lifted = new WeakHashMap<>();
         /** Each comment line stub's LayoutParams. */
         private final Set<ViewGroup.LayoutParams> lineStubs = Collections.newSetFromMap(new WeakHashMap<>());
+        /** The button icons this keeper gave the picked color, with Instagram's tint for each and the one this gave it. */
+        private final Map<ImageView, ColorStateList[]> tinted = new WeakHashMap<>();
         @Nullable
         private ViewTreeObserver observer;
         private boolean stale = true;
@@ -417,6 +429,7 @@ public final class StoryReplyBox {
             showBoxes();
             showComments();
             lowerLines();
+            uncolorButtons();
             boolean moved = false;
             for (Map.Entry<View, Integer> entry : new ArrayList<>(gone.entrySet())) {
                 View button = entry.getKey();
@@ -508,7 +521,7 @@ public final class StoryReplyBox {
                 boolean boxOn = switchedOn();
                 View view = root.get();
                 if (!boxOn && !anyOn()) {
-                    if (!hidden.isEmpty() || !gone.isEmpty() || !quiet.isEmpty() || !lifted.isEmpty()) moved = restore();
+                    if (!hidden.isEmpty() || !gone.isEmpty() || !quiet.isEmpty() || !lifted.isEmpty() || !tinted.isEmpty()) moved = restore();
                 } else if (view != null) {
                     boolean commentsOn = commentsOn();
                     StoryCommentLine line = commentLine();
@@ -523,6 +536,8 @@ public final class StoryReplyBox {
                     if (line != StoryCommentLine.INSTAGRAM) liftLines(line.px(view.getResources().getDisplayMetrics().density));
                     else if (!lifted.isEmpty()) lowerLines();
                     moved = keepButtons();
+                    if (AccentTheme.storyButtonsOn()) colorButtons();
+                    else if (!tinted.isEmpty()) uncolorButtons();
                 }
             } catch (Throwable failure) {
                 HookStatus.threw(FamilyNames.STORY_REPLY_BOX, HOOK, failure);
@@ -569,6 +584,50 @@ public final class StoryReplyBox {
                 }
             }
             return moved;
+        }
+
+        /**
+         * Gives each icon of a shown button the picked color (#187), through
+         * {@link AccentTheme#storyButton}, unless it holds the tint this gave it. One Instagram tinted
+         * again since, as it does when a story is liked or unliked, is looked at afresh, so a liked
+         * heart, which has no tint, keeps its red.
+         */
+        private void colorButtons() {
+            for (Held held : buttons) {
+                View button = held.view.get();
+                if (button != null && button.getVisibility() != View.GONE) colorIcons(button, ICON_DEPTH);
+            }
+        }
+
+        /** Colors [view] when it's an icon, or each icon at most [depth] levels under it. */
+        private void colorIcons(View view, int depth) {
+            if (view instanceof ImageView) {
+                colorIcon((ImageView) view);
+                return;
+            }
+            if (depth == 0 || !(view instanceof ViewGroup)) return;
+            ViewGroup group = (ViewGroup) view;
+            for (int i = 0; i < group.getChildCount(); i++) colorIcons(group.getChildAt(i), depth - 1);
+        }
+
+        private void colorIcon(ImageView icon) {
+            ColorStateList now = icon.getImageTintList();
+            ColorStateList[] was = tinted.get(icon);
+            if (was != null && now == was[1]) return;
+            tinted.remove(icon);
+            ColorStateList ours = AccentTheme.storyButton(now);
+            if (ours == null) return;
+            icon.setImageTintList(ours);
+            tinted.put(icon, new ColorStateList[] {now, ours});
+        }
+
+        /** Puts Instagram's tint back on each icon this colored, unless Instagram has tinted it again since. */
+        private void uncolorButtons() {
+            for (Map.Entry<ImageView, ColorStateList[]> entry : new ArrayList<>(tinted.entrySet())) {
+                ImageView icon = entry.getKey();
+                if (icon != null && icon.getImageTintList() == entry.getValue()[1]) icon.setImageTintList(entry.getValue()[0]);
+            }
+            tinted.clear();
         }
 
         /**

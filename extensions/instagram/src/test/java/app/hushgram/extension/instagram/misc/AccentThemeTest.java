@@ -1182,6 +1182,45 @@ public class AccentThemeTest {
     }
 
     /**
+     * A story's like, comment and share icons are tinted white over the story, and with Icons in the
+     * accent color on each white in the tint takes the picked color's link shade for a dark screen,
+     * keeping its alpha (#187). No tint (a liked heart), a red, a dark color, the switch off and a pause
+     * answer null, which leaves the icon as it is.
+     */
+    @Test
+    public void storyButtonsTakeThePickedShade() {
+        int[][] states = {{android.R.attr.state_selected}, {-android.R.attr.state_enabled}, {}};
+        ColorStateList white = new ColorStateList(states, new int[] {0xffffffff, 0x4dffffff, 0xfff5f5f5});
+        assertNull("off", AccentTheme.storyButton(white));
+        assertFalse(AccentTheme.storyButtonsOn());
+        Settings.ACCENT_COLOR.save(true);
+        Settings.ACCENT_HUE.save(AccentHue.TEAL);
+        assertNull("icons off", AccentTheme.storyButton(white));
+        assertFalse(AccentTheme.storyButtonsOn());
+        Settings.ACCENT_ICONS.save(true);
+        assertTrue(AccentTheme.storyButtonsOn());
+
+        int shade = AccentColor.swap(0xff85a1ff, AccentHue.TEAL) & 0xffffff;
+        ColorStateList tinted = AccentTheme.storyButton(white);
+        assertEquals("the white it's drawn in", 0xff000000 | shade, tinted.getDefaultColor());
+        assertEquals("selected", 0xff000000 | shade,
+                tinted.getColorForState(new int[] {android.R.attr.state_selected, android.R.attr.state_enabled}, 0));
+        assertEquals("disabled keeps its alpha", 0x4d000000 | shade, tinted.getColorForState(new int[0], 0));
+        assertNull("no tint, a liked heart", AccentTheme.storyButton(null));
+        assertNull("a red of its own", AccentTheme.storyButton(ColorStateList.valueOf(0xffff3040)));
+        assertNull("a dark color", AccentTheme.storyButton(ColorStateList.valueOf(0xff0c1014)));
+        assertNull("see-through", AccentTheme.storyButton(ColorStateList.valueOf(0x00ffffff)));
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertNull("paused", AccentTheme.storyButton(white));
+        assertFalse(AccentTheme.storyButtonsOn());
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        String report = HookStatus.report().toString();
+        assertTrue(report, report.contains(AccentTheme.STORY_BUTTONS + " 1"));
+    }
+
      * The top bar's filter maker and its back arrow's setColorFilter(int) go through the extension,
      * which gives them Instagram's own SRC_ATOP filter of the color with Icons in the accent color off,
      * and of the picked shade with it on, one filter kept per color (#187).
