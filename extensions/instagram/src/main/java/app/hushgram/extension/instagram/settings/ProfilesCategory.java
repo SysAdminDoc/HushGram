@@ -52,7 +52,7 @@ final class ProfilesCategory {
                 || build.contains(PatchFamily.SAVED_ON_PROFILE) || build.contains(PatchFamily.PROFILE_POSTS_LIST)
                 || build.contains(PatchFamily.PROFILE_GRID_JUMP) || build.contains(PatchFamily.PROFILE_REEL_SORT)
                 || build.contains(PatchFamily.ASK_BEFORE_FOLLOW) || build.contains(PatchFamily.SENT_FOLLOW_REQUESTS)
-                || build.contains(PatchFamily.FULL_SCREEN_BARS)) {
+                || build.contains(PatchFamily.FULL_SCREEN_BARS) || build.contains(PatchFamily.ACTIVITY_SELECT_ALL)) {
             PreferenceCategory profiles = category(screen, L10n.t("Profiles"), SettingsIcons.PERSON,
                     L10n.t("See who follows you back, and clear extras off profiles."));
             if (build.contains(PatchFamily.PROFILE_PICTURE)) {
@@ -230,6 +230,12 @@ final class ProfilesCategory {
                         L10n.t("Takes the Followers and Following buttons off the top of profiles, yours included, "
                                 + "with no gap left. The post count stays.")),
                         ProfileFollowCounts::switchChanged));
+            }
+            if (build.contains(PatchFamily.ACTIVITY_SELECT_ALL)) {
+                profiles.addPreference(toggle(context, Settings.ACTIVITY_SELECT_ALL, L10n.t("Select all in Your activity"),
+                        L10n.t("Adds Select all beside Select on the photo and video grids in Your activity, like your "
+                                + "posts, reels and likes. Tick one first and it shows. It only ticks them. Nothing "
+                                + "goes until you press Delete or Unlike yourself.")));
             }
             if (build.contains(PatchFamily.PROFILE_TABS)) {
                 profiles.addPreference(page.ownProfileTabsRow(context));

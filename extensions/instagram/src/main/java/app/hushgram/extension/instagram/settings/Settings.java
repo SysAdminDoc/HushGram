@@ -3082,6 +3082,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_profile_follow_buttons", FALSE);
 
     /**
+     * Select all beside Select on Your activity's photo and video grids (#762,
+     * {@link app.hushgram.extension.instagram.profile.ActivitySelectAll}). Read each time a screen lays
+     * out, so it needs no restart. Off to start.
+     */
+    public static final BooleanSetting ACTIVITY_SELECT_ALL =
+            new BooleanSetting("hushgram_activity_select_all", FALSE);
+
+    /**
      * The tabs Instagram leaves off other people's profiles, as Instagram's tab keys with commas between ({@link app.hushgram.extension.instagram.profile.ProfileTabs}):
      * any of profile_fan_club_grid (Subscriptions, #721), profile_clips, profile_reposts and profile_tagged_media_photos_of_you. Nothing named is the start, so every tab shows. The grid is
      * never offered. Read each time Instagram builds a profile's tabs, so it shows on the next profile opened. Before #296 it covered your own

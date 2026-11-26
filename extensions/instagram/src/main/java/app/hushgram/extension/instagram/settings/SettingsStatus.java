@@ -375,6 +375,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean activitySelectAll() {
+        return false;
+    }
+
     public static boolean messageBox() {
         return false;
     }

@@ -3118,3 +3118,7 @@ The top of this page says %1$s.	此页顶端显示“%1$s”。
 Date saves by when they were posted	按发布时间标注保存日期
 # context: Settings > Downloads > summary of Date saves by when they were posted (#792)
 Gives each saved photo and video the time its post went up, so your gallery sorts saves by the post instead of the day you saved them. A save that doesn't know when it was posted keeps the time it was saved.	为每张保存的照片及视频标上帖子发布的时间，让图库按帖子而非保存当天排序。若无法取得发布时间，则保留保存时的时间。
+# context: Profiles > title of the switch that adds a Select all button beside Instagram's own Select on the grids in Your activity (#762); Your activity is Instagram's own page in the profile menu, use the name Instagram shows for it in this language
+Select all in Your activity	在“你的动态”中全选
+# context: Profiles > summary of Select all in Your activity (#762). Select, Delete and Unlike are Instagram's own buttons on those grids; use the words Instagram shows there in this language
+Adds Select all beside Select on the photo and video grids in Your activity, like your posts, reels and likes. Tick one first and it shows. It only ticks them. Nothing goes until you press Delete or Unlike yourself.	在“你的动态”的照片和视频网格中，于“选择”旁添加“全选”，例如你的帖子、Reels 和赞过的内容。勾选一项后就会出现。它只会勾选项目。在你自己点按“删除”或“取消赞”之前，什么都不会消失。

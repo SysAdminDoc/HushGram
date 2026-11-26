@@ -77,6 +77,7 @@ import app.hushgram.extension.instagram.misc.LaunchScreen;
 import app.hushgram.extension.instagram.misc.HeaderText;
 import app.hushgram.extension.instagram.misc.AppIcon;
 import app.hushgram.extension.instagram.misc.TextSize;
+import app.hushgram.extension.instagram.profile.ActivitySelectAll;
 import app.hushgram.extension.instagram.profile.ProfileTitle;
 import app.hushgram.extension.instagram.stories.StoryProgressBar;
 import app.hushgram.extension.instagram.stories.StoryReplyBox;
@@ -202,6 +203,7 @@ public final class SettingsEntry {
         StoryReplyBox.install(context);
         ProfileMenuPress.install(context);
         ProfileTitle.install(context);
+        ActivitySelectAll.install(context);
         MuseCard.install(context);
         LaunchScreen.install(context);
         AppIcon.install(context);

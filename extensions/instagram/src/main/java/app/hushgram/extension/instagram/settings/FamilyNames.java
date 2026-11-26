@@ -126,6 +126,7 @@ public final class FamilyNames {
     public static final String PROFILE_GRID_JUMP = "Jump a profile's posts to a date";
     public static final String PROFILE_REEL_SORT = "Sort reels on profiles";
     public static final String PROFILE_FOLLOW_COUNTS = "Hide Followers and Following on profiles";
+    public static final String ACTIVITY_SELECT_ALL = "Select all in Your activity";
     public static final String COMMENT_COPY = "Copy comment";
     public static final String COMMENT_PHOTO = "Save comment photo";
     public static final String PROFILE_PICTURE = "Save profile picture";

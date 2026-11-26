@@ -3114,3 +3114,7 @@ The top of this page says %1$s.	이 페이지 맨 위에 %1$s 이름이 표시�
 Date saves by when they were posted	게시 시간으로 저장 파일 날짜 지정
 # context: Settings > Downloads > summary of Date saves by when they were posted (#792)
 Gives each saved photo and video the time its post went up, so your gallery sorts saves by the post instead of the day you saved them. A save that doesn't know when it was posted keeps the time it was saved.	저장한 각 사진과 동영상에 게시물이 올라온 시간을 넣어, 갤러리가 저장한 날이 아니라 게시물 기준으로 저장 파일을 정렬합니다. 언제 게시됐는지 모르는 저장 파일은 저장한 시간을 그대로 씁니다.
+# context: Profiles > title of the switch that adds a Select all button beside Instagram's own Select on the grids in Your activity (#762); Your activity is Instagram's own page in the profile menu, use the name Instagram shows for it in this language
+Select all in Your activity	내 활동에서 모두 선택
+# context: Profiles > summary of Select all in Your activity (#762). Select, Delete and Unlike are Instagram's own buttons on those grids; use the words Instagram shows there in this language
+Adds Select all beside Select on the photo and video grids in Your activity, like your posts, reels and likes. Tick one first and it shows. It only ticks them. Nothing goes until you press Delete or Unlike yourself.	내 활동의 사진 및 동영상 그리드(내 게시물, 릴스, 좋아요 등)에서 선택 옆에 모두 선택을 추가합니다. 하나를 선택하면 나타납니다. 선택 표시만 합니다. 직접 삭제나 좋아요 취소를 누르기 전에는 아무것도 사라지지 않습니다.

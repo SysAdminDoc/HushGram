@@ -7,6 +7,7 @@ Every HushGram release, newest first.
 ### Features
 
 * `Tint color` is new under Tab bar. The glass can take Instagram's colors, light, dark, AMOLED black, your wallpaper's Material You accent or a color you type, and the preview above the sliders shows each pick. Asked for in #875.
+* `Select all in Your activity` is a new patch under Profiles. On a grid in Your activity, like your posts, reels or likes, tap Select and tick one, and a Select all shows beside Select. It ticks the rest one at a time, scrolling down as it goes, and stops if Instagram's own count doesn't go up with each tick. Nothing is deleted or unliked until you press Delete or Unlike yourself. Starts off. Asked for in #762.
 * `Keep Search in the pill` is new under Tab bar. With `Liquid glass look` on, Search stays in the pill with the other tabs, and scrolling shrinks the pill to whichever tab you're on, Search included. Starts off. Asked for in #875.
 * `Date saves by when they were posted` is new under Downloads. Saved photos and videos get their post's time, so your gallery sorts them by when they were posted. Starts off. Asked for in #792.
 * `Keep your place in feed videos` is new under Playback. A feed video you scroll away from picks up where you left it when you scroll back, until you close Instagram. Reels in the Reels tab start over. Starts off. Asked for in #874.

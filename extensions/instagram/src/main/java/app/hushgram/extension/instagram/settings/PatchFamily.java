@@ -243,6 +243,7 @@ public enum PatchFamily {
     PROFILE_REEL_SORT(FamilyNames.PROFILE_REEL_SORT, "profileReelSort", null, Settings.PROFILE_REEL_SORT),
     PROFILE_FOLLOW_COUNTS(FamilyNames.PROFILE_FOLLOW_COUNTS, "profileFollowCounts", null,
             Settings.HIDE_PROFILE_FOLLOW_COUNTS, Settings.HIDE_PROFILE_FOLLOW_BUTTONS),
+    ACTIVITY_SELECT_ALL(FamilyNames.ACTIVITY_SELECT_ALL, "activitySelectAll", null, Settings.ACTIVITY_SELECT_ALL),
     COMMENT_COPY(FamilyNames.COMMENT_COPY, "commentCopy", null, Settings.COPY_COMMENTS, Settings.COPY_COMMENT_AUTHORS,
             Settings.COPY_COMMENTS_WITHOUT_MENTIONS, Settings.SELECT_TEXT),
     COMMENT_PHOTO(FamilyNames.COMMENT_PHOTO, "commentPhoto", null, Settings.SAVE_COMMENT_PHOTOS,
