@@ -62,7 +62,7 @@ Every HushGram release, newest first.
 * With `Liquid glass look` on, Search's icon shows whole in its circle, and the other tabs sit in the middle of the pill. Instagram's padding on its floating tab bar cut the icon off. Reported in #843.
 * On feed videos with tagged people, the tags button now moves up above the seek bar too, and the button from `Seek bar button on feed videos` sits beside it instead of on it. Reported in #794.
 * With `Start feed videos with sound` on, Home's videos have their sound again when you come back after more than ten minutes away. Instagram resets its sound then, and Home's videos came back muted. Reported in #820.
-* `Reels on Home below the name` shows the whole reel now. It was cut to Instagram's 4:5 post shape, losing its top and bottom. Reported in #788.
+* `Reels on Home below the name` shows the whole reel now. It was cut to Instagram's 4:5 post shape, losing its top and bottom. Reported in #788 and #862.
 * With `Hold the Friends tab to pick friends` on, the Friends tab no longer stops on a gray loading screen when a page has none of your picks. It asks Instagram for the next page instead. Reported in #503.
 * Patching an Instagram APK that HushGram already patched now stops right away with a plain message: patch the original Instagram APK instead. Before, several patches failed with errors that read as if Instagram had changed. Reported in #864.
 * `Double-tap Messages for hidden chats` now shows every hidden chat after Instagram restarts, not only the ones on your inbox's first page. It loads more of the inbox until they're all there. Reported in #661.
