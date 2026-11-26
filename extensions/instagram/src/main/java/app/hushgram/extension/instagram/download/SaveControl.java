@@ -68,6 +68,25 @@ public final class SaveControl {
     /** The shortest gap between two updates of a notification. The system drops faster ones anyway. */
     private static final long UPDATE_GAP_NANOS = 500_000_000L;
 
+    /**
+     * The gap between two progress updates of one save's notification while [moving] saves'
+     * notifications show progress. Android sheds an app's updates past five a second ("Shedding
+     * events"), and three saves at one update each half second made six, so a shed update could
+     * leave a notification behind its save (#792). The saves share two a second between them.
+     */
+    static long progressGapNanos(int moving) {
+        return UPDATE_GAP_NANOS * Math.max(1, moving);
+    }
+
+    /** How many saves' notifications show progress now: posted, and not waiting their turn. */
+    static int savesMoving() {
+        int moving = 0;
+        for (Save save : RUNNING.values()) {
+            if (save.manager != null && save.phase != Phase.WAITING) moving++;
+        }
+        return moving;
+    }
+
     private static final AtomicInteger NEXT_ID = new AtomicInteger(1);
     private static final Map<Integer, Save> RUNNING = new ConcurrentHashMap<>();
     private static final Set<Watcher> WATCHERS = new CopyOnWriteArraySet<>();
@@ -430,8 +449,10 @@ public final class SaveControl {
             }
             if (manager == null) return;
             int percent = total > 0 ? (int) Math.min(100L, done * 100L / total) : -1;
-            if (System.nanoTime() - shownAt < UPDATE_GAP_NANOS) return;
+            long sinceShown = System.nanoTime() - shownAt;
+            if (sinceShown < UPDATE_GAP_NANOS) return;
             if (percent >= 0 && percent == shownPercent) return;
+            if (sinceShown < progressGapNanos(savesMoving())) return;
             show(percent, done, total);
         }
 
@@ -466,6 +487,7 @@ public final class SaveControl {
             }
             if (manager == null) return;
             if (!began && (now - shownAt < UPDATE_GAP_NANOS || percent == shownPercent)) return;
+            if (!began && now - shownAt < progressGapNanos(savesMoving())) return;
             show(percent, 0, -1);
         }
 

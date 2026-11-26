@@ -882,6 +882,51 @@ public class SaveProgressTest {
         assertNull(saveNotification());
     }
 
+    /**
+     * Three saves moving at once updated their notifications six times a second between them, past
+     * the five Android takes from one app before it sheds updates (#792). They share two a second.
+     */
+    @Test
+    public void savesMovingAtOnceShareTwoUpdatesASecond() throws Exception {
+        assertEquals(500_000_000L, SaveControl.progressGapNanos(0));
+        assertEquals(500_000_000L, SaveControl.progressGapNanos(1));
+        assertEquals(1_500_000_000L, SaveControl.progressGapNanos(3));
+        SaveControl.Save one = SaveControl.begin(context, true);
+        SaveControl.Save two = SaveControl.begin(context, true);
+        SaveControl.Save three = SaveControl.begin(context, true);
+        SaveControl.Save queued = SaveControl.begin(context, true);
+        try {
+            queued.waiting();
+            assertEquals("a save waiting its turn shows no progress", 3, SaveControl.savesMoving());
+            Thread.sleep(1_600);
+            one.transferred(10, 100);
+            assertEquals(10, progressOf(one));
+            Thread.sleep(700);
+            one.transferred(50, 100);
+            assertEquals("updated again inside its share of the rate", 10, progressOf(one));
+            Thread.sleep(900);
+            one.transferred(70, 100);
+            assertEquals(70, progressOf(one));
+
+            two.end();
+            three.end();
+            Thread.sleep(600);
+            one.transferred(90, 100);
+            assertEquals("alone, it goes back to two updates a second", 90, progressOf(one));
+        } finally {
+            one.end();
+            two.end();
+            three.end();
+            queued.end();
+        }
+    }
+
+    private static int progressOf(SaveControl.Save save) {
+        Notification shown = Shadows.shadowOf(notifications()).getNotification(SaveControl.TAG, save.id);
+        assertNotNull("no notification for save " + save.id, shown);
+        return shown.extras.getInt(Notification.EXTRA_PROGRESS);
+    }
+
     /** Cancel closes the connection being read, and one opened after the cancel as soon as it's handed over. */
     @Test
     public void cancelClosesTheConnectionTheSaveIsReading() throws Exception {
