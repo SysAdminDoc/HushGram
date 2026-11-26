@@ -2638,6 +2638,14 @@ once-call Lapp/hushgram/extension/instagram/misc/AccentRings;->composeColors([I)
 # isn't the setter the patch means. AccentRingsHookTest checks every build.
 start-call Lapp/hushgram/extension/instagram/misc/AccentRings;->seen(I)I in instance (I)V holding Lcom/instagram/ui/widget/gradientspinner/GradientSpinner;->A0V:Landroid/graphics/Paint; Landroid/graphics/BitmapShader;-><init>(Landroid/graphics/Bitmap;Landroid/graphics/Shader$TileMode;Landroid/graphics/Shader$TileMode;)V
 once-call Lapp/hushgram/extension/instagram/misc/AccentRings;->seen(I)I in instance (I)V holding Lcom/instagram/ui/widget/gradientspinner/GradientSpinner;->A0V:Landroid/graphics/Paint; Landroid/graphics/BitmapShader;-><init>(Landroid/graphics/Bitmap;Landroid/graphics/Shader$TileMode;Landroid/graphics/Shader$TileMode;)V
+# And it hands the list of colors the chat list's story rings make their brush from to
+# AccentRings.composeBrush, first thing in that brush (#683): the static taking only a list that
+# pairs it with the default ring's stops at an angle (0G9f.A01 on 457), making a brush from the
+# pairs, or from the list alone when the counts differ. Left out, the rings next to chats keep
+# Instagram's yellow, orange, pink and purple with the accent rings on. AccentRingsHookTest checks
+# every build.
+start-call Lapp/hushgram/extension/instagram/misc/AccentRings;->composeBrush(Ljava/util/List;)Ljava/util/List; in static (Ljava/util/List;)LX/*; holding Ljava/lang/Math;->toRadians(D)D Ljava/lang/Math;->cos(D)D LX/*;->*([LX/*;IJJ)LX/*; LX/*;->*(Ljava/util/List;JJ)LX/*;
+once-call Lapp/hushgram/extension/instagram/misc/AccentRings;->composeBrush(Ljava/util/List;)Ljava/util/List; in static (Ljava/util/List;)LX/*; holding Ljava/lang/Math;->toRadians(D)D Ljava/lang/Math;->cos(D)D LX/*;->*([LX/*;IJJ)LX/*; LX/*;->*(Ljava/util/List;JJ)LX/*;
 # Hide the Repost button answers FALSE first thing in the post model's getter of
 # enable_media_notes_production, the one instance method taking nothing and answering a Boolean
 # that loads the field's name (Media.A3o on 449). Its other hooks filter the reads of the field

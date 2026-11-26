@@ -8,6 +8,7 @@ import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.instagram.misc.extension.classesLoading
 import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.classesReadingObjects
 import app.morphe.patches.instagram.misc.extension.jumpTargets
@@ -16,9 +17,11 @@ import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.WideLiteralInstruction
+import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 
 private const val PATCH = "Story ring size"
@@ -262,6 +265,75 @@ internal fun BytecodePatchContext.colorComposeRing(ring: ComposeRing, hook: Stri
         """
             invoke-static/range { v${ring.register} .. v${ring.register} }, $hook
             move-result-object v${ring.register}
+        """,
+    )
+}
+
+/**
+ * The default ring's four stops as the floats Compose screens load them (0.1435, 0.3779, 0.6071 and
+ * 0.831), raw.
+ */
+internal val COMPOSE_RING_STOPS = listOf(0x3e12f1aa, 0x3ec17c1c, 0x3f1b6ae8, 0x3f54bc6a)
+
+/** Where a Compose story ring makes its brush from a list of colors: the method and the register the list arrives in. */
+internal class ComposeRingBrush(val type: String, val name: String, val register: Int)
+
+/**
+ * Finds where the chat list's story rings make their brush (#683). Those rings never see the default
+ * ring: each takes its colors from Compose's palette (Instagram's yellow, orange, pink and purple), or
+ * from a list the server sends, and hands them as a list of colors to one static that pairs them with
+ * the default ring's stops, kept as a list of floats its class's set-up makes from
+ * [COMPOSE_RING_STOPS]. On 457 that's `LX/0G9f;->A01(Ljava/util/List;)`, the brush of the chat list's
+ * rings and of one more Compose ring. Exactly one static taking only a list and reading such a list
+ * of stops is what the patch can be sure of. The hook goes first in it, so nothing may jump back to
+ * its first instruction.
+ */
+internal fun BytecodePatchContext.findComposeRingBrush(patch: String = PATCH): ComposeRingBrush {
+    val found = classesLoading(COMPOSE_RING_STOPS.last().toLong()).flatMap { classDef ->
+        val stops = classDef.methods.filter { it.name == "<clinit>" }.flatMap { it.stopListsStored(classDef.type) }.toSet()
+        if (stops.isEmpty()) return@flatMap emptyList()
+        classDef.methods.filter { method ->
+            AccessFlags.STATIC.isSet(method.accessFlags) && method.implementation != null &&
+                method.parameterTypes.map(CharSequence::toString) == listOf(LIST) && method.readsStatic(classDef.type, stops)
+        }.map { classDef.type to it }
+    }
+    val (type, method) = found.singleOrNull()
+        ?: refuse(
+            "expected one Compose ring brush taking a list of colors against the default ring's stops, found ${found.size}" +
+                found.joinToString(prefix = if (found.isEmpty()) "" else ": ") { "${it.first}->${it.second.name}" },
+            patch,
+        )
+    if (0 in method.jumpTargets()) refuse("something jumps back to the first instruction of $type->${method.name}", patch)
+    return ComposeRingBrush(type, method.name, method.parameterRegisterNumber(0))
+}
+
+/** The static lists of [type] this set-up stores once it has loaded every one of [COMPOSE_RING_STOPS]. */
+private fun Method.stopListsStored(type: String): List<String> {
+    val code = implementation?.instructions?.toList() ?: return emptyList()
+    val loaded = code.mapNotNullTo(HashSet()) { (it as? NarrowLiteralInstruction)?.narrowLiteral }
+    if (!loaded.containsAll(COMPOSE_RING_STOPS)) return emptyList()
+    return code.filter { it.opcode == Opcode.SPUT_OBJECT }
+        .map { (it as ReferenceInstruction).reference as FieldReference }
+        .filter { it.definingClass == type && it.type == LIST }
+        .map { it.name }
+}
+
+private fun Method.readsStatic(type: String, fields: Set<String>): Boolean =
+    implementation?.instructions?.any { instruction ->
+        instruction.opcode == Opcode.SGET_OBJECT &&
+            ((instruction as ReferenceInstruction).reference as FieldReference).let { it.definingClass == type && it.name in fields }
+    } == true
+
+/** Passes the list of colors a Compose story ring's brush is made from through [hook] first, and makes the brush from the answer. */
+internal fun BytecodePatchContext.colorComposeRingBrush(brush: ComposeRingBrush, hook: String) {
+    val method = mutableClassDefBy(brush.type).methods.single {
+        it.name == brush.name && AccessFlags.STATIC.isSet(it.accessFlags) && it.parameterTypes.map(CharSequence::toString) == listOf(LIST)
+    }
+    method.addInstructions(
+        0,
+        """
+            invoke-static/range { v${brush.register} .. v${brush.register} }, $hook
+            move-result-object v${brush.register}
         """,
     )
 }

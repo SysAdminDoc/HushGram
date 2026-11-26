@@ -9,6 +9,8 @@ import android.util.TypedValue;
 
 import androidx.annotation.Nullable;
 
+import java.util.List;
+
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.instagram.stories.StoryRing;
@@ -28,6 +30,8 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * {@link #colors}, and the default ring's colors on Compose screens to {@link #composeColors},
  * and they answer the kept shades for Instagram's own story gradient. A seen story's ring is drawn
  * in one gray the ring view is handed apart from its gradient, which goes to {@link #seen} (#187).
+ * The chat list's rings make their brush from Compose's own yellow, orange, pink and purple, which go
+ * to {@link #composeBrush} (#683).
  * A color picked under Story ring size's Ring color wins, so the two never fight over a ring.
  */
 public final class AccentRings {
@@ -111,6 +115,40 @@ public final class AccentRings {
             return accent(colors);
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.ACCENT_COLOR, "Compose story ring", failure);
+            return colors;
+        }
+    }
+
+    /** What's counted each time a ring on the chat list takes the accent shades. */
+    static final String CHAT_LIST = "chat list story rings given the accent";
+
+    /** The default ring's four stops, which the chat list's ring brush pairs its colors with. */
+    private static final float[] STOPS = {0.1435f, 0.3779f, 0.6071f, 0.831f};
+
+    /**
+     * Injected first in the brush the chat list's story rings are made with (#683), with the list of
+     * Compose colors it pairs with the default ring's four stops: Compose's own yellow, orange, pink and
+     * purple, or the ones the server sends. Answers the kept shades in a list of their own, boxed as
+     * Instagram's are, for four colors that aren't all one while Accent color and Story rings in the
+     * accent color are on and no Ring color is picked, as {@link #colors} does for the ring view.
+     * Answers [colors] itself for any other list, one it can't read included, and never changes it.
+     * Never throws.
+     */
+    public static List<?> composeBrush(List<?> colors) {
+        try {
+            HookStatus.invoked(FamilyNames.ACCENT_COLOR);
+            if (colors == null || colors.size() != ATTRIBUTES.length) return colors;
+            int[] shades = kept;
+            if (shades == null || shades.length != colors.size()) return colors;
+            if (AccentColor.picked() == null || !Settings.ACCENT_RINGS.get() || StoryRing.picksColor()) return colors;
+            int[] argb = BoxedColors.argb(colors);
+            if (argb == null || !StoryRing.instagramsOwn(argb, STOPS)) return colors;
+            List<Object> boxed = BoxedColors.boxed(colors.get(0), shades);
+            if (boxed == null) return colors;
+            HookStatus.counted(FamilyNames.ACCENT_COLOR, CHAT_LIST);
+            return boxed;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.ACCENT_COLOR, "chat list story ring", failure);
             return colors;
         }
     }

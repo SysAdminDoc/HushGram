@@ -9,6 +9,7 @@ import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
@@ -25,6 +26,7 @@ import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstructio
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction22c
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction22x
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction35c
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction31i
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction3rc
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction51l
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableFieldReference
@@ -299,6 +301,73 @@ internal object StoryRingFixtures {
             COMPOSE_RING_TAKER, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, "Ljava/lang/Object;",
             null, null, null, null, listOf(method),
         )
+    }
+
+    const val RING_BRUSH = "Lfixture/RingBrush;"
+
+    /**
+     * A class shaped like 457's `LX/0G9f;`, whose static `A01(List)` makes the chat list's ring brush
+     * (#683): its set-up loads [stops] as floats and keeps a list of them in `A02`, and [builders]
+     * statics taking only a list read it, `A01` then `A03`. Each has fourteen registers, so its list
+     * arrives in v13. With [loops] each ends jumping back to its start.
+     *
+     *     <clinit>  const v0, stop        once for each of [stops]
+     *               const/4 v1, 0
+     *               sput-object v1, A02
+     *               return-void
+     *     A01       a0 sget-object v6, A02
+     *               a2 return-object v13
+     *               a3 goto a0             only with [loops]
+     */
+    fun composeBrush(stops: List<Int> = COMPOSE_RING_STOPS, builders: Int = 1, loops: Boolean = false): ClassDef {
+        val kept = ImmutableFieldReference(RING_BRUSH, "A02", LIST)
+        val setUp = mutableListOf<Instruction>()
+        stops.forEach { setUp += ImmutableInstruction31i(Opcode.CONST, 0, it) }
+        setUp += ImmutableInstruction11n(Opcode.CONST_4, 1, 0)
+        setUp += ImmutableInstruction21c(Opcode.SPUT_OBJECT, 1, kept)
+        setUp += ImmutableInstruction10x(Opcode.RETURN_VOID)
+        val methods = mutableListOf(
+            ImmutableMethod(
+                RING_BRUSH, "<clinit>", emptyList(), "V",
+                AccessFlags.STATIC.value or AccessFlags.CONSTRUCTOR.value, null, null,
+                ImmutableMethodImplementation(2, setUp, null, null),
+            ),
+        )
+        for (name in listOf("A01", "A03").take(builders)) {
+            val code = mutableListOf<Instruction>(
+                ImmutableInstruction21c(Opcode.SGET_OBJECT, 6, kept),
+                ImmutableInstruction11x(Opcode.RETURN_OBJECT, 13),
+            )
+            if (loops) code += ImmutableInstruction10t(Opcode.GOTO, -code.sumOf { it.codeUnits })
+            methods += ImmutableMethod(
+                RING_BRUSH, name, listOf(ImmutableMethodParameter(LIST, null, null)), "Ljava/lang/Object;",
+                AccessFlags.PUBLIC.value or AccessFlags.STATIC.value or AccessFlags.FINAL.value, null, null,
+                ImmutableMethodImplementation(14, code, null, null),
+            )
+        }
+        return ImmutableClassDef(
+            RING_BRUSH, AccessFlags.PUBLIC.value or AccessFlags.ABSTRACT.value, "Ljava/lang/Object;",
+            null, null, null, null, methods,
+        )
+    }
+
+    /**
+     * The classes of [bundle] the chat list's ring brush is looked for in: those with a static list and a
+     * set-up loading every one of [COMPOSE_RING_STOPS].
+     */
+    fun composeBrushClasses(bundle: File): List<ClassDef> {
+        val found = mutableListOf<ClassDef>()
+        FixtureDex.forEach(bundle) { dex ->
+            for (classDef in dex.classes) {
+                if (classDef.staticFields.none { it.type == LIST }) continue
+                val setUp = classDef.directMethods.firstOrNull { it.name == "<clinit>" } ?: continue
+                val loaded = setUp.implementation?.instructions?.mapNotNullTo(HashSet()) {
+                    (it as? NarrowLiteralInstruction)?.narrowLiteral
+                } ?: continue
+                if (loaded.containsAll(COMPOSE_RING_STOPS)) found += ImmutableClassDef.of(classDef)
+            }
+        }
+        return found
     }
 
     /**

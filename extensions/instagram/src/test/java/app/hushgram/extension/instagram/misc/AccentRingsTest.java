@@ -28,6 +28,8 @@ import org.robolectric.annotation.Config;
 import org.robolectric.annotation.Implementation;
 import org.robolectric.annotation.Implements;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
@@ -343,6 +345,102 @@ public class AccentRingsTest {
         assertNotSame(SHADES, AccentRings.keptShades());
         assertArrayEquals(SHADES, AccentRings.keptShades());
         assertTrue(HookStatus.missing(FamilyNames.ACCENT_COLOR).isEmpty());
+    }
+
+    /**
+     * The chat list's rings hand their brush Compose's yellow, orange, pink and purple as boxed colors
+     * (#683): on, they get the kept shades back in a list of their own, boxed the same way, and the list
+     * Instagram made isn't touched. Each is counted.
+     */
+    @Test
+    public void theChatListsRingTakesTheKeptShades() {
+        accentRingsOn();
+        List<Boxed> story = boxed(STORY);
+        List<?> painted = AccentRings.composeBrush(story);
+        assertNotSame(story, painted);
+        assertArrayEquals(SHADES, unboxed(painted));
+        assertArrayEquals("changed Instagram's own list", STORY, unboxed(story));
+        assertNotSame("handed two rings one list", painted, AccentRings.composeBrush(story));
+        assertTrue(HookStatus.report().toString(), HookStatus.report().get(0).contains(AccentRings.CHAT_LIST + " 2"));
+    }
+
+    /**
+     * Off, paused, with a Ring color picked, or for a list that isn't four of Instagram's sRGB colors in
+     * one class it can read, the chat list's ring keeps the list it was given.
+     */
+    @Test
+    @Config(shadows = StoryRingBuilt.class)
+    public void everyOtherChatListRingKeepsItsColors() {
+        List<Boxed> story = boxed(STORY);
+        assertSame("off", story, AccentRings.composeBrush(story));
+        accentRingsOn();
+        assertNotSame("on", story, AccentRings.composeBrush(story));
+
+        List<Boxed> two = boxed(CLOSE_FRIENDS);
+        assertSame("two colors", two, AccentRings.composeBrush(two));
+        List<Boxed> flat = boxed(new int[]{0xFF1CD14F, 0xFF1CD14F, 0xFF1CD14F, 0xFF1CD14F});
+        assertSame("one color", flat, AccentRings.composeBrush(flat));
+        List<Object> wide = new ArrayList<>(story);
+        wide.set(2, new Boxed(0x3c00_0000_0000_0011L));
+        assertSame("a color outside sRGB", wide, AccentRings.composeBrush(wide));
+        List<Object> mixed = new ArrayList<>(story);
+        mixed.set(1, new OtherBoxed(1L << 32));
+        assertSame("two kinds of color", mixed, AccentRings.composeBrush(mixed));
+        List<String> named = Arrays.asList("#feda75", "#fa7e1e", "#d62976", "#962fbf");
+        assertSame("not colors", named, AccentRings.composeBrush(named));
+        assertNull(AccentRings.composeBrush(null));
+
+        Settings.STORY_RING_COLOR.save(StoryRingColor.TEAL);
+        assertSame("Ring color picked", story, AccentRings.composeBrush(story));
+        Settings.STORY_RING_COLOR.save(StoryRingColor.INSTAGRAM);
+
+        Settings.ACCENT_RINGS.save(false);
+        assertSame("the rings off", story, AccentRings.composeBrush(story));
+        Settings.ACCENT_RINGS.save(true);
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertSame("paused", story, AccentRings.composeBrush(story));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+
+        AccentRings.keptForTests(null);
+        assertSame("no theme had the ring style yet", story, AccentRings.composeBrush(story));
+        assertArrayEquals(STORY, unboxed(story));
+    }
+
+    private static List<Boxed> boxed(int[] colors) {
+        List<Boxed> boxed = new ArrayList<>();
+        for (int color : colors) boxed.add(new Boxed((long) color << 32));
+        return boxed;
+    }
+
+    private static int[] unboxed(List<?> colors) {
+        int[] argb = new int[colors.size()];
+        for (int at = 0; at < argb.length; at++) {
+            long packed = ((Boxed) colors.get(at)).packed;
+            assertEquals("an sRGB color", 0L, packed & 0xffffffffL);
+            argb[at] = (int) (packed >>> 32);
+        }
+        return argb;
+    }
+
+    /** Compose's color class as the build leaves it: a long and a constructor taking it, under a name of its own. */
+    private static final class Boxed {
+        static final long UNSPECIFIED = 0x10L;
+        final long packed;
+
+        private Boxed(long packed) {
+            this.packed = packed;
+        }
+    }
+
+    private static final class OtherBoxed {
+        final long packed;
+
+        private OtherBoxed(long packed) {
+            this.packed = packed;
+        }
     }
 
     private static void accentRingsOn() {

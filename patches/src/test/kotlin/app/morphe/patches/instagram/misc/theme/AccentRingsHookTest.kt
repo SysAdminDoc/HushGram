@@ -13,7 +13,9 @@ import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.instagram.NeutralNativePath
 import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.stories.ring.COLORS_PARAMETER
+import app.morphe.patches.instagram.stories.ring.COMPOSE_RING_STOPS
 import app.morphe.patches.instagram.stories.ring.ComposeRing
+import app.morphe.patches.instagram.stories.ring.ComposeRingBrush
 import app.morphe.patches.instagram.stories.ring.GRADIENT_PARAMETERS
 import app.morphe.patches.instagram.stories.ring.GRADIENT_SPINNER
 import app.morphe.patches.instagram.stories.ring.RING_COLORS
@@ -24,6 +26,7 @@ import app.morphe.patches.instagram.stories.ring.StoryRingFixtures
 import app.morphe.patches.instagram.stories.ring.colorComposeRing
 import app.morphe.patches.instagram.stories.ring.colorRingGradients
 import app.morphe.patches.instagram.stories.ring.findComposeRing
+import app.morphe.patches.instagram.stories.ring.findComposeRingBrush
 import app.morphe.patches.instagram.stories.ring.findRingGradients
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
@@ -51,7 +54,7 @@ class AccentRingsHookTest {
         val declared = ExtensionDex.classDef(ACCENT_RINGS).methods
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.definingClass}->${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
-        for (hook in listOf(ACCENT_RING_COLORS, ACCENT_DEFAULT_RING, ACCENT_SEEN_RING)) assertTrue("$hook is not in the extension: $declared", hook in declared)
+        for (hook in listOf(ACCENT_RING_COLORS, ACCENT_DEFAULT_RING, ACCENT_SEEN_RING, ACCENT_RING_BRUSH)) assertTrue("$hook is not in the extension: $declared", hook in declared)
     }
 
     @Test
@@ -84,32 +87,60 @@ class AccentRingsHookTest {
             fixture(spinner = StoryRingFixtures.spinner(setters = 1, inactiveLoops = true)))
     }
 
+    /**
+     * A build with no static making a ring brush from a list against the default ring's stops, or with
+     * two, or one that jumps back to its first instruction, fails Accent color before anything changes (#683).
+     */
+    @Test
+    fun aChatListRingTheFinderCantReadFailsAccentColor() {
+        val why = "Accent color: expected one Compose ring brush taking a list of colors against the default ring's stops"
+        refuses("$why, found 0", fixture(brush = null))
+        refuses("$why, found 0", fixture(brush = StoryRingFixtures.composeBrush(stops = COMPOSE_RING_STOPS.dropLast(1) + 0x3f54bc6b)))
+        refuses("$why, found 2: ${StoryRingFixtures.RING_BRUSH}->A01, ${StoryRingFixtures.RING_BRUSH}->A03",
+            fixture(brush = StoryRingFixtures.composeBrush(builders = 2)))
+        refuses("Accent color: something jumps back to the first instruction of ${StoryRingFixtures.RING_BRUSH}->A01",
+            fixture(brush = StoryRingFixtures.composeBrush(loops = true)))
+        val context = PatchContexts.of(fixture(brush = StoryRingFixtures.composeBrush(loops = true)))
+        assertThrows(PatchException::class.java) { context.findAccentRings() }
+        val setter = context.mutableClassDefBy(GRADIENT_SPINNER).methods.single { it.name == INACTIVE_SETTER }
+        assertTrue(setter.implementation!!.instructions.none { (it as? ReferenceInstruction)?.reference?.toString() == ACCENT_SEEN_RING })
+    }
+
+    /** The brush is found where the list of colors arrives, its one parameter. */
+    @Test
+    fun theChatListsRingBrushIsWhereItsColorsArrive() {
+        val brush = PatchContexts.of(fixture()).findComposeRingBrush()
+        assertEquals(listOf(StoryRingFixtures.RING_BRUSH, "A01", 13), listOf(brush.type, brush.name, brush.register))
+    }
+
     /** On its own, the accent hook goes first in the builder and the setter, and right after the Compose ring's array lands. */
     @Test
     fun onItsOwnTheAccentHookGoesFirst() {
         val context = PatchContexts.of(fixture())
         val gradients = context.findRingGradients()
         val ring = context.findComposeRing()
-        val originals = Originals(context, gradients, ring)
+        val originals = Originals(context, gradients, ring, context.findComposeRingBrush())
         accentColor(context)
 
         assertEquals(listOf("build", "keep"), gradients.map { it.name })
         originals.assertBuilders("alone", listOf(ACCENT_RING_COLORS))
         originals.assertComposeRing("alone", listOf(ACCENT_DEFAULT_RING))
         originals.assertSeenRing("alone")
+        originals.assertBrush("alone")
     }
 
     /** After Story ring size, the accent hook goes behind its guard, so the color picked under Ring color is what it's given. */
     @Test
     fun afterStoryRingSizeItsGuardStaysFirst() {
         val context = PatchContexts.of(fixture())
-        val originals = Originals(context, context.findRingGradients(), context.findComposeRing())
+        val originals = Originals(context, context.findRingGradients(), context.findComposeRing(), context.findComposeRingBrush())
         storyRingSize(context)
         accentColor(context)
 
         originals.assertBuilders("after", listOf(RING_COLORS, ACCENT_RING_COLORS))
         originals.assertComposeRing("after", listOf(ACCENT_DEFAULT_RING, RING_DEFAULT_COLORS))
         originals.assertSeenRing("after")
+        originals.assertBrush("after")
     }
 
     /**
@@ -120,13 +151,14 @@ class AccentRingsHookTest {
     @Test
     fun beforeStoryRingSizeItsGuardStillEndsFirst() {
         val context = PatchContexts.of(fixture())
-        val originals = Originals(context, context.findRingGradients(), context.findComposeRing())
+        val originals = Originals(context, context.findRingGradients(), context.findComposeRing(), context.findComposeRingBrush())
         accentColor(context)
         storyRingSize(context)
 
         originals.assertBuilders("before", listOf(RING_COLORS, ACCENT_RING_COLORS))
         originals.assertComposeRing("before", listOf(RING_DEFAULT_COLORS, ACCENT_DEFAULT_RING))
         originals.assertSeenRing("before")
+        originals.assertBrush("before")
     }
 
     /** In each declared build both patches take every ring in either order. */
@@ -149,24 +181,27 @@ class AccentRingsHookTest {
     }
 
     private fun takesBoth(bundle: File, label: String) {
-        val classes = (StoryRingFixtures.composeRingClasses(bundle) + FixtureDex.classes(bundle, setOf(GRADIENT_SPINNER)).values +
+        val classes = (StoryRingFixtures.composeRingClasses(bundle) + StoryRingFixtures.composeBrushClasses(bundle) +
+            FixtureDex.classes(bundle, setOf(GRADIENT_SPINNER)).values +
             ExtensionDex.classDef(ACCENT_RINGS)).distinctBy { it.type }
 
         val after = PatchContexts.of(classes)
-        val afterOriginals = Originals(after, after.findRingGradients(), after.findComposeRing())
+        val afterOriginals = Originals(after, after.findRingGradients(), after.findComposeRing(), after.findComposeRingBrush())
         storyRingSize(after)
         accentColor(after)
         afterOriginals.assertBuilders("$label after", listOf(RING_COLORS, ACCENT_RING_COLORS))
         afterOriginals.assertComposeRing("$label after", listOf(ACCENT_DEFAULT_RING, RING_DEFAULT_COLORS))
         afterOriginals.assertSeenRing("$label after")
+        afterOriginals.assertBrush("$label after")
 
         val before = PatchContexts.of(classes)
-        val beforeOriginals = Originals(before, before.findRingGradients(), before.findComposeRing())
+        val beforeOriginals = Originals(before, before.findRingGradients(), before.findComposeRing(), before.findComposeRingBrush())
         accentColor(before)
         storyRingSize(before)
         beforeOriginals.assertBuilders("$label before", listOf(RING_COLORS, ACCENT_RING_COLORS))
         beforeOriginals.assertComposeRing("$label before", listOf(RING_DEFAULT_COLORS, ACCENT_DEFAULT_RING))
         beforeOriginals.assertSeenRing("$label before")
+        beforeOriginals.assertBrush("$label before")
     }
 
     private fun refuses(why: String, classes: List<ClassDef>) {
@@ -189,14 +224,22 @@ class AccentRingsHookTest {
     private fun fixture(
         spinner: ClassDef = StoryRingFixtures.spinner(setters = 1),
         compose: ClassDef = StoryRingFixtures.composeRing(),
-    ): List<ClassDef> = listOf(spinner, StoryRingFixtures.defaultRing(), compose, ExtensionDex.classDef(ACCENT_RINGS))
+        brush: ClassDef? = StoryRingFixtures.composeBrush(),
+    ): List<ClassDef> = listOfNotNull(spinner, StoryRingFixtures.defaultRing(), compose, brush, ExtensionDex.classDef(ACCENT_RINGS))
 
     /** Each ring the patches change, as it was before either did, to check what they left. */
-    private class Originals(val context: BytecodePatchContext, val gradients: List<RingGradient>, val ring: ComposeRing) {
+    private class Originals(
+        val context: BytecodePatchContext,
+        val gradients: List<RingGradient>,
+        val ring: ComposeRing,
+        val brush: ComposeRingBrush,
+    ) {
         private val builders = gradients.map { NeutralNativePath(builder(it)) }
         private val compose = NeutralNativePath(composeMethod())
         private val inactive = NeutralNativePath(inactiveSetter())
         private val color = inactiveSetter().let { it.implementation!!.registerCount - 1 }
+        private val brushed = NeutralNativePath(brushMethod())
+        private val colors = brushMethod().let { it.implementation!!.registerCount - 1 }
 
         /** [hooks] in order at the top of each builder, each passed the colors and the stops and answering into the colors. */
         fun assertBuilders(what: String, hooks: List<String>) {
@@ -256,6 +299,30 @@ class AccentRingsHookTest {
             assertEquals("$what seen ring: into the color", color, (code[1] as OneRegisterInstruction).registerA)
             assertTrue("$what seen ring: something jumps onto the hook", method.jumpTargets().none { it < 2 })
             inactive.assertPreserved("$what seen ring", method, setOf(0, 1))
+        }
+
+        /**
+         * The chat list's ring hook first in its brush, passed the list of colors alone and answering
+         * into its register, once, with the brush's own code after it as it was (#683).
+         */
+        fun assertBrush(what: String) {
+            val method = brushMethod()
+            val code = method.implementation!!.instructions.toList()
+            val called = code.indices.filter { (code[it] as? ReferenceInstruction)?.reference?.toString() in ALL_HOOKS + ACCENT_RING_BRUSH }
+            assertEquals("$what ring brush: hooks", listOf(0), called)
+            assertEquals("$what ring brush: the hook", ACCENT_RING_BRUSH, (code[0] as ReferenceInstruction).reference.toString())
+            assertEquals("$what ring brush: the call", Opcode.INVOKE_STATIC_RANGE, code[0].opcode)
+            val call = code[0] as RegisterRangeInstruction
+            assertEquals("$what ring brush: the colors", colors to 1, call.startRegister to call.registerCount)
+            assertEquals("$what ring brush: the answer", Opcode.MOVE_RESULT_OBJECT, code[1].opcode)
+            assertEquals("$what ring brush: into the colors", colors, (code[1] as OneRegisterInstruction).registerA)
+            assertTrue("$what ring brush: something jumps onto the hook", method.jumpTargets().none { it < 2 })
+            brushed.assertPreserved("$what ring brush", method, setOf(0, 1))
+        }
+
+        private fun brushMethod(): Method = context.mutableClassDefBy(brush.type).methods.single {
+            it.name == brush.name && AccessFlags.STATIC.isSet(it.accessFlags) &&
+                it.parameterTypes.map(CharSequence::toString) == listOf("Ljava/util/List;")
         }
 
         private fun inactiveSetter(): Method = context.mutableClassDefBy(GRADIENT_SPINNER).methods.single {
