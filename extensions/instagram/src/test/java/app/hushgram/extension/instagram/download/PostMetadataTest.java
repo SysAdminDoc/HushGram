@@ -158,6 +158,10 @@ public class PostMetadataTest {
         assertEquals("2026:09:01 12:00:00", read.getAttribute(ExifInterface.TAG_DATETIME_ORIGINAL));
         assertEquals("2026:09:01 12:00:00", read.getAttribute(ExifInterface.TAG_DATETIME_DIGITIZED));
         assertEquals("2026:09:01 12:00:00", read.getAttribute(ExifInterface.TAG_DATETIME));
+        // Android reads an EXIF date with no offset as the phone's own time (#792).
+        assertEquals("+00:00", read.getAttribute("OffsetTimeOriginal"));
+        assertEquals("+00:00", read.getAttribute("OffsetTimeDigitized"));
+        assertEquals("+00:00", read.getAttribute("OffsetTime"));
         assertEquals("https://www.instagram.com/p/DFDjk1fRK43/",
                 read.getAttribute(ExifInterface.TAG_IMAGE_DESCRIPTION));
 
@@ -179,6 +183,7 @@ public class PostMetadataTest {
         ExifInterface read = new ExifInterface(photo.getAbsolutePath());
         assertEquals(details.owner, read.getAttribute(ExifInterface.TAG_ARTIST));
         assertNull(read.getAttribute(ExifInterface.TAG_DATETIME_ORIGINAL));
+        assertNull(read.getAttribute("OffsetTimeOriginal"));
         assertNull(read.getAttribute(ExifInterface.TAG_IMAGE_DESCRIPTION));
     }
 

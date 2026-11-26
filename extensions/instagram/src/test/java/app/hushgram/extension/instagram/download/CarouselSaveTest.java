@@ -1673,6 +1673,7 @@ public class CarouselSaveTest {
         java.text.SimpleDateFormat stamp = new java.text.SimpleDateFormat("yyyy:MM:dd HH:mm:ss", java.util.Locale.US);
         stamp.setTimeZone(java.util.TimeZone.getTimeZone("UTC"));
         assertEquals(stamp.format(details.posted), exif.getAttribute(ExifInterface.TAG_DATETIME_ORIGINAL));
+        assertEquals("the post time isn't marked as UTC", "+00:00", exif.getAttribute("OffsetTimeOriginal"));
         assertEquals(link, exif.getAttribute(ExifInterface.TAG_IMAGE_DESCRIPTION));
     }
 

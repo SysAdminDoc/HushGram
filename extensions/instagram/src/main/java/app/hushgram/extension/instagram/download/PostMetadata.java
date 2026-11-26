@@ -52,6 +52,9 @@ public final class PostMetadata {
     /** The EXIF date form, "yyyy:MM:dd HH:mm:ss". The post time is written in UTC, so it's one fixed value. */
     private static final String EXIF_DATE = "yyyy:MM:dd HH:mm:ss";
 
+    /** The EXIF offset of a date written in UTC. */
+    private static final String UTC_OFFSET = "+00:00";
+
     /**
      * The media's id as a shortcode, or null when the id isn't a plain number. Reads the id as a
      * number and writes it in base 64 over {@link #ALPHABET}, most significant digit first; id 0 is
@@ -109,10 +112,7 @@ public final class PostMetadata {
             wrote = true;
         }
         if (details.hasPosted()) {
-            String stamp = stamp(details.posted);
-            exif.setAttribute(ExifInterface.TAG_DATETIME_ORIGINAL, stamp);
-            exif.setAttribute(ExifInterface.TAG_DATETIME_DIGITIZED, stamp);
-            exif.setAttribute(ExifInterface.TAG_DATETIME, stamp);
+            dates(exif, details.posted);
             wrote = true;
         }
         String link = permalink(details);
@@ -121,6 +121,23 @@ public final class PostMetadata {
             wrote = true;
         }
         return wrote;
+    }
+
+    /**
+     * Sets [posted] as the three EXIF dates, in UTC, each with an offset that says so (#792).
+     * Without one, Android reads an EXIF date as the phone's own time, and its gallery takes it
+     * only when it's within a day of the file's modified time, which a save's never is.
+     */
+    static void dates(ExifInterface exif, Date posted) {
+        String stamp = stamp(posted);
+        exif.setAttribute(ExifInterface.TAG_DATETIME_ORIGINAL, stamp);
+        exif.setAttribute(ExifInterface.TAG_DATETIME_DIGITIZED, stamp);
+        exif.setAttribute(ExifInterface.TAG_DATETIME, stamp);
+        // By name: the platform's constants came with Android 10, and an older ExifInterface skips
+        // a tag it doesn't know.
+        exif.setAttribute("OffsetTimeOriginal", UTC_OFFSET);
+        exif.setAttribute("OffsetTimeDigitized", UTC_OFFSET);
+        exif.setAttribute("OffsetTime", UTC_OFFSET);
     }
 
     /** On only when the setting is on and ready. Never waits on settings. */
