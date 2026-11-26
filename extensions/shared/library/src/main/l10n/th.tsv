@@ -1573,6 +1573,11 @@ All of them. Tap to leave some out, and Ghost mode leaves those as you set them.
 %1$s. The others stay as you set them.	%1$s รายการอื่นๆ จะยังคงเป็นไปตามที่คุณตั้งค่าไว้
 Switches Ghost mode turns	สวิตช์ที่โหมด Ghost สลับการทำงาน
 Ghost mode needs at least one switch to turn.	โหมด Ghost ต้องมีสวิตช์ให้สลับอย่างน้อยหนึ่งตัว
+# context: Ghost mode: the switch under its rows in Ads and privacy that holds likes and story replies back while Ghost mode is on (#876). A like is the heart under a post or a story; the two short ones are toasts shown when a tap is held back
+Block likes and replies in Ghost mode	บล็อกการกดถูกใจและการตอบกลับในโหมด Ghost
+While Ghost mode is on, liking a post or story and replying to a story do nothing, and a message says why. Nothing is sent.	ขณะที่เปิดโหมด Ghost การกดถูกใจโพสต์หรือสตอรี่และการตอบกลับสตอรี่จะไม่เกิดผลใดๆ และมีข้อความบอกเหตุผล ไม่มีสิ่งใดถูกส่งออกไป
+Likes are off in Ghost mode.	การกดถูกใจปิดอยู่ในโหมด Ghost
+Replies are off in Ghost mode.	การตอบกลับปิดอยู่ในโหมด Ghost
 # context: Ghost mode: turning it on or off with a long press on a tab (#255). %1$s is a tab's name
 Turn Ghost mode on or off with a tab long press	เปิดหรือปิดโหมด Ghost ด้วยการกดค้างที่แท็บ
 Tab long presses keep Instagram's own action. Choose one to turn Ghost mode on or off instead.	การกดค้างที่แท็บจะยังคงใช้การดำเนินการเดิมของ Instagram เลือกแท็บหนึ่งเพื่อใช้เปิดหรือปิดโหมด Ghost แทน

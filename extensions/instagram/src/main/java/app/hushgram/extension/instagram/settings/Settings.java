@@ -4502,6 +4502,14 @@ public class Settings extends BaseSettings {
             new StringSetting("hushgram_ghost_mode_picks", "");
 
     /**
+     * While Ghost mode is on, a like or a story reply does nothing and a toast says why (#876): a post's
+     * Like button and double tap, a story's heart and super like, a typed story reply and a quick
+     * reaction. It reads Ghost mode at each tap, so a change needs no restart. Off to start.
+     */
+    public static final BooleanSetting BLOCK_GHOST_ACTIONS =
+            new BooleanSetting("hushgram_block_ghost_actions", FALSE);
+
+    /**
      * A Search button on Home's header that opens Instagram's own Search tab, or with Hide the Search tab
      * on where the tabs swipe, Instagram's search screen ({@link app.hushgram.extension.instagram.reels.SearchHeaderButton}).
      * The header builds it as it draws, so a change takes a restart. Off to start.

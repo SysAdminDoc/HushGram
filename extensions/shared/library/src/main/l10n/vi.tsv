@@ -1529,6 +1529,11 @@ All of them. Tap to leave some out, and Ghost mode leaves those as you set them.
 %1$s. The others stay as you set them.	%1$s. Các mục khác giữ như bạn đã đặt.
 Switches Ghost mode turns	Công tắc mà Chế độ ẩn bật tắt
 Ghost mode needs at least one switch to turn.	Chế độ ẩn cần ít nhất một công tắc để bật tắt.
+# context: Ghost mode: the switch under its rows in Ads and privacy that holds likes and story replies back while Ghost mode is on (#876). A like is the heart under a post or a story; the two short ones are toasts shown when a tap is held back
+Block likes and replies in Ghost mode	Chặn thích và trả lời khi ở chế độ ẩn
+While Ghost mode is on, liking a post or story and replying to a story do nothing, and a message says why. Nothing is sent.	Khi bật chế độ ẩn, thích một bài viết hoặc tin và trả lời một tin sẽ không có tác dụng, và một thông báo cho biết lý do. Không có gì được gửi đi.
+Likes are off in Ghost mode.	Thích đã bị tắt ở chế độ ẩn.
+Replies are off in Ghost mode.	Trả lời đã bị tắt ở chế độ ẩn.
 Turn Ghost mode on or off with a tab long press	Bật hoặc tắt Chế độ ẩn bằng cách nhấn giữ tab
 Tab long presses keep Instagram's own action. Choose one to turn Ghost mode on or off instead.	Nhấn giữ tab vẫn dùng thao tác riêng của Instagram. Hãy chọn một tab để bật hoặc tắt Chế độ ẩn.
 Long press %1$s to turn Ghost mode on or off instead of that tab's usual action, and a toast says which way it went. Normal taps and other tabs stay the same. If the same tab opens HushGram or picks the playback quality, that comes first.	Nhấn giữ %1$s để bật hoặc tắt Chế độ ẩn thay cho thao tác thường của tab đó, và một thông báo cho biết đã chuyển sang bên nào. Nhấn bình thường và các tab khác không đổi. Nếu cùng tab mở HushGram hoặc chọn chất lượng phát thì mục đó được ưu tiên.

@@ -883,6 +883,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean ghostActions() {
+        return false;
+    }
+
     public static boolean askBeforeRefresh() {
         return false;
     }

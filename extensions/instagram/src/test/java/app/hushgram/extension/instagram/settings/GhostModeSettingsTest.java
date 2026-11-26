@@ -139,6 +139,25 @@ public class GhostModeSettingsTest {
         assertEquals(HushgramPreferenceFragment.GHOST_PICKS_ROW, privacy.getPreference(1).getKey());
         assertEquals(Settings.GHOST_TAB_TARGET.key, privacy.getPreference(2).getKey());
         assertEquals(Settings.HIDE_ADS.key, privacy.getPreference(3).getKey());
+        assertNull("no block switch without its patch", own(Settings.BLOCK_GHOST_ACTIONS));
+    }
+
+    /** #876: the switch holding likes and replies back sits right under Ghost mode's own rows, off to start. */
+    @Test public void theBlockSwitchSitsUnderGhostModesRows() throws Exception {
+        EnumSet<PatchFamily> build = allGhost();
+        build.add(PatchFamily.GHOST_ACTIONS);
+        open(build);
+        SwitchPreference block = own(Settings.BLOCK_GHOST_ACTIONS);
+        assertNotNull(block);
+        assertEquals("Block likes and replies in Ghost mode", block.getTitle().toString());
+        assertEquals("While Ghost mode is on, liking a post or story and replying to a story do nothing, "
+                + "and a message says why. Nothing is sent.", block.getSummary().toString());
+        assertFalse("off to start", block.isChecked());
+        PreferenceGroup privacy = ghost().getParent();
+        assertEquals(Settings.GHOST_TAB_TARGET.key, privacy.getPreference(2).getKey());
+        assertSame(block, privacy.getPreference(3));
+        assertEquals(Settings.HIDE_ADS.key, privacy.getPreference(4).getKey());
+        assertFalse("it isn't one of the switches Ghost mode turns", GhostMode.switches(build).contains(Settings.BLOCK_GHOST_ACTIONS));
     }
 
     /** #251: Ghost mode turns all its switches until you pick some, and a pick naming none of them means all. */

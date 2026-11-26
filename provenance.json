@@ -252,6 +252,7 @@
         "extensions/instagram/src/main/java/app/hushgram/extension/instagram/settings/GhostMode.java",
         "extensions/instagram/src/main/java/app/hushgram/extension/instagram/settings/GhostModeEntry.java",
         "extensions/instagram/src/main/java/app/hushgram/extension/instagram/settings/GhostHeaderButton.java",
+        "extensions/instagram/src/main/java/app/hushgram/extension/instagram/settings/GhostActions.java",
         "extensions/instagram/src/main/java/app/hushgram/extension/instagram/settings/QualityPicker.java",
         "extensions/instagram/src/main/java/app/hushgram/extension/instagram/settings/FocusRest.java",
         "extensions/instagram/src/main/java/app/hushgram/extension/instagram/settings/RestartNow.java",

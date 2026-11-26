@@ -1585,6 +1585,11 @@ All of them. Tap to leave some out, and Ghost mode leaves those as you set them.
 %1$s. The others stay as you set them.	%1$s. Die anderen bleiben, wie du sie eingestellt hast.
 Switches Ghost mode turns	Schalter, die der Ghost-Modus umlegt
 Ghost mode needs at least one switch to turn.	Ghost-Modus braucht mindestens einen Schalter.
+# context: Ghost mode: the switch under its rows in Ads and privacy that holds likes and story replies back while Ghost mode is on (#876). A like is the heart under a post or a story; the two short ones are toasts shown when a tap is held back
+Block likes and replies in Ghost mode	Likes und Antworten im Ghost-Modus sperren
+While Ghost mode is on, liking a post or story and replying to a story do nothing, and a message says why. Nothing is sent.	Solange der Ghost-Modus an ist, passiert nichts, wenn du einen Beitrag oder eine Story likest oder auf eine Story antwortest, und eine Meldung sagt dir, warum. Es wird nichts gesendet.
+Likes are off in Ghost mode.	Likes sind im Ghost-Modus aus.
+Replies are off in Ghost mode.	Antworten sind im Ghost-Modus aus.
 # context: Ghost mode: turning it on or off with a long press on a tab (#255). %1$s is a tab's name
 Turn Ghost mode on or off with a tab long press	Ghost-Modus durch langes Drücken auf einen Tab ein- oder ausschalten
 Tab long presses keep Instagram's own action. Choose one to turn Ghost mode on or off instead.	Langes Drücken auf Tabs führt weiter die Instagram-Aktion aus. Wähle einen Tab, um stattdessen den Ghost-Modus ein- oder auszuschalten.

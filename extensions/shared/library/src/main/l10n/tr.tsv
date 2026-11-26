@@ -1585,6 +1585,11 @@ All of them. Tap to leave some out, and Ghost mode leaves those as you set them.
 %1$s. The others stay as you set them.	%1$s. Diğerleri senin ayarladığın gibi kalır.
 Switches Ghost mode turns	Hayalet modunun değiştirdiği anahtarlar
 Ghost mode needs at least one switch to turn.	Hayalet modu için en az bir anahtar gerekli.
+# context: Ghost mode: the switch under its rows in Ads and privacy that holds likes and story replies back while Ghost mode is on (#876). A like is the heart under a post or a story; the two short ones are toasts shown when a tap is held back
+Block likes and replies in Ghost mode	Hayalet modunda beğenileri ve yanıtları engelle
+While Ghost mode is on, liking a post or story and replying to a story do nothing, and a message says why. Nothing is sent.	Hayalet modu açıkken bir gönderiyi veya hikayeyi beğenmek ve bir hikayeye yanıt vermek hiçbir şey yapmaz, bir mesaj nedenini söyler. Hiçbir şey gönderilmez.
+Likes are off in Ghost mode.	Hayalet modunda beğeniler kapalı.
+Replies are off in Ghost mode.	Hayalet modunda yanıtlar kapalı.
 # context: Ghost mode: turning it on or off with a long press on a tab (#255). %1$s is a tab's name
 Turn Ghost mode on or off with a tab long press	Sekmeye uzun basarak Hayalet modunu aç veya kapat
 Tab long presses keep Instagram's own action. Choose one to turn Ghost mode on or off instead.	Sekmelere uzun basmak Instagram işlemini korur. Bunun yerine Hayalet modunu açıp kapatmak için bir sekme seç.

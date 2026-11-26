@@ -113,6 +113,7 @@ public enum PatchFamily {
             Settings.LOCK_SAVED, Settings.LOCK_EACH_CHAT, Settings.DOUBLE_TAP_HIDDEN_CHATS, Settings.CHAT_GROUPS),
     SCREENSHOT_REPORTS(FamilyNames.SCREENSHOT_REPORTS, "screenshotReports", null, Settings.HIDE_SCREENSHOTS),
     BLEND_VISITS(FamilyNames.BLEND_VISITS, "blendVisits", null, Settings.HIDE_BLEND_VISITS),
+    GHOST_ACTIONS(FamilyNames.GHOST_ACTIONS, "ghostActions", null, Settings.BLOCK_GHOST_ACTIONS),
     SCREENSHOT_BLOCK(FamilyNames.SCREENSHOT_BLOCK, "screenshotBlock", null, Settings.ALLOW_SCREENSHOTS),
     KEEP_IN_CHAT(FamilyNames.KEEP_IN_CHAT, "keepInChat", null, Settings.KEEP_IN_CHAT),
     VIEW_ONCE_MARK(FamilyNames.VIEW_ONCE_MARK, "viewOnceMark", null, Settings.MARK_VIEW_ONCE),
