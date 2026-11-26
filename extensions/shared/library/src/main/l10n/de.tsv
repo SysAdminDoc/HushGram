@@ -1925,6 +1925,21 @@ Seek bar button on feed videos	Zeitleisten-Taste in Feed-Videos
 Adds a small button at the bottom left of a feed video that shows or hides its seek bar. It works with Seek bar on feed videos on or off.	Fügt unten links an einem Feed-Video eine kleine Taste hinzu, die seine Zeitleiste ein- oder ausblendet. Sie funktioniert mit Zeitleiste in Feed-Videos an oder aus.
 Seek bar	Zeitleiste
 Tint intensity	Tönungsstärke
+# context: Tab bar: the Tint color list under Tint intensity that picks the glass tab bar's color, its choices' descriptions, the Custom tint color field under it with its dialog message and empty summary, and what both say while another switch is in the way (#875). Light, Dark and AMOLED black are choices in the list; Tint intensity, Custom tint color, Glass tab bar and Material look are rows' names
+Tint color	Tönungsfarbe
+Light	Hell
+Dark	Dunkel
+AMOLED black	AMOLED-Schwarz
+The glass takes Instagram's own colors, dark or light with its theme.	Das Glas übernimmt die Farben von Instagram, dunkel oder hell wie Instagram.
+Frosted white glass whatever Instagram's theme, with the tab icons dark on it.	Weißes Milchglas, egal ob Instagram dunkel oder hell ist, mit dunklen Tab-Symbolen darauf.
+Dark gray glass whatever Instagram's theme, with the tab icons white on it.	Dunkelgraues Glas, egal ob Instagram dunkel oder hell ist, mit weißen Tab-Symbolen darauf.
+A black pill with no sheen, for AMOLED screens. A lower Tint intensity lets what's behind it show through.	Eine schwarze Pille ohne Glanz für AMOLED-Displays. Bei geringerer Tönungsstärke scheint durch, was dahinter liegt.
+The glass takes the accent color Android picks from your wallpaper. Android 12 and newer. Older phones keep Instagram's colors.	Das Glas übernimmt die Akzentfarbe, die Android aus deinem Hintergrundbild wählt. Ab Android 12. Ältere Handys behalten die Farben von Instagram.
+The glass takes the color you type under Custom tint color.	Das Glas übernimmt die Farbe, die du unter „Eigene Tönungsfarbe“ eingibst.
+Custom tint color	Eigene Tönungsfarbe
+A color as six hex digits, like #4A6B82. Saving it picks Custom under Tint color.	Eine Farbe als sechs Hex-Ziffern, zum Beispiel #4A6B82. Beim Speichern wird unter „Tönungsfarbe“ Eigene gewählt.
+Turn on Glass tab bar to use this choice.	Aktiviere „Glas-Tab-Leiste“, um diese Auswahl zu nutzen.
+Turn off Material look to use this choice.	Deaktiviere „Material-Look“, um diese Auswahl zu nutzen.
 Refraction intensity	Stärke der Lichtbrechung
 Preview of the tab bar	Vorschau der Tab-Leiste
 Keep stories playing while zooming	Stories beim Zoomen weiterspielen

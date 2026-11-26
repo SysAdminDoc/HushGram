@@ -1805,7 +1805,7 @@
     },
     {
       "name": "Glass tab bar",
-      "description": "Draws the tab bar as a floating, rounded pill of frosted glass that blurs what's behind it (Android 12 and newer), with a highlight on the tab you're on. Content can optionally run down behind it. With the liquid look off, `Shrink the pill as you scroll` makes the pill smaller while you scroll down, and `Material look` makes it a solid pill in your phone's colors. Starts off. Turn it on in HushGram settings > Tab bar, then restart Instagram.",
+      "description": "Draws the tab bar as a floating, rounded pill of frosted glass that blurs what's behind it (Android 12 and newer), with a highlight on the tab you're on. Content can optionally run down behind it. `Tint color` makes the glass light, dark, AMOLED black, your wallpaper's accent or a color you type. With the liquid look on, `Keep Search in the pill` keeps Search with the other tabs. With it off, `Shrink the pill as you scroll` makes the pill smaller while you scroll down, and `Material look` makes it a solid pill in your phone's colors. Starts off. Turn it on in HushGram settings > Tab bar, then restart Instagram.",
       "category": "Interface",
       "use": true,
       "dependencies": [

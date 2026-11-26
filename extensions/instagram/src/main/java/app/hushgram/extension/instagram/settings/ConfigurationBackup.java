@@ -310,6 +310,8 @@ public final class ConfigurationBackup {
             settings.put(Settings.GLASS_TAB_BAR_CORNERS.key, Settings.GLASS_TAB_BAR_CORNERS);
             settings.put(Settings.GLASS_TAB_BAR_LIFT.key, Settings.GLASS_TAB_BAR_LIFT);
             settings.put(Settings.GLASS_TAB_BAR_REELS_HIDE.key, Settings.GLASS_TAB_BAR_REELS_HIDE);
+            settings.put(Settings.GLASS_TAB_BAR_TINT.key, Settings.GLASS_TAB_BAR_TINT);
+            settings.put(Settings.GLASS_TAB_BAR_TINT_CUSTOM.key, Settings.GLASS_TAB_BAR_TINT_CUSTOM);
         }
         if (PatchFamily.GLASS_CHAT.inBuild()) {
             settings.put(Settings.GLASS_CHAT_TOP_BAR_OPACITY.key, Settings.GLASS_CHAT_TOP_BAR_OPACITY);
@@ -662,6 +664,8 @@ public final class ConfigurationBackup {
         if (setting == Settings.STORY_RING_CUSTOM || setting == Settings.STORY_RING_CUSTOM_END) {
             return text.isEmpty() || text.equals(CustomAccent.normalize(text));
         }
+        // And the glass tab bar's custom tint (#875).
+        if (setting == Settings.GLASS_TAB_BAR_TINT_CUSTOM) return text.isEmpty() || text.equals(CustomAccent.normalize(text));
         if (setting == Settings.TAB_ORDER) return text.equals(TabOrder.join(TabOrder.parse(text)));
         // The share sheet buttons to leave out, as Instagram's names for them with commas between.
         if (setting == Settings.HIDDEN_SHARE_SHEET_BUTTONS) {

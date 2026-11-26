@@ -1925,6 +1925,21 @@ Seek bar button on feed videos	Pulsante della barra di scorrimento nei video del
 Adds a small button at the bottom left of a feed video that shows or hides its seek bar. It works with Seek bar on feed videos on or off.	Aggiunge un piccolo pulsante in basso a sinistra in un video del feed che mostra o nasconde la sua barra di scorrimento. Funziona con Barra di scorrimento nei video del feed attiva o disattivata.
 Seek bar	Barra di scorrimento
 Tint intensity	Intensità della tinta
+# context: Tab bar: the Tint color list under Tint intensity that picks the glass tab bar's color, its choices' descriptions, the Custom tint color field under it with its dialog message and empty summary, and what both say while another switch is in the way (#875). Light, Dark and AMOLED black are choices in the list; Tint intensity, Custom tint color, Glass tab bar and Material look are rows' names
+Tint color	Colore della tinta
+Light	Chiaro
+Dark	Scuro
+AMOLED black	Nero AMOLED
+The glass takes Instagram's own colors, dark or light with its theme.	Il vetro prende i colori di Instagram, scuro o chiaro come Instagram.
+Frosted white glass whatever Instagram's theme, with the tab icons dark on it.	Vetro bianco smerigliato con Instagram scuro o chiaro, con le icone delle schede scure sopra.
+Dark gray glass whatever Instagram's theme, with the tab icons white on it.	Vetro grigio scuro con Instagram scuro o chiaro, con le icone delle schede bianche sopra.
+A black pill with no sheen, for AMOLED screens. A lower Tint intensity lets what's behind it show through.	Una pillola nera senza riflessi, per schermi AMOLED. Con una Intensità della tinta più bassa si vede ciò che c'è dietro.
+The glass takes the accent color Android picks from your wallpaper. Android 12 and newer. Older phones keep Instagram's colors.	Il vetro prende il colore di accento che Android sceglie dal tuo sfondo. Android 12 e successivi. I telefoni più vecchi mantengono i colori di Instagram.
+The glass takes the color you type under Custom tint color.	Il vetro prende il colore che scrivi in Colore della tinta personalizzato.
+Custom tint color	Colore della tinta personalizzato
+A color as six hex digits, like #4A6B82. Saving it picks Custom under Tint color.	Un colore in sei cifre esadecimali, come #4A6B82. Salvarlo sceglie Personalizzato in Colore della tinta.
+Turn on Glass tab bar to use this choice.	Attiva Barra delle schede di vetro per usare questa scelta.
+Turn off Material look to use this choice.	Disattiva Aspetto Material per usare questa scelta.
 Refraction intensity	Intensità della rifrazione
 Preview of the tab bar	Anteprima della barra delle schede
 Keep stories playing while zooming	Mantieni le storie in riproduzione durante lo zoom

@@ -100,6 +100,8 @@ public class GlassTabBarTest {
         Settings.GLASS_TAB_BAR_SHRINK_ON_SCROLL.resetToDefault();
         Settings.GLASS_TAB_BAR_MATERIAL.resetToDefault();
         Settings.GLASS_TAB_BAR_REFRACT.resetToDefault();
+        Settings.GLASS_TAB_BAR_TINT.resetToDefault();
+        Settings.GLASS_TAB_BAR_TINT_CUSTOM.resetToDefault();
         GlassTabBar.animationsOnForTests = null;
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
@@ -1798,6 +1800,141 @@ public class GlassTabBarTest {
         }
     }
 
+    /**
+     * #875: Tint color tints the glass. Light, dark and AMOLED black whatever the bar's shade, the phone's Material
+     * You accent (a deep tone of it over a dark bar, a pale one over a light), a typed custom color, and the bar's own
+     * for Instagram's colors and for Custom with nothing typed. AMOLED black is solid, with no sheen. A pick shows on
+     * the next draw, with no restart, on the standard pill and the liquid one, and paused the glass is Instagram's.
+     */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    @Config(sdk = 33, qualifiers = "en-rUS-w411dp-h891dp-xhdpi")
+    public void eachTintColorsTheGlassAtOnce() throws Exception {
+        GlassTabBar.animationsOnForTests = false;
+        for (boolean liquid : new boolean[]{false, true}) {
+            for (int base : new int[]{Color.BLACK, Color.WHITE}) {
+                try (GlassHost host = new GlassHost(base, true, GlassHeight.STANDARD, false, false)) {
+                    Settings.GLASS_TAB_BAR_LIQUID.save(liquid);
+                    GlassTabBar.apply(host.activity);
+                    host.frame();
+                    int accent = host.activity.getColor(base == Color.BLACK
+                            ? android.R.color.system_accent1_700 : android.R.color.system_accent1_200) | 0xff000000;
+                    Object[][] cases = {
+                            {GlassTint.INSTAGRAM, "", base},
+                            {GlassTint.LIGHT, "", Color.WHITE},
+                            {GlassTint.DARK, "", 0xff1c1c1e},
+                            {GlassTint.AMOLED, "", Color.BLACK},
+                            {GlassTint.WALLPAPER, "", accent},
+                            {GlassTint.CUSTOM, "#4A6B82", 0xff4a6b82},
+                            {GlassTint.CUSTOM, "", base},
+                    };
+                    for (Object[] each : cases) {
+                        GlassTint tint = (GlassTint) each[0];
+                        Settings.GLASS_TAB_BAR_TINT.save(tint);
+                        Settings.GLASS_TAB_BAR_TINT_CUSTOM.save((String) each[1]);
+                        String what = (liquid ? "liquid " : "standard ") + Integer.toHexString(base) + " " + tint + " " + each[1];
+                        int expected = tint == GlassTint.AMOLED ? Color.BLACK : GlassTabBar.tint((int) each[2], false, 1f);
+                        assertNear(what, expected, lowInThePill(host));
+                        if (tint != GlassTint.INSTAGRAM && !(tint == GlassTint.CUSTOM && "".equals(each[1]))) {
+                            host.capture("tint-" + (liquid ? "liquid-" : "") + (base == Color.BLACK ? "dark-" : "light-")
+                                    + tint.name().toLowerCase(java.util.Locale.ROOT));
+                        }
+                    }
+                    Settings.GLASS_TAB_BAR_TINT.save(base == Color.BLACK ? GlassTint.LIGHT : GlassTint.DARK);
+                    BaseSettings.PAUSED.save(true);
+                    PauseForTests.pause(HushgramPause.Reason.SWITCH);
+                    assertNear("paused, Instagram's glass", GlassTabBar.tint(base, false, 1f), lowInThePill(host));
+                    BaseSettings.PAUSED.save(false);
+                    PauseForTests.resume();
+                }
+            }
+        }
+        Settings.GLASS_TAB_BAR.save(true);
+        Settings.GLASS_TAB_BAR_LIQUID.save(false);
+        Settings.GLASS_TAB_BAR_MATERIAL.save(true);
+        Settings.GLASS_TAB_BAR_TINT.save(GlassTint.LIGHT);
+        assertFalse("the Material look draws in its own colors", Settings.GLASS_TAB_BAR_TINT.isAvailable());
+        Settings.GLASS_TAB_BAR_LIQUID.save(true);
+        assertTrue("the liquid look wins over it", Settings.GLASS_TAB_BAR_TINT.isAvailable());
+        assertFalse(Settings.GLASS_TAB_BAR_TINT.rebootApp);
+        assertFalse(Settings.GLASS_TAB_BAR_TINT_CUSTOM.rebootApp);
+        assertEquals(GlassTint.INSTAGRAM, Settings.GLASS_TAB_BAR_TINT.defaultValue);
+    }
+
+    /** The pill's color low in its middle, where the sheen has faded and no tab is selected to put the capsule there. */
+    private static int lowInThePill(GlassHost host) {
+        try (Pixels pixels = host.background()) {
+            RectF drawn = ReflectionHelpers.getField(host.bar.getBackground(), "rect");
+            return pixels.bitmap.getPixel(Math.round(drawn.centerX()), Math.round(drawn.bottom) - host.dp(5));
+        }
+    }
+
+    private static void assertNear(String what, int expected, int actual) {
+        String message = what + ": wanted " + Integer.toHexString(expected) + ", drew " + Integer.toHexString(actual);
+        assertEquals(message, Color.alpha(expected), Color.alpha(actual), 12);
+        assertEquals(message, Color.red(expected), Color.red(actual), 12);
+        assertEquals(message, Color.green(expected), Color.green(actual), 12);
+        assertEquals(message, Color.blue(expected), Color.blue(actual), 12);
+    }
+
+    /**
+     * #875: where a tint makes the glass the other shade from the bar Instagram colored the tab icons for, the icons
+     * turn the shade that reads on it, Instagram's near black on light glass over a dark bar and white on dark glass
+     * over a light bar, each through a layer of its own. Glass of the bar's own shade leaves them as Instagram drew
+     * them, and Instagram's colors or a pause gives them their own look back.
+     */
+    @Test
+    @Config(sdk = 29, qualifiers = "en-rUS-w411dp-h891dp-xhdpi")
+    public void aTintOfTheOtherShadeRecolorsTheTabIconsUntilItsPutBack() throws Exception {
+        GlassTabBar.animationsOnForTests = false;
+        for (int base : new int[]{Color.BLACK, Color.WHITE}) {
+            try (GlassHost host = new GlassHost(base, true, GlassHeight.STANDARD, false, false)) {
+                host.nameIcons();
+                GlassTint other = base == Color.BLACK ? GlassTint.LIGHT : GlassTint.AMOLED;
+                GlassTint same = base == Color.BLACK ? GlassTint.DARK : GlassTint.LIGHT;
+                int wanted = base == Color.BLACK ? 0xff0c1014 : Color.WHITE;
+                String where = base == Color.BLACK ? "dark bar" : "light bar";
+                Settings.GLASS_TAB_BAR_TINT.save(other);
+                GlassTabBar.apply(host.activity);
+                host.frame();
+                assertIcons(where + ", " + other, host, wanted);
+                Settings.GLASS_TAB_BAR_TINT.save(same);
+                host.frame();
+                assertIcons(where + ", " + same, host, 0);
+                Settings.GLASS_TAB_BAR_TINT.save(other);
+                host.frame();
+                assertIcons(where + ", " + other + " again", host, wanted);
+                BaseSettings.PAUSED.save(true);
+                PauseForTests.pause(HushgramPause.Reason.SWITCH);
+                host.frame();
+                assertIcons(where + ", paused", host, 0);
+                BaseSettings.PAUSED.save(false);
+                PauseForTests.resume();
+                host.frame();
+                assertIcons(where + ", resumed", host, wanted);
+                Settings.GLASS_TAB_BAR_TINT.save(GlassTint.INSTAGRAM);
+                host.frame();
+                assertIcons(where + ", Instagram's colors", host, 0);
+            }
+        }
+    }
+
+    /** Every tab icon drawn in [color] through a layer of its own, or for 0 with no layer, as Instagram left it. */
+    private static void assertIcons(String what, GlassHost host, int color) {
+        for (int i = 0; i < host.bar.getChildCount(); i++) {
+            View icon = host.bar.getChildAt(i);
+            Paint layer = ReflectionHelpers.getField(icon, "mLayerPaint");
+            if (color == 0) {
+                assertEquals(what + ": icon " + i + " has no layer", View.LAYER_TYPE_NONE, icon.getLayerType());
+                assertTrue(what + ": icon " + i + " keeps its own colors", layer == null || layer.getColorFilter() == null);
+                continue;
+            }
+            assertEquals(what + ": icon " + i + " drawn through a layer", View.LAYER_TYPE_HARDWARE, icon.getLayerType());
+            assertTrue(what + ": icon " + i + " recolored", layer != null && layer.getColorFilter() instanceof android.graphics.PorterDuffColorFilter);
+            assertEquals(what + ": icon " + i + " color", color, (int) ReflectionHelpers.<Integer>getField(layer.getColorFilter(), "mColor"));
+        }
+    }
+
     /** Off, or paused after it showed, the liquid look moves no tab, and the bar is the floating pill of before. */
     @Test
     @Config(sdk = 29, qualifiers = "en-rUS-w411dp-h891dp-xhdpi")
@@ -1936,8 +2073,11 @@ public class GlassTabBarTest {
     private static final class GlassHost implements AutoCloseable {
         private static final int BAR_ID = 0x7f0b0120;
         private static final int SEARCH_ID = 0x7f0b0121;
+        private static final int ICON_ID = 0x7f0b0122;
         private Integer previousSearchId;
         private boolean searchNamed;
+        private Integer previousIconId;
+        private boolean iconsNamed;
         final ActivityController<Activity> controller;
         final Activity activity;
         final FrameLayout root;
@@ -1967,6 +2107,8 @@ public class GlassTabBarTest {
             Settings.GLASS_TAB_BAR_SHRINK_ON_SCROLL.save(false);
             Settings.GLASS_TAB_BAR_MATERIAL.save(false);
             Settings.GLASS_TAB_BAR_REFRACT.save(false);
+            Settings.GLASS_TAB_BAR_TINT.save(GlassTint.INSTAGRAM);
+            Settings.GLASS_TAB_BAR_TINT_CUSTOM.save("");
             controller = Robolectric.buildActivity(Activity.class).setup();
             activity = controller.get();
             activity.getApplicationInfo().flags |= android.content.pm.ApplicationInfo.FLAG_SUPPORTS_RTL;
@@ -2037,6 +2179,16 @@ public class GlassTabBarTest {
             bar.getChildAt(index).setId(SEARCH_ID);
         }
 
+        /** Gives every tab the id Instagram's tab icons have, as a tint looks them up to recolor them (#875). */
+        void nameIcons() {
+            Map<String, Integer> ids = ReflectionHelpers.getStaticField(GlassTabBar.class, "IDS");
+            synchronized (ids) {
+                if (!iconsNamed) previousIconId = ids.put("tab_icon", ICON_ID);
+            }
+            iconsNamed = true;
+            for (int i = 0; i < bar.getChildCount(); i++) bar.getChildAt(i).setId(ICON_ID);
+        }
+
         /** The glass restyling this host's bar. */
         Object glass() {
             Object held = registry().get(bar);
@@ -2101,6 +2253,8 @@ public class GlassTabBarTest {
                 else ids.put(GlassTabBar.TAB_BAR, previousId);
                 if (searchNamed && previousSearchId == null) ids.remove(GlassTabBar.SEARCH_TAB);
                 else if (searchNamed) ids.put(GlassTabBar.SEARCH_TAB, previousSearchId);
+                if (iconsNamed && previousIconId == null) ids.remove("tab_icon");
+                else if (iconsNamed) ids.put("tab_icon", previousIconId);
             }
             controller.close();
             activity.getApplication().unregisterActivityLifecycleCallbacks(watcher);

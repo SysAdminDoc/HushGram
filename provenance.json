@@ -566,6 +566,7 @@
         "extensions/instagram/src/test/java/app/hushgram/extension/instagram/settings/NavigationChoiceTest.java",
         "extensions/instagram/src/main/java/app/hushgram/extension/instagram/misc/GlassPreview.java",
         "extensions/instagram/src/main/java/app/hushgram/extension/instagram/settings/GlassPreviewRow.java",
+        "extensions/instagram/src/main/java/app/hushgram/extension/instagram/misc/GlassTint.java",
         "extensions/instagram/src/main/java/app/hushgram/extension/instagram/settings/SearchWords.java",
         "extensions/instagram/src/main/java/app/hushgram/extension/instagram/settings/CategoryStrip.java",
         "extensions/instagram/src/main/java/app/hushgram/extension/instagram/settings/CategoryGroups.java",

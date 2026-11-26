@@ -26,7 +26,8 @@ import app.hushgram.extension.shared.Logger;
  * the blur radius, tint and edge bend the sliders hold. While a slider is dragged its row feeds the value in
  * here ({@link #live}), so the sample moves with the thumb and the saved value follows on release. The blur
  * needs Android 12 and a hardware canvas and the bend Android 13, as on the bar itself. Without them the
- * sample is the tint alone. Nothing here throws.
+ * sample is the tint alone. The glass takes the color picked under Tint color (#875), as the bar does, and
+ * the dots standing in for the tabs take the shade that reads on it. Nothing here throws.
  */
 public final class GlassPreview extends View {
     /** The sliders that feed the sample while they're dragged. */
@@ -86,9 +87,16 @@ public final class GlassPreview extends View {
         return Settings.GLASS_TAB_BAR_REFRACT.get() ? Settings.GLASS_TAB_BAR_REFRACT_STRENGTH.get() : 0;
     }
 
+    /** The color the sample's glass is made from, under the tint picked under Tint color (#875). */
+    public int glass() {
+        GlassTint tint = GlassTabBar.tintPicked();
+        return GlassTabBar.glassColor(getContext(), base, tint,
+                tint == GlassTint.CUSTOM ? Settings.GLASS_TAB_BAR_TINT_CUSTOM.get() : null);
+    }
+
     /** The tint over the pill, as the bar itself would lay it. */
     public int pillTint() {
-        return GlassTabBar.tint(base, blurred, tintPercent() / 100f);
+        return GlassTabBar.glassFill(glass(), GlassTabBar.tintPicked() == GlassTint.AMOLED, blurred, tintPercent() / 100f);
     }
 
     /** Whether the last draw had the backdrop blurred. */
@@ -140,17 +148,21 @@ public final class GlassPreview extends View {
             drawMaterial(canvas, width, round);
             return;
         }
+        int glass = glass();
         paint.setColor(pillTint());
         canvas.drawRoundRect(pill, round, round, paint);
-        boolean dark = GlassTabBar.isDark(base);
-        // A shader is drawn at the paint color's alpha, so it starts from opaque rather than the tint's.
-        paint.setColor(0xffffffff);
-        paint.setShader(new LinearGradient(0, pill.top, 0, pill.bottom, dark ? 0x30ffffff : 0x66ffffff, 0x00ffffff,
-                Shader.TileMode.CLAMP));
-        canvas.drawRoundRect(pill, round, round, paint);
-        paint.setShader(null);
+        boolean dark = GlassTabBar.isDark(glass);
+        // AMOLED black has no sheen, as on the bar (#875).
+        if (GlassTabBar.tintPicked() != GlassTint.AMOLED) {
+            // A shader is drawn at the paint color's alpha, so it starts from opaque rather than the tint's.
+            paint.setColor(0xffffffff);
+            paint.setShader(new LinearGradient(0, pill.top, 0, pill.bottom, dark ? 0x30ffffff : 0x66ffffff, 0x00ffffff,
+                    Shader.TileMode.CLAMP));
+            canvas.drawRoundRect(pill, round, round, paint);
+            paint.setShader(null);
+        }
         capsule.set(pill.left + width * 0.26f, pill.top + 5 * density, pill.left + width * 0.26f + 64 * density, pill.bottom - 5 * density);
-        paint.setColor(GlassTabBar.highlight(base));
+        paint.setColor(GlassTabBar.highlight(glass));
         canvas.drawRoundRect(capsule, capsule.height() / 2f, capsule.height() / 2f, paint);
         paint.setColor(dark ? 0xccffffff : 0xcc111111);
         float step = (pill.width() - 2 * round) / 3f;
@@ -159,7 +171,7 @@ public final class GlassPreview extends View {
         }
         paint.setStyle(Paint.Style.STROKE);
         paint.setStrokeWidth(Math.max(1f, density));
-        paint.setColor(GlassTabBar.edge(base));
+        paint.setColor(GlassTabBar.edge(glass));
         RectF edge = new RectF(pill);
         edge.inset(density / 2f, density / 2f);
         canvas.drawRoundRect(edge, edge.height() / 2f, edge.height() / 2f, paint);

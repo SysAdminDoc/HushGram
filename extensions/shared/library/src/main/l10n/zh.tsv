@@ -1928,6 +1928,21 @@ Seek bar button on feed videos	动态视频拖动条按钮
 Adds a small button at the bottom left of a feed video that shows or hides its seek bar. It works with Seek bar on feed videos on or off.	在动态视频左下角加入小按钮，可显示或隐藏拖动条。无论动态视频拖动条开或关都能使用。
 Seek bar	拖动条
 Tint intensity	染色强度
+# context: Tab bar: the Tint color list under Tint intensity that picks the glass tab bar's color, its choices' descriptions, the Custom tint color field under it with its dialog message and empty summary, and what both say while another switch is in the way (#875). Light, Dark and AMOLED black are choices in the list; Tint intensity, Custom tint color, Glass tab bar and Material look are rows' names
+Tint color	染色颜色
+Light	浅色
+Dark	深色
+AMOLED black	AMOLED 纯黑
+The glass takes Instagram's own colors, dark or light with its theme.	玻璃沿用 Instagram 自己的颜色，随 Instagram 显示深色或浅色。
+Frosted white glass whatever Instagram's theme, with the tab icons dark on it.	无论 Instagram 是深色还是浅色，都显示磨砂白玻璃，上面的标签图标为深色。
+Dark gray glass whatever Instagram's theme, with the tab icons white on it.	无论 Instagram 是深色还是浅色，都显示深灰色玻璃，上面的标签图标为白色。
+A black pill with no sheen, for AMOLED screens. A lower Tint intensity lets what's behind it show through.	无光泽的黑色胶囊，适合 AMOLED 屏幕。调低“染色强度”可透出后方的内容。
+The glass takes the accent color Android picks from your wallpaper. Android 12 and newer. Older phones keep Instagram's colors.	玻璃采用 Android 从你的壁纸选取的强调色。需要 Android 12 或更高版本。较旧的手机保留 Instagram 默认颜色。
+The glass takes the color you type under Custom tint color.	玻璃采用你在“自订染色颜色”输入的颜色。
+Custom tint color	自订染色颜色
+A color as six hex digits, like #4A6B82. Saving it picks Custom under Tint color.	用六位十六进位数字表示的颜色，例如 #4A6B82。保存后“染色颜色”会改为自订。
+Turn on Glass tab bar to use this choice.	请启用“玻璃标签栏”以使用此选项。
+Turn off Material look to use this choice.	请关闭“Material 外观”以使用此选项。
 Refraction intensity	折射强度
 Preview of the tab bar	标签栏预览
 Keep stories playing while zooming	缩放时继续播放快拍

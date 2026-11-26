@@ -2274,6 +2274,21 @@ Time on each post	الوقت على كل منشور
 Time on the seek bar	الوقت على شريط التقدّم
 Time posted	وقت النشر
 Tint intensity	شدة الصبغة
+# context: Tab bar: the Tint color list under Tint intensity that picks the glass tab bar's color, its choices' descriptions, the Custom tint color field under it with its dialog message and empty summary, and what both say while another switch is in the way (#875). Light, Dark and AMOLED black are choices in the list; Tint intensity, Custom tint color, Glass tab bar and Material look are rows' names
+Tint color	لون الصبغة
+Light	فاتح
+Dark	داكن
+AMOLED black	أسود AMOLED
+The glass takes Instagram's own colors, dark or light with its theme.	يأخذ الزجاج ألوان Instagram نفسها، داكنًا أو فاتحًا حسب سمته.
+Frosted white glass whatever Instagram's theme, with the tab icons dark on it.	زجاج أبيض مصنفر مهما كانت سمة Instagram، مع أيقونات تبويبات داكنة فوقه.
+Dark gray glass whatever Instagram's theme, with the tab icons white on it.	زجاج رمادي داكن مهما كانت سمة Instagram، مع أيقونات تبويبات بيضاء فوقه.
+A black pill with no sheen, for AMOLED screens. A lower Tint intensity lets what's behind it show through.	كبسولة سوداء بلا لمعان لشاشات AMOLED. خفّض شدة الصبغة ليظهر ما خلفها.
+The glass takes the accent color Android picks from your wallpaper. Android 12 and newer. Older phones keep Instagram's colors.	يأخذ الزجاج لون التمييز الذي يختاره Android من خلفية الشاشة. Android 12 والأحدث. تبقى الهواتف الأقدم بألوان Instagram.
+The glass takes the color you type under Custom tint color.	يأخذ الزجاج اللون الذي تكتبه في لون الصبغة المخصص.
+Custom tint color	لون الصبغة المخصص
+A color as six hex digits, like #4A6B82. Saving it picks Custom under Tint color.	لون كستة أرقام hex مثل #4A6B82. حفظه يختار مخصّص في لون الصبغة.
+Turn on Glass tab bar to use this choice.	شغّل شريط تبويبات زجاجي لاستخدام هذا الخيار.
+Turn off Material look to use this choice.	أوقف مظهر Material لاستخدام هذا الخيار.
 To add someone, tap Add to Stories priority in their story's menu.	لإضافة شخص، اضغط على أولوية القصص في قائمة قصته.
 To loop one story, tap Loop this story in its menu.	لتكرار قصة واحدة، اضغط على تكرار هذه القصة في قائمتها.
 To loop one video anyway, tap Loop this video in its menu.	لتكرار فيديو واحد على أي حال، اضغط على تكرار هذا الفيديو في قائمته.

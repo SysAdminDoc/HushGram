@@ -1924,6 +1924,21 @@ Seek bar button on feed videos	피드 동영상 탐색 막대 버튼
 Adds a small button at the bottom left of a feed video that shows or hides its seek bar. It works with Seek bar on feed videos on or off.	피드 동영상 왼쪽 아래에 탐색 막대를 보이거나 숨기는 작은 버튼을 추가합니다. 피드 동영상 탐색 막대가 켜져 있어도 꺼져 있어도 작동합니다.
 Seek bar	탐색 막대
 Tint intensity	색조 강도
+# context: Tab bar: the Tint color list under Tint intensity that picks the glass tab bar's color, its choices' descriptions, the Custom tint color field under it with its dialog message and empty summary, and what both say while another switch is in the way (#875). Light, Dark and AMOLED black are choices in the list; Tint intensity, Custom tint color, Glass tab bar and Material look are rows' names
+Tint color	색조 색상
+Light	밝게
+Dark	어둡게
+AMOLED black	AMOLED 블랙
+The glass takes Instagram's own colors, dark or light with its theme.	유리가 Instagram 자체 색상을 따르며 Instagram에 맞춰 어둡거나 밝게 표시됩니다.
+Frosted white glass whatever Instagram's theme, with the tab icons dark on it.	Instagram이 어둡든 밝든 반투명한 흰색 유리로 표시되며 탭 아이콘은 어둡게 보입니다.
+Dark gray glass whatever Instagram's theme, with the tab icons white on it.	Instagram이 어둡든 밝든 짙은 회색 유리로 표시되며 탭 아이콘은 흰색으로 보입니다.
+A black pill with no sheen, for AMOLED screens. A lower Tint intensity lets what's behind it show through.	AMOLED 화면을 위한 광택 없는 검은색 알약입니다. 색조 강도를 낮추면 뒤에 있는 내용이 비쳐 보입니다.
+The glass takes the accent color Android picks from your wallpaper. Android 12 and newer. Older phones keep Instagram's colors.	유리가 Android가 배경화면에서 고른 강조 색상을 따릅니다. Android 12 이상. 이전 휴대폰은 Instagram 색상을 유지합니다.
+The glass takes the color you type under Custom tint color.	유리가 ‘사용자 지정 색조 색상’에 입력한 색상을 따릅니다.
+Custom tint color	사용자 지정 색조 색상
+A color as six hex digits, like #4A6B82. Saving it picks Custom under Tint color.	#4A6B82처럼 16진수 여섯 자리로 쓴 색상입니다. 저장하면 ‘색조 색상’에서 사용자 지정이 선택됩니다.
+Turn on Glass tab bar to use this choice.	이 옵션을 사용하려면 ‘유리 탭 바’를 활성화하세요
+Turn off Material look to use this choice.	이 옵션을 사용하려면 ‘머티리얼 스타일’을 비활성화하세요
 Refraction intensity	굴절 강도
 Preview of the tab bar	탭 바 미리보기
 Keep stories playing while zooming	확대하는 동안 스토리 계속 재생

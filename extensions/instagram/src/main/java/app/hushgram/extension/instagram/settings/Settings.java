@@ -2418,6 +2418,36 @@ public class Settings extends BaseSettings {
                     .withRange(0, 150);
 
     /**
+     * Under {@link #GLASS_TAB_BAR}: the color the pill's glass is tinted ({@link app.hushgram.extension.instagram.misc.GlassTint},
+     * #875). Starts on Instagram's own colors, the glass the bar has always had. The Material look draws the pill in
+     * its own colors, so the choice rests while that's on, unless the liquid look, which wins over it, is on too.
+     * Read as the pill draws, so a change shows on the bar without a restart.
+     */
+    public static final EnumSetting<app.hushgram.extension.instagram.misc.GlassTint> GLASS_TAB_BAR_TINT =
+            new EnumSetting<>("hushgram_glass_tab_bar_tint",
+                    app.hushgram.extension.instagram.misc.GlassTint.INSTAGRAM, false, glassTintAvailability());
+
+    /**
+     * The color typed for Custom under {@link #GLASS_TAB_BAR_TINT} (#875), {@code #RRGGBB}. Empty to start, which
+     * leaves Custom on Instagram's colors. Rests with the tint, and shows on the bar without a restart.
+     */
+    public static final StringSetting GLASS_TAB_BAR_TINT_CUSTOM =
+            new StringSetting("hushgram_glass_tab_bar_tint_custom", "", false, glassTintAvailability());
+
+    /** The glass tab bar on, and the pill not drawn by the Material look in its own colors (#875). */
+    private static Setting.Availability glassTintAvailability() {
+        return new Setting.Availability() {
+            @Override public boolean isAvailable() {
+                return GLASS_TAB_BAR.savedValue() && (GLASS_TAB_BAR_LIQUID.savedValue() || !GLASS_TAB_BAR_MATERIAL.savedValue());
+            }
+
+            @Override public List<Setting<?>> getParentSettings() {
+                return Collections.singletonList(GLASS_TAB_BAR);
+            }
+        };
+    }
+
+    /**
      * Under {@link #GLASS_TAB_BAR_REFRACT}: how far the pill's rim bends what's behind it, in percent of the
      * bend it has always had, from a slider (#391). Zero leaves the backdrop straight, higher bends it harder.
      * Read as the pill draws, so a change shows on the bar without a restart.

@@ -10,6 +10,7 @@ import android.app.Activity;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.preference.ListPreference;
 import android.preference.Preference;
 import android.preference.PreferenceGroup;
 import android.preference.SwitchPreference;
@@ -33,6 +34,7 @@ import org.robolectric.shadows.ShadowLooper;
 
 import app.hushgram.extension.instagram.misc.GlassPreview;
 import app.hushgram.extension.instagram.misc.GlassTabBar;
+import app.hushgram.extension.instagram.misc.GlassTint;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.settings.BaseSettings;
@@ -70,6 +72,8 @@ public class GlassPreviewSettingsTest {
         Settings.GLASS_TAB_BAR_OPACITY.resetToDefault();
         Settings.GLASS_TAB_BAR_BLUR.resetToDefault();
         Settings.GLASS_TAB_BAR_BLUR_RADIUS.resetToDefault();
+        Settings.GLASS_TAB_BAR_TINT.resetToDefault();
+        Settings.GLASS_TAB_BAR_TINT_CUSTOM.resetToDefault();
     }
 
     private void open() throws Exception {
@@ -292,6 +296,57 @@ public class GlassPreviewSettingsTest {
         bitmap.eraseColor(Color.BLACK);
         view.draw(new Canvas(bitmap));
         assertNotEquals("the liquid look wins", colors[0], bitmap.getPixel(view.getWidth() * 3 / 4, Math.round(top + 8 * density)));
+    }
+
+    /**
+     * #875: the sample's glass takes the color picked under Tint color, as the bar does: white for light over a dark
+     * page, black with no sheen for AMOLED black, a typed custom color, and Instagram's own while Custom has none.
+     * A pick in the list or a color saved under it redraws the sample at once.
+     */
+    @Test @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    public void theSampleShowsTheTintPickedAndRedrawsOnAPick() throws Exception {
+        Settings.GLASS_TAB_BAR.save(true);
+        open();
+        GlassPreview view = (GlassPreview) ((GlassPreviewRow) row("hushgram_glass_preview")).onCreateView(null);
+        view.setBase(Color.BLACK);
+        view.measure(View.MeasureSpec.makeMeasureSpec(800, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+        view.layout(0, 0, view.getMeasuredWidth(), view.getMeasuredHeight());
+        float density = view.getResources().getDisplayMetrics().density;
+        // Low in the pill, under the dots that stand for the tabs and clear of the capsule.
+        int x = view.getWidth() * 3 / 4;
+        int y = Math.round(view.getHeight() - 19 * density);
+        Bitmap bitmap = Bitmap.createBitmap(view.getWidth(), view.getHeight(), Bitmap.Config.ARGB_8888);
+
+        assertEquals(GlassTabBar.tint(Color.BLACK, false, 1f), view.pillTint());
+        Settings.GLASS_TAB_BAR_TINT.save(GlassTint.LIGHT);
+        bitmap.eraseColor(Color.BLACK);
+        view.draw(new Canvas(bitmap));
+        assertEquals("light glass on a dark page", GlassTabBar.tint(Color.WHITE, false, 1f), view.pillTint());
+        int light = bitmap.getPixel(x, y);
+        assertTrue("the pill is light: " + Integer.toHexString(light),
+                Color.red(light) > 200 && Color.green(light) > 200 && Color.blue(light) > 200);
+
+        Settings.GLASS_TAB_BAR_TINT.save(GlassTint.AMOLED);
+        bitmap.eraseColor(Color.BLACK);
+        view.draw(new Canvas(bitmap));
+        assertEquals(Color.BLACK, view.pillTint());
+        assertEquals("solid black with no sheen", Color.BLACK, bitmap.getPixel(x, y));
+
+        Settings.GLASS_TAB_BAR_TINT.save(GlassTint.CUSTOM);
+        assertEquals("nothing typed, Instagram's glass", GlassTabBar.tint(Color.BLACK, false, 1f), view.pillTint());
+        Settings.GLASS_TAB_BAR_TINT_CUSTOM.save("#4A6B82");
+        assertEquals(GlassTabBar.tint(0xff4a6b82, false, 1f), view.pillTint());
+
+        ListPreference tint = (ListPreference) row(Settings.GLASS_TAB_BAR_TINT.key);
+        org.robolectric.shadows.ShadowView shadow = org.robolectric.Shadows.shadowOf(view);
+        shadow.clearWasInvalidated();
+        assertTrue(tint.getOnPreferenceChangeListener().onPreferenceChange(tint, GlassTint.DARK.name()));
+        assertTrue("a pick redraws the sample", shadow.wasInvalidated());
+        Preference custom = row(Settings.GLASS_TAB_BAR_TINT_CUSTOM.key);
+        shadow.clearWasInvalidated();
+        assertTrue(custom.getOnPreferenceChangeListener().onPreferenceChange(custom, "#FF8A00"));
+        assertTrue("a saved color redraws it", shadow.wasInvalidated());
     }
 
     private int indexOf(Preference preference) {

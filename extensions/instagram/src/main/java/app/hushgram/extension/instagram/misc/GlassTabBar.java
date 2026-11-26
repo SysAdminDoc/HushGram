@@ -21,6 +21,8 @@ import android.graphics.Outline;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.PixelFormat;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffColorFilter;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.RenderEffect;
@@ -134,6 +136,8 @@ public final class GlassTabBar {
     static final String REEL_FOOTERS = "clips_footer_mask_container";
     /** The Search tab, a child of the bar, which the liquid look puts in a circle of its own (#65). */
     static final String SEARCH_TAB = "search_tab";
+    /** A tab's icon, which a tint that leaves the glass the other shade from the bar recolors (#875). */
+    static final String TAB_ICON = "tab_icon";
     /** The Reels tab, a child of the bar. With it selected a reel keeps the pill's slot while the bar hides (#347). */
     static final String REELS_TAB = "clips_tab";
     /**
@@ -1241,6 +1245,8 @@ public final class GlassTabBar {
     static final String COUNT_TABS_LEFT = "Tabs out of the bar put back";
     /** Counted each time a tab badge's ring, new to the glass, is made clear (#315). */
     static final String COUNT_BADGE_RING = "Tab badge's ring made clear";
+    /** Counted each time a tab icon is recolored for glass its tint made the other shade from the bar (#875). */
+    static final String COUNT_ICON_RECOLORED = "Tab icon recolored for the tint";
 
     /** Liquid look (#65): the clear gap between the pill and Search's circle beside it. */
     static final int SEARCH_GAP_DP = 8;
@@ -1623,6 +1629,60 @@ public final class GlassTabBar {
         return Settings.GLASS_TAB_BAR_OPACITY.get() / 100f;
     }
 
+    /** Light and dark glass whatever the theme (#875): white, and the iPhone's dark material grey. */
+    static final int GLASS_LIGHT = Color.WHITE;
+    static final int GLASS_DARK = 0xff1c1c1e;
+    /** The tab icons' color on glass a tint made light over a dark bar (#875), Instagram's own near black. */
+    static final int ICON_ON_LIGHT = 0xff0c1014;
+
+    /** The tint picked under Tint color (#875), or Instagram's own while it rests or none is read. */
+    public static GlassTint tintPicked() {
+        if (!Settings.GLASS_TAB_BAR_TINT.isAvailable()) return GlassTint.INSTAGRAM;
+        GlassTint picked = Settings.GLASS_TAB_BAR_TINT.get();
+        return picked == null ? GlassTint.INSTAGRAM : picked;
+    }
+
+    /** {@link #tintPicked()} on the bar, where HushGram paused leaves the glass in Instagram's own colors. */
+    static GlassTint tintNow() {
+        return HushgramPause.isPaused() ? GlassTint.INSTAGRAM : tintPicked();
+    }
+
+    /**
+     * The color the pill's glass is made from under [tint] (#875), over a bar whose own color is [base]: the bar's
+     * own for Instagram's, white for light, the iPhone's dark grey for dark, black for AMOLED black, and the phone's
+     * Material You accent for the wallpaper's, a deep tone of it over a dark bar and a pale one over a light bar
+     * (Android 12 and newer, where older phones keep the bar's). Custom is [custom] as typed, or the bar's own
+     * while nothing that's a color is.
+     */
+    public static int glassColor(Context context, int base, @Nullable GlassTint tint, @Nullable String custom) {
+        if (tint == null) return base;
+        switch (tint) {
+            case LIGHT:
+                return GLASS_LIGHT;
+            case DARK:
+                return GLASS_DARK;
+            case AMOLED:
+                return Color.BLACK;
+            case WALLPAPER:
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return base;
+                return context.getColor(isDark(base) ? android.R.color.system_accent1_700 : android.R.color.system_accent1_200) | 0xff000000;
+            case CUSTOM:
+                String color = CustomAccent.normalize(custom);
+                return color == null ? base : Integer.parseInt(color.substring(1), 16) | 0xff000000;
+            default:
+                return base;
+        }
+    }
+
+    /**
+     * The pill's fill from [glass] (#875), as {@link #tint(int, boolean, float)} lays it, but solid black for AMOLED
+     * black ([amoled]), blurred or not, so the opacity slider alone lets anything show through.
+     */
+    public static int glassFill(int glass, boolean amoled, boolean blurred, float scale) {
+        if (amoled) return scaledAlpha(0xff, scale) << 24;
+        return tint(glass, blurred, scale);
+    }
+
     /** The shortest a compact pill is drawn, so the icons, the capsule round the selected one and badges fit. */
     static final int MIN_PILL_DP = 40;
     /** How much slimmer a compact pill is than the standard one, on each side. */
@@ -1949,6 +2009,11 @@ public final class GlassTabBar {
         private final boolean floating;
         private final PillDrawable pill = new PillDrawable();
         private int base;
+        /**
+         * The tab icons recolored for the tint (#875), each with the layer type it had and the color it was given,
+         * so it gets its own look back once the tint is Instagram's again, HushGram is paused or the bar goes.
+         */
+        private final WeakHashMap<View, int[]> recolored = new WeakHashMap<>();
         /** How the blur's recordings have gone lately, so one that fails is tried again ({@link BlurTries}, #262). */
         private final BlurTries tries = new BlurTries();
         /** The padding Instagram gave the bar, and what this last put on it, to tell their changes from ours. */
@@ -2550,6 +2615,51 @@ public final class GlassTabBar {
             return night == Configuration.UI_MODE_NIGHT_YES ? Color.BLACK : Color.WHITE;
         }
 
+        /**
+         * The color the tab icons need on the glass now (#875): Instagram colors them for its bar, so where the tint
+         * makes the glass the other shade, light glass on a dark bar or dark on a light one, they turn Instagram's
+         * near black or white to stay readable. 0 leaves Instagram's colors, as with the Material look, which draws
+         * in the bar's own shade.
+         */
+        private int iconColorNow() {
+            if (material && !liquidNow()) return 0;
+            boolean dark = isDark(pill.glassNow());
+            if (dark == isDark(base)) return 0;
+            return dark ? Color.WHITE : ICON_ON_LIGHT;
+        }
+
+        /**
+         * Draws [icon] in [color] through a layer of its own (#875), so whatever colors Instagram gives it, its
+         * selected state included, it shows in that one. A layer leaves Instagram's own color settings alone, and
+         * its badges, beside the icon, keep theirs.
+         */
+        private void recolor(@Nullable View icon, int color) {
+            if (icon == null) return;
+            int[] held = recolored.get(icon);
+            if (held != null && held[1] == color && icon.getLayerType() == View.LAYER_TYPE_HARDWARE) return;
+            if (held == null) {
+                held = new int[] {icon.getLayerType(), color};
+                recolored.put(icon, held);
+            }
+            held[1] = color;
+            Paint paint = new Paint();
+            paint.setColorFilter(new PorterDuffColorFilter(color, PorterDuff.Mode.SRC_IN));
+            icon.setLayerType(View.LAYER_TYPE_HARDWARE, paint);
+            HookStatus.counted(FamilyNames.GLASS_TAB_BAR, COUNT_ICON_RECOLORED);
+        }
+
+        /** Gives every recolored tab icon its own look back (#875). */
+        private void putIconsBack() {
+            for (Map.Entry<View, int[]> entry : new java.util.ArrayList<>(recolored.entrySet())) {
+                View icon = entry.getKey();
+                // The filter goes first, while the layer it sits on is still there: a layer type that comes back
+                // unchanged keeps whatever paint it held.
+                icon.setLayerPaint(null);
+                icon.setLayerType(entry.getValue()[0], null);
+            }
+            recolored.clear();
+        }
+
         /** Puts back what Instagram changed since the last frame. */
         private void keep() {
             Drawable background = bar.getBackground();
@@ -2560,9 +2670,13 @@ public final class GlassTabBar {
             // Instagram's newer bar marks the selected tab with a dark capsule, that tab's own
             // background. The pill draws its own capsule, and theirs would sit on top of it. A bare
             // ripple is the tab's touch feedback, not a capsule, and stays.
+            int iconColor = iconColorNow();
+            if (iconColor == 0 && !recolored.isEmpty()) putIconsBack();
+            int iconId = iconColor == 0 ? 0 : id(bar.getContext(), TAB_ICON);
             for (int i = 0; i < bar.getChildCount(); i++) {
                 View tab = bar.getChildAt(i);
                 clearBadgeRings(tab);
+                if (iconId != 0) recolor(tab.findViewById(iconId), iconColor);
                 Drawable own = tab.getBackground();
                 if (own == null || touchFeedbackOnly(own)) continue;
                 tab.setBackground(null);
@@ -3094,6 +3208,7 @@ public final class GlassTabBar {
             scaling = null;
             if (shrinking != null) shrinking.cancel();
             if (!liquid) scaleTo(1f);
+            putIconsBack();
             pill.discard();
         }
 
@@ -3151,6 +3266,14 @@ public final class GlassTabBar {
             /** The tab the capsule's middle was over when it last ticked, or -1 before the first frame. */
             private int tickedTab = -1;
             private boolean reported;
+            /** The glass's color under Tint color as this frame draws it, and whether that's AMOLED black (#875). */
+            private int glassDrawn;
+            private boolean amoledDrawn;
+            /** What the glass's color was last made from, so the phone's accent is read again only when one changes. */
+            @Nullable private GlassTint glassTint;
+            @Nullable private String glassCustom;
+            private int glassBase;
+            private int glassMade;
 
             PillDrawable() {
                 stroke.setStyle(Paint.Style.STROKE);
@@ -3170,6 +3293,19 @@ public final class GlassTabBar {
                 }
             }
 
+            /** The glass's color under Tint color now (#875), made again only when the tint, its color or the bar's changed. */
+            int glassNow() {
+                GlassTint tint = tintNow();
+                String custom = tint == GlassTint.CUSTOM ? Settings.GLASS_TAB_BAR_TINT_CUSTOM.get() : null;
+                if (tint != glassTint || base != glassBase || !java.util.Objects.equals(custom, glassCustom)) {
+                    glassTint = tint;
+                    glassCustom = custom;
+                    glassBase = base;
+                    glassMade = glassColor(bar.getContext(), base, tint, custom);
+                }
+                return glassMade;
+            }
+
             /** Puts the pill's bounds in [into], in the bar's coordinates, and says whether it has any. */
             private boolean pillBounds(RectF into) {
                 float left = outer;
@@ -3183,6 +3319,8 @@ public final class GlassTabBar {
 
             private void drawPill(@NonNull Canvas canvas) {
                 if (!pillBounds(rect)) return;
+                glassDrawn = glassNow();
+                amoledDrawn = glassTint == GlassTint.AMOLED;
                 if (liquidNow()) {
                     drawLiquid(canvas);
                     return;
@@ -3192,23 +3330,26 @@ public final class GlassTabBar {
                     return;
                 }
                 float radius = cornerPx(corners, false, rect.height(), density);
-                boolean dark = isDark(base);
+                boolean dark = isDark(glassDrawn);
                 underlay(canvas);
                 // Light glass has nothing under it to stand out against, so it gets a soft shadow.
                 if (!dark) shadow(canvas, rect, radius);
                 boolean blurred = blurWanted && !tries.resting(SystemClock.uptimeMillis()) && drawBackdrop(canvas);
                 // The standard pill's rim bends too, round its own corners (#391). Paused, it's the plain pill.
                 if (blurred && refract && !HushgramPause.isPaused()) paintRim(canvas, rect, radius);
-                fill.setColor(tint(base, blurred, opacityScale()));
+                fill.setColor(glassFill(glassDrawn, amoledDrawn, blurred, opacityScale()));
                 canvas.drawRoundRect(rect, radius, radius, fill);
 
-                keepSheen(dark);
-                canvas.drawRoundRect(rect, radius, radius, sheen);
+                // AMOLED black is black through and through, with no sheen to grey it.
+                if (!amoledDrawn) {
+                    keepSheen(dark);
+                    canvas.drawRoundRect(rect, radius, radius, sheen);
+                }
 
                 drawCapsule(canvas, rect, cornerPx(corners, true, rect.height() - 2 * dp(HIGHLIGHT_INSET_DP), density), 1f);
 
                 stroke.setStrokeWidth(Math.max(1f, density));
-                stroke.setColor(edge(base));
+                stroke.setColor(edge(glassDrawn));
                 rect.inset(density / 2f, density / 2f);
                 canvas.drawRoundRect(rect, radius, radius, stroke);
             }
@@ -3220,7 +3361,7 @@ public final class GlassTabBar {
              * circle round that tab, and its highlight fades.
              */
             private void drawLiquid(@NonNull Canvas canvas) {
-                boolean dark = isDark(base);
+                boolean dark = isDark(glassDrawn);
                 View search = searchTab();
                 boolean apart = liquidShapes(rect, search);
                 shrunkHolder(holder, bar.getLayoutDirection() == View.LAYOUT_DIRECTION_RTL, compact, shrunk);
@@ -3242,17 +3383,19 @@ public final class GlassTabBar {
                 }
                 blurShown = blurred;
                 if (blurred && refract) paintRims(canvas, apart);
-                fill.setColor(tint(base, blurred, opacityScale()));
+                fill.setColor(glassFill(glassDrawn, amoledDrawn, blurred, opacityScale()));
                 canvas.drawPath(shapes, fill);
-                keepSheen(dark);
-                canvas.drawPath(shapes, sheen);
+                if (!amoledDrawn) {
+                    keepSheen(dark);
+                    canvas.drawPath(shapes, sheen);
+                }
 
                 View selected = selectedTab();
                 RectF within = apart && selected != null && selected == search ? circle : shrunk;
                 drawCapsule(canvas, within, Math.max(0f, within.height() / 2f - dp(HIGHLIGHT_INSET_DP)), 1f - compact);
 
                 stroke.setStrokeWidth(Math.max(1f, density));
-                stroke.setColor(edge(base));
+                stroke.setColor(edge(glassDrawn));
                 float half = density / 2f;
                 outline.set(shrunk);
                 outline.inset(half, half);
@@ -3386,7 +3529,7 @@ public final class GlassTabBar {
                 boolean underFinger = bubble && !Float.isNaN(holdX)
                         && (!Float.isNaN(dragX) || (holdX >= nowLeft && holdX <= nowRight));
                 holdNow = holdAt(now, underFinger);
-                int color = material ? materialPair(isDark(base))[1] : highlight(base);
+                int color = material ? materialPair(isDark(base))[1] : highlight(glassDrawn);
                 if (share < 1f) color = (color & 0x00ffffff) | (scaledAlpha(Color.alpha(color), Math.max(0f, share)) << 24);
                 fill.setColor(color);
                 float size = bubbleNow * holdScale(holdNow);
@@ -3430,7 +3573,7 @@ public final class GlassTabBar {
                 }
                 made.boost = lensBoost(hold);
                 if (made.paint(canvas, node, nodeLeft, nodeTop, DOWNSAMPLE, bar.getWidth(), bar.getHeight(), capsule, corner)) {
-                    fill.setColor(tint(base, true, opacityScale()));
+                    fill.setColor(glassFill(glassDrawn, amoledDrawn, true, opacityScale()));
                     canvas.drawRoundRect(capsule, corner, corner, fill);
                 }
             }
@@ -3470,7 +3613,7 @@ public final class GlassTabBar {
              * dark glass each get the shades that read on them.
              */
             private void paintBubble(Canvas canvas, float corner, float share) {
-                boolean dark = isDark(base);
+                boolean dark = isDark(glassDrawn);
                 int shade = dark ? 1 : 2;
                 if (bubbleShade != shade) {
                     bubbleShade = shade;

@@ -1925,6 +1925,21 @@ Seek bar button on feed videos	Botão da barra de progresso nos vídeos do feed
 Adds a small button at the bottom left of a feed video that shows or hides its seek bar. It works with Seek bar on feed videos on or off.	Adiciona um botão pequeno no canto inferior esquerdo de um vídeo do feed que mostra ou oculta a barra de progresso. Funciona com a barra de progresso nos vídeos do feed ligada ou desligada.
 Seek bar	Barra de progresso
 Tint intensity	Intensidade do tom
+# context: Tab bar: the Tint color list under Tint intensity that picks the glass tab bar's color, its choices' descriptions, the Custom tint color field under it with its dialog message and empty summary, and what both say while another switch is in the way (#875). Light, Dark and AMOLED black are choices in the list; Tint intensity, Custom tint color, Glass tab bar and Material look are rows' names
+Tint color	Cor do tom
+Light	Claro
+Dark	Escuro
+AMOLED black	Preto AMOLED
+The glass takes Instagram's own colors, dark or light with its theme.	O vidro usa as cores do próprio Instagram, escuro ou claro como o Instagram estiver.
+Frosted white glass whatever Instagram's theme, with the tab icons dark on it.	Vidro branco fosco com o Instagram escuro ou claro, com os ícones das abas escuros sobre ele.
+Dark gray glass whatever Instagram's theme, with the tab icons white on it.	Vidro cinza-escuro com o Instagram escuro ou claro, com os ícones das abas brancos sobre ele.
+A black pill with no sheen, for AMOLED screens. A lower Tint intensity lets what's behind it show through.	Uma pílula preta sem brilho, para telas AMOLED. Com uma Intensidade do tom menor, o que está atrás aparece.
+The glass takes the accent color Android picks from your wallpaper. Android 12 and newer. Older phones keep Instagram's colors.	O vidro usa a cor de destaque que o Android escolhe do seu papel de parede. Android 12 ou mais recente. Celulares mais antigos mantêm as cores do Instagram.
+The glass takes the color you type under Custom tint color.	O vidro usa a cor que você digitar em Cor do tom personalizada.
+Custom tint color	Cor do tom personalizada
+A color as six hex digits, like #4A6B82. Saving it picks Custom under Tint color.	Uma cor em seis dígitos hexadecimais, como #4A6B82. Salvar escolhe Personalizada em Cor do tom.
+Turn on Glass tab bar to use this choice.	Ative Barra de abas de vidro para usar esta opção.
+Turn off Material look to use this choice.	Desative Visual Material para usar esta opção.
 Refraction intensity	Intensidade da refração
 Preview of the tab bar	Prévia da barra de abas
 Keep stories playing while zooming	Manter stories tocando ao dar zoom

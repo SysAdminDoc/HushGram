@@ -1925,6 +1925,21 @@ Seek bar button on feed videos	Botón de la barra de reproducción en videos del
 Adds a small button at the bottom left of a feed video that shows or hides its seek bar. It works with Seek bar on feed videos on or off.	Añade un botón pequeño abajo a la izquierda de un video del feed que muestra u oculta su barra de reproducción. Funciona con la barra de reproducción en videos del feed activada o desactivada.
 Seek bar	Barra de reproducción
 Tint intensity	Intensidad del tinte
+# context: Tab bar: the Tint color list under Tint intensity that picks the glass tab bar's color, its choices' descriptions, the Custom tint color field under it with its dialog message and empty summary, and what both say while another switch is in the way (#875). Light, Dark and AMOLED black are choices in the list; Tint intensity, Custom tint color, Glass tab bar and Material look are rows' names
+Tint color	Color del tinte
+Light	Claro
+Dark	Oscuro
+AMOLED black	Negro AMOLED
+The glass takes Instagram's own colors, dark or light with its theme.	El cristal toma los colores de Instagram, oscuro o claro según Instagram.
+Frosted white glass whatever Instagram's theme, with the tab icons dark on it.	Cristal blanco esmerilado con Instagram oscuro o claro, con los iconos de las pestañas oscuros encima.
+Dark gray glass whatever Instagram's theme, with the tab icons white on it.	Cristal gris oscuro con Instagram oscuro o claro, con los iconos de las pestañas blancos encima.
+A black pill with no sheen, for AMOLED screens. A lower Tint intensity lets what's behind it show through.	Una píldora negra sin brillo, para pantallas AMOLED. Con menos Intensidad del tinte se ve lo que hay detrás.
+The glass takes the accent color Android picks from your wallpaper. Android 12 and newer. Older phones keep Instagram's colors.	El cristal toma el color de acento que Android elige de tu fondo de pantalla. Android 12 o posterior. Los teléfonos más antiguos mantienen los colores de Instagram.
+The glass takes the color you type under Custom tint color.	El cristal toma el color que escribas en «Color del tinte personalizado».
+Custom tint color	Color del tinte personalizado
+A color as six hex digits, like #4A6B82. Saving it picks Custom under Tint color.	Un color de seis dígitos hexadecimales, como #4A6B82. Al guardarlo se elige Personalizado en «Color del tinte».
+Turn on Glass tab bar to use this choice.	Activa «Barra de pestañas de cristal» para usar esta opción.
+Turn off Material look to use this choice.	Desactiva «Aspecto Material» para usar esta opción.
 Refraction intensity	Intensidad de la refracción
 Preview of the tab bar	Vista previa de la barra de pestañas
 Keep stories playing while zooming	Mantener las historias en reproducción al hacer zoom

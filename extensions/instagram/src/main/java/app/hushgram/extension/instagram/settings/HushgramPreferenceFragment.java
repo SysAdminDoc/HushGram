@@ -148,6 +148,7 @@ import app.hushgram.extension.instagram.misc.GlassCorners;
 import app.hushgram.extension.instagram.misc.GlassHeight;
 import app.hushgram.extension.instagram.misc.GlassLift;
 import app.hushgram.extension.instagram.misc.GlassReelsHide;
+import app.hushgram.extension.instagram.misc.GlassTint;
 import app.hushgram.extension.instagram.misc.TabIconSize;
 import app.hushgram.extension.instagram.misc.AccentHue;
 import app.hushgram.extension.instagram.misc.AppProxy;
@@ -901,7 +902,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     belongs |= family == PatchFamily.GLASS_TAB_BAR && (Settings.GLASS_TAB_BAR_OPACITY.key.equals(key) || Settings.GLASS_TAB_BAR_REFRACT_STRENGTH.key.equals(key)
                             || Settings.GLASS_TAB_BAR_BLUR_RADIUS.key.equals(key)
                             || Settings.GLASS_TAB_BAR_HEIGHT.key.equals(key) || Settings.GLASS_TAB_BAR_LIFT.key.equals(key)
-                            || Settings.GLASS_TAB_BAR_CORNERS.key.equals(key) || Settings.GLASS_TAB_BAR_REELS_HIDE.key.equals(key));
+                            || Settings.GLASS_TAB_BAR_CORNERS.key.equals(key) || Settings.GLASS_TAB_BAR_REELS_HIDE.key.equals(key)
+                            || Settings.GLASS_TAB_BAR_TINT.key.equals(key) || Settings.GLASS_TAB_BAR_TINT_CUSTOM.key.equals(key));
                     belongs |= family == PatchFamily.GLASS_CHAT && (Settings.GLASS_CHAT_TOP_BAR_OPACITY.key.equals(key)
                             || Settings.GLASS_CHAT_BOX_OPACITY.key.equals(key));
                     belongs |= family == PatchFamily.VIDEO_DOWNLOAD && (Settings.HOLD_TO_DOWNLOAD.key.equals(key)
@@ -6098,6 +6100,58 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         return row;
     }
 
+    /**
+     * The color the glass tab bar's pill is tinted (#875): Instagram's own, light, dark, AMOLED black, the phone's
+     * Material You accent, or a custom color typed in the row under it. Its values are the tints' own names.
+     */
+    static GlassTintRow glassTintRow(Context context) {
+        GlassTintRow row = new GlassTintRow(context, new String[] {
+                L10n.t("The glass takes Instagram's own colors, dark or light with its theme."),
+                L10n.t("Frosted white glass whatever Instagram's theme, with the tab icons dark on it."),
+                L10n.t("Dark gray glass whatever Instagram's theme, with the tab icons white on it."),
+                L10n.t("A black pill with no sheen, for AMOLED screens. A lower Tint intensity lets what's behind it show through."),
+                L10n.t("The glass takes the accent color Android picks from your wallpaper. Android 12 and newer. "
+                        + "Older phones keep Instagram's colors."),
+                L10n.t("The glass takes the color you type under Custom tint color."),
+        });
+        fill(row, Settings.GLASS_TAB_BAR_TINT, GlassTint.values(), new String[] {
+                L10n.t("Instagram's colors"),
+                L10n.t("Light"),
+                L10n.t("Dark"),
+                L10n.t("AMOLED black"),
+                L10n.t("Material You"),
+                L10n.t("Custom"),
+        }, L10n.t("Tint color"));
+        return row;
+    }
+
+    /**
+     * The color typed for Custom under Tint color (#875), saved as #RRGGBB. What isn't a color is refused under
+     * the field. Saving one picks Custom in the Tint color list too, so it takes one step.
+     */
+    static GlassTintCustomRow glassTintCustomRow(Context context) {
+        GlassTintCustomRow row = new GlassTintCustomRow(context);
+        row.setTitle(L10n.t("Custom tint color"));
+        row.setDialogTitle(L10n.t("Custom tint color"));
+        row.setDialogMessage(L10n.t("A color as six hex digits, like #4A6B82. Saving it picks Custom under Tint color."));
+        row.setOnPreferenceChangeListener((preference, typed) -> {
+            if (CustomAccent.normalize(typed == null ? "" : typed.toString()) == null) return false;
+            Preference tint = preference.getPreferenceManager() == null ? null
+                    : preference.getPreferenceManager().findPreference(Settings.GLASS_TAB_BAR_TINT.key);
+            if (tint instanceof GlassTintRow) ((GlassTintRow) tint).setValue(GlassTint.CUSTOM.name());
+            else Settings.GLASS_TAB_BAR_TINT.save(GlassTint.CUSTOM);
+            return true;
+        });
+        return row;
+    }
+
+    /** What Tint color and its custom color say while they rest (#875): the Material look's switch when it's the one in the way. */
+    static String glassTintNeeds() {
+        return Settings.GLASS_TAB_BAR.savedValue()
+                ? L10n.t("Turn off Material look to use this choice.")
+                : L10n.t("Turn on Glass tab bar to use this choice.");
+    }
+
     /** How strong the tint of a chat's glass top bar or message bar is, from a slider in percent of its own look (#688). */
     static SliderRow chatGlassTintRow(Context context, IntegerSetting setting, String title) {
         SliderRow row = new SliderRow(context, setting, 5, L10n.t("%1$d%%"));
@@ -7925,6 +7979,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             ((StoryRingThicknessRow) preference).showSummary();
         } else if (preference instanceof StoryRingCustomRow) {
             ((StoryRingCustomRow) preference).showSummary();
+        } else if (preference instanceof GlassTintCustomRow) {
+            ((GlassTintCustomRow) preference).showSummary();
         } else if (preference instanceof LikeAnimationRow) {
             ((LikeAnimationRow) preference).showSummary();
         } else if (preference instanceof GlassReelsHideRow) {
@@ -11376,6 +11432,68 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
 
         @Override String validatedValue(String typed) {
             if (end() && (typed == null || typed.trim().isEmpty())) return "";
+            return CustomAccent.normalize(typed);
+        }
+
+        @Override String validationError() {
+            return L10n.t("That isn't a color. Try #4A6B82.");
+        }
+    }
+
+    /** Tint color (#875), whose summary names the switch in the way while it rests. */
+    static final class GlassTintRow extends ChoiceRow<GlassTint> {
+        GlassTintRow(Context context, String[] summaries) {
+            super(context, Settings.GLASS_TAB_BAR_TINT, GlassTint.values(), summaries, null);
+        }
+
+        @Override
+        void showSummary() {
+            super.showSummary();
+            if (!Settings.GLASS_TAB_BAR_TINT.isAvailable()) setSummary(glassTintNeeds());
+        }
+    }
+
+    /**
+     * The color typed for Custom under Tint color (#875). Its summary is the color saved, that none is yet, or
+     * which switch to change while the tint rests.
+     */
+    static final class GlassTintCustomRow extends ValidatedEditRow {
+        GlassTintCustomRow(Context context) {
+            super(context);
+            setKey(Settings.GLASS_TAB_BAR_TINT_CUSTOM.key);
+            setPositiveButtonText(L10n.t("Save"));
+            setNegativeButtonText(L10n.t("Cancel"));
+            EditText field = getEditText();
+            field.setSingleLine(true);
+            field.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
+            field.setTextDirection(View.TEXT_DIRECTION_LTR);
+            field.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS | InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS);
+            field.setHint("#4A6B82");
+            setText(Settings.GLASS_TAB_BAR_TINT_CUSTOM.savedValue());
+        }
+
+        @Override
+        public void setText(String text) {
+            super.setText(text);
+            showSummary();
+        }
+
+        void showSummary() {
+            String color = CustomAccent.normalize(getText());
+            if (!Settings.GLASS_TAB_BAR_TINT_CUSTOM.isAvailable()) setSummary(glassTintNeeds());
+            else if (color != null) setSummary(color);
+            else setSummary(L10n.t("None yet. Custom keeps Instagram's colors until you type one."));
+        }
+
+        @Override
+        protected void onBindView(View view) {
+            super.onBindView(view);
+            showAllText(view);
+            ScreenColors.row(view, this);
+            view.setAccessibilityDelegate(new RowSemantics(this, Button.class));
+        }
+
+        @Override String validatedValue(String typed) {
             return CustomAccent.normalize(typed);
         }
 

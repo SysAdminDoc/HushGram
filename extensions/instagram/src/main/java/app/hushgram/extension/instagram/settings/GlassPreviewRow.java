@@ -57,6 +57,20 @@ final class GlassPreviewRow extends Preference {
         return preview;
     }
 
+    /**
+     * Redraws the sample each time [row] takes a new value (#875), after whatever its own listener does, so a
+     * pick under Tint color shows on it at once. The value is saved by the time the sample next draws.
+     */
+    void redrawOn(Preference row) {
+        Preference.OnPreferenceChangeListener before = row.getOnPreferenceChangeListener();
+        row.setOnPreferenceChangeListener((changed, value) -> {
+            boolean taken = before == null || before.onPreferenceChange(changed, value);
+            GlassPreview shown = preview;
+            if (taken && shown != null) shown.invalidate();
+            return taken;
+        });
+    }
+
     /** Makes [slider]'s row feed this sample the value it holds while it's dragged, and -1 once let go. */
     void follow(HushgramPreferenceFragment.SliderRow slider, int which) {
         slider.live = value -> {

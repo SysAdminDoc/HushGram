@@ -1912,6 +1912,21 @@ Seek bar button on feed videos	ปุ่มแถบเลื่อนเวล�
 Adds a small button at the bottom left of a feed video that shows or hides its seek bar. It works with Seek bar on feed videos on or off.	เพิ่มปุ่มขนาดเล็กที่ด้านล่างซ้ายของวิดีโอฟีดเพื่อแสดงหรือซ่อนแถบเลื่อนเวลา สามารถทำงานได้ไม่ว่าจะเปิดหรือปิด "แถบเลื่อนเวลาในวิดีโอฟีด"
 Seek bar	แถบเลื่อนเวลา
 Tint intensity	ความเข้มของโทนสี
+# context: Tab bar: the Tint color list under Tint intensity that picks the glass tab bar's color, its choices' descriptions, the Custom tint color field under it with its dialog message and empty summary, and what both say while another switch is in the way (#875). Light, Dark and AMOLED black are choices in the list; Tint intensity, Custom tint color, Glass tab bar and Material look are rows' names
+Tint color	สีกระจก
+Light	สว่าง
+Dark	มืด
+AMOLED black	ดำ AMOLED
+The glass takes Instagram's own colors, dark or light with its theme.	กระจกใช้สีของ Instagram เอง มืดหรือสว่างตาม Instagram
+Frosted white glass whatever Instagram's theme, with the tab icons dark on it.	กระจกฝ้าสีขาวไม่ว่า Instagram จะมืดหรือสว่าง พร้อมไอคอนแท็บสีเข้มบนกระจก
+Dark gray glass whatever Instagram's theme, with the tab icons white on it.	กระจกสีเทาเข้มไม่ว่า Instagram จะมืดหรือสว่าง พร้อมไอคอนแท็บสีขาวบนกระจก
+A black pill with no sheen, for AMOLED screens. A lower Tint intensity lets what's behind it show through.	แถบแคปซูลสีดำไม่มีความเงา สำหรับหน้าจอ AMOLED ลด "ความเข้มของโทนสี" เพื่อให้เห็นสิ่งที่อยู่ด้านหลัง
+The glass takes the accent color Android picks from your wallpaper. Android 12 and newer. Older phones keep Instagram's colors.	กระจกใช้สีเน้นที่ Android เลือกจากวอลเปเปอร์ของคุณ ใช้ได้บน Android 12 ขึ้นไป โทรศัพท์รุ่นเก่ายังคงใช้สีตาม Instagram
+The glass takes the color you type under Custom tint color.	กระจกใช้สีที่คุณป้อนใน "สีกระจกที่กำหนดเอง"
+Custom tint color	สีกระจกที่กำหนดเอง
+A color as six hex digits, like #4A6B82. Saving it picks Custom under Tint color.	รหัสสีแบบฐานสิบหก 6 หลัก เช่น #4A6B82 เมื่อบันทึกแล้ว "สีกระจก" จะเปลี่ยนเป็นกำหนดเอง
+Turn on Glass tab bar to use this choice.	เปิดใช้งาน "แถบแท็บกระจก" เพื่อใช้ตัวเลือกนี้
+Turn off Material look to use this choice.	ปิดใช้งาน "รูปลักษณ์ Material" เพื่อใช้ตัวเลือกนี้
 Refraction intensity	ความเข้มของการหักเหแสง
 Preview of the tab bar	ตัวอย่างแถบแท็บ
 Keep stories playing while zooming	เล่นสตอรี่ต่อไปขณะซูม

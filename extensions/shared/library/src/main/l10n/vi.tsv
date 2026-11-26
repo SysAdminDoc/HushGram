@@ -1840,6 +1840,21 @@ Seek bar button on feed videos	Nút thanh tua trên video bảng feed
 Adds a small button at the bottom left of a feed video that shows or hides its seek bar. It works with Seek bar on feed videos on or off.	Thêm nút nhỏ ở dưới bên trái video bảng feed để hiện hoặc ẩn thanh tua. Dùng được dù Thanh tua trên video bảng feed bật hay tắt.
 Seek bar	Thanh tua
 Tint intensity	Độ đậm màu
+# context: Tab bar: the Tint color list under Tint intensity that picks the glass tab bar's color, its choices' descriptions, the Custom tint color field under it with its dialog message and empty summary, and what both say while another switch is in the way (#875). Light, Dark and AMOLED black are choices in the list; Tint intensity, Custom tint color, Glass tab bar and Material look are rows' names
+Tint color	Màu kính
+Light	Sáng
+Dark	Tối
+AMOLED black	Đen AMOLED
+The glass takes Instagram's own colors, dark or light with its theme.	Kính lấy màu của chính Instagram, tối hoặc sáng theo Instagram.
+Frosted white glass whatever Instagram's theme, with the tab icons dark on it.	Kính trắng mờ dù Instagram tối hay sáng, với biểu tượng tab màu tối trên đó.
+Dark gray glass whatever Instagram's theme, with the tab icons white on it.	Kính xám đậm dù Instagram tối hay sáng, với biểu tượng tab màu trắng trên đó.
+A black pill with no sheen, for AMOLED screens. A lower Tint intensity lets what's behind it show through.	Viên thanh màu đen không bóng, cho màn hình AMOLED. Độ đậm màu thấp hơn sẽ để lộ phía sau.
+The glass takes the accent color Android picks from your wallpaper. Android 12 and newer. Older phones keep Instagram's colors.	Kính lấy màu nhấn mà Android chọn từ hình nền của bạn. Android 12 trở lên. Điện thoại cũ hơn giữ màu của Instagram.
+The glass takes the color you type under Custom tint color.	Kính lấy màu bạn nhập trong Màu kính tùy chỉnh.
+Custom tint color	Màu kính tùy chỉnh
+A color as six hex digits, like #4A6B82. Saving it picks Custom under Tint color.	Một màu gồm sáu chữ số hex, như #4A6B82. Lưu lại sẽ chọn Tùy chỉnh trong Màu kính.
+Turn on Glass tab bar to use this choice.	Hãy bật Thanh tab kính để dùng lựa chọn này.
+Turn off Material look to use this choice.	Hãy tắt Kiểu Material để dùng lựa chọn này.
 Refraction intensity	Độ khúc xạ
 Preview of the tab bar	Xem trước thanh tab
 Keep stories playing while zooming	Giữ tin phát khi thu phóng
