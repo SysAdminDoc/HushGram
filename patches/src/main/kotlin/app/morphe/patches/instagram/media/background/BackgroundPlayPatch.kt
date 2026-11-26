@@ -13,6 +13,9 @@ import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.patch.resourcePatch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patcher.util.smali.ExternalLabel
+import app.morphe.patches.instagram.download.carouselBridge
+import app.morphe.patches.instagram.download.imageBridges
+import app.morphe.patches.instagram.download.mediaTypeBridge
 import app.morphe.patches.instagram.media.taptoplay.findPlayInternal
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesLoadingString
@@ -121,7 +124,10 @@ internal val backgroundPlayServicePatch = resourcePatch {
  * while Instagram is in that window. Pause button in the reels window (#873) adds Pause and Play
  * to that window's buttons: see [addReelsPipButtons]. Previous and next in the reels window gives
  * it Instagram's own Previous and Next, which a server flag keeps off: see [addReelsPipSkips].
- * Picture in picture for stories makes a window Instagram has none of for stories: see
+ * Photos and carousels in the reels window lets those reels past the window's video question: see
+ * [addReelsPipStills]. The window binds a picture's reel to no player and lays the picture over it,
+ * with a carousel's dots: see [addReelsPipBind]. Its Previous and Next turn a carousel's pages before
+ * going to another reel: see [addReelsPipTurns]. Picture in picture for stories makes a window Instagram has none of for stories: see
  * [keepStoriesInPip].
  */
 @Suppress("unused")
@@ -141,6 +147,10 @@ val backgroundPlayPatch = bytecodePatch(
         val pip = findReelsPipChecks(PATCH)
         val pipButtons = findReelsPipButtons(PATCH)
         val pipSkips = findReelsPipSkips(PATCH)
+        val pipStills = findReelsPipStills(PATCH, pipButtons.builder)
+        val pipBind = findReelsPipBind(PATCH)
+        val pipTurns = findReelsPipTurns(PATCH)
+        val stillBridges = listOf(mediaTypeBridge(PATCH), carouselBridge(PATCH), imageBridges(PATCH))
         val stories = findStoriesPip(PATCH)
         val springs = findSpringActivate(PATCH)
         keepPlayingInBackground(sites)
@@ -148,6 +158,10 @@ val backgroundPlayPatch = bytecodePatch(
         allowReelsPip(PATCH, pip)
         addReelsPipButtons(PATCH, pipButtons)
         addReelsPipSkips(PATCH, pipSkips)
+        addReelsPipStills(PATCH, pipStills)
+        addReelsPipBind(PATCH, pipBind)
+        addReelsPipTurns(PATCH, pipTurns)
+        stillBridges.forEach { it() }
         keepStoriesInPip(PATCH, stories)
         enableStatus("backgroundPlay")
     }

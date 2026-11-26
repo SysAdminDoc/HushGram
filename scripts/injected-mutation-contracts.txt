@@ -2277,6 +2277,26 @@ start-call Lapp/hushgram/extension/instagram/media/ReelsPip;->on()Z in static (L
 once-call Lapp/hushgram/extension/instagram/media/ReelsPip;->on()Z in static (Lcom/instagram/common/session/UserSession;Z)Z holding const:0x810a3700003a7a
 start-call Lapp/hushgram/extension/instagram/media/ReelsPip;->on()Z in static (Lcom/instagram/common/session/UserSession;Z)Z holding const:0x810a3700063a80
 once-call Lapp/hushgram/extension/instagram/media/ReelsPip;->on()Z in static (Lcom/instagram/common/session/UserSession;Z)Z holding const:0x810a3700063a80
+# Its Photos and carousels in the reels window switch (#873) hands the window check's video answer
+# and the reel's model to ReelsPipStills.window, in the settings builder's class (the one loading
+# ClipsViewerPipUtil), whose instance (UserSession, reel) boolean method asks first whether the reel
+# is a video. Left out, a photo or carousel reel never opens the window; twice or elsewhere, it
+# isn't the hook the patch wrote.
+once-call Lapp/hushgram/extension/instagram/media/ReelsPipStills;->window(ILjava/lang/Object;)I in instance (Lcom/instagram/common/session/UserSession;L*;)Z pooled class-holding ClipsViewerPipUtil
+# The window's bind, the Litho lambda's invoke loading clips_pip, hands its lambda and arguments to
+# binding, asks bound which reel to bind the player to (none for a picture) and page which carousel
+# page it plays, at its second check for a reel. Left out, a picture's reel goes to the player and
+# the window stays black; twice or elsewhere, it isn't the hook the patch wrote.
+once-call Lapp/hushgram/extension/instagram/media/ReelsPipStills;->binding(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V in instance (Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; pooled holding clips_pip
+once-call Lapp/hushgram/extension/instagram/media/ReelsPipStills;->bound(Landroid/view/View;Ljava/lang/Object;)Ljava/lang/Object; in instance (Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; pooled holding clips_pip
+once-call Lapp/hushgram/extension/instagram/media/ReelsPipStills;->page(Ljava/lang/Object;)Ljava/lang/Integer; in instance (Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; pooled holding clips_pip
+# The receiver of the window's Previous and Next, the instance (Context, Intent, ...) method comparing
+# the action's hash with both, asks skip first, which turns a carousel's page and answers 1, or 0 to
+# leave the action to Instagram. Left out, Previous and Next go to another reel from any page; twice
+# or elsewhere, it isn't the hook the patch wrote. The two stubs the patch fills, mediaType and
+# reelMedia, are the extension's own methods, so they get no rule; ReelsPipStillsTest checks them.
+start-call Lapp/hushgram/extension/instagram/media/ReelsPipStills;->skip(Landroid/content/Intent;)I in instance (Landroid/content/Context;Landroid/content/Intent;L*;)V holding const:0x7e9ee785 const:0x1d6b7689
+once-call Lapp/hushgram/extension/instagram/media/ReelsPipStills;->skip(Landroid/content/Intent;)I in instance (Landroid/content/Context;Landroid/content/Intent;L*;)V holding const:0x7e9ee785 const:0x1d6b7689
 # Its Picture in picture for stories switch (#572) asks StoriesPip.pausing in the story viewer's
 # pause (ReelViewerFragment.A1B on 454, the static (viewer, String) method loading pause_story),
 # after Keep stories playing while zooming's report, and tells StoriesPip.resumed in its resume

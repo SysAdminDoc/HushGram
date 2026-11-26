@@ -2334,6 +2334,9 @@ Instagram's small window for reels gets a button to pause the reel and play it a
 # context: a switch on the Playback page under Pause button in the reels window; the buttons are Instagram's own Previous and Next buttons in its small picture in picture window for reels
 Previous and next in the reels window	Anterior y siguiente en la ventana de reels
 Instagram's small window for reels gets its own buttons to go back a reel or on to the next one.	La ventana pequeña de Instagram para reels tiene sus propios botones para volver un reel o pasar al siguiente.
+# context: a switch on the Playback page under Previous and next in the reels window; photo and carousel reels go in Instagram's small picture in picture window for reels, a carousel shows a dot per page, and the window's Previous and Next buttons turn its pages before moving to another reel (#873)
+Photos and carousels in the reels window	Fotos y carruseles en la ventana de reels
+Photo and carousel reels go in Instagram's small window for reels too. A carousel shows a dot for each page, and Previous and Next go through its pages first.	Los reels de fotos y de carrusel también entran en la ventana pequeña de Instagram para reels. Un carrusel muestra un punto por cada página, y Anterior y Siguiente pasan primero por sus páginas.
 # context: a switch on the Playback page under Picture in picture for reels; Android's own name for picture in picture, and it keeps moving on to the next stories inside the small window
 Picture in picture for stories	Imagen en imagen para historias
 Leaving Instagram while a story plays shrinks it into a small window over your other apps, where it keeps going through the stories.	Si sales de Instagram mientras se reproduce una historia, se reduce a una ventana pequeña sobre tus otras apps, donde sigue pasando por las historias.

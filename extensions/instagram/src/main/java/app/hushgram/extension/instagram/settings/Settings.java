@@ -5281,6 +5281,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_reels_pip_skip_buttons", FALSE);
 
     /**
+     * Lets photo and carousel reels into Instagram's picture in picture window for reels, which
+     * otherwise takes video reels only (#873,
+     * {@link app.hushgram.extension.instagram.media.ReelsPipStills}). Read each time Instagram asks
+     * whether a reel can go in the window. Off to start.
+     */
+    public static final BooleanSetting REELS_PIP_STILLS =
+            new BooleanSetting("hushgram_reels_pip_stills", FALSE);
+
+    /**
      * Leaving Instagram while a story plays shrinks it into a picture in picture window that keeps
      * going through the stories (#572, {@link app.hushgram.extension.instagram.media.StoriesPip}).
      * Read as you leave. Off to start.

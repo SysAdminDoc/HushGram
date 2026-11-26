@@ -217,7 +217,7 @@ public enum PatchFamily {
     STOP_LOOPING(FamilyNames.STOP_LOOPING, "stopLooping", null, Settings.STOP_VIDEO_LOOPING),
     BACKGROUND_PLAY(FamilyNames.BACKGROUND_PLAY, "backgroundPlay", null, Settings.KEEP_PLAYING_IN_BACKGROUND,
             Settings.REELS_PICTURE_IN_PICTURE, Settings.REELS_PIP_PLAY_BUTTON, Settings.REELS_PIP_SKIP_BUTTONS,
-            Settings.STORIES_PICTURE_IN_PICTURE),
+            Settings.REELS_PIP_STILLS, Settings.STORIES_PICTURE_IN_PICTURE),
     MEDIA_CACHE(FamilyNames.MEDIA_CACHE, "mediaCache", null, Settings.CLEAR_MEDIA_CACHE),
     FRIENDSHIP_STATUS(FamilyNames.FRIENDSHIP_STATUS, "friendshipStatus", null, Settings.SHOW_FRIENDSHIP_STATUS,
             Settings.MARK_FOLLOWING_LIST, Settings.FOLLOW_MARK_ON_PICTURE, Settings.FRIENDSHIP_STATUS_CHIP,

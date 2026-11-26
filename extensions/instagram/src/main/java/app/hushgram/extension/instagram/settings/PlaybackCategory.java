@@ -78,6 +78,10 @@ final class PlaybackCategory {
                 playback.addPreference(toggle(context, Settings.REELS_PIP_SKIP_BUTTONS,
                         L10n.t("Previous and next in the reels window"),
                         L10n.t("Instagram's small window for reels gets its own buttons to go back a reel or on to the next one.")));
+                playback.addPreference(toggle(context, Settings.REELS_PIP_STILLS,
+                        L10n.t("Photos and carousels in the reels window"),
+                        L10n.t("Photo and carousel reels go in Instagram's small window for reels too. "
+                                + "A carousel shows a dot for each page, and Previous and Next go through its pages first.")));
                 playback.addPreference(toggle(context, Settings.STORIES_PICTURE_IN_PICTURE,
                         L10n.t("Picture in picture for stories"),
                         L10n.t("Leaving Instagram while a story plays shrinks it into a small window over your other "

@@ -2337,6 +2337,9 @@ Instagram's small window for reels gets a button to pause the reel and play it a
 # context: a switch on the Playback page under Pause button in the reels window; the buttons are Instagram's own Previous and Next buttons in its small picture in picture window for reels
 Previous and next in the reels window	Reel 小視窗中的上一個和下一個
 Instagram's small window for reels gets its own buttons to go back a reel or on to the next one.	Instagram 的 Reel 小視窗會多出 Instagram 自己的按鈕，可回到上一個 Reel 或前往下一個。
+# context: a switch on the Playback page under Previous and next in the reels window; photo and carousel reels go in Instagram's small picture in picture window for reels, a carousel shows a dot per page, and the window's Previous and Next buttons turn its pages before moving to another reel (#873)
+Photos and carousels in the reels window	Reel 小視窗中的相片和輪播
+Photo and carousel reels go in Instagram's small window for reels too. A carousel shows a dot for each page, and Previous and Next go through its pages first.	相片和輪播 Reel 也會進入 Instagram 的 Reel 小視窗。輪播會為每一頁顯示一個圓點，上一個和下一個會先翻過它的各頁。
 # context: a switch on the Playback page under Picture in picture for reels; Android's own name for picture in picture, and it keeps moving on to the next stories inside the small window
 Picture in picture for stories	限時動態子母畫面
 Leaving Instagram while a story plays shrinks it into a small window over your other apps, where it keeps going through the stories.	在限時動態播放時離開 Instagram，它會縮成浮在其他應用程式上方的小視窗，並在其中繼續播放限時動態.

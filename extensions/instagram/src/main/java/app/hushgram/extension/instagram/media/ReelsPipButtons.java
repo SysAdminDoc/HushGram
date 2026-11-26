@@ -50,7 +50,8 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * same server flag: the window's content, ClipsPiPFragment, reads it in its onCreate and moves between
  * reels and listens for those buttons only when it says yes. The patch hands {@link #skipButtons}
  * that answer, and with Previous and next on, the window moves between reels and both builders set
- * Instagram's buttons. The window plays video reels only, so they go between those.
+ * Instagram's buttons. The window plays video reels only, so they go between those, unless
+ * {@link ReelsPipStills} lets photos and carousels in too, whose pages they turn first.
  *
  * <p>Every hook runs on the main thread, and none of them ever throws into Instagram.
  */

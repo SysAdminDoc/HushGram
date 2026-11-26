@@ -1158,6 +1158,9 @@ Instagram's small window for reels gets a button to pause the reel and play it a
 # context: a switch on the Playback page under Pause button in the reels window; the buttons are Instagram's own Previous and Next buttons in its small picture in picture window for reels
 Previous and next in the reels window	السابق والتالي في نافذة المقاطع
 Instagram's small window for reels gets its own buttons to go back a reel or on to the next one.	تحصل نافذة Instagram الصغيرة للمقاطع على زرّيها للرجوع إلى المقطع السابق أو الانتقال إلى التالي.
+# context: a switch on the Playback page under Previous and next in the reels window; photo and carousel reels go in Instagram's small picture in picture window for reels, a carousel shows a dot per page, and the window's Previous and Next buttons turn its pages before moving to another reel (#873)
+Photos and carousels in the reels window	الصور والعروض الدوّارة في نافذة المقاطع
+Photo and carousel reels go in Instagram's small window for reels too. A carousel shows a dot for each page, and Previous and Next go through its pages first.	تدخل مقاطع الصور والعروض الدوّارة أيضًا نافذة Instagram الصغيرة للمقاطع. يعرض العرض الدوّار نقطة لكل صفحة، ويتنقّل السابق والتالي بين صفحاته أولًا.
 Leaving Instagram while a story plays shrinks it into a small window over your other apps, where it keeps going through the stories.	عند مغادرة Instagram أثناء تشغيل قصة، تتقلص إلى نافذة صغيرة فوق تطبيقاتك الأخرى، حيث تستمر في عرض القصص.
 Left off other profiles: %1$s. The grid of posts stays.	يزيل من الملفات الشخصية الأخرى: %1$s. تبقى شبكة المنشورات.
 Left off the message box: %1$s. Gallery and Voice message are in the plus menu while Gallery and microphone in the plus menu is on. The text box and Send stay.	يزيل من مربع الرسائل: %1$s. تظهر الصور والرسالة الصوتية في قائمة الإضافة بينما يكون معرض الصور والميكروفون في قائمة الإضافة مفعّلًا. يبقى مربع النص وزر إرسال.
