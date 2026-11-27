@@ -1995,6 +1995,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_explore_grid", FALSE);
 
     /**
+     * The tall reels, one tile wide and two rows high, that {@link app.hushgram.extension.instagram.explore.ExploreGrid}
+     * leaves out of Explore's grid with the posts in their block (#880). Pages read after the
+     * switch changes follow it. Off to start.
+     */
+    public static final BooleanSetting HIDE_EXPLORE_TALL_REELS =
+            new BooleanSetting("hushgram_hide_explore_tall_reels", FALSE);
+
+    /**
      * The Suggested for you accounts {@link app.hushgram.extension.instagram.explore.SearchSuggestions}
      * leaves out of what shows when you tap the search bar. Recent searches stay. Off to start.
      */

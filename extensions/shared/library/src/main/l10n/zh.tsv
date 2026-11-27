@@ -3144,3 +3144,7 @@ Gives each saved photo and video the time its post went up, so your gallery sort
 Select all in Your activity	在“你的动态”中全选
 # context: Profiles > summary of Select all in Your activity (#762). Select, Delete and Unlike are Instagram's own buttons on those grids; use the words Instagram shows there in this language
 Adds Select all beside Select on the photo and video grids in Your activity, like your posts, reels and likes. Tick one first and it shows. It only ticks them. Nothing goes until you press Delete or Unlike yourself.	在“你的动态”的照片和视频网格中，于“选择”旁添加“全选”，例如你的帖子、Reels 和赞过的内容。勾选一项后就会出现。它只会勾选项目。在你自己点按“删除”或“取消赞”之前，什么都不会消失。
+# context: Explore > title of the switch that leaves out the tall reels of the Explore grid, the ones one tile wide and two rows high, below Hide You may also like in search; Explore as in the Explore category's name (#880)
+Hide tall reels in Explore	隐藏探索中的长条 Reels
+# context: Explore > summary of Hide tall reels in Explore; the few posts are the small tiles sharing the tall reel's block of the grid; pull down means the swipe down that refreshes the Explore grid (#880)
+Leaves the reels that take up two rows out of the Explore grid, with the few posts beside each one. Pull down on Explore to refresh it.	从探索网格中移除占两行高的 Reels，以及每条旁边的几篇帖子。在探索中下拉即可刷新.

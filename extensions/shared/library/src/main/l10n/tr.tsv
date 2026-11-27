@@ -3141,3 +3141,7 @@ Gives each saved photo and video the time its post went up, so your gallery sort
 Select all in Your activity	Hareketlerin'de tümünü seç
 # context: Profiles > summary of Select all in Your activity (#762). Select, Delete and Unlike are Instagram's own buttons on those grids; use the words Instagram shows there in this language
 Adds Select all beside Select on the photo and video grids in Your activity, like your posts, reels and likes. Tick one first and it shows. It only ticks them. Nothing goes until you press Delete or Unlike yourself.	Hareketlerin'deki fotoğraf ve video ızgaralarında, örneğin gönderilerin, Reels videoların ve beğenilerinde, Seç'in yanına Tümünü seç ekler. Birini işaretleyince görünür. Yalnızca işaretler. Sil'e ya da Beğenmekten Vazgeç'e kendin basana kadar hiçbir şey gitmez.
+# context: Explore > title of the switch that leaves out the tall reels of the Explore grid, the ones one tile wide and two rows high, below Hide You may also like in search; Explore as in the Explore category's name (#880)
+Hide tall reels in Explore	Keşfet'teki uzun Reels'leri gizle
+# context: Explore > summary of Hide tall reels in Explore; the few posts are the small tiles sharing the tall reel's block of the grid; pull down means the swipe down that refreshes the Explore grid (#880)
+Leaves the reels that take up two rows out of the Explore grid, with the few posts beside each one. Pull down on Explore to refresh it.	İki satır kaplayan Reels'leri, yanlarındaki birkaç gönderiyle birlikte Keşfet ızgarasından çıkarır. Yenilemek için Keşfet'te aşağı çek.

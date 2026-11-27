@@ -39,6 +39,10 @@ final class ExploreCategory {
                         L10n.t("Hide You may also like in search"),
                         L10n.t("Leaves out the You may also like posts Instagram adds below your search results. "
                                 + "The results you searched for stay.")));
+                explore.addPreference(toggle(context, Settings.HIDE_EXPLORE_TALL_REELS,
+                        L10n.t("Hide tall reels in Explore"),
+                        L10n.t("Leaves the reels that take up two rows out of the Explore grid, with the few posts "
+                                + "beside each one. Pull down on Explore to refresh it.")));
             }
             if (build.contains(PatchFamily.RECENT_SEARCHES)) {
                 explore.addPreference(toggle(context, Settings.DONT_SAVE_RECENT_SEARCHES,

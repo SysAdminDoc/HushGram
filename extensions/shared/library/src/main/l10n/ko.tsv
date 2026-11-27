@@ -3140,3 +3140,7 @@ Gives each saved photo and video the time its post went up, so your gallery sort
 Select all in Your activity	내 활동에서 모두 선택
 # context: Profiles > summary of Select all in Your activity (#762). Select, Delete and Unlike are Instagram's own buttons on those grids; use the words Instagram shows there in this language
 Adds Select all beside Select on the photo and video grids in Your activity, like your posts, reels and likes. Tick one first and it shows. It only ticks them. Nothing goes until you press Delete or Unlike yourself.	내 활동의 사진 및 동영상 그리드(내 게시물, 릴스, 좋아요 등)에서 선택 옆에 모두 선택을 추가합니다. 하나를 선택하면 나타납니다. 선택 표시만 합니다. 직접 삭제나 좋아요 취소를 누르기 전에는 아무것도 사라지지 않습니다.
+# context: Explore > title of the switch that leaves out the tall reels of the Explore grid, the ones one tile wide and two rows high, below Hide You may also like in search; Explore as in the Explore category's name (#880)
+Hide tall reels in Explore	탐색에서 세로로 긴 릴스 숨기기
+# context: Explore > summary of Hide tall reels in Explore; the few posts are the small tiles sharing the tall reel's block of the grid; pull down means the swipe down that refreshes the Explore grid (#880)
+Leaves the reels that take up two rows out of the Explore grid, with the few posts beside each one. Pull down on Explore to refresh it.	탐색 그리드에서 두 줄을 차지하는 릴스를 옆에 있는 게시물 몇 개와 함께 뺍니다. 탐색에서 아래로 당겨 새로고침하세요.

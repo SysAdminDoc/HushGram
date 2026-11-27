@@ -63,15 +63,17 @@ private val FIELD_WRITES = setOf(
  * Empties the Search tab's Explore grid. In the default selection with its switch off: Explore is
  * one of Instagram's main screens, so taking it away is the user's pick. A second switch, off too,
  * leaves the suggested accounts out of what shows when you tap the search bar (SearchSuggestions.kt),
- * and a third the You may also like posts below search results (SearchRecommendations.kt).
- * Everything is found before anything is written.
+ * and a third the You may also like posts below search results (SearchRecommendations.kt). A
+ * fourth keeps the grid and has [HIDE_GRID] take the sections built around a tall reel out of each
+ * page (#880). Everything is found before anything is written.
  */
 @Suppress("unused")
 val hideExploreGridPatch = bytecodePatch(
     name = "Hide the Explore grid",
     description = "Empties the grid of posts and reels on the Search tab. Search, recent searches and results " +
         "stay. Two more switches hide the suggested accounts that show when you tap the search bar and the You " +
-        "may also like posts below search results. Starts off. Turn it on in HushGram settings > Explore.",
+        "may also like posts below search results. Another keeps the grid but leaves out its tall reels. Starts " +
+        "off. Turn it on in HushGram settings > Explore.",
 ) {
     category("Interface")
     dependsOn(settingsPatch, instagramExtensionPatch)

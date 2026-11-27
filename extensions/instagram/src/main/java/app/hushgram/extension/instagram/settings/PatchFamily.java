@@ -168,7 +168,7 @@ public enum PatchFamily {
             Settings.HIDE_META_AI_PROFILE_BANNER, Settings.HIDE_META_AI_PROFILE_BUTTON, Settings.HIDE_META_AI_BLEND,
             Settings.HIDE_META_AI_STORY_CREDIT),
     EXPLORE_GRID(FamilyNames.EXPLORE_GRID, "exploreGrid", null, Settings.HIDE_EXPLORE_GRID,
-            Settings.HIDE_SEARCH_SUGGESTIONS, Settings.HIDE_SEARCH_RECOMMENDATIONS),
+            Settings.HIDE_SEARCH_SUGGESTIONS, Settings.HIDE_SEARCH_RECOMMENDATIONS, Settings.HIDE_EXPLORE_TALL_REELS),
     RECENT_SEARCHES(FamilyNames.RECENT_SEARCHES, "recentSearches", null, Settings.DONT_SAVE_RECENT_SEARCHES),
     ALL_RECENT_SEARCHES(FamilyNames.ALL_RECENT_SEARCHES, "allRecentSearches", null, Settings.SHOW_ALL_RECENT_SEARCHES),
     EXPLORE_MENU(FamilyNames.EXPLORE_MENU, "exploreMenu", null,
