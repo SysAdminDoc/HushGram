@@ -70,7 +70,9 @@ public final class FeedSaveRow {
     /**
      * Hide the Like button (#668): the heart and its count, only inside a feed post's row of buttons.
      * Instagram's ids sit on views inside the tappable one, so the row's child holding them goes,
-     * and the heart can't be tapped where it was.
+     * and the heart can't be tapped where it was. A row {@link #likeButton} built without the heart
+     * has nothing here to hide; this catches a row built before the switch was turned on, until
+     * Instagram builds it again.
      */
     private static final ViewHider LIKE_HIDER = new ViewHider(FamilyNames.FEED_SAVE, "feed like button",
             COUNT_LIKE_HIDDEN, () -> Settings.HIDE_FEED_LIKE_BUTTON.get(), BUTTONS, LIKE_BUTTON, LIKE_COUNT)
@@ -79,6 +81,8 @@ public final class FeedSaveRow {
     /** Hide counts on posts and Hide Liked by (#762). */
     static final String COUNT_COUNTS_OFF = "feed post counts left out";
     static final String COUNT_LIKES_ROW_OFF = "feed likes rows left out";
+    /** Like buttons left out of a feed post's row as Instagram builds it (D#877). */
+    static final String COUNT_LIKE_LEFT_OUT = "feed like buttons left out";
 
     private FeedSaveRow() {
     }
@@ -181,6 +185,30 @@ public final class FeedSaveRow {
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.FEED_SAVE, HOOK, failure);
             return row;
+        }
+    }
+
+    /**
+     * Injected where Feed's builder of a post's row of buttons adds the Like button, right before its
+     * own check that there's a button to add (D#877). Answers null while Hide the Like button is on, so
+     * the row is built without it and the Comment button sits where the heart was, and the button it
+     * was handed otherwise. Never throws.
+     */
+    @Nullable
+    public static Object likeButton(@Nullable Object button) {
+        return likeButton(button, () -> Utils.settingsReady() && Settings.HIDE_FEED_LIKE_BUTTON.get());
+    }
+
+    @Nullable
+    static Object likeButton(@Nullable Object button, BooleanSupplier hide) {
+        try {
+            HookStatus.invoked(FamilyNames.FEED_SAVE);
+            if (button == null || !hide.getAsBoolean()) return button;
+            HookStatus.counted(FamilyNames.FEED_SAVE, COUNT_LIKE_LEFT_OUT);
+            return null;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.FEED_SAVE, HOOK, failure);
+            return button;
         }
     }
 

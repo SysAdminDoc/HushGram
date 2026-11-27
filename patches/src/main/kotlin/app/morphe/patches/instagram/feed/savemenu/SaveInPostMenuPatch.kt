@@ -20,15 +20,19 @@ import app.morphe.patches.instagram.download.video.helperAt
 import app.morphe.patches.instagram.download.video.mutable
 import app.morphe.patches.instagram.download.video.postBridge
 import app.morphe.patches.instagram.feed.FeedStateWrite
+import app.morphe.patches.instagram.feed.back.enumConstantName
 import app.morphe.patches.instagram.feed.comments.COMMENT_COUNT_LABEL
 import app.morphe.patches.instagram.feed.feedRowState
 import app.morphe.patches.instagram.feed.flagWrites
+import app.morphe.patches.instagram.feed.headerline.branchesOnto
 import app.morphe.patches.instagram.feed.holdsString
 import app.morphe.patches.instagram.feed.isToString
 import app.morphe.patches.instagram.feed.prepareFlagWrites
 import app.morphe.patches.instagram.feed.printedFlag
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesHolding
+import app.morphe.patches.instagram.misc.extension.classesLoadingString
+import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.classesReadingType
 import app.morphe.patches.instagram.misc.extension.classesTouching
 import app.morphe.patches.instagram.misc.extension.enableStatus
@@ -59,6 +63,17 @@ internal const val SETTLE_SAVE = "$SAVE_ROW->settle(Ljava/lang/Object;)V"
 internal const val LIKE_COUNT_STATE = "$SAVE_ROW->likeCountState(I)Z"
 internal const val COUNT_STATE = "$SAVE_ROW->countState(I)Z"
 internal const val LIKES_ROW = "$SAVE_ROW->likesRow(Ljava/lang/Object;)Ljava/lang/Object;"
+internal const val LIKE_BUTTON = "$SAVE_ROW->likeButton(Ljava/lang/Object;)Ljava/lang/Object;"
+
+/**
+ * Strings only the builder of a feed post's row of buttons loads, both of them, as the names of the
+ * lambdas it hands the Comment and Share buttons (D#877).
+ */
+internal const val COMMENT_COMPONENT = "getCommentComponent"
+internal const val SHARE_COMPONENT = "getShareComponent"
+
+/** The name of the click area Instagram wraps the Like button in, a constant of its click areas' enum. */
+internal const val LIKE_CLICK_AREA = "LIKE_LINK"
 
 /** The label Feed's action-row state prints whether the row shows the like count under (#668). */
 internal const val LIKE_COUNT_LABEL = ", shouldShowLikeCountInUfi="
@@ -351,6 +366,94 @@ internal fun BytecodePatchContext.findLikesRowsOrWarn(): LikesRows? = try {
 }
 
 /**
+ * Where the builder of a feed post's row of buttons adds the Like button (D#877). The builder is the
+ * one method loading both [COMMENT_COMPONENT] and [SHARE_COMPONENT]. In it the Like button is the
+ * component handed to a static wrapper along with the [LIKE_CLICK_AREA] constant of Instagram's click
+ * areas, and the wrapper's answer is checked for null and added to the row's left-hand buttons, the
+ * comment and share ones after it. [at] is that null check, which nothing else jumps to, and
+ * [register] holds the answer, of [type]. Nothing is changed until [FeedLikeButton.write].
+ */
+internal class FeedLikeButton(val method: MutableMethod, val at: Int, val register: Int, val type: String) {
+    /**
+     * Hands the wrapped Like button through [LIKE_BUTTON] right before Instagram's own null check, so a
+     * null answer skips the add and the comment button takes its place.
+     */
+    fun write() = method.addInstructions(at, """
+        invoke-static/range { v$register .. v$register }, $LIKE_BUTTON
+        move-result-object v$register
+        check-cast v$register, $type
+    """.trimIndent())
+}
+
+internal fun BytecodePatchContext.findFeedLikeButton(): FeedLikeButton {
+    val builders = classesLoadingString(COMMENT_COMPONENT).flatMap { owner ->
+        owner.methods.filter { loadsString(it, COMMENT_COMPONENT) && loadsString(it, SHARE_COMPONENT) }.map { owner to it }
+    }
+    val (owner, builder) = builders.singleOrNull()
+        ?: refuse("expected one method loading \"$COMMENT_COMPONENT\" and \"$SHARE_COMPONENT\", found ${builders.size}")
+    val code = builder.code()
+    val sites = code.indices.mapNotNull { likeAddAt(code, it) }
+    val (at, register, type) = sites.singleOrNull()
+        ?: refuse("${owner.type}->${builder.name} adds the $LIKE_CLICK_AREA button to its row ${sites.size} times")
+    branchesOnto(code, at).takeIf { it.isNotEmpty() }?.let {
+        refuse("${owner.type}->${builder.name} jumps onto the Like button's null check from $it")
+    }
+    val method = mutableClassDefBy(owner.type).methods.single {
+        it.name == builder.name && it.returnType == builder.returnType &&
+            it.parameterTypes.map(CharSequence::toString) == builder.parameterTypes.map(CharSequence::toString)
+    }
+    return FeedLikeButton(method, at, register, type)
+}
+
+/**
+ * The null check, answer register and type of a Like button added at [load]: a load of the click areas'
+ * [LIKE_CLICK_AREA] constant handed first to a static call within a few instructions, its object
+ * answer moved into a register, checked for null with the check jumping past the very next
+ * instruction, and that instruction adding the answer to a collection. Null for anything else.
+ */
+private fun BytecodePatchContext.likeAddAt(code: List<Instruction>, load: Int): Triple<Int, Int, String>? {
+    val area = code[load]
+    if (area.opcode != Opcode.SGET_OBJECT) return null
+    val field = (area as ReferenceInstruction).reference as com.android.tools.smali.dexlib2.iface.reference.FieldReference
+    if (field.type != field.definingClass) return null
+    val enum = classDefByOrNull(field.definingClass) ?: return null
+    if (enumConstantName(enum, field) != LIKE_CLICK_AREA) return null
+    val loaded = (area as OneRegisterInstruction).registerA
+    val wrap = (load + 1..minOf(code.size - 1, load + WRAP_REACH)).firstOrNull { at ->
+        code[at].staticCall() != null && code[at].firstArgument() == loaded
+    } ?: return null
+    val wrapper = code[wrap].staticCall()!!
+    if (!wrapper.returnType.startsWith("L")) return null
+    val answer = code.getOrNull(wrap + 1)?.takeIf { it.opcode == Opcode.MOVE_RESULT_OBJECT } ?: return null
+    val register = (answer as OneRegisterInstruction).registerA
+    val check = code.getOrNull(wrap + 2)?.takeIf { it.opcode == Opcode.IF_EQZ } ?: return null
+    if ((check as OneRegisterInstruction).registerA != register) return null
+    val add = code.getOrNull(wrap + 3) ?: return null
+    val added = (add as? ReferenceInstruction)?.reference as? MethodReference ?: return null
+    if (add.opcode != Opcode.INVOKE_VIRTUAL && add.opcode != Opcode.INVOKE_INTERFACE) return null
+    if (added.name != "add" || added.parameterTypes.map(CharSequence::toString) != listOf(OBJECT)) return null
+    val item = when (add) {
+        is FiveRegisterInstruction -> add.registerD.takeIf { add.registerCount == 2 }
+        is RegisterRangeInstruction -> (add.startRegister + 1).takeIf { add.registerCount == 2 }
+        else -> null
+    }
+    if (item != register) return null
+    if (branchesOnto(code, wrap + 4).none { it == wrap + 2 }) return null
+    return Triple(wrap + 2, register, wrapper.returnType)
+}
+
+/** How many instructions after the click area's load the wrapper's call may come, its arguments copied in between. */
+private const val WRAP_REACH = 8
+
+/** [findFeedLikeButton], or null with a warning, so Save and the other switches still go in. */
+internal fun BytecodePatchContext.findFeedLikeButtonOrWarn(): FeedLikeButton? = try {
+    findFeedLikeButton()
+} catch (refusal: PatchException) {
+    patchLog.warning("${refusal.message}. $PATCH goes in leaving a gap where a hidden Like button was.")
+    null
+}
+
+/**
  * The type of the object [holder]'s toString prints after [label]: the field of its own whose value
  * the next `append(Object)` hands over. 456 reads every field into a register at the top and copies
  * it back right before appending it, so the value is followed back through those copies.
@@ -457,8 +560,8 @@ private fun Instruction.firstArgument(): Int? = when (this) {
  * Save, or Remove from saved on a post you saved, in the menu behind a feed post's three dots (#569):
  * Instagram's own options, which its menu already handles, added where anyone else's rows start and
  * kept by the short menu. The same patch lets the extension take the Save button off feed posts,
- * and the Like button with its count (#668), the count through the row's own state so the row is
- * laid out without it. Hide counts on posts takes the like, comment, share and repost counts off
+ * and the Like button with its count (#668), the count through the row's own state and the button
+ * through the row's builder (D#877), so the row is laid out without them. Hide counts on posts takes the like, comment, share and repost counts off
  * with the buttons kept, and Hide Liked by the likes row under a post (#762). In the default
  * selection with every switch off.
  */
@@ -478,8 +581,10 @@ val saveInPostMenuPatch = bytecodePatch(
         val row = findFeedSaveRow()
         val likeCount = findFeedLikeCountOrWarn()
         val likesRows = findLikesRowsOrWarn()
+        val likeButton = findFeedLikeButtonOrWarn()
         row.write()
         likeCount?.write()
+        likeButton?.write()
         hideFeedCounts()
         likesRows?.write()
         enableStatus(FEED_SAVE_STATUS)

@@ -534,4 +534,38 @@ public class FeedSaveRowTest {
         String missing = HookStatus.missing(FamilyNames.FEED_SAVE).toString();
         assertTrue(missing, missing.contains(FeedSaveRow.HOOK));
     }
+
+    /**
+     * Hide the Like button (D#877): the row's builder gets null for the heart while the switch is on,
+     * so it skips adding it and the Comment button moves into its place, and the heart otherwise.
+     */
+    @Test
+    public void theLikeButtonIsLeftOutOfTheRowWhileItsSwitchIsOn() {
+        Object heart = new Object();
+        assertSame("off to start", heart, FeedSaveRow.likeButton(heart));
+        assertNull("no button stays no button", FeedSaveRow.likeButton(null));
+
+        Settings.HIDE_LIKED_BY.save(true);
+        Settings.HIDE_FEED_COUNTS.save(true);
+        Settings.HIDE_FEED_SAVE_BUTTON.save(true);
+        assertSame("only its own switch takes it out", heart, FeedSaveRow.likeButton(heart));
+
+        Settings.HIDE_FEED_LIKE_BUTTON.save(true);
+        assertNull(FeedSaveRow.likeButton(heart));
+        assertNull(FeedSaveRow.likeButton(null));
+        String report = String.join("\n", HookStatus.report());
+        assertTrue(report, report.contains(FeedSaveRow.COUNT_LIKE_LEFT_OUT));
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertSame("paused", heart, FeedSaveRow.likeButton(heart));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+
+        assertSame("a switch that throws", heart, FeedSaveRow.likeButton(heart, () -> {
+            throw new IllegalStateException("broken switch");
+        }));
+        String missing = HookStatus.missing(FamilyNames.FEED_SAVE).toString();
+        assertTrue(missing, missing.contains(FeedSaveRow.HOOK));
+    }
 }

@@ -2821,6 +2821,12 @@ shared-call Lapp/hushgram/extension/instagram/share/RepostButton;->eligible(Ljav
 # hands every row it returns through FeedSaveRow.likesRow and returns the answer, cast back. No rule:
 # the answer's move-result and cast sit between the call and each return, which a returns rule
 # doesn't take. LikesRowHookTest checks on every build that each return goes through the hook.
+# Hide the Like button (D#877), under Save in the post menu: the builder of a feed post's row of
+# buttons (04JN.A0p on 457's 386314341, the one method naming both lambdas below) hands the Like
+# button it wraps with the LIKE_LINK click area through FeedSaveRow.likeButton once, right before
+# its own null check, so a null answer leaves the heart out and the comment button takes its place.
+# LikeButtonHookTest checks on every build that the call, answer and cast sit right before that check.
+once-call Lapp/hushgram/extension/instagram/feed/FeedSaveRow;->likeButton(Ljava/lang/Object;)Ljava/lang/Object; in instance (LX/*;)LX/*; pooled holding getCommentComponent getShareComponent
 # Hide Reply on comments (#619), under Hide comments: the composable drawing the line under a
 # comment (0IEk.A04 on 454, the static one of the two methods holding the Reply button's tag below)
 # asks CommentReply.hidden in front of the Reply button and in front of the reply icon newer
