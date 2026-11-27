@@ -43,11 +43,12 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * every icon back as it was.
  *
  * <p>An icon that shows a picture of its own is drawn bigger through its picture, not the whole view
- * (#826): Instagram's icons are vector drawings, which Android draws into a bitmap at the size the
- * view lays them out, so growing the view stretched that bitmap and left the icon soft. Drawn through
- * the image's own matrix, the drawing is made at the bigger size and stays sharp. The view itself,
- * which Instagram's press animation scales, keeps its size. The Profile picture, a photo, is still
- * drawn bigger as a whole.
+ * (#826): most of Instagram's icons are vector drawings, which Android draws into a bitmap at the size
+ * the view lays them out, so growing the view stretched that bitmap and left the icon soft. Drawn
+ * through the image's own matrix, the drawing is made at the bigger size and stays sharp. The view
+ * itself, which Instagram's press animation scales, keeps its size. The Reels icon is a small bitmap
+ * instead, which goes soft drawn any bigger, so while it's drawn at another size {@link SharpReelsIcon}
+ * draws the same shape as a path. The Profile picture, a photo, is still drawn bigger as a whole.
  *
  * <p>Full-size Reels icon draws the Reels tab's icon {@link #REELS_BOOST} times bigger on top of that
  * (#793): its glyph is narrower than the ones beside it, so at the same size it looks smaller. The tab
@@ -81,6 +82,8 @@ public final class TabIcons {
     private static final WeakHashMap<View, Float> sized = new WeakHashMap<>();
     /** The icons whose picture is drawn bigger here, and how each picture was placed before. */
     private static final WeakHashMap<ImageView, Placed> pictured = new WeakHashMap<>();
+    /** The icons given a {@link SharpReelsIcon} here in place of Instagram's picture. */
+    private static final WeakHashMap<ImageView, SharpReelsIcon> sharpened = new WeakHashMap<>();
     /** The parents told not to clip here, and whether each clipped its children and its padding before. */
     private static final WeakHashMap<ViewGroup, boolean[]> unclipped = new WeakHashMap<>();
     private static volatile boolean registered;
@@ -162,6 +165,7 @@ public final class TabIcons {
             if (iconId != 0 && icon.getId() == iconId && icon instanceof ImageView && hasPicture((ImageView) icon)) {
                 // Any size given to the whole view before goes first, so the two never stack.
                 changed |= scale(icon, 1f);
+                changed |= sharpen((ImageView) icon, scale != 1f);
                 changed |= picture((ImageView) icon, scale);
             } else {
                 if (icon instanceof ImageView) changed |= picture((ImageView) icon, 1f);
@@ -237,6 +241,30 @@ public final class TabIcons {
         Drawable picture = icon.getDrawable();
         return picture != null && picture.getIntrinsicWidth() > 0 && picture.getIntrinsicHeight() > 0
                 && contentWidth(icon) > 0 && contentHeight(icon) > 0;
+    }
+
+    /**
+     * While [bigger], has [icon] draw Instagram's Reels picture as a path, which stays sharp at any size;
+     * otherwise gives it back Instagram's picture. Any other picture is left as it is. Answers whether
+     * it changed.
+     */
+    private static boolean sharpen(ImageView icon, boolean bigger) {
+        Drawable shown = icon.getDrawable();
+        if (shown instanceof SharpReelsIcon) {
+            if (bigger) return false;
+            sharpened.remove(icon);
+            ((SharpReelsIcon) shown).giveBack(icon);
+            return true;
+        }
+        if (!bigger || shown == null) return false;
+        String owner = Utils.resourcePackage(icon.getContext());
+        if (SharpReelsIcon.kind(shown, icon.getResources(), owner) == SharpReelsIcon.NONE) return false;
+        SharpReelsIcon sharp = new SharpReelsIcon(shown, icon.getResources(), owner);
+        icon.setImageDrawable(sharp);
+        // Taking the new picture, the view let go of Instagram's, which the stand-in draws now.
+        shown.setCallback(sharp);
+        sharpened.put(icon, sharp);
+        return true;
     }
 
     /**
@@ -364,6 +392,13 @@ public final class TabIcons {
     /** Puts every icon sized here back at Instagram's size. Answers whether one changed. */
     static boolean putBack() {
         boolean changed = false;
+        for (Map.Entry<ImageView, SharpReelsIcon> each : new ArrayList<>(sharpened.entrySet())) {
+            ImageView icon = each.getKey();
+            if (icon == null || icon.getDrawable() != each.getValue()) continue;
+            each.getValue().giveBack(icon);
+            changed = true;
+        }
+        sharpened.clear();
         for (Map.Entry<ImageView, Placed> each : new ArrayList<>(pictured.entrySet())) {
             if (each.getKey() != null) changed |= each.getValue().putBack(each.getKey());
         }
@@ -403,7 +438,7 @@ public final class TabIcons {
         float wanted = wantedScale();
         float reels = reelsScale();
         if (wanted == 1f && reels == 1f) {
-            return (!sized.isEmpty() || !unclipped.isEmpty() || !pictured.isEmpty()) && putBack();
+            return (!sized.isEmpty() || !unclipped.isEmpty() || !pictured.isEmpty() || !sharpened.isEmpty()) && putBack();
         }
         View bar = session.bar == null ? null : session.bar.get();
         if (laidOut || bar == null || !bar.isAttachedToWindow()) {
@@ -440,6 +475,7 @@ public final class TabIcons {
     static void resetForTests() {
         ids.clear();
         putBack();
+        SharpReelsIcon.resetForTests();
         synchronized (sessions) {
             for (Map.Entry<Activity, Session> each : new ArrayList<>(sessions.entrySet())) {
                 if (each.getKey() != null) ViewWatcher.leave(each.getKey(), each.getValue());

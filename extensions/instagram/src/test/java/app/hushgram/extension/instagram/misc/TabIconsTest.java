@@ -6,12 +6,21 @@ package app.hushgram.extension.instagram.misc;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import android.app.Activity;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Matrix;
+import android.graphics.Rect;
 import android.graphics.RectF;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.LayerDrawable;
+import android.graphics.drawable.StateListDrawable;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
@@ -28,6 +37,7 @@ import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.Config;
+import org.robolectric.annotation.GraphicsMode;
 import org.robolectric.shadows.ShadowLooper;
 
 import app.hushgram.extension.instagram.settings.Settings;
@@ -358,6 +368,71 @@ public class TabIconsTest {
         assertEquals("Instagram's own scale type", ImageView.ScaleType.CENTER_INSIDE, reels.getScaleType());
         assertRect("placed as Instagram does again", swapped, drawn(reels));
         assertTrue("the Reels tab clips again", reelsTab.getClipChildren());
+    }
+
+    /**
+     * #826 on a phone: the Reels icon was still soft drawn bigger through its matrix, since it's a 72
+     * pixel picture rather than a vector. While it's drawn at another size it's drawn as a path of the
+     * same shape, selected or not, and Instagram's size gives it its own picture back.
+     */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    public void aBiggerReelsPictureIsDrawnAsAPathOfItsShape() {
+        Bitmap outline = Bitmap.createBitmap(72, 72, Bitmap.Config.ARGB_8888);
+        outline.eraseColor(Color.WHITE);
+        Bitmap filled = Bitmap.createBitmap(72, 72, Bitmap.Config.ARGB_8888);
+        filled.eraseColor(Color.WHITE);
+        filled.setPixel(0, 0, Color.TRANSPARENT);
+        SharpReelsIcon.picturesForTests(activity.getResources(), outline, filled);
+        StateListDrawable picture = new StateListDrawable();
+        picture.addState(new int[]{android.R.attr.state_selected},
+                new LayerDrawable(new Drawable[]{new BitmapDrawable(activity.getResources(), filled)}));
+        picture.addState(new int[0], new LayerDrawable(new Drawable[]{new BitmapDrawable(activity.getResources(), outline)}));
+        int reelsTabId = View.generateViewId();
+        TabIcons.idForTests(activity, TabIcons.REELS_TAB, reelsTabId);
+        ImageView reels = icon(home.getId());
+        reels.setImageDrawable(picture);
+        reels.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+        FrameLayout reelsTab = tab(reels);
+        reelsTab.setId(reelsTabId);
+        bar.addView(reelsTab, 1, tabParams());
+        layOut();
+        Settings.FULL_SIZE_REELS_ICON.save(true);
+        TabIcons.watch(activity);
+
+        frame();
+
+        Bitmap shot = shot(reels);
+        assertEquals("the box's line", 255, Color.alpha(pixel(reels, shot, 9f, 36f)));
+        assertEquals("inside the box, clear as in Instagram's picture", 0, Color.alpha(pixel(reels, shot, 15f, 36f)));
+        assertEquals("the play triangle's line", 255, Color.alpha(pixel(reels, shot, 24f, 36f)));
+        assertRect("still drawn bigger from the icon's center",
+                about(new RectF(0, 0, 48, 48), TabIcons.REELS_BOOST, 24, 24), drawn(reels));
+
+        reels.setSelected(true);
+        root.getViewTreeObserver().dispatchOnPreDraw();
+        shot = shot(reels);
+        assertEquals("selected, the filled box", 255, Color.alpha(pixel(reels, shot, 15f, 36f)));
+        assertEquals("selected, the play triangle cut out", 0, Color.alpha(pixel(reels, shot, 33f, 36f)));
+
+        Settings.FULL_SIZE_REELS_ICON.save(false);
+        root.getViewTreeObserver().dispatchOnPreDraw();
+        assertSame("Instagram's own picture again", picture, reels.getDrawable());
+    }
+
+    /** [view] drawn on its own. */
+    private static Bitmap shot(View view) {
+        Bitmap shot = Bitmap.createBitmap(view.getWidth(), view.getHeight(), Bitmap.Config.ARGB_8888);
+        view.draw(new Canvas(shot));
+        return shot;
+    }
+
+    /** The pixel of [shot] where [icon] draws the point ([x], [y]) of its picture's 72 unit grid. */
+    private static int pixel(ImageView icon, Bitmap shot, float x, float y) {
+        Rect bounds = icon.getDrawable().getBounds();
+        float[] point = {bounds.left + x * bounds.width() / 72f, bounds.top + y * bounds.height() / 72f};
+        icon.getImageMatrix().mapPoints(point);
+        return shot.getPixel((int) point[0] + icon.getPaddingLeft(), (int) point[1] + icon.getPaddingTop());
     }
 
     /** Paused, a picture placed by Instagram's own matrix gets that matrix back. */
