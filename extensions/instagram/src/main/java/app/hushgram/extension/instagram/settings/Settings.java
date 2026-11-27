@@ -1707,6 +1707,13 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_story_recaps", FALSE);
 
     /**
+     * Accounts that are live right now, left out of the stories tray at the top of Home as the tray's
+     * response is read (#886). Off to start.
+     */
+    public static final BooleanSetting HIDE_TRAY_LIVE =
+            new BooleanSetting("hushgram_hide_tray_live", FALSE);
+
+    /**
      * Nothing in the stories tray at the top of Home loads: its items and the reels it fetches after
      * them are dropped as the tray's response is read. Off to start.
      */

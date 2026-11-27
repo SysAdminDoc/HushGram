@@ -848,6 +848,9 @@ Hide Subscribe on posts	Abonnieren bei Beiträgen ausblenden
 Takes only the Subscribe button off the top of posts in your feed. Follow stays.	Entfernt nur den Button „Abonnieren“ oben an Beiträgen in deinem Feed. „Folgen“ bleibt.
 Takes the memories, recaps, follow anniversaries and birthday cards Instagram makes out of the row of stories at the top of Home. Stories people post stay.	Entfernt Erinnerungen, Rückblicke, Follow-Jahrestage und Geburtstagskarten, die Instagram erstellt, aus der Stories-Leiste oben auf der Startseite. Stories, die Leute posten, bleiben.
 Hides the rewind cards, which bring back old highlights, from the row of stories at the top of Home.	Blendet die Rückblick-Karten, die alte Highlights zurückbringen, in der Story-Leiste oben auf der Startseite aus.
+# context: Stories > title and summary of Hide lives in the Stories tray (#886), the switch that takes accounts live right now out of the row of stories at the top of Home; use the word Instagram shows for a live broadcast in this language
+Hide lives in the Stories tray	Lives in der Story-Leiste ausblenden
+Takes accounts that are live right now out of the row of stories at the top of Home. Pull down on Home to refresh after changing it.	Entfernt Konten, die gerade live sind, aus der Story-Leiste oben auf der Startseite. Zieh die Startseite nach dem Ändern nach unten, um sie zu aktualisieren.
 A double tap on a comment doesn't like it. Starts off, so comments keep double tap to like until you turn this on.	Ein Doppeltippen auf einen Kommentar liket ihn nicht. Startet ausgeschaltet, Kommentare behalten also Doppeltippen zum Liken, bis du das einschaltest.
 On messages	Bei Nachrichten
 A double tap on a message in a chat doesn't react to it. Starts off. A long press still shows the reactions.	Ein Doppeltippen auf eine Nachricht in einem Chat reagiert nicht darauf. Startet ausgeschaltet. Langes Drücken zeigt die Reaktionen weiterhin.

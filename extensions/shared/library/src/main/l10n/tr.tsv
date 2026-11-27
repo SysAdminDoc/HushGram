@@ -848,6 +848,9 @@ Hide Subscribe on posts	Gönderilerde Abone Ol'u gizle
 Takes only the Subscribe button off the top of posts in your feed. Follow stays.	Akışındaki gönderilerin üstünden yalnızca Abone Ol düğmesini kaldırır. Takip Et kalır.
 Takes the memories, recaps, follow anniversaries and birthday cards Instagram makes out of the row of stories at the top of Home. Stories people post stay.	Instagram'ın oluşturduğu anıları, özetleri, takip yıl dönümlerini ve doğum günü kartlarını Ana Sayfa'nın üstündeki hikaye satırından kaldırır. İnsanların paylaştığı hikayeler kalır.
 Hides the rewind cards, which bring back old highlights, from the row of stories at the top of Home.	Eski öne çıkanları geri getiren geri sarma kartlarını Ana Sayfa'nın üstündeki hikâye satırından gizler.
+# context: Stories > title and summary of Hide lives in the Stories tray (#886), the switch that takes accounts live right now out of the row of stories at the top of Home; use the word Instagram shows for a live broadcast in this language
+Hide lives in the Stories tray	Hikâye satırında canlı yayınları gizle
+Takes accounts that are live right now out of the row of stories at the top of Home. Pull down on Home to refresh after changing it.	Şu anda canlı yayında olan hesapları Ana Sayfa'nın üstündeki hikâye satırından kaldırır. Değiştirdikten sonra yenilemek için Ana Sayfa'yı aşağı çekin.
 A double tap on a comment doesn't like it. Starts off, so comments keep double tap to like until you turn this on.	Bir yoruma iki kez dokunmak onu beğenmez. Kapalı başlar, yani sen bunu açana kadar yorumlar iki kez dokunarak beğenmeyi korur.
 On messages	Mesajlarda
 A double tap on a message in a chat doesn't react to it. Starts off. A long press still shows the reactions.	Sohbetteki bir mesaja çift dokunmak ona tepki vermez. Kapalı başlar. Uzun basmak tepkileri yine gösterir.

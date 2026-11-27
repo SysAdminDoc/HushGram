@@ -43,6 +43,10 @@ import app.hushgram.extension.shared.settings.BooleanSetting;
  * isn't the one chosen (#340), read through {@link #trayOwner}, {@link #userVerified} and
  * {@link #userId}, which the patch fills. Your own story, by Home's signed-in account, stays.
  *
+ * <p>Accounts live right now come in the same response, as a list of broadcasts the tray shows
+ * ahead of the stories. The patch passes each broadcast the parser reads through {@link #live},
+ * which answers null while Hide lives in the Stories tray is on (#886), and the parser skips it.
+ *
  * <p>Instagram also puts cards of accounts to follow between the stories you tap through, two ways.
  * One is a reel of its own in the tray's answer, the empty story state, whose cards suggest
  * accounts, and {@link #filter} answers null for it while Hide Suggested for you between stories is
@@ -111,6 +115,8 @@ public final class StoriesTray {
     static final String STOP_ROUTE = "Stop loading stories and highlights";
     static final String SUGGESTION_ROUTE = "Suggested for you between stories";
     static final String BADGE_ROUTE = "Stories by verified badge";
+    static final String LIVE_ROUTE = "Lives in the Stories tray";
+    static final String LIVE = "live broadcast";
 
     /** The diagnostic counter route for Music for you card checks answered no, one for each time Instagram asked. */
     static final String MUSIC_CARD_ROUTE = "Music for you card";
@@ -259,6 +265,27 @@ public final class StoriesTray {
         if (verified == (Settings.TRAY_BADGE.get() == TrayBadge.VERIFIED)) return item;
         FeedFilterCounters.removed(BADGE_ROUTE, 1, badge);
         return null;
+    }
+
+    /**
+     * Injected where the tray's parser reads each live broadcast, an account live right now that the
+     * tray shows ahead of the stories (#886). Answers null while Hide lives in the Stories tray is on,
+     * so the parser skips it the way it skips one that didn't parse, and [broadcast] itself
+     * otherwise, or when anything goes wrong. Never throws, and never waits for the settings.
+     */
+    public static Object live(Object broadcast) {
+        if (broadcast == null) return null;
+        try {
+            HookStatus.invoked(FamilyNames.STORIES_TRAY);
+            FeedFilterCounters.sawKind(LIVE_ROUTE, LIVE);
+            if (!Utils.settingsReady() || !Settings.HIDE_TRAY_LIVE.get()) return broadcast;
+            FeedFilterCounters.removed(LIVE_ROUTE, 1, LIVE);
+            Logger.printDebug(() -> "Stories tray: took out a live broadcast");
+            return null;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.STORIES_TRAY, "tray live", failure);
+            return broadcast;
+        }
     }
 
     /** The account whose story a tray [item] is, a User. The patch writes the body. Null as built. */

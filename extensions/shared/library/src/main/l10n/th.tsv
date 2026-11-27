@@ -841,6 +841,9 @@ Hide Subscribe on posts	ซ่อนปุ่มติดตามการเ�
 Takes only the Subscribe button off the top of posts in your feed. Follow stays.	นำเฉพาะปุ่ม "ติดตามการเป็นสมาชิก" ออกจากด้านบนของโพสต์ในฟีดของคุณ ส่วนปุ่ม "ติดตาม" ยังคงอยู่
 Takes the memories, recaps, follow anniversaries and birthday cards Instagram makes out of the row of stories at the top of Home. Stories people post stay.	นำความทรงจำ สรุปผลย้อนหลัง วันครบรอบการติดตาม และการ์ดวันเกิดที่ Instagram สร้างขึ้นออกจากแถวสตอรี่ที่ด้านบนของหน้าหลัก ทั้งนี้สตอรี่ที่ผู้คนโพสต์จะยังคงอยู่
 Hides the rewind cards, which bring back old highlights, from the row of stories at the top of Home.	ซ่อนการ์ดย้อนความหลังที่นำไฮไลท์เก่าย้อนกลับมา ออกจากแถวสตอรี่ที่ด้านบนของหน้าหลัก
+# context: Stories > title and summary of Hide lives in the Stories tray (#886), the switch that takes accounts live right now out of the row of stories at the top of Home; use the word Instagram shows for a live broadcast in this language
+Hide lives in the Stories tray	ซ่อนไลฟ์ในแถวสตอรี่
+Takes accounts that are live right now out of the row of stories at the top of Home. Pull down on Home to refresh after changing it.	นำบัญชีที่กำลังไลฟ์อยู่ออกจากแถวสตอรี่ที่ด้านบนของหน้าหลัก ดึงหน้าหลักลงเพื่อรีเฟรชหลังเปลี่ยนการตั้งค่านี้
 A double tap on a comment doesn't like it. Starts off, so comments keep double tap to like until you turn this on.	การแตะสองครั้งที่ความคิดเห็นจะไม่เป็นการกดถูกใจ เริ่มต้นปิดใช้งานอยู่ ดังนั้นความคิดเห็นจะยังคงแตะสองครั้งเพื่อกดถูกใจได้จนกว่าคุณจะเปิดใช้ตัวเลือกนี้
 On messages	บนข้อความ
 A double tap on a message in a chat doesn't react to it. Starts off. A long press still shows the reactions.	การแตะสองครั้งที่ข้อความในแชทจะไม่เป็นการแสดงความรู้สึก เริ่มต้นปิดใช้งานอยู่ ทั้งนี้การกดค้างจะยังคงแสดงความรู้สึกตามปกติ

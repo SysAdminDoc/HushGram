@@ -81,8 +81,24 @@ public class AddYoursCardsSettingsTest {
         assertFalse(Settings.HIDE_ADD_YOURS_CARDS.get());
         assertTrue(Settings.HIDE_ADD_YOURS_CARDS.savedValue());
     }
+    /** Hide lives in the Stories tray (#886) sits right below Hide memories and recaps and starts off. */
+    @Test public void theLiveSwitchIsUnderStoriesAfterTheRecapsAndStartsOff() throws Exception {
+        open(EnumSet.of(PatchFamily.STORIES_TRAY));
+        android.preference.Preference row = page.getPreferenceScreen().findPreference(Settings.HIDE_TRAY_LIVE.key);
+        assertNotNull(row);
+        assertEquals("Hide lives in the Stories tray", row.getTitle().toString());
+        assertEquals("Stories", ((PreferenceGroup) row.getParent()).getTitle().toString());
+        assertFalse(Settings.HIDE_TRAY_LIVE.get());
+        PreferenceGroup stories = row.getParent();
+        String[] keys = new String[stories.getPreferenceCount()];
+        for (int i = 0; i < keys.length; i++) keys[i] = stories.getPreference(i).getKey();
+        assertEquals(Arrays.toString(keys), Settings.HIDE_STORY_RECAPS.key, keys[Arrays.asList(keys).indexOf(Settings.HIDE_TRAY_LIVE.key) - 1]);
+        assertTrue(PatchFamily.STORIES_TRAY.switches.contains(Settings.HIDE_TRAY_LIVE));
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.HIDE_TRAY_LIVE.key));
+    }
     @Test public void missingPatchHasNoSwitch() throws Exception {
         open(EnumSet.of(PatchFamily.STORY_LOOP));
         assertNull(page.getPreferenceScreen().findPreference(Settings.HIDE_ADD_YOURS_CARDS.key));
+        assertNull(page.getPreferenceScreen().findPreference(Settings.HIDE_TRAY_LIVE.key));
     }
 }

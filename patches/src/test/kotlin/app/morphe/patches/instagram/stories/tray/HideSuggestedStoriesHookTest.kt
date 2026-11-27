@@ -46,7 +46,7 @@ class HideSuggestedStoriesHookTest {
     /** Both hooks the patch writes are in the StoriesTray the bundle ships, public and static. */
     @Test
     fun theHooksAreInTheExtension() {
-        for (hook in listOf(HIDE_TRAY, FLOAT_TRAY, TRAY_FILTER, TRAY_REMAINING_FILTER)) {
+        for (hook in listOf(HIDE_TRAY, FLOAT_TRAY, TRAY_FILTER, TRAY_REMAINING_FILTER, TRAY_LIVE_FILTER)) {
             val declared = ExtensionDex.classDef(hook.substringBefore("->")).methods
                 .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
                 .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
@@ -138,6 +138,53 @@ class HideSuggestedStoriesHookTest {
         val method = context.mutableClassDefBy(TRAY).methods.single { it.name == "unsafeParseFromJson" }
         assertTrimmedAfterTheRead("stand-in", method)
         assertFilteredBeforeTheTest("stand-in", method)
+    }
+
+    /**
+     * Each live broadcast goes past the extension right after it's read, ahead of the parser's null
+     * test, alongside the tray item and reels-left hooks (#886).
+     */
+    @Test
+    fun eachLiveBroadcastIsFiltered() {
+        val context = PatchContexts.of(trayClasses())
+        val parse = context.findTrayItemParse()
+        val live = context.findTrayLiveParse(parse.site)
+
+        context.hookTrayParser(parse, context.findTrayRemaining(parse.site), live)
+
+        val method = context.mutableClassDefBy(TRAY).methods.single { it.name == "unsafeParseFromJson" }
+        assertFilteredBeforeTheTest("stand-in", method, TRAY_LIVE_FILTER)
+        assertFilteredBeforeTheTest("stand-in", method)
+        assertTrimmedAfterTheRead("stand-in", method)
+    }
+
+    /** A tray parser reading no broadcasts leaves the live filter out and the rest of the patch in. */
+    @Test
+    fun aTrayParserWithoutBroadcastsLeavesTheLiveFilterOut() {
+        val context = PatchContexts.of(trayClasses(broadcasts = false))
+        val parse = context.findTrayItemParse()
+        assertThrows(PatchException::class.java) { context.findTrayLiveParse(parse.site) }
+        assertNull(context.findTrayLiveParseOrWarn(parse.site))
+
+        context.hookTrayParser(parse, context.findTrayRemaining(parse.site), null)
+
+        val method = context.mutableClassDefBy(TRAY).methods.single { it.name == "unsafeParseFromJson" }
+        assertFilteredBeforeTheTest("stand-in", method)
+        assertTrimmedAfterTheRead("stand-in", method)
+    }
+
+    @Test
+    fun aBroadcastReadWithoutTheNullTestFailsTheLiveFilter() {
+        val context = PatchContexts.of(trayClasses(broadcastTested = false))
+        val site = context.findTrayItemParse().site
+        assertThrows(PatchException::class.java) { context.findTrayLiveParse(site) }
+    }
+
+    @Test
+    fun aBroadcastNotABroadcastFailsTheLiveFilter() {
+        val context = PatchContexts.of(trayClasses(broadcastInterface = "Lfixture/SomethingElse;"))
+        val site = context.findTrayItemParse().site
+        assertThrows(PatchException::class.java) { context.findTrayLiveParse(site) }
     }
 
     @Test
@@ -258,6 +305,7 @@ class HideSuggestedStoriesHookTest {
         FixtureDex.forEach(bundle) { dex ->
             for (classDef in dex.classes) {
                 val keep = classDef.superclass == "Ljava/lang/Enum;" || TRAY_ITEM_INTF in classDef.interfaces ||
+                    TRAY_BROADCAST_INTF in classDef.interfaces ||
                     classDef.type == TRAY_ITEM_INTF || classDef.type == USER ||
                     classDef.methods.any {
                         it.name == "parseFromJsonParser" || it.holds(TRAY_ROWS) || it.holds(TRAY_REMAINING) || it.holds(FLOATING_TRAY)
@@ -274,6 +322,7 @@ class HideSuggestedStoriesHookTest {
         val floating = context.findFloatingTrayShow()
         val parse = context.findTrayItemParse()
         val remaining = context.findTrayRemaining(parse.site)
+        val live = context.findTrayLiveParse(parse.site)
         val guarded = { site: MethodSite ->
             context.mutableClassDefBy(site.type).methods.single { it.name == site.name && it.parameterTypes.map(CharSequence::toString) == site.parameters }
         }
@@ -281,7 +330,7 @@ class HideSuggestedStoriesHookTest {
         val stock = listOf(rows, floating).map { NeutralNativePath(guarded(it)) }
         context.guardTray(rows)
         context.guardTray(floating, FLOAT_TRAY)
-        context.hookTrayParser(parse, remaining)
+        context.hookTrayParser(parse, remaining, live)
         context.fillTrayOwnerStubs(owner)
         assertEquals("$label: the owner's is_verified getter", "Ljava/lang/Boolean;", owner.verified.returnType)
 
@@ -293,6 +342,7 @@ class HideSuggestedStoriesHookTest {
         }
         val parser = context.mutableClassDefBy(parse.site.type).methods.single { it.name == "unsafeParseFromJson" && it.parameterTypes.size == 1 }
         assertFilteredBeforeTheTest("${label} ${parse.site.type}", parser)
+        assertFilteredBeforeTheTest("${label} ${parse.site.type} lives", parser, TRAY_LIVE_FILTER)
         assertTrimmedAfterTheRead("${label} ${parse.site.type}", parser)
     }
 
@@ -313,9 +363,9 @@ class HideSuggestedStoriesHookTest {
     }
 
     /** The item's read is followed by the extension call on its register, the answer back in it, and the null test; one call in all. */
-    private fun assertFilteredBeforeTheTest(what: String, method: Method) {
+    private fun assertFilteredBeforeTheTest(what: String, method: Method, filter: String = TRAY_FILTER) {
         val code = method.implementation!!.instructions.toList()
-        val hooks = code.indices.filter { (code[it] as? ReferenceInstruction)?.reference?.toString() == TRAY_FILTER }
+        val hooks = code.indices.filter { (code[it] as? ReferenceInstruction)?.reference?.toString() == filter }
         assertEquals("$what: hooks", 1, hooks.size)
         val hook = hooks.single()
         assertEquals("$what: the read", "parseFromJsonParser", (code[hook - 2] as ReferenceInstruction).reference.toString().substringAfter("->").substringBefore("("))
@@ -350,6 +400,8 @@ class HideSuggestedStoriesHookTest {
         const val PARSER = "Lfixture/ReelItemParser;"
         const val BASE = "Lfixture/JsonParserBase;"
         const val ITEM = "Lfixture/ReelItem;"
+        const val LIVE_PARSER = "Lfixture/BroadcastParser;"
+        const val BROADCAST = "Lfixture/Broadcast;"
         const val REEL_TYPE = "Lfixture/ReelType;"
         const val JSON = "Lfixture/Json;"
         const val USER = "Lcom/instagram/user/model/User;"
@@ -447,7 +499,29 @@ class HideSuggestedStoriesHookTest {
             remaining: Boolean = true,
             reelTypes: List<String> = listOf("USER_REEL") + SUGGESTED_REELS + MADE_REELS,
             itemInterface: String = TRAY_ITEM_INTF,
+            broadcasts: Boolean = true,
+            broadcastTested: Boolean = true,
+            broadcastInterface: String = TRAY_BROADCAST_INTF,
         ): List<ClassDef> {
+            // 457's live broadcasts: their key, a read through the broadcast parser's singleton and a null test skipping it.
+            val lives = if (!broadcasts) {
+                emptyList()
+            } else {
+                listOfNotNull<Instruction>(
+                    string(0, TRAY_BROADCASTS),
+                    ImmutableInstruction21c(Opcode.SGET_OBJECT, 1, ImmutableFieldReference(LIVE_PARSER, "A00", LIVE_PARSER)),
+                    ImmutableInstruction35c(
+                        Opcode.INVOKE_VIRTUAL, 2, 1, 3, 0, 0, 0,
+                        ImmutableMethodReference(BASE, "parseFromJsonParser", listOf(JSON), "Ljava/lang/Object;"),
+                    ),
+                    ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 1),
+                    if (broadcastTested) ImmutableInstruction21t(Opcode.IF_EQZ, 1, 5) else null,
+                    ImmutableInstruction35c(
+                        Opcode.INVOKE_VIRTUAL, 2, 2, 1, 0, 0, 0,
+                        ImmutableMethodReference("Ljava/util/ArrayList;", "add", listOf("Ljava/lang/Object;"), "Z"),
+                    ),
+                )
+            }
             val tray = listOfNotNull<Instruction>(
                 ImmutableInstruction21c(Opcode.NEW_INSTANCE, 2, ImmutableTypeReference("Ljava/util/ArrayList;")),
                 string(0, TRAY_REMAINING),
@@ -470,6 +544,7 @@ class HideSuggestedStoriesHookTest {
                     Opcode.INVOKE_VIRTUAL, 2, 2, 1, 0, 0, 0,
                     ImmutableMethodReference("Ljava/util/ArrayList;", "add", listOf("Ljava/lang/Object;"), "Z"),
                 ),
+            ) + lives + listOf(
                 string(0, "personalization_features"),
                 ImmutableInstruction11x(Opcode.RETURN_OBJECT, 2),
             )
@@ -490,6 +565,24 @@ class HideSuggestedStoriesHookTest {
                     superclass = BASE,
                 ),
                 classOf(ITEM, emptyList(), interfaces = listOf(itemInterface), fields = listOf(ImmutableField(ITEM, "A03", REEL_TYPE, INSTANCE, null, null, null))),
+                classOf(
+                    LIVE_PARSER,
+                    listOf(
+                        ImmutableMethod(
+                            LIVE_PARSER, "parseFromJsonParser", json, "Ljava/lang/Object;", INSTANCE, null, null,
+                            ImmutableMethodImplementation(
+                                3,
+                                parse.map {
+                                    if (it.opcode == Opcode.CHECK_CAST) ImmutableInstruction21c(Opcode.CHECK_CAST, 0, ImmutableTypeReference(BROADCAST)) else it
+                                },
+                                null,
+                                null,
+                            ),
+                        ),
+                    ),
+                    superclass = BASE,
+                ),
+                classOf(BROADCAST, emptyList(), interfaces = listOf(broadcastInterface)),
                 classOf(REEL_TYPE, listOf(ImmutableMethod(REEL_TYPE, "<clinit>", null, "V", static, null, null, ImmutableMethodImplementation(1, names, null, null))), superclass = "Ljava/lang/Enum;"),
             )
         }

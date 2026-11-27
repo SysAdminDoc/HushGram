@@ -43,6 +43,8 @@ internal const val HIDE_TRAY = "$EXTENSION_PACKAGE/stories/StoriesTray;->hideTra
 internal const val FLOAT_TRAY = "$EXTENSION_PACKAGE/stories/StoriesTray;->keepTrayOutOfOverlay()Z"
 internal const val TRAY_FILTER = "$EXTENSION_PACKAGE/stories/StoriesTray;->filter(Ljava/lang/Object;)Ljava/lang/Object;"
 internal const val TRAY_REMAINING_FILTER = "$EXTENSION_PACKAGE/stories/StoriesTray;->remaining(Ljava/util/ArrayList;)Ljava/util/ArrayList;"
+/** Each live broadcast the tray parser reads goes past it: null while Hide lives in the Stories tray is on (#886). */
+internal const val TRAY_LIVE_FILTER = "$EXTENSION_PACKAGE/stories/StoriesTray;->live(Ljava/lang/Object;)Ljava/lang/Object;"
 private const val ARRAY_LIST = "Ljava/util/ArrayList;"
 internal const val MUSIC_CARD = "$EXTENSION_PACKAGE/stories/StoriesTray;->musicCard(I)Z"
 
@@ -85,6 +87,13 @@ internal const val TRAY_REMAINING = "remaining_reel_ids_to_fetch"
 
 /** The kept interface every stories tray item implements. */
 internal const val TRAY_ITEM_INTF = "Lcom/instagram/model/reels/ReelResponseItemIntf;"
+
+/**
+ * The tray response's key for the accounts live right now, a list the parser reads next to the
+ * tray items, each a broadcast implementing [TRAY_BROADCAST_INTF].
+ */
+internal const val TRAY_BROADCASTS = "broadcasts"
+internal const val TRAY_BROADCAST_INTF = "Lcom/instagram/api/schemas/BroadcastIntf;"
 
 /** The reel types of suggested tray items, which StoriesTray drops: an account to follow, its story, and a creator's story. */
 internal val SUGGESTED_REELS = listOf("SUGGESTED_USER", "SUGGESTED_USER_REEL", "SUGGESTED_CREATOR_REEL")
@@ -130,7 +139,8 @@ val hideSuggestedStoriesPatch = bytecodePatch(
         val netegoCheck = findStoryNetegoCheck()
         val midcards = findStoryMidcards()
         val owner = findTrayOwnerOrWarn()
-        hookTrayParser(parse, findTrayRemaining(parse.site))
+        val live = findTrayLiveParseOrWarn(parse.site)
+        hookTrayParser(parse, findTrayRemaining(parse.site), live)
         owner?.let { fillTrayOwnerStubs(it) }
         hideMusicCard()
         hideStorySuggestions(netegoCheck)
@@ -301,31 +311,70 @@ internal fun BytecodePatchContext.findTrayItemParse(): TrayItemParse {
     }
     val (type, method) = found.singleOrNull()
         ?: refuse("expected one stories tray parser holding $TRAY_ITEMS, $TRAY_TOKEN and $TRAY_REMAINING, found ${found.size}")
+    val site = MethodSite(type, method.name, method.parameterTypes.map(CharSequence::toString))
+    val (parse, item) = readUnderKey(site, method, TRAY_ITEMS, "tray item", TRAY_ITEM_INTF)
+    requireOneKindField(PATCH, item, SUGGESTED_REELS + MADE_REELS)
+    return parse
+}
+
+/**
+ * In the tray parser at [site], the one read of a live broadcast between the [TRAY_BROADCASTS] key
+ * and the next key: a `parseFromJsonParser` call on a parser whose items implement
+ * [TRAY_BROADCAST_INTF], its move-result-object, and a null test of it, so a null broadcast is
+ * skipped the way a null tray item is (#886).
+ */
+internal fun BytecodePatchContext.findTrayLiveParse(site: MethodSite): TrayItemParse {
+    val method = classDefBy(site.type).methods.single {
+        it.name == site.name && it.parameterTypes.map(CharSequence::toString) == site.parameters
+    }
+    return readUnderKey(site, method, TRAY_BROADCASTS, "live broadcast", TRAY_BROADCAST_INTF).first
+}
+
+/** [findTrayLiveParse], or null with a warning: the patch goes in, and Hide lives in the Stories tray keeps every live. */
+internal fun BytecodePatchContext.findTrayLiveParseOrWarn(site: MethodSite): TrayItemParse? = try {
+    findTrayLiveParse(site)
+} catch (moved: PatchException) {
+    patchLog.warning("${moved.message}. Hide suggested stories goes in without Hide lives in the Stories tray.")
+    null
+}
+
+/**
+ * In [method] at [site], the one read of a [what] between the [key] and the next key, its
+ * move-result-object and a null test of it, read through a parser singleton whose
+ * `parseFromJsonParser` casts to one class implementing [intf]. Answers the read and that class.
+ */
+private fun BytecodePatchContext.readUnderKey(
+    site: MethodSite,
+    method: Method,
+    key: String,
+    what: String,
+    intf: String,
+): Pair<TrayItemParse, String> {
     val code = method.implementation!!.instructions.toList()
-    val where = "$type->${method.name}"
-    val key = code.indexOfFirst { it.string() == TRAY_ITEMS }
-    val nextKey = (key + 1 until code.size).firstOrNull { code[it].string() != null } ?: code.size
-    val reads = (key + 1 until nextKey).filter { code[it].methodReference()?.name == "parseFromJsonParser" }
-    val read = reads.singleOrNull() ?: refuse("$where reads its tray items ${reads.size} times, expected once")
+    val where = "${site.type}->${site.name}"
+    val at = code.indexOfFirst { it.string() == key }
+    if (at < 0) refuse("$where doesn't hold $key")
+    val nextKey = (at + 1 until code.size).firstOrNull { code[it].string() != null } ?: code.size
+    val reads = (at + 1 until nextKey).filter { code[it].methodReference()?.name == "parseFromJsonParser" }
+    val read = reads.singleOrNull() ?: refuse("$where reads each $what ${reads.size} times, expected once")
     val result = code.getOrNull(read + 1)
-    if (result?.opcode != Opcode.MOVE_RESULT_OBJECT) refuse("$where drops the tray item it reads")
+    if (result?.opcode != Opcode.MOVE_RESULT_OBJECT) refuse("$where drops the $what it reads")
     val register = (result as OneRegisterInstruction).registerA
     val test = code.getOrNull(read + 2)
     if (test?.opcode != Opcode.IF_EQZ || (test as OneRegisterInstruction).registerA != register) {
-        refuse("$where doesn't skip a tray item that didn't parse")
+        refuse("$where doesn't skip a $what that didn't parse")
     }
 
-    val parser = (read - 3 until read).reversed().firstNotNullOfOrNull { at ->
-        code.getOrNull(at)?.takeIf { it.opcode == Opcode.SGET_OBJECT }?.let { ((it as ReferenceInstruction).reference as FieldReference).type }
-    } ?: refuse("$where reads its tray items with no parser before the call")
+    val parser = (read - 3 until read).reversed().firstNotNullOfOrNull { index ->
+        code.getOrNull(index)?.takeIf { it.opcode == Opcode.SGET_OBJECT }?.let { ((it as ReferenceInstruction).reference as FieldReference).type }
+    } ?: refuse("$where reads each $what with no parser before the call")
     val casts = classDefBy(parser).methods.filter { it.name == "parseFromJsonParser" }.flatMap { m ->
         m.implementation?.instructions?.filter { it.opcode == Opcode.CHECK_CAST }
             ?.map { ((it as ReferenceInstruction).reference as TypeReference).type }.orEmpty()
     }.distinct()
-    val item = casts.singleOrNull { classDefByOrNull(it)?.interfaces?.contains(TRAY_ITEM_INTF) == true }
-        ?: refuse("expected $parser to read one class implementing $TRAY_ITEM_INTF, found $casts")
-    requireOneKindField(PATCH, item, SUGGESTED_REELS + MADE_REELS)
-    return TrayItemParse(MethodSite(type, method.name, method.parameterTypes.map(CharSequence::toString)), read + 1, register)
+    val item = casts.singleOrNull { classDefByOrNull(it)?.interfaces?.contains(intf) == true }
+        ?: refuse("expected $parser to read one class implementing $intf, found $casts")
+    return TrayItemParse(site, read + 1, register) to item
 }
 
 /** Where the tray parser reads the ids of the reels it fetches after the tray: the index and register of that read's move-result. */
@@ -364,24 +413,31 @@ internal fun BytecodePatchContext.trimTrayRemaining(read: TrayRemainingRead) {
     )
 }
 
-/** Both tray parser hooks, the later one first, so writing one doesn't move where the other goes. */
-internal fun BytecodePatchContext.hookTrayParser(parse: TrayItemParse, remaining: TrayRemainingRead) {
-    if (remaining.moveResult > parse.moveResult) {
-        trimTrayRemaining(remaining)
-        filterTrayItems(parse)
-    } else {
-        filterTrayItems(parse)
-        trimTrayRemaining(remaining)
-    }
+/**
+ * Every tray parser hook, [live]'s too when it was found, the later one first, so writing one
+ * doesn't move where another goes.
+ */
+internal fun BytecodePatchContext.hookTrayParser(parse: TrayItemParse, remaining: TrayRemainingRead, live: TrayItemParse? = null) {
+    val hooks = listOfNotNull<Pair<Int, () -> Unit>>(
+        remaining.moveResult to { trimTrayRemaining(remaining) },
+        parse.moveResult to { filterTrayItems(parse) },
+        live?.let { found -> found.moveResult to { filterTrayLive(found) } },
+    )
+    hooks.sortedByDescending { it.first }.forEach { it.second() }
 }
 
 /** Passes each tray item through [TRAY_FILTER] right after the parser reads it, ahead of its null test. */
-internal fun BytecodePatchContext.filterTrayItems(parse: TrayItemParse) {
+internal fun BytecodePatchContext.filterTrayItems(parse: TrayItemParse) = passTrayRead(parse, TRAY_FILTER)
+
+/** Passes each live broadcast through [TRAY_LIVE_FILTER] right after the parser reads it, ahead of its null test (#886). */
+internal fun BytecodePatchContext.filterTrayLive(parse: TrayItemParse) = passTrayRead(parse, TRAY_LIVE_FILTER)
+
+private fun BytecodePatchContext.passTrayRead(parse: TrayItemParse, hook: String) {
     val item = parse.register
     mutableMethod(parse.site).addInstructions(
         parse.moveResult + 1,
         """
-            invoke-static/range { v$item .. v$item }, $TRAY_FILTER
+            invoke-static/range { v$item .. v$item }, $hook
             move-result-object v$item
         """,
     )

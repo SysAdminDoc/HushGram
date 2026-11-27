@@ -64,6 +64,9 @@ final class StoriesCategory {
             stories.add(toggle(context, Settings.HIDE_STORY_RECAPS, L10n.t("Hide memories and recaps"),
                     L10n.t("Takes the memories, recaps, follow anniversaries and birthday cards Instagram makes out "
                             + "of the row of stories at the top of Home. Stories people post stay.")));
+            stories.add(toggle(context, Settings.HIDE_TRAY_LIVE, L10n.t("Hide lives in the Stories tray"),
+                    L10n.t("Takes accounts that are live right now out of the row of stories at the top of Home. "
+                            + "Pull down on Home to refresh after changing it.")));
             stories.add(toggle(context, Settings.STOP_LOADING_STORIES, L10n.t("Stop loading stories and highlights"),
                     L10n.t("Nothing in the row of stories at the top of Home loads, your own story included, and "
                             + "highlights on profiles stay empty too. Saves data. A story ring on a profile or in a chat "

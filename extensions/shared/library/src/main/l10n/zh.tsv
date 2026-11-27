@@ -851,6 +851,9 @@ Hide Subscribe on posts	隐藏帖子上的订阅按钮
 Takes only the Subscribe button off the top of posts in your feed. Follow stays.	只移除动态首页帖子顶端的“订阅”按钮。“关注”仍会保留。
 Takes the memories, recaps, follow anniversaries and birthday cards Instagram makes out of the row of stories at the top of Home. Stories people post stay.	移除首页顶端快拍栏中，Instagram 产生的回忆、回顾、关注周年纪念与生日卡片。用户发布的快拍仍会保留。
 Hides the rewind cards, which bring back old highlights, from the row of stories at the top of Home.	隐藏首页顶端快拍栏中，重新呈现旧精选的往事回顾卡片。
+# context: Stories > title and summary of Hide lives in the Stories tray (#886), the switch that takes accounts live right now out of the row of stories at the top of Home; use the word Instagram shows for a live broadcast in this language
+Hide lives in the Stories tray	隐藏快拍栏中的直播
+Takes accounts that are live right now out of the row of stories at the top of Home. Pull down on Home to refresh after changing it.	将正在直播的账户从首页顶端的快拍栏中移除。更改后请在首页下拉以刷新。
 A double tap on a comment doesn't like it. Starts off, so comments keep double tap to like until you turn this on.	双击评论不会点赞。默认关闭，因此评论会保留双击点赞功能，直到你启用此选项。
 On messages	消息
 A double tap on a message in a chat doesn't react to it. Starts off. A long press still shows the reactions.	双击聊天中的消息不会发送心情回应。默认关闭。长按仍会显示心情回应选项。

@@ -1799,12 +1799,15 @@ once-call Lapp/hushgram/extension/instagram/feed/FullResolution;->photo(Ljava/la
 # filter() once, in the one unsafeParseFromJson holding "tray", "story_ranking_token" and
 # "remaining_reel_ids_to_fetch", and the ids of the reels that parser reads under
 # "remaining_reel_ids_to_fetch" through remaining() once, so Stop loading stories and highlights empties both.
+# Each live broadcast the same parser reads under "broadcasts" goes through live() once, for Hide
+# lives in the Stories tray (#886).
 start-call Lapp/hushgram/extension/instagram/stories/StoriesTray;->hideTray()Z in instance (L*;Ljava/lang/Object;Ljava/lang/Object;)V holding MainFeedStoryTrayBinderGroup.buildRowViewTypes
 once-call Lapp/hushgram/extension/instagram/stories/StoriesTray;->hideTray()Z in instance (L*;Ljava/lang/Object;Ljava/lang/Object;)V holding MainFeedStoryTrayBinderGroup.buildRowViewTypes
 start-call Lapp/hushgram/extension/instagram/stories/StoriesTray;->keepTrayOutOfOverlay()Z in instance (Landroid/view/View;Landroid/view/View;Ljava/lang/String;I)V pooled holding floating_tray_overlay_container show_tray_fail_reason
 once-call Lapp/hushgram/extension/instagram/stories/StoriesTray;->keepTrayOutOfOverlay()Z in instance (Landroid/view/View;Landroid/view/View;Ljava/lang/String;I)V pooled holding floating_tray_overlay_container show_tray_fail_reason
 once-call Lapp/hushgram/extension/instagram/stories/StoriesTray;->filter(Ljava/lang/Object;)Ljava/lang/Object; in instance (*)Ljava/lang/Object; holding tray story_ranking_token remaining_reel_ids_to_fetch
 once-call Lapp/hushgram/extension/instagram/stories/StoriesTray;->remaining(Ljava/util/ArrayList;)Ljava/util/ArrayList; in instance (*)Ljava/lang/Object; holding tray story_ranking_token remaining_reel_ids_to_fetch
+once-call Lapp/hushgram/extension/instagram/stories/StoriesTray;->live(Ljava/lang/Object;)Ljava/lang/Object; in instance (*)Ljava/lang/Object; holding tray story_ranking_token remaining_reel_ids_to_fetch broadcasts
 # It also asks midcard(String) right after the type of a midcard reel is turned into its id, in each
 # static method that builds a reel with the (Object, Integer, List, List) constructor and takes the
 # viewer's list: nine on 452, told apart by their shape and one call each (Redex's class names are

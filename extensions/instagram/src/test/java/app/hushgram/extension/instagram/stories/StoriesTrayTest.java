@@ -306,6 +306,48 @@ public class StoriesTrayTest {
         }
     }
 
+    /** A live broadcast stays until Hide lives in the Stories tray, off to start, is turned on (#886). */
+    @Test
+    public void livesGoOnlyWithTheirSwitch() {
+        Object broadcast = new Object();
+        assertFalse(Settings.HIDE_TRAY_LIVE.get());
+        assertSame(broadcast, StoriesTray.live(broadcast));
+        assertNull(StoriesTray.live(null));
+        Settings.HIDE_TRAY_LIVE.save(true);
+        try {
+            FeedFilterCounters.snapshotAndClear();
+            assertNull(StoriesTray.live(broadcast));
+            assertNull(StoriesTray.live(null));
+            String report = FeedFilterCounters.report().toString();
+            assertTrue(report, report.contains(StoriesTray.LIVE_ROUTE));
+            assertTrue(report, report.contains(StoriesTray.LIVE + " 1"));
+            // A story item isn't a broadcast, and this switch leaves the stories alone.
+            TrayItem story = new TrayItem(ReelType.USER_REEL);
+            assertSame(story, StoriesTray.filter(story));
+        } finally {
+            Settings.HIDE_TRAY_LIVE.save(false);
+        }
+    }
+
+    /** Paused, Hide lives in the Stories tray reads off and every live broadcast stays. */
+    @Test
+    public void pausedEveryLiveStays() {
+        Object broadcast = new Object();
+        Settings.HIDE_TRAY_LIVE.save(true);
+        try {
+            BaseSettings.PAUSED.save(true);
+            PauseForTests.pause(HushgramPause.Reason.SWITCH);
+            assertSame(broadcast, StoriesTray.live(broadcast));
+            BaseSettings.PAUSED.save(false);
+            PauseForTests.resume();
+            assertNull(StoriesTray.live(broadcast));
+        } finally {
+            BaseSettings.PAUSED.save(false);
+            PauseForTests.resume();
+            Settings.HIDE_TRAY_LIVE.save(false);
+        }
+    }
+
     /** As built, before the patch writes the stubs, nothing is known about an owner and every story stays. */
     @Test
     public void unpatchedStubsKeepEveryStory() {
