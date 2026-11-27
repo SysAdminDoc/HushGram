@@ -170,6 +170,7 @@ public final class ConfigurationBackup {
         if (PatchFamily.MEDIA_CACHE.inBuild()) settings.put(Settings.MEDIA_CACHE_LIMIT_MB.key, Settings.MEDIA_CACHE_LIMIT_MB);
         if (PatchFamily.CAPTION_WORD_REELS.inBuild()) {
             settings.put(Settings.REELS_BLOCKED_WORDS.key, Settings.REELS_BLOCKED_WORDS);
+            settings.put(Settings.CAPTION_WORDS_AS_PATTERNS.key, Settings.CAPTION_WORDS_AS_PATTERNS);
             settings.put(Settings.REELS_KEPT_LANGUAGES.key, Settings.REELS_KEPT_LANGUAGES);
             settings.put(Settings.HIDE_CAPTION_WORD_COMMENTS.key, Settings.HIDE_CAPTION_WORD_COMMENTS);
             settings.put(Settings.HIDE_CAPTION_WORD_SEARCH.key, Settings.HIDE_CAPTION_WORD_SEARCH);

@@ -6,6 +6,7 @@ Every HushGram release, newest first.
 
 ### Features
 
+* `Blocked words as regular expressions` is new under Reels, right below `Blocked words`. Each entry is read as a regular expression, whatever the case. One that isn't valid is matched as plain words, and `Blocked words` names it. Starts off. Asked for in #883.
 * `Hide lives in the Stories tray` is new under Stories, below `Hide memories and recaps`. Accounts that are live right now drop out of the row of stories at the top of Home. Starts off. Asked for in #886.
 * `Even on silent` is new under `Start stories with sound`. With your phone on silent or vibrate, stories still open with their sound, as long as the media volume is up. Starts off. Asked for in #907.
 * `Stop story side taps` is new under Stories. A tap on the left or right of a story no longer jumps to the one before or after, so a stray tap won't skip it. Starts off. Asked for in #887.

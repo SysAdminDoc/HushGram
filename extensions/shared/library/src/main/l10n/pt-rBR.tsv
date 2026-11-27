@@ -1508,6 +1508,10 @@ Words or phrases, with a comma or a new line between them. Capital letters don't
 No words yet	Nenhuma palavra ainda
 %1$d word	%1$d palavra
 %1$d words	%1$d palavras
+# context: Reels > Blocked words as regular expressions (#883): the switch right under the Blocked words row that reads each entry of that list as a regular expression, and the line the Blocked words row adds naming the entries it matches as plain words instead (%1$s is those entries as typed, already joined into a list); keep Blocked words as that row's name above
+Blocked words as regular expressions	Palavras bloqueadas como expressões regulares
+Reads each entry in Blocked words as a regular expression, whatever the case. One that isn't valid, or could take too long to check, is matched as plain words, and Blocked words says which.	Lê cada item de Palavras bloqueadas como uma expressão regular, sem diferenciar maiúsculas e minúsculas. Um item inválido, ou que poderia demorar demais para ser verificado, é comparado como palavras comuns, e Palavras bloqueadas mostra qual.
+Matched as plain words: %1$s	Comparadas como palavras comuns: %1$s
 # context: Reels > Show a reel's exact time: how long ago a reel was posted (#195). %1$s is a short span like 1d 2h 5m, already in this language.
 Show how long ago a reel was posted	Mostrar há quanto tempo um reel foi publicado
 Shows the days, hours and minutes since it went up on a line under the time, like 1d 2h 5m ago.	Mostra os dias, horas e minutos desde a publicação em uma linha abaixo do horário, como há 1 dia 2 h 5 min.

@@ -4,6 +4,7 @@
  */
 package app.hushgram.extension.instagram.reels;
 
+import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -33,7 +34,8 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * its caption, the post's own words with their hashtags, holds one of them, whatever the case. An
  * {@code @name} in the list also takes out that account's own reels, the author read through the
  * post's user and its username (#807). A reel with no caption from an account not named stays.
- * With Also on Home on, Home's posts are matched against the same list
+ * With Blocked words as regular expressions on, each entry is matched as a pattern instead
+ * ({@link CaptionWordPatterns}, #883). With Also on Home on, Home's posts are matched against the same list
  * ({@link app.hushgram.extension.instagram.feed.FeedSuggestions#homeItem}), with Also in comments
  * on, so is each comment in a post's comments as its row is built ({@link #dropsComment}), and with
  * Also in search on, so are the posts in the Explore grid and under search results
@@ -93,15 +95,39 @@ public final class CaptionWordReels {
     };
 
     /** The last list read and the words it splits into, so a page doesn't split it again. */
-    private static volatile Parsed parsed;
+    private static volatile WordList parsed;
 
-    private static final class Parsed {
+    /**
+     * The words of one stored list, which also reads that list as patterns for Blocked words as
+     * regular expressions (#883), the first time they're asked for.
+     */
+    static final class WordList extends AbstractList<String> {
         final String stored;
-        final List<String> words;
+        private final List<String> words;
+        private volatile CaptionWordPatterns patterns;
 
-        Parsed(String stored, List<String> words) {
+        WordList(String stored, List<String> words) {
             this.stored = stored;
             this.words = words;
+        }
+
+        @Override
+        public String get(int index) {
+            return words.get(index);
+        }
+
+        @Override
+        public int size() {
+            return words.size();
+        }
+
+        CaptionWordPatterns patterns() {
+            CaptionWordPatterns known = patterns;
+            if (known == null) {
+                known = CaptionWordPatterns.of(stored);
+                patterns = known;
+            }
+            return known;
         }
     }
 
@@ -197,9 +223,14 @@ public final class CaptionWordReels {
         }
     }
 
-    /** Whether [caption] holds one of [words], which are already lower case. No caption holds nothing. */
+    /**
+     * Whether [caption] holds one of [words], which are already lower case. No caption holds nothing.
+     * With Blocked words as regular expressions on, the stored list's entries are matched as
+     * patterns instead (#883).
+     */
     public static boolean holdsAny(String caption, List<String> words) {
         if (caption == null || caption.isEmpty()) return false;
+        if (words instanceof WordList && patternsOn()) return ((WordList) words).patterns().holdsAny(caption);
         String text = caption.toLowerCase(Locale.ROOT);
         for (String word : words) {
             if (text.contains(word)) return true;
@@ -245,12 +276,25 @@ public final class CaptionWordReels {
     }
 
     /** The words of the stored list, split again only when the list changes. */
-    static List<String> cached(String stored) {
-        Parsed known = parsed;
-        if (known != null && Objects.equals(known.stored, stored)) return known.words;
-        List<String> words = words(stored);
-        parsed = new Parsed(stored, words);
+    static WordList cached(String stored) {
+        WordList known = parsed;
+        if (known != null && Objects.equals(known.stored, stored)) return known;
+        WordList words = new WordList(stored, words(stored));
+        parsed = words;
         return words;
+    }
+
+    /** Whether Blocked words as regular expressions is on (#883): off while paused and before the settings are read. */
+    static boolean patternsOn() {
+        return Utils.settingsReady() && Settings.CAPTION_WORDS_AS_PATTERNS.get();
+    }
+
+    /**
+     * The entries of [stored] that Blocked words as regular expressions matches as plain words, as
+     * typed: those that aren't a valid pattern or could keep the matcher busy (#883).
+     */
+    public static List<String> notPatterns(String stored) {
+        return cached(stored).patterns().notPatterns;
     }
 
     /** The blocked words while the switch is on, read only once the settings are; none while paused or off. */

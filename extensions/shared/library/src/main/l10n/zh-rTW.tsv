@@ -1486,6 +1486,10 @@ Words or phrases, with a comma or a new line between them. Capital letters don't
 No words yet	尚無字詞
 %1$d word	%1$d 個字詞
 %1$d words	%1$d 個字詞
+# context: Reels > Blocked words as regular expressions (#883): the switch right under the Blocked words row that reads each entry of that list as a regular expression, and the line the Blocked words row adds naming the entries it matches as plain words instead (%1$s is those entries as typed, already joined into a list); keep Blocked words as that row's name above
+Blocked words as regular expressions	以規則運算式比對封鎖字詞
+Reads each entry in Blocked words as a regular expression, whatever the case. One that isn't valid, or could take too long to check, is matched as plain words, and Blocked words says which.	將封鎖字詞中的每個項目當作規則運算式讀取，不分大小寫。無效或檢查可能太久的項目會當作一般字詞比對，封鎖字詞會列出是哪些。
+Matched as plain words: %1$s	以一般字詞比對：%1$s
 # context: Reels > Show a reel's exact time: how long ago a reel was posted (#195). %1$s is a short span like 1d 2h 5m, already in this language.
 Show how long ago a reel was posted	顯示 Reel 發佈至今的時間
 Shows the days, hours and minutes since it went up on a line under the time, like 1d 2h 5m ago.	在時間下方另外顯示發佈至今的天數、時數與分鐘數，例如 1 天 2 小時 5 分鐘前。

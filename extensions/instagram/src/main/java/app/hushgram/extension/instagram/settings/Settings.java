@@ -3416,6 +3416,14 @@ public class Settings extends BaseSettings {
             new StringSetting("hushgram_reels_blocked_words", "", parent(HIDE_CAPTION_WORD_REELS));
 
     /**
+     * {@link #REELS_BLOCKED_WORDS} read as regular expressions (#883): each entry is matched as a
+     * case-insensitive pattern, and one that isn't valid or could keep the matcher busy as plain
+     * words. Only shows with {@link #HIDE_CAPTION_WORD_REELS}, and is off to start.
+     */
+    public static final BooleanSetting CAPTION_WORDS_AS_PATTERNS =
+            new BooleanSetting("hushgram_caption_words_regex", FALSE, parent(HIDE_CAPTION_WORD_REELS));
+
+    /**
      * {@link #REELS_BLOCKED_WORDS} on Home too: a post there whose caption holds one goes
      * ({@link app.hushgram.extension.instagram.feed.FeedSuggestions#homeItem}). Waits for
      * {@link #HIDE_CAPTION_WORD_REELS}, and is off to start (#192).

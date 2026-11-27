@@ -953,6 +953,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     belongs |= family == PatchFamily.SWIPE_TO_CREATE && Settings.HOME_SWIPE_OPENS.key.equals(key);
                     belongs |= family == PatchFamily.LIKE_ANIMATION && Settings.LIKE_ANIMATION.key.equals(key);
                     belongs |= family == PatchFamily.CAPTION_WORD_REELS && (Settings.REELS_BLOCKED_WORDS.key.equals(key)
+                            || Settings.CAPTION_WORDS_AS_PATTERNS.key.equals(key)
                             || Settings.HIDE_CAPTION_WORD_HOME.key.equals(key)
                             || Settings.HIDE_CAPTION_WORD_COMMENTS.key.equals(key)
                             || Settings.HIDE_CAPTION_WORD_SEARCH.key.equals(key)
@@ -8726,12 +8727,19 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
 
     /**
      * What the blocked words row says under its title: how many words it holds, or that it has none,
-     * and on a line of its own how much they've hidden once they've hidden anything (#807).
+     * and on a line of its own how much they've hidden once they've hidden anything (#807). With
+     * Blocked words as regular expressions on, a line names each entry matched as plain words (#883).
      */
     static String blockedWordsSummary(String stored) {
+        return blockedWordsSummary(stored, Settings.CAPTION_WORDS_AS_PATTERNS.savedValue());
+    }
+
+    static String blockedWordsSummary(String stored, boolean patterns) {
         int count = CaptionWordReels.words(stored).size();
         String words = count == 0 ? L10n.t("No words yet")
                 : L10n.quantity(count, "%1$d word", "%1$d words", count);
+        List<String> plain = patterns ? CaptionWordReels.notPatterns(stored) : null;
+        if (plain != null && !plain.isEmpty()) words += "\n" + L10n.f("Matched as plain words: %1$s", L10n.join(plain));
         String hidden = CaptionWordStats.summary();
         return hidden == null ? words : words + "\n" + hidden;
     }

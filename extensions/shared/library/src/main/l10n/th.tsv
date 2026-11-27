@@ -1497,6 +1497,10 @@ Words or phrases, with a comma or a new line between them. Capital letters don't
 No words yet	ยังไม่มีคำที่บล็อก
 %1$d word	%1$d คำ
 %1$d words	%1$d คำ
+# context: Reels > Blocked words as regular expressions (#883): the switch right under the Blocked words row that reads each entry of that list as a regular expression, and the line the Blocked words row adds naming the entries it matches as plain words instead (%1$s is those entries as typed, already joined into a list); keep Blocked words as that row's name above
+Blocked words as regular expressions	คำที่บล็อกแบบนิพจน์ทั่วไป
+Reads each entry in Blocked words as a regular expression, whatever the case. One that isn't valid, or could take too long to check, is matched as plain words, and Blocked words says which.	อ่านแต่ละรายการในคำที่บล็อกเป็นนิพจน์ทั่วไป โดยไม่สนตัวพิมพ์เล็กหรือใหญ่ รายการที่ไม่ถูกต้องหรืออาจใช้เวลาตรวจนานเกินไปจะจับคู่เป็นคำธรรมดา และคำที่บล็อกจะบอกว่าเป็นรายการไหน
+Matched as plain words: %1$s	จับคู่เป็นคำธรรมดา: %1$s
 # context: Reels > Show a reel's exact time: how long ago a reel was posted (#195). %1$s is a short span like 1d 2h 5m, already in this language.
 Show how long ago a reel was posted	แสดงระยะเวลาตั้งแต่โพสต์รีลส์
 Shows the days, hours and minutes since it went up on a line under the time, like 1d 2h 5m ago.	แสดงจำนวนวัน ชั่วโมง และนาทีตั้งแต่โพสต์คลิปในบรรทัดใต้เวลา เช่น 1d 2h 5m ago

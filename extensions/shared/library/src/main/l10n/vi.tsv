@@ -1465,6 +1465,10 @@ Words or phrases, with a comma or a new line between them. Capital letters don't
 No words yet	Chưa có từ nào
 %1$d word	%1$d từ
 %1$d words	%1$d từ
+# context: Reels > Blocked words as regular expressions (#883): the switch right under the Blocked words row that reads each entry of that list as a regular expression, and the line the Blocked words row adds naming the entries it matches as plain words instead (%1$s is those entries as typed, already joined into a list); keep Blocked words as that row's name above
+Blocked words as regular expressions	Từ bị chặn dạng biểu thức chính quy
+Reads each entry in Blocked words as a regular expression, whatever the case. One that isn't valid, or could take too long to check, is matched as plain words, and Blocked words says which.	Đọc mỗi mục trong Từ bị chặn như một biểu thức chính quy, không phân biệt chữ hoa chữ thường. Mục không hợp lệ, hoặc có thể mất quá lâu để kiểm tra, sẽ được so khớp như từ thông thường và Từ bị chặn sẽ cho biết đó là mục nào.
+Matched as plain words: %1$s	So khớp như từ thông thường: %1$s
 Show how long ago a reel was posted	Hiện reel được đăng cách đây bao lâu
 Shows the days, hours and minutes since it went up on a line under the time, like 1d 2h 5m ago.	Hiện số ngày, giờ và phút kể từ khi đăng ở dòng dưới thời gian, như 1 ngày 2 giờ 5 phút trước.
 %1$s ago	%1$s trước

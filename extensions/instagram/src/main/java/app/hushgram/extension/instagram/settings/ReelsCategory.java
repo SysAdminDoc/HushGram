@@ -7,6 +7,7 @@
 package app.hushgram.extension.instagram.settings;
 
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.blockedWordsRow;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.blockedWordsSummary;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.keptLanguagesRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.commentsPerThousandRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.likesPerThousandRow;
@@ -93,7 +94,19 @@ final class ReelsCategory {
             reels.add(toggle(context, Settings.HIDE_CAPTION_WORD_REELS, L10n.t("Hide reels by caption words"),
                     L10n.t("Leaves out reels in the Reels tab whose caption holds a word or phrase from the list below. "
                             + "A reel you open yourself still plays.")));
-            reels.add(blockedWordsRow(context));
+            HushgramPreferenceFragment.WordsRow words = blockedWordsRow(context);
+            reels.add(words);
+            Preference patterns = toggle(context, Settings.CAPTION_WORDS_AS_PATTERNS,
+                    L10n.t("Blocked words as regular expressions"),
+                    L10n.t("Reads each entry in Blocked words as a regular expression, whatever the case. One that "
+                            + "isn't valid, or could take too long to check, is matched as plain words, and Blocked "
+                            + "words says which."));
+            // Blocked words names the entries matched as plain words only while this is on.
+            patterns.setOnPreferenceChangeListener((row, value) -> {
+                words.setSummary(blockedWordsSummary(words.getText(), Boolean.TRUE.equals(value)));
+                return true;
+            });
+            reels.add(patterns);
             if (PatchFamily.feedTypesInBuild()) {
                 reels.add(toggle(context, Settings.HIDE_CAPTION_WORD_HOME, L10n.t("Also on Home"),
                         L10n.t("Leaves out posts on Home whose caption holds a word or phrase from the list too. "

@@ -58,6 +58,7 @@ public class CaptionWordSettingsTest {
         PatchFamily.inBuildForTests = null;
         Settings.HIDE_CAPTION_WORD_REELS.resetToDefault();
         Settings.REELS_BLOCKED_WORDS.resetToDefault();
+        Settings.CAPTION_WORDS_AS_PATTERNS.resetToDefault();
         Settings.HIDE_CAPTION_WORD_HOME.resetToDefault();
         Settings.HIDE_CAPTION_WORD_COMMENTS.resetToDefault();
         Settings.HIDE_CAPTION_WORD_SEARCH.resetToDefault();
@@ -80,7 +81,9 @@ public class CaptionWordSettingsTest {
         open(false);
         assertNull(page.getPreferenceScreen().findPreference(Settings.HIDE_CAPTION_WORD_REELS.key));
         assertNull(page.getPreferenceScreen().findPreference(Settings.REELS_BLOCKED_WORDS.key));
+        assertNull(page.getPreferenceScreen().findPreference(Settings.CAPTION_WORDS_AS_PATTERNS.key));
         assertFalse(ConfigurationBackup.eligible().containsKey(Settings.REELS_BLOCKED_WORDS.key));
+        assertFalse(ConfigurationBackup.eligible().containsKey(Settings.CAPTION_WORDS_AS_PATTERNS.key));
     }
     @Test public void theListSitsUnderItsSwitchUnderReelsAndWaitsForIt() throws Exception {
         open(true);
@@ -140,6 +143,45 @@ public class CaptionWordSettingsTest {
         words.setText("spoiler");
         assertEquals("nothing hidden yet, no line for it", "1 word", words.getSummary().toString());
     }
+    /**
+     * #883: Blocked words as regular expressions sits right under the list, off to start, waits for
+     * the switch and goes in a backup. While it's on, the list names each entry it matches as plain words.
+     */
+    @Test public void thePatternsSwitchSitsUnderTheListWhichNamesWhatIsntAPattern() throws Exception {
+        open(true);
+        SwitchPreference hide = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.HIDE_CAPTION_WORD_REELS.key);
+        HushgramPreferenceFragment.WordsRow words =
+                (HushgramPreferenceFragment.WordsRow) page.getPreferenceScreen().findPreference(Settings.REELS_BLOCKED_WORDS.key);
+        SwitchPreference patterns = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.CAPTION_WORDS_AS_PATTERNS.key);
+        assertNotNull(patterns);
+        assertEquals("Blocked words as regular expressions", patterns.getTitle().toString());
+        assertFalse("off to start", patterns.isChecked());
+        PreferenceCategory section = categoryHolding(page.getPreferenceScreen(), words);
+        assertSame(section, categoryHolding(page.getPreferenceScreen(), patterns));
+        assertEquals("right under the list", indexIn(section, words) + 1, indexIn(section, patterns));
+        assertFalse("waits for the switch", patterns.isEnabled());
+        hide.setChecked(true);
+        ShadowLooper.idleMainLooper();
+        assertTrue(patterns.isEnabled());
+        assertTrue("a backup keeps it", ConfigurationBackup.eligible().containsKey(Settings.CAPTION_WORDS_AS_PATTERNS.key));
+
+        words.setText("cr[iy]pto\n(unclosed\n(a+)+b");
+        assertEquals("off, every entry is plain words", "3 words", words.getSummary().toString());
+        assertTrue(patterns.getOnPreferenceChangeListener().onPreferenceChange(patterns, true));
+        patterns.setChecked(true);
+        assertEquals("flipping it on names them at once", "3 words\nMatched as plain words: (unclosed and (a+)+b",
+                words.getSummary().toString());
+        words.setText("cr[iy]pto, ok\\d");
+        assertEquals("every entry a pattern, no line", "2 words", words.getSummary().toString());
+        words.setText("(unclosed");
+        assertEquals("1 word\nMatched as plain words: (unclosed", words.getSummary().toString());
+        assertTrue(patterns.getOnPreferenceChangeListener().onPreferenceChange(patterns, false));
+        patterns.setChecked(false);
+        assertEquals("flipping it off drops the line", "1 word", words.getSummary().toString());
+        page.searchSettings("hide reels by caption words");
+        assertNotNull("the patch's name finds it", patterns.getParent());
+        page.searchSettings("");
+    }
     /** Also on Home sits under the list, off to start and waiting for the switch, only with Home's reads in the build. */
     @Test public void alsoOnHomeSitsUnderTheListWithHomesReadsInTheBuild() throws Exception {
         PatchFamily.feedTypesForTests = true;
@@ -151,8 +193,9 @@ public class CaptionWordSettingsTest {
             assertNotNull(home);
             assertEquals("Also on Home", home.getTitle().toString());
             assertFalse("off to start", home.isChecked());
+            Preference patterns = page.getPreferenceScreen().findPreference(Settings.CAPTION_WORDS_AS_PATTERNS.key);
             PreferenceCategory section = categoryHolding(page.getPreferenceScreen(), words);
-            assertEquals("right under the list", indexIn(section, words) + 1, indexIn(section, home));
+            assertEquals("right under the list's patterns switch", indexIn(section, patterns) + 1, indexIn(section, home));
             assertFalse("waits for the switch", home.isEnabled());
             hide.setChecked(true);
             ShadowLooper.idleMainLooper();
@@ -186,8 +229,10 @@ public class CaptionWordSettingsTest {
             assertEquals("Hides comments that hold a word or phrase from the list too, and comments by an account "
                     + "the list names with @. A hidden comment's replies go with it.", comments.getSummary().toString());
             assertFalse("off to start", comments.isChecked());
+            Preference patterns = page.getPreferenceScreen().findPreference(Settings.CAPTION_WORDS_AS_PATTERNS.key);
             PreferenceCategory section = categoryHolding(page.getPreferenceScreen(), words);
-            assertEquals("right under the list without Home's reads", indexIn(section, words) + 1, indexIn(section, comments));
+            assertEquals("right under the list's patterns switch without Home's reads",
+                    indexIn(section, patterns) + 1, indexIn(section, comments));
             assertFalse("waits for the switch", comments.isEnabled());
             hide.setChecked(true);
             ShadowLooper.idleMainLooper();

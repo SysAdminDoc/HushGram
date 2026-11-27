@@ -29,6 +29,10 @@
 %1$d story kept since %2$s. Tap to see who viewed it and who has no view recorded.	قصة %1$d محفوظة منذ %2$s. اضغط لرؤية من شاهدها ومن لا مشاهدة مسجلة له.
 %1$d word	%1$d كلمة
 %1$d words	%1$d كلمات
+# context: Reels > Blocked words as regular expressions (#883): the switch right under the Blocked words row that reads each entry of that list as a regular expression, and the line the Blocked words row adds naming the entries it matches as plain words instead (%1$s is those entries as typed, already joined into a list); keep Blocked words as that row's name above
+Blocked words as regular expressions	الكلمات المحظورة كتعبيرات نمطية
+Reads each entry in Blocked words as a regular expression, whatever the case. One that isn't valid, or could take too long to check, is matched as plain words, and Blocked words says which.	يقرأ كل إدخال في الكلمات المحظورة كتعبير نمطي، بغض النظر عن حالة الأحرف. الإدخال غير الصالح، أو الذي قد يستغرق فحصه وقتًا طويلًا، يُطابَق ككلمات عادية، وتوضح الكلمات المحظورة أيها.
+Matched as plain words: %1$s	تُطابَق ككلمات عادية: %1$s
 %1$d%%	%1$d%%
 %1$d%% of your followers viewed at least one.	%1$d%% من متابعيك شاهدوا واحدة على الأقل.
 %1$dh %2$dm left	بقي %1$dh %2$dm
