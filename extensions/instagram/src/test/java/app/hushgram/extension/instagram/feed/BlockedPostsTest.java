@@ -51,6 +51,7 @@ public class BlockedPostsTest {
     @After
     public void restore() {
         Settings.HIDE_BLOCKED_POSTS.resetToDefault();
+        Settings.SKIP_BLOCK_MESSAGE.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -122,6 +123,39 @@ public class BlockedPostsTest {
         shadowOf(Looper.getMainLooper()).idle();
         assertEquals(Collections.singletonList("home 6"), removed);
         assertTrue(report(), report().contains("blocked posts"));
+    }
+
+    /**
+     * Skip the message after you block someone (#888): with the switch on, the message after a block, and
+     * after a block that takes in new accounts too, is skipped and counted, while an unblock's still shows.
+     */
+    @Test
+    public void theMessageAfterABlockIsSkippedWhileOn() {
+        Settings.SKIP_BLOCK_MESSAGE.save(true);
+        assertTrue("a block's message", BlockedPosts.skipsMessage(0));
+        assertTrue("a block that takes in new accounts", BlockedPosts.skipsMessage(2));
+        assertFalse("an unblock's message shows", BlockedPosts.skipsMessage(1));
+        assertTrue(report(), report().contains(BlockedPosts.MESSAGES_SKIPPED + " 2"));
+    }
+
+    /** The switch starts off, and off, paused or with no settings yet every message after a block shows. */
+    @Test
+    public void theMessageShowsWhileOffPausedOrBeforeTheSettings() {
+        Settings.SKIP_BLOCK_MESSAGE.resetToDefault();
+        assertFalse("off to start", Settings.SKIP_BLOCK_MESSAGE.get());
+        assertFalse("off", BlockedPosts.skipsMessage(0));
+
+        Settings.SKIP_BLOCK_MESSAGE.save(true);
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertFalse("paused", BlockedPosts.skipsMessage(0));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        boolean[] skipped = {true};
+        SettingsContextRule.withoutContext(() -> skipped[0] = BlockedPosts.skipsMessage(0));
+        assertFalse("no settings yet", skipped[0]);
+        assertFalse(report(), report().contains(BlockedPosts.MESSAGES_SKIPPED));
+        assertFalse(Settings.SKIP_BLOCK_MESSAGE.rebootApp);
     }
 
     private static String report() {

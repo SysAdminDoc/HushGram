@@ -2668,6 +2668,9 @@ Time on each post	Tiempo en cada publicación
 Hide posts when you block someone	Ocultar publicaciones al bloquear a alguien
 # context: Summary of Hide posts when you block someone, a Feed switch (#861)
 When you block someone, their posts in Home go away right away instead of after you refresh it.	Cuando bloqueas a alguien, sus publicaciones en Inicio desaparecen al instante en lugar de después de actualizar.
+# context: Feed > title and summary of Skip the message after you block someone (#888), the switch that keeps the confirmation Instagram shows at the bottom of the screen after a block from showing; the block itself still happens
+Skip the message after you block someone	Omitir el mensaje tras bloquear a alguien
+The message Instagram shows at the bottom of the screen once you block someone doesn't show. The block goes through as always.	El mensaje que Instagram muestra en la parte inferior de la pantalla cuando bloqueas a alguien no aparece. El bloqueo se hace igual que siempre.
 # context: Reels settings: switch that lets a tap on the reel shown above an open comments sheet pause or play it, and a hold play it at 2x, without closing the comments (#665)
 Control the reel above comments	Controlar el reel sobre los comentarios
 # context: Summary of Control the reel above comments (#665)

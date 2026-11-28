@@ -6,6 +6,7 @@ Every HushGram release, newest first.
 
 ### Features
 
+* `Skip the message after you block someone` is new at the end of Feed. The block goes through, but the message Instagram puts at the bottom of the screen afterward doesn't show. An unblock still shows its own. Starts off. Asked for in #888.
 * `Blocked words as regular expressions` is new under Reels, right below `Blocked words`. Each entry is read as a regular expression, whatever the case. One that isn't valid is matched as plain words, and `Blocked words` names it. Starts off. Asked for in #883.
 * `Hide lives in the Stories tray` is new under Stories, below `Hide memories and recaps`. Accounts that are live right now drop out of the row of stories at the top of Home. Starts off. Asked for in #886.
 * `Even on silent` is new under `Start stories with sound`. With your phone on silent or vibrate, stories still open with their sound, as long as the media volume is up. Starts off. Asked for in #907.

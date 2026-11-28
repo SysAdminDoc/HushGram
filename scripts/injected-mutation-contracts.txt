@@ -4744,6 +4744,12 @@ once-call Lapp/hushgram/extension/instagram/feed/FeedHoldSpeed;->speedReset(Ljav
 once-call Lapp/hushgram/extension/instagram/feed/BlockedPosts;->feed(Ljava/lang/Object;)V in instance (*)V pooled holding MainFeedAdapter:init
 start-call Lapp/hushgram/extension/instagram/feed/BlockedPosts;->blocked(Ljava/lang/Object;)V in instance (Ljava/lang/Object;)V calling static LX/*;->*(LX/*;LX/*;Z)Lcom/instagram/user/model/User; holding LX/*;->*(LX/*;Lcom/instagram/user/model/User;Ljava/lang/String;)V LX/*;->*(Lcom/instagram/common/session/UserSession;Lcom/instagram/user/model/User;)V
 once-call Lapp/hushgram/extension/instagram/feed/BlockedPosts;->blocked(Ljava/lang/Object;)V in instance (Ljava/lang/Object;)V calling static LX/*;->*(LX/*;LX/*;Z)Lcom/instagram/user/model/User; holding LX/*;->*(LX/*;Lcom/instagram/user/model/User;Ljava/lang/String;)V LX/*;->*(Lcom/instagram/common/session/UserSession;Lcom/instagram/user/model/User;)V
+# Skip the message after you block someone (#888): the message Instagram shows once a block is sent
+# asks BlockedPosts.skipsMessage first thing, with its kind, in the one static (Context, listener,
+# List, int) method that loads its icon, builds its text from the accounts and the kind, and loads a
+# string. Left out, the message always shows; twice or elsewhere, it isn't the hook the patch wrote.
+start-call Lapp/hushgram/extension/instagram/feed/BlockedPosts;->skipsMessage(I)Z in static (Landroid/content/Context;LX/*;Ljava/util/List;I)V calling static LX/*;->*(Landroid/content/Context;Ljava/util/List;I)Ljava/lang/String; holding Landroid/content/Context;->getDrawable(I)Landroid/graphics/drawable/Drawable; Landroid/content/Context;->getString(I)Ljava/lang/String;
+once-call Lapp/hushgram/extension/instagram/feed/BlockedPosts;->skipsMessage(I)Z in static (Landroid/content/Context;LX/*;Ljava/util/List;I)V calling static LX/*;->*(Landroid/content/Context;Ljava/util/List;I)Ljava/lang/String; holding Landroid/content/Context;->getDrawable(I)Landroid/graphics/drawable/Drawable; Landroid/content/Context;->getString(I)Ljava/lang/String;
 # On 451 a tap can reach Reels without the handler (the video's overlays, a server-sent tap), and
 # every way in ends in the feed's one Reels launcher, the instance (View, entry point, two objects,
 # Media, state, List, boolean, boolean) void method holding the contextual feed's profile argument

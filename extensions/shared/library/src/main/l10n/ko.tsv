@@ -2667,6 +2667,9 @@ Time on each post	게시물당 시간
 Hide posts when you block someone	차단하면 게시물 숨기기
 # context: Summary of Hide posts when you block someone, a Feed switch (#861)
 When you block someone, their posts in Home go away right away instead of after you refresh it.	누군가를 차단하면 홈에 있는 그 사람의 게시물이 새로고침하지 않아도 바로 사라집니다.
+# context: Feed > title and summary of Skip the message after you block someone (#888), the switch that keeps the confirmation Instagram shows at the bottom of the screen after a block from showing; the block itself still happens
+Skip the message after you block someone	차단 후 메시지 건너뛰기
+The message Instagram shows at the bottom of the screen once you block someone doesn't show. The block goes through as always.	누군가를 차단하면 Instagram이 화면 아래에 띄우는 메시지가 나타나지 않습니다. 차단은 평소처럼 진행됩니다.
 # context: Reels settings: switch that lets a tap on the reel shown above an open comments sheet pause or play it, and a hold play it at 2x, without closing the comments (#665)
 Control the reel above comments	댓글 위 릴스 제어
 # context: Summary of Control the reel above comments (#665)

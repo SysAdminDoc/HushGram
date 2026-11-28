@@ -13,11 +13,13 @@ import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.builder.BuilderOffsetInstruction
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
@@ -45,7 +47,7 @@ class BlockedPostsHookTest {
         val declared = ExtensionDex.classDef(BLOCKED_POSTS).methods
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { it.signature() }
-        listOf(BLOCKED_FEED, BLOCKED_ACCOUNT, BLOCKED_USER_ID, BLOCKED_REMOVE).forEach {
+        listOf(BLOCKED_FEED, BLOCKED_ACCOUNT, BLOCKED_USER_ID, BLOCKED_REMOVE, BLOCK_MESSAGE_SKIPS).forEach {
             assertTrue("$it is not in the extension: $declared", it in declared)
         }
     }
@@ -158,6 +160,101 @@ class BlockedPostsHookTest {
         assertEquals("$label: works on Home's list", site.list, (remove[0].reference() as TypeReference).type)
         assertEquals("$label: calls its removal", site.removal, remove[1].method()?.toString())
         assertTrue("$label: nothing of Instagram's calls that removal", classesCalling(bundle, site.removal).isNotEmpty())
+    }
+
+    @Test
+    fun eachDeclaredBuildCanSkipTheMessageAfterABlock() {
+        val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
+        val checked = mutableSetOf<String>()
+        for (version in versions) {
+            for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
+                skipsMessage(bundle, bundle.name)
+                checked += version
+            }
+        }
+        assertEquals("a declared build has no fixture", versions, checked)
+    }
+
+    @Test
+    fun eachOtherBuildCanSkipItToo() {
+        for (base in Fixtures.otherBuilds()) skipsMessage(base, base.parentFile.name)
+    }
+
+    @Test
+    fun aBuildWithoutTheMessageWarnsAndChangesNothing() {
+        val context = PatchContexts.of(listOf(ExtensionDex.classDef(BLOCKED_POSTS)))
+        val missing = assertThrows(PatchException::class.java) { context.findBlockMessage() }
+        assertTrue(missing.message, missing.message!!.contains("\"$BLOCK_PATH\""))
+        assertEquals(null, context.findBlockMessageOrWarn())
+    }
+
+    /**
+     * The block request's callers show one message, a static (context, listener, list, kind) method that
+     * loads an icon and a string and tells the unblock's kind apart. The patch asks the extension first
+     * thing, with the kind; when it says skip, the listener, if there is one, hears the message went, through
+     * the one call the message's holder makes on it, and the method returns. Otherwise the stock runs.
+     */
+    private fun skipsMessage(bundle: File, label: String) {
+        val requests = FixtureDex.classesLoading(bundle, BLOCK_PATH)
+        val byType = requests.associateBy { it.type }
+        val builder = requests.flatMap { it.methods }.singleOrNull { FixtureDex.loads(it, BLOCK_PATH, byType) }
+            ?: throw AssertionError("$label: no one method loads $BLOCK_PATH")
+        val callers = classesCalling(bundle, builder.signature())
+        val shows = callers.flatMap { it.methods }.flatMap { it.code() }
+            .filter { it.opcode == Opcode.INVOKE_STATIC || it.opcode == Opcode.INVOKE_STATIC_RANGE }
+            .mapNotNull { it.method() }.filter { it.returnType == "V" && it.parameterTypes.size == 4 }
+        val owners = FixtureDex.classes(bundle, shows.flatMap { listOf(it.definingClass, it.parameterTypes[1].toString()) }
+            .filter { it.startsWith("LX/") }.toSet()).values
+        val holders = FixtureDex.classes(bundle, owners.flatMap { it.methods }.flatMap { it.code() }.mapNotNull { it.method() }
+            .filter { (it.returnType == "V" && it.parameterTypes.size == 3) ||
+                (it.name == "<init>" && it.parameterTypes.map(Any::toString) == listOf("Ljava/lang/Object;", "I")) }
+            .map { it.definingClass }
+            .filter { it.startsWith("LX/") }.toSet()).values
+        val classes = FixtureDex.withStringPools(bundle, (requests + callers + owners + holders).distinctBy { it.type })
+
+        val context = PatchContexts.of(classes + ExtensionDex.classDef(BLOCKED_POSTS))
+        val site = context.findBlockMessage()
+        val message = site.message
+        val types = message.parameterTypes.map(Any::toString)
+        assertTrue("$label: the message is static", AccessFlags.STATIC.isSet(message.accessFlags))
+        assertEquals("$label: takes a context, a listener, a list and a kind", listOf("Landroid/content/Context;", types[1],
+            "Ljava/util/List;", "I"), types)
+        assertTrue("$label: a block request's caller shows it", shows.any { it.toString() == message.signature() })
+        val listener = classes.single { it.type == types[1] }
+        assertTrue("$label: the listener is an interface", AccessFlags.INTERFACE.isSet(listener.accessFlags))
+        assertEquals("$label: the call is on the listener", listener.type, site.gone.substringBefore("->"))
+        assertTrue("$label: the listener declares it", listener.methods.any { it.signature() == site.gone })
+        val stock = context.code(message.definingClass, message.signature())
+        assertTrue("$label: nothing in the stock jumps to its first instruction",
+            stock.filterIsInstance<BuilderOffsetInstruction>().none { it.target.location.index == 0 })
+        val kinds = stock.indices.filter { at ->
+            stock[at].opcode == Opcode.CONST_4 && (stock[at] as NarrowLiteralInstruction).narrowLiteral == UNBLOCK_KIND &&
+                stock.getOrNull(at + 1)?.opcode in setOf(Opcode.IF_EQ, Opcode.IF_NE)
+        }
+        assertEquals("$label: the stock tells the unblock's kind apart once", 1, kinds.size)
+        assertTrue("$label: the stock loads its text", stock.any { it.method()?.toString() ==
+            "Landroid/content/Context;->getString(I)Ljava/lang/String;" })
+        context.applyBlockMessage(site)
+
+        val code = context.code(message.definingClass, message.signature())
+        val registers = context.mutableClassDefBy(message.definingClass).methods.single { it.signature() == message.signature() }
+            .implementation!!.registerCount
+        val first = registers - 4
+        assertEquals("$label: asks first", BLOCK_MESSAGE_SKIPS, code[0].method()?.toString())
+        assertEquals("$label: with the kind", listOf(first + 3), code[0].registers())
+        assertEquals("$label: reads the answer", Opcode.MOVE_RESULT, code[1].opcode)
+        val answer = (code[1] as OneRegisterInstruction).registerA
+        assertEquals("$label: no means the stock", Opcode.IF_EQZ, code[2].opcode)
+        assertEquals("$label: on the answer", answer, (code[2] as OneRegisterInstruction).registerA)
+        assertEquals("$label: to the stock's first instruction", 6, (code[2] as BuilderOffsetInstruction).target.location.index)
+        assertEquals("$label: no listener, nothing to tell", Opcode.IF_EQZ, code[3].opcode)
+        assertEquals("$label: on the listener", first + 1, (code[3] as OneRegisterInstruction).registerA)
+        assertEquals("$label: past the call", 5, (code[3] as BuilderOffsetInstruction).target.location.index)
+        assertEquals("$label: tells the listener", site.gone, code[4].method()?.toString())
+        assertEquals("$label: the listener itself", listOf(first + 1), code[4].registers())
+        assertEquals("$label: and nothing shows", Opcode.RETURN_VOID, code[5].opcode)
+        assertTrue("$label: the stock kept in order", kept(stock, code.drop(6)))
+        assertEquals("$label: and nothing else added", stock.count { it.opcode != Opcode.NOP } + 6, code.count { it.opcode != Opcode.NOP })
     }
 
     /** The bundle's classes calling [method], copied. */

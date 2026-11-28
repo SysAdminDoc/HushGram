@@ -778,6 +778,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_blocked_posts", FALSE);
 
     /**
+     * The message Instagram shows at the bottom of the screen once a block is sent doesn't show (#888,
+     * {@link app.hushgram.extension.instagram.feed.BlockedPosts#skipsMessage}). The block itself goes
+     * through as always. Off to start.
+     */
+    public static final BooleanSetting SKIP_BLOCK_MESSAGE =
+            new BooleanSetting("hushgram_skip_block_message", FALSE);
+
+    /**
      * A long press on a feed photo shows it zoomed in around the finger until the finger lifts, in
      * place of Instagram's own long press there ({@link app.hushgram.extension.instagram.feed.LongPressZoom}).
      * Off to start.

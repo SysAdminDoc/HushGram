@@ -2671,6 +2671,9 @@ Time on each post	每則貼文的時間
 Hide posts when you block someone	封鎖某人時隱藏其貼文
 # context: Summary of Hide posts when you block someone, a Feed switch (#861)
 When you block someone, their posts in Home go away right away instead of after you refresh it.	封鎖某人後，首頁裡此人的貼文會立即消失，不必先重新整理.
+# context: Feed > title and summary of Skip the message after you block someone (#888), the switch that keeps the confirmation Instagram shows at the bottom of the screen after a block from showing; the block itself still happens
+Skip the message after you block someone	封鎖某人後略過提示訊息
+The message Instagram shows at the bottom of the screen once you block someone doesn't show. The block goes through as always.	封鎖某人後，Instagram 在畫面底部顯示的提示訊息不會出現。封鎖仍會照常完成。
 # context: Reels settings: switch that lets a tap on the reel shown above an open comments sheet pause or play it, and a hold play it at 2x, without closing the comments (#665)
 Control the reel above comments	控制留言上方的 Reel
 # context: Summary of Control the reel above comments (#665)

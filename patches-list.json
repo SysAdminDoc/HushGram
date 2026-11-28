@@ -2704,7 +2704,7 @@
     },
     {
       "name": "Hide posts when you block someone",
-      "description": "Takes the posts of someone you block out of Home right away, instead of after you refresh it. Starts off. Turn it on in HushGram settings > Feed.",
+      "description": "Takes the posts of someone you block out of Home right away, instead of after you refresh it, and can skip the message Instagram shows after a block. Both start off. Turn them on in HushGram settings > Feed.",
       "category": "Feed",
       "use": true,
       "dependencies": [

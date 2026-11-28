@@ -263,6 +263,9 @@ Follow dates in your lists	تواريخ المتابعة في قوائمك
 # context: that switch's summary (#847)
 Show 2x after you let go	إظهار 2x بعد الإفلات
 When you block someone, their posts in Home go away right away instead of after you refresh it.	عندما تحظر شخصاً، تختفي منشوراته في الصفحة الرئيسية فوراً بدلاً من بعد التحديث.
+# context: Feed > title and summary of Skip the message after you block someone (#888), the switch that keeps the confirmation Instagram shows at the bottom of the screen after a block from showing; the block itself still happens
+Skip the message after you block someone	تخطي الرسالة بعد حظر شخص ما
+The message Instagram shows at the bottom of the screen once you block someone doesn't show. The block goes through as always.	لا تظهر الرسالة التي يعرضها Instagram أسفل الشاشة بعد أن تحظر شخصاً. يتم الحظر كالمعتاد.
 Your own Followers and Following lists show since when each account follows you, or you them. Dates start the first time you scroll a list to the end with this on, so accounts already there get none.	تعرض قائمتا المتابِعين والمتابَعين الخاصتان بك منذ متى يتابعك كل حساب، أو تتابعه أنت. تبدأ التواريخ من أول مرة تمرر فيها قائمة حتى نهايتها مع تشغيل هذا الخيار، لذا لا تحصل الحسابات الموجودة مسبقًا على تاريخ.
 # context: a choice in the follow list filter dialog (#847): only public accounts
 Public accounts	الحسابات العامة

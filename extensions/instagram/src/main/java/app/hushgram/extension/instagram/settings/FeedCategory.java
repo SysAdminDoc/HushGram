@@ -492,6 +492,9 @@ final class FeedCategory {
             feed.addPreference(toggle(context, Settings.HIDE_BLOCKED_POSTS, L10n.t("Hide posts when you block someone"),
                     L10n.t("When you block someone, their posts in Home go away right away instead of after you "
                             + "refresh it.")));
+            feed.addPreference(toggle(context, Settings.SKIP_BLOCK_MESSAGE, L10n.t("Skip the message after you block someone"),
+                    L10n.t("The message Instagram shows at the bottom of the screen once you block someone doesn't "
+                            + "show. The block goes through as always.")));
         }
     }
 }
