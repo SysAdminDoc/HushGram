@@ -3169,3 +3169,7 @@ Stop story side taps	스토리 옆 탭 끄기
 A tap on the left or right of a story no longer moves to the one before or after, and the story keeps playing. Swipe to go to the next person's stories.	스토리의 왼쪽이나 오른쪽을 눌러도 더 이상 이전 또는 다음 스토리로 넘어가지 않고, 스토리는 계속 재생됩니다. 다음 사람의 스토리로 가려면 스와이프하세요.
 # context: Summary of Even on silent, a switch under Start stories with sound (#907)
 Stories open with sound with the phone on silent or vibrate too. Only the media volume counts.	휴대전화가 무음이나 진동 모드여도 스토리가 소리와 함께 열립니다. 미디어 볼륨만 적용됩니다.
+# context: Stories > title of a switch under Keep story buttons below the story that moves the story's header and its reply box off the picture into the black space around it (#902)
+Move story controls off the story	스토리 컨트롤을 스토리 밖으로 옮기기
+# context: Stories > summary of Move story controls off the story; the name is the account name row at the top of a story, the progress bar the segments over it, the reply box the Send message box (#902)
+Where a story leaves black space above and below it, the name and progress bar move up into it and the reply box moves down to the bottom.	스토리 위아래에 검은 공간이 있으면 이름과 진행 표시줄은 위쪽 공간으로, 답장 상자는 맨 아래로 옮겨집니다.

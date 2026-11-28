@@ -498,6 +498,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_keep_story_buttons_below", TRUE);
 
     /**
+     * Where a story card leaves black space above and below it, the header with the progress bar moves
+     * up into it and the row along the story's bottom moves down to the bottom
+     * ({@link app.hushgram.extension.instagram.stories.StoryButtonsRoom}, #902). Read before each frame,
+     * and both go back the frame after it turns off. Off to start.
+     */
+    public static final BooleanSetting STORY_CONTROLS_OFF_STORY =
+            new BooleanSetting("hushgram_story_controls_off_story", FALSE);
+
+    /**
      * The font files picked in settings show up in the story text editor alongside Instagram's own fonts
      * ({@link app.hushgram.extension.instagram.stories.StoryFonts}). Read each time the editor lists
      * its fonts. Off to start, and turned on when a font is added.

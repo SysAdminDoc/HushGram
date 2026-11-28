@@ -4449,7 +4449,7 @@
     },
     {
       "name": "Keep story buttons below the story",
-      "description": "With a large font or display size, the reply box and buttons along the bottom of a story move down into the empty space under it instead of covering the story. Starts on. Turn it off in HushGram settings > Stories.",
+      "description": "With a large font or display size, the reply box and buttons along the bottom of a story move down into the empty space under it instead of covering the story. Starts on. A second switch moves the name and progress bar up into the black space above a story and the reply box down to the bottom, and starts off. Both are in HushGram settings > Stories.",
       "category": "Fixes",
       "use": true,
       "dependencies": [

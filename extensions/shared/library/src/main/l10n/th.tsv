@@ -3167,3 +3167,7 @@ Stop story side taps	ปิดการแตะด้านข้างสต�
 A tap on the left or right of a story no longer moves to the one before or after, and the story keeps playing. Swipe to go to the next person's stories.	การแตะด้านซ้ายหรือขวาของสตอรี่จะไม่เปลี่ยนไปสตอรี่ก่อนหน้าหรือถัดไปอีกต่อไป และสตอรี่จะเล่นต่อ ปัดเพื่อไปที่สตอรี่ของคนถัดไป
 # context: Summary of Even on silent, a switch under Start stories with sound (#907)
 Stories open with sound with the phone on silent or vibrate too. Only the media volume counts.	สตอรี่จะเปิดพร้อมเสียงแม้โทรศัพท์อยู่ในโหมดเงียบหรือสั่น นับเฉพาะระดับเสียงสื่อ
+# context: Stories > title of a switch under Keep story buttons below the story that moves the story's header and its reply box off the picture into the black space around it (#902)
+Move story controls off the story	ย้ายปุ่มควบคุมออกจากสตอรี่
+# context: Stories > summary of Move story controls off the story; the name is the account name row at the top of a story, the progress bar the segments over it, the reply box the Send message box (#902)
+Where a story leaves black space above and below it, the name and progress bar move up into it and the reply box moves down to the bottom.	เมื่อสตอรี่มีพื้นที่สีดำด้านบนและด้านล่าง ชื่อและแถบความคืบหน้าจะย้ายขึ้นไปในพื้นที่นั้น และช่องตอบกลับจะย้ายลงไปด้านล่างสุด

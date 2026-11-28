@@ -3173,3 +3173,7 @@ Stop story side taps	停用限時動態兩側點擊
 A tap on the left or right of a story no longer moves to the one before or after, and the story keeps playing. Swipe to go to the next person's stories.	點擊限時動態的左側或右側不再切換到上一則或下一則，限時動態會繼續播放。滑動即可前往下一位的限時動態。
 # context: Summary of Even on silent, a switch under Start stories with sound (#907)
 Stories open with sound with the phone on silent or vibrate too. Only the media volume counts.	手機處於靜音或震動模式時，限時動態也會以有聲方式開啟。只看媒體音量.
+# context: Stories > title of a switch under Keep story buttons below the story that moves the story's header and its reply box off the picture into the black space around it (#902)
+Move story controls off the story	將控制項移出限時動態
+# context: Stories > summary of Move story controls off the story; the name is the account name row at the top of a story, the progress bar the segments over it, the reply box the Send message box (#902)
+Where a story leaves black space above and below it, the name and progress bar move up into it and the reply box moves down to the bottom.	限時動態上下留有黑色空間時，名稱和進度列會移到上方空間，回覆框會移到最下方。

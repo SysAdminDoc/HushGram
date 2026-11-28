@@ -10,7 +10,6 @@ import android.preference.Preference;
 import android.preference.PreferenceGroup;
 import android.preference.SwitchPreference;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.EnumSet;
 import org.junit.After;
 import org.junit.Before;
@@ -30,8 +29,9 @@ import app.hushgram.extension.shared.settings.PauseForTests;
 
 /**
  * Keep story buttons below the story (#598): a Stories switch that starts on, right after the reply
- * box's family (its last row, Hide the Share button on stories) and before Show a story's exact
- * time, kept in a backup, and off while paused.
+ * box's family (its last row, Hide the Share button on stories), kept in a backup, and off while
+ * paused. Its second switch, Move story controls off the story (#902), comes right after it, before
+ * Show a story's exact time, and starts off.
  */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = {28, 37})
@@ -44,6 +44,7 @@ public class StoryButtonsRoomSettingsTest {
     @Before public void prepare() {
         RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
         Settings.KEEP_STORY_BUTTONS_BELOW.resetToDefault();
+        Settings.STORY_CONTROLS_OFF_STORY.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         BaseSettings.SAFE_MODE.save(false);
@@ -54,6 +55,7 @@ public class StoryButtonsRoomSettingsTest {
         Utils.awaitBackgroundTasksForTests();
         PatchFamily.inBuildForTests = null;
         Settings.KEEP_STORY_BUTTONS_BELOW.resetToDefault();
+        Settings.STORY_CONTROLS_OFF_STORY.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
@@ -82,13 +84,37 @@ public class StoryButtonsRoomSettingsTest {
         assertEquals(Arrays.toString(keys), Settings.STORY_COMMENT_LINE.key, keys[at - 1]);
         assertEquals(Arrays.toString(keys), Settings.HIDE_STORY_COMMENTS.key, keys[at - 2]);
         assertEquals(Arrays.toString(keys), Settings.HIDE_STORY_SHARE_BUTTON.key, keys[at - 3]);
-        assertEquals(Arrays.toString(keys), Settings.SHOW_STORY_TIME.key, keys[at + 1]);
+        assertEquals(Arrays.toString(keys), Settings.STORY_CONTROLS_OFF_STORY.key, keys[at + 1]);
+        assertEquals(Arrays.toString(keys), Settings.SHOW_STORY_TIME.key, keys[at + 2]);
         assertEquals("Keep story buttons below the story", PatchFamily.STORY_BUTTONS_ROOM.patchName);
-        assertEquals(Collections.singletonList(Settings.KEEP_STORY_BUTTONS_BELOW), PatchFamily.STORY_BUTTONS_ROOM.switches);
+        assertEquals(Arrays.asList(Settings.KEEP_STORY_BUTTONS_BELOW, Settings.STORY_CONTROLS_OFF_STORY),
+                PatchFamily.STORY_BUTTONS_ROOM.switches);
 
         ((SwitchPreference) row).setChecked(false);
         assertFalse(Settings.KEEP_STORY_BUTTONS_BELOW.get());
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.KEEP_STORY_BUTTONS_BELOW.key));
+    }
+    @Test public void moveStoryControlsOffTheStorySitsUnderItAndStartsOff() throws Exception {
+        open(EnumSet.of(PatchFamily.STORY_BUTTONS_ROOM));
+        Preference row = page.getPreferenceScreen().findPreference(Settings.STORY_CONTROLS_OFF_STORY.key);
+        assertNotNull(row);
+        assertEquals("Move story controls off the story", row.getTitle().toString());
+        assertEquals("Where a story leaves black space above and below it, the name and progress bar move up into it "
+                + "and the reply box moves down to the bottom.", row.getSummary().toString());
+        assertEquals("Stories", ((PreferenceGroup) row.getParent()).getTitle().toString());
+        assertFalse(((SwitchPreference) row).isChecked());
+        assertFalse(Settings.STORY_CONTROLS_OFF_STORY.get());
+        Settings.KEEP_STORY_BUTTONS_BELOW.save(false);
+        assertTrue("a switch of its own, not one under Keep story buttons below the story",
+                Settings.STORY_CONTROLS_OFF_STORY.isAvailable());
+
+        ((SwitchPreference) row).setChecked(true);
+        assertTrue(Settings.STORY_CONTROLS_OFF_STORY.get());
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.STORY_CONTROLS_OFF_STORY.key));
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertFalse("off while paused", Settings.STORY_CONTROLS_OFF_STORY.get());
+        assertTrue(Settings.STORY_CONTROLS_OFF_STORY.savedValue());
     }
     @Test public void aSavedSwitchAnswersOffWhilePaused() throws Exception {
         open(EnumSet.of(PatchFamily.STORY_BUTTONS_ROOM));
@@ -102,5 +128,7 @@ public class StoryButtonsRoomSettingsTest {
         open(EnumSet.of(PatchFamily.STORY_REPLY_BOX));
         assertNull(page.getPreferenceScreen().findPreference(Settings.KEEP_STORY_BUTTONS_BELOW.key));
         assertFalse(ConfigurationBackup.eligible().containsKey(Settings.KEEP_STORY_BUTTONS_BELOW.key));
+        assertNull(page.getPreferenceScreen().findPreference(Settings.STORY_CONTROLS_OFF_STORY.key));
+        assertFalse(ConfigurationBackup.eligible().containsKey(Settings.STORY_CONTROLS_OFF_STORY.key));
     }
 }

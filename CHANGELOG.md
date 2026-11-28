@@ -6,6 +6,7 @@ Every HushGram release, newest first.
 
 ### Features
 
+* `Move story controls off the story` is new under Stories. Where a story leaves black space above and below it, the name and progress bar move up into it and the reply box drops to the bottom. Starts off. Asked for in #902.
 * `Hide people until you search` is new under Sharing. The people on the share sheet stay hidden until you type in its search bar, so a tap meant for Copy link can't land on someone. Starts off. Asked for in #899.
 * `Turn on Hold Share to send` is new under Sharing. Holding a post's Share button opens Instagram's row of people to send it to, on accounts Instagram hasn't turned it on for. Experimental. Starts off. Asked for in #889.
 * `Hide the heart's badge` is new under Notifications, below `Keep Featured off the heart's dot`. The red dot and the popup with numbers on the heart at the top of Home don't show. Messages keep their badge. Starts off. Asked for in #908.

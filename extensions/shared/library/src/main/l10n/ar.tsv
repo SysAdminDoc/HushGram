@@ -2707,3 +2707,7 @@ Stop story side taps	إيقاف النقر على جانبي القصة
 A tap on the left or right of a story no longer moves to the one before or after, and the story keeps playing. Swipe to go to the next person's stories.	لم يعد النقر على يسار القصة أو يمينها ينقلك إلى القصة السابقة أو التالية، وتستمر القصة في التشغيل. اسحب للانتقال إلى قصص الشخص التالي.
 # context: Summary of Even on silent, a switch under Start stories with sound (#907)
 Stories open with sound with the phone on silent or vibrate too. Only the media volume counts.	تبدأ القصص بالصوت حتى والهاتف على الوضع الصامت أو الاهتزاز. يُحتسب مستوى صوت الوسائط فقط.
+# context: Stories > title of a switch under Keep story buttons below the story that moves the story's header and its reply box off the picture into the black space around it (#902)
+Move story controls off the story	نقل عناصر التحكم بعيدًا عن القصة
+# context: Stories > summary of Move story controls off the story; the name is the account name row at the top of a story, the progress bar the segments over it, the reply box the Send message box (#902)
+Where a story leaves black space above and below it, the name and progress bar move up into it and the reply box moves down to the bottom.	عندما تترك القصة مساحة سوداء فوقها وتحتها، ينتقل الاسم وشريط التقدم إلى الأعلى فيها، وينتقل مربع الرد إلى الأسفل.

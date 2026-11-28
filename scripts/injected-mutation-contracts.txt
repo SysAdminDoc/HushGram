@@ -4289,6 +4289,21 @@ once-call Lapp/hushgram/extension/instagram/stories/StoryReplyBox;->viewCreated(
 # over the story at a large font; twice or elsewhere, it isn't the call the patch wrote.
 # StoryButtonsRoomHookTest checks on the fixtures that the call sits right after the super call.
 once-call Lapp/hushgram/extension/instagram/stories/StoryButtonsRoom;->resumed(Ljava/lang/Object;)V in instance ()V holding ReelViewerFragment.onResume
+# Move story controls off the story (#902) shows a story's header above its card. Instagram's rounded
+# card (RoundedCornerFrameLayout, whose dispatchDraw is final) draws its children into a node clipped
+# to its rounded box, so first thing in that dispatchDraw StoryButtonsRoom.drawStart answers whether
+# the card's header is up. For such a card the children draw once more into the strip above it,
+# stripDrawn clips the canvas to the card's box, the card draws itself again and cardDrawn puts the
+# canvas back. Left out, a header moved up off the card never shows; twice or elsewhere, it isn't the
+# call the patch wrote. StoryButtonsRoomHookTest checks the order on every build.
+single-call Lapp/hushgram/extension/instagram/stories/StoryButtonsRoom;->drawStart(Ljava/lang/Object;Ljava/lang/Object;)I in dispatchDraw
+single-call Lapp/hushgram/extension/instagram/stories/StoryButtonsRoom;->stripDrawn(Ljava/lang/Object;Ljava/lang/Object;I)I in dispatchDraw
+single-call Lapp/hushgram/extension/instagram/stories/StoryButtonsRoom;->cardDrawn(Ljava/lang/Object;I)V in dispatchDraw
+# The story viewer never hands a touch above the card to the header, so every touch is offered to
+# StoryButtonsRoom.touch in IgFragmentActivity.dispatchTouchEvent, first or right after Tap to play's
+# TapClock. Left out, a tap on the name up above the card skips the story instead of opening the
+# profile.
+once-call Lapp/hushgram/extension/instagram/stories/StoryButtonsRoom;->touch(Landroid/app/Activity;Landroid/view/MotionEvent;)Z in instance (Landroid/view/MotionEvent;)Z holding dispatchTouchEvent
 # Download any story tells StoryListHold the story viewer came back, once, right after
 # ReelViewerFragment's onResume hands on to its superclass's (#745). Left out, no viewer is known, so
 # the story runs on under the Download button's lists; twice or elsewhere, it isn't the call the patch

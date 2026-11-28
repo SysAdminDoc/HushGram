@@ -3173,3 +3173,7 @@ Stop story side taps	禁用快拍两侧点击
 A tap on the left or right of a story no longer moves to the one before or after, and the story keeps playing. Swipe to go to the next person's stories.	点击快拍的左侧或右侧不再切换到上一条或下一条，快拍会继续播放。滑动即可前往下一位的快拍.
 # context: Summary of Even on silent, a switch under Start stories with sound (#907)
 Stories open with sound with the phone on silent or vibrate too. Only the media volume counts.	手机处于静音或振动模式时，快拍也会带声音打开。只看媒体音量.
+# context: Stories > title of a switch under Keep story buttons below the story that moves the story's header and its reply box off the picture into the black space around it (#902)
+Move story controls off the story	将控件移出快拍
+# context: Stories > summary of Move story controls off the story; the name is the account name row at the top of a story, the progress bar the segments over it, the reply box the Send message box (#902)
+Where a story leaves black space above and below it, the name and progress bar move up into it and the reply box moves down to the bottom.	快拍上下留有黑色空间时，名称和进度条会移到上方空间，回复框会移到最底部。

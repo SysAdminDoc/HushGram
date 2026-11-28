@@ -3170,3 +3170,7 @@ Stop story side taps	Desativar toques laterais nos stories
 A tap on the left or right of a story no longer moves to the one before or after, and the story keeps playing. Swipe to go to the next person's stories.	Tocar à esquerda ou à direita de um story não leva mais ao anterior ou ao próximo, e o story continua tocando. Deslize para ir aos stories da próxima pessoa.
 # context: Summary of Even on silent, a switch under Start stories with sound (#907)
 Stories open with sound with the phone on silent or vibrate too. Only the media volume counts.	Os stories abrem com som mesmo com o celular no silencioso ou no vibrar. Só o volume de mídia conta.
+# context: Stories > title of a switch under Keep story buttons below the story that moves the story's header and its reply box off the picture into the black space around it (#902)
+Move story controls off the story	Tirar os controles de cima do story
+# context: Stories > summary of Move story controls off the story; the name is the account name row at the top of a story, the progress bar the segments over it, the reply box the Send message box (#902)
+Where a story leaves black space above and below it, the name and progress bar move up into it and the reply box moves down to the bottom.	Quando um story deixa espaço preto acima e abaixo, o nome e a barra de progresso sobem para esse espaço e a caixa de resposta desce para o fim da tela.

@@ -235,6 +235,10 @@ final class StoriesCategory {
             stories.add(toggle(context, Settings.KEEP_STORY_BUTTONS_BELOW, L10n.t("Keep story buttons below the story"),
                     L10n.t("With a large font or display size, the reply box and buttons at the bottom of a story "
                             + "sit in the space under it instead of covering the story.")));
+            // Rides on Keep story buttons below the story's patch, which already moves the row (#902).
+            stories.add(toggle(context, Settings.STORY_CONTROLS_OFF_STORY, L10n.t("Move story controls off the story"),
+                    L10n.t("Where a story leaves black space above and below it, the name and progress bar move up "
+                            + "into it and the reply box moves down to the bottom.")));
         }
         if (build.contains(PatchFamily.STORY_TIME)) {
             stories.add(toggle(context, Settings.SHOW_STORY_TIME, L10n.t("Show a story's exact time"),

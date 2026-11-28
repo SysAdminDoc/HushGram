@@ -3170,3 +3170,7 @@ Stop story side taps	Hentikan ketukan samping di cerita
 A tap on the left or right of a story no longer moves to the one before or after, and the story keeps playing. Swipe to go to the next person's stories.	Ketukan di kiri atau kanan cerita tidak lagi pindah ke cerita sebelum atau sesudahnya, dan cerita tetap diputar. Geser untuk ke cerita orang berikutnya.
 # context: Summary of Even on silent, a switch under Start stories with sound (#907)
 Stories open with sound with the phone on silent or vibrate too. Only the media volume counts.	Cerita tetap dibuka dengan suara saat ponsel dalam mode senyap atau getar. Hanya volume media yang dihitung.
+# context: Stories > title of a switch under Keep story buttons below the story that moves the story's header and its reply box off the picture into the black space around it (#902)
+Move story controls off the story	Pindahkan kontrol dari atas cerita
+# context: Stories > summary of Move story controls off the story; the name is the account name row at the top of a story, the progress bar the segments over it, the reply box the Send message box (#902)
+Where a story leaves black space above and below it, the name and progress bar move up into it and the reply box moves down to the bottom.	Jika cerita menyisakan ruang hitam di atas dan di bawahnya, nama dan bilah progres naik ke ruang itu, dan kotak balasan turun ke paling bawah.
