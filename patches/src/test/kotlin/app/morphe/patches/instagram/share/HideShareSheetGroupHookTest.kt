@@ -47,7 +47,7 @@ class HideShareSheetGroupHookTest {
     /** Both hooks the patch writes are in the ShareSheet the bundle ships, public and static. */
     @Test
     fun theHooksAreInTheExtension() {
-        for (hook in listOf(HIDE_GROUP_BUTTON, HIDE_GROUP_ACTION, HIDE_GROUP_SEND, HIDE_SEARCH_BOX)) {
+        for (hook in listOf(HIDE_GROUP_BUTTON, HIDE_GROUP_ACTION, HIDE_GROUP_SEND, HIDE_SEARCH_BOX, HIDE_PEOPLE)) {
             val declared = ExtensionDex.classDef(hook.substringBefore("->")).methods
                 .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
                 .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
@@ -150,9 +150,48 @@ class HideShareSheetGroupHookTest {
         assertEquals("onViewCreated", site.method.name)
         assertEquals(1, site.at)
         assertEquals(1, site.box)
+        assertEquals(2, site.sheet)
         context.hookSearchBox(site)
 
         assertSearchBoxHooked("stand-in", context.mutableClassDefBy(SHARE_SHEET).methods.single { it.name == "onViewCreated" })
+    }
+
+    /**
+     * onViewCreated keeps the list of people before the search box, so right after the box's own
+     * hook the extension gets the list, read from the sheet into a free local, and the box (#899).
+     */
+    @Test
+    fun thePeopleAreHandedOverRightAfterTheSearchBox() {
+        val context = PatchContexts.of(sheetClasses(peopleKept = "before"))
+
+        val search = context.findSearchBox()
+        assertEquals(2, search.at)
+        val people = context.findPeople(search)
+        assertEquals(0, people.list)
+        context.hookPeople(people)
+        context.hookSearchBox(search)
+
+        val method = context.mutableClassDefBy(SHARE_SHEET).methods.single { it.name == "onViewCreated" }
+        assertSearchBoxHooked("stand-in", method)
+        assertPeopleHooked("stand-in", method)
+    }
+
+    /** A sheet with no list of people of its own is one the patch hasn't seen: the switch stays out, the rest still goes in. */
+    @Test
+    fun noPeopleListLeavesTheSwitchOut() {
+        val context = PatchContexts.of(sheetClasses(peopleKept = "before", peopleField = false))
+        val search = context.findSearchBox()
+        assertThrows(PatchException::class.java) { context.findPeople(search) }
+        assertNull(context.findPeopleOrWarn(search))
+    }
+
+    /** A list kept only after the box would be read before it's there, so the switch stays out. */
+    @Test
+    fun aPeopleListKeptAfterTheBoxLeavesTheSwitchOut() {
+        val context = PatchContexts.of(sheetClasses(peopleKept = "after"))
+        val search = context.findSearchBox()
+        assertThrows(PatchException::class.java) { context.findPeople(search) }
+        assertNull(context.findPeopleOrWarn(search))
     }
 
     /** Two places keeping a found box is a sheet the patch hasn't seen: the switch stays out, the group buttons still go in. */
@@ -245,9 +284,11 @@ class HideShareSheetGroupHookTest {
         val sites = context.findShareSheet()
         val send = context.findGroupSend()
         val search = context.findSearchBox()
+        val people = context.findPeople(search)
         context.guardGroupButton(sites.build)
         context.guardGroupAction(sites.reveals)
         context.guardGroupSend(send)
+        context.hookPeople(people)
         context.hookSearchBox(search)
 
         fun method(site: SheetMethod) = context.mutableClassDefBy(site.type).methods
@@ -264,6 +305,35 @@ class HideShareSheetGroupHookTest {
         assertSearchBoxHooked("$label ${search.method.name}", method(search.method))
         val handed = context.mutableClassDefBy(SHARE_SHEET).methods.sumOf { m -> m.implementation!!.instructions.count { it.names(HIDE_SEARCH_BOX) } }
         assertEquals("$label: one search box hook and none elsewhere", 1, handed)
+        assertPeopleHooked("$label ${search.method.name}", method(search.method))
+        val listed = context.mutableClassDefBy(SHARE_SHEET).methods.sumOf { m -> m.implementation!!.instructions.count { it.names(HIDE_PEOPLE) } }
+        assertEquals("$label: one people hook and none elsewhere", 1, listed)
+    }
+
+    /**
+     * Right after the search box's hook, which follows the write keeping the box: a read of the
+     * sheet's [PEOPLE_LIST] from the register that write kept the box in, into a register that is
+     * neither the box nor the sheet, then one plain call handing the extension that list and the
+     * box, all in registers a plain call and a field read reach.
+     */
+    private fun assertPeopleHooked(what: String, method: Method) {
+        val code = method.implementation!!.instructions.toList()
+        val hooks = code.indices.filter { code[it].names(HIDE_PEOPLE) }
+        assertEquals("$what: people hooks", 1, hooks.size)
+        val hook = hooks.single()
+        assertTrue("$what: the search box's hook before it", code[hook - 2].names(HIDE_SEARCH_BOX))
+        assertTrue("$what: the box's write before that", code[hook - 3].names("$SHARE_SHEET->$STICKY_SEARCH_BOX:$SEARCH_BOX"))
+        val kept = code[hook - 3] as TwoRegisterInstruction
+        val read = code[hook - 1]
+        assertEquals("$what: the list's read", Opcode.IGET_OBJECT, read.opcode)
+        assertTrue("$what: reads the people", read.names("$SHARE_SHEET->$PEOPLE_LIST:$PEOPLE_LIST_TYPE"))
+        val list = (read as TwoRegisterInstruction).registerA
+        assertEquals("$what: from the sheet", kept.registerB, read.registerB)
+        assertTrue("$what: the list's register is neither the box nor the sheet", list != kept.registerA && list != kept.registerB)
+        assertEquals("$what: a plain call", Opcode.INVOKE_STATIC, code[hook].opcode)
+        val call = code[hook] as FiveRegisterInstruction
+        assertEquals("$what: the list and the box", listOf(list, kept.registerA), listOf(call.registerC, call.registerD))
+        assertEquals("$what: two registers", 2, call.registerCount)
     }
 
     /**
@@ -361,6 +431,7 @@ class HideShareSheetGroupHookTest {
 
         val BUTTON = ImmutableFieldReference(SHARE_SHEET, GROUP_BUTTON, VIEW)
         val BOX = ImmutableFieldReference(SHARE_SHEET, STICKY_SEARCH_BOX, SEARCH_BOX)
+        val LIST = ImmutableFieldReference(SHARE_SHEET, PEOPLE_LIST, PEOPLE_LIST_TYPE)
 
         const val HOLDER = "Lfixture/ComposerViews;"
 
@@ -386,6 +457,8 @@ class HideShareSheetGroupHookTest {
             testsButton: Boolean = true,
             searchBoxWrites: Int = 1,
             castsSearchBox: Boolean = true,
+            peopleField: Boolean = true,
+            peopleKept: String = "none",
         ): List<ClassDef> {
             // A0N(ViewStub, boolean, boolean), in nine registers on 449: this is v5, the stub v6.
             val build = listOfNotNull(
@@ -419,10 +492,13 @@ class HideShareSheetGroupHookTest {
                 if (castsSearchBox) ImmutableInstruction21c(Opcode.CHECK_CAST, 1, ImmutableTypeReference(SEARCH_BOX)) else null,
                 ImmutableInstruction22c(Opcode.IPUT_OBJECT, 1, 2, BOX),
             )
-            val created = (1..searchBoxWrites).flatMap { keep } + listOf(
-                ImmutableInstruction22c(Opcode.IGET_OBJECT, 0, 2, BUTTON),
-                ImmutableInstruction10x(Opcode.RETURN_VOID),
-            )
+            // The list of people kept from v1 before the box, as 457 does, or after it, or not at all.
+            val list = ImmutableInstruction22c(Opcode.IPUT_OBJECT, 1, 2, LIST)
+            val created = listOfNotNull(list.takeIf { peopleKept == "before" }) + (1..searchBoxWrites).flatMap { keep } +
+                listOfNotNull(list.takeIf { peopleKept == "after" }) + listOf(
+                    ImmutableInstruction22c(Opcode.IGET_OBJECT, 0, 2, BUTTON),
+                    ImmutableInstruction10x(Opcode.RETURN_VOID),
+                )
             // Inlined as 451's 385713073 has it: the same reveal in onActivityResult and onViewCreated, this in v2 of each.
             val revealing = if (inlined) {
                 listOf(
@@ -442,6 +518,7 @@ class HideShareSheetGroupHookTest {
             val fields = listOfNotNull(
                 ImmutableField(SHARE_SHEET, GROUP_BUTTON, VIEW, AccessFlags.PUBLIC.value, null, null, null),
                 if (searchBoxField) ImmutableField(SHARE_SHEET, STICKY_SEARCH_BOX, SEARCH_BOX, AccessFlags.PUBLIC.value, null, null, null) else null,
+                if (peopleField) ImmutableField(SHARE_SHEET, PEOPLE_LIST, PEOPLE_LIST_TYPE, AccessFlags.PUBLIC.value, null, null, null) else null,
             )
             val setterMethods = setters.map { name ->
                 ImmutableMethod(

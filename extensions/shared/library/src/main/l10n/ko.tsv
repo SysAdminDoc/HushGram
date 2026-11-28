@@ -450,6 +450,9 @@ Hide group buttons	그룹 버튼 숨기기
 Leaves New group out of the share sheet, and the button that sends to the people you picked as a group. Send separately stays, and you can still start a group from your messages.	공유 시트에서 새 그룹과 선택한 사람들에게 그룹으로 보내는 버튼을 제거합니다. 개별적으로 보내는 기능은 그대로 유지되며, 메시지에서는 계속 그룹을 만들 수 있습니다
 Hide the search bar	검색창 숨기기
 Takes the search bar off the top of the share sheet. The people you can send to still show.	공유 시트 맨 위의 검색창을 없앱니다. 보낼 수 있는 사람들은 그대로 표시됩니다.
+# context: Sharing > title and summary of Hide people until you search (#899), the switch that keeps the people on the share sheet hidden while its search bar is empty, so a tap on Copy link (Instagram's button under them) can't land on a person
+Hide people until you search	검색할 때까지 사람 숨기기
+The people on the share sheet stay hidden until you type in its search bar, so a tap meant for Copy link can't land on someone.	공유 시트의 사람들은 검색창에 입력할 때까지 숨겨져 있어서, 링크 복사를 누르려다 다른 사람을 누르는 일이 없습니다.
 Story ring size	스토리 링 사이즈
 Hide rings outside the stories row	스토리 목록 밖의 링 숨기기
 Takes the story and live rings off profile pictures on posts, comments, reels and profiles. The pictures stay, and so do the rings in the stories row.	게시물, 댓글, 릴스, 프로필의 프로필 사진에서 스토리 링과 라이브 링을 없앱니다. 사진은 그대로 있고, 스토리 목록의 링도 그대로 있습니다.

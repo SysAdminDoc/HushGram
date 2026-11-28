@@ -2164,6 +2164,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_share_sheet_search", FALSE);
 
     /**
+     * The people on the share sheet while its search bar is empty (#899,
+     * {@link app.hushgram.extension.instagram.share.ShareSheet#people}): they show once you type.
+     * With {@link #HIDE_SHARE_SHEET_SEARCH} on too they stay, since there's nowhere to type. Off to start.
+     */
+    public static final BooleanSetting HIDE_SHARE_SHEET_PEOPLE =
+            new BooleanSetting("hushgram_hide_share_sheet_people", FALSE);
+
+    /**
      * The buttons the share sheet leaves out of its row of round buttons under the people, by the
      * name the sheet gives each, comma separated ({@link app.hushgram.extension.instagram.share.ShareSheetActions},
      * #252). Empty hides none, so every button shows to start.

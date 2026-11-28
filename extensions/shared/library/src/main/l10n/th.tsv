@@ -446,6 +446,9 @@ Hide group buttons	ซ่อนปุ่มกลุ่ม
 Leaves New group out of the share sheet, and the button that sends to the people you picked as a group. Send separately stays, and you can still start a group from your messages.	ไม่แสดง "กลุ่มใหม่" ในหน้าต่างการแชร์ รวมถึงปุ่มสำหรับส่งไปยังบุคคลที่คุณเลือกไว้เป็นกลุ่ม โดยตัวเลือก "ส่งแยก" จะยังคงอยู่ และคุณยังสามารถสร้างกลุ่มได้จากหน้ารายการข้อความของคุณ
 Hide the search bar	ซ่อนแถบค้นหา
 Takes the search bar off the top of the share sheet. The people you can send to still show.	นำแถบค้นหาออกจากด้านบนของเมนูแชร์ โดยบุคคลที่คุณสามารถส่งถึงจะยังคงแสดงอยู่
+# context: Sharing > title and summary of Hide people until you search (#899), the switch that keeps the people on the share sheet hidden while its search bar is empty, so a tap on Copy link (Instagram's button under them) can't land on a person
+Hide people until you search	ซ่อนบุคคลจนกว่าคุณจะค้นหา
+The people on the share sheet stay hidden until you type in its search bar, so a tap meant for Copy link can't land on someone.	บุคคลในเมนูแชร์จะซ่อนอยู่จนกว่าคุณจะพิมพ์ในแถบค้นหา การแตะเพื่อคัดลอกลิงก์จึงไม่ไปโดนใครโดยไม่ตั้งใจ
 Story ring size	ขนาดวงแหวนสตอรี่
 Hide rings outside the stories row	ซ่อนวงแหวนนอกแถวสตอรี่
 Takes the story and live rings off profile pictures on posts, comments, reels and profiles. The pictures stay, and so do the rings in the stories row.	เอาวงแหวนสตอรี่และวงแหวนไลฟ์ออกจากรูปโปรไฟล์ในโพสต์ ความคิดเห็น รีลส์ และโปรไฟล์ รูปยังอยู่ และวงแหวนในแถวสตอรี่ก็ยังอยู่

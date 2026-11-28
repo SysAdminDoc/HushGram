@@ -454,6 +454,9 @@ Hide group buttons	隐藏群组按钮
 Leaves New group out of the share sheet, and the button that sends to the people you picked as a group. Send separately stays, and you can still start a group from your messages.	从分享表单移除“新群组”与将所选对象组成群组发送的按钮。“分别发送”仍会保留，也仍可从消息创建群组。
 Hide the search bar	隐藏搜索栏
 Takes the search bar off the top of the share sheet. The people you can send to still show.	移除分享表单顶端的搜索栏。可发送的对象仍会显示。
+# context: Sharing > title and summary of Hide people until you search (#899), the switch that keeps the people on the share sheet hidden while its search bar is empty, so a tap on Copy link (Instagram's button under them) can't land on a person
+Hide people until you search	搜索前隐藏对象
+The people on the share sheet stay hidden until you type in its search bar, so a tap meant for Copy link can't land on someone.	分享表单上的对象会先隐藏，直到你在搜索栏输入文字，这样想点“复制链接”时就不会误点到别人。
 Story ring size	快拍光圈尺寸
 Hide rings outside the stories row	隐藏快拍栏以外的光圈
 Takes the story and live rings off profile pictures on posts, comments, reels and profiles. The pictures stay, and so do the rings in the stories row.	移除帖子、评论、Reels 和主页中头像上的快拍光圈和直播光圈。头像会保留，快拍栏中的光圈也会保留。

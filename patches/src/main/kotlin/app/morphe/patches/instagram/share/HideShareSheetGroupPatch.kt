@@ -45,6 +45,7 @@ internal const val HIDE_GROUP_ACTION = "$EXTENSION_PACKAGE/share/ShareSheet;->hi
 internal const val HIDE_GROUP_SEND = "$EXTENSION_PACKAGE/share/ShareSheet;->hideGroupSend()Z"
 internal const val FILTER_ACTIONS = "$EXTENSION_PACKAGE/share/ShareSheetActions;->filter(Ljava/util/List;)Ljava/util/List;"
 internal const val HIDE_SEARCH_BOX = "$EXTENSION_PACKAGE/share/ShareSheet;->searchBox(Landroid/view/View;)V"
+internal const val HIDE_PEOPLE = "$EXTENSION_PACKAGE/share/ShareSheet;->people(Landroid/view/View;Landroid/view/View;)V"
 internal const val QUICK_SEND_PEOPLE = "$EXTENSION_PACKAGE/share/QuickSend;->people(I)I"
 internal const val QUICK_SEND_INFLATE =
     "$EXTENSION_PACKAGE/share/QuickSend;->inflate(Landroid/view/LayoutInflater;ILandroid/view/ViewGroup;)Landroid/view/View;"
@@ -88,6 +89,10 @@ internal const val SHARE_SHEET = "Linstagram/features/direct/fragment/sharesheet
 internal const val GROUP_BUTTON = "createGroupButton"
 internal const val STICKY_SEARCH_BOX = "stickySearchBox"
 
+/** The list of people on the share sheet, which a search fills with its answers too, and its type. Kept names. */
+internal const val PEOPLE_LIST = "recyclerView"
+internal const val PEOPLE_LIST_TYPE = "Landroidx/recyclerview/widget/RecyclerView;"
+
 /** The search box, and its kept setters for the action it can show at its end. */
 internal const val SEARCH_BOX = "Lcom/instagram/igds/components/search/IgdsInlineSearchBox;"
 internal const val ACTION_VISIBLE = "setVisibilityOfCustomActionButton"
@@ -111,7 +116,7 @@ val hideShareSheetGroupPatch = bytecodePatch(
     name = "Hide group buttons on the share sheet",
     description = "Takes the New group button and the button that sends to several people as a group off the " +
         "share sheet, and lets you pick which of the round buttons under the people it shows and hide its search " +
-        "bar. It can also turn on the row of people a long press on Share opens, and fill it. You can still start a group from your " +
+        "bar, or the people until you search. It can also turn on the row of people a long press on Share opens, and fill it. You can still start a group from your " +
         "messages. All start off. Find them in HushGram settings > Sharing.",
 ) {
     category("Interaction")
@@ -130,7 +135,11 @@ val hideShareSheetGroupPatch = bytecodePatch(
         guardGroupAction(sheet.reveals)
         guardGroupSend(send)
         actions?.let { filterActionList(it) }
-        search?.let { hookSearchBox(it) }
+        search?.let {
+            // The people's hook goes in first, so the search box's lands between it and the write it follows.
+            findPeopleOrWarn(it)?.let { people -> hookPeople(people) }
+            hookSearchBox(it)
+        }
         quickSend?.let { askQuickSendPeople(it) }
         quickSendTest?.let { answerFlagReads(it, QUICK_SEND_ON) }
         enableStatus("shareSheet")
@@ -335,8 +344,11 @@ internal fun BytecodePatchContext.filterActionList(site: ActionListSite) {
     )
 }
 
-/** Where the share sheet keeps its search box: the method, the index of the write and the register holding the box. */
-internal class SearchBoxSite(val method: SheetMethod, val at: Int, val box: Int)
+/**
+ * Where the share sheet keeps its search box: the method, the index of the write, the register
+ * holding the box and the register holding the sheet.
+ */
+internal class SearchBoxSite(val method: SheetMethod, val at: Int, val box: Int, val sheet: Int)
 
 /**
  * Finds where the share sheet keeps the search box it just found by its id: the one write of
@@ -354,7 +366,8 @@ internal fun BytecodePatchContext.findSearchBox(): SearchBoxSite {
     }
     val (method, at) = found.singleOrNull() ?: refuse("$SHARE_SHEET keeps a found $STICKY_SEARCH_BOX in ${found.size} places, expected one")
     if (at + 1 in method.jumpTargets()) refuse("a branch enters $SHARE_SHEET->${method.name} right after it keeps the search box")
-    return SearchBoxSite(method.site(SHARE_SHEET), at, (method.implementation!!.instructions.elementAt(at) as TwoRegisterInstruction).registerA)
+    val keep = method.implementation!!.instructions.elementAt(at) as TwoRegisterInstruction
+    return SearchBoxSite(method.site(SHARE_SHEET), at, keep.registerA, keep.registerB)
 }
 
 /** Where the sheet keeps its search box, or null with a warning, so the group buttons still go in. */
@@ -373,6 +386,57 @@ internal fun BytecodePatchContext.hookSearchBox(site: SearchBoxSite) {
     mutableMethod(site.method).addInstructions(
         site.at + 1,
         "invoke-static/range { v${site.box} .. v${site.box} }, $HIDE_SEARCH_BOX",
+    )
+}
+
+/** Where the sheet keeps its search box ([search]) and a local [list] the people's hook may borrow there. */
+internal class PeopleSite(val search: SearchBoxSite, val list: Int)
+
+/**
+ * Finds where the people's hook goes for Hide people until you search (#899): right after the sheet
+ * keeps its search box, where onViewCreated has already kept its [PEOPLE_LIST]. Fails unless the
+ * sheet keeps that list in a field of its own, the method writes it before the box, the box and the
+ * sheet sit where a plain call and a field read reach them, and a local is free there for the list.
+ */
+internal fun BytecodePatchContext.findPeople(search: SearchBoxSite): PeopleSite {
+    val sheet = classDefByOrNull(SHARE_SHEET) ?: refuse("$SHARE_SHEET isn't in this Instagram")
+    if (sheet.fields.none { it.name == PEOPLE_LIST && it.type == PEOPLE_LIST_TYPE && !AccessFlags.STATIC.isSet(it.accessFlags) }) {
+        refuse("$SHARE_SHEET keeps no $PEOPLE_LIST")
+    }
+    val method = sheet.methods.single { it.name == search.method.name && it.parameters() == search.method.parameters }
+    val where = "$SHARE_SHEET->${method.name}"
+    val code = method.implementation!!.instructions.toList()
+    val kept = code.take(search.at).any { instruction ->
+        instruction.opcode == Opcode.IPUT_OBJECT && ((instruction as ReferenceInstruction).reference as FieldReference).let { field ->
+            field.definingClass == SHARE_SHEET && field.name == PEOPLE_LIST && field.type == PEOPLE_LIST_TYPE
+        }
+    }
+    if (!kept) refuse("$where doesn't keep its $PEOPLE_LIST before its $STICKY_SEARCH_BOX")
+    if (search.box > 15 || search.sheet > 15) refuse("$where keeps the search box or the sheet past v15 where it keeps the box")
+    val list = method.freeLocalsAt(PATCH, search.at + 1, 1, except = listOf(search.box, search.sheet)).single()
+    return PeopleSite(search, list)
+}
+
+/** Where the people's hook goes, or null with a warning, so the rest still goes in. */
+internal fun BytecodePatchContext.findPeopleOrWarn(search: SearchBoxSite): PeopleSite? = try {
+    findPeople(search)
+} catch (refusal: PatchException) {
+    patchLog.warning("${refusal.message}. $PATCH goes in without the switch hiding the people until you search.")
+    null
+}
+
+/**
+ * Hands [HIDE_PEOPLE] the sheet's [PEOPLE_LIST] and the search box right after the sheet keeps the
+ * box, which keeps the people hidden while the box is empty and the user wants it so.
+ */
+internal fun BytecodePatchContext.hookPeople(site: PeopleSite) {
+    val search = site.search
+    mutableMethod(search.method).addInstructions(
+        search.at + 1,
+        """
+            iget-object v${site.list}, v${search.sheet}, $SHARE_SHEET->$PEOPLE_LIST:$PEOPLE_LIST_TYPE
+            invoke-static { v${site.list}, v${search.box} }, $HIDE_PEOPLE
+        """,
     )
 }
 

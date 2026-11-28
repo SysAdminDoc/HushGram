@@ -448,6 +448,9 @@ Hide group buttons	Ẩn nút nhóm
 Leaves New group out of the share sheet, and the button that sends to the people you picked as a group. Send separately stays, and you can still start a group from your messages.	Bỏ Nhóm mới khỏi bảng chia sẻ và nút gửi cho những người bạn chọn dưới dạng nhóm. Gửi riêng vẫn còn và bạn vẫn lập được nhóm từ tin nhắn.
 Hide the search bar	Ẩn thanh tìm kiếm
 Takes the search bar off the top of the share sheet. The people you can send to still show.	Bỏ thanh tìm kiếm ở đầu bảng chia sẻ. Những người bạn có thể gửi vẫn hiện.
+# context: Sharing > title and summary of Hide people until you search (#899), the switch that keeps the people on the share sheet hidden while its search bar is empty, so a tap on Copy link (Instagram's button under them) can't land on a person
+Hide people until you search	Ẩn mọi người cho đến khi bạn tìm kiếm
+The people on the share sheet stay hidden until you type in its search bar, so a tap meant for Copy link can't land on someone.	Mọi người trên bảng chia sẻ sẽ ẩn cho đến khi bạn gõ vào thanh tìm kiếm, nên một lần chạm định bấm Sao chép liên kết sẽ không trúng ai.
 Story ring size	Kích thước vòng tin
 Hide rings outside the stories row	Ẩn vòng bên ngoài hàng tin
 Takes the story and live rings off profile pictures on posts, comments, reels and profiles. The pictures stay, and so do the rings in the stories row.	Bỏ vòng tin và vòng phát trực tiếp khỏi ảnh đại diện trên bài viết, bình luận, reel và trang cá nhân. Ảnh vẫn giữ nguyên, các vòng trong hàng tin cũng vậy.

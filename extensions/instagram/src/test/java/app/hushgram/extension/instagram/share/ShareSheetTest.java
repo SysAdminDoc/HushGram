@@ -10,7 +10,9 @@ import static org.junit.Assert.assertTrue;
 
 import android.view.View;
 import android.view.ViewStub;
+import android.widget.EditText;
 import android.widget.FrameLayout;
+import android.widget.LinearLayout;
 
 import org.junit.After;
 import org.junit.Before;
@@ -37,6 +39,92 @@ public class ShareSheetTest {
     public void switchBack() {
         Settings.HIDE_SHARE_SHEET_GROUP.resetToDefault();
         Settings.HIDE_SHARE_SHEET_SEARCH.resetToDefault();
+        Settings.HIDE_SHARE_SHEET_PEOPLE.resetToDefault();
+    }
+
+    /** Hide people until you search starts off, and with it off the people stay (#899). */
+    @Test
+    public void thePeopleStayWhileTheirSwitchIsOff() {
+        assertFalse(Settings.HIDE_SHARE_SHEET_PEOPLE.defaultValue);
+        View list = new View(RuntimeEnvironment.getApplication());
+        EditText field = new EditText(RuntimeEnvironment.getApplication());
+        ShareSheet.people(list, bar(field));
+        assertEquals(View.VISIBLE, list.getVisibility());
+    }
+
+    /** With the switch on the people go while the bar is empty, show once you type, and go again when it's cleared (#899). */
+    @Test
+    public void thePeopleShowOnlyWhileYouSearch() {
+        Settings.HIDE_SHARE_SHEET_PEOPLE.save(true);
+        View list = new View(RuntimeEnvironment.getApplication());
+        EditText field = new EditText(RuntimeEnvironment.getApplication());
+        ShareSheet.people(list, bar(field));
+        assertEquals(View.GONE, list.getVisibility());
+
+        field.setText("a");
+        assertEquals(View.VISIBLE, list.getVisibility());
+
+        field.setText(" ");
+        assertEquals(View.GONE, list.getVisibility());
+    }
+
+    /** The sheet shows its list itself as it loads, so the people go again when it's laid out with the bar empty (#899). */
+    @Test
+    public void thePeopleStayGoneWhenTheSheetShowsThemAgain() {
+        Settings.HIDE_SHARE_SHEET_PEOPLE.save(true);
+        View list = new View(RuntimeEnvironment.getApplication());
+        EditText field = new EditText(RuntimeEnvironment.getApplication());
+        ShareSheet.people(list, bar(field));
+        list.setVisibility(View.VISIBLE);
+        list.layout(0, 0, 688, 900);
+        assertEquals(View.GONE, list.getVisibility());
+
+        // Once you type, a layout leaves them.
+        field.setText("ab");
+        list.layout(0, 0, 688, 901);
+        assertEquals(View.VISIBLE, list.getVisibility());
+    }
+
+    /** A list the sheet hid on its own isn't shown by typing (#899). */
+    @Test
+    public void aListTheSheetHidStaysHidden() {
+        Settings.HIDE_SHARE_SHEET_PEOPLE.save(true);
+        View list = new View(RuntimeEnvironment.getApplication());
+        list.setVisibility(View.GONE);
+        EditText field = new EditText(RuntimeEnvironment.getApplication());
+        ShareSheet.people(list, bar(field));
+        field.setText("a");
+        assertEquals(View.GONE, list.getVisibility());
+    }
+
+    /** With Hide the search bar on there's nowhere to type, so the people stay (#899). */
+    @Test
+    public void thePeopleStayWhenTheSearchBarIsHidden() {
+        Settings.HIDE_SHARE_SHEET_PEOPLE.save(true);
+        Settings.HIDE_SHARE_SHEET_SEARCH.save(true);
+        View list = new View(RuntimeEnvironment.getApplication());
+        EditText field = new EditText(RuntimeEnvironment.getApplication());
+        ShareSheet.people(list, bar(field));
+        assertEquals(View.VISIBLE, list.getVisibility());
+    }
+
+    /** A bar without a text field, or no list, leaves everything as it is (#899). */
+    @Test
+    public void noTextFieldOrNoListLeavesThePeople() {
+        Settings.HIDE_SHARE_SHEET_PEOPLE.save(true);
+        View list = new View(RuntimeEnvironment.getApplication());
+        ShareSheet.people(list, new FrameLayout(RuntimeEnvironment.getApplication()));
+        ShareSheet.people(list, null);
+        assertEquals(View.VISIBLE, list.getVisibility());
+        ShareSheet.people(null, bar(new EditText(RuntimeEnvironment.getApplication())));
+    }
+
+    /** A search bar like Instagram's, a row holding an icon and the text field. */
+    private static LinearLayout bar(EditText field) {
+        LinearLayout bar = new LinearLayout(RuntimeEnvironment.getApplication());
+        bar.addView(new View(RuntimeEnvironment.getApplication()));
+        bar.addView(field);
+        return bar;
     }
 
     /** Hide the search bar takes the sheet's search bar away, and starts off so the bar stays (#545). */

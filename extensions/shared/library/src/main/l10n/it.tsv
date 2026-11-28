@@ -449,6 +449,9 @@ Hide group buttons	Nascondi i pulsanti dei gruppi
 Leaves New group out of the share sheet, and the button that sends to the people you picked as a group. Send separately stays, and you can still start a group from your messages.	Esclude Nuovo gruppo dal foglio di condivisione, e il pulsante che invia alle persone scelte come gruppo. Invia separatamente resta, e puoi comunque creare un gruppo dai tuoi messaggi.
 Hide the search bar	Nascondi la barra di ricerca
 Takes the search bar off the top of the share sheet. The people you can send to still show.	Toglie la barra di ricerca dalla parte alta del foglio di condivisione. Le persone a cui puoi inviare restano visibili.
+# context: Sharing > title and summary of Hide people until you search (#899), the switch that keeps the people on the share sheet hidden while its search bar is empty, so a tap on Copy link (Instagram's button under them) can't land on a person
+Hide people until you search	Nascondi le persone finché non cerchi
+The people on the share sheet stay hidden until you type in its search bar, so a tap meant for Copy link can't land on someone.	Le persone nel foglio di condivisione restano nascoste finché non scrivi nella barra di ricerca, così un tocco pensato per Copia link non finisce su qualcuno.
 Story ring size	Dimensione dei cerchi delle storie
 Hide rings outside the stories row	Nascondi i cerchi fuori dalla riga delle storie
 Takes the story and live rings off profile pictures on posts, comments, reels and profiles. The pictures stay, and so do the rings in the stories row.	Toglie i cerchi delle storie e delle dirette dalle immagini del profilo su post, commenti, reel e profili. Le immagini restano, e anche i cerchi nella riga delle storie.

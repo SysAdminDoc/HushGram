@@ -449,6 +449,9 @@ Hide group buttons	Sembunyikan tombol grup
 Leaves New group out of the share sheet, and the button that sends to the people you picked as a group. Send separately stays, and you can still start a group from your messages.	Menghapus Grup baru dari lembar bagikan, juga tombol yang mengirim ke orang-orang yang kamu pilih sebagai grup. Kirim terpisah tetap ada, dan kamu tetap bisa membuat grup dari pesanmu.
 Hide the search bar	Sembunyikan kolom pencarian
 Takes the search bar off the top of the share sheet. The people you can send to still show.	Menghapus kolom pencarian dari bagian atas lembar bagikan. Orang-orang yang bisa kamu kirimi tetap muncul.
+# context: Sharing > title and summary of Hide people until you search (#899), the switch that keeps the people on the share sheet hidden while its search bar is empty, so a tap on Copy link (Instagram's button under them) can't land on a person
+Hide people until you search	Sembunyikan orang sampai kamu mencari
+The people on the share sheet stay hidden until you type in its search bar, so a tap meant for Copy link can't land on someone.	Orang-orang di lembar bagikan tetap tersembunyi sampai kamu mengetik di kolom pencariannya, jadi ketukan untuk Salin tautan tidak mengenai seseorang.
 Story ring size	Ukuran lingkaran cerita
 Hide rings outside the stories row	Sembunyikan lingkaran di luar baris cerita
 Takes the story and live rings off profile pictures on posts, comments, reels and profiles. The pictures stay, and so do the rings in the stories row.	Menghapus lingkaran cerita dan siaran langsung dari foto profil di postingan, komentar, reel, dan profil. Fotonya tetap ada, begitu juga lingkaran di baris cerita.

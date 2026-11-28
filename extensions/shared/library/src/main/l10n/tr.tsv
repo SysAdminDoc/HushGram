@@ -449,6 +449,9 @@ Hide group buttons	Grup düğmelerini gizle
 Leaves New group out of the share sheet, and the button that sends to the people you picked as a group. Send separately stays, and you can still start a group from your messages.	Paylaşım menüsünden Yeni grup düğmesini ve seçtiğin kişilere grup olarak gönderen düğmeyi kaldırır. Ayrı ayrı gönder kalır ve mesajlarından yine grup oluşturabilirsin.
 Hide the search bar	Arama çubuğunu gizle
 Takes the search bar off the top of the share sheet. The people you can send to still show.	Paylaşım menüsünün üstündeki arama çubuğunu kaldırır. Gönderebileceğin kişiler görünmeye devam eder.
+# context: Sharing > title and summary of Hide people until you search (#899), the switch that keeps the people on the share sheet hidden while its search bar is empty, so a tap on Copy link (Instagram's button under them) can't land on a person
+Hide people until you search	Arama yapana kadar kişileri gizle
+The people on the share sheet stay hidden until you type in its search bar, so a tap meant for Copy link can't land on someone.	Paylaşım menüsündeki kişiler, arama çubuğuna bir şey yazana kadar gizli kalır. Böylece Bağlantıyı kopyala için yapılan bir dokunuş birine denk gelmez.
 Story ring size	Hikâye halkası boyutu
 Hide rings outside the stories row	Hikâye satırı dışındaki halkaları gizle
 Takes the story and live rings off profile pictures on posts, comments, reels and profiles. The pictures stay, and so do the rings in the stories row.	Gönderilerde, yorumlarda, Reels'te ve profillerde profil fotoğraflarındaki hikâye ve canlı yayın halkalarını kaldırır. Fotoğraflar kalır, hikâye satırındaki halkalar da kalır.
