@@ -94,7 +94,9 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * <p>With {@link Settings#ACCENT_TEXT} on under it, the picked color's text style goes on after the
  * icon style, wherever that does (#187). It points {@code igds_color_primary_text} and
  * {@code igds_color_text_and_icon_primary} at the same link shade, so names, captions and titles take
- * it. Secondary text stays gray.
+ * it. Secondary text stays gray unless {@link Settings#ACCENT_SUBTEXT} is on under it too, which lays
+ * the gray text style on after it: {@code igds_color_secondary_text} and
+ * {@code igds_color_text_and_icon_secondary} at the link shade with about 70% alpha (#8).
  *
  * <p>With {@link Settings#ACCENT_PILLS} on, Saved's filters take the picked color through
  * {@link #savedFilter} as each gets its background (#187): the outlined ones a border and title in the
@@ -186,6 +188,12 @@ public final class AccentTheme {
 
     /** Counted when Text in the accent color is on but the build has no text styles. */
     static final String TEXT_MISSING = "themes left with Instagram's text color, the text styles are missing";
+
+    /** Counted each time the gray text style goes onto a theme. */
+    static final String SUBTEXT = "themes given accent gray text";
+
+    /** Counted when Gray text in the accent color is on but the build has no gray text styles. */
+    static final String SUBTEXT_MISSING = "themes left with Instagram's gray text, the gray text styles are missing";
 
     /** Counted each time one of Saved's filters takes the accent. */
     static final String PILLS = "Saved filters given the accent color";
@@ -1929,10 +1937,16 @@ public final class AccentTheme {
         return "HushGramAccentText_" + hue.name() + (dark ? "_dark" : "_light");
     }
 
+    /** The style pointing Instagram's gray text attributes at [hue]'s softer link shade for a dark theme or a light one (#8). */
+    static String subtextStyle(AccentHue hue, boolean dark) {
+        return "HushGramAccentSubtext_" + hue.name() + (dark ? "_dark" : "_light");
+    }
+
     /**
      * Lays [hue]'s text style for a [dark] theme or a light one onto [theme] right after its icon style
      * with Text in the accent color on (#187), counting it, or counting it missing on a build without
-     * the text styles.
+     * the text styles. With Gray text in the accent color on under it, the gray text style follows
+     * (#8), counted the same way.
      */
     private static void applyText(Resources resources, Resources.Theme theme, String app, AccentHue hue, boolean dark) {
         if (!Settings.ACCENT_TEXT.get()) return;
@@ -1943,6 +1957,14 @@ public final class AccentTheme {
         }
         theme.applyStyle(text, true);
         HookStatus.counted(FamilyNames.ACCENT_COLOR, TEXT);
+        if (!Settings.ACCENT_SUBTEXT.get()) return;
+        int subtext = id(resources, subtextStyle(hue, dark), "style", app);
+        if (subtext == 0) {
+            HookStatus.counted(FamilyNames.ACCENT_COLOR, SUBTEXT_MISSING);
+            return;
+        }
+        theme.applyStyle(subtext, true);
+        HookStatus.counted(FamilyNames.ACCENT_COLOR, SUBTEXT);
     }
 
     /** The style pointing the gradient Instagram's story rings read at [hue]'s shades (#187). */

@@ -70,6 +70,7 @@ public class AccentThemeTest {
         Settings.ACCENT_BADGES.resetToDefault();
         Settings.ACCENT_ICONS.resetToDefault();
         Settings.ACCENT_TEXT.resetToDefault();
+        Settings.ACCENT_SUBTEXT.resetToDefault();
         Settings.ACCENT_REELS.resetToDefault();
         Settings.ACCENT_PILLS.resetToDefault();
         Settings.ACCENT_RINGS.resetToDefault();
@@ -315,6 +316,59 @@ public class AccentThemeTest {
         AccentTheme.apply(older, "igds_color_link");
         assertEquals(List.of(FamilyNames.ACCENT_COLOR + ": invoked 1, 0 found, 0 missing. Counted: " + AccentTheme.NO_BLUE + " 1, "
                 + AccentTheme.ICONS + " 1, " + AccentTheme.TEXT_MISSING + " 1"), HookStatus.report());
+    }
+
+    /**
+     * Gray text in the accent color sits under Text in the accent color (#8): its style goes on right
+     * after the text style, in the theme's shade, and only with the text switch on too. A build with text
+     * styles but no gray text styles says so.
+     */
+    @Test
+    public void theGrayTextStyleGoesOnAfterTheTextStyle() {
+        Settings.ACCENT_COLOR.save(true);
+        Settings.ACCENT_HUE.save(AccentHue.TEAL);
+        Settings.ACCENT_ICONS.save(true);
+        assertEquals("HushGramAccentSubtext_TEAL_light", AccentTheme.subtextStyle(AccentHue.TEAL, false));
+        assertEquals("HushGramAccentSubtext_TEAL_dark", AccentTheme.subtextStyle(AccentHue.TEAL, true));
+        List<String> asked = new ArrayList<>();
+        Ids ids = (name, type) -> {
+            if (type.equals("style") && name.equals(AccentTheme.paletteStyle(AccentHue.TEAL))) return android.R.style.TextAppearance;
+            if (type.equals("style") && (name.startsWith("HushGramAccentIcons_") || name.startsWith("HushGramAccentText_")
+                    || name.startsWith("HushGramAccentSubtext_"))) {
+                asked.add(name);
+                return android.R.style.TextAppearance_Small;
+            }
+            if (type.equals("attr") && name.equals(AccentTheme.ICON_ATTRIBUTE)) return android.R.attr.colorForeground;
+            return type.equals("attr") ? 0x7f990005 : 0;
+        };
+        Context light = new ContextThemeWrapper(themed(THEMED + ".subtext.light", ids), android.R.style.Theme_Material_Light);
+        Settings.ACCENT_SUBTEXT.save(true);
+        AccentTheme.apply(light, "igds_color_link");
+        assertEquals("text off, so no gray text either", List.of(AccentTheme.iconStyle(AccentHue.TEAL, false)), asked);
+
+        Settings.ACCENT_TEXT.save(true);
+        HookStatus.clear();
+        AccentTheme.apply(light, "igds_color_link");
+        assertEquals(List.of(AccentTheme.iconStyle(AccentHue.TEAL, false), AccentTheme.textStyle(AccentHue.TEAL, false),
+                AccentTheme.subtextStyle(AccentHue.TEAL, false)), asked);
+        assertEquals(List.of(FamilyNames.ACCENT_COLOR + ": invoked 1, 0 found, 0 missing. Counted: " + AccentTheme.NO_BLUE + " 1, "
+                + AccentTheme.ICONS + " 1, " + AccentTheme.TEXT + " 1, " + AccentTheme.SUBTEXT + " 1"), HookStatus.report());
+
+        Context dark = new ContextThemeWrapper(themed(THEMED + ".subtext.dark", ids), android.R.style.Theme_Material);
+        AccentTheme.apply(dark, "igds_color_link");
+        assertEquals(AccentTheme.subtextStyle(AccentHue.TEAL, true), asked.get(asked.size() - 1));
+
+        HookStatus.clear();
+        Context older = new ContextThemeWrapper(themed(THEMED + ".subtext.older", (name, type) -> {
+            if (type.equals("style") && name.equals(AccentTheme.paletteStyle(AccentHue.TEAL))) return android.R.style.TextAppearance;
+            if (type.equals("style") && (name.startsWith("HushGramAccentIcons_") || name.startsWith("HushGramAccentText_"))) {
+                return android.R.style.TextAppearance_Small;
+            }
+            return type.equals("attr") && name.equals(AccentTheme.ICON_ATTRIBUTE) ? android.R.attr.colorForeground : 0;
+        }), android.R.style.Theme_Material_Light);
+        AccentTheme.apply(older, "igds_color_link");
+        assertEquals(List.of(FamilyNames.ACCENT_COLOR + ": invoked 1, 0 found, 0 missing. Counted: " + AccentTheme.NO_BLUE + " 1, "
+                + AccentTheme.ICONS + " 1, " + AccentTheme.TEXT + " 1, " + AccentTheme.SUBTEXT_MISSING + " 1"), HookStatus.report());
     }
 
     /** The ring style goes on with its switch, and a build without one says so (#187). */

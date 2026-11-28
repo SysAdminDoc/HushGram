@@ -209,7 +209,7 @@ public enum PatchFamily {
     REFRESH_RATE(FamilyNames.REFRESH_RATE, "refreshRate", null, Settings.HIGHEST_REFRESH_RATE, Settings.MATCH_VIDEO_FRAME_RATE),
     EMOJI_STYLE(FamilyNames.EMOJI_STYLE, "emojiStyle", null, Settings.NOTO_EMOJI),
     ACCENT_COLOR(FamilyNames.ACCENT_COLOR, "accentColor", null, Settings.ACCENT_COLOR, Settings.ACCENT_BADGES,
-            Settings.ACCENT_ICONS, Settings.ACCENT_TEXT, Settings.ACCENT_REELS, Settings.ACCENT_PILLS, Settings.ACCENT_RINGS,
+            Settings.ACCENT_ICONS, Settings.ACCENT_TEXT, Settings.ACCENT_SUBTEXT, Settings.ACCENT_REELS, Settings.ACCENT_PILLS, Settings.ACCENT_RINGS,
             Settings.ACCENT_RINGS_SOLID,
             Settings.ACCENT_BACKGROUNDS, Settings.CLASSIC_COLORS),
     LAUNCH_SCREEN(FamilyNames.LAUNCH_SCREEN, "launchScreen", null, Settings.LAUNCH_SCREEN, Settings.LAUNCH_SCREEN_ACCENT),

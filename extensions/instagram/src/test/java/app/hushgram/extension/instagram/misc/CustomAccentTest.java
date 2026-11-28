@@ -141,6 +141,8 @@ public class CustomAccentTest {
         assertEquals(Integer.valueOf(0xff000000 | shades[0]), CustomAccent.colorFor("hushgram_accent_custom_badge", shades));
         assertEquals(Integer.valueOf(0xff000000 | shades[3]), CustomAccent.colorFor("hushgram_accent_custom_icon_light", shades));
         assertEquals(Integer.valueOf(0xff000000 | shades[4]), CustomAccent.colorFor("hushgram_accent_custom_icon_dark", shades));
+        assertEquals(Integer.valueOf(0xb3000000 | shades[3]), CustomAccent.colorFor("hushgram_accent_custom_subtext_light", shades));
+        assertEquals(Integer.valueOf(0xb3000000 | shades[4]), CustomAccent.colorFor("hushgram_accent_custom_subtext_dark", shades));
         assertEquals(Integer.valueOf(0xff000000 | shades[0]), CustomAccent.colorFor("hushgram_accent_custom_ring_fill", shades));
         assertEquals(Integer.valueOf(0xff000000 | shades[5]), CustomAccent.colorFor("hushgram_accent_custom_ring_pale", shades));
         // The patch's BackgroundStep: 8, 14 and 20 percent of the fill in black, 4, 8 and 12 in white.

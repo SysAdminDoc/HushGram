@@ -2790,6 +2790,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_accent_text", FALSE, true, parent(ACCENT_ICONS));
 
     /**
+     * Under {@link #ACCENT_TEXT}: Instagram's gray text, times, labels and second lines, takes a softer
+     * shade of the picked color too (#8, {@link app.hushgram.extension.instagram.misc.AccentTheme}).
+     * A change shows after a restart. Off to start.
+     */
+    public static final BooleanSetting ACCENT_SUBTEXT =
+            new BooleanSetting("hushgram_accent_subtext", FALSE, true, parent(ACCENT_TEXT));
+
+    /**
      * Under {@link #ACCENT_COLOR}: the buttons beside a reel and their counts, white over the video,
      * take the picked color too (#187, {@link app.hushgram.extension.instagram.misc.AccentTheme#reelButtons(int)}).
      * A change shows after a restart. Off to start.

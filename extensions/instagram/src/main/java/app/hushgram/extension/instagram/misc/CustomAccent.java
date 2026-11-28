@@ -52,6 +52,9 @@ public final class CustomAccent {
     /** What every color the patch adds for the typed color is named after. */
     static final String PREFIX = "hushgram_accent_custom_";
 
+    /** The alpha of the gray text shades, as the patch's SUBTEXT_ALPHA has it (#8). */
+    static final int SUBTEXT_ALPHA = 0xb3;
+
     /** What's counted when a set of assets takes the typed color's table. */
     static final String LOADED = "custom color tables loaded";
 
@@ -151,9 +154,10 @@ public final class CustomAccent {
     /**
      * The color the patch's color [name] takes from [shades], with its alpha, or null for a name this
      * doesn't know. The patch names them, after {@link #PREFIX}: {@code badge}, the fill;
-     * {@code icon_light} and {@code icon_dark}, the link shades; {@code ring_<part>}, a story ring's
-     * shade; {@code background_<light|dark>_<base|raised|top>}, a screen's; and {@code <part>_<alpha>},
-     * a shade with the alpha of the blue it stands for.
+     * {@code icon_light} and {@code icon_dark}, the link shades; {@code subtext_light} and
+     * {@code subtext_dark}, the link shades at {@link #SUBTEXT_ALPHA} for gray text (#8);
+     * {@code ring_<part>}, a story ring's shade; {@code background_<light|dark>_<base|raised|top>}, a
+     * screen's; and {@code <part>_<alpha>}, a shade with the alpha of the blue it stands for.
      */
     @Nullable
     static Integer colorFor(String name, int[] shades) {
@@ -163,6 +167,8 @@ public final class CustomAccent {
         if (rest.equals("badge")) return 0xff000000 | fill;
         if (rest.equals("icon_light")) return 0xff000000 | shade(shades, AccentColor.Role.LINK_ON_LIGHT);
         if (rest.equals("icon_dark")) return 0xff000000 | shade(shades, AccentColor.Role.LINK_ON_DARK);
+        if (rest.equals("subtext_light")) return SUBTEXT_ALPHA << 24 | shade(shades, AccentColor.Role.LINK_ON_LIGHT);
+        if (rest.equals("subtext_dark")) return SUBTEXT_ALPHA << 24 | shade(shades, AccentColor.Role.LINK_ON_DARK);
         if (rest.startsWith("ring_")) {
             AccentColor.Role role = role(rest.substring("ring_".length()));
             return role == null ? null : 0xff000000 | shade(shades, role);

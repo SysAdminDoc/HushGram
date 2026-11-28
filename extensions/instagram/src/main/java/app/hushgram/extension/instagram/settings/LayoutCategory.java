@@ -81,6 +81,9 @@ final class LayoutCategory {
                 layout.addPreference(toggle(context, Settings.ACCENT_TEXT, L10n.t("Text in the accent color"),
                         L10n.t("Names, captions and other main text take the same color as the icons. Gray text "
                                 + "stays gray. Restart Instagram to see the change.")));
+                layout.addPreference(toggle(context, Settings.ACCENT_SUBTEXT, L10n.t("Gray text in the accent color"),
+                        L10n.t("Gray text, like times and labels, takes a softer shade of the same color. Restart "
+                                + "Instagram to see the change.")));
                 layout.addPreference(toggle(context, Settings.ACCENT_REELS, L10n.t("Reel buttons in the accent color"),
                         L10n.t("The buttons beside a reel and their counts take the color you picked instead of "
                                 + "white. Restart Instagram to see the change.")));

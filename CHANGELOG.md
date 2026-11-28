@@ -58,6 +58,7 @@ Every HushGram release, newest first.
 * `Hide the More button on reels` is new under Reels. It takes the three dots off the bottom of the buttons beside a reel. Starts off. Asked for in #647.
 * `Reel buttons in the accent color` is new under `Accent color` in Layout. The like, comment, share and other buttons beside a reel, and their counts, take your accent color instead of white. Starts off. Asked for in #187.
 * `Filters in the accent color` and `Text in the accent color` are new under `Accent color` in Layout. Saved's filters along the top, and names, captions and other main text, take your accent color. Both start off. Asked for in #187.
+* `Gray text in the accent color` is new under `Text in the accent color`. Times, labels and the rest of Instagram's gray text take a softer shade of your color, so the whole app can wear one color the way older themed mods did. Starts off. Asked for in #8.
 * `Search bar in the viewer list` is new under `Keep story viewers` in Stories. The list of who viewed your story gets a Search viewers bar again, searching the viewers kept on your phone. Starts off. Asked for in #833.
 * `Chat groups` is new under Messages. Long press a chat to file it in a group you name, off your main inbox. Long press the Messages button to show one group. Starts off. Asked for in discussion #838.
 * `Story rings on saved posts` is new under Stories. Posts you saved show the story ring around the author's picture, and tapping it opens their story, like on Home. Starts off. Asked for in #790.

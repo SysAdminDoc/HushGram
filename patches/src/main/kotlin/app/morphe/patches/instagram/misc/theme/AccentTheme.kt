@@ -290,6 +290,38 @@ internal fun textStyle(palette: String, theme: IconTheme): String =
     "HushGramAccentText_${palette}_${theme.name.lowercase(Locale.ROOT)}"
 
 /**
+ * The gray text attributes the gray text styles set, for Gray text in the accent color (#8): Instagram's
+ * secondary text color, times, counts' labels and second lines, and the secondary text and icon color
+ * newer screens read.
+ */
+internal val SUBTEXT_ATTRIBUTES = listOf("igds_color_secondary_text", "igds_color_text_and_icon_secondary")
+
+/**
+ * The alpha of a color's gray text shade: its link shade at about 70%, so gray text reads softer than
+ * the main text on either theme, the way Instagram's gray sits under its black or white.
+ */
+internal const val SUBTEXT_ALPHA = 0xb3
+
+/**
+ * Material You's gray text steps, since a system color can't take an alpha: a step paler than the link
+ * shade on a light theme and a step deeper on a dark one, with Material purple's tones as fallbacks.
+ */
+internal val WALLPAPER_SUBTEXT_STEPS: Map<IconTheme, Int> = mapOf(IconTheme.LIGHT to 400, IconTheme.DARK to 300)
+internal val WALLPAPER_SUBTEXT_FALLBACK: Map<IconTheme, Int> = mapOf(IconTheme.LIGHT to 0x9a82db, IconTheme.DARK to 0xb69df8)
+
+/** Each of [SUBTEXT_ATTRIBUTES] that [attrs] declares, or none without [ICON_ATTRIBUTE], as [textAttributes]. */
+private fun subtextAttributes(attrs: Document): List<String> {
+    val declared = attrs.children("attr").mapTo(HashSet()) { it.getAttribute("name") }
+    return if (ICON_ATTRIBUTE in declared) SUBTEXT_ATTRIBUTES.filter { it in declared } else emptyList()
+}
+
+internal fun subtextColor(palette: String, theme: IconTheme): String =
+    "hushgram_accent_${palette.lowercase(Locale.ROOT)}_subtext_${theme.name.lowercase(Locale.ROOT)}"
+
+internal fun subtextStyle(palette: String, theme: IconTheme): String =
+    "HushGramAccentSubtext_${palette}_${theme.name.lowercase(Locale.ROOT)}"
+
+/**
  * The gradient attributes Instagram's story rings read through `GradientPatternStyle`, with the shade
  * each takes (#187). Light to deep, as the gradient runs. On 454 a story's default ring runs yellow,
  * orange, pink and then lavender, so lavender takes the deep end with purple; without it the ring
@@ -549,7 +581,9 @@ internal fun accentUses(styles: List<Document>, colors: Map<String, Set<Int>>): 
  *   and a style setting the attribute, and each of [GLYPH_ATTRIBUTES] declared, to each,
  *   `HushGramAccentIcons_PURPLE_dark`, for Icons in the accent color (#8), and a style setting each
  *   declared one of [TEXT_ATTRIBUTES] to each, `HushGramAccentText_PURPLE_dark`, for Text in the
- *   accent color (#187);
+ *   accent color (#187), and each link shade at [SUBTEXT_ALPHA] as a gray text color and a style
+ *   setting each declared one of [SUBTEXT_ATTRIBUTES] to it, `HushGramAccentSubtext_PURPLE_dark`, for
+ *   Gray text in the accent color (#8);
  * - when attrs.xml declares any of [RING_ATTRIBUTES], each color's ring shades and a style setting
  *   those attributes to them, `HushGramAccentRings_PURPLE`, for Story rings in the accent color (#187),
  *   and a style setting all of them to [SOLID_RING_ROLE]'s, `HushGramAccentRingsSolid_PURPLE`, for
@@ -574,6 +608,7 @@ internal fun addAccentResources(uses: Set<AccentUse>, attrs: Document, colors: D
     val iconAttributes = iconAttributes(attrs)
     val icons = iconAttributes.isNotEmpty()
     val textAttributes = textAttributes(attrs)
+    val subtextAttributes = subtextAttributes(attrs)
     val rings = ringAttributes(attrs)
     val ringRoles = ringRoles(rings)
     val backgrounds = backgroundAttributes(attrs)
@@ -587,6 +622,9 @@ internal fun addAccentResources(uses: Set<AccentUse>, attrs: Document, colors: D
         } else emptyList()) +
         (if (textAttributes.isNotEmpty()) ACCENT_PALETTES.flatMap { palette ->
             IconTheme.entries.map { textStyle(palette.name, it) }
+        } else emptyList()) +
+        (if (subtextAttributes.isNotEmpty()) ACCENT_PALETTES.flatMap { palette ->
+            IconTheme.entries.flatMap { listOf(subtextColor(palette.name, it), subtextStyle(palette.name, it)) }
         } else emptyList()) +
         (if (rings.isNotEmpty()) ACCENT_PALETTES.flatMap { palette ->
             ringRoles.map { ringColor(palette.name, it) } + ringStyle(palette.name) + solidRingStyle(palette.name) +
@@ -660,6 +698,13 @@ internal fun addAccentResources(uses: Set<AccentUse>, attrs: Document, colors: D
                 if (textAttributes.isNotEmpty()) {
                     styles.documentElement.appendChild(styles.colorStyle(textStyle(palette.name, theme), textAttributes, iconColor(palette.name, theme)))
                 }
+                if (subtextAttributes.isNotEmpty()) {
+                    colors.documentElement.appendChild(colors.createElement("color").apply {
+                        setAttribute("name", subtextColor(palette.name, theme))
+                        textContent = "#%02x%06x".format(SUBTEXT_ALPHA, palette.shades.getValue(theme.role))
+                    })
+                    styles.documentElement.appendChild(styles.colorStyle(subtextStyle(palette.name, theme), subtextAttributes, subtextColor(palette.name, theme)))
+                }
             }
         }
     }
@@ -714,7 +759,8 @@ internal fun addAccentResources(uses: Set<AccentUse>, attrs: Document, colors: D
  * - when attrs.xml declares [ICON_ATTRIBUTE], a light and a dark icon color at the link shades and a
  *   style pointing the attribute, and each of [GLYPH_ATTRIBUTES] declared, at each, for Icons in the
  *   accent color (#8), and one pointing each declared one of [TEXT_ATTRIBUTES] at each, for Text in
- *   the accent color (#187);
+ *   the accent color (#187), and a gray text color at [WALLPAPER_SUBTEXT_STEPS] with a style pointing
+ *   each declared one of [SUBTEXT_ATTRIBUTES] at it, for Gray text in the accent color (#8);
  * - when attrs.xml declares any of [RING_ATTRIBUTES], ring colors at the matching accent steps and a
  *   style pointing those attributes at them, for Story rings in the accent color (#187), and one
  *   pointing all of them at [SOLID_RING_ROLE]'s, for Solid story rings (#519);
@@ -734,6 +780,7 @@ internal fun addWallpaperResources(uses: Set<AccentUse>, attrs: Document, colors
     val iconAttributes = iconAttributes(attrs)
     val icons = iconAttributes.isNotEmpty()
     val textAttributes = textAttributes(attrs)
+    val subtextAttributes = subtextAttributes(attrs)
     val rings = ringAttributes(attrs)
     val ringRoles = ringRoles(rings)
     val backgrounds = backgroundAttributes(attrs)
@@ -742,6 +789,7 @@ internal fun addWallpaperResources(uses: Set<AccentUse>, attrs: Document, colors
         (if (badges) listOf(WALLPAPER_BADGE_COLOR, WALLPAPER_BADGE_STYLE) else emptyList()) +
         (if (icons) IconTheme.entries.flatMap { listOf(iconColor(WALLPAPER, it), iconStyle(WALLPAPER, it)) } else emptyList()) +
         (if (textAttributes.isNotEmpty()) IconTheme.entries.map { textStyle(WALLPAPER, it) } else emptyList()) +
+        (if (subtextAttributes.isNotEmpty()) IconTheme.entries.flatMap { listOf(subtextColor(WALLPAPER, it), subtextStyle(WALLPAPER, it)) } else emptyList()) +
         (if (rings.isNotEmpty()) ringRoles.map { ringColor(WALLPAPER, it) } + ringStyle(WALLPAPER) + solidRingStyle(WALLPAPER) else emptyList()) +
         (if (backgrounds.isNotEmpty()) IconTheme.entries.flatMap { theme ->
             backgroundSteps.map { backgroundColor(WALLPAPER, theme, it) } + backgroundStyle(WALLPAPER, theme)
@@ -787,6 +835,14 @@ internal fun addWallpaperResources(uses: Set<AccentUse>, attrs: Document, colors
             styles.documentElement.appendChild(styles.colorStyle(iconStyle(WALLPAPER, theme), iconAttributes, iconColor(WALLPAPER, theme)))
             if (textAttributes.isNotEmpty()) {
                 styles.documentElement.appendChild(styles.colorStyle(textStyle(WALLPAPER, theme), textAttributes, iconColor(WALLPAPER, theme)))
+            }
+            if (subtextAttributes.isNotEmpty()) {
+                color(
+                    subtextColor(WALLPAPER, theme),
+                    WALLPAPER_SUBTEXT_FALLBACK.getValue(theme),
+                    "@android:color/system_accent1_${WALLPAPER_SUBTEXT_STEPS.getValue(theme)}",
+                )
+                styles.documentElement.appendChild(styles.colorStyle(subtextStyle(WALLPAPER, theme), subtextAttributes, subtextColor(WALLPAPER, theme)))
             }
         }
     }
