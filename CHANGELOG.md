@@ -136,7 +136,7 @@ Every HushGram release, newest first.
 ### Improvements
 
 * HushGram now patches Instagram 457.0.0.55.73 instead of 456.0.0.53.78. Get APKMirror's (arm64-v8a) (480-640dpi) (Android 9.0+) bundle, build 386314341. Its 480dpi build, 386314297, works too. 32-bit phones take build 386314340 (armeabi-v7a) and x86_64 emulators build 386314286.
-* HushGram now builds on Morphe patcher 2.5.0, so patching needs Morphe Manager 2.7.0 or newer. On a computer, use Morphe Desktop 2.3.0 or newer.
+* HushGram now builds on Morphe patcher 2.6.0, so patching needs Morphe Manager 2.8.0 or newer. On a computer, use Morphe Desktop 2.4.0 or newer.
 * `Start feed videos with sound` now plays a photo post's song with sound too. A song that came before any video stayed silent, since Instagram only played it once a video had turned the sound on. Asked for in #762.
 * A saved profile's menu now names its folders under `Your saved profiles`, and tapping that row opens the folder picker with them ticked. Rows in the saved list show their folders too. Asked for in #629.
 * With `Icons in the accent color` on, the icons atop a screen, a profile's Posts, Reels, Reposts and Tagged tabs, the Saved page's buttons and the Saved bookmark on Search take your accent color too. Asked for in #187.

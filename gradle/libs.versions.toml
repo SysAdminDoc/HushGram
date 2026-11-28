@@ -1,8 +1,11 @@
 [versions]
 # Align with morphe-patches-template (Compatibility / Manager display names). Hold the patcher
 # at the version the stable Morphe Manager bundles: a newer pin trips the manager's
-# Patcher-Version gate and it refuses the bundle. Stable Manager 2.7.0 bundles 2.5.0, and so
-# do desktop 2.3.0 and CLI 2.3.0. Patcher 2.5.0 went stable on 2026-11-21 with the same Kotlin,
+# Patcher-Version gate and it refuses the bundle. Stable Manager 2.8.0 bundles 2.6.0, and so
+# do desktop 2.4.0 and CLI 2.4.0 (all stable 2026-11-26). 2.6.0 moves smali to 5a5249e22f and
+# ARSCLib to 6435903152, drops the FULL bytecode mode (nothing here used it) and carries the
+# baseline profile over to the patched DEX files. Manager 2.7.0, desktop 2.3.0 and CLI 2.3.0
+# bundle 2.5.0. Patcher 2.5.0 went stable on 2026-11-21 with the same Kotlin,
 # smali and ARSCLib as 2.4.0 and kotlinx-serialization 1.13.0. It adds replaceStrings(), can keep
 # the original v1 signature and v2 block, and writes the methods no patch touched from their own
 # instructions. Patcher 2.4.0 went stable on 2026-11-15 with the same Kotlin as
@@ -15,28 +18,28 @@
 # a fingerprint string against the whole literal, decodes only the resources a patch asks for, and
 # hides compatiblePackages behind compatibility (PatchListGenerator rebuilds the old field). A 2.0
 # bundle needs Manager 2.x: Manager 1.x refuses it with its update prompt.
-morphe-patcher = "2.5.0"
+morphe-patcher = "2.6.0"
 # First stable Manager release that bundled the patcher above. The release fact check holds the
 # README's stated floor to this value.
-manager-floor = "2.7.0"
+manager-floor = "2.8.0"
 # Read by the app.morphe.patches settings plugin, not by anything in this repo: remove it and
 # configuration fails with "Version with alias smali not found in version catalog". The commit
 # resolves as com.github.MorpheApp.smali through JitPack. It is not waiting on an official
 # release, which google/smali 3.0.10 delivered on 2026-08-20. Keep it the commit the patcher
-# above requests (2.5.0 and 2.4.0 ask for 5eaff5a2c9; 2.3.0, 2.2.0, 2.1.0 and 2.0.1 asked for ac700e1942; 2.0.0
+# above requests (2.6.0 asks for 5a5249e22f; 2.5.0 and 2.4.0 asked for 5eaff5a2c9; 2.3.0, 2.2.0, 2.1.0 and 2.0.1 asked for ac700e1942; 2.0.0
 # asked for 4220ae75f7). Gradle merges
 # the two requests into one module and keeps the version that sorts higher, not the newer commit:
 # an old pin one commit behind once sorted higher and silently replaced the patcher's dexlib2 in
 # every compile, test and R8 graph. Another group's smali would instead put two copies of dexlib2
 # on the R8 classpath, and buildAndroid fails with "Classpath type already present".
 #noinspection GradleDependency
-smali = "5eaff5a2c9"
+smali = "5a5249e22f"
 # The Android Gradle plugin and Kotlin come from the app.morphe.patches settings plugin
 # (2.0.0 brings AGP 9.1.0 and Kotlin 2.4.21); nothing here pins them.
 annotation = "1.11.0"
 gson = "2.15.0"
 # Test-only for the extension: see extensions/instagram/build.gradle.kts. Kept at the Kotlin
-# the settings plugin brings (2.4.21 with plugin 2.0.0), which is also patcher 2.5.0's runtime.
+# the settings plugin brings (2.4.21 with plugin 2.0.0), which is also patcher 2.6.0's runtime.
 kotlin-stdlib = "2.4.21"
 # The settings plugin classpath and every com.google.guava:guava request in :patches, :extensions:instagram and
 # :extensions:shared:library is rewritten to this (GHSA-xxph-c9ww-hj94 covers everything
