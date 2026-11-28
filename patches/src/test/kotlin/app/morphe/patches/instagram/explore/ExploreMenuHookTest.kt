@@ -46,7 +46,7 @@ class ExploreMenuHookTest {
         val declared = ExtensionDex.classDef(EXPLORE_MENU).methods
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
-        for (hook in listOf(UNPERSONALIZE, RELOADED, KEEP_UNPERSONALIZED, MENU_BUTTON, OLD_MENU_BUTTON)) {
+        for (hook in listOf(UNPERSONALIZE, RELOADED, KEEP_UNPERSONALIZED, MENU_BUTTON, OLD_MENU_BUTTON, TOASTS_SHOWN)) {
             assertTrue("$hook is not in the extension: $declared", hook.substringAfter("->") in declared)
         }
     }

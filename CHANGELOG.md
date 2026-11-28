@@ -147,6 +147,7 @@ Every HushGram release, newest first.
 * HushGram's settings are now in Arabic, thanks to hamedhani1998 in #817. It's a first draft, so if you read Arabic and a line sounds off, open an issue with the better wording.
 * If starting a call recording closes Instagram, `Record calls` turns itself off the next time Instagram opens and says so, so a call doesn't close it again. Reported in #831.
 * In Morphe Manager, `Full resolution photos` now sits under Downloads, so the Feed group stays short. Its switches are still on the Feed settings page.
+* With `Explore without personalization` on, Explore no longer shows Instagram's message saying the suggestions aren't personalized each time it opens. Asked for in #311.
 
 ## 0.0.22 (2026-11-22)
 

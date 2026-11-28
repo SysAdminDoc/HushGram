@@ -1612,7 +1612,7 @@
     },
     {
       "name": "Explore without personalization",
-      "description": "Opens Explore on the grid that isn't personalized every time and keeps it from switching back after ten minutes. Instagram only promises that grid in the EU. A second switch hides the EU menu button for it. Both start off. Turn them on in HushGram settings > Explore.",
+      "description": "Opens Explore on the grid that isn't personalized every time, without the toast that says so, and keeps it from switching back after ten minutes. Instagram only promises that grid in the EU. A second switch hides the EU menu button for it. Both start off. Turn them on in HushGram settings > Explore.",
       "category": "Privacy",
       "use": true,
       "dependencies": [

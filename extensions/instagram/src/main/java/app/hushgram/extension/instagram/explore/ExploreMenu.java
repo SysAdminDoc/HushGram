@@ -23,7 +23,8 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * does what the row does: clears the flag and reloads the grid through the same call, so the
  * request is Instagram's own. {@link #reloaded} counts each of those reloads.
  * {@link #keepUnpersonalized} stops the ten-minute timer. {@link #button} and {@link #oldButton}
- * hide the menu button on the two top bar layouts. The timer, the flag and the reload are there on
+ * hide the menu button on the two top bar layouts. {@link #toastsShown} keeps the toast about that
+ * grid from showing each time the switch reloads it. The timer, the flag and the reload are there on
  * every account, so the reload doesn't wait for the EU-only menu check (#311); outside the EU
  * there's just no menu button to hide.
  */
@@ -33,6 +34,15 @@ public final class ExploreMenu {
 
     /** What's counted each time the ten-minute switch back is skipped. */
     static final String KEPT = "kept unpersonalized";
+
+    /** What's counted each time the toast about the grid that isn't personalized is skipped. */
+    static final String TOAST_SKIPPED = "not personalized toast skipped";
+
+    /**
+     * What {@link #toastsShown} answers while Explore without personalization is on: far past the
+     * three times Instagram shows the toast, and far from overflowing if something adds to it.
+     */
+    static final int TOAST_SHOWN_ENOUGH = 1 << 20;
 
     /** What's counted each time the menu button is hidden. */
     static final String HIDDEN = "menu button hidden";
@@ -83,6 +93,26 @@ public final class ExploreMenu {
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.EXPLORE_MENU, "explore timer", failure);
             return false;
+        }
+    }
+
+    /**
+     * Injected where Explore reads how many times it has shown its "These suggestions aren't
+     * personalized" toast, with that count, as the grid that isn't personalized comes in. Instagram
+     * shows the toast while the count is under three and then adds one. While Explore without
+     * personalization is on, which reloads that grid every time Explore opens, this answers
+     * {@link #TOAST_SHOWN_ENOUGH}, so the toast doesn't show and the saved count stays as it was.
+     * Otherwise, and on any failure, it answers the count. Never throws (#311).
+     */
+    public static int toastsShown(int count) {
+        try {
+            HookStatus.invoked(FamilyNames.EXPLORE_MENU);
+            if (!withoutPersonalization() || count >= TOAST_SHOWN_ENOUGH) return count;
+            HookStatus.counted(FamilyNames.EXPLORE_MENU, TOAST_SKIPPED);
+            return TOAST_SHOWN_ENOUGH;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.EXPLORE_MENU, "explore toast count", failure);
+            return count;
         }
     }
 

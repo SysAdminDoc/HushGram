@@ -12,6 +12,7 @@ import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.instagram.misc.extension.classesAccessing
 import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
@@ -38,6 +39,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.WideLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
+import com.android.tools.smali.dexlib2.iface.reference.StringReference
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableFieldReference
 
 private const val MENU_PATCH = "Explore without personalization"
@@ -47,6 +49,10 @@ internal const val RELOADED = "$EXPLORE_MENU->reloaded()V"
 internal const val KEEP_UNPERSONALIZED = "$EXPLORE_MENU->keepUnpersonalized()Z"
 internal const val MENU_BUTTON = "$EXPLORE_MENU->button(Landroid/view/View;)V"
 internal const val OLD_MENU_BUTTON = "$EXPLORE_MENU->oldButton(II)Z"
+internal const val TOASTS_SHOWN = "$EXPLORE_MENU->toastsShown(I)I"
+
+/** The user preference Instagram counts its toast for the grid that isn't personalized in. */
+internal const val TOAST_COUNT = "explore_nonpersonalized_toast_shown_count"
 
 /** What the timer logs when it brings the personalized grid back after ten minutes. */
 internal const val DSA_EXPIRED = "explore_dsa_experience_expired"
@@ -70,9 +76,9 @@ private val INT_CONSTS = setOf(Opcode.CONST, Opcode.CONST_HIGH16)
 @Suppress("unused")
 val exploreMenuPatch = bytecodePatch(
     name = "Explore without personalization",
-    description = "Opens Explore on the grid that isn't personalized every time and keeps it from switching back " +
-        "after ten minutes. Instagram only promises that grid in the EU. A second switch hides the EU menu button " +
-        "for it. Both start off. Turn them on in HushGram settings > Explore.",
+    description = "Opens Explore on the grid that isn't personalized every time, without the toast that says so, and " +
+        "keeps it from switching back after ten minutes. Instagram only promises that grid in the EU. A second switch " +
+        "hides the EU menu button for it. Both start off. Turn them on in HushGram settings > Explore.",
 ) {
     category("Privacy")
     dependsOn(settingsPatch, instagramExtensionPatch)
@@ -83,9 +89,11 @@ val exploreMenuPatch = bytecodePatch(
         val timer = findExploreTimer()
         val resume = findExploreResume(timer)
         val buttons = findExploreMenuButtons(resume)
+        val toasts = findExploreToastCounts()
         keepExploreUnpersonalized(timer)
         unpersonalizeExploreResume(timer, resume)
         hideExploreMenuButtons(buttons)
+        skipExploreToasts(toasts)
         enableStatus("exploreMenu")
     }
 }
@@ -501,6 +509,121 @@ internal fun BytecodePatchContext.hideExploreMenuButtons(buttons: ExploreMenuBut
         """,
         ExternalLabel("run", maker.getInstruction(0)),
     )
+}
+
+/**
+ * Where Explore reads how many times it showed the toast for the grid that isn't personalized: in
+ * [holder]'s [method], the `move-result` at [readAt] takes the count into [register].
+ */
+internal class ExploreToastCount(
+    val holder: String,
+    val method: String,
+    val parameters: List<String>,
+    val returnType: String,
+    val readAt: Int,
+    val register: Int,
+)
+
+/**
+ * The places that read the [TOAST_COUNT] preference before Instagram decides whether to show the
+ * toast. The class that names the preference keeps its key in a static field, written in its
+ * static initializer from the call that takes the name:
+ *
+ *     const-string vS, "explore_nonpersonalized_toast_shown_count"
+ *     invoke-static { vS, ... }, maker   move-result-object vK   sput-object vK, key
+ *
+ * Each place that shows the toast reads that key, hands it to a static that answers the count, and
+ * compares the count with how many times it shows the toast (three on 457):
+ *
+ *     sget-object vK, key   ...   invoke-static { ..., vK, ... }, reader   move-result vN
+ *     const/4 vL, 0x3   if-ge vN, vL
+ *
+ * 457 has two such places, the Explore grid's two ways of taking a response. Every place found
+ * gets the hook, and none is refused.
+ */
+internal fun BytecodePatchContext.findExploreToastCounts(): List<ExploreToastCount> {
+    val keys = classesLoadingString(TOAST_COUNT).flatMap { classDef ->
+        classDef.methods.filter { it.name == "<clinit>" && it.implementation != null && loadsString(it, TOAST_COUNT) }
+            .mapNotNull { preferenceKey(it) }
+    }.distinctBy { fieldText(it) }
+    val key = keys.singleOrNull() ?: menuRefuse("expected one preference key for $TOAST_COUNT, found ${keys.size}")
+    val sites = classesAccessing(key.definingClass, key.name, Opcode.SGET_OBJECT)
+        .flatMap { classDef -> classDef.methods.filter { it.implementation != null }.flatMap { toastCountReads(it, key) } }
+    if (sites.isEmpty()) menuRefuse("nothing compares the count in ${fieldText(key)} before showing the toast")
+    return sites
+}
+
+/** The static field [clinit] writes the key for [TOAST_COUNT] to, from the call that takes the name. */
+private fun preferenceKey(clinit: Method): FieldReference? {
+    val code = clinit.implementation!!.instructions.toList()
+    for (at in code.indices) {
+        val load = code[at]
+        if (load.opcode != Opcode.CONST_STRING && load.opcode != Opcode.CONST_STRING_JUMBO) continue
+        if ((reference(load) as? StringReference)?.string != TOAST_COUNT) continue
+        val name = register(load)
+        val call = (at + 1 until minOf(at + 4, code.size)).firstOrNull { code[it].opcode in INVOKES_STATIC } ?: continue
+        if (name !in invokeRegisters(code[call])) continue
+        val kept = code.getOrNull(call + 1)?.takeIf { it.opcode == Opcode.MOVE_RESULT_OBJECT } ?: continue
+        val write = code.getOrNull(call + 2)?.takeIf { it.opcode == Opcode.SPUT_OBJECT && register(it) == register(kept) } ?: continue
+        return reference(write) as FieldReference
+    }
+    return null
+}
+
+private val COUNT_CHECKS = setOf(Opcode.IF_GE, Opcode.IF_LT, Opcode.IF_GT, Opcode.IF_LE)
+
+/** Where [method] reads [key], hands it to a static answering an int, and compares that int soon after. */
+private fun toastCountReads(method: Method, key: FieldReference): List<ExploreToastCount> {
+    val code = method.implementation!!.instructions.toList()
+    val targets = method.jumpTargets()
+    return code.indices.mapNotNull { at ->
+        val read = code[at]
+        if (read.opcode != Opcode.SGET_OBJECT) return@mapNotNull null
+        val field = reference(read) as FieldReference
+        if (field.definingClass != key.definingClass || field.name != key.name) return@mapNotNull null
+        val keyRegister = register(read)
+        val call = (at + 1 until minOf(at + 4, code.size)).firstOrNull {
+            code[it].opcode in INVOKES_STATIC && (reference(code[it]) as MethodReference).returnType == "I" &&
+                keyRegister in invokeRegisters(code[it])
+        } ?: return@mapNotNull null
+        val taken = code.getOrNull(call + 1)?.takeIf { it.opcode == Opcode.MOVE_RESULT } ?: return@mapNotNull null
+        val count = register(taken)
+        val compared = (call + 2 until minOf(call + 5, code.size)).any {
+            code[it].opcode in COUNT_CHECKS && (code[it] as TwoRegisterInstruction).let { check -> count == check.registerA || count == check.registerB }
+        }
+        if (!compared) return@mapNotNull null
+        val where = "${method.definingClass}->${method.name}"
+        if (call + 2 in targets) menuRefuse("$where jumps onto where it takes the toast's count")
+        ExploreToastCount(method.definingClass, method.name, method.parameterTypes.map(CharSequence::toString), method.returnType, call + 1, count)
+    }
+}
+
+private fun invokeRegisters(instruction: Instruction): List<Int> = when (instruction) {
+    is RegisterRangeInstruction -> (instruction.startRegister until instruction.startRegister + instruction.registerCount).toList()
+    is FiveRegisterInstruction -> listOf(instruction.registerC, instruction.registerD, instruction.registerE, instruction.registerF, instruction.registerG)
+        .take(instruction.registerCount)
+    else -> emptyList()
+}
+
+/**
+ * Right after each read of the toast's count, the count goes through [TOASTS_SHOWN] and back into
+ * its register, so Instagram's own check sees what the extension answers. The range form reaches
+ * any register. Later places in a method go in first, so the earlier indexes still hold.
+ */
+internal fun BytecodePatchContext.skipExploreToasts(sites: List<ExploreToastCount>) {
+    for (site in sites.sortedByDescending { it.readAt }) {
+        val method = mutableClassDefBy(site.holder).methods.single {
+            it.name == site.method && it.parameterTypes.map(CharSequence::toString) == site.parameters &&
+                it.returnType == site.returnType
+        }
+        method.addInstructions(
+            site.readAt + 1,
+            """
+                invoke-static/range { v${site.register} .. v${site.register} }, $TOASTS_SHOWN
+                move-result v${site.register}
+            """,
+        )
+    }
 }
 
 private fun reference(instruction: Instruction) = (instruction as? ReferenceInstruction)?.reference

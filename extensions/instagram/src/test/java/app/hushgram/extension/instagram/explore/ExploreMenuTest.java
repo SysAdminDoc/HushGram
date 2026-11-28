@@ -128,9 +128,36 @@ public class ExploreMenuTest {
         SettingsContextRule.beforeThePauseIsDecided(() -> assertAllOff("pause undecided"));
     }
 
+    /**
+     * With the switch on, the count Instagram reads before its toast comes back as far past the
+     * three times it shows the toast, and only that skip is counted (#311). A count already that
+     * high stays as it is.
+     */
+    @Test
+    public void withoutPersonalizationSkipsTheToast() {
+        Settings.EXPLORE_WITHOUT_PERSONALIZATION.save(true);
+
+        assertEquals("never shown yet", ExploreMenu.TOAST_SHOWN_ENOUGH, ExploreMenu.toastsShown(0));
+        assertEquals("shown twice", ExploreMenu.TOAST_SHOWN_ENOUGH, ExploreMenu.toastsShown(2));
+        assertTrue("past Instagram's three", ExploreMenu.TOAST_SHOWN_ENOUGH >= 3);
+        assertEquals("already past it", Integer.MAX_VALUE, ExploreMenu.toastsShown(Integer.MAX_VALUE));
+
+        String report = HookStatus.report().toString();
+        assertTrue(report, report.contains(ExploreMenu.TOAST_SKIPPED + " 2"));
+    }
+
+    /** With the switch off, Instagram reads its own count and shows the toast as it would. */
+    @Test
+    public void theToastIsInstagramsWithTheSwitchOff() {
+        assertEquals(0, ExploreMenu.toastsShown(0));
+        assertEquals(2, ExploreMenu.toastsShown(2));
+        assertFalse(HookStatus.report().toString().contains(ExploreMenu.TOAST_SKIPPED));
+    }
+
     private static void assertAllOff(String when) {
         assertFalse(when + ", resume", ExploreMenu.unpersonalize());
         assertFalse(when + ", timer", ExploreMenu.keepUnpersonalized());
+        assertEquals(when + ", toast count", 1, ExploreMenu.toastsShown(1));
         View button = view();
         ExploreMenu.button(button);
         assertEquals(when + ", newer bar", View.VISIBLE, button.getVisibility());
