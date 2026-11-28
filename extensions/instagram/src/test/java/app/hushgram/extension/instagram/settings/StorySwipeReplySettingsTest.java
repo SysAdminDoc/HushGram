@@ -70,7 +70,8 @@ public class StorySwipeReplySettingsTest {
         PreferenceGroup stories = row.getParent();
         String[] keys = new String[stories.getPreferenceCount()];
         for (int i = 0; i < keys.length; i++) keys[i] = stories.getPreference(i).getKey();
-        assertEquals(Arrays.toString(keys), Settings.START_STORIES_WITH_SOUND.key,
+        // After Start stories with sound and its Even on silent row (#907).
+        assertEquals(Arrays.toString(keys), Settings.START_STORIES_ON_SILENT.key,
                 keys[Arrays.asList(keys).indexOf(Settings.STOP_STORY_SWIPE_REPLY.key) - 1]);
         assertEquals("Stop swipe up to reply", PatchFamily.STORY_SWIPE_REPLY.patchName);
         assertEquals(Arrays.asList(Settings.STOP_STORY_SWIPE_REPLY, Settings.STOP_STORY_SIDE_TAPS), PatchFamily.STORY_SWIPE_REPLY.switches);

@@ -41,6 +41,7 @@ public class StorySoundTest {
     @Before
     public void clean() {
         Settings.START_STORIES_WITH_SOUND.resetToDefault();
+        Settings.START_STORIES_ON_SILENT.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -53,6 +54,7 @@ public class StorySoundTest {
     @After
     public void restore() {
         Settings.START_STORIES_WITH_SOUND.resetToDefault();
+        Settings.START_STORIES_ON_SILENT.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -98,6 +100,39 @@ public class StorySoundTest {
         assertFalse(report(), report().contains(StorySound.STARTED));
         audio.setStreamVolume(AudioManager.STREAM_MUSIC, 3, 0);
         assertEquals("back up", 1, StorySound.startWithSound(new Object()));
+    }
+
+    /** Even on silent leaves the ringer out: silent and vibrate start with sound, a media volume of zero still doesn't (#907). */
+    @Test
+    public void evenOnSilentOnlyTheMediaVolumeCounts() {
+        Settings.START_STORIES_WITH_SOUND.save(true);
+        Settings.START_STORIES_ON_SILENT.save(true);
+        audio.setRingerMode(AudioManager.RINGER_MODE_SILENT);
+        audio.setStreamVolume(AudioManager.STREAM_MUSIC, 0, 0);
+        assertEquals("silent with the volume down", 0, StorySound.startWithSound(new Object()));
+        audio.setStreamVolume(AudioManager.STREAM_MUSIC, 4, 0);
+        assertEquals("silent with the volume up", 1, StorySound.startWithSound(new Object()));
+        audio.setRingerMode(AudioManager.RINGER_MODE_VIBRATE);
+        assertEquals("vibrate with the volume up", 1, StorySound.startWithSound(new Object()));
+        assertTrue(report(), report().contains(StorySound.STARTED + " 2"));
+        Settings.START_STORIES_WITH_SOUND.save(false);
+        assertEquals("needs Start stories with sound itself", 0, StorySound.startWithSound(new Object()));
+    }
+
+    /** Even on silent counts on the way back into a story too: a viewer left on silent gets its sound again (#907). */
+    @Test
+    public void evenOnSilentTurnsTheSoundBackOnAsTheStoryResumes() {
+        Settings.START_STORIES_WITH_SOUND.save(true);
+        Settings.START_STORIES_ON_SILENT.save(true);
+        audio.setRingerMode(AudioManager.RINGER_MODE_VIBRATE);
+        Object viewer = new Object();
+        assertEquals(1, StorySound.startWithSound(viewer));
+        StorySound.opened(viewer, 0);
+        assertEquals(1, StorySound.paused(viewer, 1));
+        assertEquals("vibrate, Even on silent", 1, StorySound.resuming(viewer));
+        assertEquals(1, StorySound.paused(viewer, 1));
+        Settings.START_STORIES_ON_SILENT.save(false);
+        assertEquals("vibrate without it", 0, StorySound.resuming(viewer));
     }
 
     /** Paused, a saved switch answers Instagram's own and counts nothing. */

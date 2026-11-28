@@ -3006,7 +3006,7 @@ Queued: @%1$s	대기 중: @%1$s
 Not saved: %1$d saves are already waiting	저장 안 됨: 이미 %1$d개가 대기 중
 # context: a waiting save's notification text and its line in Downloads (#792)
 Waiting for the saves before it	앞의 저장이 끝나기를 기다리는 중
-# context: Feed settings: a switch under Start feed videos with sound that starts them with sound while the phone is on silent or vibrate too (#762)
+# context: Feed and Stories settings: a switch under Start feed videos with sound (#762) and under Start stories with sound (#907) that starts them with sound while the phone is on silent or vibrate too
 Even on silent	무음 모드에서도
 # context: Summary of Even on silent, a switch under Start feed videos with sound (#762)
 Feed videos start with sound with the phone on silent or vibrate too. Only the media volume counts.	휴대전화가 무음이나 진동 모드여도 피드 동영상이 소리와 함께 시작됩니다. 미디어 볼륨만 적용됩니다.
@@ -3148,3 +3148,5 @@ Leaves the reels that take up two rows out of the Explore grid, with the few pos
 Stop story side taps	스토리 옆 탭 끄기
 # context: Stories > summary of Stop story side taps; the one before or after means the previous or next story; swipe means the sideways swipe that moves to the next person's stories (#887)
 A tap on the left or right of a story no longer moves to the one before or after, and the story keeps playing. Swipe to go to the next person's stories.	스토리의 왼쪽이나 오른쪽을 눌러도 더 이상 이전 또는 다음 스토리로 넘어가지 않고, 스토리는 계속 재생됩니다. 다음 사람의 스토리로 가려면 스와이프하세요.
+# context: Summary of Even on silent, a switch under Start stories with sound (#907)
+Stories open with sound with the phone on silent or vibrate too. Only the media volume counts.	휴대전화가 무음이나 진동 모드여도 스토리가 소리와 함께 열립니다. 미디어 볼륨만 적용됩니다.

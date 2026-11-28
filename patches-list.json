@@ -6988,7 +6988,7 @@
     },
     {
       "name": "Start stories with sound",
-      "description": "Opens stories with their sound on, the same as tapping Instagram's speaker. Your phone's ringer and volume still count. Starts off. Turn it on in HushGram settings > Stories.",
+      "description": "Opens stories with their sound on, the same as tapping Instagram's speaker. Your phone's ringer and volume still count, unless `Even on silent` under it is on. Starts off. Turn it on in HushGram settings > Stories.",
       "category": "Playback",
       "use": true,
       "dependencies": [

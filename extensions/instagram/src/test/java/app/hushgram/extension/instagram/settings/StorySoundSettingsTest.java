@@ -37,6 +37,7 @@ public class StorySoundSettingsTest {
     @Before public void prepare() {
         RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
         Settings.START_STORIES_WITH_SOUND.resetToDefault();
+        Settings.START_STORIES_ON_SILENT.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         BaseSettings.SAFE_MODE.save(false);
@@ -47,6 +48,7 @@ public class StorySoundSettingsTest {
         Utils.awaitBackgroundTasksForTests();
         PatchFamily.inBuildForTests = null;
         Settings.START_STORIES_WITH_SOUND.resetToDefault();
+        Settings.START_STORIES_ON_SILENT.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
@@ -71,6 +73,22 @@ public class StorySoundSettingsTest {
         assertEquals(Arrays.toString(keys), Settings.LOOP_STORIES.key, keys[Arrays.asList(keys).indexOf(Settings.START_STORIES_WITH_SOUND.key) - 1]);
         assertEquals("Start stories with sound", PatchFamily.STORY_SOUND.patchName);
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.START_STORIES_WITH_SOUND.key));
+    }
+    /** Even on silent sits right under Start stories with sound, starts off, is kept in a backup and rides on its patch (#907). */
+    @Test public void evenOnSilentSitsUnderTheSwitchAndStartsOff() throws Exception {
+        open(EnumSet.of(PatchFamily.STORY_SOUND));
+        android.preference.Preference row = page.getPreferenceScreen().findPreference(Settings.START_STORIES_ON_SILENT.key);
+        assertNotNull(row);
+        assertEquals("Even on silent", row.getTitle().toString());
+        assertFalse(Settings.START_STORIES_ON_SILENT.get());
+        PreferenceGroup stories = row.getParent();
+        String[] keys = new String[stories.getPreferenceCount()];
+        for (int i = 0; i < keys.length; i++) keys[i] = stories.getPreference(i).getKey();
+        assertEquals(Arrays.toString(keys), Settings.START_STORIES_WITH_SOUND.key,
+                keys[Arrays.asList(keys).indexOf(Settings.START_STORIES_ON_SILENT.key) - 1]);
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.START_STORIES_ON_SILENT.key));
+        assertEquals(Arrays.asList(Settings.START_STORIES_WITH_SOUND, Settings.START_STORIES_ON_SILENT),
+                PatchFamily.STORY_SOUND.switches);
     }
     @Test public void aSavedSwitchAnswersOffWhilePaused() throws Exception {
         open(EnumSet.of(PatchFamily.STORY_SOUND));

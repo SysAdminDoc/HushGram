@@ -28,8 +28,9 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * makes the patch's code set Instagram's own state to on, the way the speaker icon does, so the
  * icon and later taps agree with what you hear. The phone's ringer and volume are still respected
  * here: with the ringer on silent or vibrate, or the media volume at zero, the answer is no and
- * the viewer keeps Instagram's own choice. A story you mute after it opens stays muted until you
- * open the viewer again.
+ * the viewer keeps Instagram's own choice. With Even on silent on (#907), only the media volume
+ * counts, the way {@link app.hushgram.extension.instagram.feed.FeedSound} does for Home's videos. A
+ * story you mute after it opens stays muted until you open the viewer again.
  *
  * <p>That state is the account's, so the feed and Reels read it too. When the patch turned the
  * sound on from off, the viewer's pause puts it back to off before the feed comes back (#342), and
@@ -114,8 +115,8 @@ public final class StorySound {
 
     /**
      * Asked as a story viewer resumes. True when its pause put the sound back to off and the story
-     * should play with sound again: the switch still on, HushGram not paused, the phone's ringer on
-     * and its volume up. Otherwise the viewer is forgotten and the sound stays off. Never throws.
+     * should play with sound again: the switch still on, HushGram not paused and the phone letting
+     * it ({@link #soundAllowed}). Otherwise the viewer is forgotten and the sound stays off. Never throws.
      */
     public static int resuming(Object viewer) {
         try {
@@ -124,7 +125,7 @@ public final class StorySound {
                 if (!Boolean.TRUE.equals(turnedOn.get(viewer))) return 0;
                 turnedOn.remove(viewer);
             }
-            if (!Utils.settingsReady() || !Settings.START_STORIES_WITH_SOUND.get() || !phoneAllowsSound()) return 0;
+            if (!Utils.settingsReady() || !Settings.START_STORIES_WITH_SOUND.get() || !soundAllowed()) return 0;
             synchronized (StorySound.class) {
                 turnedOn.put(viewer, Boolean.FALSE);
             }
@@ -145,13 +146,14 @@ public final class StorySound {
     /**
      * Asked once as a story viewer is created, with the viewer. True means set Instagram's audio
      * state to on. False while the switch is off, HushGram is paused, the settings aren't ready,
-     * the phone's ringer isn't on, its media volume is zero, or anything in here throws. Never throws.
+     * the phone's ringer isn't on (unless Even on silent is), its media volume is zero, or anything
+     * in here throws. Never throws.
      */
     public static int startWithSound(Object viewer) {
         try {
             HookStatus.invoked(FamilyNames.STORY_SOUND);
             if (viewer == null || !Utils.settingsReady() || !Settings.START_STORIES_WITH_SOUND.get()) return 0;
-            if (!phoneAllowsSound()) return 0;
+            if (!soundAllowed()) return 0;
             HookStatus.counted(FamilyNames.STORY_SOUND, STARTED);
             Logger.printDebug(() -> "Story viewer: starting with sound");
             return 1;
@@ -159,6 +161,14 @@ public final class StorySound {
             HookStatus.threw(FamilyNames.STORY_SOUND, VIEWER, failure);
             return 0;
         }
+    }
+
+    /**
+     * Whether the phone lets a story start with sound: the media volume up, and the ringer on too
+     * unless Even on silent is on (#907).
+     */
+    static boolean soundAllowed() {
+        return Settings.START_STORIES_ON_SILENT.get() ? mediaVolumeUp() : phoneAllowsSound();
     }
 
     /** True when the ringer is on and the media volume is up, which is when Instagram plays a story with no choice saved. */

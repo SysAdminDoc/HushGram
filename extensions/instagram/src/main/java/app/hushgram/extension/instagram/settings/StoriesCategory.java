@@ -192,6 +192,9 @@ final class StoriesCategory {
             stories.add(toggle(context, Settings.START_STORIES_WITH_SOUND, L10n.t("Start stories with sound"),
                     L10n.t("Stories open with their sound on, the same as tapping Instagram's speaker. Your phone's "
                             + "ringer and volume still count, so on silent or with the volume down, stories stay quiet.")));
+            stories.add(toggle(context, Settings.START_STORIES_ON_SILENT, L10n.t("Even on silent"),
+                    L10n.t("Stories open with sound with the phone on silent or vibrate too. Only the media "
+                            + "volume counts.")));
         }
         if (build.contains(PatchFamily.STORY_SWIPE_REPLY)) {
             stories.add(toggle(context, Settings.STOP_STORY_SWIPE_REPLY, L10n.t("Stop swipe up to reply"),

@@ -3010,7 +3010,7 @@ Queued: @%1$s	已加入佇列：@%1$s
 Not saved: %1$d saves are already waiting	未儲存：已有 %1$d 個在等待
 # context: a waiting save's notification text and its line in Downloads (#792)
 Waiting for the saves before it	正在等待前面的儲存
-# context: Feed settings: a switch under Start feed videos with sound that starts them with sound while the phone is on silent or vibrate too (#762)
+# context: Feed and Stories settings: a switch under Start feed videos with sound (#762) and under Start stories with sound (#907) that starts them with sound while the phone is on silent or vibrate too
 Even on silent	靜音時也播放聲音
 # context: Summary of Even on silent, a switch under Start feed videos with sound (#762)
 Feed videos start with sound with the phone on silent or vibrate too. Only the media volume counts.	手機處於靜音或震動模式時，動態影片也會以有聲方式開始播放。只看媒體音量.
@@ -3152,3 +3152,5 @@ Leaves the reels that take up two rows out of the Explore grid, with the few pos
 Stop story side taps	停用限時動態兩側點擊
 # context: Stories > summary of Stop story side taps; the one before or after means the previous or next story; swipe means the sideways swipe that moves to the next person's stories (#887)
 A tap on the left or right of a story no longer moves to the one before or after, and the story keeps playing. Swipe to go to the next person's stories.	點擊限時動態的左側或右側不再切換到上一則或下一則，限時動態會繼續播放。滑動即可前往下一位的限時動態。
+# context: Summary of Even on silent, a switch under Start stories with sound (#907)
+Stories open with sound with the phone on silent or vibrate too. Only the media volume counts.	手機處於靜音或震動模式時，限時動態也會以有聲方式開啟。只看媒體音量.

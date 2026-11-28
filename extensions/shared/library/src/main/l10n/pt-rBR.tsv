@@ -3007,7 +3007,7 @@ Queued: @%1$s	Na fila: @%1$s
 Not saved: %1$d saves are already waiting	Não salvo: já há %1$d na fila
 # context: a waiting save's notification text and its line in Downloads (#792)
 Waiting for the saves before it	Aguardando os salvamentos anteriores
-# context: Feed settings: a switch under Start feed videos with sound that starts them with sound while the phone is on silent or vibrate too (#762)
+# context: Feed and Stories settings: a switch under Start feed videos with sound (#762) and under Start stories with sound (#907) that starts them with sound while the phone is on silent or vibrate too
 Even on silent	Mesmo no silencioso
 # context: Summary of Even on silent, a switch under Start feed videos with sound (#762)
 Feed videos start with sound with the phone on silent or vibrate too. Only the media volume counts.	Os vídeos do feed começam com som mesmo com o celular no silencioso ou no vibrar. Só o volume de mídia conta.
@@ -3149,3 +3149,5 @@ Leaves the reels that take up two rows out of the Explore grid, with the few pos
 Stop story side taps	Desativar toques laterais nos stories
 # context: Stories > summary of Stop story side taps; the one before or after means the previous or next story; swipe means the sideways swipe that moves to the next person's stories (#887)
 A tap on the left or right of a story no longer moves to the one before or after, and the story keeps playing. Swipe to go to the next person's stories.	Tocar à esquerda ou à direita de um story não leva mais ao anterior ou ao próximo, e o story continua tocando. Deslize para ir aos stories da próxima pessoa.
+# context: Summary of Even on silent, a switch under Start stories with sound (#907)
+Stories open with sound with the phone on silent or vibrate too. Only the media volume counts.	Os stories abrem com som mesmo com o celular no silencioso ou no vibrar. Só o volume de mídia conta.

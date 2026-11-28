@@ -417,6 +417,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_start_stories_with_sound", FALSE);
 
     /**
+     * {@link #START_STORIES_WITH_SOUND} leaves the phone's ringer out of it: on silent or vibrate a story
+     * still opens with its sound, as long as the media volume is up
+     * ({@link app.hushgram.extension.instagram.stories.StorySound}). Off to start (#907).
+     */
+    public static final BooleanSetting START_STORIES_ON_SILENT =
+            new BooleanSetting("hushgram_start_stories_on_silent", FALSE, parent(START_STORIES_WITH_SOUND));
+
+    /**
      * A swipe up on someone's story leaves the reply box closed
      * ({@link app.hushgram.extension.instagram.stories.StorySwipeReply}). Read at each swipe, so a
      * change applies at once. Off to start.

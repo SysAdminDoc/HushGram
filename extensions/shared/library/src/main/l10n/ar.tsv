@@ -2545,6 +2545,7 @@ Glass buttons in chats	أزرار زجاجية في الدردشات
 Turn it off for a plain blur with no round glass behind the buttons at the top of a chat.	أوقفه لضبابية عادية بدون زجاج دائري خلف الأزرار في أعلى الدردشة.
 Blur the chat behind a held message	ضبابية الدردشة خلف رسالة مضغوط عليها
 Hold a message and the rest of the chat blurs behind it and its reactions. Needs Android 12 or newer.	اضغط مطولًا على رسالة فتصبح بقية الدردشة ضبابية خلفها وخلف تفاعلاتها. يتطلب Android 12 أو أحدث.
+# context: Feed and Stories settings: a switch under Start feed videos with sound (#762) and under Start stories with sound (#907) that starts them with sound while the phone is on silent or vibrate too
 Even on silent	حتى في الوضع الصامت
 Feed videos start with sound with the phone on silent or vibrate too. Only the media volume counts.	تبدأ فيديوهات الموجز بالصوت حتى والهاتف على الوضع الصامت أو الاهتزاز. يُحتسب مستوى صوت الوسائط فقط.
 Also in search	في البحث أيضًا
@@ -2685,3 +2686,5 @@ Leaves the reels that take up two rows out of the Explore grid, with the few pos
 Stop story side taps	إيقاف النقر على جانبي القصة
 # context: Stories > summary of Stop story side taps; the one before or after means the previous or next story; swipe means the sideways swipe that moves to the next person's stories (#887)
 A tap on the left or right of a story no longer moves to the one before or after, and the story keeps playing. Swipe to go to the next person's stories.	لم يعد النقر على يسار القصة أو يمينها ينقلك إلى القصة السابقة أو التالية، وتستمر القصة في التشغيل. اسحب للانتقال إلى قصص الشخص التالي.
+# context: Summary of Even on silent, a switch under Start stories with sound (#907)
+Stories open with sound with the phone on silent or vibrate too. Only the media volume counts.	تبدأ القصص بالصوت حتى والهاتف على الوضع الصامت أو الاهتزاز. يُحتسب مستوى صوت الوسائط فقط.
