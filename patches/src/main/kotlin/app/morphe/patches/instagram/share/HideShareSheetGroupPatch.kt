@@ -21,6 +21,9 @@ import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.patchLog
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
+import app.morphe.patches.instagram.misc.flags.FlagRead
+import app.morphe.patches.instagram.misc.flags.answerFlagReads
+import app.morphe.patches.instagram.misc.flags.findFlagReads
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.util.addInstructionsAtControlFlowLabel
@@ -48,6 +51,17 @@ internal const val QUICK_SEND_INFLATE =
 internal const val QUICK_SEND_SLOTS = "$EXTENSION_PACKAGE/share/QuickSend;->addSlots(Landroid/widget/PopupWindow;I)I"
 internal const val QUICK_SEND_AVATAR = "$EXTENSION_PACKAGE/share/QuickSend;->avatarId(I)I"
 internal const val QUICK_SEND_LABEL = "$EXTENSION_PACKAGE/share/QuickSend;->labelId(I)I"
+internal const val QUICK_SEND_ON = "$EXTENSION_PACKAGE/share/QuickSend;->enabled(I)Z"
+
+/**
+ * The server test that gives an account the row of people a long press on Share opens (#889). On
+ * 457 it's read six times, the same on every build: the long press on a post's Share button and the
+ * drag over the row it opens, the reels Share button's setup, and the smaller gates around them.
+ * The test's name is hashed in the app, so it's known only by this id. The long press is the read
+ * the finder checks for: an `(Rect, ViewParent, Media, int)V` method.
+ */
+internal const val QUICK_SEND_FLAG = 0x2081039400000e7eL
+internal val QUICK_SEND_PRESS = listOf("Landroid/graphics/Rect;", "Landroid/view/ViewParent;", "Lcom/instagram/feed/media/Media;", "I")
 
 /** The message the face for a rank throws with past the ranks it knows. Only that constructor loads it. */
 internal const val QUICK_SEND_RANKS = "rank higher than MAX_AVATAR_COUNT"
@@ -97,7 +111,7 @@ val hideShareSheetGroupPatch = bytecodePatch(
     name = "Hide group buttons on the share sheet",
     description = "Takes the New group button and the button that sends to several people as a group off the " +
         "share sheet, and lets you pick which of the round buttons under the people it shows and hide its search " +
-        "bar. It can also fill the row of people a long press on Share opens. You can still start a group from your " +
+        "bar. It can also turn on the row of people a long press on Share opens, and fill it. You can still start a group from your " +
         "messages. All start off. Find them in HushGram settings > Sharing.",
 ) {
     category("Interaction")
@@ -111,12 +125,14 @@ val hideShareSheetGroupPatch = bytecodePatch(
         val actions = findActionListOrWarn()
         val search = findSearchBoxOrWarn()
         val quickSend = findQuickSendOrWarn()
+        val quickSendTest = findQuickSendTestOrWarn()
         guardGroupButton(sheet.build)
         guardGroupAction(sheet.reveals)
         guardGroupSend(send)
         actions?.let { filterActionList(it) }
         search?.let { hookSearchBox(it) }
         quickSend?.let { askQuickSendPeople(it) }
+        quickSendTest?.let { answerFlagReads(it, QUICK_SEND_ON) }
         enableStatus("shareSheet")
     }
 }
@@ -579,6 +595,30 @@ internal fun BytecodePatchContext.findQuickSendOrWarn(): QuickSendSites? = try {
     findQuickSend()
 } catch (refusal: PatchException) {
     patchLog.warning("${refusal.message}. $PATCH goes in without the switch filling the row a long press on Share opens.")
+    null
+}
+
+/**
+ * Every read of [QUICK_SEND_FLAG], one of them in the long press on a post's Share button
+ * ([QUICK_SEND_PRESS]). Fails before anything changes when that isn't so, since that's an update
+ * this patch hasn't seen.
+ */
+internal fun BytecodePatchContext.findQuickSendTest(): List<FlagRead> {
+    val reads = findFlagReads(PATCH, listOf(QUICK_SEND_FLAG))
+    val presses = reads.filter { it.returnType == "V" && it.parameters == QUICK_SEND_PRESS }
+    if (presses.size != 1) {
+        refuse(
+            "expected one read of ${QUICK_SEND_FLAG.toString(16)} in a (Rect, ViewParent, Media, int)V long press, found " +
+                "${presses.size} among ${reads.map { "${it.type}->${it.name}" }}",
+        )
+    }
+    return reads
+}
+
+internal fun BytecodePatchContext.findQuickSendTestOrWarn(): List<FlagRead>? = try {
+    findQuickSendTest()
+} catch (refusal: PatchException) {
+    patchLog.warning("${refusal.message}. $PATCH goes in without the switch turning on the row a long press on Share opens.")
     null
 }
 

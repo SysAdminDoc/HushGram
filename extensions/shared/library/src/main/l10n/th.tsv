@@ -3024,6 +3024,9 @@ Feed videos start with sound with the phone on silent or vibrate too. Only the m
 Also in search	ในการค้นหาด้วย
 Takes rows of the Explore grid and of search results out when a post in them holds a word or phrase from the list, or comes from an account the list names with @.	นำแถวในตาราง Explore และในผลการค้นหาออก เมื่อมีโพสต์ในแถวนั้นที่มีคำหรือวลีจากรายการ หรือมาจากบัญชีที่รายการระบุด้วย @
 Holding a post's Share button shows a row of people to send it to. Instagram shows four, and this shows as many as fit across the screen.	การกดปุ่มแชร์ของโพสต์ค้างไว้จะแสดงแถวของคนที่คุณส่งให้ได้ Instagram แสดงสี่คน แต่ตัวเลือกนี้จะแสดงเท่าที่พอดีกับความกว้างของหน้าจอ
+# context: Sharing > title and summary of Turn on Hold Share to send (#889), the switch that turns on Instagram's row of people a long press on a post's Share button opens, for accounts Instagram hasn't given it to
+Turn on Hold Share to send	เปิดการส่งด้วยการกดค้างที่แชร์
+Holding a post's Share button opens a row of people to send it to, on accounts Instagram hasn't given it to yet. Experimental.	การกดปุ่มแชร์ของโพสต์ค้างไว้จะเปิดแถวของคนที่คุณส่งให้ได้ ในบัญชีที่ Instagram ยังไม่ได้เปิดให้ ทดลองใช้
 More people when you hold Share	แสดงคนมากขึ้นเมื่อกดค้างที่แชร์
 Copy hashtags	คัดลอกแฮชแท็ก
 Hashtags	แฮชแท็ก

@@ -20,6 +20,7 @@ import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
+import app.hushgram.extension.shared.settings.HushgramPause;
 
 /**
  * More people in the row a long press on a post's Share button opens (discussion #811). Instagram
@@ -67,6 +68,23 @@ public final class QuickSend {
     private static final int[] labelIds = new int[MOST];
 
     private QuickSend() { }
+
+    /**
+     * Injected after each read of Instagram's server test that gives an account the row a long press
+     * on Share opens (#889), with the test's answer: yes while Turn on Hold Share to send is on, and
+     * Instagram's own answer while it's off, paused, before the settings are ready or when anything
+     * goes wrong, so an account that already has the row keeps it. Never throws.
+     */
+    public static boolean enabled(int answer) {
+        boolean instagram = answer != 0;
+        try {
+            HookStatus.invoked(FamilyNames.SHARE_SHEET);
+            return instagram || (Utils.settingsReady() && !HushgramPause.isPaused() && Settings.QUICK_SEND.get());
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.SHARE_SHEET, "quick send test", failure);
+            return instagram;
+        }
+    }
 
     /**
      * How many people the row shows where Instagram shows [stock]: [stock] while the switch is off,

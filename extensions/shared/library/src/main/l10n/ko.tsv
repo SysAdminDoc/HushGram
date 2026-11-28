@@ -3026,6 +3026,9 @@ Feed videos start with sound with the phone on silent or vibrate too. Only the m
 Also in search	검색에도 적용
 Takes rows of the Explore grid and of search results out when a post in them holds a word or phrase from the list, or comes from an account the list names with @.	목록의 단어나 문구가 들어간 게시물이나, 목록에 @로 적은 계정의 게시물이 있는 탐색 그리드와 검색 결과의 줄을 뺍니다.
 Holding a post's Share button shows a row of people to send it to. Instagram shows four, and this shows as many as fit across the screen.	게시물의 공유 버튼을 길게 누르면 보낼 사람들이 한 줄로 표시됩니다. Instagram은 네 명을 보여 주지만, 이 설정은 화면 너비에 들어가는 만큼 보여 줍니다.
+# context: Sharing > title and summary of Turn on Hold Share to send (#889), the switch that turns on Instagram's row of people a long press on a post's Share button opens, for accounts Instagram hasn't given it to
+Turn on Hold Share to send	공유를 길게 눌러 보내기 켜기
+Holding a post's Share button opens a row of people to send it to, on accounts Instagram hasn't given it to yet. Experimental.	게시물의 공유 버튼을 길게 누르면 보낼 사람들이 한 줄로 열립니다. Instagram이 아직 이 기능을 주지 않은 계정에서도 됩니다. 실험적 기능입니다.
 More people when you hold Share	공유를 길게 누를 때 더 많은 사람 표시
 Copy hashtags	해시태그 복사
 Hashtags	해시태그

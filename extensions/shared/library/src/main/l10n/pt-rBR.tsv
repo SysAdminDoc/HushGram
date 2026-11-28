@@ -3027,6 +3027,9 @@ Feed videos start with sound with the phone on silent or vibrate too. Only the m
 Also in search	Também na pesquisa
 Takes rows of the Explore grid and of search results out when a post in them holds a word or phrase from the list, or comes from an account the list names with @.	Tira linhas da grade do Explorar e dos resultados da pesquisa quando um post nelas contém uma palavra ou frase da lista, ou é de uma conta que a lista cita com @.
 Holding a post's Share button shows a row of people to send it to. Instagram shows four, and this shows as many as fit across the screen.	Segurar o botão Compartilhar de uma publicação mostra uma fileira de pessoas para quem enviar. O Instagram mostra quatro, e isto mostra quantas couberem na largura da tela.
+# context: Sharing > title and summary of Turn on Hold Share to send (#889), the switch that turns on Instagram's row of people a long press on a post's Share button opens, for accounts Instagram hasn't given it to
+Turn on Hold Share to send	Ativar enviar ao segurar Compartilhar
+Holding a post's Share button opens a row of people to send it to, on accounts Instagram hasn't given it to yet. Experimental.	Segurar o botão Compartilhar de uma publicação abre uma fileira de pessoas para quem enviar, em contas que o Instagram ainda não liberou. Experimental.
 More people when you hold Share	Mais pessoas ao segurar Compartilhar
 Copy hashtags	Copiar hashtags
 Hashtags	Hashtags

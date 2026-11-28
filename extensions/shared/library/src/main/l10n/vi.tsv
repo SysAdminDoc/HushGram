@@ -2942,6 +2942,9 @@ Feed videos start with sound with the phone on silent or vibrate too. Only the m
 Also in search	Cả trong tìm kiếm
 Takes rows of the Explore grid and of search results out when a post in them holds a word or phrase from the list, or comes from an account the list names with @.	Bỏ các hàng trong lưới Khám phá và kết quả tìm kiếm khi có bài viết trong đó chứa từ hoặc cụm từ trong danh sách, hoặc đến từ tài khoản mà danh sách ghi bằng @.
 Holding a post's Share button shows a row of people to send it to. Instagram shows four, and this shows as many as fit across the screen.	Giữ nút Chia sẻ của một bài viết sẽ hiện một hàng người để gửi đến. Instagram hiện bốn người, còn tùy chọn này hiện nhiều nhất có thể vừa chiều ngang màn hình.
+# context: Sharing > title and summary of Turn on Hold Share to send (#889), the switch that turns on Instagram's row of people a long press on a post's Share button opens, for accounts Instagram hasn't given it to
+Turn on Hold Share to send	Bật gửi khi giữ nút Chia sẻ
+Holding a post's Share button opens a row of people to send it to, on accounts Instagram hasn't given it to yet. Experimental.	Giữ nút Chia sẻ của một bài viết sẽ mở một hàng người để gửi đến, trên các tài khoản Instagram chưa cấp tính năng này. Thử nghiệm.
 More people when you hold Share	Thêm người khi giữ nút Chia sẻ
 Copy hashtags	Sao chép hashtag
 Hashtags	Hashtag

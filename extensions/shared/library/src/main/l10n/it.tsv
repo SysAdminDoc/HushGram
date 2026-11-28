@@ -3027,6 +3027,9 @@ Feed videos start with sound with the phone on silent or vibrate too. Only the m
 Also in search	Anche nella ricerca
 Takes rows of the Explore grid and of search results out when a post in them holds a word or phrase from the list, or comes from an account the list names with @.	Toglie le righe della griglia Esplora e dei risultati di ricerca quando un post al loro interno contiene una parola o una frase dell'elenco, o viene da un account che l'elenco indica con @.
 Holding a post's Share button shows a row of people to send it to. Instagram shows four, and this shows as many as fit across the screen.	Tenendo premuto il pulsante Condividi di un post compare una fila di persone a cui inviarlo. Instagram ne mostra quattro, e così ne vedi quante ne entrano nella larghezza dello schermo.
+# context: Sharing > title and summary of Turn on Hold Share to send (#889), the switch that turns on Instagram's row of people a long press on a post's Share button opens, for accounts Instagram hasn't given it to
+Turn on Hold Share to send	Attiva l'invio tenendo premuto Condividi
+Holding a post's Share button opens a row of people to send it to, on accounts Instagram hasn't given it to yet. Experimental.	Tenendo premuto il pulsante Condividi di un post si apre una fila di persone a cui inviarlo, sugli account a cui Instagram non l'ha ancora dato. Sperimentale.
 More people when you hold Share	Più persone tenendo premuto Condividi
 Copy hashtags	Copia gli hashtag
 Hashtags	Hashtag

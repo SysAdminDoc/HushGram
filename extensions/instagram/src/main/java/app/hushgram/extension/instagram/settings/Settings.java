@@ -2180,6 +2180,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_more_quick_send_people", FALSE);
 
     /**
+     * The row of people a long press on Share opens, for accounts Instagram's server test leaves it
+     * off for (#889, {@link app.hushgram.extension.instagram.share.QuickSend#enabled}). Read each
+     * time the Share button is set up or pressed. Off to start.
+     */
+    public static final BooleanSetting QUICK_SEND =
+            new BooleanSetting("hushgram_quick_send", FALSE);
+
+    /**
      * The Repost button under posts and beside reels, with its count: every post and reel reads as
      * one that can't be reposted ({@link app.hushgram.extension.instagram.share.RepostButton}).
      * Nothing Instagram stores is written, so off or paused, Repost is back on the next post drawn.

@@ -6,6 +6,7 @@ Every HushGram release, newest first.
 
 ### Features
 
+* `Turn on Hold Share to send` is new under Sharing. Holding a post's Share button opens Instagram's row of people to send it to, on accounts Instagram hasn't turned it on for. Experimental. Starts off. Asked for in #889.
 * `Hide the heart's badge` is new under Notifications, below `Keep Featured off the heart's dot`. The red dot and the popup with numbers on the heart at the top of Home don't show. Messages keep their badge. Starts off. Asked for in #908.
 * `Skip the message after you block someone` is new at the end of Feed. The block goes through, but the message Instagram puts at the bottom of the screen afterward doesn't show. An unblock still shows its own. Starts off. Asked for in #888.
 * `Blocked words as regular expressions` is new under Reels, right below `Blocked words`. Each entry is read as a regular expression, whatever the case. One that isn't valid is matched as plain words, and `Blocked words` names it. Starts off. Asked for in #883.

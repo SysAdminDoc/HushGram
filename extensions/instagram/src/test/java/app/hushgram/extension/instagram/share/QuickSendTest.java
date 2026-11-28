@@ -22,9 +22,14 @@ import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.annotation.Config;
 
+import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.Utils;
+import app.hushgram.extension.shared.diagnostics.HookStatus;
+import app.hushgram.extension.shared.settings.BaseSettings;
+import app.hushgram.extension.shared.settings.HushgramPause;
+import app.hushgram.extension.shared.settings.PauseForTests;
 
 /** How many people the row a long press on Share opens shows (discussion #811). */
 @RunWith(RobolectricTestRunner.class)
@@ -42,6 +47,10 @@ public class QuickSendTest {
 
     @After
     public void putBack() {
+        Settings.QUICK_SEND.resetToDefault();
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        HookStatus.clear();
         Settings.MORE_QUICK_SEND_PEOPLE.resetToDefault();
         QuickSend.forget();
         Utils.setActivity(before);
@@ -173,6 +182,35 @@ public class QuickSendTest {
                 assertTrue(at + (people + 1), rowWidth(people + 1) > room);
             }
         }
+    }
+
+    /** #889: the switch starts off, and with it on every read of Instagram's test says yes, the hook counted as reached. */
+    @Test
+    public void theRowsSwitchStartsOffAndOnSaysYes() {
+        assertFalse(Settings.QUICK_SEND.get());
+        assertFalse("off", QuickSend.enabled(0));
+        Settings.QUICK_SEND.save(true);
+        assertTrue("the server said no", QuickSend.enabled(0));
+        assertTrue("the server said yes", QuickSend.enabled(1));
+        assertTrue(HookStatus.missing(FamilyNames.SHARE_SHEET).toString(), HookStatus.missing(FamilyNames.SHARE_SHEET).isEmpty());
+    }
+
+    /** #889: off, paused or before the settings are read, each read keeps Instagram's answer, so an account that has the row keeps it. */
+    @Test
+    public void offPausedAndUnreadyKeepInstagramsAnswer() {
+        assertTrue("off, Instagram's own yes", QuickSend.enabled(1));
+        Settings.QUICK_SEND.save(true);
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertFalse("paused", QuickSend.enabled(0));
+        assertTrue("paused, Instagram's own yes", QuickSend.enabled(1));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        SettingsContextRule.withoutContext(() -> {
+            assertFalse("unready", QuickSend.enabled(0));
+            assertTrue("unready, Instagram's own yes", QuickSend.enabled(1));
+        });
+        assertTrue("back on", QuickSend.enabled(0));
     }
 
     /** The popup's width for [people] faces, as Instagram's clamp works it out. */

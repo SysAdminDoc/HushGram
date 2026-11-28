@@ -33,6 +33,9 @@ final class SharingCategory {
                 sharing.addPreference(page.shareSheetButtonsRow(context));
                 sharing.addPreference(toggle(context, Settings.HIDE_SHARE_SHEET_SEARCH, L10n.t("Hide the search bar"),
                         L10n.t("Takes the search bar off the top of the share sheet. The people you can send to still show.")));
+                sharing.addPreference(toggle(context, Settings.QUICK_SEND, L10n.t("Turn on Hold Share to send"),
+                        L10n.t("Holding a post's Share button opens a row of people to send it to, on accounts "
+                                + "Instagram hasn't given it to yet. Experimental.")));
                 sharing.addPreference(toggle(context, Settings.MORE_QUICK_SEND_PEOPLE, L10n.t("More people when you hold Share"),
                         L10n.t("Holding a post's Share button shows a row of people to send it to. Instagram shows four, "
                                 + "and this shows as many as fit across the screen.")));

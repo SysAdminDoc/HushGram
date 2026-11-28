@@ -3027,6 +3027,9 @@ Feed videos start with sound with the phone on silent or vibrate too. Only the m
 Also in search	Juga di pencarian
 Takes rows of the Explore grid and of search results out when a post in them holds a word or phrase from the list, or comes from an account the list names with @.	Menghapus baris dari kisi Jelajahi dan hasil pencarian jika ada postingan di dalamnya yang berisi kata atau frasa dari daftar, atau berasal dari akun yang disebut daftar dengan @.
 Holding a post's Share button shows a row of people to send it to. Instagram shows four, and this shows as many as fit across the screen.	Menahan tombol Bagikan pada postingan menampilkan barisan orang untuk dikirimi. Instagram menampilkan empat, dan ini menampilkan sebanyak yang muat selebar layar.
+# context: Sharing > title and summary of Turn on Hold Share to send (#889), the switch that turns on Instagram's row of people a long press on a post's Share button opens, for accounts Instagram hasn't given it to
+Turn on Hold Share to send	Aktifkan kirim dengan menahan Bagikan
+Holding a post's Share button opens a row of people to send it to, on accounts Instagram hasn't given it to yet. Experimental.	Menahan tombol Bagikan pada postingan membuka barisan orang untuk dikirimi, di akun yang belum diberi fitur ini oleh Instagram. Eksperimental.
 More people when you hold Share	Lebih banyak orang saat menahan Bagikan
 Copy hashtags	Salin tagar
 Hashtags	Tagar

@@ -3027,6 +3027,9 @@ Feed videos start with sound with the phone on silent or vibrate too. Only the m
 Also in search	Aramada da
 Takes rows of the Explore grid and of search results out when a post in them holds a word or phrase from the list, or comes from an account the list names with @.	İçlerindeki bir gönderi listedeki bir kelimeyi veya ifadeyi içerdiğinde ya da listenin @ ile andığı bir hesaptan geldiğinde, Keşfet ızgarasının ve arama sonuçlarının satırlarını kaldırır.
 Holding a post's Share button shows a row of people to send it to. Instagram shows four, and this shows as many as fit across the screen.	Bir gönderinin Paylaş düğmesine basılı tutunca gönderebileceğin kişilerden bir sıra çıkar. Instagram dört kişi gösterir, bu ise ekran genişliğine sığdığı kadarını gösterir.
+# context: Sharing > title and summary of Turn on Hold Share to send (#889), the switch that turns on Instagram's row of people a long press on a post's Share button opens, for accounts Instagram hasn't given it to
+Turn on Hold Share to send	Paylaş'a basılı tutarak göndermeyi aç
+Holding a post's Share button opens a row of people to send it to, on accounts Instagram hasn't given it to yet. Experimental.	Bir gönderinin Paylaş düğmesine basılı tutunca, Instagram'ın bunu henüz vermediği hesaplarda da gönderebileceğin kişilerden bir sıra açılır. Deneysel.
 More people when you hold Share	Paylaş'a basılı tutunca daha fazla kişi
 Copy hashtags	Hashtag'leri kopyala
 Hashtags	Hashtag'ler
