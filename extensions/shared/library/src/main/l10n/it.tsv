@@ -3145,3 +3145,7 @@ Adds Select all beside Select on the photo and video grids in Your activity, lik
 Hide tall reels in Explore	Nascondi i reel alti in Esplora
 # context: Explore > summary of Hide tall reels in Explore; the few posts are the small tiles sharing the tall reel's block of the grid; pull down means the swipe down that refreshes the Explore grid (#880)
 Leaves the reels that take up two rows out of the Explore grid, with the few posts beside each one. Pull down on Explore to refresh it.	Toglie dalla griglia di Esplora i reel che occupano due righe, insieme ai pochi post accanto a ciascuno. Trascina verso il basso in Esplora per aggiornarla.
+# context: Stories > title of the switch that stops a tap on the left or right side of a story from moving to the previous or next story, below Stop swipe up to reply (#887)
+Stop story side taps	Disattiva i tocchi laterali sulle storie
+# context: Stories > summary of Stop story side taps; the one before or after means the previous or next story; swipe means the sideways swipe that moves to the next person's stories (#887)
+A tap on the left or right of a story no longer moves to the one before or after, and the story keeps playing. Swipe to go to the next person's stories.	Un tocco a sinistra o a destra di una storia non passa più a quella precedente o successiva, e la storia continua. Scorri per passare alle storie della persona successiva.

@@ -6,6 +6,7 @@ Every HushGram release, newest first.
 
 ### Features
 
+* `Stop story side taps` is new under Stories. A tap on the left or right of a story no longer jumps to the one before or after, so a stray tap won't skip it. Starts off. Asked for in #887.
 * `Hide tall reels in Explore` is new under Explore. It leaves the reels that take up two rows out of the Explore grid, along with the few posts in their block. Starts off. Asked for in #880.
 * `Block likes, replies and posts in Ghost mode` is new under Ads and privacy. While Ghost mode is on, liking, commenting, replying to a story, posting and sharing a link do nothing, and a message says why. Starts off. Asked for in #876.
 * `Primary and General tabs` is new under Messages. It turns on the Primary and General tabs Instagram gives professional accounts, for any account. Instagram may put every chat in Primary at first. Experimental. Starts off and takes a restart. Asked for in #832.

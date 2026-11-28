@@ -425,6 +425,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_stop_story_swipe_reply", FALSE);
 
     /**
+     * A tap on the left or right of a story no longer moves to the story before or after
+     * ({@link app.hushgram.extension.instagram.stories.StoryTaps}, #887). Read at each tap, so a
+     * change applies at once. Off to start.
+     */
+    public static final BooleanSetting STOP_STORY_SIDE_TAPS =
+            new BooleanSetting("hushgram_stop_story_side_taps", FALSE);
+
+    /**
      * The Send message box stays off the bottom of other people's stories
      * ({@link app.hushgram.extension.instagram.stories.StoryReplyBox}). Read before each frame, and
      * a viewer opened with it on puts the box back the next time it opens with it off. Off to start.

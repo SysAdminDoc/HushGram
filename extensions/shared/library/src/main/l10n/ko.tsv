@@ -3144,3 +3144,7 @@ Adds Select all beside Select on the photo and video grids in Your activity, lik
 Hide tall reels in Explore	탐색에서 세로로 긴 릴스 숨기기
 # context: Explore > summary of Hide tall reels in Explore; the few posts are the small tiles sharing the tall reel's block of the grid; pull down means the swipe down that refreshes the Explore grid (#880)
 Leaves the reels that take up two rows out of the Explore grid, with the few posts beside each one. Pull down on Explore to refresh it.	탐색 그리드에서 두 줄을 차지하는 릴스를 옆에 있는 게시물 몇 개와 함께 뺍니다. 탐색에서 아래로 당겨 새로고침하세요.
+# context: Stories > title of the switch that stops a tap on the left or right side of a story from moving to the previous or next story, below Stop swipe up to reply (#887)
+Stop story side taps	스토리 옆 탭 끄기
+# context: Stories > summary of Stop story side taps; the one before or after means the previous or next story; swipe means the sideways swipe that moves to the next person's stories (#887)
+A tap on the left or right of a story no longer moves to the one before or after, and the story keeps playing. Swipe to go to the next person's stories.	스토리의 왼쪽이나 오른쪽을 눌러도 더 이상 이전 또는 다음 스토리로 넘어가지 않고, 스토리는 계속 재생됩니다. 다음 사람의 스토리로 가려면 스와이프하세요.

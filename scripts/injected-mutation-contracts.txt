@@ -4381,6 +4381,16 @@ once-call Lapp/hushgram/extension/instagram/ads/PlusUpsell;->hide()Z in static (
 start-call Lapp/hushgram/extension/instagram/stories/StorySwipeReply;->keepsSwipe()Z in instance ()Z calling instance Landroid/view/View;->requestFocus()Z class-holding fragment_paused ig4a-instagram-schema LX/*;->*:Landroid/widget/EditText;
 once-call Lapp/hushgram/extension/instagram/stories/StorySwipeReply;->keepsSwipe()Z in instance ()Z calling instance Landroid/view/View;->requestFocus()Z class-holding fragment_paused ig4a-instagram-schema LX/*;->*:Landroid/widget/EditText;
 once-call Lapp/hushgram/extension/instagram/stories/StorySwipeReply;->keepsSwipe()Z in instance (Landroid/view/MotionEvent;Landroid/view/MotionEvent;Ljava/lang/Object;FFZ)Z holding reelViewerListenerManager camera_entry_point
+# Stop story side taps (#887), the second switch of Stop swipe up to reply, asks StoryTaps.keepsTap()
+# first thing in the story viewer's tap forward and tap back handlers, its two instance (Float, Float)V
+# methods loading tap_forward and tap_back (ReelViewerFragment.GYF and GY8 on 386314286), and a no
+# returns before the tap is logged or moves anything. Left out, a tap on either side moves to the story
+# before or after whatever the switch says; twice or elsewhere, it isn't the guard the patch wrote.
+# StorySideTapsHookTest checks on the fixtures that each rule picks that one method.
+start-call Lapp/hushgram/extension/instagram/stories/StoryTaps;->keepsTap()Z in instance (Ljava/lang/Float;Ljava/lang/Float;)V holding tap_forward
+once-call Lapp/hushgram/extension/instagram/stories/StoryTaps;->keepsTap()Z in instance (Ljava/lang/Float;Ljava/lang/Float;)V holding tap_forward
+start-call Lapp/hushgram/extension/instagram/stories/StoryTaps;->keepsTap()Z in instance (Ljava/lang/Float;Ljava/lang/Float;)V holding tap_back
+once-call Lapp/hushgram/extension/instagram/stories/StoryTaps;->keepsTap()Z in instance (Ljava/lang/Float;Ljava/lang/Float;)V holding tap_back
 # Start feed videos with sound asks FeedSound.startWithSound() once, in the feed video controller's video
 # start, the one instance (Media, x, y, z, int, int, int, boolean, boolean, boolean) void method of the class
 # that loads the volume key handler's crash string. On a yes the same hook turns the account's audio state on

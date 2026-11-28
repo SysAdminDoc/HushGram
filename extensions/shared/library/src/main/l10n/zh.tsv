@@ -3148,3 +3148,7 @@ Adds Select all beside Select on the photo and video grids in Your activity, lik
 Hide tall reels in Explore	隐藏探索中的长条 Reels
 # context: Explore > summary of Hide tall reels in Explore; the few posts are the small tiles sharing the tall reel's block of the grid; pull down means the swipe down that refreshes the Explore grid (#880)
 Leaves the reels that take up two rows out of the Explore grid, with the few posts beside each one. Pull down on Explore to refresh it.	从探索网格中移除占两行高的 Reels，以及每条旁边的几篇帖子。在探索中下拉即可刷新.
+# context: Stories > title of the switch that stops a tap on the left or right side of a story from moving to the previous or next story, below Stop swipe up to reply (#887)
+Stop story side taps	禁用快拍两侧点击
+# context: Stories > summary of Stop story side taps; the one before or after means the previous or next story; swipe means the sideways swipe that moves to the next person's stories (#887)
+A tap on the left or right of a story no longer moves to the one before or after, and the story keeps playing. Swipe to go to the next person's stories.	点击快拍的左侧或右侧不再切换到上一条或下一条，快拍会继续播放。滑动即可前往下一位的快拍.

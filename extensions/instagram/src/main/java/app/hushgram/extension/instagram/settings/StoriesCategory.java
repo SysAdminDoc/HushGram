@@ -197,6 +197,10 @@ final class StoriesCategory {
             stories.add(toggle(context, Settings.STOP_STORY_SWIPE_REPLY, L10n.t("Stop swipe up to reply"),
                     L10n.t("A swipe up on someone's story no longer opens the reply box and its reactions. "
                             + "Tap Send message to reply.")));
+            // Rides on Stop swipe up to reply's patch, the story gesture patch (#887).
+            stories.add(toggle(context, Settings.STOP_STORY_SIDE_TAPS, L10n.t("Stop story side taps"),
+                    L10n.t("A tap on the left or right of a story no longer moves to the one before or after, "
+                            + "and the story keeps playing. Swipe to go to the next person's stories.")));
         }
         if (build.contains(PatchFamily.STORY_REPLY_BOX)) {
             stories.add(onFlip(toggle(context, Settings.HIDE_STORY_REPLY_BOX, L10n.t("Hide the reply box on stories"),

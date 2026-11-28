@@ -77,12 +77,16 @@ internal val GESTURE_PARAMETERS = listOf(MOTION_EVENT, MOTION_EVENT, "Ljava/lang
  * On 455 the composer's listener (0EjU on 386113969) only asks the reply controller it keeps in a
  * field (0EhV), and the controller's method (A0O) focuses the box. The viewer's own scroll handler
  * (0oOb.GVb) asks that method too, so the guard goes first in it and stops both swipes.
+ *
+ * Its second switch, Stop story side taps (#887), puts [KEEPS_TAP] first in the viewer's tap
+ * forward and tap back handlers (StorySideTaps.kt). Both halves are found before either changes.
  */
 @Suppress("unused")
 val stopSwipeReplyPatch = bytecodePatch(
     name = "Stop swipe up to reply",
     description = "Stops a swipe up on someone's story from opening the reply box and its reactions. Tapping " +
-        "Send message still replies. Starts off. Turn it on in HushGram settings > Stories.",
+        "Send message still replies. A second switch stops a tap on the left or right of a story from moving " +
+        "to the one before or after. Both start off. Turn them on in HushGram settings > Stories.",
     default = true,
 ) {
     category("Stories")
@@ -91,12 +95,15 @@ val stopSwipeReplyPatch = bytecodePatch(
 
     execute {
         requireStatusMethod("storySwipeReply")
-        stopSwipeReply()
+        val swipe = findSwipeReply()
+        val taps = findTapHandlers()
+        hookSwipeReply(swipe)
+        stopSideTaps(taps)
         enableStatus("storySwipeReply")
     }
 }
 
-/** Finds everything first, so a build missing any of it changes nothing, then puts both guards in. */
+/** The swipe half alone: finds everything first, so a build missing any of it changes nothing, then puts both guards in. */
 internal fun BytecodePatchContext.stopSwipeReply() = hookSwipeReply(findSwipeReply())
 
 private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $detail")

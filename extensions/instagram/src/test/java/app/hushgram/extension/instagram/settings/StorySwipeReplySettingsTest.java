@@ -9,7 +9,6 @@ import android.app.Activity;
 import android.preference.PreferenceGroup;
 import android.preference.SwitchPreference;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.EnumSet;
 import org.junit.After;
 import org.junit.Before;
@@ -74,7 +73,7 @@ public class StorySwipeReplySettingsTest {
         assertEquals(Arrays.toString(keys), Settings.START_STORIES_WITH_SOUND.key,
                 keys[Arrays.asList(keys).indexOf(Settings.STOP_STORY_SWIPE_REPLY.key) - 1]);
         assertEquals("Stop swipe up to reply", PatchFamily.STORY_SWIPE_REPLY.patchName);
-        assertEquals(Collections.singletonList(Settings.STOP_STORY_SWIPE_REPLY), PatchFamily.STORY_SWIPE_REPLY.switches);
+        assertEquals(Arrays.asList(Settings.STOP_STORY_SWIPE_REPLY, Settings.STOP_STORY_SIDE_TAPS), PatchFamily.STORY_SWIPE_REPLY.switches);
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.STOP_STORY_SWIPE_REPLY.key));
     }
     @Test public void aSavedSwitchPersistsAndAnswersOffWhilePaused() throws Exception {

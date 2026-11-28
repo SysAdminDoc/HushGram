@@ -545,6 +545,12 @@ tasks.register("verifyAndroidBoundaries") {
                 "pausedKeepsTheSwipe[28]", "pausedKeepsTheSwipe[37]",
                 "beforeTheSettingsAreReadyItKeepsTheSwipe[28]", "beforeTheSettingsAreReadyItKeepsTheSwipe[37]",
                 "aThrowingSwitchKeepsTheSwipeAndIsReported[28]", "aThrowingSwitchKeepsTheSwipeAndIsReported[37]"),
+            "app.hushgram.extension.instagram.stories.StoryTapsTest" to listOf(
+                "offToStartLetsTheTapMove[28]", "offToStartLetsTheTapMove[37]",
+                "onKeepsTheStory[28]", "onKeepsTheStory[37]",
+                "pausedLetsTheTapMove[28]", "pausedLetsTheTapMove[37]",
+                "beforeTheSettingsAreReadyTheTapMoves[28]", "beforeTheSettingsAreReadyTheTapMoves[37]",
+                "aThrowingSwitchLetsTheTapMoveAndIsReported[28]", "aThrowingSwitchLetsTheTapMoveAndIsReported[37]"),
             "app.hushgram.extension.instagram.settings.FollowListSuggestionsSettingsTest" to listOf(
                 "theSwitchIsUnderProfilesAfterSuggestedPeopleAndStartsOff[28]", "theSwitchIsUnderProfilesAfterSuggestedPeopleAndStartsOff[37]",
                 "aSavedSwitchAnswersOffWhilePaused[28]", "aSavedSwitchAnswersOffWhilePaused[37]",
@@ -606,6 +612,10 @@ tasks.register("verifyAndroidBoundaries") {
                 "missingPatchHasNoSwitch[28]", "missingPatchHasNoSwitch[37]"),
             "app.hushgram.extension.instagram.settings.StorySwipeReplySettingsTest" to listOf(
                 "theSwitchIsUnderStoriesAfterSoundAndStartsOff[28]", "theSwitchIsUnderStoriesAfterSoundAndStartsOff[37]",
+                "aSavedSwitchPersistsAndAnswersOffWhilePaused[28]", "aSavedSwitchPersistsAndAnswersOffWhilePaused[37]",
+                "missingPatchHasNoSwitch[28]", "missingPatchHasNoSwitch[37]"),
+            "app.hushgram.extension.instagram.settings.StorySideTapsSettingsTest" to listOf(
+                "theSwitchIsUnderStoriesAfterSwipeReplyAndStartsOff[28]", "theSwitchIsUnderStoriesAfterSwipeReplyAndStartsOff[37]",
                 "aSavedSwitchPersistsAndAnswersOffWhilePaused[28]", "aSavedSwitchPersistsAndAnswersOffWhilePaused[37]",
                 "missingPatchHasNoSwitch[28]", "missingPatchHasNoSwitch[37]"),
             "app.hushgram.extension.instagram.settings.StoryUploadQualitySettingsTest" to listOf(

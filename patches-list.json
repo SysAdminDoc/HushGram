@@ -7183,7 +7183,7 @@
     },
     {
       "name": "Stop swipe up to reply",
-      "description": "Stops a swipe up on someone's story from opening the reply box and its reactions. Tapping Send message still replies. Starts off. Turn it on in HushGram settings > Stories.",
+      "description": "Stops a swipe up on someone's story from opening the reply box and its reactions. Tapping Send message still replies. A second switch stops a tap on the left or right of a story from moving to the one before or after. Both start off. Turn them on in HushGram settings > Stories.",
       "category": "Stories",
       "use": true,
       "dependencies": [
