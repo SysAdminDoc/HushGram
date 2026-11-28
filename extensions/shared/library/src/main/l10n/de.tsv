@@ -497,6 +497,9 @@ Hide Featured in notifications	Bereich „Empfohlen“ in Benachrichtigungen aus
 Takes the Featured section off the top of your notifications, the posts and threads Instagram picks to show you there. Everything under it stays.	Entfernt den Bereich „Empfohlen“ oben in deinen Benachrichtigungen, also die Beiträge und Threads, die Instagram dort für dich auswählt. Alles darunter bleibt.
 Keep Featured off the heart's dot	Featured nicht auf dem Punkt am Herz zeigen
 Stops the red dot on the heart from showing up for Featured alone. Likes, comments and new followers still light it.	Verhindert, dass der rote Punkt am Herz allein wegen „Empfohlen“ erscheint. Likes, Kommentare und neue Follower lassen ihn weiter leuchten.
+# context: Notifications > title and summary of Hide the heart's badge (#908), the switch that keeps the red dot and the popup with counts off the heart (Activity) icon at the top of Home; the messages badge is a different one and stays
+Hide the heart's badge	Abzeichen am Herz ausblenden
+The red dot and the popup with numbers on the heart don't show, so likes, comments and replies wait until you open it. Messages keep their badge.	Der rote Punkt und das Popup mit Zahlen am Herz erscheinen nicht, Likes, Kommentare und Antworten warten also, bis du es öffnest. Nachrichten behalten ihr Abzeichen.
 Hide highlights	Highlights ausblenden
 Takes the row of story highlights off profiles, yours included. Bios, counts and posts stay, and so does Add to highlight on your stories.	Entfernt die Reihe mit Story-Highlights von Profilen, auch von deinem. Bios, Zahlen und Beiträge bleiben, ebenso „Zu Highlight hinzufügen“ in deinen Storys.
 # context: "Followers" and "Following" are the two buttons under a profile's name, beside the post count; use the words Instagram shows there in this language (#771)

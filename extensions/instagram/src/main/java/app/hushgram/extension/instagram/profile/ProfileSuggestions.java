@@ -717,10 +717,39 @@ public final class ProfileSuggestions {
      * server's push, the inbox's own reply, and the REST refresh. The heart lights for any count under
      * it, so while Keep Featured off the heart's dot is on, [counts] loses the ones with no one's action
      * behind them unless real activity is in there too. Real activity, the switch off, paused or
-     * unready, or anything going wrong leaves the map as it came. Never throws.
+     * unready, or anything going wrong leaves the map as it came. While Hide the heart's badge is on,
+     * {@link #heartCounts} takes every count under the heart first (#908). Never throws.
      */
     public static void featuredCounts(Map<String, Integer> counts) {
+        if (heartCounts(counts, ProfileSuggestions::heartBadgeOn)) return;
         featuredCounts(counts, ProfileSuggestions::featuredDotOn);
+    }
+
+    /** What's counted when the heart's whole badge is taken off (#908). */
+    static final String HEART_BADGE = "Badge on the heart";
+
+    /**
+     * While Hide the heart's badge is on (#908), every count under the heart goes to 0, so neither its
+     * red dot nor its popup with numbers shows. Counts that aren't the heart's, like your messages',
+     * stay. True when it took them. Nothing counted, the switch off, paused or unready, or anything going
+     * wrong leaves the map as it came and answers false.
+     */
+    static boolean heartCounts(Map<String, Integer> counts, BooleanSupplier on) {
+        try {
+            if (counts == null || (!anyAboveZero(counts, ACTIVITY_COUNTS) && !anyAboveZero(counts, FEATURED_COUNTS))) {
+                return false;
+            }
+            if (!hides(HEART_BADGE, on)) return false;
+            for (List<String> keys : Arrays.asList(ACTIVITY_COUNTS, FEATURED_COUNTS)) {
+                for (String key : keys) {
+                    if (counts.containsKey(key)) counts.put(key, 0);
+                }
+            }
+            return true;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.PROFILE_SUGGESTIONS, HEART_BADGE, failure);
+            return false;
+        }
     }
 
     static void featuredCounts(Map<String, Integer> counts, BooleanSupplier on) {
@@ -746,6 +775,10 @@ public final class ProfileSuggestions {
 
     private static boolean featuredDotOn() {
         return Utils.settingsReady() && Settings.HIDE_FEATURED_DOT.get();
+    }
+
+    private static boolean heartBadgeOn() {
+        return Utils.settingsReady() && Settings.HIDE_HEART_BADGE.get();
     }
 
     private static boolean featuredOn() {

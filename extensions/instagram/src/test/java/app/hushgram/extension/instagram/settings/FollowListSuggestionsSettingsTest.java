@@ -145,7 +145,7 @@ public class FollowListSuggestionsSettingsTest {
                 Settings.MUTED_NOTIFICATION_CHANNELS.key, Settings.HIDE_FOLLOW_BACK_SUGGESTIONS.key,
                 Settings.HIDE_NOTIFICATION_SUGGESTIONS.key, Settings.HIDE_NOTIFICATION_CHANNEL_INVITES.key,
                 Settings.HIDE_NOTIFICATION_FEATURED.key, Settings.HIDDEN_NOTIFICATION_KINDS.key,
-                Settings.HIDE_FEATURED_DOT.key), Arrays.asList(keys));
+                Settings.HIDE_FEATURED_DOT.key, Settings.HIDE_HEART_BADGE.key), Arrays.asList(keys));
         assertEquals("Group or mute Instagram's notifications, and take suggestions off the Notifications page.",
                 ((HushgramPreferenceFragment.Heading) notifications).intro);
     }
@@ -157,6 +157,7 @@ public class FollowListSuggestionsSettingsTest {
         assertNotNull(page.getPreferenceScreen().findPreference(Settings.HIDE_NOTIFICATION_SUGGESTIONS.key));
         assertNotNull(page.getPreferenceScreen().findPreference(Settings.HIDE_NOTIFICATION_FEATURED.key));
         assertNotNull(page.getPreferenceScreen().findPreference(Settings.HIDE_FEATURED_DOT.key));
+        assertNotNull(page.getPreferenceScreen().findPreference(Settings.HIDE_HEART_BADGE.key));
         assertNull("grouping never sat under Profiles", page.getPreferenceScreen().findPreference(Settings.GROUP_NOTIFICATIONS.key));
     }
     /** #181: Hide suggestions in notifications comes right after Hide People you don't follow back under Notifications, starts off, is kept in a backup and answers off while paused. */

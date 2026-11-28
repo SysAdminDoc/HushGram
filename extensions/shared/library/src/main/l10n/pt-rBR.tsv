@@ -497,6 +497,9 @@ Hide Featured in notifications	Ocultar Em destaque nas notificações
 Takes the Featured section off the top of your notifications, the posts and threads Instagram picks to show you there. Everything under it stays.	Tira a seção Em destaque do topo das suas notificações, os posts e threads que o Instagram escolhe para mostrar ali. Tudo abaixo dela continua.
 Keep Featured off the heart's dot	Não acender o ponto do coração por Em destaque
 Stops the red dot on the heart from showing up for Featured alone. Likes, comments and new followers still light it.	Impede que o ponto vermelho do coração apareça só por causa de Em destaque. Curtidas, comentários e novos seguidores continuam acendendo.
+# context: Notifications > title and summary of Hide the heart's badge (#908), the switch that keeps the red dot and the popup with counts off the heart (Activity) icon at the top of Home; the messages badge is a different one and stays
+Hide the heart's badge	Ocultar o selo do coração
+The red dot and the popup with numbers on the heart don't show, so likes, comments and replies wait until you open it. Messages keep their badge.	O ponto vermelho e o pop-up com números no coração não aparecem, então curtidas, comentários e respostas esperam até você abrir. As mensagens mantêm o selo delas.
 Hide highlights	Ocultar destaques
 Takes the row of story highlights off profiles, yours included. Bios, counts and posts stay, and so does Add to highlight on your stories.	Tira a fileira de destaques dos stories dos perfis, incluindo o seu. Bios, contagens e posts continuam lá, e Adicionar ao destaque nos seus stories também.
 # context: "Followers" and "Following" are the two buttons under a profile's name, beside the post count; use the words Instagram shows there in this language (#771)

@@ -497,6 +497,9 @@ Hide Featured in notifications	Sembunyikan Unggulan di notifikasi
 Takes the Featured section off the top of your notifications, the posts and threads Instagram picks to show you there. Everything under it stays.	Menghapus bagian Unggulan dari atas notifikasi Anda, yaitu postingan dan utas yang dipilih Instagram untuk ditampilkan di sana. Semua yang ada di bawahnya tetap ada.
 Keep Featured off the heart's dot	Jangan nyalakan titik hati karena Unggulan
 Stops the red dot on the heart from showing up for Featured alone. Likes, comments and new followers still light it.	Mencegah titik merah di ikon hati muncul hanya karena Unggulan. Suka, komentar, dan pengikut baru tetap menyalakannya.
+# context: Notifications > title and summary of Hide the heart's badge (#908), the switch that keeps the red dot and the popup with counts off the heart (Activity) icon at the top of Home; the messages badge is a different one and stays
+Hide the heart's badge	Sembunyikan lencana di ikon hati
+The red dot and the popup with numbers on the heart don't show, so likes, comments and replies wait until you open it. Messages keep their badge.	Titik merah dan munculan berisi angka di ikon hati tidak muncul, jadi suka, komentar, dan balasan menunggu sampai kamu membukanya. Pesan tetap punya lencananya.
 Hide highlights	Sembunyikan sorotan
 Takes the row of story highlights off profiles, yours included. Bios, counts and posts stay, and so does Add to highlight on your stories.	Menghapus baris sorotan cerita dari profil, termasuk profilmu. Bio, jumlah, dan postingan tetap ada, begitu juga Tambahkan ke sorotan di ceritamu.
 # context: "Followers" and "Following" are the two buttons under a profile's name, beside the post count; use the words Instagram shows there in this language (#771)

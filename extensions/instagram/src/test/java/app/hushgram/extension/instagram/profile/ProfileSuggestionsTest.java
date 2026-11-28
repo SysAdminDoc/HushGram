@@ -76,6 +76,8 @@ public class ProfileSuggestionsTest {
         Settings.HIDE_NOTIFICATION_FEATURED.resetToDefault();
         Settings.HIDE_NOTIFICATION_CHANNEL_INVITES.resetToDefault();
         Settings.HIDDEN_NOTIFICATION_KINDS.resetToDefault();
+        Settings.HIDE_FEATURED_DOT.resetToDefault();
+        Settings.HIDE_HEART_BADGE.resetToDefault();
         context.getSharedPreferences(NotificationKinds.STORE, Context.MODE_PRIVATE).edit().clear().commit();
         NotificationKinds.forgetForTests();
         BaseSettings.PAUSED.save(false);
@@ -1181,6 +1183,62 @@ public class ProfileSuggestionsTest {
         Map<String, Integer> locked = Collections.unmodifiableMap(new LinkedHashMap<>(Collections.singletonMap("new_posts", 1)));
         ProfileSuggestions.featuredCounts(locked);
         assertEquals(1, locked.get("new_posts").intValue());
+        Settings.HIDE_HEART_BADGE.save(true);
+        ProfileSuggestions.featuredCounts(null);
+        Map<String, Integer> lockedLikes = Collections.unmodifiableMap(new LinkedHashMap<>(Collections.singletonMap("likes", 2)));
+        ProfileSuggestions.featuredCounts(lockedLikes);
+        assertEquals(2, lockedLikes.get("likes").intValue());
+    }
+
+    /**
+     * #908: while Hide the heart's badge is on, every count under the heart goes to 0, activity
+     * included, so neither the dot nor the popup with numbers has anything to show. A count that isn't
+     * the heart's, like messages', stays, and counts the server didn't send stay out of the map. Off,
+     * paused, unready and a switch that throws leave the map as it came.
+     */
+    @Test
+    public void theHeartsWholeBadgeGoesWhileItsSwitchIsOn() {
+        assertEquals("off", 5, afterFeatured("likes", 5).get("likes").intValue());
+        Settings.HIDE_HEART_BADGE.save(true);
+        for (String key : Arrays.asList("likes", "comments", "comment_likes", "relationships", "requests", "usertags",
+                "story_mentions", "media_to_approve", "branded_content", "activity_feed_dot_badge", "new_posts",
+                "promotional", "fundraiser", "shopping_notification", "campaign_notification")) {
+            assertEquals(key, 0, afterFeatured(key, 3).get(key).intValue());
+        }
+        Map<String, Integer> mixed = afterFeatured("activity_feed_dot_badge", 1, "likes", 4, "relationships", 2, "di", 6);
+        assertEquals("the dot", 0, mixed.get("activity_feed_dot_badge").intValue());
+        assertEquals("likes", 0, mixed.get("likes").intValue());
+        assertEquals("new followers", 0, mixed.get("relationships").intValue());
+        assertEquals("a count that isn't the heart's", 6, mixed.get("di").intValue());
+        assertFalse("a count the server didn't send", mixed.containsKey("comments"));
+        assertEquals("only messages", 6, afterFeatured("di", 6).get("di").intValue());
+        String report = FeedFilterCounters.report().toString();
+        assertTrue(report, report.contains(ProfileSuggestions.HEART_BADGE + " 16"));
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertEquals("paused", 5, afterFeatured("likes", 5).get("likes").intValue());
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        SettingsContextRule.withoutContext(() -> assertEquals("unready", 5, afterFeatured("likes", 5).get("likes").intValue()));
+        Map<String, Integer> kept = new LinkedHashMap<>();
+        kept.put("likes", 5);
+        assertFalse("a switch that throws", ProfileSuggestions.heartCounts(kept, THROWS));
+        assertEquals("a switch that throws", 5, kept.get("likes").intValue());
+        String missing = HookStatus.missing(FamilyNames.PROFILE_SUGGESTIONS).toString();
+        assertTrue(missing, missing.contains("'" + ProfileSuggestions.HEART_BADGE + "'"));
+    }
+
+    /** With both switches on, the whole badge goes, activity or not; with only Keep Featured on, activity keeps it. */
+    @Test
+    public void theWholeBadgeSwitchWinsOverKeepFeatured() {
+        Settings.HIDE_FEATURED_DOT.save(true);
+        assertEquals("Keep Featured alone", 3, afterFeatured("activity_feed_dot_badge", 3, "likes", 1)
+                .get("activity_feed_dot_badge").intValue());
+        Settings.HIDE_HEART_BADGE.save(true);
+        Map<String, Integer> both = afterFeatured("activity_feed_dot_badge", 3, "likes", 1);
+        assertEquals(0, both.get("activity_feed_dot_badge").intValue());
+        assertEquals(0, both.get("likes").intValue());
     }
 
     private static Map<String, Integer> afterFeatured(Object... namesAndCounts) {

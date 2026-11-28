@@ -502,6 +502,9 @@ Hide Featured in notifications	隐藏通知中的精选内容
 Takes the Featured section off the top of your notifications, the posts and threads Instagram picks to show you there. Everything under it stays.	移除通知顶端的精选区块，也就是 Instagram 挑选给你的帖子与串文。下方内容仍会保留。
 Keep Featured off the heart's dot	不让精选内容点亮爱心上的红点
 Stops the red dot on the heart from showing up for Featured alone. Likes, comments and new followers still light it.	避免爱心上的红点只因精选内容而出现。点赞、评论和新粉丝仍会让它亮起。
+# context: Notifications > title and summary of Hide the heart's badge (#908), the switch that keeps the red dot and the popup with counts off the heart (Activity) icon at the top of Home; the messages badge is a different one and stays
+Hide the heart's badge	隐藏爱心上的标记
+The red dot and the popup with numbers on the heart don't show, so likes, comments and replies wait until you open it. Messages keep their badge.	爱心上的红点和带数字的弹出窗口不会出现，点赞、评论和回复会等到你打开时再看。消息仍保留自己的标记。
 Hide highlights	隐藏精选快拍
 Takes the row of story highlights off profiles, yours included. Bios, counts and posts stay, and so does Add to highlight on your stories.	移除主页的精选快拍栏，自己的主页也适用。个人简介、各项数量与帖子仍会保留，快拍中的“添加至精选”也不受影响。
 # context: "Followers" and "Following" are the two buttons under a profile's name, beside the post count; use the words Instagram shows there in this language (#771)

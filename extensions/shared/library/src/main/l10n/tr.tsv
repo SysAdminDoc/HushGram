@@ -497,6 +497,9 @@ Hide Featured in notifications	Bildirimlerde Öne Çıkanlar'ı gizle
 Takes the Featured section off the top of your notifications, the posts and threads Instagram picks to show you there. Everything under it stays.	Bildirimlerinin en üstündeki Öne Çıkanlar bölümünü, yani Instagram'ın orada göstermek için seçtiği gönderileri ve gönderi dizilerini kaldırır. Altındaki her şey kalır.
 Keep Featured off the heart's dot	Öne Çıkanlar kalpteki noktayı yakmasın
 Stops the red dot on the heart from showing up for Featured alone. Likes, comments and new followers still light it.	Kalpteki kırmızı noktanın yalnızca Öne Çıkanlar yüzünden görünmesini engeller. Beğeniler, yorumlar ve yeni takipçiler noktayı yakmaya devam eder.
+# context: Notifications > title and summary of Hide the heart's badge (#908), the switch that keeps the red dot and the popup with counts off the heart (Activity) icon at the top of Home; the messages badge is a different one and stays
+Hide the heart's badge	Kalpteki rozeti gizle
+The red dot and the popup with numbers on the heart don't show, so likes, comments and replies wait until you open it. Messages keep their badge.	Kalpteki kırmızı nokta ve sayılı açılır pencere görünmez, böylece beğeniler, yorumlar ve yanıtlar sen açana kadar bekler. Mesajlar rozetini korur.
 Hide highlights	Öne çıkanları gizle
 Takes the row of story highlights off profiles, yours included. Bios, counts and posts stay, and so does Add to highlight on your stories.	Hikaye öne çıkanları satırını profillerden, seninki dahil, kaldırır. Biyografiler, sayılar ve gönderiler kalır, hikayelerindeki Öne çıkanlara ekle de kalır.
 # context: "Followers" and "Following" are the two buttons under a profile's name, beside the post count; use the words Instagram shows there in this language (#771)

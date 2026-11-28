@@ -498,6 +498,9 @@ Hide Featured in notifications	알림에서 주요 항목 숨기기
 Takes the Featured section off the top of your notifications, the posts and threads Instagram picks to show you there. Everything under it stays.	알림 맨 위의 주요 항목 섹션, 즉 Instagram이 골라서 보여 주는 게시물과 스레드를 없앱니다. 그 아래 항목은 그대로 남습니다.
 Keep Featured off the heart's dot	주요 항목 때문에 하트에 점이 뜨지 않게 하기
 Stops the red dot on the heart from showing up for Featured alone. Likes, comments and new followers still light it.	주요 항목만으로 하트에 빨간 점이 나타나지 않게 합니다. 좋아요, 댓글, 새 팔로워는 계속 점을 표시합니다.
+# context: Notifications > title and summary of Hide the heart's badge (#908), the switch that keeps the red dot and the popup with counts off the heart (Activity) icon at the top of Home; the messages badge is a different one and stays
+Hide the heart's badge	하트 배지 숨기기
+The red dot and the popup with numbers on the heart don't show, so likes, comments and replies wait until you open it. Messages keep their badge.	하트의 빨간 점과 숫자 팝업이 나타나지 않으므로 좋아요, 댓글, 답글은 하트를 열 때까지 기다립니다. 메시지 배지는 그대로 표시됩니다.
 Hide highlights	하이라이트 숨기기
 Takes the row of story highlights off profiles, yours included. Bios, counts and posts stay, and so does Add to highlight on your stories.	모든 프로필에서 스토리 하이라이트 목록을 숨깁니다. 내 프로필에도 적용됩니다. 프로필 소개, 팔로워 & 팔로잉 수 및 게시물은 그대로 유지되며, 내 스토리의 ‘하이라이트에 추가’ 기능도 그대로 사용할 수 있습니다
 # context: "Followers" and "Following" are the two buttons under a profile's name, beside the post count; use the words Instagram shows there in this language (#771)

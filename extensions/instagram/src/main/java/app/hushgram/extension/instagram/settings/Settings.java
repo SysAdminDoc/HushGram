@@ -3127,6 +3127,16 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_featured_dot", FALSE);
 
     /**
+     * The heart's whole badge at the top of Home, its red dot and its popup with numbers: every count
+     * under the heart is answered 0
+     * ({@link app.hushgram.extension.instagram.profile.ProfileSuggestions#heartCounts}, #908). Your
+     * messages' badge is another one and stays. Read each time the badge counts are built, so off or
+     * paused, it's back with the next one. Off to start.
+     */
+    public static final BooleanSetting HIDE_HEART_BADGE =
+            new BooleanSetting("hushgram_hide_heart_badge", FALSE);
+
+    /**
      * The row of story highlights on profiles
      * ({@link app.hushgram.extension.instagram.profile.ProfileHighlights}). Read each time Instagram
      * lays out a profile's header, so a change shows on the next profile opened. Off to start.

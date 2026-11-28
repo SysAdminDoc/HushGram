@@ -494,6 +494,9 @@ Hide Featured in notifications	ซ่อน "แนะนำ" ในการแ
 Takes the Featured section off the top of your notifications, the posts and threads Instagram picks to show you there. Everything under it stays.	นำส่วน "แนะนำ" ออกจากด้านบนของการแจ้งเตือนของคุณ ซึ่งเป็นโพสต์และเธรดที่ Instagram เลือกมาแสดงให้คุณเห็นที่นั่น ทุกอย่างที่อยู่ด้านล่างจะยังคงอยู่
 Keep Featured off the heart's dot	ไม่ให้รายการแนะนำแสดงจุดบนรูปหัวใจ
 Stops the red dot on the heart from showing up for Featured alone. Likes, comments and new followers still light it.	ป้องกันไม่ให้จุดสีแดงบนรูปหัวใจแสดงขึ้นมาสำหรับรายการแนะนำเพียงอย่างเดียว ทั้งนี้การกดถูกใจ ความคิดเห็น และผู้ติดตามใหม่จะยังคงทำให้จุดแสดงอยู่
+# context: Notifications > title and summary of Hide the heart's badge (#908), the switch that keeps the red dot and the popup with counts off the heart (Activity) icon at the top of Home; the messages badge is a different one and stays
+Hide the heart's badge	ซ่อนป้ายบนรูปหัวใจ
+The red dot and the popup with numbers on the heart don't show, so likes, comments and replies wait until you open it. Messages keep their badge.	จุดสีแดงและป๊อปอัปที่มีตัวเลขบนรูปหัวใจจะไม่แสดง การกดถูกใจ ความคิดเห็น และการตอบกลับจะรอจนกว่าคุณจะเปิดดู ส่วนข้อความยังคงมีป้ายของตัวเอง
 Hide highlights	ซ่อนไฮไลท์
 Takes the row of story highlights off profiles, yours included. Bios, counts and posts stay, and so does Add to highlight on your stories.	นำแถวไฮไลท์สตอรี่ออกจากโปรไฟล์ รวมถึงโปรไฟล์ของคุณด้วย ทั้งนี้ประวัติย่อ จำนวนต่างๆ และโพสต์จะยังคงอยู่ รวมถึง "เพิ่มลงในไฮไลท์" บนสตอรี่ของคุณด้วย
 # context: "Followers" and "Following" are the two buttons under a profile's name, beside the post count; use the words Instagram shows there in this language (#771)

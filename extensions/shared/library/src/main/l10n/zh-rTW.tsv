@@ -502,6 +502,9 @@ Hide Featured in notifications	隱藏通知中的精選內容
 Takes the Featured section off the top of your notifications, the posts and threads Instagram picks to show you there. Everything under it stays.	移除通知頂端的精選區塊，也就是 Instagram 挑選給你的貼文與串文。下方內容仍會保留。
 Keep Featured off the heart's dot	不讓精選內容點亮愛心上的紅點
 Stops the red dot on the heart from showing up for Featured alone. Likes, comments and new followers still light it.	避免愛心上的紅點只因精選內容而出現。按讚、留言和新追蹤者仍會讓它亮起。
+# context: Notifications > title and summary of Hide the heart's badge (#908), the switch that keeps the red dot and the popup with counts off the heart (Activity) icon at the top of Home; the messages badge is a different one and stays
+Hide the heart's badge	隱藏愛心上的標記
+The red dot and the popup with numbers on the heart don't show, so likes, comments and replies wait until you open it. Messages keep their badge.	愛心上的紅點和帶數字的彈出視窗不會出現，按讚、留言和回覆會等到你打開時再看。訊息仍保留自己的標記。
 Hide highlights	隱藏限時動態精選
 Takes the row of story highlights off profiles, yours included. Bios, counts and posts stay, and so does Add to highlight on your stories.	移除個人檔案的限時動態精選橫列，自己的個人檔案也適用。個人簡介、各項數量與貼文仍會保留，限時動態中的「新增至精選」也不受影響。
 # context: "Followers" and "Following" are the two buttons under a profile's name, beside the post count; use the words Instagram shows there in this language (#771)

@@ -497,6 +497,9 @@ Hide Featured in notifications	Nascondi In evidenza nelle notifiche
 Takes the Featured section off the top of your notifications, the posts and threads Instagram picks to show you there. Everything under it stays.	Toglie la sezione In evidenza dalla parte alta delle tue notifiche, i post e i thread che Instagram sceglie di mostrarti lì. Tutto quello che c'è sotto resta.
 Keep Featured off the heart's dot	Niente puntino sul cuore per In evidenza
 Stops the red dot on the heart from showing up for Featured alone. Likes, comments and new followers still light it.	Impedisce che il puntino rosso sul cuore compaia solo per In evidenza. Mi piace, commenti e nuovi follower continuano ad accenderlo.
+# context: Notifications > title and summary of Hide the heart's badge (#908), the switch that keeps the red dot and the popup with counts off the heart (Activity) icon at the top of Home; the messages badge is a different one and stays
+Hide the heart's badge	Nascondi il badge sul cuore
+The red dot and the popup with numbers on the heart don't show, so likes, comments and replies wait until you open it. Messages keep their badge.	Il puntino rosso e il popup con i numeri sul cuore non compaiono, quindi Mi piace, commenti e risposte aspettano finché non lo apri. I messaggi mantengono il loro badge.
 Hide highlights	Nascondi In evidenza
 Takes the row of story highlights off profiles, yours included. Bios, counts and posts stay, and so does Add to highlight on your stories.	Toglie la riga delle storie in evidenza dai profili, compreso il tuo. Bio, conteggi e post restano, e così Aggiungi a In evidenza sulle tue storie.
 # context: "Followers" and "Following" are the two buttons under a profile's name, beside the post count; use the words Instagram shows there in this language (#771)

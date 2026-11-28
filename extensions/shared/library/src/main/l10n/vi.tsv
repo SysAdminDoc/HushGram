@@ -497,6 +497,9 @@ Hide Featured in notifications	Ẩn Nổi bật trong thông báo
 Takes the Featured section off the top of your notifications, the posts and threads Instagram picks to show you there. Everything under it stays.	Gỡ phần Nổi bật khỏi đầu thông báo, gồm các bài viết và chuỗi Instagram chọn để hiện ở đó. Mọi thứ bên dưới vẫn giữ.
 Keep Featured off the heart's dot	Không để Nổi bật làm sáng chấm trái tim
 Stops the red dot on the heart from showing up for Featured alone. Likes, comments and new followers still light it.	Ngăn chấm đỏ trên biểu tượng trái tim hiện lên chỉ vì Nổi bật. Lượt thích, bình luận và người theo dõi mới vẫn làm chấm sáng.
+# context: Notifications > title and summary of Hide the heart's badge (#908), the switch that keeps the red dot and the popup with counts off the heart (Activity) icon at the top of Home; the messages badge is a different one and stays
+Hide the heart's badge	Ẩn huy hiệu trên trái tim
+The red dot and the popup with numbers on the heart don't show, so likes, comments and replies wait until you open it. Messages keep their badge.	Chấm đỏ và cửa sổ bật lên có số trên trái tim không hiện, nên lượt thích, bình luận và trả lời sẽ chờ đến khi bạn mở. Tin nhắn vẫn giữ huy hiệu của chúng.
 Hide highlights	Ẩn tin nổi bật
 Takes the row of story highlights off profiles, yours included. Bios, counts and posts stay, and so does Add to highlight on your stories.	Gỡ hàng tin nổi bật khỏi trang cá nhân, kể cả của bạn. Tiểu sử, số liệu và bài viết vẫn giữ, Thêm vào tin nổi bật trên tin của bạn cũng vậy.
 # context: "Followers" and "Following" are the two buttons under a profile's name, beside the post count; use the words Instagram shows there in this language (#771)

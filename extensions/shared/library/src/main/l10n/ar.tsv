@@ -2005,6 +2005,9 @@ Stops telling Instagram which posts in Home you looked at and for how long. Inst
 Stops telling Instagram which reels you watched or how far you got. Instagram uses that to pick your Reels. Watched reels may come back.	يمنع إخبار إنستغرام بأي Reels شاهدتها أو أين وصلت فيه. يستخدم إنستغرام ذلك لاختيار Reels الخاصة بك. قد تعود Reels التي شاهدتها.
 Stops the notification types you tick, even ones Instagram's own notification settings can't turn off.	يمنع أنواع الإشعارات التي تحددها، حتى التي لا تستطيع إعدادات إشعارات إنستغرام نفسها إيقافها.
 Stops the red dot on the heart from showing up for Featured alone. Likes, comments and new followers still light it.	يمنع ظهور النقطة الحمراء على القلب للمشاركات المختارة وحدها. لا يزال الإعجابات والتعليقات والمتابعون الجدد يشعلونها.
+# context: Notifications > title and summary of Hide the heart's badge (#908), the switch that keeps the red dot and the popup with counts off the heart (Activity) icon at the top of Home; the messages badge is a different one and stays
+Hide the heart's badge	إخفاء شارة القلب
+The red dot and the popup with numbers on the heart don't show, so likes, comments and replies wait until you open it. Messages keep their badge.	لا تظهر النقطة الحمراء ولا النافذة المنبثقة ذات الأرقام على القلب، فتنتظر الإعجابات والتعليقات والردود حتى تفتحه. تبقى شارة الرسائل كما هي.
 Stops the short buzz Instagram plays when a reel opens in clear mode. With Keep clear mode on, that's every swipe.	يمنع الاهتزاز القصير الذي يشغله إنستغرام عند فتح Reels في الوضع الصافي. مع تفعيل الحفاظ على الوضع الصافي، يحدث ذلك مع كل تمرير.
 Storage	التخزين
 Stories	القصص

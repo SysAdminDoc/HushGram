@@ -74,7 +74,7 @@ private const val INTEGER = "Ljava/lang/Integer;"
  * suggestions are one of Instagram's features, so leaving them out is the user's pick. Asked for in
  * #15 and #20, its follow list switch in #139 (the Suggested tab and the mutual list's section in #302, Suggested subscriptions and the Discover people button in #539), its Complete your profile switch in #159 and its
  * People you don't follow back switch in #161, its suggestions in notifications switch in #181 and its
- * Featured in notifications switch in #259.
+ * Featured in notifications switch in #259, and its heart's badge switch in #908.
  */
 @Suppress("unused")
 val hideProfileSuggestionsPatch = bytecodePatch(
@@ -83,7 +83,8 @@ val hideProfileSuggestionsPatch = bytecodePatch(
         "More switches take Suggested for you off the follow lists, their Suggested tab and the Follow requests screen, " +
         "Suggested subscriptions and the Discover people button off your own follow lists, the Complete your profile " +
         "cards off your own profile, and People you don't follow back, suggested threads and people, and the " +
-        "Featured section off your notifications. Starts off. Turn it on in HushGram settings > Profiles.",
+        "Featured section off your notifications. One more hides the heart's badge. Starts off. Turn it on in " +
+        "HushGram settings > Profiles.",
 ) {
     category("Profiles")
     dependsOn(settingsPatch, instagramExtensionPatch)
