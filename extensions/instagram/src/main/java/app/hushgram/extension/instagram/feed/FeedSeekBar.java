@@ -12,6 +12,7 @@ import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.os.Looper;
 import android.os.SystemClock;
+import android.text.TextUtils;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.MotionEvent;
@@ -21,6 +22,7 @@ import android.view.ViewParent;
 import android.view.ViewGroup;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.Switch;
 import android.widget.TextView;
@@ -400,10 +402,11 @@ public final class FeedSeekBar {
             if (seek.getVisibility() != barState) seek.setVisibility(barState);
             if (barState == View.GONE) dragging = false;
             List<ViewGroup> rows = buttonRows(frame);
-            showTime(frame, view, seek, rows);
+            int clear = buttonWanted() || timeWanted() ? startCornerEnd(frame, rows, seek, button, time) : -1;
+            showTime(frame, view, seek, rows, clear);
             int lift = barState == View.VISIBLE && !rows.isEmpty() ? barHeight(view, seek) + clearOfTime(rows, view) : 0;
             lift(rows, lift);
-            showButton(frame, view, rows, lift);
+            showButton(frame, view, rows, lift, clear);
         }
 
         /**
@@ -461,9 +464,10 @@ public final class FeedSeekBar {
          * or the bar is hidden (#711). It sits in the middle, under Instagram's tags and sound buttons,
          * so a tags button that slides out wide over the middle still doesn't cover it. With Time under the
          * tags button on, it sits in the bottom start corner instead, lined up with the first button of
-         * Instagram's [rows] ({@link #cornerStart}).
+         * Instagram's [rows] ({@link #cornerStart}), or past Instagram's small views in that corner,
+         * which end [clear] pixels in from the start (#891).
          */
-        private void showTime(FrameLayout frame, View view, SeekBar seek, List<ViewGroup> rows) {
+        private void showTime(FrameLayout frame, View view, SeekBar seek, List<ViewGroup> rows, int clear) {
             if (!timeWanted() || seek.getVisibility() != View.VISIBLE) {
                 removeTime();
                 return;
@@ -486,7 +490,7 @@ public final class FeedSeekBar {
                         ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, gravity));
             }
             fit(shown, ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, bottom);
-            int start = corner ? Math.max(0, cornerStart(frame, view, rows) - shown.getPaddingStart()) : 0;
+            int start = corner ? Math.max(0, cornerStart(frame, view, rows, clear) - shown.getPaddingStart()) : 0;
             int[] place = {0, 0};
             if (top) {
                 topCorner(frame, view, shown, place);
@@ -543,11 +547,14 @@ public final class FeedSeekBar {
          * the first button on the start side of Instagram's [rows] starts, which is the tags button, or
          * with none there as far in as the last button on the end side sits from the end. Without a row,
          * the toggle button has the corner over the bar, so the time starts a gap past it; else 8 dp in.
+         * Instagram's small views in that corner, like the picture of someone who reposted the post,
+         * end [clear] pixels in, and the time, or the toggle before it, starts a gap past them (#891).
          */
-        private int cornerStart(FrameLayout frame, View view, List<ViewGroup> rows) {
+        private int cornerStart(FrameLayout frame, View view, List<ViewGroup> rows, int clear) {
+            int past = clear >= 0 ? clear + dp(view, BUTTON_GAP_DP) : 0;
             int inset = rows.isEmpty() ? -1 : startInset(rows, frame, frame.getWidth());
-            if (inset >= 0) return inset;
-            int start = dp(view, 8);
+            if (inset >= 0) return Math.max(inset, past);
+            int start = Math.max(dp(view, 8), past);
             return rows.isEmpty() && buttonWanted() ? start + dp(view, BUTTON_DP) + dp(view, BUTTON_GAP_DP) : start;
         }
 
@@ -586,9 +593,11 @@ public final class FeedSeekBar {
          * Puts the toggle button in [frame] just after [view], or takes it out when its switch is off.
          * With Instagram's [rows] of buttons there, lifted [lift] pixels, the toggle sits in them,
          * past a tags button on its side and level with it, or with the sound button when there's none,
-         * so none of them overlap (#794). Without them it sits at the bottom start, over the bar.
+         * so none of them overlap (#794). Without them it sits at the bottom start, over the bar. Either
+         * way it starts a gap past Instagram's small views in that corner, which end [clear] pixels in
+         * from the start, like the picture of someone who reposted the post (#891).
          */
-        private void showButton(FrameLayout frame, View view, List<ViewGroup> rows, int lift) {
+        private void showButton(FrameLayout frame, View view, List<ViewGroup> rows, int lift, int clear) {
             if (!buttonWanted()) {
                 removeButton();
                 return;
@@ -596,6 +605,7 @@ public final class FeedSeekBar {
             int size = dp(view, BUTTON_DP);
             int[] place = {dp(view, 8), barHeight(view, bar) + dp(view, 4)};
             if (!rows.isEmpty()) inRow(rows, frame, frame.getWidth(), lift, size, dp(view, BUTTON_GAP_DP), place);
+            if (clear >= 0) place[0] = Math.max(place[0], clear + dp(view, BUTTON_GAP_DP));
             Toggle shown = button;
             if (shown != null && shown.getParent() == frame) {
                 fit(shown, size, size, place[1]);
@@ -935,9 +945,7 @@ public final class FeedSeekBar {
      * HushGram's own views, [ours], don't either.
      */
     static List<View> cornerViews(FrameLayout frame, View... ours) {
-        ViewGroup root = frame;
-        for (int up = 0; up < ROW_LEVELS && root.getParent() instanceof ViewGroup; up++) root = (ViewGroup) root.getParent();
-        for (int up = ROW_LEVELS; up < CAROUSEL_LEVELS && wraps(root.getParent(), frame); up++) root = (ViewGroup) root.getParent();
+        ViewGroup root = mediaRoot(frame);
         List<View> found = new ArrayList<>();
         int[] at = new int[2];
         frame.getLocationInWindow(at);
@@ -978,6 +986,79 @@ public final class FeedSeekBar {
         if (y + h <= 0 || y * 3 > height) return false;
         if (rtl) return x >= -1 && (x + w) * 2 <= width && x * 4 <= width;
         return x * 2 >= width && x + w <= width + 1 && (x + w) * 4 >= 3 * width;
+    }
+
+    /**
+     * The post's media around [frame], where Instagram's views over the video are: as far up as the
+     * sound button's row is ({@link #buttonRow}), and on through a carousel's wrappers.
+     */
+    private static ViewGroup mediaRoot(FrameLayout frame) {
+        ViewGroup root = frame;
+        for (int up = 0; up < ROW_LEVELS && root.getParent() instanceof ViewGroup; up++) root = (ViewGroup) root.getParent();
+        for (int up = ROW_LEVELS; up < CAROUSEL_LEVELS && wraps(root.getParent(), frame); up++) root = (ViewGroup) root.getParent();
+        return root;
+    }
+
+    /**
+     * How far in from the start edge of the video in [frame] Instagram's small views in its bottom
+     * start corner end (#891): the picture of someone who reposted the post, the note over it, and
+     * the like. -1 when none is there. They're looked for where {@link #cornerViews} looks, as views
+     * that draw something rather than the groups holding them ({@link #inStartCorner}). Instagram's
+     * [rows] of buttons, which go up over the bar and leave room for the toggle themselves, and
+     * HushGram's own views, [ours], don't count.
+     */
+    static int startCornerEnd(FrameLayout frame, List<ViewGroup> rows, View... ours) {
+        if (frame.getWidth() == 0 || frame.getHeight() == 0) return -1;
+        int[] at = new int[2];
+        frame.getLocationInWindow(at);
+        boolean rtl = frame.getLayoutDirection() == View.LAYOUT_DIRECTION_RTL;
+        List<View> skip = new ArrayList<>(Arrays.asList(ours));
+        skip.addAll(rows);
+        return startCorner(mediaRoot(frame), frame, at[0], at[1], rtl, skip, -1);
+    }
+
+    /** {@link #startCornerEnd} under [group], at least [end]. */
+    private static int startCorner(ViewGroup group, FrameLayout frame, int left, int top, boolean rtl, List<View> skip,
+                                   int end) {
+        for (int i = 0; i < group.getChildCount(); i++) {
+            View child = group.getChildAt(i);
+            if (child.getVisibility() != View.VISIBLE || child.getAlpha() == 0f || skip.contains(child)) continue;
+            if (child instanceof ViewGroup) {
+                end = startCorner((ViewGroup) child, frame, left, top, rtl, skip, end);
+            } else {
+                end = Math.max(end, inStartCorner(child, frame, left, top, rtl));
+            }
+        }
+        return end;
+    }
+
+    /**
+     * How far in from the start edge of [frame], which starts at [left] and [top] in the window,
+     * [view] ends when it's a small view in the frame's bottom start corner, else -1: less than half
+     * as wide and a third as tall, reaching into its bottom third, in its start half and starting in
+     * its first quarter. An image with nothing in it, or a text with no words, draws nothing there.
+     */
+    private static int inStartCorner(View view, FrameLayout frame, int left, int top, boolean rtl) {
+        int width = frame.getWidth();
+        int height = frame.getHeight();
+        int w = view.getWidth();
+        int h = view.getHeight();
+        if (w == 0 || h == 0 || w * 2 > width || h * 3 > height || !view.isShown()) return -1;
+        if (view.getBackground() == null) {
+            if (view instanceof ImageView && ((ImageView) view).getDrawable() == null) return -1;
+            if (view instanceof TextView && TextUtils.isEmpty(((TextView) view).getText())) return -1;
+        }
+        int[] at = new int[2];
+        view.getLocationInWindow(at);
+        int x = at[0] - left;
+        int y = at[1] - top;
+        if (y >= height || (y + h) * 3 < 2 * height) return -1;
+        if (rtl) {
+            boolean inside = x + w <= width + 1 && x * 2 >= width && (width - x - w) * 4 <= width;
+            return inside ? width - x : -1;
+        }
+        boolean inside = x >= -1 && (x + w) * 2 <= width && x * 4 <= width;
+        return inside ? x + w : -1;
     }
 
     /**

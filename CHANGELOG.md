@@ -72,6 +72,7 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
+* On feed videos someone you follow reposted, the seek bar's button and the time under the tags button now sit past the reposter's picture and note in the bottom corner instead of on them. Reported in #891.
 * With `Hide the Like button` on, the buttons under a feed post now move over to fill the heart's spot, so the comment button sits at the left edge instead of next to an empty gap. Reported in #877.
 * With `Full-size Reels icon` or a bigger `Tab icon size`, the tab bar's icons are now sharp. They were drawn small and then stretched, which left them soft. Reported in #826.
 * Importing a big settings file no longer freezes Instagram. The settings page redid its whole list once for every setting in the file, so a file with hundreds of them could make Android offer to close Instagram. Reported in #341.

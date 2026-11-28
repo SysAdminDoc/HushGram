@@ -14,6 +14,8 @@ import static org.robolectric.Shadows.shadowOf;
 
 import android.app.Activity;
 import android.content.Context;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.os.Looper;
 import android.view.Gravity;
 import android.view.MotionEvent;
@@ -21,6 +23,7 @@ import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
@@ -941,6 +944,117 @@ public class FeedSeekBarTest {
         FeedSeekBar.progress(player, 5000, 15000);
         assertEquals("the post the bar left has both back", 0f, post.holder.getTranslationY(), 0f);
         assertEquals(0f, post.row.getTranslationY(), 0f);
+    }
+
+    /**
+     * The picture of someone who reposted a post, as Instagram shows it over the video's bottom start
+     * corner with a note over it (#891): an 80 px picture 30 px in and a 90 px note 20 px in, both
+     * ending 110 px in, in a holder of their own beside the post's row.
+     */
+    private static final class Reposter {
+        final FrameLayout holder;
+        final ImageView picture;
+        final TextView note;
+
+        Reposter(Activity activity) {
+            holder = new FrameLayout(activity);
+            picture = new ImageView(activity);
+            picture.setImageDrawable(new ColorDrawable(Color.GRAY));
+            FrameLayout.LayoutParams pictureAt = new FrameLayout.LayoutParams(80, 80, Gravity.BOTTOM | Gravity.START);
+            pictureAt.setMarginStart(30);
+            pictureAt.bottomMargin = 6;
+            holder.addView(picture, pictureAt);
+            note = new TextView(activity);
+            note.setText("ok");
+            FrameLayout.LayoutParams noteAt = new FrameLayout.LayoutParams(90, 40, Gravity.BOTTOM | Gravity.START);
+            noteAt.setMarginStart(20);
+            noteAt.bottomMargin = 90;
+            holder.addView(note, noteAt);
+        }
+    }
+
+    /**
+     * #891: a reposter's picture and note in the bottom start corner sat on the toggle and on the time
+     * under the tags button. Both now start a gap past them, and go back when the picture goes.
+     */
+    @Test
+    public void aRepostersPictureInTheCornerKeepsTheToggleAndTheTimeClear() {
+        Post post = post();
+        Reposter reposter = new Reposter(controller.get());
+        post.root.addView(reposter.holder, new FrameLayout.LayoutParams(200, 200, Gravity.BOTTOM | Gravity.START));
+        idle();
+        Settings.FEED_SEEK_BAR.save(true);
+        Settings.FEED_SEEK_BUTTON.save(true);
+        FeedSeekBar.progress(player, 3000, 15000);
+        idle();
+        float density = post.video.getResources().getDisplayMetrics().density;
+        int gap = Math.round(FeedSeekBar.BUTTON_GAP_DP * density);
+        assertEquals("a gap past the picture and the note, not just the tags button", 110 + gap,
+                buttonAt().getMarginStart());
+
+        Settings.FEED_SEEK_TIME.save(true);
+        Settings.FEED_SEEK_TIME_UNDER_TAGS.save(true);
+        FeedSeekBar.progress(player, 4000, 15000);
+        idle();
+        TextView time = FeedSeekBar.timeForTests();
+        assertNotNull(time);
+        assertEquals("the time's text starts past them too", 110 + gap - time.getPaddingStart(),
+                ((FrameLayout.LayoutParams) time.getLayoutParams()).getMarginStart());
+
+        reposter.note.setVisibility(View.GONE);
+        reposter.picture.setImageDrawable(null);
+        FeedSeekBar.progress(player, 5000, 15000);
+        idle();
+        assertEquals("an empty picture draws nothing there: back past the tags button", 12 + 64 + gap,
+                buttonAt().getMarginStart());
+        assertEquals("and the time back under it", Math.max(0, 12 - time.getPaddingStart()),
+                ((FrameLayout.LayoutParams) time.getLayoutParams()).getMarginStart());
+
+        reposter.picture.setImageDrawable(new ColorDrawable(Color.GRAY));
+        reposter.holder.setLayoutParams(new FrameLayout.LayoutParams(200, 200, Gravity.BOTTOM | Gravity.END));
+        idle();
+        FeedSeekBar.progress(player, 6000, 15000);
+        idle();
+        assertEquals("a picture in the end corner leaves the start alone", 12 + 64 + gap, buttonAt().getMarginStart());
+    }
+
+    /**
+     * #891 with no row of Instagram's buttons: a picture in the corner moves the toggle past it, and the
+     * time past the toggle; right to left, the corner is on the right and is measured from there.
+     */
+    @Test
+    public void withoutARowTheToggleStillClearsAPictureInTheCorner() {
+        ImageView picture = new ImageView(controller.get());
+        picture.setImageDrawable(new ColorDrawable(Color.GRAY));
+        FrameLayout.LayoutParams pictureAt = new FrameLayout.LayoutParams(60, 60, Gravity.BOTTOM | Gravity.START);
+        pictureAt.setMarginStart(10);
+        first.addView(picture, pictureAt);
+        idle();
+        Settings.FEED_SEEK_BAR.save(true);
+        Settings.FEED_SEEK_BUTTON.save(true);
+        Settings.FEED_SEEK_TIME.save(true);
+        Settings.FEED_SEEK_TIME_UNDER_TAGS.save(true);
+        FeedSeekBar.progress(player, 3000, 15000);
+        idle();
+        float density = firstVideo.getResources().getDisplayMetrics().density;
+        int gap = Math.round(FeedSeekBar.BUTTON_GAP_DP * density);
+        int toggle = Math.max(Math.round(8 * density), 70 + gap);
+        assertEquals(toggle, buttonAt().getMarginStart());
+        TextView time = FeedSeekBar.timeForTests();
+        assertNotNull(time);
+        assertEquals("the time past the toggle", toggle + Math.round(FeedSeekBar.BUTTON_DP * density) + gap
+                - time.getPaddingStart(), ((FrameLayout.LayoutParams) time.getLayoutParams()).getMarginStart());
+
+        assertEquals(70, FeedSeekBar.startCornerEnd(first, Collections.emptyList(), FeedSeekBar.buttonForTests(), time,
+                FeedSeekBar.barForTests()));
+        first.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        first.requestLayout();
+        idle();
+        assertEquals("right to left, 70 in from the right", 70, FeedSeekBar.startCornerEnd(first,
+                Collections.emptyList(), FeedSeekBar.buttonForTests(), time, FeedSeekBar.barForTests()));
+        picture.setVisibility(View.GONE);
+        assertEquals("gone, nothing there", -1, FeedSeekBar.startCornerEnd(first, Collections.emptyList(),
+                FeedSeekBar.buttonForTests(), time, FeedSeekBar.barForTests()));
     }
 
     /** #472: like Instagram's own scrubber, the video pauses under the finger and plays on from where it lands. */
